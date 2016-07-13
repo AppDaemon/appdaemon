@@ -64,7 +64,7 @@ class MotionLights(appapi.APPDaemon):
     ha.turn_off("light.drive")
 ```
 
-But it's staring to look more complicated using automations:
+But it's starting to look more complicated using automations:
 
 ```yaml
 automation:
