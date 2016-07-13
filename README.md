@@ -53,7 +53,7 @@ import appapi
 class MotionLights(appapi.APPDaemon):
 
   def initialize(self):
-    ha.listen_state(self.name, self.motion, "binary_sensor.drive")
+    ha.listen_state(self.name, self.motion, "binary_sensor", "drive")
   
   def motion(self, entity, attribute, old, new):
     if new == "on" and ha.sun_state() == "below_horizon":
@@ -112,7 +112,7 @@ import appapi
 class MotionLights(appapi.APPDaemon):
 
   def initialize(self):
-    ha.listen_state(self.name, self.motion, "binary_sensor.upstairs_sensor_28")
+    ha.listen_state(self.name, self.motion, "binary_sensor", "upstairs_sensor_28")
   
   def motion(self, entity, attribute, old, new):
     if new == "on" and ha.sun_state() == "below_horizon":
