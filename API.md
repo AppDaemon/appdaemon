@@ -60,6 +60,8 @@ class NightLight(appapi.APPDaemon):
     self.turn_on("light.porch")
 ```
 
+To sumarize - an App's lifecycle consists of being initialized, which allows it to set one or more state and/or schedule callbacks. When those callbacks are activated, the App will typically use one of the Service Calling calls to effect some change to the devices of the system and then wait for the next relevanty state change. That's all there is to it!
+
 ## About the API
 
 The implementation of the API is located in the APPDaemon class that Apps are derived from. The code for the functions is therefore available to the App simply by invoking the name of the function from the object namespace using the `self` keyword, as in the above examples. `self.turn_on()` for example is just a method defined in the parent class and made available to the child. This design decision was made to simplify some of the implementation and hide passing of unnecessary variables during the API invocation.
