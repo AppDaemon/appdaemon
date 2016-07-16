@@ -1,24 +1,26 @@
-import homeassistant as ha
 import appapi
 
 class MirrorLight(appapi.APPDaemon):
 
   def initialize(self):
-    ha.listen_state(self.name, self.light_changed, "light.andrew_bedside")
+    #return
+    self.listen_state(self.light_changed, "light.andrew_bedside")
     
-    state = ha.get_state("light.andrew_bedside", "state")
-    brightness = ha.get_state("light.andrew_bedside", "attributes.brightness")
+    state = self.get_state("light.andrew_bedside")
+    brightness = self.get_state("light.andrew_bedside", "brightness")
     
-    self.logger.info("MirrorLight: Current State is {}, current brightness is {}".format(state, brightness))
+    self.log("MirrorLight: Current State is {}, current brightness is {}".format(state, brightness))
     
-    if ha.get_state("light.andrew_bedside", "state") == "on":
-      ha.turn_on("light.office_lamp")
-
-  def light_changed(self, entity, old_state, new_state):
-    self.logger.info("entity state changed, old: {}, new: {}".format(old_state["state"], new_state["state"]))
-    
-    if new_state["state"] == 'on':
-      #ha.turn_on("light.office_lamp")
-      ha.turn_on("light.office_lamp", color_name = "blue")
+    if state == "on":
+      self.call_service("light", "office_lamp", color_name = "red")
     else:
-      ha.turn_off("light.office_lamp")
+      self.turn_off("light.office_lamp")
+
+  def light_changed(self, entity, attribute, old, new):
+    self.log("MirrorLight: entity {}.{} state changed, old: {}, new: {}".format(entity, attribute, old, new))
+    
+    if new == 'on':
+      #self.turn_on("light.office_lamp")
+      print(self.call_service("light", "turn_on", entity_id = "light.office_lamp", color_name = "red"))
+    else:
+      print(self.turn_off("light.office_lamp"))
