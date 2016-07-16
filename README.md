@@ -15,7 +15,6 @@ The best way to show what appdaemon does is through a few simple examples.
 Lets start with a simple App to turn a light on at a specific time - this app will turn on the porch light at 7:00pm. every night. It does so by registering a callback for Appdaemons's scheduler for a specific time. When the time occurs, the `run_daily()` function is called which then makes a call to Home Assistant to turn the porch light on.
 
 ```python
-import homeassistant as ha
 import appapi
 import datetime
 
@@ -23,10 +22,10 @@ class NightLight(appapi.APPDaemon):
 
   def initialize(self):
     time = datetime.time(19, 00, 0)
-    ha.run_daily(self.name, self.run_daily, time)
+    self.run_daily(self.run_daily_callback, time)
     
-  def run_daily(self, args, kwargs):
-    ha.turn_on("light.porch")
+  def run_daily_callback(self, args, kwargs):
+    self.turn_on("light.porch")
 ```
 
 Doing this via an automation is also fairly simple:
@@ -47,21 +46,20 @@ automation:
 Our next example is to turn on a light when motion is detected and it is dark, and turn it off after a period of time. This is still pretty simple using appdaemon:
 
 ```python
-import homeassistant as ha
 import appapi
 
 class MotionLights(appapi.APPDaemon):
 
   def initialize(self):
-    ha.listen_state(self.name, self.motion, "binary_sensor", "drive")
+    self.listen_state(self.motion, "binary_sensor", "drive")
   
   def motion(self, entity, attribute, old, new):
-    if new == "on" and ha.sun_state() == "below_horizon":
-      ha.turn_on("light.drive")
-      ha.run_in(self.name, self.light_off, 60)
+    if new == "on" and self.sun_state() == "below_horizon":
+      self.turn_on("light.drive")
+      self.run_in(self.light_off, 60)
   
   def light_off(self, args, kwargs):
-    ha.turn_off("light.drive")
+    selfturn_off("light.drive")
 ```
 
 But it's starting to look more complicated using automations:
@@ -106,29 +104,28 @@ script:
 Now lets extend this with a somewhat artificial example to show something that is simple in Appdaemon but very difficult if not impossible using automations. Lets warn someone inside the house that there has been motion outside by flashing a lamp on and off 10 times:
 
 ```python
-import homeassistant as ha
 import appapi
 
 class MotionLights(appapi.APPDaemon):
 
   def initialize(self):
-    ha.listen_state(self.name, self.motion, "binary_sensor", "drive")
+    self.listen_state(self.motion, "binary_sensor", "drive")
   
   def motion(self, entity, attribute, old, new):
-    if new == "on" and ha.sun_state() == "below_horizon":
-      ha.turn_on("light.drive")
-      ha.run_in(self.name, self.light_off, 60)
+    if new == "on" and self.sun_state() == "below_horizon":
+      self.turn_on("light.drive")
+      self.run_in(self.light_off, 60)
       self.flashcount = 0
-      self.flash_warning(None, None)
+      self.run_in(self.flash_warning, 1)
   
   def light_off(self, args, kwargs):
-    ha.turn_off("light.drive")
+    self.turn_off("light.drive")
     
   def flash_warning(self, args, kwargs):
-    ha.toggle("light.living_room")
+    self.toggle("light.living_room")
     self.flashcount += 1
     if self.flashcount < 10:
-      ha.run_in(self.name, self.flash_warning, 1)
+      self.run_in(self.flash_warning, 1)
 ```
 
 I will insert a better example here when I use the system a little more, but in the example above, appdaemon was only just getting started and can handle way more complex tasks. Addition of more logic to for instance only flash the light when someone is home, and start a siren otherwise would be very simple. 
@@ -215,6 +212,27 @@ If all is well, you should start to see some log lines showing that various apps
 2016-07-12 13:45:07,874 INFO Loading Module: /srv/hass/appdaemon_test/conf/apps/state.py
 2016-07-12 13:45:07,877 INFO Loading Object state using class State from module state
 ```
+
+# appdaemon arguments
+
+usage: appdaemon.py [-h] [-d] [-p PIDFILE]
+                    [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                    config
+
+positional arguments:
+  config                full path to config file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d, --daemon          run as a background process
+  -p PIDFILE, --pidfile PIDFILE
+                        full path to PID File
+  -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        debug level
+
+-d and -p are used by the init file to start the process as a daemon and are not required if running from the command line. 
+
+-D can be used to increase the debug level for internal appdaemon operations as well as apps using the logging function.
 
 # Starting At Reboot
 To run `appdaemon` at reboot, I have provided a sample init script in the `./init` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems.
