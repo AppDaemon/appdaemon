@@ -16,10 +16,17 @@ class APPDaemon():
     self._error = error
     self.args = args
     self.global_vars = global_vars
+    
+  def _check_entity(self, entity):
+    if entity.find(".") == -1:
+      raise ValueError("Invalid entity ID: {}".format(entity))  
+
+  def _check_service(self, service):
+    if service.find("/") == -1:
+      raise ValueError("Invalid Service Name: {}".format(service))  
   
   def split_entity(self, entity_id):
-    if entity_id.find(".") == -1:
-      raise ValueError("Invalid entity ID")
+    self._check_entity(entity_id)
     return(entity_id.split("."))
     
   def split_device_list(self, list):
@@ -35,6 +42,7 @@ class APPDaemon():
     return (key for key, value in self.get_state("device_tracker").items())
     
   def get_tracker_state(self, entity_id):
+    self._check_entity(entity_id)
     return(self.get_state(entity_id))
     
   def anyone_home(self):
@@ -53,6 +61,7 @@ class APPDaemon():
     return conf.objects[name]
     
   def friendly_name(self, entity_id):
+    self._check_entity(entity_id)
     if entity_id in conf.ha_state:
       if "friendly_name" in conf.ha_state[entity_id]["attributes"]:
         return conf.ha_state[entity_id]["attributes"]["friendly_name"]
@@ -61,6 +70,8 @@ class APPDaemon():
     return None
     
   def get_state(self, entity_id = None, attribute = None):
+    if entity_id != None:
+      self._check_entity(entity_id)
     conf.logger.debug("get_state: {}.{}".format(entity_id, attribute))
     device = None
     entity = None
@@ -103,6 +114,7 @@ class APPDaemon():
           return None
 
   def set_state(self, entity_id, **kwargs):
+    self._check_entity(entity_id)
     conf.logger.debug("set_state: {}, {}".format(entity_id, kwargs))
     if conf.ha_key != "":
       headers = {'x-ha-access': conf.ha_key}
@@ -125,8 +137,7 @@ class APPDaemon():
     return r.json()
     
   def call_service(self, service, **kwargs):
-    if service.find("/") == -1:
-      raise ValueError("Invalid service name")
+    self._check_service(event)    
     d, s = service.split("/")
     conf.logger.debug("call_service: {}/{}, {}".format(d, s, kwargs))
     if conf.ha_key != "":
@@ -139,6 +150,7 @@ class APPDaemon():
     return r.json()
     
   def turn_on(self, entity_id, **kwargs):
+    self._check_entity(entity_id)
     if kwargs == {}:
       rargs = {"entity_id": entity_id}
     else:
@@ -147,9 +159,11 @@ class APPDaemon():
     self.call_service("homeassistant/turn_on", **rargs)
     
   def turn_off(self, entity_id):
+    self._check_entity(entity_id)
     self.call_service("homeassistant/turn_off", entity_id = entity_id)
 
   def toggle(self, entity_id):
+    self._check_entity(entity_id)
     self.call_service("homeassistant/toggle", entity_id = entity_id)
     
   def notify(self, message, title=None):
@@ -173,7 +187,7 @@ class APPDaemon():
     if name not in conf.callbacks:
         conf.callbacks[name] = {}
     handle = uuid.uuid4()
-    conf.callbacks[name][handle] = {"type": "state", "function": function, "entity": entity, "attribute": attribute}
+    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "state", "function": function, "entity": entity, "attribute": attribute}
     return handle
 
   def listen_event(self, function, event):
@@ -181,7 +195,7 @@ class APPDaemon():
     if name not in conf.callbacks:
         conf.callbacks[name] = {}
     handle = uuid.uuid4()
-    conf.callbacks[name][handle] = {"type": "event", "function": function, "event": event}
+    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "event", "function": function, "event": event}
     return handle
 
   def cancel_listen_event(self, handle):
@@ -309,7 +323,7 @@ class APPDaemon():
     if name not in conf.schedule:
       conf.schedule[name] = {}
     handle = uuid.uuid4()
-    conf.schedule[name][handle] = {"callback": callback, "timestamp": utc, "repeat": repeat, "time": time, "type": type, "args": args, "kwargs": kwargs}
+    conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": utc, "repeat": repeat, "time": time, "type": type, "args": args, "kwargs": kwargs}
     return handle
     
   def _schedule_sun(self, name, type, offset, callback, *args, **kwargs):

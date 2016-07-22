@@ -269,4 +269,3 @@ Initial Release
 ## Known Issues
 
 - There is a race condition that prevents sunrise() and sunset() from being updated to their new values for a few seconds after Sunrise and Sunset respectively
-- If thread starvation occurs and callback are queued, they will continue to be called even after the App has been reloaded or removed until the queue is emptied

@@ -23,6 +23,7 @@ import time
 import datetime
 import signal
 import re
+import uuid
 import homeassistant as ha
 import appapi as api
 
@@ -154,7 +155,7 @@ def exec_schedule(name, entry, args):
   if "inactive" in args:
     return
   # Call function
-  dispatch_worker(name, {"type": "timer", "function": args["callback"], "args": args["args"], "kwargs": args["kwargs"], })
+  dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "args": args["args"], "kwargs": args["kwargs"], })
   # If it is a repeating entry, rewrite with new timestamp
   if args["repeat"]:
     if args["type"] == "next_rising" or args["type"] == "next_setting":
@@ -231,35 +232,40 @@ def do_every_second():
   
 def timer_thread():
   do_every(1, do_every_second)
-        
+  
 def worker():
   while True:
     args = q.get()
     type = args["type"]
     function = args["function"]
-    try:
-      if type == "initialize":
-        function()
-      if type == "timer":
-        function(args["args"], args["kwargs"])
-      elif type == "attr":
-        entity = args["entity"]
-        attr = args["attr"]
-        old_state = args["old_state"]
-        new_state = args["new_state"]
-        function(entity, attr, old_state, new_state)
-      elif type == "event":
-        data = args["data"]
-        function(args["event"], data)
+    id = args["id"]
+    name = args["name"]
+    if conf.objects[name]["id"] == id:
+      try:
+        if type == "initialize":
+          function()
+        if type == "timer":
+          function(args["args"], args["kwargs"])
+        elif type == "attr":
+          entity = args["entity"]
+          attr = args["attr"]
+          old_state = args["old_state"]
+          new_state = args["new_state"]
+          function(entity, attr, old_state, new_state)
+        elif type == "event":
+          data = args["data"]
+          function(args["event"], data)
 
-    except:
-      conf.error.warn('-'*60)
-      conf.error.warn("Unexpected error:")
-      conf.error.warn('-'*60)
-      conf.error.warn(traceback.format_exc())
-      conf.error.warn('-'*60)
-      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+      except:
+        conf.error.warn('-'*60)
+        conf.error.warn("Unexpected error:")
+        conf.error.warn('-'*60)
+        conf.error.warn(traceback.format_exc())
+        conf.error.warn('-'*60)
+        conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
+    else:
+      conf.logger.warning("Found stale callback - discarding")
     q.task_done()
 
 def clear_file(name):
@@ -282,11 +288,11 @@ def init_object(name, class_name, module_name, args):
   conf.logger.info("Loading Object {} using class {} from module {}".format(name, class_name, module_name))
   module = __import__(module_name)  
   APPclass = getattr(module, class_name)
-  conf.objects[name] = APPclass(name, conf.logger, conf.error, args, conf.global_vars)
+  conf.objects[name] = {"object": APPclass(name, conf.logger, conf.error, args, conf.global_vars), "id": uuid.uuid4()}
 
   # Call it's initialize function
   
-  q.put_nowait({"type": "initialize", "function": conf.objects[name].initialize})
+  q.put_nowait({"type": "initialize", "name": name, "id": conf.objects[name]["id"], "function": conf.objects[name]["object"].initialize})
 
 def process_message(msg):
   try:
@@ -334,17 +340,17 @@ def process_message(msg):
               else:
                 cdevice, centity = callback["entity"].split(".")
             if cdevice == None:
-              dispatch_worker(name, {"type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
+              dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
             elif centity == None:
               if device == cdevice:
-                dispatch_worker(name, {"type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
+                dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
             elif cattribute == None:
               if device == cdevice and entity == centity:
-               dispatch_worker(name, {"type": "attr", "function": callback["function"], "entity": entity_id, "attr": "state", "new_state": data['data']['new_state']['state'], "old_state": data['data']['old_state']['state']})
+               dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "entity": entity_id, "attr": "state", "new_state": data['data']['new_state']['state'], "old_state": data['data']['old_state']['state']})
             else:
               if device == cdevice and entity == centity:
                 if cattribute == "all":
-                  dispatch_worker(name, {"type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
+                  dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
                 else:
                   if cattribute in data['data']['old_state']:
                     old = data['data']['old_state'][cattribute]
@@ -360,14 +366,14 @@ def process_message(msg):
                     new = None
 
                   if old != new:
-                    dispatch_worker(name, {"type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": new, "old_state": old})
+                    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": new, "old_state": old})
 
     # Process non-state callbacks
     for name in conf.callbacks.keys():
       for uuid in conf.callbacks[name]:
         callback = conf.callbacks[name][uuid]
         if "event" in callback and data['event_type'] == callback["event"]:
-          dispatch_worker(name, {"type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"]})
+          dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"]})
 
     else:
       conf.logger.debug(data["data"])
