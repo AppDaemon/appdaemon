@@ -18,7 +18,7 @@ import datetime
 #   Initial Version
 
 
-class DarkDay(appapi.APPDaemon):
+class DarkDay(appapi.AppDaemon):
 
   def initialize(self):
     

@@ -1,6 +1,6 @@
 import appapi
 
-class Battery(appapi.APPDaemon):
+class Battery(appapi.AppDaemon):
 
   def initialize(self):
     self.handle = self.listen_state(self.all_state)

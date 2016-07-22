@@ -1,20 +1,20 @@
-# Appdaemon API Documentation
+# AppDaemon API Documentation
 
-appdaemon is a loosely coupled, sandboxed, multi-threaded Python execution environment for writing automation apps for [Home Assistant](https://home-assistant.io/) home automation software. It is intended to complement the Automation and Script components that Home Assistant currently offers.
+AppDaemon is a loosely coupled, sandboxed, multi-threaded Python execution environment for writing automation apps for [Home Assistant](https://home-assistant.io/) home automation software. It is intended to complement the Automation and Script components that Home Assistant currently offers.
 
 ## Anatomy of an App
 
-Automations in appdaemon are performed by creating a piece of code (essentially a Python Class) and then instantiating it as an Object one or more times by configuring it as an App in the configuration file. The App is given a chance to register itself for whatever events it wants to subscribe to, and appdaemon will then make calls back into the Object's code when those events occur, allowing the App to respond to the event with some kind of action.
+Automations in AppDaemon are performed by creating a piece of code (essentially a Python Class) and then instantiating it as an Object one or more times by configuring it as an App in the configuration file. The App is given a chance to register itself for whatever events it wants to subscribe to, and AppDaemon will then make calls back into the Object's code when those events occur, allowing the App to respond to the event with some kind of action.
 
-The first step is to create a unique file within the apps directory (as defined in the `[appdaemon]` section of configuration file - see [README](README.md) for further information on the configuration of appdaemon itself). This file is in fact a python module, and is expected to contain one or more classes derived from the supplied `APPDaemon` class, imported from the supplied `appapi` module. The start of an app might look like this:
+The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `appapi` module. The start of an app might look like this:
 
 ```python
 import appapi
 
-class MotionLights(appapi.APPDaemon):
+class MotionLights(appapi.AppDaemon):
 ```
 
-When configured as an app in the config file (more on that later) the lifecycle of the App begins. It will be instantiated as an object by appdaemon, and immediately, it will have a call made to it's `initialize()` function - this function must appear as part of every app:
+When configured as an app in the config file (more on that later) the lifecycle of the App begins. It will be instantiated as an object by AppDaemon, and immediately, it will have a call made to it's `initialize()` function - this function must appear as part of every app:
 
 ```python
   def initialize(self):
@@ -24,7 +24,7 @@ The initialize function alows the app to register any callbacks it might need fo
 
 There are several circumstances under which `initialize()` might be called:
 
-- Initial start of appdaemon
+- Initial start of AppDaemon
 - Following a change to the Class code
 - Following a change to the module parameters
 - Following initial configuration of an app
@@ -47,7 +47,7 @@ import appapi
 import datetime
 
 # Declare Class
-class NightLight(appapi.APPDaemon):
+class NightLight(appapi.AppDaemon):
   #initialize() function which will be called at startup and reload
   def initialize(self):
     # Create a time object for 7pm
@@ -65,10 +65,10 @@ To sumarize - an App's lifecycle consists of being initialized, which allows it 
 
 ## About the API
 
-The implementation of the API is located in the APPDaemon class that Apps are derived from. The code for the functions is therefore available to the App simply by invoking the name of the function from the object namespace using the `self` keyword, as in the above examples. `self.turn_on()` for example is just a method defined in the parent class and made available to the child. This design decision was made to simplify some of the implementation and hide passing of unnecessary variables during the API invocation.
+The implementation of the API is located in the AppDaemon class that Apps are derived from. The code for the functions is therefore available to the App simply by invoking the name of the function from the object namespace using the `self` keyword, as in the above examples. `self.turn_on()` for example is just a method defined in the parent class and made available to the child. This design decision was made to simplify some of the implementation and hide passing of unnecessary variables during the API invocation.
 
 ## Configuration of Apps
-Apps are configured by specifying new sections in the configuration file. `[appdaemon]` is a reserved section, described in the [README](README.md) for configutration of appdaemon itself. The name of the section is the name the App is referred to within the systrem in logfiles etc. and must be unique.
+Apps are configured by specifying new sections in the configuration file. `[AppDaemon]` is a reserved section, described in the [README](README.md) for configutration of AppDaemon itself. The name of the section is the name the App is referred to within the systrem in logfiles etc. and must be unique.
 
 To configure a new App you need a minimum of two directives:
 
@@ -83,13 +83,13 @@ module = new
 class = NewApp
 ```
 
-When appdaemon sees the following configuration it will expect to find a class called `NewApp` defined in a module called `new.py` in the apps subdirectory.
+When AppDaemon sees the following configuration it will expect to find a class called `NewApp` defined in a module called `new.py` in the apps subdirectory.
 
 When starting the system for the first time or when reloading an App or Module, the system will log the fact in it's main log. It is oftenm the case that there is a problem with th class, maybe a syntax error or some other problem. If that is the case, details will be output to the error log allowing the user to remedy the problem and reload.
 
 ## Steps to writing an App
 
-1. Create the code in a new or shared module by deriving a class from APPDaemon, add required callbacks and code
+1. Create the code in a new or shared module by deriving a class from AppDaemon, add required callbacks and code
 2. Add the App to the configuration file
 3. There is no number 3 ...
 
@@ -244,7 +244,7 @@ Any other attributes such as brightness for a lamp will only be present if the e
 
 Bear in mind also, that some attributes such as brightness for a light, will not be present when the light is off.
 
-In most cases, the sttribute `state` has the most important value in it, e.g. for a light or switch this will be `on` or `off`, for a sensor it will be the value of that sensor. Many of the appdaemon API calls and callbacks will implicitly return the value of state unless told to do otherwise.
+In most cases, the sttribute `state` has the most important value in it, e.g. for a light or switch this will be `on` or `off`, for a sensor it will be the value of that sensor. Many of the AppDaemon API calls and callbacks will implicitly return the value of state unless told to do otherwise.
 
 ### get_state()
 
@@ -252,7 +252,7 @@ In most cases, the sttribute `state` has the most important value in it, e.g. fo
 
 `get_state(entity = None, attribute = None)`
 
-`get_state()` is used to query the state of any component within Home Assistant. State updates are continuously tracked so this call runs locally and does not require appdaemon to call back to Home Assistant and as such is very efficient.
+`get_state()` is used to query the state of any component within Home Assistant. State updates are continuously tracked so this call runs locally and does not require AppDaemon to call back to Home Assistant and as such is very efficient.
 
 #### Returns
 
@@ -327,15 +327,15 @@ status = self.set_state("light.office_1", state = "on", attributes = {"color_nam
 
 ### About State Callbacks
 
-A large proportion of home automation revolves around waiting for something to happen and then reacting to it - a light level drops, the sun rises, a door opens etc. Home Assistant keeps track of every state change that occurs within the system and stream that information to appdaemon almost immediately.
+A large proportion of home automation revolves around waiting for something to happen and then reacting to it - a light level drops, the sun rises, a door opens etc. Home Assistant keeps track of every state change that occurs within the system and stream that information to AppDaemon almost immediately.
 
-An individual App however usually doesn't care about the majority of state changes going on in the system, they usually care about something very specific, like a specific sensor or light. Apps need a way to be notified when a state change happens that they care about, and be able to ignore the rest - they do this through registering callbacks. A callback allows the App to describe exactly what it is interested in, and tell appdaemon to make a call into it's code in a specific place to be able to react to it - this is a very familiar concept to anyone familiar with even-based programming.
+An individual App however usually doesn't care about the majority of state changes going on in the system, they usually care about something very specific, like a specific sensor or light. Apps need a way to be notified when a state change happens that they care about, and be able to ignore the rest - they do this through registering callbacks. A callback allows the App to describe exactly what it is interested in, and tell AppDaemon to make a call into it's code in a specific place to be able to react to it - this is a very familiar concept to anyone familiar with even-based programming.
 
-Appdaemons's state callbacks allow an App to listen to a wide variety of events, from every state change in the system, right down to a change of a single attribute of a particular entity. Setting up of a callback is done using a single API call `listen_state()` that takes various arguments to allow it to do all of the above. Apps can register as many or as few callbacks as they want.
+AppDaemons's state callbacks allow an App to listen to a wide variety of events, from every state change in the system, right down to a change of a single attribute of a particular entity. Setting up of a callback is done using a single API call `listen_state()` that takes various arguments to allow it to do all of the above. Apps can register as many or as few callbacks as they want.
 
 ### About State Callback Functions
 
-When calling back into the App, the App must provide a class function with a known signature for appdaemon to call. The callback will provide various information to the function to enable the function to respond appropriately. For state callbacks, a class defined callback funciton should look like this:
+When calling back into the App, the App must provide a class function with a known signature for AppDaemon to call. The callback will provide various information to the function to enable the function to respond appropriately. For state callbacks, a class defined callback funciton should look like this:
 
 ```python
   def my_callback(self, entity, attribute, old, new):
@@ -432,7 +432,7 @@ The handle returned when the `listen_state()` call was made.
 
 ## Scheduler
 
-Appdaemon contains a powerful scheduler that is able to run with 1 second resolution to fire off specific events at set times, or after set delays, or even relative to sunrise and sunset. In general, events should be fired less than a second after specified but under certain circumstances there may be short additional delays.
+AppDaemon contains a powerful scheduler that is able to run with 1 second resolution to fire off specific events at set times, or after set delays, or even relative to sunrise and sunset. In general, events should be fired less than a second after specified but under certain circumstances there may be short additional delays.
 
 ### About Schedule Callbacks
 
@@ -680,7 +680,7 @@ self.cancel_timer(handle)
 
 ## Sunrise and Sunset
 
-Appdaemon has a number of features to allow easy tracking of sunrise and sunset as well as a couple of scheduler functions.
+AppDaemon has a number of features to allow easy tracking of sunrise and sunset as well as a couple of scheduler functions.
 ### run_at_sunrise()
 Run a callback at or around sunrise.
 #### Synopsis
@@ -788,9 +788,9 @@ if self.sun_down():
 ```
 ## Calling Services
 ### About Services
-Services within Home Assistant are how changes are made to the system and its devices. Services can be used to tutn lights on and off, set thermostats and a whole number of other things. Home Assistant supplies a single interface to allk of these disparate services that take arbitary parameters. Appdaemon provides the `call_service()` function to call into Home Assistant and run a service. In addition, it also provides convenience finctions for some of the more common services making calling them a little easier.
+Services within Home Assistant are how changes are made to the system and its devices. Services can be used to tutn lights on and off, set thermostats and a whole number of other things. Home Assistant supplies a single interface to allk of these disparate services that take arbitary parameters. AppDaemon provides the `call_service()` function to call into Home Assistant and run a service. In addition, it also provides convenience finctions for some of the more common services making calling them a little easier.
 ### call_service()
-Call service is the basic way of calling a service within appdaemon. It can call any service and provide any required parameters. Available services can be found using the developer tools in the UI. For listed services, the part before the first period is the domain, and the part after is the service name. For instance, `light.turn_on` has a domain of 1light1 and a service name of `turn_on`.
+Call service is the basic way of calling a service within AppDaemon. It can call any service and provide any required parameters. Available services can be found using the developer tools in the UI. For listed services, the part before the first period is the domain, and the part after is the service name. For instance, `light.turn_on` has a domain of 1light1 and a service name of `turn_on`.
 #### Synopsis
 self.call_service(self, service, **kwargs)
 #### Returns
@@ -878,7 +878,7 @@ Title of the notification - optional.
 self.notify("", "Switching mode to Evening")
 ## Events
 ### About Events
-Events are a fundamental part of how Home Assistant works under the covers. HA has an event bus that all components can read and write to, enabling componenst to inform other components when important events take place. We have already seen how state changes can be propagated to appdaemon - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
+Events are a fundamental part of how Home Assistant works under the covers. HA has an event bus that all components can read and write to, enabling componenst to inform other components when important events take place. We have already seen how state changes can be propagated to AppDaemon - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
 
 - homeassistant_start
 - homeassistant_stop
@@ -889,7 +889,7 @@ Events are a fundamental part of how Home Assistant works under the covers. HA h
 - platform_discovered
 - component_loaded
 
-Using appdaemon, it is possible to subscribe to specific events as well as fire off events.
+Using AppDaemon, it is possible to subscribe to specific events as well as fire off events.
 ### listen_event()
 Listen event sets up a callback for a specific event.
 #### Synopsis
@@ -988,7 +988,7 @@ self.fire_event("MODE_CHANGE", mode = "Day")
 ```
 
 ## Presence
-Presence in Home Assistant is tracked using Device Trackers. The state of all device trackers can be found using the ```get_state()``` call, however appdaemon provides several convenience functions to make this easier.
+Presence in Home Assistant is tracked using Device Trackers. The state of all device trackers can be found using the ```get_state()``` call, however AppDaemon provides several convenience functions to make this easier.
 ### get_trackers()
 Return a list of all device trackers. This is designed to be iterated over.
 #### Synopsis
@@ -1193,7 +1193,7 @@ for sensor in self.split_device_list(self.args["sensors"]):
 
 ### Writing to Logfiles
 
-Appdaemon uses 2 separate logs - the general log and the error log. An appdaemon App can write to either of these using the supplied convenience methods `log()` and `error()`, which are provided as part of parent `APPDaemon` class, and the call will automatically pre-pend the name of the App making the call. The `-D` option of appdaemon can be used to specify what level of logging is required and the logger objects will work as expected.
+AppDaemon uses 2 separate logs - the general log and the error log. An AppDaemon App can write to either of these using the supplied convenience methods `log()` and `error()`, which are provided as part of parent `AppDaemon` class, and the call will automatically pre-pend the name of the App making the call. The `-D` option of AppDaemon can be used to specify what level of logging is required and the logger objects will work as expected.
 
 ### log()
 #### Synopsis

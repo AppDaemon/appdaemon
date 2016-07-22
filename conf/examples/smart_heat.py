@@ -25,7 +25,7 @@ import datetime
 # Version 1.0:
 #   Initial Version
 
-class SmartHeat(appapi.APPDaemon):
+class SmartHeat(appapi.AppDaemon):
 
   def initialize(self):
     

@@ -12,7 +12,7 @@ import appapi
 # Version 1.0:
 #   Initial Version
 
-class DoorNotification(appapi.APPDaemon):
+class DoorNotification(appapi.AppDaemon):
 
   def initialize(self):
     self.listen_state(self.state_change, self.args["sensor"])

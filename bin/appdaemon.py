@@ -402,7 +402,7 @@ def check_config():
       # Check for changes
       
       for name in config:
-        if name == "DEFAULT" or name == "appdaemon":
+        if name == "DEFAULT" or name == "AppDaemon":
           continue
         if name in new_config:
           if config[name] != new_config[name]:
@@ -420,7 +420,7 @@ def check_config():
           clear_object(name)
         
       for name in new_config:
-        if name == "DEFAULT" or name == "appdaemon":
+        if name == "DEFAULT" or name == "AppDaemon":
           continue
         if not name in config:
           #
@@ -472,7 +472,7 @@ def readApp(file, reload = False):
     # Instantiate class and Run initialize() function
     
     for name in config:
-      if name == "DEFAULT" or name == "appdaemon":
+      if name == "DEFAULT" or name == "AppDaemon":
         continue
       if module_name == config[name]["module"]:
         class_name = config[name]["class"]
@@ -591,14 +591,14 @@ def main():
   config = configparser.ConfigParser()
   config.read_file(open(args.config))
   
-  assert "appdaemon" in config, "[appdaemon] section required in {}".format(args.config)
+  assert "AppDaemon" in config, "[AppDaemon] section required in {}".format(args.config)
 
-  conf.ha_url = config['appdaemon']['ha_url']
-  conf.ha_key = config['appdaemon']['ha_key']
-  conf.logfile = config['appdaemon']['logfile']
-  conf.errorfile = config['appdaemon']['errorfile']
-  conf.app_dir = config['appdaemon']['app_dir']
-  conf.threads = int(config['appdaemon']['threads'])
+  conf.ha_url = config['AppDaemon']['ha_url']
+  conf.ha_key = config['AppDaemon']['ha_key']
+  conf.logfile = config['AppDaemon']['logfile']
+  conf.errorfile = config['AppDaemon']['errorfile']
+  conf.app_dir = config['AppDaemon']['app_dir']
+  conf.threads = int(config['AppDaemon']['threads'])
   
   config_file_modified = os.path.getmtime(args.config)
     

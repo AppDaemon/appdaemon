@@ -17,7 +17,7 @@ import appapi
 # Version 1.0:
 #   Initial Version
 
-class MotionLights(appapi.APPDaemon):
+class MotionLights(appapi.AppDaemon):
 
   def initialize(self):
     

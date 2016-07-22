@@ -8,7 +8,7 @@ import requests
 
 import homeassistant as ha
 
-class APPDaemon():
+class AppDaemon():
 
   def __init__(self, name, logger, error, args, global_vars):
     self.name = name
@@ -137,7 +137,7 @@ class APPDaemon():
     return r.json()
     
   def call_service(self, service, **kwargs):
-    self._check_service(event)    
+    self._check_service(service)    
     d, s = service.split("/")
     conf.logger.debug("call_service: {}/{}, {}".format(d, s, kwargs))
     if conf.ha_key != "":

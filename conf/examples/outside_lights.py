@@ -8,7 +8,7 @@ import appapi
 # on_scene: scene to activate at sunset
 # off_scene: scene to activate at sunrise
 
-class OutsideLights(appapi.APPDaemon):
+class OutsideLights(appapi.AppDaemon):
 
   def initialize(self):
       

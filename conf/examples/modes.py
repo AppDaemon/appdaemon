@@ -19,7 +19,7 @@ import datetime
 # Version 1.0:
 #   Initial Version
 
-class Modes(appapi.APPDaemon):
+class Modes(appapi.AppDaemon):
 
   def initialize(self):
     

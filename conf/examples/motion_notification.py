@@ -12,7 +12,7 @@ import appapi
 # Version 1.0:
 #   Initial Version
 
-class MotionNotification(appapi.APPDaemon):
+class MotionNotification(appapi.AppDaemon):
 
   def initialize(self):
     if "sensor" in self.args:

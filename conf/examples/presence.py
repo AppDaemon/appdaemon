@@ -17,7 +17,7 @@ import appapi
 # Version 1.0:
 #   Initial Version
 
-class Presence(appapi.APPDaemon):
+class Presence(appapi.AppDaemon):
 
   def initialize(self):
     
