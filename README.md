@@ -177,7 +177,7 @@ ImportError: cannot import name 'InsecureRequestWarning'
 ```
 This can be fixed with:
 ```
-$ sudo pip3 install requests==2.6.0
+$ sudo pip3 install --upgrade requests
 ```
 
 When you have all the prereqs in place, edit the `[AppDaemon]` section of the conf/AppDaemon.cfg file to reflect your environment:
