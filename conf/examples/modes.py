@@ -33,7 +33,7 @@ class Modes(appapi.APPDaemon):
     self.run_daily(self.night_mode_check, runtime)
 
   def night_mode_check(self, args, kwargs):
-    # If we are absent, the usual manual switch to Night will not occur, so automate iv vacation flag is set
+    # If we are absent, the usual manual switch to Night will not occur, so automate if vacation flag is set
     if self.get_state("input_boolean.vacation") == "on":
       self.night(True)
   
