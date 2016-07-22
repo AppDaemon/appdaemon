@@ -29,6 +29,7 @@ There are several circumstances under which `initialize()` might be called:
 - Following a change to the module parameters
 - Following initial configuration of an app
 - Following a change in the status of Daylight Savings Time
+- Following a restart of Home Assistant
 
 In every case, the App is responsible for recreating any state it might need as if it were the first time it was ever started. If `initialize()` is called, the app can safely assume that it is either being loaded for the first time, or that all callbacks and timers have been cancelled. In either case, the APP will need to recreate them. Depending upon the application it may be desirable for the App to establish state such as whether or not a particular light is on, within the `initialize()` function to ensure that eveyrthing is as expected or to make immediate remedial action (e.g. turn off a light that might have been left on by mistake when the app was restarted).
 
@@ -74,7 +75,7 @@ To configure a new App you need a minimum of two directives:
 - `module` - the name of the module (without the `.py`) that contains the class to be used for this App
 - `class` - the name of the class as defined within the module for the APPs code
 
-Although the section/App name must be unique, it is possible to re-use a class as many times as you want, and conversely to put as many classes in a module as you want. A sample definition for a new App might loo as follows:
+Although the section/App name must be unique, it is possible to re-use a class as many times as you want, and conversely to put as many classes in a module as you want. A sample definition for a new App might look as follows:
 
 ```ini
 [newapp]
@@ -82,9 +83,9 @@ module = new
 class = NewApp
 ```
 
-When appdaemon sees the follwoing configuration it will expect to find a class called `NewApp` defined in a module called `new.py` in the apps subdirectory.
+When appdaemon sees the following configuration it will expect to find a class called `NewApp` defined in a module called `new.py` in the apps subdirectory.
 
-WHen starting the system for the first time or when reloading an App or Module, the system will log the fact in it's main log. It is oftenm the case that there is a problem with th class, maybe a syntax error or some other problem. If that is the case, details will be output to the error log allowing the user to remedy the problem and reload.
+When starting the system for the first time or when reloading an App or Module, the system will log the fact in it's main log. It is oftenm the case that there is a problem with th class, maybe a syntax error or some other problem. If that is the case, details will be output to the error log allowing the user to remedy the problem and reload.
 
 ## Steps to writing an App
 
@@ -137,6 +138,88 @@ module = motion_light
 class = MotionLight
 sensor = binary_sensor.garage
 light = light.garage
+```
+
+## Callback Constraints
+
+Callback constraints are a feature of AppDaemon that removes the need for repetition of some common coding checks. Many Apps will wish to process their callbacks only when certain conditions are met, e.g. someone is home, and it's after sunset. These kinds of conditions crop up a lot, and use of callback constraints can significantly simplify the logic required within callbacks. 
+
+Put simply, callback constraints are one or more conditions on callback execution that can be applied to an individual App. An Apps callbacks will only be executed if all of the constraints are met.. If a constraint is absent it will not be checked for.
+
+For example, the presence callback constraint can be added to an App by adding a parameter to it's configuration like this:
+
+```ini
+[some_app]
+module = some_module
+class = SomeClass
+constrain_presence = noone
+```
+
+Now, although the `initialize()` function will be called for MyClass, aand it will have a chance to register as many callbacks as it desires, none of the callbacks will execute, in this case, until everyone has left. This could be usefule for an interior motion detector App for instance. There are several different types of constraints:
+
+- input_boolean
+- input_select
+- presence
+- time
+
+An App can have as many or as few as are required. When more than one constraint is present, they must all evaluate to true to allow the callbacks to be called. Constraints becoming true are not an event in their own right, but if they are all true at a point in time, the next callback that would otherwise been blocked due to constraint failure will now be called. Similarly, if one of the constraints becomes false, the next callback that would otherwise have been called will be blocked.
+
+They are described individually below.
+### input_boolean
+The input_boolean constraint prevents callbacks unless the specified input_boolean is set to "on". This is useful to allow certain Apps to be turned on and off from the user interface. For example:
+
+```ini
+[some_app]
+module = some_module
+class = SomeClass
+constrain_input_boolean = input_boolean.enable_motion_detection
+```
+### input_select
+The input_select constraint prevents callbacks unless the specified input_select is set to one or more of the nominated (comma separated) values. This is useful to allow certain Apps to be turned on and off according to some flag, e.g. a house mode flag.
+
+```ini
+# Single value
+constrain_input_select = input_select.house_mode,Day
+# or multiple values
+constrain_input_select = input_select.house_mode,Day,Evening,Night
+```
+
+### presence
+The presence constraint will constrain based on presence of device trackers. It takes 3 possible values:
+- noone - only allow callback execution when noone is home
+- anyone - only allow callback execution when one or more person is home
+- everyone - only allow callback execution when everyone is home
+
+```ini
+constrain_presence = anyone
+# or
+constrain_presence = someone
+# or
+constrain_presence = noone
+```
+
+### time
+The time constraint consists of 2 variables, `constrain_start_time` and `constrain_end_time`. Callbacks will only be executed if the current time is between the start and end times.
+- If both are absent no time constraint will exist
+- If only start is present, end will default to 1 second before midnight
+- If only end is present, start will default to midnight
+
+The times are specified in a string format with one of the following formats:
+- HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
+- sunrise|sunset [+|- HH:MM:SS]- time of the next sunrise or sunset with an optional positive or negative offset in Hours Minutes and seconds
+
+The time based constraint system correctly interprets start and end tiomes that span midnight.
+
+```ini
+# Run between 8am and 10pm
+constrain_start_time = 08:00:00
+constrain_end_time = 22:00:00
+# Run between sunrise and sunset
+constrain_start_time = sunrise
+constrain_end_time = sunset
+# Run between 45 minutes before sunset and 45 minutes after sunrise the next day
+constrain_start_time = sunset - 00:45:00
+constrain_end_time = sunrise + 00:45:00
 ```
 
 ## A Note on Threading
@@ -571,6 +654,30 @@ time = datetime.datetime.now() + datetime.timedelta(hours=2)
 repeat = datetime.timedelta(minutes=17)
 self.run_every(self.run_every_c, time, repeat)
 ```
+
+#### cancel_timer()
+Cancel a previously created timer
+
+#### Synopsis
+
+`self.cancel_timer(handle)`
+
+#### Returns
+
+None
+
+#### Parameters
+
+##### handle
+
+A handle value returned from the original call to create the timer.
+
+#### Examples
+
+```python
+self.cancel_timer(handle)
+```
+
 ## Sunrise and Sunset
 
 Appdaemon has a number of features to allow easy tracking of sunrise and sunset as well as a couple of scheduler functions.
@@ -685,20 +792,18 @@ Services within Home Assistant are how changes are made to the system and its de
 ### call_service()
 Call service is the basic way of calling a service within appdaemon. It can call any service and provide any required parameters. Available services can be found using the developer tools in the UI. For listed services, the part before the first period is the domain, and the part after is the service name. For instance, `light.turn_on` has a domain of 1light1 and a service name of `turn_on`.
 #### Synopsis
-self.call_service(self, domain, service, **kwargs)
+self.call_service(self, service, **kwargs)
 #### Returns
 None
 #### Parameters
-##### domain
-The domain of the service, e.g. `light` or `switch`. 
 ##### service
-The service name, e.g. `turn_on`.
+The service name, e.g. `light/turn_on`.
 ##### **kwargs
 Each service has different parameter requirements. This argument allows you to specify a comma separated list of keyword value pairs, e,g, `entity_id = light.office_1`. These parameters will be different for every service and can be discovered using the developer tools. Most if not all service calls require an entity_id however, so use of the above example is very common with this call.
 #### Examples
 ```python
-self.call_service("light", "turn_on", entity_id = "light.office_lamp", color_name = "red")
-self.call_service("notify", "notify", title = "Hello", message = "Hello World")
+self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
+self.call_service("notify/notify", title = "Hello", message = "Hello World")
 ```
 ### turn_on()
 This is a convenience function for the `homassistant.turn_on` function. It is able to turn on pretty much anything in Home Assistant that can be turned on or run:
@@ -755,6 +860,133 @@ Fully qualified entity_id of the thing to be toggled, e.g. `light.office_lamp` o
 #### Examples
 self.toggle("switch.patio_lights")
 self.toggle("light.office_1", color_name = "green")
+### notify()
+This is a convenience function for the `notify.notify` service. It will send a notification to your defualt notification service. If you have more than one, use `call_service()` to call the specific notification service you require instead.
+
+#### Synopsis
+```python
+notify(message, title=None)
+```
+#### Returns
+None
+#### Parameters
+##### message
+Message to be sebt to the notification service
+##### title
+Title of the notification - optional.
+#### Examples
+self.notify("", "Switching mode to Evening")
+## Events
+### About Events
+Events are a fundamental part of how Home Assistant works under the covers. HA has an event bus that all components can read and write to, enabling componenst to inform other components when important events take place. We have already seen how state changes can be propagated to appdaemon - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
+
+- homeassistant_start
+- homeassistant_stop
+- state_changed
+- service_registered
+- call_service
+- service_executed
+- platform_discovered
+- component_loaded
+
+Using appdaemon, it is possible to subscribe to specific events as well as fire off events.
+### listen_event()
+Listen event sets up a callback for a specific event.
+#### Synopsis
+```python
+handle = listen_event(function, event):
+```
+#### Returns
+A handle that can be used to cancel the callback.
+#### Parameters
+##### function
+The function to be called when the event is fired.
+##### event
+Name of the event to subscripe too. Can be a standard Home Assistant event such as "service_registered" or an arbitrary custom event such as "MODE_CHANGE"
+#### Examples
+```python
+self.listen_event(self.mode_event, "MODE_CHANGE")
+```
+### cancel_listen_event()
+Cancels callbacks for a specific event.
+#### Synopsis
+```python
+cancel_listen_event(handle)
+```
+#### Returns
+None.
+#### Parameters
+##### handle
+A handle returned from a previous call to `listen_event()`
+#### Examples
+```python
+self.cancel_listen_event(handle)
+```
+
+
+### fire_event()
+Fire an event on the HomeAssistant bus, for other components to hear.
+#### Synopsis
+```python
+fire_event(event, **kwargs)
+```
+#### Returns
+None.
+#### Parameters
+##### event
+Name of the event.  Can be a standard Home Assistant event such as "service_registered" or an arbitrary custom event such as "MODE_CHANGE"
+##### **kwargs
+Zero or more keyword arguments that will be supplied as part of the event.
+#### Examples
+```python
+self.fire_event("MY_CUSTOM_EVENT", jam="true")
+```
+### Event Callback Function Signature
+Functions called as an event callback will be supplied with 2 arguments:
+
+```python
+def service(self, event_name, data):
+```
+#### event_name
+The name of the event that caused the callback, e.g. "MODE_CHANGE" or "call_service"
+#### data
+A dictionary containing any additional information associated with the event.
+
+### Use of Events for Signalling between Home Assistant and AppDaemon
+
+Home Assistant allows for the creation of custom evcents and existing components can send and recieve them. This provides a useful mechanism for signalling back and forth between Home Assistant and AppDaemon. For instance, if you would like to create a UI Element to fire off some code in Home Assistant, all that is necessary is to create a script to fire a custom event, then subscribe to that event in AppDaemon. The script would look something like this:
+
+```yaml
+alias: Day
+sequence:
+- event: MODE_CHANGE
+  event_data:
+    mode: Day
+```
+
+The custom event "MODE_CHANGE" would be subscribed to with:
+
+```python
+self.listen_event(self.mode_event, "MODE_CHANGE")
+```
+
+Home Assistant can send these events in a variety of other places - within automations, and also directly from Alexa intents. Home Assitant can also listen for custom events with it's automation component. This can be used to signal from AppDaemon code back to home assistant. Here is a sample automation:
+
+```yaml
+automation:
+  trigger:
+    platform: event
+    event_type: MODE_CHANGE
+    ...
+    ...
+```
+
+This can be triggered with a call to AppDaemon's fire_event() as follows:
+
+```python
+self.fire_event("MODE_CHANGE", mode = "Day")
+```
+
 ## Presence
 Presence in Home Assistant is tracked using Device Trackers. The state of all device trackers can be found using the ```get_state()``` call, however appdaemon provides several convenience functions to make this easier.
 ### get_trackers()
@@ -849,21 +1081,115 @@ An ISO 8601 encoded date and time string in the following format: `2016-07-13T14
 
 #### Example
 
-```python
-time = self.convert_utc(self.get_state("sun.sun", "next_setting"))
-```
+### parse_time()
 
+Takes a string representation of a time, or sunrise or sunset offset and converts it to a `datetime.time` object
+
+#### Synopsis
+
+`parse_time(time_string)`
+
+#### Returns
+
+A `datetime.time` object, representing the time given in the `time_string` argument.
+
+#### Parameters
+
+##### time_string
+A representation of the time in a string format with one of the following formats:
+- HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
+- sunrise|sunset [+|- HH:MM:SS]- time of the next sunrise or sunset with an optional positive or negative offset in Hours Minutes and seconds
+#### Example
+
+```python
+time = parse_time("17:30:00")
+time = parse_time("sunrise")
+time = parse_time("sunset + 00:30:00")
+time = parse_time("sunrise + 01:00:00")
+```
+### now_is_between()
+
+Takes two string representations of a time, or sunrise or sunset offset and returns true if the current time is between those 2 times. `now_is_between()` can correctly handle transitions across midnight.
+
+#### Synopsis
+
+`now_is_between(start_time_string, end_time_string)`
+
+#### Returns
+
+`True` if the current time is within the specified start and end times, `False` otherwise
+
+#### Parameters
+
+##### start_time_string, end_time_string
+A representation of the start and end time respectively in a string format with one of the following formats:
+- HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
+- sunrise|sunset [+|- HH:MM:SS]- time of the next sunrise or sunset with an optional positive or negative offset in Hours Minutes and seconds
+#### Example
+
+```python
+if now_is_between("17:30:00", "08:00:00"):
+    do something
+if now_is_between("sunset - 00:45:00", "sunrise + 00:45:00"):
+    do something
+```
 ### friendly_name()
 ```frindly_name()``` will return the Friendly Name of an entity if it has one.
 #### Synopsis
 ```Name = self.friendly_name(entity_id)```
 #### Returns
-The friendly name of the entity if it exists or ```None```
+The friendly name of the entity if it exists or the entity id if not.
 #### Example
 ```python
 tracker = "device_tracker.andrew"
 self.log("{}  ({}) is {}".format(tracker, self.friendly_name(tracker), self.get_tracker_state(tracker)))
 ```
+
+### split_entity()
+```split_entity()``` will take a fully qualified entity id of the form `light.hall_light` and split it into 2 values, the device and the entity, e.g. `light` and `hall_light`
+#### Synopsis
+```device, entity = self.split_entity(entity_id)```
+#### Parameters
+##### entity_id
+Fully qualified entity id to be split.
+#### Returns
+A list with 2 entries, the device and entity respectively.
+#### Example
+```python
+device, entity = self.split_entity(entity_id)
+if device == "scene":
+    do something specific to scenes
+```
+
+
+### get_app()
+```get_app()``` will return the instantiated object of another app running within the system. This is useful for calling functions that reside in different apps without requiring duplication of code.
+#### Synopsis
+```get_app(self, name)```
+#### Parameters
+##### name
+Name of the app required. This is the name specified in header section of the config file, not the module or class.
+#### Returns
+An object reference to the class.
+#### Example
+```python
+device, entity = self.split_entity(entity_id)
+if device == "scene":
+    do something specific to scenes
+```
+
+### split_device_list()
+```split_device_list()``` will take a comma separated list of device types (or anything else for that matter) and return them as an iterable list. This is intended to assist in usecases where the App takes a list of entities from an argument, e.g. a list of sensors to monitor. If only one entry is provided, an iterable list will still be returned to avoid the need for special processing.
+#### Synopsis
+```devices = split_device_list(list)```
+#### Returns
+A list of split devices with 1 or more entries.
+#### Example
+```python
+for sensor in self.split_device_list(self.args["sensors"]):
+    do something for each sensor, e.g. make a state subscription
+```
+
 
 ### Writing to Logfiles
 
@@ -908,3 +1234,7 @@ The message to log.
 ```python
 self.error("Some Error string")
 ```
+
+## Sharing information between Apps
+
+Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some car is needed.

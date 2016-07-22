@@ -1,14 +1,13 @@
 import logging
-
 ha_url = ""
 ha_key = ""
 app_dir = ""
+threads = 0
 monitored_files = {}
 modules = {}
 objects = {}
 schedule = {}
-state_callbacks = {}
-threads = 0
+callbacks = {}
 ha_state = {}
-
+global_vars = {}
 logger = logging.getLogger(__name__)

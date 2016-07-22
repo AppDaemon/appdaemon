@@ -7,6 +7,7 @@ from importlib.machinery import SourceFileLoader
 import traceback
 import configparser
 import datetime
+from time import mktime
 import argparse
 import time
 from daemonize import Daemonize
@@ -21,15 +22,18 @@ import conf
 import time
 import datetime
 import signal
+import re
 import homeassistant as ha
+import appapi as api
 
 q = Queue(maxsize=0)
 
-timer = 0
 config = None
 config_file_modified = 0
 config_file = ""
 was_dst = None
+last_state = None
+reading_messages = False
 
 def is_dst( ):
   return bool(time.localtime( ).tm_isdst)
@@ -52,6 +56,8 @@ def handle_sig(signum, frame):
     dump_callbacks()
     dump_objects()
     dump_queue()
+  if signum == signal.SIGUSR2:
+    readApps(True)
         
 def dump_schedule():
   if conf.schedule == {}:
@@ -67,16 +73,16 @@ def dump_schedule():
     conf.logger.info("--------------------------------------------------")
 
 def dump_callbacks():
-  if conf.state_callbacks == {}:
+  if conf.callbacks == {}:
     conf.logger.info("No callbacks")
   else:
     conf.logger.info("--------------------------------------------------")
     conf.logger.info("Callbacks")
     conf.logger.info("--------------------------------------------------")
-    for name in conf.state_callbacks.keys():
+    for name in conf.callbacks.keys():
       conf.logger.info("{}:".format(name))
-      for uuid in conf.state_callbacks[name]:
-        conf.logger.info("  {} = {}".format(uuid, conf.state_callbacks[name][uuid]))
+      for uuid in conf.callbacks[name]:
+        conf.logger.info("  {} = {}".format(uuid, conf.callbacks[name][uuid]))
     conf.logger.info("--------------------------------------------------")
 
 def dump_objects():
@@ -92,7 +98,42 @@ def dump_queue():
   conf.logger.info("Current Queue Size is {}".format(q.qsize()))
   conf.logger.info("--------------------------------------------------")
   
-    
+def dispatch_worker(name, args):
+  unconstrained = True
+  for arg in config[name].keys():
+    if arg == "constrain_input_boolean":
+      entity = config[name][arg]
+      if entity in conf.ha_state and conf.ha_state[entity]["state"] == "off":
+        unconstrained = False
+    if arg == "constrain_input_select":
+      values = config[name][arg].split(",")
+      entity = values.pop(0)
+      if entity in conf.ha_state and conf.ha_state[entity]["state"] not in values:
+        unconstrained = False
+    if arg == "constrain_presence":
+      if config[name][arg] == "everyone" and not ha.everyone_home():
+        unconstrained = False
+      elif config[name][arg] == "anyone" and not ha.anyone_home():
+        unconstrained = False
+      elif config[name][arg] == "noone" and not ha.noone_home():
+        unconstrained = False
+  
+  if "constrain_start_time" in config[name] or "constrain_end_time" in config[name]:
+    if "constrain_start_time" not in config[name]:
+      start_time = "00:00:00"
+    else:
+      start_time = config[name]["constrain_start_time"]
+    if "constrain_end_time" not in config[name]:
+      end_time = "23:59:59"
+    else:
+      end_time = config[name]["constrain_end_time"]
+        
+    if not ha.now_is_between(start_time, end_time):
+      unconstrained = False
+
+  if unconstrained:  
+    q.put_nowait(args)
+  
 def process_sun(state):
   action = ""
   if state["state"] == "above_horizon":
@@ -107,13 +148,13 @@ def process_sun(state):
       schedule = conf.schedule[name][entry]
       if schedule["type"] == action and "inactive" in schedule:
         del schedule["inactive"]
-        schedule["timestamp"] = ha._calc_sun(action, schedule["time"])
+        schedule["timestamp"] = ha.calc_sun(action, schedule["time"])
       
 def exec_schedule(name, entry, args):
   if "inactive" in args:
     return
   # Call function
-  q.put_nowait({"type": "timer", "function": args["callback"], "args": args["args"], "kwargs": args["kwargs"], })
+  dispatch_worker(name, {"type": "timer", "function": args["callback"], "args": args["args"], "kwargs": args["kwargs"], })
   # If it is a repeating entry, rewrite with new timestamp
   if args["repeat"]:
     if args["type"] == "next_rising" or args["type"] == "next_setting":
@@ -129,52 +170,64 @@ def exec_schedule(name, entry, args):
 def do_every_second():
 
   global was_dst
+  global last_state
   
-  # Check if we have entered or exited DST - if so, reload apps to ensure all time callbacks are recalculated
-  
-  now_dst = is_dst()
-  if now_dst != was_dst:
-    conf.logger.info("Detected change in DST from {} to {} - reloading all modules".format(was_dst, now_dst))
-    readApps(True)
-    was_dst = is_dst()
-
-  now = datetime.datetime.now().timestamp()
-  #conf.logger.debug("Scheduler invoked at {}".format(now))
-  for name in conf.schedule.keys():
-    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-      #conf.logger.debug("{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
-      if conf.schedule[name][entry]["timestamp"] < now:
-        exec_schedule(name, entry, conf.schedule[name][entry])
-      else:
-        break
-  for k, v in list(conf.schedule.items()):
-    if v == {}:
-      del conf.schedule[k]
+  # Lets check if we are connected, if not give up.
+  if not reading_messages:
+    return
+  try: 
+    # Check if we have entered or exited DST - if so, reload apps to ensure all time callbacks are recalculated
     
+    now_dst = is_dst()
+    if now_dst != was_dst:
+      conf.logger.info("Detected change in DST from {} to {} - reloading all modules".format(was_dst, now_dst))
+      readApps(True)
+      was_dst = is_dst()
 
-  #dump_schedule()
-  
-  # Check to see if any apps have changed
-  
-  readApps()
-  
-  # Check to see if config has changed
-  
-  check_config()
+    now = datetime.datetime.now().timestamp()
+    #conf.logger.debug("Scheduler invoked at {}".format(now))
+    for name in conf.schedule.keys():
+      for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
+        #conf.logger.debug("{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
+        if conf.schedule[name][entry]["timestamp"] < now:
+          exec_schedule(name, entry, conf.schedule[name][entry])
+        else:
+          break
+    for k, v in list(conf.schedule.items()):
+      if v == {}:
+        del conf.schedule[k]
+      
 
-  # Call me suspicious, but lets update state form HA periodically in case we miss events for whatever reason
-  # Every 10 minutes seems like a good place to start
+    #dump_schedule()
+    
+    # Check to see if any apps have changed but only if we have valid state
+    
+    if last_state != None:
+      readApps()
+    
+    # Check to see if config has changed
+    
+    check_config()
 
-  global timer
-  timer += 1
-  if timer == 600:
-    get_ha_state()
-    timer = 0
-   
-  # Check on Queue size
-  
-  if q.qsize() > 0 and q.qsize() % 10 == 0:
-    conf.logger.warning("Queue size is {}, suspect thread starvation".format(q.qsize()))
+    # Call me suspicious, but lets update state form HA periodically in case we miss events for whatever reason
+    # Every 10 minutes seems like a good place to start
+
+    now = datetime.datetime.now()
+    if  last_state != None and now - last_state > datetime.timedelta(minutes = 10):
+      get_ha_state()
+      last_state = now
+     
+    # Check on Queue size
+    
+    if q.qsize() > 0 and q.qsize() % 10 == 0:
+      conf.logger.warning("Queue size is {}, suspect thread starvation".format(q.qsize()))
+  except:
+    conf.error.warn('-'*60)
+    conf.error.warn("Unexpected error during do_every_second()")
+    conf.error.warn('-'*60)
+    conf.error.warn(traceback.format_exc())
+    conf.error.warn('-'*60)
+    conf.logger.warn("Logged an error to {}".format(conf.errorfile))
   
 def timer_thread():
   do_every(1, do_every_second)
@@ -195,6 +248,10 @@ def worker():
         old_state = args["old_state"]
         new_state = args["new_state"]
         function(entity, attr, old_state, new_state)
+      elif type == "event":
+        data = args["data"]
+        function(args["event"], data)
+
     except:
       conf.error.warn('-'*60)
       conf.error.warn("Unexpected error:")
@@ -216,8 +273,8 @@ def clear_file(name):
 
 def clear_object(object):
   conf.logger.debug("Clearing callbacks for %s", object)
-  if object in conf.state_callbacks:
-    del conf.state_callbacks[object]
+  if object in conf.callbacks:
+    del conf.callbacks[object]
   if object in conf.schedule:
     del conf.schedule[object]
 
@@ -225,7 +282,7 @@ def init_object(name, class_name, module_name, args):
   conf.logger.info("Loading Object {} using class {} from module {}".format(name, class_name, module_name))
   module = __import__(module_name)  
   APPclass = getattr(module, class_name)
-  conf.objects[name] = APPclass(name, conf.logger, conf.error, args)
+  conf.objects[name] = APPclass(name, conf.logger, conf.error, args, conf.global_vars)
 
   # Call it's initialize function
   
@@ -263,59 +320,58 @@ def process_message(msg):
       
       # Process any callbacks
       
-      for name in conf.state_callbacks.keys():
-        for uuid in conf.state_callbacks[name]:
-          callback = conf.state_callbacks[name][uuid]
-          cdevice = None
-          centity = None
-          cattribute = callback["attribute"]
-          if callback["entity"] != None:
-            if callback["entity"].find(".") == -1:
-              cdevice = callback["entity"]
-              centity = None
-            else:
-              cdevice, centity = callback["entity"].split(".")
-          if cdevice == None:
-            q.put_nowait({"type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
-          elif centity == None:
-            if device == cdevice:
-              q.put_nowait({"type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
-          elif cattribute == None:
-            if device == cdevice and entity == centity:
-             q.put_nowait({"type": "attr", "function": callback["function"], "entity": entity_id, "attr": "state", "new_state": data['data']['new_state']['state'], "old_state": data['data']['old_state']['state']})
-          else:
-            if device == cdevice and entity == centity:
-              if cattribute == "all":
-                q.put_nowait({"type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
+      for name in conf.callbacks.keys():
+        for uuid in conf.callbacks[name]:
+          callback = conf.callbacks[name][uuid]
+          if callback["type"] == "state":
+            cdevice = None
+            centity = None
+            cattribute = callback["attribute"]
+            if callback["entity"] != None:
+              if callback["entity"].find(".") == -1:
+                cdevice = callback["entity"]
+                centity = None
               else:
-                if cattribute in data['data']['old_state']:
-                  old = data['data']['old_state'][cattribute]
-                elif cattribute in data['data']['old_state']['attributes']:
-                  old = data['data']['old_state']['attributes'][cattribute]
+                cdevice, centity = callback["entity"].split(".")
+            if cdevice == None:
+              dispatch_worker(name, {"type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
+            elif centity == None:
+              if device == cdevice:
+                dispatch_worker(name, {"type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
+            elif cattribute == None:
+              if device == cdevice and entity == centity:
+               dispatch_worker(name, {"type": "attr", "function": callback["function"], "entity": entity_id, "attr": "state", "new_state": data['data']['new_state']['state'], "old_state": data['data']['old_state']['state']})
+            else:
+              if device == cdevice and entity == centity:
+                if cattribute == "all":
+                  dispatch_worker(name, {"type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
                 else:
-                  old = None
-                if cattribute in data['data']['new_state']:
-                  new = data['data']['new_state'][cattribute]
-                elif cattribute in data['data']['new_state']['attributes']:
-                  new = data['data']['new_state']['attributes'][cattribute]
-                else:
-                  new = None
+                  if cattribute in data['data']['old_state']:
+                    old = data['data']['old_state'][cattribute]
+                  elif cattribute in data['data']['old_state']['attributes']:
+                    old = data['data']['old_state']['attributes'][cattribute]
+                  else:
+                    old = None
+                  if cattribute in data['data']['new_state']:
+                    new = data['data']['new_state'][cattribute]
+                  elif cattribute in data['data']['new_state']['attributes']:
+                    new = data['data']['new_state']['attributes'][cattribute]
+                  else:
+                    new = None
 
-                if old != new:
-                  q.put_nowait({"type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": new, "old_state": old})
+                  if old != new:
+                    dispatch_worker(name, {"type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": new, "old_state": old})
 
-    elif data['event_type'] == "call_service":
-      pass
-    elif data['event_type'] == "homeassistant_start":
-      pass
-    elif data['event_type'] == "homeassistant_stop":
-      pass
-    elif data['event_type'] == "mqtt_message_reveived":
-      pass
-    elif data['event_type'] == "platform_discovered":
-      pass
-    elif data['event_type'] == "time_changed":
-      pass
+    # Process non-state callbacks
+    for name in conf.callbacks.keys():
+      for uuid in conf.callbacks[name]:
+        callback = conf.callbacks[name][uuid]
+        if "event" in callback and data['event_type'] == callback["event"]:
+          dispatch_worker(name, {"type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"]})
+
+    else:
+      conf.logger.debug(data["data"])
+      
 
   except:
     conf.error.warn('-'*60)
@@ -325,50 +381,6 @@ def process_message(msg):
     conf.error.warn('-'*60)
     conf.logger.warn("Logged an error to {}".format(conf.errorfile))
     
-            
-def readApp(file, reload = False):
-  global config
-  name = os.path.basename(file)
-  module_name = os.path.splitext(name)[0]
-  # Import the App
-  try:
-    if reload:
-      conf.logger.info("Reloading Module: %s", file)
-      
-      file, ext = os.path.splitext(name)
-      
-      #
-      # Clear out callbacks and remove objects
-      #
-      clear_file(file)
-      #
-      # Reload
-      #
-      importlib.reload(conf.modules[module_name])
-    else:
-      conf.logger.info("Loading Module: %s", file)
-      conf.modules[module_name] = importlib.import_module(module_name)
-    
-    
-    # Instantiate class and Run initialize() function
-    
-    for name in config:
-      if name == "DEFAULT" or name == "appdaemon":
-        continue
-      if module_name == config[name]["module"]:
-        class_name = config[name]["class"]
-        
-        init_object(name, class_name, module_name, config[name])
-
-  except:
-    conf.error.warn('-'*60)
-    conf.error.warn("Unexpected error during loading of {}:".format(name))
-    conf.error.warn('-'*60)
-    conf.error.warn(traceback.format_exc())
-    conf.error.warn('-'*60)
-    conf.logger.warn("Logged an error to {}".format(conf.errorfile))
-
-
 def check_config():
   global config_file_modified
   global config 
@@ -419,6 +431,55 @@ def check_config():
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
     conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+    
+def readApp(file, reload = False):
+  global config
+  name = os.path.basename(file)
+  module_name = os.path.splitext(name)[0]
+  # Import the App
+  try:
+    if reload:
+      conf.logger.info("Reloading Module: %s", file)
+      
+      file, ext = os.path.splitext(name)
+      
+      #
+      # Clear out callbacks and remove objects
+      #
+      clear_file(file)
+      #
+      # Reload
+      #
+      try:
+        importlib.reload(conf.modules[module_name])
+      except KeyError:
+        if name not in sys.modules:
+          # Probably failed to compile on initial load so we need to re-import
+          readApp(file)
+        else:
+         # A real KeyError! 
+         raise
+    else:
+      conf.logger.info("Loading Module: %s", file)
+      conf.modules[module_name] = importlib.import_module(module_name)
+      
+    # Instantiate class and Run initialize() function
+    
+    for name in config:
+      if name == "DEFAULT" or name == "appdaemon":
+        continue
+      if module_name == config[name]["module"]:
+        class_name = config[name]["class"]
+        
+        init_object(name, class_name, module_name, config[name])
+
+  except:
+    conf.error.warn('-'*60)
+    conf.error.warn("Unexpected error during loading of {}:".format(name))
+    conf.error.warn('-'*60)
+    conf.error.warn(traceback.format_exc())
+    conf.error.warn('-'*60)
+    conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def readApps(all = False): 
   found_files = glob.glob(os.path.join(conf.app_dir, '*.py'))
@@ -431,7 +492,7 @@ def readApps(all = False):
     try:
       if file in conf.monitored_files:
         if conf.monitored_files[file] < modified or all:
-          readApp(file, True)
+          readApp(file, True)      
           conf.monitored_files[file] = modified
       else:
         readApp(file)
@@ -449,23 +510,16 @@ def get_ha_state():
   for state in states:
     conf.ha_state[state["entity_id"]] = state
     
- 
 def run():
 
   global was_dst
+  global last_state
+  global reading_messages
   
   # Take a note of DST
 
   was_dst = is_dst()
-  
-  # grab system state
-  
-  get_ha_state()
-  
-  # Load apps
-  
-  readApps()
-  
+   
   # Create Worker Threads
   for i in range(conf.threads):
      t = threading.Thread(target=worker)
@@ -482,18 +536,26 @@ def run():
   
   while True:
     try:
+      # Get initial state
+      get_ha_state()
+      conf.logger.info("Got initial state")
+      # Load apps
+      readApps(True)
+      last_state = datetime.datetime.now()
+      
       headers = {'x-ha-access': conf.ha_key}
+      reading_messages = True
       messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000)
       for msg in messages:
         process_message(msg)
-    except requests.exceptions.ConnectionError:
-      conf.logger.warning("Unable to connect to Home Assistant, retrying in 5 seconds")
     except:
-      conf.logger.warn('-'*60)
-      conf.logger.warn("Unexpected error:")
-      conf.logger.warn('-'*60)
-      conf.logger.warn(traceback.format_exc())
-      conf.logger.warn('-'*60)
+      reading_messages = False
+      conf.logger.warning("Not connected to Home Assistant, retrying in 5 seconds")
+      #conf.logger.warn('-'*60)
+      #conf.logger.warn("Unexpected error:")
+      #conf.logger.warn('-'*60)
+      #conf.logger.warn(traceback.format_exc())
+      #conf.logger.warn('-'*60)
     time.sleep(5)
 
 def main():
@@ -505,6 +567,7 @@ def main():
   # Get command line args
   
   signal.signal(signal.SIGUSR1, handle_sig)
+  signal.signal(signal.SIGUSR2, handle_sig)
   
   parser = argparse.ArgumentParser()
 

@@ -6,6 +6,76 @@ import re
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+def parse_time(time_str):
+  time = None
+  parts = re.search('^(\d+):(\d+):(\d+)', time_str)
+  if parts:
+    time = datetime.time(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)))
+  else:
+    if time_str == "sunrise":
+      time = sunrise().time()
+    elif time_str == "sunset":
+      time = sunset().time()
+    else:
+      parts = re.search('^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)', time_str)
+      if parts:
+        if parts.group(1) == "+":
+          time = (sunrise() + datetime.timedelta(hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)))).time()
+        else:
+          time = (sunrise() - datetime.timedelta(hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)))).time()
+      else:
+        parts = re.search('^sunset\s*([+-])\s*(\d+):(\d+):(\d+)', time_str)
+        if parts:
+          if parts.group(1) == "+":
+            time = (sunset() + datetime.timedelta(hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)))).time()
+          else:
+            time = (sunset() - datetime.timedelta(hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)))).time()
+  return time
+  
+def now_is_between(start_time_str, end_time_str):
+  start_time = parse_time(start_time_str)
+  end_time = parse_time(end_time_str)
+  now = datetime.datetime.now()
+  start_date = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
+  end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+  if end_date < start_date:
+    # Spans midnight
+    if now < start_date and now < end_date:
+      now = now + datetime.timedelta(days=1)
+    end_date = end_date + datetime.timedelta(days=1)    
+  return start_date <= now <= end_date
+ 
+def sunrise():
+  return(datetime.datetime.fromtimestamp(calc_sun("next_rising", 0)))
+
+def sunset():
+  return(datetime.datetime.fromtimestamp(calc_sun("next_setting", 0)))
+
+def anyone_home():
+  for entity_id in conf.ha_state.keys():
+    thisdevice, thisentity = entity_id.split(".")
+    if thisdevice == "device_tracker":
+      if conf.ha_state[entity_id]["state"] == "home":
+        return True
+  return False
+
+def everyone_home():
+  for entity_id in conf.ha_state.keys():
+    thisdevice, thisentity = entity_id.split(".")
+    if thisdevice == "device_tracker":
+      if conf.ha_state[entity_id]["state"] != "home":
+        return False
+  return True
+    
+  
+def noone_home():
+  for entity_id in conf.ha_state.keys():
+    thisdevice, thisentity = entity_id.split(".")
+    if thisdevice == "device_tracker":
+      if conf.ha_state[entity_id]["state"] == "home":
+        return False
+  return True
+
 def calc_sun(type, offset):
   # Parse the iso 8601 datestring and convert to a localized timestamp
   return parse_utc_string(conf.ha_state["sun.sun"]["attributes"][type]) + offset

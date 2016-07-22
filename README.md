@@ -51,15 +51,15 @@ import appapi
 class MotionLights(appapi.APPDaemon):
 
   def initialize(self):
-    self.listen_state(self.motion, "binary_sensor", "drive")
+    self.listen_state(self.motion, "binary_sensor.drive")
   
   def motion(self, entity, attribute, old, new):
-    if new == "on" and self.sun_state() == "below_horizon":
+    if new == "on" and self.sun_down():
       self.turn_on("light.drive")
       self.run_in(self.light_off, 60)
   
   def light_off(self, args, kwargs):
-    selfturn_off("light.drive")
+    self.turn_off("light.drive")
 ```
 
 But it's starting to look more complicated using automations:
@@ -109,10 +109,10 @@ import appapi
 class MotionLights(appapi.APPDaemon):
 
   def initialize(self):
-    self.listen_state(self.motion, "binary_sensor", "drive")
+    self.listen_state(self.motion, "binary_sensor.drive")
   
   def motion(self, entity, attribute, old, new):
-    if new == "on" and self.sun_state() == "below_horizon":
+    if new == "on" and self.self.sun_down():
       self.turn_on("light.drive")
       self.run_in(self.light_off, 60)
       self.flashcount = 0
@@ -166,6 +166,18 @@ Before running `appdaemon` you will need to add some python prerequisites:
 $ sudo pip3 install daemonize
 $ sudo pip3 install sseclient
 $ sudo pip3 install configparser
+```
+
+Some users are reporting errors with `InsecureRequestWarning`:
+```
+Traceback (most recent call last):
+  File "./hapush.py", line 21, in <module>
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+ImportError: cannot import name 'InsecureRequestWarning'
+```
+This can be fixed with:
+```
+$ sudo pip3 install requests==2.6.0
 ```
 
 When you have all the prereqs in place, edit the `[appdaemon]` section of the conf/appdaemon.cfg file to reflect your environment:
@@ -253,3 +265,8 @@ $ git pull origin
 ***Version 1.0***
 
 Initial Release
+
+## Known Issues
+
+- There is a race condition that prevents sunrise() and sunset() from being updated to their new values for a few seconds after Sunrise and Sunset respectively
+- If thread starvation opccurs and callback are queued, they will continue to be called even after the App has been reloaded or removed until the queue is emptied
