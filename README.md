@@ -194,7 +194,7 @@ threads = 10
 
 - `ha_url` is a reference to your home assistant installation and must include the correct port number and scheme (`http://` or `https://` as appropriate)
 - `ha_key` should be set to your key if you have one, otherwise it can be removed.
-- `logfile` is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `AppDaemon` directory of the cloned repository.
+- `logfile` is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `appdaemon` directory of the cloned repository.
 - `errorfile` is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps
 - `app_dir` is the directory the apps are placed in
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization,
@@ -204,13 +204,13 @@ The other sections of the file relate to App configuration and are described in 
 You can then run AppDaemon from the command line as follows:
 
 ```bash
-$ ./bin/AppDaemon.py conf/AppDaemon.cfg
+$ ./bin/appdaemon.py conf/appdaemon.cfg
 ```
 
 If all is well, you should start to see some log lines showing that various apps (if any are configured) are being initialized:
 
 ```
-# bin/AppDaemon.py conf/AppDaemon.cfg 
+# bin/appdaemon.py conf/appdaemon.cfg 
 2016-07-12 13:45:07,844 INFO Loading Module: /srv/hass/AppDaemon_test/conf/apps/log.py
 2016-07-12 13:45:07,851 INFO Loading Object log using class Log from module log
 2016-07-12 13:45:07,853 INFO Loading Module: /srv/hass/AppDaemon_test/conf/apps/sun.py
