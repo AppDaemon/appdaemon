@@ -6,7 +6,7 @@ import re
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-def parse_time(time_str):
+def parse_time(time_str, name = None):
   time = None
   parts = re.search('^(\d+):(\d+):(\d+)', time_str)
   if parts:
@@ -30,11 +30,16 @@ def parse_time(time_str):
             time = (sunset() + datetime.timedelta(hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)))).time()
           else:
             time = (sunset() - datetime.timedelta(hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)))).time()
+  if time == None:
+    if name != None:
+      raise ValueError("{}: invalid time string: {}".format(name, time_str))
+    else:
+      raise ValueError("invalid time string: {}".format(time_str))
   return time
   
-def now_is_between(start_time_str, end_time_str):
-  start_time = parse_time(start_time_str)
-  end_time = parse_time(end_time_str)
+def now_is_between(start_time_str, end_time_str, name = None):
+  start_time = parse_time(start_time_str, name)
+  end_time = parse_time(end_time_str, name)
   now = datetime.datetime.now()
   start_date = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
   end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)

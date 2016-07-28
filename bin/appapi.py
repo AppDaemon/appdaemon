@@ -19,7 +19,7 @@ class AppDaemon():
     
   def _check_entity(self, entity):
     if entity.find(".") == -1:
-      raise ValueError("Invalid entity ID: {}".format(entity))
+      raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
     if entity not in conf.ha_state:
       conf.logger.warn("{}: Entity {} not found in Home Assistant".format(self.name, entity))
 
@@ -28,6 +28,8 @@ class AppDaemon():
       raise ValueError("Invalid Service Name: {}".format(service))  
   
   def split_entity(self, entity_id):
+    if entity.find(".") == -1:
+      raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
     self._check_entity(entity_id)
     return(entity_id.split("."))
     
@@ -235,7 +237,7 @@ class AppDaemon():
     return ha.parse_time(time_str)
   
   def now_is_between(self, start_time_str, end_time_str):
-    return ha.now_is_between(start_time_str, end_time_str)
+    return ha.now_is_between(start_time_str, end_time_str, self.name)
         
   def cancel_timer(self, handle):
     name = self.name

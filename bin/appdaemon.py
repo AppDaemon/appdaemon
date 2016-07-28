@@ -204,7 +204,7 @@ def dispatch_worker(name, args):
     else:
       end_time = config[name]["constrain_end_time"]
         
-    if not ha.now_is_between(start_time, end_time):
+    if not ha.now_is_between(start_time, end_time, name):
       unconstrained = False
 
   if unconstrained:  

@@ -15,8 +15,11 @@ import appapi
 class DoorNotification(appapi.AppDaemon):
 
   def initialize(self):
-    self.listen_state(self.state_change, self.args["sensor"])
-   
+    if "sensor" in self.args:
+      for sensor in self.split_device_list(self.args["sensor"]):
+        self.listen_state(self.state_change, sensor)
+    else:
+      self.listen_state(self.motion, "binary_sensor")   
     
   def state_change(self, entity, attribute, old, new):
     self.log("{} is {}".format(self.friendly_name(entity), new))

@@ -27,20 +27,26 @@ class DarkDay(appapi.AppDaemon):
 
   def light_event(self, entity, attribute, old, new):
     lux = float(new)
-    if lux < 200:
-      self.active = True
-      if "entity_on" in self.args:
-        self.log("Low light detected: turning {} on".format(self.args["entity_on"]))
-        self.turn_on(self.args["entity_on"])
-    
-    if lux > 400 and self.active:
+    # Can't use a contraint for this because if self.active = true when the constraint kicks in it will never get cleared
+    # and the program will ignore future changes
+    if self.now_is_between(self.args["start_time"], self.args["end_time"]):
+      if lux < 200 and not self.active:
+        self.active = True
+        if "entity_on" in self.args:
+          self.log("Low light detected: turning {} on".format(self.args["entity_on"]))
+          self.turn_on(self.args["entity_on"])
+      
+      if lux > 400 and self.active:
+        self.active = False
+        if "entity_off" in self.args:
+          # If it's a scene we need to turn it on not off
+          device, entity = self.split_entity(self.args["entity_off"])
+          if device == "scene":
+            self.log("Brighter light detected: activating {}".format(self.args["entity_off"]))
+            self.turn_on(self.args["entity_off"])
+          else:
+            self.log("Brighter light detected: turning {} off".format(self.args["entity_off"]))
+            self.turn_off(self.args["entity_off"])
+    else:
+      # We are now dormant so set self.active false
       self.active = False
-      if "entity_off" in self.args:
-        # If it's a scene we need to turn it on not off
-        device, entity = self.split_entity(self.args["entity_off"])
-        if device == "scene":
-          self.log("Brighter light detected: activating {}".format(self.args["entity_off"]))
-          self.turn_on(self.args["entity_off"])
-        else:
-          self.log("It's brighter now: turning {} off".format(self.args["entity_off"]))
-          self.turn_off(self.args["entity_off"])

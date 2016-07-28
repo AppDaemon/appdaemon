@@ -21,7 +21,6 @@ class Presence(appapi.AppDaemon):
 
   def initialize(self):
     
-
     # Subscribe to presence changes
     
     self.listen_state(self.presence_change, "device_tracker")
