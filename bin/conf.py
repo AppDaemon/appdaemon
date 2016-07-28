@@ -10,4 +10,7 @@ schedule = {}
 callbacks = {}
 ha_state = {}
 global_vars = {}
+sun = {}
+location = None
+tz = None
 logger = logging.getLogger(__name__)

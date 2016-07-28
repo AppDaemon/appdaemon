@@ -19,4 +19,5 @@ class DoorNotification(appapi.AppDaemon):
    
     
   def state_change(self, entity, attribute, old, new):
+    self.log("{} is {}".format(self.friendly_name(entity), new))
     self.notify("{} is {}".format(self.friendly_name(entity), new))

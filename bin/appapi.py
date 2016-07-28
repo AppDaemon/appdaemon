@@ -19,7 +19,9 @@ class AppDaemon():
     
   def _check_entity(self, entity):
     if entity.find(".") == -1:
-      raise ValueError("Invalid entity ID: {}".format(entity))  
+      raise ValueError("Invalid entity ID: {}".format(entity))
+    if entity not in conf.ha_state:
+      conf.logger.warn("{}: Entity {} not found in Home Assistant".format(self.name, entity))
 
   def _check_service(self, service):
     if service.find("/") == -1:
@@ -184,6 +186,8 @@ class AppDaemon():
 
   def listen_state(self, function, entity = None, attribute = None):
     name = self.name
+    if entity != None and entity.find(".") != -1:
+      self._check_entity(entity)
     if name not in conf.callbacks:
         conf.callbacks[name] = {}
     handle = uuid.uuid4()
@@ -216,10 +220,10 @@ class AppDaemon():
       del conf.callbacks[name]
   
   def sun_up(self):
-    return conf.ha_state["sun.sun"]["state"] == "above_horizon"
+    return conf.sun["next_rising"] > conf.sun["next_setting"]
 
   def sun_down(self):
-    return conf.ha_state["sun.sun"]["state"] == "below_horizon"
+    return conf.sun["next_rising"] < conf.sun["next_setting"]
     
   def sunrise(self):
     return ha.sunrise()

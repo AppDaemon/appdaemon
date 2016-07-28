@@ -77,8 +77,8 @@ def noone_home():
   return True
 
 def calc_sun(type, offset):
-  # Parse the iso 8601 datestring and convert to a localized timestamp
-  return parse_utc_string(conf.ha_state["sun.sun"]["attributes"][type]) + offset
+  # convert to a localized timestamp
+  return conf.sun[type].timestamp() + offset
   
 def parse_utc_string(s):
   return datetime.datetime(*map(int, re.split('[^\d]', s)[:-1])).timestamp() + get_tz_offset() * 60

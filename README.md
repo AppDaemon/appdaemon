@@ -145,7 +145,7 @@ If you want to give AppDaemon a try, start with the following section.
 
 # Installation
 
-## 1. Clone the Repository
+## Clone the Repository
 Clone the **AppDaemon** repository to the current local directory on your machine.
 
 ``` bash
@@ -155,7 +155,7 @@ $ git clone https://github.com/acockburn/AppDaemon.git
 Change your working directory to the repository root. Moving forward, we will be working from this directory.
 
 ``` bash
-$ cd AppDaemon
+$ cd appdaemon
 ```
 
 # Install Prereqs
@@ -166,6 +166,7 @@ Before running `AppDaemon` you will need to add some python prerequisites:
 $ sudo pip3 install daemonize
 $ sudo pip3 install sseclient
 $ sudo pip3 install configparser
+$ sudo pip3 install astral
 ```
 
 Some users are reporting errors with `InsecureRequestWarning`:
@@ -190,6 +191,10 @@ logfile = /etc/AppDaemon/AppDaemon.log
 errorfile = /etc/AppDaemon/error.log
 app_dir = /srv/hass/src/AppDaemon/apps
 threads = 10
+latitude = <latitude>
+longitude = <longitude>
+elevation = <elevation
+timezone = <timezone>
 ```
 
 - `ha_url` is a reference to your home assistant installation and must include the correct port number and scheme (`http://` or `https://` as appropriate)
@@ -198,6 +203,7 @@ threads = 10
 - `errorfile` is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps
 - `app_dir` is the directory the apps are placed in
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization,
+- `latitude`, `longitude`, `elevation`, `timezone` - should all be copied from your home assistant configuration file
 
 The other sections of the file relate to App configuration and are described in the [API doc](API.md).
 
@@ -265,7 +271,3 @@ $ git pull origin
 ***Version 1.0***
 
 Initial Release
-
-## Known Issues
-
-- There is a race condition that prevents sunrise() and sunset() from being updated to their new values for a few seconds after Sunrise and Sunset respectively

@@ -24,6 +24,8 @@ import datetime
 import signal
 import re
 import uuid
+import astral
+import pytz
 import homeassistant as ha
 import appapi as api
 
@@ -36,6 +38,71 @@ was_dst = None
 last_state = None
 reading_messages = False
 
+def init_sun():
+  latitude = conf.latitude
+  longitude = conf.longitude
+
+  if -90 > latitude < 90:
+    conf.logger.error('Latitude needs to be -90 .. 90')
+     
+  if -180 > longitude < 180:
+    conf.logger.error('Longitude needs to be -180 .. 180')
+
+  elevation = conf.elevation
+
+  conf.tz = pytz.timezone(conf.timezone)
+  
+  conf.location = astral.Location(('', '', latitude, longitude,
+                       conf.tz.zone, elevation))  
+
+def update_sun():
+  
+  now = datetime.datetime.now(conf.tz)
+  mod = -1
+  while True:
+    try:
+        next_rising_dt = conf.location.sunrise(
+            now + datetime.timedelta(days=mod), local=False)
+        if next_rising_dt > now:
+            break
+    except astral.AstralError:
+        pass
+    mod += 1
+
+  mod = -1
+  while True:
+      try:
+          next_setting_dt = (conf.location.sunset(
+              now + datetime.timedelta(days=mod), local=False))
+          if next_setting_dt > now:
+              break
+      except astral.AstralError:
+          pass
+      mod += 1
+
+  old_next_rising_dt =  conf.sun.get("next_rising")
+  old_next_setting_dt = conf.sun.get("next_setting")
+  conf.sun["next_rising"] = next_rising_dt
+  conf.sun["next_setting"] = next_setting_dt
+
+  if old_next_rising_dt != None and old_next_rising_dt != conf.sun["next_rising"]:
+    #dump_schedule()
+    process_sun("next_rising")
+    #dump_schedule()
+  if old_next_setting_dt != None and old_next_setting_dt != conf.sun["next_setting"]:
+    #dump_schedule()
+    process_sun("next_setting")
+    #dump_schedule()
+  
+def process_sun(action):
+  conf.logger.debug("Process sun: {}, next sunrise: {}, next sunset: {}".format(action, conf.sun["next_rising"], conf.sun["next_setting"]))
+  for name in conf.schedule.keys():
+    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
+      schedule = conf.schedule[name][entry]
+      if schedule["type"] == action and "inactive" in schedule:
+        del schedule["inactive"]
+        schedule["timestamp"] = ha.calc_sun(action, schedule["time"])
+  
 def is_dst( ):
   return bool(time.localtime( ).tm_isdst)
 
@@ -57,9 +124,17 @@ def handle_sig(signum, frame):
     dump_callbacks()
     dump_objects()
     dump_queue()
+    dump_sun()
   if signum == signal.SIGUSR2:
     readApps(True)
         
+def dump_sun():
+    conf.logger.info("--------------------------------------------------")
+    conf.logger.info("Sun")
+    conf.logger.info("--------------------------------------------------")
+    conf.logger.info(conf.sun)
+    conf.logger.info("--------------------------------------------------")
+    
 def dump_schedule():
   if conf.schedule == {}:
       conf.logger.info("Schedule is empty")
@@ -135,22 +210,6 @@ def dispatch_worker(name, args):
   if unconstrained:  
     q.put_nowait(args)
   
-def process_sun(state):
-  action = ""
-  if state["state"] == "above_horizon":
-    # Sun has just risen, meaning next_rising time is valid for tomorrow
-    action = "next_rising"
-  else:
-    # Sun has just set, meaning next_setting time is valid for tomorrow
-    action = "next_setting"
-
-  for name in conf.schedule.keys():
-    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-      schedule = conf.schedule[name][entry]
-      if schedule["type"] == action and "inactive" in schedule:
-        del schedule["inactive"]
-        schedule["timestamp"] = ha.calc_sun(action, schedule["time"])
-      
 def exec_schedule(name, entry, args):
   if "inactive" in args:
     return
@@ -159,9 +218,13 @@ def exec_schedule(name, entry, args):
   # If it is a repeating entry, rewrite with new timestamp
   if args["repeat"]:
     if args["type"] == "next_rising" or args["type"] == "next_setting":
-      # Its sunrise or sunset, and due to the offset we may not know the next rise or set yet
-      # Mark the entry as inactive, and set the new time after the transition
-      args["inactive"] = 1
+      # Its sunrise or sunset - if the offset is negative we won't know the next rise or set time yet so mark as inactive
+      # So we can adjust with a scan at sun rise/set
+      if args["time"] < 0:
+        args["inactive"] = 1
+      else:
+        # We have a valid time for the next sunrise/set so use it
+        args["timestamp"] = ha.calc_sun(args["type"], args["time"])
     else:
       # Not sunrise or sunset so just increment the timestamp with the repeat interval
       args["timestamp"] += args["time"]
@@ -177,27 +240,20 @@ def do_every_second():
   if not reading_messages:
     return
   try: 
+  
+    now = datetime.datetime.now()
+  
+    # Update sunrise/sunset etc.
+    
+    update_sun()
+    
     # Check if we have entered or exited DST - if so, reload apps to ensure all time callbacks are recalculated
     
     now_dst = is_dst()
     if now_dst != was_dst:
       conf.logger.info("Detected change in DST from {} to {} - reloading all modules".format(was_dst, now_dst))
       readApps(True)
-      was_dst = is_dst()
-
-    now = datetime.datetime.now().timestamp()
-    #conf.logger.debug("Scheduler invoked at {}".format(now))
-    for name in conf.schedule.keys():
-      for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-        #conf.logger.debug("{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
-        if conf.schedule[name][entry]["timestamp"] < now:
-          exec_schedule(name, entry, conf.schedule[name][entry])
-        else:
-          break
-    for k, v in list(conf.schedule.items()):
-      if v == {}:
-        del conf.schedule[k]
-      
+    was_dst = now_dst
 
     #dump_schedule()
     
@@ -213,7 +269,6 @@ def do_every_second():
     # Call me suspicious, but lets update state form HA periodically in case we miss events for whatever reason
     # Every 10 minutes seems like a good place to start
 
-    now = datetime.datetime.now()
     if  last_state != None and now - last_state > datetime.timedelta(minutes = 10):
       get_ha_state()
       last_state = now
@@ -222,6 +277,22 @@ def do_every_second():
     
     if q.qsize() > 0 and q.qsize() % 10 == 0:
       conf.logger.warning("Queue size is {}, suspect thread starvation".format(q.qsize()))
+      
+    # Process callbacks
+    
+    now = datetime.datetime.now().timestamp()
+    #conf.logger.debug("Scheduler invoked at {}".format(now))
+    for name in conf.schedule.keys():
+      for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
+        #conf.logger.debug("{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
+        if conf.schedule[name][entry]["timestamp"] < now:
+          exec_schedule(name, entry, conf.schedule[name][entry])
+        else:
+          break
+    for k, v in list(conf.schedule.items()):
+      if v == {}:
+        del conf.schedule[k]
+      
   except:
     conf.error.warn('-'*60)
     conf.error.warn("Unexpected error during do_every_second()")
@@ -240,7 +311,7 @@ def worker():
     function = args["function"]
     id = args["id"]
     name = args["name"]
-    if conf.objects[name]["id"] == id:
+    if name in conf.objects and conf.objects[name]["id"] == id:
       try:
         if type == "initialize":
           function()
@@ -265,7 +336,7 @@ def worker():
         conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
     else:
-      conf.logger.warning("Found stale callback - discarding")
+      conf.logger.warning("Found stale callback for {} - discarding".format(name))
     q.task_done()
 
 def clear_file(name):
@@ -310,19 +381,6 @@ def process_message(msg):
       # First update our global state
 
       conf.ha_state[entity_id] = data['data']['new_state']
-      
-      # Check sunrise/sunset
-      
-      if entity_id == "sun.sun" and data["data"]["old_state"]["state"] != data["data"]["new_state"]["state"]:
-        
-        #dump_schedule()
-        
-        #conf.logger.info("Detected Sunrise/Sunset")
-        #conf.logger.info(data['data'])
-        
-        process_sun(data["data"]["new_state"])
-        
-        #dump_schedule()
       
       # Process any callbacks
       
@@ -525,6 +583,10 @@ def run():
   # Take a note of DST
 
   was_dst = is_dst()
+  
+  # Setup sun
+  
+  update_sun()
    
   # Create Worker Threads
   for i in range(conf.threads):
@@ -599,6 +661,12 @@ def main():
   conf.errorfile = config['AppDaemon']['errorfile']
   conf.app_dir = config['AppDaemon']['app_dir']
   conf.threads = int(config['AppDaemon']['threads'])
+  conf.latitude = float(config['AppDaemon']['latitude'])
+  conf.longitude = float(config['AppDaemon']['longitude'])
+  conf.elevation = float(config['AppDaemon']['elevation'])
+  conf.timezone = config['AppDaemon']['timezone']
+  
+  init_sun()
   
   config_file_modified = os.path.getmtime(args.config)
     
