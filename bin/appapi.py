@@ -18,7 +18,7 @@ class AppDaemon():
     self.global_vars = global_vars
     
   def _check_entity(self, entity):
-    if entity.find(".") == -1:
+    if "." not in entity:
       raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
     if entity not in conf.ha_state:
       conf.logger.warn("{}: Entity {} not found in Home Assistant".format(self.name, entity))
@@ -28,19 +28,28 @@ class AppDaemon():
       raise ValueError("Invalid Service Name: {}".format(service))  
   
   def split_entity(self, entity_id):
-    if entity.find(".") == -1:
-      raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
     self._check_entity(entity_id)
     return(entity_id.split("."))
     
   def split_device_list(self, list):
     return list.split(",")
-    
-  def log(self, msg):
-    self._logger.info("{}: {}".format(self.name, msg))
 
-  def error(self, msg):
-    self._error.warning("{}: {}".format(self.name, msg))
+  def do_log(self, logger, msg, level):
+    levels = {
+                "CRITICAL": 50,
+                "ERROR": 40,
+                "WARNING": 30,
+                "INFO": 20,
+                "DEBUG": 10,
+                "NOTSET": 0
+              }
+    logger.log(levels[level], msg) 
+  
+  def log(self, msg, level = "INFO"):
+    self.do_log(self._logger, msg, level)
+
+  def error(self, msg, level = "WARNING"):
+    self.do_log(self._error, msg, level)
 
   def get_trackers(self):
     return (key for key, value in self.get_state("device_tracker").items())
@@ -80,7 +89,7 @@ class AppDaemon():
     device = None
     entity = None
     if entity_id != None:
-      if entity_id.find(".") == -1:
+      if "." not in entity_id:
         if attribute != None:
           raise ValueError
         device = entity_id
@@ -186,22 +195,22 @@ class AppDaemon():
       args["notification_id"] = id
     self.call_service("persistent_notification/create", **args)
 
-  def listen_state(self, function, entity = None, attribute = None):
+  def listen_state(self, function, entity = None, **kwargs):
     name = self.name
-    if entity != None and entity.find(".") != -1:
+    if entity != None and "." in entity:
       self._check_entity(entity)
     if name not in conf.callbacks:
         conf.callbacks[name] = {}
     handle = uuid.uuid4()
-    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "state", "function": function, "entity": entity, "attribute": attribute}
+    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "state", "function": function, "entity": entity, "kwargs": kwargs}
     return handle
 
-  def listen_event(self, function, event):
+  def listen_event(self, function, event, **kwargs):
     name = self.name
     if name not in conf.callbacks:
         conf.callbacks[name] = {}
     handle = uuid.uuid4()
-    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "event", "function": function, "event": event}
+    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "event", "function": function, "event": event, "kwargs": kwargs}
     return handle
 
   def cancel_listen_event(self, handle):
@@ -247,15 +256,15 @@ class AppDaemon():
     if name in conf.schedule and conf.schedule[name] == {}:
       del conf.schedule[name]
         
-  def run_in(self, callback, seconds, *args, **kwargs):
+  def run_in(self, callback, seconds, **kwargs):
     name = self.name
     conf.logger.debug("Registering run_in in {} seconds for {}".format(seconds, name))  
     # convert seconds to an int if possible since a common pattern is to pass this through from the config file which is a string
     exec_time = datetime.datetime.now().timestamp() + int(seconds)
-    handle = self._insert_schedule(name, exec_time, callback, False, None, None, *args, **kwargs)
+    handle = self._insert_schedule(name, exec_time, callback, False, None, None, **kwargs)
     return handle
 
-  def run_once(self, callback, start, *args, **kwargs):
+  def run_once(self, callback, start, **kwargs):
     name = self.name
     now = datetime.datetime.now()
     today = datetime.date.today()
@@ -264,10 +273,19 @@ class AppDaemon():
       one_day = datetime.timedelta(days=1)
       event = event + one_day
     exec_time = event.timestamp()
-    handle = self._insert_schedule(name, exec_time, callback, False, None, None, *args, **kwargs)
+    handle = self._insert_schedule(name, exec_time, callback, False, None, None, **kwargs)
     return handle
 
-  def run_daily(self, callback, start, *args, **kwargs):
+  def run_at(self, callback, start, **kwargs):
+    name = self.name
+    now = datetime.datetime.now()
+    if start < now:
+      raise ValueError("{}: run_at() Start time must be in the future".format(self.name))
+    exec_time = start.timestamp()
+    handle = self._insert_schedule(name, exec_time, callback, False, None, None, **kwargs)
+    return handle
+
+  def run_daily(self, callback, start, **kwargs):
     name = self.name
     now = datetime.datetime.now()
     today = datetime.date.today()
@@ -275,10 +293,10 @@ class AppDaemon():
     if event < now:
       one_day = datetime.timedelta(days=1)
       event = event + one_day
-    handle = self.run_every(callback, event, 24 * 60 * 60, *args, **kwargs)
+    handle = self.run_every(callback, event, 24 * 60 * 60, **kwargs)
     return handle
     
-  def run_hourly(self, callback, start, *args, **kwargs):
+  def run_hourly(self, callback, start, **kwargs):
     name = self.name
     now = datetime.datetime.now()
     if start == None:
@@ -289,10 +307,10 @@ class AppDaemon():
       if event < now:
         event = event.replace(hour = event.hour + 1)
       
-    handle = self.run_every(callback, event, 60 * 60, *args, **kwargs)
+    handle = self.run_every(callback, event, 60 * 60, **kwargs)
     return handle  
 
-  def run_minutely(self, callback, start, *args, **kwargs):
+  def run_minutely(self, callback, start, **kwargs):
     name = self.name
     now = datetime.datetime.now()
     if start == None:
@@ -303,35 +321,35 @@ class AppDaemon():
       if event < now:
         event = event.replace(minute = event.minute + 1)
 
-    handle = self.run_every(callback, event, 60, *args, **kwargs)
+    handle = self.run_every(callback, event, 60, **kwargs)
     return handle  
 
-  def run_every(self, callback, start, interval, *args, **kwargs):
+  def run_every(self, callback, start, interval, **kwargs):
     name = self.name
     conf.logger.debug("Registering run_every starting {} in {}s intervals for {}".format(start, interval, name))  
     exec_time = start.timestamp()
-    handle = self._insert_schedule(name, exec_time, callback, True, interval, None, *args, **kwargs)
+    handle = self._insert_schedule(name, exec_time, callback, True, interval, None, **kwargs)
     return handle
     
-  def run_at_sunset(self, callback, offset, *args, **kwargs):
+  def run_at_sunset(self, callback, offset, **kwargs):
     name = self.name
     conf.logger.debug("Registering run_at_sunset with {} second offset for {}".format(offset, name))    
-    handle = self._schedule_sun(name, "next_setting", offset, callback, *args, **kwargs)
+    handle = self._schedule_sun(name, "next_setting", offset, callback, **kwargs)
     return handle
 
-  def run_at_sunrise(self, callback, offset, *args, **kwargs):
+  def run_at_sunrise(self, callback, offset, **kwargs):
     name = self.name
     conf.logger.debug("Registering run_at_sunrise with {} second offset for {}".format(offset, name))    
-    handle = self._schedule_sun(name, "next_rising", offset, callback, *args, **kwargs)
+    handle = self._schedule_sun(name, "next_rising", offset, callback, **kwargs)
     return handle
     
-  def _insert_schedule(self, name, utc, callback, repeat, time, type, *args, **kwargs):
+  def _insert_schedule(self, name, utc, callback, repeat, time, type, **kwargs):
     if name not in conf.schedule:
       conf.schedule[name] = {}
     handle = uuid.uuid4()
-    conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": utc, "repeat": repeat, "time": time, "type": type, "args": args, "kwargs": kwargs}
+    conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": utc, "repeat": repeat, "time": time, "type": type, "kwargs": kwargs}
     return handle
     
-  def _schedule_sun(self, name, type, offset, callback, *args, **kwargs):
+  def _schedule_sun(self, name, type, offset, callback, **kwargs):
     event = ha.calc_sun(type, offset)
-    handle = self._insert_schedule(name, event, callback, True, offset, type, *args, **kwargs)
+    handle = self._insert_schedule(name, event, callback, True, offset, type, **kwargs)

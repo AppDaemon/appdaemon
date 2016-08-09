@@ -173,48 +173,81 @@ def dump_queue():
   conf.logger.info("--------------------------------------------------")
   conf.logger.info("Current Queue Size is {}".format(q.qsize()))
   conf.logger.info("--------------------------------------------------")
+
+def check_constraint(key, value):
+  unconstrained = True
+  if key == "constrain_input_boolean":
+      if value in conf.ha_state and conf.ha_state[value]["state"] == "off":
+        unconstrained = False
+  if key == "constrain_input_select":
+    values = value.split(",")
+    entity = values.pop(0)
+    if entity in conf.ha_state and conf.ha_state[entity]["state"] not in values:
+      unconstrained = False
+  if key == "constrain_presence":
+    if value == "everyone" and not ha.everyone_home():
+      unconstrained = False
+    elif value == "anyone" and not ha.anyone_home():
+      unconstrained = False
+    elif value == "noone" and not ha.noone_home():
+      unconstrained = False
+  if key == "constrain_days":
+    if today_is_constrained(value):
+      unconstrained = False
+  
+  return unconstrained
+
+def check_time_constraint(args, name):
+  unconstrained = True
+  if "constrain_start_time" in args or "constrain_end_time" in args:
+    if "constrain_start_time" not in args:
+      start_time = "00:00:00"
+    else:
+      start_time = args["constrain_start_time"]
+    if "constrain_end_time" not in args:
+      end_time = "23:59:59"
+    else:
+      end_time = args["constrain_end_time"]
+    if not ha.now_is_between(start_time, end_time, name):
+      unconstrained = False
+      
+  return unconstrained
   
 def dispatch_worker(name, args):
   unconstrained = True
+  #
+  # Argument Constraints
+  #
   for arg in config[name].keys():
-    if arg == "constrain_input_boolean":
-      entity = config[name][arg]
-      if entity in conf.ha_state and conf.ha_state[entity]["state"] == "off":
-        unconstrained = False
-    if arg == "constrain_input_select":
-      values = config[name][arg].split(",")
-      entity = values.pop(0)
-      if entity in conf.ha_state and conf.ha_state[entity]["state"] not in values:
-        unconstrained = False
-    if arg == "constrain_presence":
-      if config[name][arg] == "everyone" and not ha.everyone_home():
-        unconstrained = False
-      elif config[name][arg] == "anyone" and not ha.anyone_home():
-        unconstrained = False
-      elif config[name][arg] == "noone" and not ha.noone_home():
-        unconstrained = False
-  
-  if "constrain_start_time" in config[name] or "constrain_end_time" in config[name]:
-    if "constrain_start_time" not in config[name]:
-      start_time = "00:00:00"
-    else:
-      start_time = config[name]["constrain_start_time"]
-    if "constrain_end_time" not in config[name]:
-      end_time = "23:59:59"
-    else:
-      end_time = config[name]["constrain_end_time"]
-        
-    if not ha.now_is_between(start_time, end_time, name):
+    if not check_constraint(arg, config[name][arg]):
       unconstrained = False
-
+  if not check_time_constraint(config[name], name):
+    unconstrained = False
+  #
+  # Callback level constraints
+  #
+  if "kwargs" in args:
+    for arg in args["kwargs"].keys():
+      if not check_constraint(arg, args["kwargs"][arg]):
+        unconstrained = False
+    if not check_time_constraint(args["kwargs"], name):
+      unconstrained = False
+        
   if unconstrained:  
     q.put_nowait(args)
-  
+ 
+def today_is_constrained(days):
+    day = datetime.datetime.today().weekday()
+    daylist = [ha.day_of_week(day) for day in days.split(",")]
+    if day in daylist:
+      return False
+    return True
+ 
 def exec_schedule(name, entry, args):
   if "inactive" in args:
     return
   # Call function
-  dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "args": args["args"], "kwargs": args["kwargs"], })
+  dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "kwargs": args["kwargs"], })
   # If it is a repeating entry, rewrite with new timestamp
   if args["repeat"]:
     if args["type"] == "next_rising" or args["type"] == "next_setting":
@@ -316,16 +349,16 @@ def worker():
         if type == "initialize":
           function()
         if type == "timer":
-          function(args["args"], args["kwargs"])
+          function(args["kwargs"])
         elif type == "attr":
           entity = args["entity"]
           attr = args["attr"]
           old_state = args["old_state"]
           new_state = args["new_state"]
-          function(entity, attr, old_state, new_state)
+          function(entity, attr, old_state, new_state, args["kwargs"])
         elif type == "event":
           data = args["data"]
-          function(args["event"], data)
+          function(args["event"], data, args["kwargs"])
 
       except:
         conf.error.warn('-'*60)
@@ -365,6 +398,73 @@ def init_object(name, class_name, module_name, args):
   
   q.put_nowait({"type": "initialize", "name": name, "id": conf.objects[name]["id"], "function": conf.objects[name]["object"].initialize})
 
+def check_and_disapatch(name, function, entity, attribute, new_state, old_state, cold, cnew, kwargs):
+  if attribute == "all":
+    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new_state, "old_state": old_state, "kwargs": kwargs})
+  else:
+    if attribute in old_state:
+      old = old_state[attribute]
+    elif attribute in old_state['attributes']:
+      old = old_state['attributes'][attribute]
+    else:
+      old = None
+    if attribute in 'new_state':
+      new = new_state[attribute]
+    elif attribute in new_state['attributes']:
+      new = new_state['attributes'][attribute]
+    else:
+      new = None
+
+    if (cold == None or cold == old) and (cnew == None or cnew == new):
+      dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new, "old_state": old, "kwargs": kwargs})
+
+def process_state_change(data):
+
+  entity_id = data['data']['entity_id']
+  conf.logger.debug("Entity ID:{}:".format(entity_id))
+  device, entity = entity_id.split(".")
+
+  # First update our global state   
+  conf.ha_state[entity_id] = data['data']['new_state']      
+
+  # Process state callbacks
+        
+  for name in conf.callbacks.keys():
+    for uuid in conf.callbacks[name]:
+      callback = conf.callbacks[name][uuid]
+      if callback["type"] == "state":
+        cdevice = None
+        centity = None
+        if callback["entity"] != None:
+          if "." not in callback["entity"]:
+            cdevice = callback["entity"]
+            centity = None
+          else:
+            cdevice, centity = callback["entity"].split(".")
+        if callback["kwargs"].get("attribute") == None:
+          cattribute = "state"
+        else:
+          cattribute = callback["kwargs"].get("attribute")
+          
+        cold = callback["kwargs"].get("old")
+        cnew = callback["kwargs"].get("new")
+
+        if cdevice == None:
+          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew. callback["kwargs"])
+        elif centity == None:
+          if device == cdevice:
+            check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
+        elif device == cdevice and entity == centity:
+          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
+          
+def process_event(data):
+  for name in conf.callbacks.keys():
+    for uuid in conf.callbacks[name]:
+      callback = conf.callbacks[name][uuid]
+      if "event" in callback and data['event_type'] == callback["event"]:
+        dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"], "kwargs": callback["kwargs"]})      
+
+          
 def process_message(msg):
   try:
     if msg.data == "ping":
@@ -372,71 +472,15 @@ def process_message(msg):
     
     data = json.loads(msg.data)
     conf.logger.debug("Event type:{}:".format(data['event_type']))
+    conf.logger.debug(data["data"])
+
     # Process state changed message
     if data['event_type'] == "state_changed":
-      entity_id = data['data']['entity_id']
-      conf.logger.debug("Entity ID:{}:".format(entity_id))
-      device, entity = entity_id.split(".")
+      process_state_change(data)
       
-      # First update our global state
-
-      conf.ha_state[entity_id] = data['data']['new_state']
-      
-      # Process any callbacks
-      
-      for name in conf.callbacks.keys():
-        for uuid in conf.callbacks[name]:
-          callback = conf.callbacks[name][uuid]
-          if callback["type"] == "state":
-            cdevice = None
-            centity = None
-            cattribute = callback["attribute"]
-            if callback["entity"] != None:
-              if callback["entity"].find(".") == -1:
-                cdevice = callback["entity"]
-                centity = None
-              else:
-                cdevice, centity = callback["entity"].split(".")
-            if cdevice == None:
-              dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
-            elif centity == None:
-              if device == cdevice:
-                dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "entity": entity_id, "attr": None, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
-            elif cattribute == None:
-              if device == cdevice and entity == centity:
-               dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "entity": entity_id, "attr": "state", "new_state": data['data']['new_state']['state'], "old_state": data['data']['old_state']['state']})
-            else:
-              if device == cdevice and entity == centity:
-                if cattribute == "all":
-                  dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": data['data']['new_state'], "old_state": data['data']['old_state']})
-                else:
-                  if cattribute in data['data']['old_state']:
-                    old = data['data']['old_state'][cattribute]
-                  elif cattribute in data['data']['old_state']['attributes']:
-                    old = data['data']['old_state']['attributes'][cattribute]
-                  else:
-                    old = None
-                  if cattribute in data['data']['new_state']:
-                    new = data['data']['new_state'][cattribute]
-                  elif cattribute in data['data']['new_state']['attributes']:
-                    new = data['data']['new_state']['attributes'][cattribute]
-                  else:
-                    new = None
-
-                  if old != new:
-                    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": callback["function"], "attr": cattribute, "entity": entity_id, "new_state": new, "old_state": old})
-
     # Process non-state callbacks
-    for name in conf.callbacks.keys():
-      for uuid in conf.callbacks[name]:
-        callback = conf.callbacks[name][uuid]
-        if "event" in callback and data['event_type'] == callback["event"]:
-          dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"]})
-
-    else:
-      conf.logger.debug(data["data"])
-      
-
+    process_event(data)
+    
   except:
     conf.error.warn('-'*60)
     conf.error.warn("Unexpected error during process_message()")
@@ -602,6 +646,8 @@ def run():
   
   # Enter main loop
   
+  first_time = True
+  
   while True:
     try:
       # Get initial state
@@ -610,6 +656,15 @@ def run():
       # Load apps
       readApps(True)
       last_state = datetime.datetime.now()
+      
+      #
+      # Fire HA_STARTED and APPD_STARTED Events
+      #
+      if first_time == True:
+        process_event({"event_type": "appd_started", "data": {}})
+        first_time = False
+      else:
+        process_event({"event_type": "ha_started", "data": {}})
       
       headers = {'x-ha-access': conf.ha_key}
       reading_messages = True

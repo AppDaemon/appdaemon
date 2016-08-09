@@ -56,7 +56,7 @@ class NightLight(appapi.AppDaemon):
     self.run_daily(self.run_daily_callback, time)
    
    # Our callback function will be called by the scheduler every day at 7pm 
-  def run_daily_callback(self, args, kwargs):
+  def run_daily_callback(self, kwargs):
     # Call to Home Assistant to turn the porch light on
     self.turn_on("light.porch")
 ```
@@ -222,6 +222,8 @@ constrain_start_time = sunset - 00:45:00
 constrain_end_time = sunrise + 00:45:00
 ```
 
+Callback constraints can also be applied to individual callbacks within Apps, see later for more details.
+
 ## A Note on Threading
 
 Appdeamon is a multi threaded design. This means that any time code within an App is executed, it is executed by one of many threads. This is generally not a particularly important consideration for this application, as in general, the execution time of callbacks is expected to be far quicker than the frequency of events causing them. However, it should be noted for completeness, that it is certainly possible for different pieces of code within the App to be executed concurrently, so some care may be necessary if different callback for instance inspect and change shared variables. This is a fairly standard caveat with concurrent programming, and if you know enough to want to do this, then you should know enough to put appropriate safeguards in place. For the average user however this shouldn't be an issue. If there are sufficient usecases to warrant it I will consider adding locking to the function invocations to make the entire infrastructure threadsafe but I am not convinced that it is necessary.
@@ -325,11 +327,56 @@ A list of keyword values to be changed or added to the entities state. e,g, stat
 status = self.set_state("light.office_1", state = "on", attributes = {"color_name": "red"})
 ```
 
-### About State Callbacks
+### About Callbacks
 
 A large proportion of home automation revolves around waiting for something to happen and then reacting to it - a light level drops, the sun rises, a door opens etc. Home Assistant keeps track of every state change that occurs within the system and stream that information to AppDaemon almost immediately.
 
 An individual App however usually doesn't care about the majority of state changes going on in the system, they usually care about something very specific, like a specific sensor or light. Apps need a way to be notified when a state change happens that they care about, and be able to ignore the rest - they do this through registering callbacks. A callback allows the App to describe exactly what it is interested in, and tell AppDaemon to make a call into it's code in a specific place to be able to react to it - this is a very familiar concept to anyone familiar with even-based programming.
+
+There are 3 types of callbacks within AppDaemon:
+
+- State Callbacks - react to a change in state
+- Scheduler Callbacks - react to a specific time or interval
+- Event Callbacks - react to specific Home Assistant ans Appdaemon events.
+
+All callbacks allow the user to specify additional parameters to be handed to the callback via the standard Python **kwargs mechanism for greater flexibility.
+
+### About Registering Callbacks
+
+Each of the various types of callback have their own function or functions for registering the callback:
+
+- `listewn_state()` for state callbacks
+- Various scheduler calls such as `run_once()` for scheduler callbacks
+- `listen_event()` for event callbacks.
+
+Each type of callback shares a number of common mechanisms that increase flexibility.
+
+#### Callback Level Constraints
+
+When registering a callback, you can add constraints identical to the Application level constraints described earlier. The difference is that a constraint applied to an individual callback only affects that callback and no other. The constraints are applied by adding python keyword-value style arguments after the positional arguments. The parameters themselves are named identically to the previously described copnstraints and have identical functionality. For instance, adding:
+
+`constrain_presence="everyone"`
+
+to a callback registration will ensure that the callback is only run if the callback conditions are met and in addition everyone is present although any other callbacks might run whenever their event fires if they have no constraints.
+
+For example:
+
+`self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")`
+
+#### User Arguments
+
+Ant callback has the ability to allow the App creator to pass through arbitary keyword arguments that will be presented to the callback when it is run. The arguments are added after the positional parameters just like the constraints. The only restriction is that they cannot be the same as any constraint name for obvious reasons. For example, to pass the parameter `arg1 = "home assistant"` through to a callback you would register a callback as follows:
+
+`self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")`
+
+Then in the callback you could use it as follows:
+
+```python
+ def motion(self, entity, attribute, old, new, kwargs):
+    self.log('Arg1 is {}".format(kwargs["arg1"]))
+ ```
+
+### State Callbacks
 
 AppDaemons's state callbacks allow an App to listen to a wide variety of events, from every state change in the system, right down to a change of a single attribute of a particular entity. Setting up of a callback is done using a single API call `listen_state()` that takes various arguments to allow it to do all of the above. Apps can register as many or as few callbacks as they want.
 
@@ -338,7 +385,7 @@ AppDaemons's state callbacks allow an App to listen to a wide variety of events,
 When calling back into the App, the App must provide a class function with a known signature for AppDaemon to call. The callback will provide various information to the function to enable the function to respond appropriately. For state callbacks, a class defined callback funciton should look like this:
 
 ```python
-  def my_callback(self, entity, attribute, old, new):
+  def my_callback(self, entity, attribute, old, new, kwargs):
     <do some useful work here>
 ```
 
@@ -359,13 +406,16 @@ The value of the state after the styate change
 
 `old` and `new` will have varying types depending on the type of callback. 
 
+#### kwargs
+A dictionary containing any constraints and/or additional user specific keyword arguments supplied to the `listen_state()` call.
+
 ### listen_state()
 
 `listen_state()` allows the user to register a callback for a wide variety of state changes.
 
 #### Synopsis
 
-`handle = listen_state(callback, entity = None, attribute = None)`
+`handle = listen_state(callback, entity = None, **kwargs)`
 
 #### Returns
 
@@ -380,33 +430,56 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 ##### entity
 
-This is the name of an entity or device type. If just a device type is provided, e.g. `light` or `binary_sensor`, `listen_state()` will subscribe to state changes of all devices of that type. The callback will be provided with dictionaries containing the entire old and new state of the entity who's state changed.
+This is the name of an entity or device type. If just a device type is provided, e.g. `light` or `binary_sensor`, `listen_state()` will subscribe to state changes of all devices of that type. If a fully qualified `entity_id` is provided, `listen_state()` will listen for state changes for just that entity.
 
-If a fully qualified `entity_id` is provided, `listen_state()` will listen for state changes for just that entity and will supply the callback function, in old and new, the state attirbute for that entity, e.g. `on` or `off` for a light.
+When called, AppDaemon will supply the callback function, in old and new, with the state attirbute for that entity, e.g. `on` or `off` for a light.
 
-##### attribute
+##### attribute (optional)
 
 Name af an attribute within the entity state object. If this parameter is specified in addition to a fully qualified `entity_id`, `listen_state()` will subscribe to changes for just that attribute within that specific entity. The new and old parameters in the callback function will be provided with a single value representing the attribute.
 
-The value `all` for attribute has special significance and will listen for any state change within the specified antity, and suppley the callback functions with the entire state dictionary for the specified entity rather than an individual attribute value.
+The value `all` for attribute has special significance and will listen for any state change within the specified antity, and supply the callback functions with the entire state dictionary for the specified entity rather than an individual attribute value.
+
+##### new (optional)
+
+If `new` is supplied as a parameter, callbacks will only be made if the state of the selected attribute (usually `state`) in the new state match the value of `new`.
+
+##### old (optional)
+
+If `old` is supplied as a parameter, callbacks will only be made if the state of the selected attribute (usually `state`) in the old state match the value of `old`.
+
+Note: `old` and `new` can be used singly or together.
+
+##### **kwargs
+
+Zero or more keyword arguments that will be supplied to the callback when it is called.
+
 #### Examples
 
 ```python
-# Listen for any state change
+# Listen for any state change and return the state attribute
 self.handle = self.listen_state(self.all_state)
 
- # Listen for any state change involving a light
+ # Listen for any state change involving a light and return the state attribute
 self.handle = self.listen_state(self.device, "light")
 
 # Listen for a state change involving light.office1 and return the state attribute
 self.handle = self.listen_state(self.entity, "light.office_1")
 
-# Listen for a state change involving light.office1 and return the entire state
-self.handle = self.listen_state(sself.attr, "light.office_1", "all")
+# Listen for a state change involving light.office1 and return the entire state as a dict
+self.handle = self.listen_state(sself.attr, "light.office_1", attribute = "all")
 
 # Listen for a state change involving the brightness attribute of light.office1
-self.handle = self.listen_state(self.attr, "light.office_1", "brightness")
+self.handle = self.listen_state(self.attr, "light.office_1", attribute = "brightness")
+
+# Listen for a state change involving light.office1 turning on and return the state attribute
+self.handle = self.listen_state(self.entity, "light.office_1", new = "on")
+
+# Listen for a state change involving light.office1 changing from brightness 100 to 200 and return the state attribute
+self.handle = self.listen_state(self.entity, "light.office_1", old = "100", new = "200")
 ```
+
+
 
 ### cancel_listen_state()
 
@@ -439,7 +512,7 @@ AppDaemon contains a powerful scheduler that is able to run with 1 second resolu
 As with State Change callbacks, Scheduler Callbacks expect to call into functions with a known and specific signature and a class defined Scheduler callback funciton should look like this:
 
 ```python
-  def my_callback(self, args, kwargs):
+  def my_callback(self, kwargs):
     <do some useful work here>
 ```
 
@@ -450,15 +523,9 @@ The parameters have the following meanings:
 #### self
 A standard Python object reference
 
-#### args
-
-Zero or more positional arguments provided at the time the shcedule entry was added
-
 #### kwargs
 
-A dictionary containing Zero or more keyword arguments
-
-The use of `args` and `kwargs` are an optional but powerful way of providing information to the callback function. 
+A dictionary containing Zero or more keyword arguments to be supplied to the callback.
 
 ### Creation of Scheduler Callbacks
 
@@ -496,6 +563,7 @@ self.handle = self.run_in(self.run_in_c, 5)
 self.handle = self.run_in(self.run_in_c, 5, 5, title = "run_in5")
 ```
 #### run_once()
+Run the callback once, at the specificed time of day. If the time of day is in the past, the callback will occur on the next day.
 #### Synopsis
 
 `self.handle = self.run_once(callback, time, *args, **kwargs)`
@@ -520,9 +588,41 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 #### Examples
 
 ```python
-# Run at 4pm today, or 4pm tomorrow if it isd already after 4pm
+# Run at 4pm today, or 4pm tomorrow if it is already after 4pm
 runtime = datetime.time(16, 0, 0)
 handle = self.run_once(self.run_once_c, runtime)
+```
+#### run_at()
+Run the callback once, at the specificed date and time.
+#### Synopsis
+
+`self.handle = self.run_at(callback, datetime, *args, **kwargs)`
+
+#### Returns
+
+A handle that can be used to cancel the timer. `run_at()` will raise an exception if the specified time is in the past.
+
+#### Parameters
+
+##### callback
+Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
+
+##### datetime
+
+A python `datetime` object that specifies when the callback will occur.
+
+##### *args, **kwargs
+
+Arbitary positional and keyword parameters to be provided to the callback function when it is invoked
+
+#### Examples
+
+```python
+# Run at 4pm today
+runtime = datetime.time(16, 0, 0)
+today = datetime.date.today()
+event = datetime.datetime.combine(today, runtime)
+handle = self.run_once(self.run_once_c, event)
 ```
 #### run_daily()
 
@@ -890,11 +990,44 @@ Events are a fundamental part of how Home Assistant works under the covers. HA h
 - component_loaded
 
 Using AppDaemon, it is possible to subscribe to specific events as well as fire off events.
+
+In addition to the Home Assistant supplied events, AppDaemon adds 2 more events. These are internal to AppDasemon and are not visible on the Home Assistant bus:
+
+- appd_started - fired once when AppDaemon is first started and after Apps are initialized
+- ha_started - fired every time AppDaemon detectes a Home Assistant restart
+
+### About Event Callbacks
+
+As with State Change ans Cheduler callbacks, Event Callbacks expect to call into functions with a known and specific signature and a class defined Scheduler callback funciton should look like this:
+
+```python
+  def my_callback(self, event_name, data, kwargs):
+    <do some useful work here>
+```
+
+You can call the fucntion whatever you like - you will reference it in the Scheduler call, and you can create as many callback functions as you need.
+
+The parameters have the following meanings:
+
+#### self
+A standard Python object reference
+
+#### event_name
+
+Name of the event that was called, e.g. `call_service`
+
+#### data
+
+Any data that the system supplied with the event as a dict
+
+#### kwargs
+
+A dictionary containing Zero or more user keyword arguments to be supplied to the callback.
 ### listen_event()
 Listen event sets up a callback for a specific event.
 #### Synopsis
 ```python
-handle = listen_event(function, event):
+handle = listen_event(function, event, **kwargs):
 ```
 #### Returns
 A handle that can be used to cancel the callback.
@@ -903,6 +1036,9 @@ A handle that can be used to cancel the callback.
 The function to be called when the event is fired.
 ##### event
 Name of the event to subscripe too. Can be a standard Home Assistant event such as "service_registered" or an arbitrary custom event such as "MODE_CHANGE"
+##### kwargs (optional)
+
+One or more keyword value pairs representing App specific parameters to supply to the callback.
 #### Examples
 ```python
 self.listen_event(self.mode_event, "MODE_CHANGE")
@@ -954,7 +1090,7 @@ A dictionary containing any additional information associated with the event.
 
 ### Use of Events for Signalling between Home Assistant and AppDaemon
 
-Home Assistant allows for the creation of custom evcents and existing components can send and recieve them. This provides a useful mechanism for signalling back and forth between Home Assistant and AppDaemon. For instance, if you would like to create a UI Element to fire off some code in Home Assistant, all that is necessary is to create a script to fire a custom event, then subscribe to that event in AppDaemon. The script would look something like this:
+Home Assistant allows for the creation of custom events and existing components can send and recieve them. This provides a useful mechanism for signaling back and forth between Home Assistant and AppDaemon. For instance, if you would like to create a UI Element to fire off some code in Home Assistant, all that is necessary is to create a script to fire a custom event, then subscribe to that event in AppDaemon. The script would look something like this:
 
 ```yaml
 alias: Day
@@ -1198,7 +1334,7 @@ AppDaemon uses 2 separate logs - the general log and the error log. An AppDaemon
 ### log()
 #### Synopsis
 
-`log(message)`
+`log(message, level = "INFO")`
 
 #### Returns
 
@@ -1209,16 +1345,21 @@ Nothing
 ##### Message
 
 The message to log.
+
+##### level
+
+The log level of the message - takes a string representing the standard logger levels.
 
 #### Examples
 
 ```python
 self.log("Log Test: Parameter is {}".format(some_variable))
+self.log("Log Test: Parameter is {}".format(some_variable), level = "ERROR")
 ```
 
 ### error()
 #### Synopsis
-`error(message)`
+`error(message, level = "WARNING")`
 #### Returns
 
 Nothing
@@ -1229,12 +1370,31 @@ Nothing
 
 The message to log.
 
+##### level
+
+The log level of the message - takes a string representing the standard logger levels.
+
 #### Examples
 
 ```python
-self.error("Some Error string")
+self.error("Some Warning string")
+self.error("Some Critical string", level = "CRITICAL")
 ```
 
 ## Sharing information between Apps
 
 Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some car is needed.
+
+## Development Workflow
+
+Developing Apps is intended to be fairly simple but is an exercise in programming like any other kind of Python programming. As such, it is expected that apps will contain syntax errors and will generate exceptionsduring the development process. AppDaemon makes it very easy to iterate through the development process as it will automatically reload code that has changed and also will reload code if any of the parameters in the configuration file change as well.
+
+The recomended workflow for development is as follows:
+
+- Open a window and tail the `appdaemon.log` file
+- Open a second window and tail the `error.log` file
+- Open a third window or the editor of your choice for editing the App
+
+With this setup, you will see that every time you write the file, AppDaemon will log the fact and let you know it has reloaded the App in the `appdaemon.log` file.
+
+If there is an error in the compilation or a runtime error, this will be directed to the `error.log` file to enable you to see ther error and correct it. When an error occurs, there will also be a warning message in `appdaemon.log` to tell you to check the error log.

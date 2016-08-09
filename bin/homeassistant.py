@@ -6,6 +6,16 @@ import re
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+def day_of_week(day):
+  days = {"mon": 0, "tue" : 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+  nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+  
+  if type(day) == str:
+    return days[day]
+  if type(day) == int:
+    return nums[day]
+  raise ValueError("Incorrect type for 'day' in day_of_week()'")
+
 def parse_time(time_str, name = None):
   time = None
   parts = re.search('^(\d+):(\d+):(\d+)', time_str)
