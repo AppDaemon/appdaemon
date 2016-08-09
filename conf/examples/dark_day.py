@@ -25,7 +25,7 @@ class DarkDay(appapi.AppDaemon):
     self.active = False
     self.listen_state(self.light_event, self.args["sensor"])
 
-  def light_event(self, entity, attribute, old, new):
+  def light_event(self, entity, attribute, old, new, kwargs):
     lux = float(new)
     # Can't use a contraint for this because if self.active = true when the constraint kicks in it will never get cleared
     # and the program will ignore future changes

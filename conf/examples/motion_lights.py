@@ -31,7 +31,7 @@ class MotionLights(appapi.AppDaemon):
     else:
       self.log("No sensor specified, doing nothing")
     
-  def motion(self, entity, attribute, old, new):
+  def motion(self, entity, attribute, old, new, kwargs):
     if new == "on":
       if "entity_on" in self.args:
         self.log("Motion detected: turning {} on".format(self.args["entity_on"]))
@@ -43,7 +43,7 @@ class MotionLights(appapi.AppDaemon):
       self.cancel_timer(self.handle)
       self.porch_handle = self.run_in(self.light_off, delay)
   
-  def light_off(self, args, kwargs):
+  def light_off(self, kwargs):
     if "entity_off" in self.args:
       # If it's a scene we need to turn it on not off
       device, entity = self.split_entity(self.args["entity_off"])

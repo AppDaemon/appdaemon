@@ -30,20 +30,20 @@ class SmartHeat(appapi.AppDaemon):
   def initialize(self):
     
     # Schedule our morning check
-
-    self.schedule_morning()
-    
     
     # Test
     
-    #self.run_in(self.morning, 1)
-    #self.run_in(self.evening, 2)
-    
-    # Run every day at a specific time
+    # Run every day at specific times
     
     evening = self.parse_time(self.args["evening_on"])
     self.run_daily(self.evening, evening)
-    
+
+    morning_weekend = self.parse_time(self.args["morning_on_weekend"])
+    self.run_daily(self.morning, morning_weekend, constrain_days="sat,sun")
+
+    morning_week = self.parse_time(self.args["morning_on_week"])
+    self.run_daily(self.morning, morning_week, constrain_days="mon,tue,wed,thu,fri")
+  
     # Subscribe to presence changes
     
     self.listen_state(self.presence_change, "device_tracker")
@@ -61,42 +61,32 @@ class SmartHeat(appapi.AppDaemon):
     input_select = self.split_device_list(self.args["input_select"]).pop(0)
     self.listen_state(self.mode, input_select)
     
-  def schedule_morning(self):
-    day = datetime.datetime.today().weekday()
-    if day == 4 or day == 5:
-      # day = 4 (Friday) or 5 (Saturday) then it is a weekend day TOMORROW, so schedule weekend time heat check for tomorrow
-      runtime = self.parse_time(self.args["morning_on_weekend"])
-    else:
-      # else use week time
-      runtime = self.parse_time(self.args["morning_on_week"])
-    self.run_once(self.morning, runtime)
-
-  def mode(self, entity, attribute, old, new):
+  def mode(self, entity, attribute, old, new, kwargs):
+    # Mode has changed = if it isn't in the list of modes for which we want heat, turn the heat off
     valid_modes = self.split_device_list(self.args["input_select"])
     if new not in valid_modes and self.get_state(self.args["switch"]) == "on":
       self.heat_off()
   
-  def switch(self, entity, attribute, old, new):
+  def switch(self, entity, attribute, old, new, kwargs):
     # Toggling switch turns heat on and off as well as enabling smart behavior
     if new == "on":
       self.heat_on()
     else:
       self.heat_off()
   
-  def evening(self, args, kwargs):
+  def evening(self, kwargs):
     # If noone home in the evening turn heat on in preparation (if someone is home heat is already on)
     self.log("Evening heat check")
     if self.noone_home() and self.get_state(self.args["switch"]) == "on":
       self.heat_on()
     
-  def morning(self, args, kwargs):
+  def morning(self, kwargs):
     # Setup tomorrows callback
     self.log("Morning heat check")
-    self.schedule_morning()
     if self.anyone_home() and self.get_state(self.args["switch"]) == "on":
       self.heat_on()
 
-  def presence_change(self, entity, attribute, old, new):
+  def presence_change(self, entity, attribute, old, new, kwargs):
     if self.get_state(self.args["switch"]) == "on":
       if self.anyone_home():
         self.heat_on()

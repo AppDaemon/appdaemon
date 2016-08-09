@@ -32,12 +32,12 @@ class Modes(appapi.AppDaemon):
     runtime = datetime.time(22, 0, 0)
     self.run_daily(self.night_mode_check, runtime)
 
-  def night_mode_check(self, args, kwargs):
+  def night_mode_check(self, kwargs):
     # If we are absent, the usual manual switch to Night will not occur, so automate if vacation flag is set
     if self.get_state("input_boolean.vacation") == "on":
       self.night(True)
   
-  def light_event(self, entity, attribute, old, new):
+  def light_event(self, entity, attribute, old, new, kwargs):
     # Use light levels to switch to Day or Evening modes as appropriate
     lux = float(new)
     if self.mode == "Morning" or self.mode == "Night" and self.now_is_between("sunrise", "12:00:00"):
@@ -48,12 +48,12 @@ class Modes(appapi.AppDaemon):
       if lux < 200:
         self.evening()
   
-  def motion_event(self, entity, attribute, old, new):
+  def motion_event(self, entity, attribute, old, new, kwargs):
     # Use motion form somoeone coming downstairs to trigger morning mode (switches on a downstairs lamp)
     if new == "on" and self.mode == "Night" and self.now_is_between("04:30:00", "10:00:00"):
       self.morning()
 
-  def mode_event(self, event_name, data):
+  def mode_event(self, event_name, data, kwargs):
     # Listen for a MODE_CHANGE custom event - triggered from a HASS script either manually or via Alexa
     # When event occurs switch to the appropriate mode
     mode = data["mode"]
@@ -132,7 +132,7 @@ class Modes(appapi.AppDaemon):
     # We turned the upstairs lights on, wait 5 seconds before turning off the downstairs lights
     self.run_in(self.downstairs_off, 5)
       
-  def downstairs_off(self, args, kwargs):
+  def downstairs_off(self, kwargs):
     # Timed callback
     self.turn_on("scene.downstairs_off")
       

@@ -22,10 +22,10 @@ class OutsideLights(appapi.AppDaemon):
     # Run at Sunset
     self.run_at_sunset(self.sunset_cb, 0)
     
-  def sunrise_cb(self, args, kwargs):
+  def sunrise_cb(self, kwargs):
     self.log("OutsideLights: Sunrise Triggered")
     self.turn_on(self.args["off_scene"])
 
-  def sunset_cb(self, args, kwargs):
+  def sunset_cb(self, kwargs):
     self.log("OutsideLights: Sunset Triggered")
     self.turn_on(self.args["on_scene"])

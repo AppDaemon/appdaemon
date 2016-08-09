@@ -21,6 +21,6 @@ class DoorNotification(appapi.AppDaemon):
     else:
       self.listen_state(self.motion, "binary_sensor")   
     
-  def state_change(self, entity, attribute, old, new):
+  def state_change(self, entity, attribute, old, new, kwargs):
     self.log("{} is {}".format(self.friendly_name(entity), new))
     self.notify("{} is {}".format(self.friendly_name(entity), new))

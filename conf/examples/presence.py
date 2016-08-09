@@ -24,15 +24,24 @@ class Presence(appapi.AppDaemon):
     # Subscribe to presence changes
     
     self.listen_state(self.presence_change, "device_tracker")
+    self.listen_state(self.everyone_left, "group.all_devices", old = "home", new = "not_home")
+    self.listen_state(self.someone_home, "group.all_devices", old = "not_home", new = "home")
 
-  def presence_change(self, entity, attribute, old, new):
-    self.log_presence(new)
-    if self.noone_home():
-      self.everyone_left()
+  def presence_change(self, entity, attribute, old, new, kwargs):
+    person = self.friendly_name(entity)
+    if new == "not_home":
+      place = "is away"
+    elif new == "home":
+      place = "arrived home"
     else:
-      self.someone_home()
+      place = "is at ".format(new)
+    message = "{} {}".format(person, place)
+    self.log(message)
+    if "notify" in self.args:
+      self.notify(message)
     
-  def everyone_left(self):
+  def everyone_left(self, entity, attribute, old, new, kwargs):
+    self.log("Everyone left")
     valid_modes = self.split_device_list(self.args["input_select"])
     input_select = valid_modes.pop(0)
     if self.get_state(input_select) in valid_modes:
@@ -40,7 +49,8 @@ class Presence(appapi.AppDaemon):
     else:
       self.turn_on(self.args["night_scene_absent"])
     
-  def someone_home(self):
+  def someone_home(self, entity, attribute, old, new, kwargs):
+    self.log("Someone came home")
     valid_modes = self.split_device_list(self.args["input_select"])
     input_select = valid_modes.pop(0)
     if self.get_state(input_select) in valid_modes:
@@ -48,18 +58,5 @@ class Presence(appapi.AppDaemon):
     else:
       self.turn_on(self.args["night_scene_present"])
       
-  def log_presence(self, new):
-    person = self.friendly_name(new["entity_id"])
-    state = new["state"]
-    if state == "not_home":
-      place = "is away"
-    elif state == "home":
-      place = "arrived home"
-    else:
-      place = "is at ".format(new["state"])
-    message = "{} {}".format(person, place)
-    self.log(message)
-    if "notify" in self.args:
-      self.notify(message)
-      self.persistent_notification(message)
+    
     
