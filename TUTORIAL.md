@@ -114,7 +114,7 @@ I have spent the last few weeks moving all of my (fairly complex) automations ov
 
 Some people will maybe look at all of this and say "what use is this, I can already do all of this", and that is fine, as I said this is an alternative not a replacement, but I am hopeful that for some users this will seem a more natural, powerful and nimble way of building potentially very complex automations.
 
-If this has whet your appetite, feel free to give it a try. You can find it, [here](https://github.com/home-assistant/hadashboard), including full installation instructions, an API reference, and a number of fully fleshed out examples.
+If this has whet your appetite, feel free to give it a try. You can find it, [here](https://github.com/acockburn/appdaemon), including full installation instructions, an API reference, and a number of fully fleshed out examples.
 
 Happy Automating!
 
