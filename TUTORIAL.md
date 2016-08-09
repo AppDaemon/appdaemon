@@ -35,7 +35,7 @@ The best way to show what AppDaemon does is through a few simple examples.
 
 ## Sunrise/Sunset Lighting
 
-Lets start with a simple App to turn a light on every night at sunset and off every morning at sunrise. Every App when first started will have its `initialize()` finction called which gives it a chance to register a callback for AppDaemons's scheduler for a specific time. In this case we are using `run_at_sunrise()` and `run_at_sunset()` to register 2 separate callbacks. The argument `0` is the number of seconds offset from sunrise or sunset and can be negative or positive. For complex intervals it can be convenient to use Python's `datetime.timedelta` class for calculations. When sunrise or sunset occurs, the appropriate callback function, `sunrise_cb()` or `sunset_cb()`  is called which then makes a call to Home Assistant to turn the porch light on or off by activating a scene. The variables `args["on_scene"]` and `args["off_scene"]` are passed through from the configuration of this particular App, and the same code could be reused to activate completely different scenes in a different version of the App.
+Lets start with a simple App to turn a light on every night at sunset and off every morning at sunrise. Every App when first started will have its `initialize()` function called which gives it a chance to register a callback for AppDaemons's scheduler for a specific time. In this case we are using `run_at_sunrise()` and `run_at_sunset()` to register 2 separate callbacks. The argument `0` is the number of seconds offset from sunrise or sunset and can be negative or positive. For complex intervals it can be convenient to use Python's `datetime.timedelta` class for calculations. When sunrise or sunset occurs, the appropriate callback function, `sunrise_cb()` or `sunset_cb()`  is called which then makes a call to Home Assistant to turn the porch light on or off by activating a scene. The variables `args["on_scene"]` and `args["off_scene"]` are passed through from the configuration of this particular App, and the same code could be reused to activate completely different scenes in a different version of the App.
 
 ```python
 import appapi
@@ -54,11 +54,11 @@ class OutsideLights(appapi.AppDaemon):
 
 ```
 
-This is also fairly easy to achieve with Home Assistant automations, but we ar just getting started.
+This is also fairly easy to achieve with Home Assistant automations, but we are just getting started.
 
 ## Motion Light
 
-Our next example is to turn on a light when motion is detected and it is dark, and turn it off after a period of time. This time, the `initialize()` function registers a callback on a state change (of the motion sensor) rather than a specific time. When the motion is detected, the callack function `motion()` is called, and we check if the sensor is switching `off` or `on` from the data supplied via the callback, and whether or not the sun has set using a built-in convenience function: `sun_down()`. Next, we turn the light on with `turn_on()`, then set a timer using `run_in()` to turn the light off after 60 seconds, which is another call to the scheduler to execute in a set time from now, which results in `AppDaemon` calling `light_off()` 60 seconds later using the `turn_off()` call to actually turn the light off. This is still pretty simple in code terms:
+Our next example is to turn on a light when motion is detected and it is dark, and turn it off after a period of time. This time, the `initialize()` function registers a callback on a state change (of the motion sensor) rather than a specific time. We tell AppDaemon that we are only interested in state changesd where the motion detector comes on by adding an additional parameter to the callback registration - `new = "on"`. When the motion is detected, the callack function `motion()` is called, and we check whether or not the sun has set using a built-in convenience function: `sun_down()`. Next, we turn the light on with `turn_on()`, then set a timer using `run_in()` to turn the light off after 60 seconds, which is another call to the scheduler to execute in a set time from now, which results in `AppDaemon` calling `light_off()` 60 seconds later using the `turn_off()` call to actually turn the light off. This is still pretty simple in code terms:
 
 ```python
 import appapi
@@ -66,10 +66,10 @@ import appapi
 class FlashyMotionLights(appapi.AppDaemon):
 
   def initialize(self):
-    self.listen_state(self.motion, "binary_sensor.drive")
+    self.listen_state(self.motion, "binary_sensor.drive", new = "on")
   
   def motion(self, entity, attribute, old, new, kwargs):
-    if new == "on" and self.sun_down():
+    if self.sun_down():
       self.turn_on("light.drive")
       self.run_in(self.light_off, 60)
   
@@ -87,10 +87,10 @@ import appapi
 class MotionLights(appapi.AppDaemon):
 
   def initialize(self):
-    self.listen_state(self.motion, "binary_sensor.drive")
+    self.listen_state(self.motion, "binary_sensor.drive", new = "on")
   
   def motion(self, entity, attribute, old, new, kwargs):
-    if new == "on" and self.self.sun_down():
+    if self.self.sun_down():
       self.turn_on("light.drive")
       self.run_in(self.light_off, 60)
       self.flashcount = 0
@@ -108,7 +108,7 @@ class MotionLights(appapi.AppDaemon):
 
 Of course if I wanted to make this App or its predecessor reusable I would have provide parameters for the sensor, the light to activate on motion, the warning light and even the number of flashes and delay between flashes.
 
-In addition, Apps can write to `AppDaemon`'s logfiles, and there is a system of constraints that allows yout to control when and under what circumstances Apps are active to keep the logic clean and simple.
+In addition, Apps can write to `AppDaemon`'s logfiles, and there is a system of constraints that allows yout to control when and under what circumstances Apps and callbacks are active to keep the logic clean and simple.
 
 I have spent the last few weeks moving all of my (fairly complex) automations over to `APPDaemon` and so far it is working very reliably.
 
