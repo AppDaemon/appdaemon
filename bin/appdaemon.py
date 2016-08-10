@@ -303,8 +303,11 @@ def do_every_second():
     # Every 10 minutes seems like a good place to start
 
     if  last_state != None and now - last_state > datetime.timedelta(minutes = 10):
-      get_ha_state()
-      last_state = now
+      try:
+        get_ha_state()
+        last_state = now
+      except:
+        conf.log.warn("Unexpected error refreshing HA state - retrying in 10 minutes") 
      
     # Check on Queue size
     
