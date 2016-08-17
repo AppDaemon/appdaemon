@@ -8,7 +8,7 @@ AppDaemon is a loosely coupled, multithreaded, sandboxed python execution enviro
 Clone the **AppDaemon** repository to the current local directory on your machine.
 
 ``` bash
-$ git clone https://github.com/acockburn/AppDaemon.git
+$ git clone https://github.com/acockburn/appdaemon.git
 ```
 
 Change your working directory to the repository root. Moving forward, we will be working from this directory.
@@ -40,7 +40,7 @@ This can be fixed with:
 $ sudo pip3 install --upgrade requests
 ```
 
-When you have all the prereqs in place, edit the `[AppDaemon]` section of the conf/AppDaemon.cfg file to reflect your environment:
+When you have all the prereqs in place, edit the `[AppDaemon]` section of the conf/appdaemon.cfg file to reflect your environment:
 
 ```
 [AppDaemon]
@@ -92,7 +92,7 @@ If all is well, you should start to see some log lines showing that various apps
 
 # AppDaemon arguments
 
-usage: AppDaemon.py [-h] [-d] [-p PIDFILE]
+usage: appdaemon.py [-h] [-d] [-p PIDFILE]
                     [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
                     config
 
