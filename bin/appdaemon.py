@@ -335,7 +335,10 @@ def do_every_second():
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
+      # When explicitly logging to stdout and stderr, suppress
+      # log messages abour writing an error (since they show up anyway)
+      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def timer_thread():
   do_every(1, do_every_second)
@@ -369,7 +372,8 @@ def worker():
         conf.error.warn('-'*60)
         conf.error.warn(traceback.format_exc())
         conf.error.warn('-'*60)
-        conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+        if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
+          conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
     else:
       conf.logger.warning("Found stale callback for {} - discarding".format(name))
@@ -490,7 +494,8 @@ def process_message(msg):
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
+      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def check_config():
   global config_file_modified
@@ -541,7 +546,8 @@ def check_config():
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
+      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def readApp(file, reload = False):
   global config
@@ -590,7 +596,8 @@ def readApp(file, reload = False):
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
+      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def readApps(all = False):
   found_files = glob.glob(os.path.join(conf.app_dir, '*.py'))
@@ -748,7 +755,11 @@ def main():
     fh.setFormatter(formatter)
     conf.logger.addHandler(fh)
   else:
-    ch = logging.StreamHandler()
+    if conf.logfile == "STDOUT":
+      ch = logging.StreamHandler(stream=sys.stdout)
+    else:
+      # Default for StreamHandler() is sys.stderr
+      ch = logging.StreamHandler()
     ch.setLevel(numeric_level)
     ch.setFormatter(formatter)
     conf.logger.addHandler(ch)
