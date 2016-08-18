@@ -335,7 +335,7 @@ def do_every_second():
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT" or isdaemon:
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
       # When explicitly logging to stdout and stderr, suppress
       # log messages abour writing an error (since they show up anyway)
       conf.logger.warn("Logged an error to {}".format(conf.errorfile))
@@ -372,7 +372,7 @@ def worker():
         conf.error.warn('-'*60)
         conf.error.warn(traceback.format_exc())
         conf.error.warn('-'*60)
-        if conf.errorfile != "STDERR" and conf.logfile != "STDOUT" or isdaemon:
+        if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
           conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
     else:
@@ -494,7 +494,7 @@ def process_message(msg):
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT" or isdaemon:
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
       conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def check_config():
@@ -546,7 +546,7 @@ def check_config():
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT" or isdaemon:
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
       conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def readApp(file, reload = False):
@@ -596,7 +596,7 @@ def readApp(file, reload = False):
     conf.error.warn('-'*60)
     conf.error.warn(traceback.format_exc())
     conf.error.warn('-'*60)
-    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT" or isdaemon:
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
       conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def readApps(all = False):
