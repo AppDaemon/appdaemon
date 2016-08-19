@@ -750,6 +750,8 @@ def main():
   # Send to file if we are daemonizing, else send to console
 
   if isdaemon:
+    if conf.logfile == "STDOUT":
+        raise ValueError("Output to stdout is not valid in daemon mode")
     fh = RotatingFileHandler(conf.logfile, maxBytes=1000000, backupCount=3)
     fh.setLevel(numeric_level)
     fh.setFormatter(formatter)
@@ -773,6 +775,8 @@ def main():
   formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
   if conf.errorfile == "STDERR":
+    if isdaemon:
+        raise ValueError("Error output to stderr is not valid in daemon mode")
     efh = logging.StreamHandler()
   else:
     efh = RotatingFileHandler(conf.errorfile, maxBytes=1000000, backupCount=3)
