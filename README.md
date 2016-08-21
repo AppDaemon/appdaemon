@@ -17,9 +17,15 @@ Change your working directory to the repository root. Moving forward, we will be
 $ cd appdaemon
 ```
 
-# Install Prereqs
+# Install using Docker
 
-Before running `AppDaemon` you will need to add some python prerequisites:
+``` bash
+$ docker build -t appdaemon .
+```
+
+# Install locally
+
+Before running `AppDaemon` locally you will need to add some python prerequisites:
 
 ```bash
 $ sudo pip3 install daemonize
@@ -39,6 +45,8 @@ This can be fixed with:
 ```
 $ sudo pip3 install --upgrade requests
 ```
+
+# Configuration
 
 When you have all the prereqs in place, edit the `[AppDaemon]` section of the conf/appdaemon.cfg file to reflect your environment:
 
@@ -66,7 +74,52 @@ timezone = <timezone>
 
 The other sections of the file relate to App configuration and are described in the [API doc](API.md).
 
-You can then run AppDaemon from the command line as follows:
+# Running
+
+## Docker
+
+Our Docker image is designed to load your configuration and apps from a volume at `/conf` so that you can manage them in your own git repository.
+
+For example, if you have a local repository in `/Users/foo/ha-config` containing the following files:
+
+```bash
+$ git ls-files
+configuration.yaml
+customize.yaml
+known_devices.yaml
+appdaemon.cfg
+apps
+apps/magic.py
+```
+
+And a `appdaemon.cfg` file that pointed to these apps in `/conf/apps`:
+
+```
+[AppDaemon]
+ha_url = <some_url>
+ha_key = <some key>
+logfile = /var/log/AppDaemon.log
+errorfile = /var/log/error.log
+app_dir = /conf/apps
+threads = 10
+latitude = <latitude>
+longitude = <longitude>
+elevation = <elevation
+timezone = <timezone>
+```
+
+You can then run AppDaemon in Docker like so:
+
+```bash
+$ docker run -d -v $(pwd)/conf:/conf --name appdaemon appdaemon:latest
+$ docker logs appdaemon
+2016-08-21 14:18:04,367 INFO Got initial state
+2016-08-21 14:18:04,371 INFO Loading Module: /conf/apps/magic.py
+```
+
+## Directly
+
+You can run AppDaemon from the command line as follows:
 
 ```bash
 $ ./bin/appdaemon.py conf/appdaemon.cfg
