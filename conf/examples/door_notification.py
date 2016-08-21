@@ -1,4 +1,4 @@
-import appapi
+import appdaemon.appapi as appapi
 
 #
 # App to send notification when door opened or closed

@@ -26,7 +26,7 @@ set -e
 # Must be a valid filename
 NAME=appdaemon
 APPDAEMON_DIR=/etc/appdaemon
-DAEMON="$APPDAEMON_DIR/bin/$NAME.py"
+DAEMON="$APPDAEMON_DIR/appdaemon/$NAME.py"
 PIDFILE="$APPDAEMON_DIR/$NAME.pid"
 CFGFILE="$APPDAEMON_DIR/conf/$NAME.cfg"
 DAEMON_OPTS="-d -p $PIDFILE $CFGFILE"

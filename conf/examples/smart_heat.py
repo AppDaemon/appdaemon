@@ -1,4 +1,4 @@
-import appapi
+import appdaemon.appapi as appapi
 import datetime
 
 #

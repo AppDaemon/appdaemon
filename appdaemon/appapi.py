@@ -1,4 +1,4 @@
-import conf
+import appdaemon.conf as conf
 import datetime
 from datetime import timezone
 import time
@@ -6,7 +6,7 @@ import uuid
 import re
 import requests
 
-import homeassistant as ha
+import appdaemon.homeassistant as ha
 
 class AppDaemon():
 

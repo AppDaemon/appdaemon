@@ -1,4 +1,4 @@
-import appapi
+import appdaemon.appapi as appapi
 
 #
 # App to turn lights on and off at sunrise and sunset

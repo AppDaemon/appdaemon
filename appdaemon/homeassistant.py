@@ -1,4 +1,4 @@
-import conf
+import appdaemon.conf as conf
 import requests
 import datetime
 import re

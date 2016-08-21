@@ -18,7 +18,7 @@ from sseclient import SSEClient
 from logging.handlers import RotatingFileHandler
 from queue import Queue
 import threading
-import conf
+import appdaemon.conf as conf
 import time
 import datetime
 import signal
@@ -26,8 +26,8 @@ import re
 import uuid
 import astral
 import pytz
-import homeassistant as ha
-import appapi as api
+import appdaemon.homeassistant as ha
+import appdaemon.appapi as api
 
 q = Queue(maxsize=0)
 
@@ -781,13 +781,13 @@ def main():
 
   if conf.timezone == None and conf.time_zone == None:
     raise KeyError("time_zone")
-    
+
   if conf.timezone != None:
     conf.logger.warn("'timezone' directive is deprecated, please use time_zone instead")
-    
+
   if conf.time_zone == None:
     conf.time_zone = conf.timezone
-    
+
   init_sun()
 
   config_file_modified = os.path.getmtime(args.config)
@@ -796,7 +796,7 @@ def main():
 
   sys.path.insert(0, conf.app_dir)
 
-  
+
   # Start main loop
 
   if isdaemon:

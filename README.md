@@ -17,30 +17,15 @@ Change your working directory to the repository root. Moving forward, we will be
 $ cd appdaemon
 ```
 
-# Install Prereqs
+# Install The Package
 
-Before running `AppDaemon` you will need to add some python prerequisites:
+Before running `AppDaemon` you will need to install the package:
 
 ```bash
-$ sudo pip3 install daemonize
-$ sudo pip3 install sseclient
-$ sudo pip3 install configparser
-$ sudo pip3 install astral
+$ sudo pip3 install .
 ```
 
-Some users are reporting errors with `InsecureRequestWarning`:
-```
-Traceback (most recent call last):
-  File "./hapush.py", line 21, in <module>
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-ImportError: cannot import name 'InsecureRequestWarning'
-```
-This can be fixed with:
-```
-$ sudo pip3 install --upgrade requests
-```
-
-When you have all the prereqs in place, edit the `[AppDaemon]` section of the conf/appdaemon.cfg file to reflect your environment:
+When you have all the package installed, edit the `[AppDaemon]` section of the conf/appdaemon.cfg file to reflect your environment:
 
 ```
 [AppDaemon]
@@ -69,13 +54,13 @@ The other sections of the file relate to App configuration and are described in 
 You can then run AppDaemon from the command line as follows:
 
 ```bash
-$ ./bin/appdaemon.py conf/appdaemon.cfg
+$ appdaemon conf/appdaemon.cfg
 ```
 
 If all is well, you should start to see some log lines showing that various apps (if any are configured) are being initialized:
 
 ```
-# bin/appdaemon.py conf/appdaemon.cfg 
+$ appdaemon conf/appdaemon.cfg
 2016-07-12 13:45:07,844 INFO Loading Module: /srv/hass/AppDaemon_test/conf/apps/log.py
 2016-07-12 13:45:07,851 INFO Loading Object log using class Log from module log
 2016-07-12 13:45:07,853 INFO Loading Module: /srv/hass/AppDaemon_test/conf/apps/sun.py
@@ -92,9 +77,9 @@ If all is well, you should start to see some log lines showing that various apps
 
 # AppDaemon arguments
 
-usage: appdaemon.py [-h] [-d] [-p PIDFILE]
-                    [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                    config
+usage: appdaemon [-h] [-d] [-p PIDFILE]
+                 [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                 config
 
 positional arguments:
   config                full path to config file
@@ -112,7 +97,7 @@ optional arguments:
 -D can be used to increase the debug level for internal AppDaemon operations as well as apps using the logging function.
 
 # Starting At Reboot
-To run `AppDaemon` at reboot, I have provided a sample init script in the `./init` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems.
+To run `AppDaemon` at reboot, I have provided a sample init script in the `./scripts` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems.
 
 # Operation
 
