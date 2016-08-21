@@ -58,8 +58,8 @@ timezone = <timezone>
 
 - `ha_url` is a reference to your home assistant installation and must include the correct port number and scheme (`http://` or `https://` as appropriate)
 - `ha_key` should be set to your key if you have one, otherwise it can be removed.
-- `logfile` is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `appdaemon` directory of the cloned repository.
-- `errorfile` is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps
+- `logfile` is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `appdaemon` directory of the cloned repository. If `logfile = STDOUT`, output will be sent to stdout instead of stderr when running in the foreground.
+- `errorfile` is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps. If `errorfile = STDERR` errors will be sent to stderr instead of a file.
 - `app_dir` is the directory the apps are placed in
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization,
 - `latitude`, `longitude`, `elevation`, `timezone` - should all be copied from your home assistant configuration file
