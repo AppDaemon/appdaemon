@@ -43,14 +43,14 @@ def init_sun():
   longitude = conf.longitude
 
   if -90 > latitude < 90:
-    conf.logger.error('Latitude needs to be -90 .. 90')
+    raise ValueError("Latitude needs to be -90 .. 90")
 
   if -180 > longitude < 180:
-    conf.logger.error('Longitude needs to be -180 .. 180')
+    raise ValueError("Longitude needs to be -180 .. 180")
 
   elevation = conf.elevation
 
-  conf.tz = pytz.timezone(conf.timezone)
+  conf.tz = pytz.timezone(conf.time_zone)
 
   conf.location = astral.Location(('', '', latitude, longitude,
                        conf.tz.zone, elevation))
@@ -684,11 +684,12 @@ def run():
     except:
       reading_messages = False
       conf.logger.warning("Not connected to Home Assistant, retrying in 5 seconds")
-      #conf.logger.warn('-'*60)
-      #conf.logger.warn("Unexpected error:")
-      #conf.logger.warn('-'*60)
-      #conf.logger.warn(traceback.format_exc())
-      #conf.logger.warn('-'*60)
+      if last_state == None:
+        conf.logger.warn('-'*60)
+        conf.logger.warn("Unexpected error:")
+        conf.logger.warn('-'*60)
+        conf.logger.warn(traceback.format_exc())
+        conf.logger.warn('-'*60)
     time.sleep(5)
 
 def main():
@@ -729,15 +730,8 @@ def main():
   conf.latitude = float(config['AppDaemon']['latitude'])
   conf.longitude = float(config['AppDaemon']['longitude'])
   conf.elevation = float(config['AppDaemon']['elevation'])
-  conf.timezone = config['AppDaemon']['timezone']
-
-  init_sun()
-
-  config_file_modified = os.path.getmtime(args.config)
-
-  # Add appdir to path
-
-  sys.path.insert(0, conf.app_dir)
+  conf.timezone = config['AppDaemon'].get("timezone")
+  conf.time_zone = config['AppDaemon'].get("time_zone")
 
   # Setup Logging
 
@@ -785,6 +779,24 @@ def main():
   efh.setFormatter(formatter)
   conf.error.addHandler(efh)
 
+  if conf.timezone == None and conf.time_zone == None:
+    raise KeyError("time_zone")
+    
+  if conf.timezone != None:
+    conf.logger.warn("'timezone' directive is deprecated, please use time_zone instead")
+    
+  if conf.time_zone == None:
+    conf.time_zone = conf.timezone
+    
+  init_sun()
+
+  config_file_modified = os.path.getmtime(args.config)
+
+  # Add appdir to path
+
+  sys.path.insert(0, conf.app_dir)
+
+  
   # Start main loop
 
   if isdaemon:

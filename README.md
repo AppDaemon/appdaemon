@@ -124,9 +124,3 @@ To update AppDaemon after I have released new code, just run the following comma
 ```bash
 $ git pull origin
 ```
-
-# Release Notes
-
-***Version 1.0***
-
-Initial Release
