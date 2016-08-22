@@ -15,6 +15,7 @@ History
 
 - Fix to give more information if initial connect to HA fails (but still avoid spamming logs too badly if it restarts)
 - Rename 'init' directory to 'scripts'
+- Tidy up docs
 
 * Breaking Changes
 

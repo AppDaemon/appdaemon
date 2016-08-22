@@ -38,7 +38,7 @@ The best way to show what AppDaemon does is through a few simple examples.
 Lets start with a simple App to turn a light on every night at sunset and off every morning at sunrise. Every App when first started will have its `initialize()` function called which gives it a chance to register a callback for AppDaemons's scheduler for a specific time. In this case we are using `run_at_sunrise()` and `run_at_sunset()` to register 2 separate callbacks. The argument `0` is the number of seconds offset from sunrise or sunset and can be negative or positive. For complex intervals it can be convenient to use Python's `datetime.timedelta` class for calculations. When sunrise or sunset occurs, the appropriate callback function, `sunrise_cb()` or `sunset_cb()`  is called which then makes a call to Home Assistant to turn the porch light on or off by activating a scene. The variables `args["on_scene"]` and `args["off_scene"]` are passed through from the configuration of this particular App, and the same code could be reused to activate completely different scenes in a different version of the App.
 
 ```python
-import appapi
+import homeassistant.appapi as appapi
 
 class OutsideLights(appapi.AppDaemon):
 
@@ -46,10 +46,10 @@ class OutsideLights(appapi.AppDaemon):
     self.run_at_sunrise(self.sunrise_cb, 0)
     self.run_at_sunset(self.sunset_cb, 0)
     
-  def sunrise_cb(self, args, kwargs):
+  def sunrise_cb(self, kwargs):
     self.turn_on(self.args["off_scene"])
 
-  def sunset_cb(self, args, kwargs):
+  def sunset_cb(self, kwargs):
     self.turn_on(self.args["on_scene"])
 
 ```
@@ -61,7 +61,7 @@ This is also fairly easy to achieve with Home Assistant automations, but we are 
 Our next example is to turn on a light when motion is detected and it is dark, and turn it off after a period of time. This time, the `initialize()` function registers a callback on a state change (of the motion sensor) rather than a specific time. We tell AppDaemon that we are only interested in state changesd where the motion detector comes on by adding an additional parameter to the callback registration - `new = "on"`. When the motion is detected, the callack function `motion()` is called, and we check whether or not the sun has set using a built-in convenience function: `sun_down()`. Next, we turn the light on with `turn_on()`, then set a timer using `run_in()` to turn the light off after 60 seconds, which is another call to the scheduler to execute in a set time from now, which results in `AppDaemon` calling `light_off()` 60 seconds later using the `turn_off()` call to actually turn the light off. This is still pretty simple in code terms:
 
 ```python
-import appapi
+import homeassistant.appapi as appapi
 
 class FlashyMotionLights(appapi.AppDaemon):
 
@@ -82,7 +82,7 @@ This is starting to get a little more complex in Home Assistant automations requ
 Now lets extend this with a somewhat artificial example to show something that is simple in AppDaemon but very difficult if not impossible using automations. Lets warn someone inside the house that there has been motion outside by flashing a lamp on and off 10 times. We are reacting to the motion as before by turning on the light and setting a timer to turn it off again, but in addition, we set a 1 second timer to run `flash_warning()` which when called, toggles the inside light and sets another timer to call itself a second later. To avoid re-triggering forever, it keeps a count of how many times it has been activated and bales out after 10 iterations.
 
 ```python
-import appapi
+import homeassistant.appapi as appapi
 
 class MotionLights(appapi.AppDaemon):
 

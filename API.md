@@ -6,10 +6,10 @@ AppDaemon is a loosely coupled, sandboxed, multi-threaded Python execution envir
 
 Automations in AppDaemon are performed by creating a piece of code (essentially a Python Class) and then instantiating it as an Object one or more times by configuring it as an App in the configuration file. The App is given a chance to register itself for whatever events it wants to subscribe to, and AppDaemon will then make calls back into the Object's code when those events occur, allowing the App to respond to the event with some kind of action.
 
-The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `appapi` module. The start of an app might look like this:
+The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `homeassistant.appapi` module. The start of an app might look like this:
 
 ```python
-import appapi
+import homeassistant.appapi as appapi
 
 class MotionLights(appapi.AppDaemon):
 ```
@@ -43,7 +43,7 @@ These along with their various subscription calls and helper functions will be d
 To wrap up this section, here is a complete functioning App (with comments):
 
 ```python
-import appapi
+import homeassistant.appapi as appapi
 import datetime
 
 # Declare Class
@@ -315,7 +315,7 @@ At the time of writing, it appears that no checking is done as to whether or not
 
 ##### entity_id
 
-Entity id for whcih the state is to be set, e.g. "light.office_1".
+Entity id for which the state is to be set, e.g. "light.office_1".
 
 ##### values
 
@@ -501,7 +501,9 @@ The handle returned when the `listen_state()` call was made.
 
 #### Examples
 
-`self.cancel_listen_state(self.office_light_handle)`
+```python
+self.cancel_listen_state(self.office_light_handle)
+```
 
 ## Scheduler
 
@@ -589,6 +591,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 
 ```python
 # Run at 4pm today, or 4pm tomorrow if it is already after 4pm
+import datetime
+...
 runtime = datetime.time(16, 0, 0)
 handle = self.run_once(self.run_once_c, runtime)
 ```
@@ -619,6 +623,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 
 ```python
 # Run at 4pm today
+import datetime
+...
 runtime = datetime.time(16, 0, 0)
 today = datetime.date.today()
 event = datetime.datetime.combine(today, runtime)
@@ -653,6 +659,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 
 ```python
 # Run daily at 7pm
+import datetime
+...
 time = datetime.time(19, 0, 0)
 self.run_daily(self.run_daily_c, runtime)
 ```
@@ -684,6 +692,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 
 ```python
 # Run every hour, on the hour
+import datetime
+...
 time = datetime.time(0, 0, 0)
 self.run_daily(self.run_daily_c, runtime)
 ```
@@ -715,6 +725,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 
 ```python
 # Run Every Minute on the minute
+import datetime
+...
 time = datetime.time(0, 0, 0)
 self.run_minutely(self.run_minutely_c, time)
 ```
@@ -750,6 +762,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 
 ```python
 # Run every 17 minutes starting in 2 hours time
+import datetime
+...
 time = datetime.datetime.now() + datetime.timedelta(hours=2)
 repeat = datetime.timedelta(minutes=17)
 self.run_every(self.run_every_c, time, repeat)
@@ -807,7 +821,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 #### Examples
 
 ```python
-# Example using timedelta
+import datetime
+...
 self.run_at_sunrise(self.sun, datetime.timedelta(minutes = -45).total_seconds(), "Sunrise -45 mins")
 # or you can just do the math yourself
 self.run_at_sunrise(self.sun, 30 * 60, "Sunrise +30 mins")
@@ -840,6 +855,8 @@ Arbitary positional and keyword parameters to be provided to the callback functi
 
 ```python
 # Example using timedelta
+import datetime
+...
 self.run_at_sunset(self.sun, datetime.timedelta(minutes = -45).total_seconds(), "Sunset -45 mins")
 # or you can just do the math yourself
 self.run_at_sunset(self.sun, 30 * 60, "Sunset +30 mins")
@@ -1238,10 +1255,10 @@ A representation of the time in a string format with one of the following format
 #### Example
 
 ```python
-time = parse_time("17:30:00")
-time = parse_time("sunrise")
-time = parse_time("sunset + 00:30:00")
-time = parse_time("sunrise + 01:00:00")
+time = self.parse_time("17:30:00")
+time = self.parse_time("sunrise")
+time = self.parse_time("sunset + 00:30:00")
+time = self.parse_time("sunrise + 01:00:00")
 ```
 ### now_is_between()
 
@@ -1264,9 +1281,9 @@ A representation of the start and end time respectively in a string format with 
 #### Example
 
 ```python
-if now_is_between("17:30:00", "08:00:00"):
+if self.now_is_between("17:30:00", "08:00:00"):
     do something
-if now_is_between("sunset - 00:45:00", "sunrise + 00:45:00"):
+if self.now_is_between("sunset - 00:45:00", "sunrise + 00:45:00"):
     do something
 ```
 ### friendly_name()
