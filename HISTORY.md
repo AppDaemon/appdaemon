@@ -12,7 +12,7 @@ History
 - Allow use of STDERR and SDTOUT as logfile paths to redirect to stdout and stderr respectively - contributed by [Jason Hite](https://github.com/jasonmhite)
 - Deprecated "timezone" directive on cfg file in favor of "time_zone" for consistency with Home Assistant config
 - Added default paths for config file and apps directory
-- Log and error files defualt to STDOUT and STDERR respectively if not specified
+- Log and error files default to STDOUT and STDERR respectively if not specified
 - Added systemd service file - contributed by [Jason Hite](https://github.com/jasonmhite)
 
 * Fixes
