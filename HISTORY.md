@@ -7,7 +7,7 @@ History
 
 * Features
 
-- Installation via pip3 - contributed by [Martin Hjelmare[(https://github.com/MartinHjelmare)
+- Installation via pip3 - contributed by [Martin Hjelmare](https://github.com/MartinHjelmare)
 - Docker support (non Raspbian only) - contributed by [Jesse Newland](https://github.com/jnewland)
 - Allow use of STDERR and SDTOUT as logfile paths to redirect to stdout and stderr respectively - contributed by [Jason Hite](https://github.com/jasonmhite)
 - Deprecated "timezone" directive on cfg file in favor of "time_zone" for consistency with Home Assistant config
