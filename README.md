@@ -60,9 +60,9 @@ class = HelloWorld
 
 - `ha_url` is a reference to your home assistant installation and must include the correct port number and scheme (`http://` or `https://` as appropriate)
 - `ha_key` should be set to your key if you have one, otherwise it can be removed.
-- `logfile` is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `appdaemon` directory of the cloned repository. If `logfile = STDOUT`, output will be sent to stdout instead of stderr when running in the foreground.
-- `errorfile` is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps. If `errorfile = STDERR` errors will be sent to stderr instead of a file.
-- `app_dir` is the directory the apps are placed in
+- `logfile` (optional) is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `appdaemon` directory of the cloned repository. If `logfile = STDOUT`, output will be sent to stdout instead of stderr when running in the foreground, if not specified, output will be sent to STDOUT.
+- `errorfile` (optional) is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps. If `errorfile = STDERR` errors will be sent to stderr instead of a file, if not specified, output will be sent to STDERR.
+- `app_dir` (optional) is the directory the apps are placed in. If not specified, AppDaemon will look first in `~/.homeassistant` then `/etc/appdaemon` for a subdirectory named `apps`
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization, leave this set to 10 unless you experience thread starvation
 - `latitude`, `longitude`, `elevation`, `timezone` - should all be copied from your home assistant configuration file
 
@@ -146,13 +146,13 @@ Note that for Docker, the error and regular logs are combined.
 You can then run AppDaemon from the command line as follows:
 
 ```bash
-$ appdaemon conf/appdaemon.cfg
+$ appdaemon -c conf/appdaemon.cfg
 ```
 
 If all is well, you should see something like the following:
 
 ```
-$ appdaemon conf/appdaemon.cfg
+$ appdaemon -c conf/appdaemon.cfg
 2016-08-22 10:08:16,575 INFO Got initial state
 2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
 2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
@@ -162,27 +162,27 @@ $ appdaemon conf/appdaemon.cfg
 
 # AppDaemon arguments
 
-usage: appdaemon [-h] [-d] [-p PIDFILE]
-                 [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                 config
-
-positional arguments:
-  config                full path to config file
+usage: appdaemon.py [-h] [-c CONFIG] [-d] [-p PIDFILE]
+                    [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 optional arguments:
   -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        full path to config file
   -d, --daemon          run as a background process
   -p PIDFILE, --pidfile PIDFILE
                         full path to PID File
   -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         debug level
 
+-c is the path to the configuration file. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the file is not specified and it is not found in either location, AppDaemon will raise an exception.                        
+                        
 -d and -p are used by the init file to start the process as a daemon and are not required if running from the command line. 
 
 -D can be used to increase the debug level for internal AppDaemon operations as well as apps using the logging function.
 
 # Starting At Reboot
-To run `AppDaemon` at reboot, I have provided a sample init script in the `./scripts` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems.
+To run `AppDaemon` at reboot, I have provided a sample init script in the `./scripts` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems. There is also a sample Systemd script.
 
 # Operation
 

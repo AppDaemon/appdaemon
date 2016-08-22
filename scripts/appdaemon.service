@@ -1,0 +1,8 @@
+[Unit]
+Description=AppDaemon service for Home Assistant
+
+[Service]
+ExecStart=/usr/local/bin/appdaemon
+
+[Install]
+WantedBy=multi-user.target

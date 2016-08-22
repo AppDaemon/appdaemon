@@ -692,6 +692,13 @@ def run():
         conf.logger.warn('-'*60)
     time.sleep(5)
 
+def find_path(name):
+  for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"), os.path.join(os.path.sep, "etc", "appdaemon")]:
+    file = os.path.join(path, name)
+    if os.path.isfile(file) or os.path.isdir(file):
+      return(file)
+  raise ValueError("{} not specified and not found in default locations".format(name))
+    
 def main():
 
   global config
@@ -705,27 +712,30 @@ def main():
 
   parser = argparse.ArgumentParser()
 
-  parser.add_argument("config", help="full path to config file", type=str)
+  parser.add_argument("-c", "--config", help="full path to config file", type=str, default = None)
   parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
   parser.add_argument("-p", "--pidfile", help="full path to PID File", default = "/tmp/hapush.pid")
   parser.add_argument("-D", "--debug", help="debug level", default = "INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
   args = parser.parse_args()
   config_file = args.config
 
+  if config_file == None:
+    config_file = find_path("appdaemon.cfg")
+  
   isdaemon = args.daemon
 
   # Read Config File
 
   config = configparser.ConfigParser()
-  config.read_file(open(args.config))
+  config.read_file(open(config_file))
 
-  assert "AppDaemon" in config, "[AppDaemon] section required in {}".format(args.config)
+  assert "AppDaemon" in config, "[AppDaemon] section required in {}".format(config_file)
 
   conf.ha_url = config['AppDaemon']['ha_url']
   conf.ha_key = config['AppDaemon']['ha_key']
-  conf.logfile = config['AppDaemon']['logfile']
-  conf.errorfile = config['AppDaemon']['errorfile']
-  conf.app_dir = config['AppDaemon']['app_dir']
+  conf.logfile = config['AppDaemon'].get("logfile")
+  conf.errorfile = config['AppDaemon'].get("errorfile")
+  conf.app_dir = config['AppDaemon'].get("app_dir")
   conf.threads = int(config['AppDaemon']['threads'])
   conf.latitude = float(config['AppDaemon']['latitude'])
   conf.longitude = float(config['AppDaemon']['longitude'])
@@ -733,6 +743,12 @@ def main():
   conf.timezone = config['AppDaemon'].get("timezone")
   conf.time_zone = config['AppDaemon'].get("time_zone")
 
+  if conf.logfile == None:
+    conf.logfile = "STDOUT"
+
+  if conf.errorfile == None:
+    conf.errorfile = "STDERR"
+    
   # Setup Logging
 
   conf.logger = logging.getLogger("log1")
@@ -743,19 +759,14 @@ def main():
 
   # Send to file if we are daemonizing, else send to console
 
-  if isdaemon:
-    if conf.logfile == "STDOUT":
-        raise ValueError("Output to stdout is not valid in daemon mode")
+  if conf.logfile != "STDOUT":
     fh = RotatingFileHandler(conf.logfile, maxBytes=1000000, backupCount=3)
     fh.setLevel(numeric_level)
     fh.setFormatter(formatter)
     conf.logger.addHandler(fh)
   else:
-    if conf.logfile == "STDOUT":
-      ch = logging.StreamHandler(stream=sys.stdout)
-    else:
-      # Default for StreamHandler() is sys.stderr
-      ch = logging.StreamHandler()
+    # Default for StreamHandler() is sys.stderr
+    ch = logging.StreamHandler(stream=sys.stdout)
     ch.setLevel(numeric_level)
     ch.setFormatter(formatter)
     conf.logger.addHandler(ch)
@@ -768,15 +779,10 @@ def main():
   conf.error.propagate = False
   formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
-  if isdaemon:
-    if conf.errorfile == "STDERR":
-      raise ValueError("Error output to stderr is not valid in daemon mode")
-    efh = logging.StreamHandler()
+  if conf.errorfile != "STDERR":
+    efh = RotatingFileHandler(conf.errorfile, maxBytes=1000000, backupCount=3)
   else:
-    if conf.errorfile == "STDERR":
-      efh = logging.StreamHandler()
-    else:
-      efh = RotatingFileHandler(conf.errorfile, maxBytes=1000000, backupCount=3)
+    efh = logging.StreamHandler()
 
   efh.setLevel(numeric_level)
   efh.setFormatter(formatter)
@@ -793,10 +799,12 @@ def main():
 
   init_sun()
 
-  config_file_modified = os.path.getmtime(args.config)
+  config_file_modified = os.path.getmtime(config_file)
 
   # Add appdir to path
-
+  if conf.app_dir == None:
+    conf.app_dir = find_path("apps")
+  
   sys.path.insert(0, conf.app_dir)
 
 
@@ -805,7 +813,7 @@ def main():
   if isdaemon:
     keep_fds = [fh.stream.fileno(), efh.stream.fileno()]
     pid = args.pidfile
-    daemon = Daemonize(app="hapush", pid=pid, action=run, keep_fds=keep_fds)
+    daemon = Daemonize(app="appdaemon", pid=pid, action=run, keep_fds=keep_fds)
     daemon.start()
     while True:
       time.sleep(1)

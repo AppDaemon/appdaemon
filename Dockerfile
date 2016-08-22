@@ -11,4 +11,4 @@ COPY . .
 
 RUN pip3 install .
 
-CMD [ "appdaemon", "/conf/appdaemon.cfg" ]
+CMD [ "appdaemon", "-c", "/conf/appdaemon.cfg" ]
