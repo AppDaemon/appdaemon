@@ -194,3 +194,5 @@ To update AppDaemon after I have released new code, just run the following comma
 ```bash
 $ git pull origin
 ```
+
+Then rerun the docker or PIP3 commands as appropriate.
