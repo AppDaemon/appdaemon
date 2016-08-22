@@ -768,12 +768,15 @@ def main():
   conf.error.propagate = False
   formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
-  if conf.errorfile == "STDERR":
-    if isdaemon:
-        raise ValueError("Error output to stderr is not valid in daemon mode")
+  if isdaemon:
+    if conf.errorfile == "STDERR":
+      raise ValueError("Error output to stderr is not valid in daemon mode")
     efh = logging.StreamHandler()
   else:
-    efh = RotatingFileHandler(conf.errorfile, maxBytes=1000000, backupCount=3)
+    if conf.errorfile == "STDERR":
+      efh = logging.StreamHandler()
+    else:
+      efh = RotatingFileHandler(conf.errorfile, maxBytes=1000000, backupCount=3)
 
   efh.setLevel(numeric_level)
   efh.setFormatter(formatter)
