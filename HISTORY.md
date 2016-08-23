@@ -2,10 +2,17 @@
 History
 =======
 
+1.1.1 (2016-23-09)
+------------------
+
+** Fixes
+
+- Fix init scripts
+
 1.1.0 (2016-21-09)
 ------------------
 
-* Features
+** Features
 
 - Installation via pip3 - contributed by [Martin Hjelmare](https://github.com/MartinHjelmare)
 - Docker support (non Raspbian only) - contributed by [Jesse Newland](https://github.com/jnewland)
@@ -15,13 +22,13 @@ History
 - Log and error files default to STDOUT and STDERR respectively if not specified
 - Added systemd service file - contributed by [Jason Hite](https://github.com/jasonmhite)
 
-* Fixes
+** Fixes
 
 - Fix to give more information if initial connect to HA fails (but still avoid spamming logs too badly if it restarts)
 - Rename 'init' directory to 'scripts'
 - Tidy up docs
 
-* Breaking Changes
+** Breaking Changes
 
 - As a result of the repackaging for PIP3 installation, all apps must be edited to change the import statement of the api to `import appdaemon.appapi as appapi`
 - Config must now be explicitly specfied with the -c option if you don't want it to pick a default file location
@@ -31,4 +38,4 @@ History
 1.0.0 (2016-08-09)
 ------------------
 
-* Initial Release
+** Initial Release
