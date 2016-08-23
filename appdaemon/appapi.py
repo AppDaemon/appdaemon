@@ -43,7 +43,7 @@ class AppDaemon():
                 "DEBUG": 10,
                 "NOTSET": 0
               }
-    logger.log(levels[level], msg) 
+    logger.log(levels[level], "{}: {}".format(self.name, msg)) 
   
   def log(self, msg, level = "INFO"):
     self.do_log(self._logger, msg, level)
