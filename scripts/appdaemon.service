@@ -1,8 +1,19 @@
+#
+# Sample unit file for systemd
+#
+# Edit top suit your environment, then copy to /etc/systemd/system
+#
+# run "systemd enable appdaemon" to make it start at boottime
+#
 [Unit]
 Description=AppDaemon service for Home Assistant
 
 [Service]
 ExecStart=/usr/local/bin/appdaemon
-
+#
+# If you are not using a default path for the config file use this:
+#
+#ExecStart=/usr/local/bin/appdaemon -c <path to config file>
+#
 [Install]
 WantedBy=multi-user.target
