@@ -6,11 +6,15 @@ History
 
 **Features**
 
-- Add support for recursive directories
+- Add support for recursive directories (suggested by [jbardi](https://github.com/jbardi)
 
 **Fixes**
 
+None
+
 **Breaking Changes**
+
+None
 
 1.1.1 (2016-23-09)
 ------------------
