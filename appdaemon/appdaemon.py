@@ -753,6 +753,9 @@ def main():
 
   if conf.errorfile == None:
     conf.errorfile = "STDERR"
+   
+  if isdaemon and (conf.logfile == "STDOUT" or conf.errorfile == "STDERR" or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"):
+    raise ValueError("STDOUT and STDERR not allowed with -d")
     
   # Setup Logging
 
@@ -763,7 +766,7 @@ def main():
   formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
   # Send to file if we are daemonizing, else send to console
-
+  
   if conf.logfile != "STDOUT":
     fh = RotatingFileHandler(conf.logfile, maxBytes=1000000, backupCount=3)
     fh.setLevel(numeric_level)
