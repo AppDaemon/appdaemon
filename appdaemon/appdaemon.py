@@ -600,7 +600,12 @@ def readApp(file, reload = False):
       conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def readApps(all = False):
-  found_files = glob.glob(os.path.join(conf.app_dir, '*.py'))
+  found_files = []
+  for root, subdirs, files in os.walk(conf.app_dir):
+    if root[-11:] != "__pycache__":
+      for file in files:
+        if file[-3:] == ".py":
+          found_files.append(os.path.join(root, file))    
   for file in found_files:
     if file == os.path.join(conf.app_dir, "__init__.py"):
      continue
@@ -801,12 +806,14 @@ def main():
 
   config_file_modified = os.path.getmtime(config_file)
 
-  # Add appdir to path
+  # Add appdir  and subdirs to path
   if conf.app_dir == None:
     conf.app_dir = find_path("apps")
   
-  sys.path.insert(0, conf.app_dir)
-
+  for root, subdirs, files in os.walk(conf.app_dir):
+    if root[-11:] != "__pycache__":
+      sys.path.insert(0, root)
+  
 
   # Start main loop
 
