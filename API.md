@@ -83,7 +83,7 @@ module = new
 class = NewApp
 ```
 
-When AppDaemon sees the following configuration it will expect to find a class called `NewApp` defined in a module called `new.py` in the apps subdirectory.
+When AppDaemon sees the following configuration it will expect to find a class called `NewApp` defined in a module called `new.py` in the apps subdirectory. Apps can be placed at the root of the Apps directory or within a subdirectory, an arbitary depth down - wherever the App is, as long as it is in some subdirectory of the Apps dir, or in the Apps dir itself, AppDaemon will find it. There is no need to include information about the path, just the name of the file itself (without the `.py`) is sufficient. If names in the subdirectories overlap, AppDir will pick one of them but the exact choice it will make is undefined.
 
 When starting the system for the first time or when reloading an App or Module, the system will log the fact in it's main log. It is oftenm the case that there is a problem with th class, maybe a syntax error or some other problem. If that is the case, details will be output to the error log allowing the user to remedy the problem and reload.
 

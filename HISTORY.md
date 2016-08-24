@@ -2,14 +2,15 @@
 History
 =======
 
-1.2.0 (2016-??-09)
+1.2.0 (2016-24-09)
 
 **Features**
+
+- Add support for recursive directories
 
 **Fixes**
 
 **Breaking Changes**
-
 
 1.1.1 (2016-23-09)
 ------------------
