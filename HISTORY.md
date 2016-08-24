@@ -6,7 +6,7 @@ History
 
 **Features**
 
-- Add support for recursive directories (suggested by [jbardi](https://github.com/jbardi)
+- Add support for recursive directories - suggested by [jbardi](https://github.com/jbardi)
 
 **Fixes**
 
