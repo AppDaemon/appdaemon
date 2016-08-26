@@ -10,7 +10,6 @@ import datetime
 from time import mktime
 import argparse
 import time
-from daemonize import Daemonize
 import logging
 import os.path
 import glob
@@ -28,6 +27,13 @@ import astral
 import pytz
 import appdaemon.homeassistant as ha
 import appdaemon.appapi as api
+import platform
+
+# Windows does not have Daemonize package so disalow
+
+if platform.system() != "Windows":
+  from daemonize import Daemonize
+
 
 q = Queue(maxsize=0)
 
@@ -710,24 +716,36 @@ def main():
   global config_file
   global config_file_modified
 
-  # Get command line args
+  # Windows does not support SIGUSR1 or SIGUSR2
+  if platform.system() != "Windows":
+    signal.signal(signal.SIGUSR1, handle_sig)
+    signal.signal(signal.SIGUSR2, handle_sig)
 
-  signal.signal(signal.SIGUSR1, handle_sig)
-  signal.signal(signal.SIGUSR2, handle_sig)
+  
+  # Get command line args
 
   parser = argparse.ArgumentParser()
 
   parser.add_argument("-c", "--config", help="full path to config file", type=str, default = None)
-  parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
   parser.add_argument("-p", "--pidfile", help="full path to PID File", default = "/tmp/hapush.pid")
   parser.add_argument("-D", "--debug", help="debug level", default = "INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+
+  # Windows does not have Daemonize package so disalow
+  if platform.system() != "Windows":
+    parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
+
+
   args = parser.parse_args()
   config_file = args.config
 
+  
   if config_file == None:
     config_file = find_path("appdaemon.cfg")
   
-  isdaemon = args.daemon
+  if platform.system() != "Windows":
+    isdaemon = args.daemon
+  else:
+    isdaemon = False
 
   # Read Config File
 

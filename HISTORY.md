@@ -2,6 +2,22 @@
 History
 =======
 
+1.2.1 (2016-26-09)
+------------------
+
+**Features**
+
+- Add support for windows
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
+
 1.2.0 (2016-24-09)
 ------------------
 
