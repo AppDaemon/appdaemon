@@ -246,7 +246,7 @@ State within Home Assistant is stored as a collection of dictionaries, one for e
 
 Any other attributes such as brightness for a lamp will only be present if the entity supports them, and will be stored in a sub-dictionary called `attributes`. When specifying these optional attributes in the `get_state()` call, no special distinction is required between the main attributes and the optional ones - `get_state()` will figure it out for you.
 
-Also bear in mind also, that some attributes such as brightness for a light, will not be present when the light is off.
+Also bear in mind that some attributes such as brightness for a light, will not be present when the light is off.
 
 In most cases, the attribute `state` has the most important value in it, e.g. for a light or switch this will be `on` or `off`, for a sensor it will be the value of that sensor. Many of the AppDaemon API calls and callbacks will implicitly return the value of state unless told to do otherwise.
 
@@ -321,7 +321,7 @@ set_state(entity_id, **kwargs)
 
 ##### entity_id
 
-Entity id for which the state is to be set, e.g. `"light.office_1"`.
+Entity id for which the state is to be set, e.g. `light.office_1`.
 
 ##### values
 
