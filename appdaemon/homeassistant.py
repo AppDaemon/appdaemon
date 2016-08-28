@@ -2,9 +2,17 @@ import appdaemon.conf as conf
 import requests
 import datetime
 import re
+import random
+import uuid
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+def get_offset(args):
+  rbefore = args["kwargs"].get("random_before", 0)
+  rafter = args["kwargs"].get("random_after", 0)
+  offset = random.randint(rbefore * -1, rafter)
+  return(offset)
 
 def day_of_week(day):
   days = {"mon": 0, "tue" : 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
@@ -117,3 +125,21 @@ def get_ha_state(entity_id = None):
   r = requests.get(apiurl, headers=headers)
   r.raise_for_status()
   return r.json()
+  
+def insert_schedule(name, utc, callback, repeat, offset, type, **kwargs):
+  if name not in conf.schedule:
+    conf.schedule[name] = {}
+  handle = uuid.uuid4()
+  utc = int(utc)
+  ts = utc + get_offset({"kwargs": kwargs})
+  conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": ts, "basetime": utc, "repeat": repeat, "offset": offset, "type": type, "kwargs": kwargs}
+  #conf.logger.info(conf.schedule[name][handle])
+  return handle
+    
+def cancel_timer(name, handle):
+  conf.logger.debug("Canceling timer for {}".format(name))
+  if name in conf.schedule and handle in conf.schedule[name]:
+    del conf.schedule[name][handle]
+  if name in conf.schedule and conf.schedule[name] == {}:
+    del conf.schedule[name]
+

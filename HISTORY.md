@@ -2,6 +2,23 @@
 History
 =======
 
+1.3.0 (2016-27-09)
+------------------
+
+**Features**
+
+- Add ability to randomize times in scheduler
+- Add `duration` to listen_state() to fire event when a state condition has been met for a period of time
+
+**Fixes**
+
+- Thorough proofreading correcting typos and formatting of API.md - contributed by [Robin Lauren](https://github.com/llauren)
+- Fixed a bug that was causing scheduled events to fire a second late
+
+**Breaking Changes**
+
+None
+
 1.2.1 (2016-26-09)
 ------------------
 

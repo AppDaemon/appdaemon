@@ -29,7 +29,9 @@ import appdaemon.homeassistant as ha
 import appdaemon.appapi as api
 import platform
 
-# Windows does not have Daemonize package so disalow
+__version__ = "1.3.0"
+
+# Windows does not have Daemonize package so disallow
 
 if platform.system() != "Windows":
   from daemonize import Daemonize
@@ -99,15 +101,6 @@ def update_sun():
     #dump_schedule()
     process_sun("next_setting")
     #dump_schedule()
-
-def process_sun(action):
-  conf.logger.debug("Process sun: {}, next sunrise: {}, next sunset: {}".format(action, conf.sun["next_rising"], conf.sun["next_setting"]))
-  for name in conf.schedule.keys():
-    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-      schedule = conf.schedule[name][entry]
-      if schedule["type"] == action and "inactive" in schedule:
-        del schedule["inactive"]
-        schedule["timestamp"] = ha.calc_sun(action, schedule["time"])
 
 def is_dst( ):
   return bool(time.localtime( ).tm_isdst)
@@ -249,24 +242,34 @@ def today_is_constrained(days):
       return False
     return True
 
+def process_sun(action):
+  conf.logger.debug("Process sun: {}, next sunrise: {}, next sunset: {}".format(action, conf.sun["next_rising"], conf.sun["next_setting"]))
+  for name in conf.schedule.keys():
+    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
+      schedule = conf.schedule[name][entry]
+      if schedule["type"] == action and "inactive" in schedule:
+        del schedule["inactive"]
+        schedule["timestamp"] = ha.calc_sun(action, schedule["offset"] + ha.get_offset(schedule))
+
 def exec_schedule(name, entry, args):
   if "inactive" in args:
     return
   # Call function
   dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "kwargs": args["kwargs"], })
   # If it is a repeating entry, rewrite with new timestamp
-  if args["repeat"]:
+  if args["repeat"]:    
     if args["type"] == "next_rising" or args["type"] == "next_setting":
       # Its sunrise or sunset - if the offset is negative we won't know the next rise or set time yet so mark as inactive
       # So we can adjust with a scan at sun rise/set
-      if args["time"] < 0:
+      if args["offset"] < 0:
         args["inactive"] = 1
       else:
         # We have a valid time for the next sunrise/set so use it
-        args["timestamp"] = ha.calc_sun(args["type"], args["time"])
+        args["timestamp"] = ha.calc_sun(args["type"], args["offset"] + ha.get_offset(args))
     else:
       # Not sunrise or sunset so just increment the timestamp with the repeat interval
-      args["timestamp"] += args["time"]
+      args["basetime"] += args["offset"]
+      args["timestamp"] = args["basetime"] + ha.get_offset(args)
   else: # Otherwise just delete
     del conf.schedule[name][entry]
 
@@ -281,7 +284,8 @@ def do_every_second():
   try:
 
     now = datetime.datetime.now()
-
+    now = now.replace(microsecond=0)
+    
     # Update sunrise/sunset etc.
 
     update_sun()
@@ -327,7 +331,7 @@ def do_every_second():
     for name in conf.schedule.keys():
       for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
         #conf.logger.debug("{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
-        if conf.schedule[name][entry]["timestamp"] < now:
+        if conf.schedule[name][entry]["timestamp"] <= now:
           exec_schedule(name, entry, conf.schedule[name][entry])
         else:
           break
@@ -428,8 +432,19 @@ def check_and_disapatch(name, function, entity, attribute, new_state, old_state,
     else:
       new = None
 
-    if (cold == None or cold == old) and (cnew == None or cnew == new):
-      dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new, "old_state": old, "kwargs": kwargs})
+    if (cold == None or cold == old) and (cnew == None or cnew == new):     
+      if "duration" in kwargs:
+        # Set a timer
+        exec_time = datetime.datetime.now().timestamp() + int(kwargs["duration"])
+        kwargs["handle"] = ha.insert_schedule(name, exec_time, function, False, None, None, **kwargs)
+      else:
+        # Do it now
+        dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new, "old_state": old, "kwargs": kwargs})
+    else:
+      if "handle" in kwargs:
+        #cancel timer
+        ha.cancel_timer(name, kwargs["handle"])
+        
 
 def process_state_change(data):
 
@@ -729,7 +744,8 @@ def main():
   parser.add_argument("-c", "--config", help="full path to config file", type=str, default = None)
   parser.add_argument("-p", "--pidfile", help="full path to PID File", default = "/tmp/hapush.pid")
   parser.add_argument("-D", "--debug", help="debug level", default = "INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-
+  parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
+  
   # Windows does not have Daemonize package so disalow
   if platform.system() != "Windows":
     parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
@@ -838,6 +854,8 @@ def main():
 
   # Start main loop
 
+  conf.logger.info("AppDaemon Version {} starting".format(__version__))
+  
   if isdaemon:
     keep_fds = [fh.stream.fileno(), efh.stream.fileno()]
     pid = args.pidfile
