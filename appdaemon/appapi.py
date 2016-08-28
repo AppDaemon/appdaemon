@@ -40,7 +40,7 @@ class AppDaemon():
                 "DEBUG": 10,
                 "NOTSET": 0
               }
-    logger.log(levels[level], "{}: {}".format(self.name, msg)) 
+    logger.log(levels[level], "{} {}: {}".format(conf.now, self.name, msg)) 
   
     
   def _schedule_sun(self, name, type, offset, callback, **kwargs):
@@ -294,14 +294,14 @@ class AppDaemon():
     name = self.name
     conf.logger.debug("Registering run_in in {} seconds for {}".format(seconds, name))  
     # convert seconds to an int if possible since a common pattern is to pass this through from the config file which is a string
-    exec_time = datetime.datetime.now().timestamp() + int(seconds)
+    exec_time = conf.now.timestamp() + int(seconds)
     handle = ha.insert_schedule(name, exec_time, callback, False, None, None, **kwargs)
     return handle
 
   def run_once(self, callback, start, **kwargs):
     name = self.name
-    now = datetime.datetime.now()
-    today = datetime.date.today()
+    now = conf.now
+    today = now.date()
     event = datetime.datetime.combine(today, start)
     if event < now:
       one_day = datetime.timedelta(days=1)
@@ -312,7 +312,7 @@ class AppDaemon():
 
   def run_at(self, callback, start, **kwargs):
     name = self.name
-    now = datetime.datetime.now()
+    now = conf.now
     if start < now:
       raise ValueError("{}: run_at() Start time must be in the future".format(self.name))
     exec_time = start.timestamp()
@@ -321,8 +321,8 @@ class AppDaemon():
 
   def run_daily(self, callback, start, **kwargs):
     name = self.name
-    now = datetime.datetime.now()
-    today = datetime.date.today()
+    now = conf.now
+    today = now.date()
     event = datetime.datetime.combine(today, start)
     if event < now:
       one_day = datetime.timedelta(days=1)
@@ -332,7 +332,7 @@ class AppDaemon():
     
   def run_hourly(self, callback, start, **kwargs):
     name = self.name
-    now = datetime.datetime.now()
+    now = conf.now
     if start == None:
       event = now + datetime.timedelta(hours=1)
     else:
@@ -346,7 +346,7 @@ class AppDaemon():
 
   def run_minutely(self, callback, start, **kwargs):
     name = self.name
-    now = datetime.datetime.now()
+    now = conf.now
     if start == None:
       event = now + datetime.timedelta(minutes=1)
     else:
@@ -360,7 +360,7 @@ class AppDaemon():
 
   def run_every(self, callback, start, interval, **kwargs):
     name = self.name
-    now = datetime.datetime.now()
+    now = conf.now
     if start < now:
       raise ValueError("start cannot be in the past")
     conf.logger.debug("Registering run_every starting {} in {}s intervals for {}".format(start, interval, name))  

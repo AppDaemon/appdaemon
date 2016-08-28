@@ -58,7 +58,7 @@ def parse_time(time_str, name = None):
 def now_is_between(start_time_str, end_time_str, name = None):
   start_time = parse_time(start_time_str, name)
   end_time = parse_time(end_time_str, name)
-  now = datetime.datetime.now()
+  now = conf.now
   start_date = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
   end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
   if end_date < start_date:

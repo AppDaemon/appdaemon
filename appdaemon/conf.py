@@ -14,3 +14,5 @@ sun = {}
 location = None
 tz = None
 logger = logging.getLogger(__name__)
+now = 0
+tick = 1

@@ -113,9 +113,11 @@ def do_every(period,f):
             count += 1
             yield max(t + count*period - time.time(),0)
     g = g_tick()
+    t = int(time.time())
     while True:
-        time.sleep(next(g))
-        f()
+      time.sleep(next(g))
+      t += 1
+      f(t)
 
 def handle_sig(signum, frame):
   if signum == signal.SIGUSR1:
@@ -273,18 +275,20 @@ def exec_schedule(name, entry, args):
   else: # Otherwise just delete
     del conf.schedule[name][entry]
 
-def do_every_second():
+def do_every_second(utc):
 
   global was_dst
   global last_state
-
+  
   # Lets check if we are connected, if not give up.
   if not reading_messages:
     return
   try:
 
-    now = datetime.datetime.now()
-    now = now.replace(microsecond=0)
+    #now = datetime.datetime.now()
+    #now = now.replace(microsecond=0)
+    now = datetime.datetime.fromtimestamp(utc)
+    conf.now = now
     
     # Update sunrise/sunset etc.
 
@@ -326,12 +330,11 @@ def do_every_second():
 
     # Process callbacks
 
-    now = datetime.datetime.now().timestamp()
     #conf.logger.debug("Scheduler invoked at {}".format(now))
     for name in conf.schedule.keys():
       for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
         #conf.logger.debug("{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
-        if conf.schedule[name][entry]["timestamp"] <= now:
+        if conf.schedule[name][entry]["timestamp"] <= now.timestamp():
           exec_schedule(name, entry, conf.schedule[name][entry])
         else:
           break
@@ -351,7 +354,7 @@ def do_every_second():
       conf.logger.warn("Logged an error to {}".format(conf.errorfile))
 
 def timer_thread():
-  do_every(1, do_every_second)
+  do_every(conf.tick, do_every_second)
 
 def worker():
   while True:
@@ -435,7 +438,7 @@ def check_and_disapatch(name, function, entity, attribute, new_state, old_state,
     if (cold == None or cold == old) and (cnew == None or cnew == new):     
       if "duration" in kwargs:
         # Set a timer
-        exec_time = datetime.datetime.now().timestamp() + int(kwargs["duration"])
+        exec_time = conf.now.timestamp() + int(kwargs["duration"])
         kwargs["handle"] = ha.insert_schedule(name, exec_time, function, False, None, None, **kwargs)
       else:
         # Do it now
@@ -676,6 +679,7 @@ def run():
 
   # Create timer thread
 
+  conf.now = datetime.datetime.now()
   t = threading.Thread(target=timer_thread)
   t.daemon = True
   t.start()
@@ -691,7 +695,7 @@ def run():
       conf.logger.info("Got initial state")
       # Load apps
       readApps(True)
-      last_state = datetime.datetime.now()
+      last_state = conf.now
 
       #
       # Fire HA_STARTED and APPD_STARTED Events
@@ -743,6 +747,7 @@ def main():
 
   parser.add_argument("-c", "--config", help="full path to config file", type=str, default = None)
   parser.add_argument("-p", "--pidfile", help="full path to PID File", default = "/tmp/hapush.pid")
+  parser.add_argument("-t", "--tick", help="Time scheduler tick lasts (debugging only )", default = 1, type = float)
   parser.add_argument("-D", "--debug", help="debug level", default = "INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
   parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
   
@@ -752,6 +757,9 @@ def main():
 
 
   args = parser.parse_args()
+  
+  conf.tick = args.tick
+  
   config_file = args.config
 
   
