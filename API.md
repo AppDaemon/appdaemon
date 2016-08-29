@@ -471,9 +471,7 @@ Note: `old` and `new` can be used singly or together.
 
 ##### duration =  <seconds> (optional)
 
-If duration is supplied as a parameter, the callback will not fire unless the state listened for is maintained for that number of seconds. This makes the most sense if a specific attribute is specified (or the default os `state` is used), an in conjunction with the `old` or `new` parameters, or both.
-
-*** Note that if `duration` is specified, this is implemented as a scheduler callback under the covers so you must use the callback function signature for the schsduler rather than the regular state callback, i.e.:
+If duration is supplied as a parameter, the callback will not fire unless the state listened for is maintained for that number of seconds. This makes the most sense if a specific attribute is specified (or the default os `state` is used), an in conjunction with the `old` or `new` parameters, or both. When the callback is called, it is supplied with the values of `entity`, `attr`, `old` and `new` that were current at the time the actual event occured, since the assumption is that none of them have changed in the intervening period.
 
 ```python
   def my_callback(self, **kwargs):
@@ -864,29 +862,27 @@ self.cancel_timer(handle)
 
 ### Scheduler Ransomization
 
-All of the scheduler calls above support 2 additional optional arguments, `random_before` and `random_after`. Using these arguments it is possible to randomize the firing of callbacks to the degree desired by setting the appropriate number of seconds with the parameters.
+All of the scheduler calls above support 2 additional optional arguments, `random_start` and `random_end`. Using these arguments it is possible to randomize the firing of callbacks to the degree desired by setting the appropriate number of seconds with the parameters.
 
-- `random_before` - range of the random time before an event it can fire
-- `random_after` - range of the random time after an event it can fire
+- `random_start` - start of range of the random time
+- `random_end` - end of range of the random time 
 
-Both of the above take positive values and can be used to restrict randomness to just before an event (using only `random_before`), to after an event (using only `random_after`) or both before and after an event (using both).
-
-Both of these parameters work in conjunction with any existing offset parameters and it is best to think of them as taking the end result of a particular call and then altering the time it would actually run.
+`random_start` must always be numerically lower than `random_end`, they can be negative to denote a random offset before and event, or positive to denote a random offset after an event. The event would be a an absolute or relative time or sunrise/sunset depending on whcih scheduler call you use and these values affect the base time by the spcified amount. If not specified, they will default to `0`.
 
 For example:
 
 ```python
 # Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
-self.handle = self.run_in(callback, 120, random_before = 60, **kwargs)
+self.handle = self.run_in(callback, 120, random_start = -60, **kwargs)
 # Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
-self.handle = self.run_in(callback, 120, random_after = 60, **kwargs)
+self.handle = self.run_in(callback, 120, random_end = 60, **kwargs)
 # Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
-self.handle = self.run_in(callback, 120, random_before = 60, random_after = 60, **kwargs)
+self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60, **kwargs)
 ```
 
 ## Sunrise and Sunset
 
-AppDaemon has a number of features to allow easy tracking of sunrise and sunset as well as a couple of scheduler functions. Note that the scheduler functions also support the randomization parameters described above.
+AppDaemon has a number of features to allow easy tracking of sunrise and sunset as well as a couple of scheduler functions. Note that the scheduler functions also support the randomization parameters described above, but they cannot be used in conjunction with the `offset` parameter`.
 
 ### run_at_sunrise()
 
@@ -895,7 +891,7 @@ Run a callback at or around sunrise.
 #### Synopsis
 
 ```python
-self.handle = self.run_at_sunrise(callback, offset, *args, **kwargs)
+self.handle = self.run_at_sunrise(callback, **kwargs)
 ```
 
 #### Returns
@@ -908,9 +904,9 @@ A handle that can be used to cancel the timer.
 
 Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
 
-##### offset
+##### offset = <seconds>
 
-The time in seconds that the callback should be delayed after sunrise. A negative value will result in the callback occurring before sunrise.
+The time in seconds that the callback should be delayed after sunrise. A negative value will result in the callback occurring before sunrise. This parameter cannot be combined with `random_start` or `random_end`
 
 ##### \*\*kwargs
 
@@ -921,13 +917,14 @@ Arbitary keyword parameters to be provided to the callback function when it is i
 ```python
 import datetime
 ...
-self.run_at_sunrise(self.sun, datetime.timedelta(minutes = -45).total_seconds(), "Sunrise -45 mins")
+# Run 45 minutes before sunset
+self.run_at_sunrise(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds(), "Sunrise -45 mins")
 # or you can just do the math yourself
-self.run_at_sunrise(self.sun, 30 * 60, "Sunrise +30 mins")
+self.run_at_sunrise(self.sun, offset = 30 * 60, "Sunrise +30 mins")
 # Run at a random time +/- 60 minutes from sunrise
-self.run_at_sunrise(self.sun, 0, random_before = 60*60, random_after = 60*60, "Sunrise, random +/- 60 mins")
+self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 60*60, "Sunrise, random +/- 60 mins")
 # Run at a random time between 30 and 60 minutes before sunrise
-self.run_at_sunrise(self.sun, -60*60, random_after = 30*60, "Sunrise, random +/- 60 mins")
+self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60, "Sunrise, random - 30 - 60 mins")
 ```
 
 ### run_at_sunset()
@@ -950,9 +947,9 @@ A handle that can be used to cancel the timer.
 
 Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
 
-##### offset
+##### offset = <seconds>
 
-The time in seconds that the callback should be delayed after sunset. A negative value will result in the callback occurring before sunset.
+The time in seconds that the callback should be delayed after sunrise. A negative value will result in the callback occurring before sunrise. This parameter cannot be combined with `random_start` or `random_end`
 
 ##### \*\*kwargs
 
@@ -968,9 +965,9 @@ self.run_at_sunset(self.sun, datetime.timedelta(minutes = -45).total_seconds(), 
 # or you can just do the math yourself
 self.run_at_sunset(self.sun, 30 * 60, "Sunset +30 mins")
 # Run at a random time +/- 60 minutes from sunset
-self.run_at_sunset(self.sun, 0, random_before = 60*60, random_after = 60*60, "Sunset, random +/- 60 mins")
+self.run_at_sunset(self.sun, random_start = -60*60, random_end = 60*60, "Sunset, random +/- 60 mins")
 # Run at a random time between 30 and 60 minutes before sunset
-self.run_at_sunset(self.sun, -60*60, random_after = 30*60, "Sunset, random +/- 60 mins")
+self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60, "Sunset, random - 30 - 60 mins")
 ```
 ### sunrise()
 
@@ -1676,7 +1673,7 @@ An object reference to the class.
 
 #### Example
 ```python
-MyApp = self.get_app("MotionLLights")
+MyApp = self.get_app("MotionLights")
 MyApp.turn_light_on()
 ```
 

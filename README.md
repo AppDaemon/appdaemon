@@ -28,6 +28,8 @@ To build the Docker image run the following:
 $ docker build -t appdaemon .
 ```
 
+(Note the period at the end of the above command)
+
 ## Install Using PIP3
 
 Before running `AppDaemon` you will need to install the package:

@@ -25,27 +25,11 @@ class AppDaemon():
     if "." not in entity:
       raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
     if entity not in conf.ha_state:
-      conf.logger.warn("{}: Entity {} not found in Home Assistant".format(self.name, entity))
+      ha.log(conf.logger, "WARNING", "{}: Entity {} not found in Home Assistant".format(self.name, entity))
 
   def _check_service(self, service):
     if service.find("/") == -1:
       raise ValueError("Invalid Service Name: {}".format(service))  
-  
-  def _do_log(self, logger, msg, level):
-    levels = {
-                "CRITICAL": 50,
-                "ERROR": 40,
-                "WARNING": 30,
-                "INFO": 20,
-                "DEBUG": 10,
-                "NOTSET": 0
-              }
-    logger.log(levels[level], "{} {}: {}".format(conf.now, self.name, msg)) 
-  
-    
-  def _schedule_sun(self, name, type, offset, callback, **kwargs):
-    event = ha.calc_sun(type, offset)
-    handle = ha.insert_schedule(name, event, callback, True, offset, type, **kwargs)
 
 #
 # Utility
@@ -59,13 +43,13 @@ class AppDaemon():
     return list.split(",")
 
   def log(self, msg, level = "INFO"):
-    self._do_log(self._logger, msg, level)
+    ha.log(self._logger, level, msg, self.name)
 
   def error(self, msg, level = "WARNING"):
-    self._do_log(self._error, msg, level)
+    ha.log(self._error, level, msg, self.name)
 
   def get_app(self, name):
-    return conf.objects[name]
+    return conf.objects[name]["object"]
     
   def friendly_name(self, entity_id):
     self._check_entity(entity_id)
@@ -103,7 +87,7 @@ class AppDaemon():
   def get_state(self, entity_id = None, attribute = None):
     if entity_id != None:
       self._check_entity(entity_id)
-    conf.logger.debug("get_state: {}.{}".format(entity_id, attribute))
+    ha.log(conf.logger, "DEBUG", "get_state: {}.{}".format(entity_id, attribute))
     device = None
     entity = None
     if entity_id != None:
@@ -146,7 +130,7 @@ class AppDaemon():
 
   def set_state(self, entity_id, **kwargs):
     self._check_entity(entity_id)
-    conf.logger.debug("set_state: {}, {}".format(entity_id, kwargs))
+    ha.log(conf.logger, "DEBUG", "set_state: {}, {}".format(entity_id, kwargs))
     if conf.ha_key != "":
       headers = {'x-ha-access': conf.ha_key}
     else:
@@ -168,7 +152,7 @@ class AppDaemon():
     
   def cancel_listen_state(self, handle):
     name = self.name
-    conf.logger.debug("Canceling listen_state for {}".format(name))
+    ha.log(conf.logger, "DEBUG", "Canceling listen_state for {}".format(name))
     if name in conf.callbacks and handle in conf.callbacks[name]:
       del conf.callbacks[name][handle]
     if name in conf.callbacks and conf.callbacks[name] == {}:
@@ -180,7 +164,7 @@ class AppDaemon():
 #
 
   def fire_event(self, event, **kwargs):
-    conf.logger.debug("fire_event: {}, {}".format(event, kwargs))
+    ha.log(conf.logger, "DEBUG", "fire_event: {}, {}".format(event, kwargs))
     if conf.ha_key != "":
       headers = {'x-ha-access': conf.ha_key}
     else:
@@ -200,7 +184,7 @@ class AppDaemon():
 
   def cancel_listen_event(self, handle):
     name = self.name
-    conf.logger.debug("Canceling listen_event for {}".format(name))
+    ha.log(conf.logger, "DEBUG", "Canceling listen_event for {}".format(name))
     if name in conf.callbacks and handle in conf.callbacks[name]:
       del conf.callbacks[name][handle]
     if name in conf.callbacks and conf.callbacks[name] == {}:
@@ -214,7 +198,7 @@ class AppDaemon():
   def call_service(self, service, **kwargs):
     self._check_service(service)    
     d, s = service.split("/")
-    conf.logger.debug("call_service: {}/{}, {}".format(d, s, kwargs))
+    ha.log(conf.logger, "DEBUG", "call_service: {}/{}, {}".format(d, s, kwargs))
     if conf.ha_key != "":
       headers = {'x-ha-access': conf.ha_key}
     else:
@@ -292,36 +276,36 @@ class AppDaemon():
          
   def run_in(self, callback, seconds, **kwargs):
     name = self.name
-    conf.logger.debug("Registering run_in in {} seconds for {}".format(seconds, name))  
+    ha.log(conf.logger, "DEBUG", "Registering run_in in {} seconds for {}".format(seconds, name))  
     # convert seconds to an int if possible since a common pattern is to pass this through from the config file which is a string
-    exec_time = conf.now.timestamp() + int(seconds)
-    handle = ha.insert_schedule(name, exec_time, callback, False, None, None, **kwargs)
+    exec_time = ha.now_ts() + int(seconds)
+    handle = ha.insert_schedule(name, exec_time, callback, False, None, **kwargs)
     return handle
 
   def run_once(self, callback, start, **kwargs):
     name = self.name
-    now = conf.now
+    now = ha.now()
     today = now.date()
     event = datetime.datetime.combine(today, start)
     if event < now:
       one_day = datetime.timedelta(days=1)
       event = event + one_day
     exec_time = event.timestamp()
-    handle = ha.insert_schedule(name, exec_time, callback, False, None, None, **kwargs)
+    handle = ha.insert_schedule(name, exec_time, callback, False, None, **kwargs)
     return handle
 
   def run_at(self, callback, start, **kwargs):
     name = self.name
-    now = conf.now
+    now = ha.now()
     if start < now:
       raise ValueError("{}: run_at() Start time must be in the future".format(self.name))
     exec_time = start.timestamp()
-    handle = ha.insert_schedule(name, exec_time, callback, False, None, None, **kwargs)
+    handle = ha.insert_schedule(name, exec_time, callback, False, None, **kwargs)
     return handle
 
   def run_daily(self, callback, start, **kwargs):
     name = self.name
-    now = conf.now
+    now = ha.now()
     today = now.date()
     event = datetime.datetime.combine(today, start)
     if event < now:
@@ -332,7 +316,7 @@ class AppDaemon():
     
   def run_hourly(self, callback, start, **kwargs):
     name = self.name
-    now = conf.now
+    now = ha.now()
     if start == None:
       event = now + datetime.timedelta(hours=1)
     else:
@@ -346,7 +330,7 @@ class AppDaemon():
 
   def run_minutely(self, callback, start, **kwargs):
     name = self.name
-    now = conf.now
+    now = ha.now()
     if start == None:
       event = now + datetime.timedelta(minutes=1)
     else:
@@ -360,22 +344,27 @@ class AppDaemon():
 
   def run_every(self, callback, start, interval, **kwargs):
     name = self.name
-    now = conf.now
+    now = ha.now()
     if start < now:
       raise ValueError("start cannot be in the past")
-    conf.logger.debug("Registering run_every starting {} in {}s intervals for {}".format(start, interval, name))  
+    ha.log(conf.logger, "DEBUG", "Registering run_every starting {} in {}s intervals for {}".format(start, interval, name))  
     exec_time = start.timestamp()
-    handle = ha.insert_schedule(name, exec_time, callback, True, interval, None, **kwargs)
+    handle = ha.insert_schedule(name, exec_time, callback, True, None, interval = interval, **kwargs)
     return handle
-    
-  def run_at_sunset(self, callback, offset, **kwargs):
+ 
+  def _schedule_sun(self, name, type, callback, **kwargs):
+    event = ha.calc_sun(type)
+    handle = ha.insert_schedule(name, event, callback, True, type, **kwargs)
+
+ 
+  def run_at_sunset(self, callback, **kwargs):
     name = self.name
-    conf.logger.debug("Registering run_at_sunset with {} second offset for {}".format(offset, name))    
-    handle = self._schedule_sun(name, "next_setting", offset, callback, **kwargs)
+    ha.log(conf.logger, "DEBUG", "Registering run_at_sunset with kwargs = {} for {}".format(kwargs, name))    
+    handle = self._schedule_sun(name, "next_setting", callback, **kwargs)
     return handle
 
-  def run_at_sunrise(self, callback, offset, **kwargs):
+  def run_at_sunrise(self, callback, **kwargs):
     name = self.name
-    conf.logger.debug("Registering run_at_sunrise with {} second offset for {}".format(offset, name))    
-    handle = self._schedule_sun(name, "next_rising", offset, callback, **kwargs)
+    ha.log(conf.logger, "DEBUG", "Registering run_at_sunrise with kwargs = {} for {}".format(kwargs, name))    
+    handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
     return handle

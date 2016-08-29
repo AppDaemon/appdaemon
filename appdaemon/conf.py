@@ -16,3 +16,6 @@ tz = None
 logger = logging.getLogger(__name__)
 now = 0
 tick = 1
+realtime = True
+endtime = None
+interval = 1

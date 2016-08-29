@@ -8,12 +8,32 @@ import uuid
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-def get_offset(args):
-  rbefore = args["kwargs"].get("random_before", 0)
-  rafter = args["kwargs"].get("random_after", 0)
-  offset = random.randint(rbefore * -1, rafter)
-  return(offset)
+def log(logger, level,  msg, name = ""):
+  levels = {
+              "CRITICAL": 50,
+              "ERROR": 40,
+              "WARNING": 30,
+              "INFO": 20,
+              "DEBUG": 10,
+              "NOTSET": 0
+            }
+  if name != "":
+    name = " {}:".format(name)
+   
+  if conf.realtime:
+    timestamp = datetime.datetime.now()
+  else:
+    timestamp = now()
+    
+  logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg)) 
 
+def now():
+  return datetime.datetime.fromtimestamp(conf.now)
+
+def now_ts():
+  return conf.now
+
+  
 def day_of_week(day):
   days = {"mon": 0, "tue" : 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
   nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -58,7 +78,7 @@ def parse_time(time_str, name = None):
 def now_is_between(start_time_str, end_time_str, name = None):
   start_time = parse_time(start_time_str, name)
   end_time = parse_time(end_time_str, name)
-  now = conf.now
+  now = now()
   start_date = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
   end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
   if end_date < start_date:
@@ -69,10 +89,10 @@ def now_is_between(start_time_str, end_time_str, name = None):
   return start_date <= now <= end_date
  
 def sunrise():
-  return(datetime.datetime.fromtimestamp(calc_sun("next_rising", 0)))
+  return(datetime.datetime.fromtimestamp(calc_sun("next_rising")))
 
 def sunset():
-  return(datetime.datetime.fromtimestamp(calc_sun("next_setting", 0)))
+  return(datetime.datetime.fromtimestamp(calc_sun("next_setting")))
 
 def anyone_home():
   for entity_id in conf.ha_state.keys():
@@ -99,9 +119,9 @@ def noone_home():
         return False
   return True
 
-def calc_sun(type, offset):
+def calc_sun(type):
   # convert to a localized timestamp
-  return conf.sun[type].timestamp() + offset
+  return conf.sun[type].timestamp()
   
 def parse_utc_string(s):
   return datetime.datetime(*map(int, re.split('[^\d]', s)[:-1])).timestamp() + get_tz_offset() * 60
@@ -113,7 +133,7 @@ def get_tz_offset():
   return(utcOffset_min)
   
 def get_ha_state(entity_id = None):
-  conf.logger.debug("get_ha_state: enitiy is {}".format(entity_id))  
+  log(conf.logger, "DEBUG", "get_ha_state: enitiy is {}".format(entity_id))  
   if conf.ha_key != "":
     headers = {'x-ha-access': conf.ha_key}
   else:
@@ -126,18 +146,34 @@ def get_ha_state(entity_id = None):
   r.raise_for_status()
   return r.json()
   
-def insert_schedule(name, utc, callback, repeat, offset, type, **kwargs):
+def get_offset(kwargs):
+  if "offset" in kwargs["kwargs"]:
+    if "random_start" in kwargs["kwargs"] or "random_end" in kwargs["kwargs"]:
+      raise ValueError("Can't specify offset as well as 'random_start' or 'random_end' in 'run_at_sunrise()' or 'run_at_sunset()'")
+    else:
+      offset = kwargs["kwargs"]["offset"]
+  else:
+    rbefore = kwargs["kwargs"].get("random_start", 0)
+    rafter = kwargs["kwargs"].get("random_end", 0)
+    offset = random.randint(rbefore, rafter)
+  #log(conf.logger, "INFO", "sun: offset = {}".format(offset))
+  return(offset)
+
+def insert_schedule(name, utc, callback, repeat, type, **kwargs):
   if name not in conf.schedule:
     conf.schedule[name] = {}
   handle = uuid.uuid4()
   utc = int(utc)
-  ts = utc + get_offset({"kwargs": kwargs})
-  conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": ts, "basetime": utc, "repeat": repeat, "offset": offset, "type": type, "kwargs": kwargs}
-  #conf.logger.info(conf.schedule[name][handle])
+  c_offset = get_offset({"kwargs": kwargs})
+  ts = utc + c_offset
+  interval = kwargs.get("interval", 0)
+
+  conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": ts, "interval": interval, "basetime": utc, "repeat": repeat, "offset": c_offset, "type": type, "kwargs": kwargs}
+  #log(conf.logger, "INFO", conf.schedule[name][handle])
   return handle
     
 def cancel_timer(name, handle):
-  conf.logger.debug("Canceling timer for {}".format(name))
+  log(conf.logger, "DEBUG", "Canceling timer for {}".format(name))
   if name in conf.schedule and handle in conf.schedule[name]:
     del conf.schedule[name][handle]
   if name in conf.schedule and conf.schedule[name] == {}:
