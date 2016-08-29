@@ -1133,6 +1133,36 @@ self.toggle("switch.patio_lights")
 self.toggle("light.office_1", color_name = "green")
 ```
 
+### select_value()
+
+This is a convenience function for the `input_slider.select_value` function. It is able to set the value of an input_slider in Home Assistant.
+
+#### Synopsis
+
+```python
+self.select_value(entity_id, value)
+```
+
+#### Returns
+
+None
+
+#### Parameters
+
+##### entity_id
+
+Fully qualified entity_id of the thing to be toggled, e.g. `input_slider.alarm_hour`.
+
+##### value
+
+The new value to set the input slider to.
+
+#### Examples
+
+```python
+self.select_value("input_slider.alarm_hour", 6)
+```
+
 ### notify()
 
 This is a convenience function for the `notify.notify` service. It will send a notification to your defualt notification service. If you have more than one, use `call_service()` to call the specific notification service you require instead.
