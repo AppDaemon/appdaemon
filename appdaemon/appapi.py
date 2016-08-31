@@ -83,15 +83,13 @@ class AppDaemon():
     return None
     
   def get_state(self, entity_id = None, attribute = None):
-    if entity_id != None:
-      self._check_entity(entity_id)
     conf.logger.debug("get_state: {}.{}".format(entity_id, attribute))
     device = None
     entity = None
     if entity_id != None:
       if "." not in entity_id:
         if attribute != None:
-          raise ValueError
+          raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
         device = entity_id
         entity = None
       else:
@@ -291,8 +289,7 @@ class AppDaemon():
     today = datetime.date.today()
     event = datetime.datetime.combine(today, start)
     if event < now:
-      one_day = datetime.timedelta(days=1)
-      event = event + one_day
+      event = event + datetime.timedelta(days=1)
     handle = self.run_every(callback, event, 24 * 60 * 60, **kwargs)
     return handle
     
@@ -305,8 +302,7 @@ class AppDaemon():
       event = now
       event = event.replace(minute = start.minute, second = start.second)
       if event < now:
-        event = event.replace(hour = event.hour + 1)
-      
+        event = event + datetime.timedelta(hours=1)    
     handle = self.run_every(callback, event, 60 * 60, **kwargs)
     return handle  
 
@@ -319,8 +315,7 @@ class AppDaemon():
       event = now
       event = event.replace(second = start.second)
       if event < now:
-        event = event.replace(minute = event.minute + 1)
-
+        event = event + datetime.timedelta(minutes=1)
     handle = self.run_every(callback, event, 60, **kwargs)
     return handle  
 

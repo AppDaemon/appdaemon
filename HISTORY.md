@@ -2,6 +2,23 @@
 History
 =======
 
+1.2.2 (2016-31-09)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a bug preventing get_state() calls for device types
+- Fixed a bug that would cause an error in the last minute of an hour or last hour of a day in run_minutely() and run)hourly() respectively
+
+**Breaking Changes**
+
+None
+
+
 1.2.1 (2016-26-09)
 ------------------
 
