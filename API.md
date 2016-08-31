@@ -167,13 +167,22 @@ An App can have as many or as few as are required. When more than one constraint
 They are described individually below.
 
 ### input_boolean
-The input_boolean constraint prevents callbacks unless the specified input_boolean is set to "on". This is useful to allow certain Apps to be turned on and off from the user interface. For example:
+By default, the input_boolean constraint prevents callbacks unless the specified input_boolean is set to "on". This is useful to allow certain Apps to be turned on and off from the user interface. For example:
 
 ```ini
 [some_app]
 module = some_module
 class = SomeClass
 constrain_input_boolean = input_boolean.enable_motion_detection
+```
+
+If you want to reverse the logic so the constraint is only called when the input_boolean is off, use the optional state parameter by appending ",off" to the argument, e.g.:
+
+```ini
+[some_app]
+module = some_module
+class = SomeClass
+constrain_input_boolean = input_boolean.enable_motion_detection,off
 ```
 
 ### input_select

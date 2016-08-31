@@ -10,12 +10,14 @@ History
 - Add ability to randomize times in scheduler
 - Add `duration` to listen_state() to fire event when a state condition has been met for a period of time
 - Rewrite scheduler to allow time travel (for testing purposes only, no effect on regular usage!)
+- Allow input_boolean constraints to have reversed logic
 
 **Fixes**
 
 - Thorough proofreading correcting typos and formatting of API.md - contributed by [Robin Lauren](https://github.com/llauren)
 - Fixed a bug that was causing scheduled events to fire a second late
 - Fixed a bug in `get_app()` that caused it to return a dict instead of an object
+- Fixed an error when missing state right after HA restart
 
 **Breaking Changes**
 

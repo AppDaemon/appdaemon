@@ -179,8 +179,15 @@ def dump_queue():
 def check_constraint(key, value):
   unconstrained = True
   if key == "constrain_input_boolean":
-      if value in conf.ha_state and conf.ha_state[value]["state"] == "off":
-        unconstrained = False
+    values = value.split(",")
+    if len(values) == 2:
+      entity = values[0]
+      state = values[1]
+    else:
+      entity = value
+      state = "on"      
+    if entity in conf.ha_state and conf.ha_state[entity]["state"] != state:
+      unconstrained = False
   if key == "constrain_input_select":
     values = value.split(",")
     entity = values.pop(0)
@@ -305,10 +312,9 @@ def do_every_second(utc):
       os._exit(0)
       
     if conf.realtime:
-      real_now = datetime.datetime.now()
-      real_now = real_now.replace(microsecond = 0)
-      if now != real_now:
-        ha.log(conf.logger, "WARNING", "Scheduler clock skew detected - reccomend restarting AppDaemon")
+      real_now = int(datetime.datetime.now().timestamp())
+      if abs(utc - real_now) > 1:
+        ha.log(conf.logger, "WARNING", "Scheduler clock skew detected - expected {}, got {} - recommend restarting AppDaemon".format(utc, real_now))
     
     # Update sunrise/sunset etc.
 
@@ -445,18 +451,21 @@ def check_and_disapatch(name, function, entity, attribute, new_state, old_state,
   if attribute == "all":
     dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new_state, "old_state": old_state, "kwargs": kwargs})
   else:
-    if attribute in old_state:
-      old = old_state[attribute]
-    elif attribute in old_state['attributes']:
-      old = old_state['attributes'][attribute]
-    else:
+    if old_state == None:
       old = None
-    if attribute in 'new_state':
-      new = new_state[attribute]
-    elif attribute in new_state['attributes']:
-      new = new_state['attributes'][attribute]
     else:
-      new = None
+      if attribute in old_state:
+        old = old_state[attribute]
+      elif attribute in old_state['attributes']:
+        old = old_state['attributes'][attribute]
+      else:
+        old = None
+      if attribute in 'new_state':
+        new = new_state[attribute]
+      elif attribute in new_state['attributes']:
+        new = new_state['attributes'][attribute]
+      else:
+        new = None
 
     if (cold == None or cold == old) and (cnew == None or cnew == new):     
       if "duration" in kwargs:
