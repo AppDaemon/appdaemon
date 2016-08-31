@@ -278,13 +278,13 @@ class AppDaemon():
     name = self.name
     ha.log(conf.logger, "DEBUG", "Registering run_in in {} seconds for {}".format(seconds, name))  
     # convert seconds to an int if possible since a common pattern is to pass this through from the config file which is a string
-    exec_time = ha.now_ts() + int(seconds)
+    exec_time = ha.get_now_ts() + int(seconds)
     handle = ha.insert_schedule(name, exec_time, callback, False, None, **kwargs)
     return handle
 
   def run_once(self, callback, start, **kwargs):
     name = self.name
-    now = ha.now()
+    now = ha.get_now()
     today = now.date()
     event = datetime.datetime.combine(today, start)
     if event < now:
@@ -296,7 +296,7 @@ class AppDaemon():
 
   def run_at(self, callback, start, **kwargs):
     name = self.name
-    now = ha.now()
+    now = ha.get_now()
     if start < now:
       raise ValueError("{}: run_at() Start time must be in the future".format(self.name))
     exec_time = start.timestamp()
@@ -305,7 +305,7 @@ class AppDaemon():
 
   def run_daily(self, callback, start, **kwargs):
     name = self.name
-    now = ha.now()
+    now = ha.get_now()
     today = now.date()
     event = datetime.datetime.combine(today, start)
     if event < now:
@@ -316,7 +316,7 @@ class AppDaemon():
     
   def run_hourly(self, callback, start, **kwargs):
     name = self.name
-    now = ha.now()
+    now = ha.get_now()
     if start == None:
       event = now + datetime.timedelta(hours=1)
     else:
@@ -330,7 +330,7 @@ class AppDaemon():
 
   def run_minutely(self, callback, start, **kwargs):
     name = self.name
-    now = ha.now()
+    now = ha.get_now()
     if start == None:
       event = now + datetime.timedelta(minutes=1)
     else:
@@ -344,7 +344,7 @@ class AppDaemon():
 
   def run_every(self, callback, start, interval, **kwargs):
     name = self.name
-    now = ha.now()
+    now = ha.get_now()
     if start < now:
       raise ValueError("start cannot be in the past")
     ha.log(conf.logger, "DEBUG", "Registering run_every starting {} in {}s intervals for {}".format(start, interval, name))  

@@ -66,7 +66,7 @@ def init_sun():
 def update_sun():
 
   #now = datetime.datetime.now(conf.tz)
-  now = conf.tz.localize(ha.now())
+  now = conf.tz.localize(ha.get_now())
   mod = -1
   while True:
     try:
@@ -104,7 +104,7 @@ def update_sun():
     #dump_schedule()
 
 def is_dst( ):
-  return bool(time.localtime(ha.now_ts()).tm_isdst)
+  return bool(time.localtime(ha.get_now_ts()).tm_isdst)
 
 def do_every(period,f):
     def g_tick():
@@ -114,7 +114,7 @@ def do_every(period,f):
             count += 1
             yield max(t + count*period - time.time(),0)
     g = g_tick()
-    t = int(ha.now_ts())
+    t = int(ha.get_now_ts())
     while True:
       time.sleep(next(g))
       t += conf.interval
@@ -300,7 +300,7 @@ def do_every_second(utc):
 
     # If we have reached en\dtime bail out
     
-    if conf.endtime != None and ha.now() >= conf.endtime:
+    if conf.endtime != None and ha.get_now() >= conf.endtime:
       ha.log(conf.logger, "INFO", "End time reached, exiting")
       os._exit(0)
       
@@ -461,7 +461,7 @@ def check_and_disapatch(name, function, entity, attribute, new_state, old_state,
     if (cold == None or cold == old) and (cnew == None or cnew == new):     
       if "duration" in kwargs:
         # Set a timer
-        exec_time = ha.now_ts() + int(kwargs["duration"])
+        exec_time = ha.get_now_ts() + int(kwargs["duration"])
         kwargs["handle"] = ha.insert_schedule(name, exec_time, function, False, None, entity = entity, attr = attribute, old_state = old, new_state = new, **kwargs)
       else:
         # Do it now
@@ -705,7 +705,7 @@ def run():
   ha.log(conf.logger, "INFO", "Got initial state")
   # Load apps
   readApps(True)
-  last_state = ha.now()
+  last_state = ha.get_now()
 
   # Create timer thread
 
@@ -725,7 +725,7 @@ def run():
         ha.log(conf.logger, "INFO", "Got initial state")
         # Load apps
         readApps(True)
-        last_state = ha.now()
+        last_state = ha.get_now()
 
       #
       # Fire HA_STARTED and APPD_STARTED Events

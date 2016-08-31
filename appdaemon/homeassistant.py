@@ -23,14 +23,14 @@ def log(logger, level,  msg, name = ""):
   if conf.realtime:
     timestamp = datetime.datetime.now()
   else:
-    timestamp = now()
+    timestamp = get_now()
     
   logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg)) 
 
-def now():
+def get_now():
   return datetime.datetime.fromtimestamp(conf.now)
 
-def now_ts():
+def get_now_ts():
   return conf.now
 
   
@@ -78,7 +78,7 @@ def parse_time(time_str, name = None):
 def now_is_between(start_time_str, end_time_str, name = None):
   start_time = parse_time(start_time_str, name)
   end_time = parse_time(end_time_str, name)
-  now = now()
+  now = get_now()
   start_date = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
   end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
   if end_date < start_date:
@@ -127,7 +127,7 @@ def parse_utc_string(s):
   return datetime.datetime(*map(int, re.split('[^\d]', s)[:-1])).timestamp() + get_tz_offset() * 60
  
 def get_tz_offset():
-  utcOffset_min = int(round((datetime.datetime.now() - datetime.datetime.utcnow()).total_seconds())) / 60   # round for taking time twice
+  utcOffset_min = int(round((datetime.datetime.get_now() - datetime.datetime.utcget_now()).total_seconds())) / 60   # round for taking time twice
   utcOffset_h = utcOffset_min / 60
   assert(utcOffset_min == utcOffset_h * 60)   # we do not handle 1/2 h timezone offsets
   return(utcOffset_min)
