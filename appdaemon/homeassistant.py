@@ -8,6 +8,22 @@ import uuid
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+constraints = ("constrain_input_select", "constrain_presence", "constrain_start_time", "constrain_end_time")
+
+def sanitize_state_kwargs(kwargs):
+  kwargs_copy = kwargs.copy()
+  return _sanitize_kwargs(kwargs_copy, ("old", "new", "attribute", "duration", "state", "entity", "handle", "old_state", "new_state") + constraints)
+
+def sanitize_timer_kwargs(kwargs):
+  kwargs_copy = kwargs.copy()
+  return _sanitize_kwargs(kwargs_copy, ("interval", "constrain_days", "constrain_input_boolean") + constraints)
+
+def _sanitize_kwargs(kwargs, keys):
+  for key in keys:
+    if key in kwargs:
+      del kwargs[key]
+  return(kwargs)
+
 def log(logger, level,  msg, name = ""):
   levels = {
               "CRITICAL": 50,

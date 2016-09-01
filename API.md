@@ -549,6 +549,32 @@ The handle returned when the `listen_state()` call was made.
 self.cancel_listen_state(self.office_light_handle)
 ```
 
+### info_listen_state()
+
+Get information on state a callback from it's handle.
+
+#### Synopsis
+
+```python
+entity, attribute, kwargs = self.info_listen_state(self.handle)
+```
+
+#### Returns
+
+entity, attribute, kwargs - the values supplied when the callback was initially created.
+
+#### Parameters
+
+##### handle
+
+The handle returned when the `listen_state()` call was made.
+
+#### Examples
+
+```python
+entity, attribute, kwargs = self.info_listen_state(self.handle)
+```
+
 ## Scheduler
 
 AppDaemon contains a powerful scheduler that is able to run with 1 second resolution to fire off specific events at set times, or after set delays, or even relative to sunrise and sunset. In general, events should be fired less than a second after specified but under certain circumstances there may be short additional delays.
@@ -868,6 +894,38 @@ A handle value returned from the original call to create the timer.
 ```python
 self.cancel_timer(handle)
 ```
+
+### info_timer()
+
+Get information on a scheduler event from it's handle.
+
+#### Synopsis
+
+```python
+time, interval, kwargs = self.info_timer(handle)
+```
+
+#### Returns
+
+time - datetime object representing the next time the callback will be fired
+
+interval - repeat interval if applicable, `0` otherwise.
+
+kwargs - the values supplied when the callback was initially created.
+
+#### Parameters
+
+##### handle
+
+The handle returned when the scheduler call was made.
+
+#### Examples
+
+```python
+time, interval, kwargs = self.info_timer(handle)
+```
+
+
 
 ### Scheduler Ransomization
 
@@ -1321,6 +1379,32 @@ A handle returned from a previous call to `listen_event()`.
 
 ```python
 self.cancel_listen_event(handle)
+```
+
+### info_listen_event()
+
+Get information on an event callback from it's handle.
+
+#### Synopsis
+
+```python
+service, kwargs = self.info_listen_event(handle)
+```
+
+#### Returns
+
+service, kwargs - the values supplied when the callback was initially created.
+
+#### Parameters
+
+##### handle
+
+The handle returned when the `listen_event()` call was made.
+
+#### Examples
+
+```python
+service, kwargs = self.info_listen_event(handle)
 ```
 
 

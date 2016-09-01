@@ -268,7 +268,7 @@ def exec_schedule(name, entry, args):
     return
   # Call function
   if "entity" in args["kwargs"]:
-    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": args["callback"], "attr": args["kwargs"]["attr"], "entity": args["kwargs"]["entity"], "new_state": args["kwargs"]["new_state"], "old_state": args["kwargs"]["old_state"], "kwargs": args["kwargs"]})
+    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": args["callback"], "attribute": args["kwargs"]["attribute"], "entity": args["kwargs"]["entity"], "new_state": args["kwargs"]["new_state"], "old_state": args["kwargs"]["old_state"], "kwargs": args["kwargs"]})
   else:
     dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "kwargs": args["kwargs"], })
   # If it is a repeating entry, rewrite with new timestamp
@@ -397,13 +397,13 @@ def worker():
         if type == "initialize":
           function()
         if type == "timer":
-          function(args["kwargs"])
+          function(ha.sanitize_timer_kwargs(args["kwargs"]))
         if type == "attr":
           entity = args["entity"]
-          attr = args["attr"]
+          attr = args["attribute"]
           old_state = args["old_state"]
           new_state = args["new_state"]
-          function(entity, attr, old_state, new_state, args["kwargs"])
+          function(entity, attr, old_state, new_state, ha.sanitize_state_kwargs(args["kwargs"]))
         if type == "event":
           data = args["data"]
           function(args["event"], data, args["kwargs"])
@@ -449,7 +449,7 @@ def init_object(name, class_name, module_name, args):
 
 def check_and_disapatch(name, function, entity, attribute, new_state, old_state, cold, cnew, kwargs):
   if attribute == "all":
-    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new_state, "old_state": old_state, "kwargs": kwargs})
+    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attribute": attribute, "entity": entity, "new_state": new_state, "old_state": old_state, "kwargs": kwargs})
   else:
     if old_state == None:
       old = None
@@ -471,10 +471,10 @@ def check_and_disapatch(name, function, entity, attribute, new_state, old_state,
       if "duration" in kwargs:
         # Set a timer
         exec_time = ha.get_now_ts() + int(kwargs["duration"])
-        kwargs["handle"] = ha.insert_schedule(name, exec_time, function, False, None, entity = entity, attr = attribute, old_state = old, new_state = new, **kwargs)
+        kwargs["handle"] = ha.insert_schedule(name, exec_time, function, False, None, entity = entity, attribute = attribute, old_state = old, new_state = new, **kwargs)
       else:
         # Do it now
-        dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new, "old_state": old, "kwargs": kwargs})
+        dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attribute": attribute, "entity": entity, "new_state": new, "old_state": old, "kwargs": kwargs})
     else:
       if "handle" in kwargs:
         #cancel timer
@@ -513,7 +513,7 @@ def process_state_change(data):
         cnew = callback["kwargs"].get("new")
 
         if cdevice == None:
-          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew. callback["kwargs"])
+          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
         elif centity == None:
           if device == cdevice:
             check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])

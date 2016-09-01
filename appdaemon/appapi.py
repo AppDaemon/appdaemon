@@ -158,7 +158,14 @@ class AppDaemon():
     if name in conf.callbacks and conf.callbacks[name] == {}:
       del conf.callbacks[name]
   
-
+  def info_listen_state(self, handle):
+    name = self.name
+    ha.log(conf.logger, "DEBUG", "Calling info_listen_state for {}".format(name))
+    if name in conf.callbacks and handle in conf.callbacks[name]:
+      callback = conf.callbacks[name][handle]
+      return (callback["entity"], callback["kwargs"].get("attribute", None), ha.sanitize_state_kwargs(callback["kwargs"]))
+    else:
+      raise ValueError("Invalid handle: {}".format(handle))
 #
 # Event
 #
@@ -190,7 +197,14 @@ class AppDaemon():
     if name in conf.callbacks and conf.callbacks[name] == {}:
       del conf.callbacks[name]
   
-
+  def info_listen_event(self, handle):
+    name = self.name
+    ha.log(conf.logger, "DEBUG", "Calling info_listen_event for {}".format(name))
+    if name in conf.callbacks and handle in conf.callbacks[name]:
+      callback = conf.callbacks[name][handle]
+      return (callback["event"], callback["kwargs"].copy())
+    else:
+      raise ValueError("Invalid handle: {}".format(handle))
 #
 # Service
 #
@@ -273,6 +287,16 @@ class AppDaemon():
   def cancel_timer(self, handle):
     name = self.name
     ha.cancel_timer(name, handle)
+    
+  def info_timer(self, handle):
+    name = self.name
+    ha.log(conf.logger, "DEBUG", "Calling info_timer for {}".format(name))
+    if name in conf.schedule and handle in conf.schedule[name]:
+      callback = conf.schedule[name][handle]
+      return (datetime.datetime.fromtimestamp(callback["timestamp"]), callback["interval"], ha.sanitize_timer_kwargs(callback["kwargs"]))
+    else:
+      raise ValueError("Invalid handle: {}".format(handle))
+
          
   def run_in(self, callback, seconds, **kwargs):
     name = self.name

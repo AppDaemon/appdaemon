@@ -11,6 +11,7 @@ History
 - Add `duration` to listen_state() to fire event when a state condition has been met for a period of time
 - Rewrite scheduler to allow time travel (for testing purposes only, no effect on regular usage!)
 - Allow input_boolean constraints to have reversed logic
+- Add info_listen_state(), info_listen_event() and info_schedule() calls
 
 **Fixes**
 
