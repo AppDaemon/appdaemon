@@ -1090,8 +1090,8 @@ Each service has different parameter requirements. This argument allows you to s
 #### Examples
 
 ```python
-self.call_service("light.turn_on", entity_id = "light.office_lamp", color_name = "red")
-self.call_service("notify.notify", title = "Hello", message = "Hello World")
+self.call_service("light.turn_on", entity_id = "light/office_lamp", color_name = "red")
+self.call_service("notify/notify", title = "Hello", message = "Hello World")
 ```
 ### turn_on()
 
