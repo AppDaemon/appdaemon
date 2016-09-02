@@ -28,6 +28,7 @@ import pytz
 import appdaemon.homeassistant as ha
 import appdaemon.appapi as api
 import platform
+import math
 
 __version__ = "1.3.0"
 
@@ -108,13 +109,13 @@ def is_dst( ):
 
 def do_every(period,f):
     def g_tick():
-        t = int(time.time())
+        t = math.floor(time.time())
         count = 0
         while True:
             count += 1
             yield max(t + count*period - time.time(),0)
     g = g_tick()
-    t = int(ha.get_now_ts())
+    t = math.floor(ha.get_now_ts())
     while True:
       time.sleep(next(g))
       t += conf.interval
@@ -312,8 +313,9 @@ def do_every_second(utc):
       os._exit(0)
       
     if conf.realtime:
-      real_now = int(datetime.datetime.now().timestamp())
-      if abs(utc - real_now) > 1:
+      real_now = datetime.datetime.now().timestamp()
+      delta = abs(utc - real_now)
+      if delta > 1:
         ha.log(conf.logger, "WARNING", "Scheduler clock skew detected - expected {}, got {} - recommend restarting AppDaemon".format(utc, real_now))
     
     # Update sunrise/sunset etc.
@@ -363,7 +365,7 @@ def do_every_second(utc):
     for name in conf.schedule.keys():
       for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
         #ha.log(conf.logger, "DEBUG", "{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
-        if conf.schedule[name][entry]["timestamp"] <= now.timestamp():
+        if conf.schedule[name][entry]["timestamp"] <= utc:
           exec_schedule(name, entry, conf.schedule[name][entry])
         else:
           break
