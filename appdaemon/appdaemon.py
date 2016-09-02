@@ -29,6 +29,7 @@ import appdaemon.homeassistant as ha
 import appdaemon.appapi as api
 import platform
 import math
+import random
 
 __version__ = "1.3.0"
 
@@ -119,7 +120,9 @@ def do_every(period,f):
     while True:
       time.sleep(next(g))
       t += conf.interval
-      f(t)
+      r = f(t)
+      if r != t:
+        t = math.floor(r)
 
 def handle_sig(signum, frame):
   if signum == signal.SIGUSR1:
@@ -295,7 +298,7 @@ def do_every_second(utc):
 
   global was_dst
   global last_state
-  
+    
   # Lets check if we are connected, if not give up.
   if not reading_messages:
     return
@@ -306,7 +309,7 @@ def do_every_second(utc):
     now = datetime.datetime.fromtimestamp(utc)
     conf.now = utc
 
-    # If we have reached en\dtime bail out
+    # If we have reached endtime bail out
     
     if conf.endtime != None and ha.get_now() >= conf.endtime:
       ha.log(conf.logger, "INFO", "End time reached, exiting")
@@ -316,8 +319,9 @@ def do_every_second(utc):
       real_now = datetime.datetime.now().timestamp()
       delta = abs(utc - real_now)
       if delta > 1:
-        ha.log(conf.logger, "WARNING", "Scheduler clock skew detected - expected {}, got {} - recommend restarting AppDaemon".format(utc, real_now))
-    
+        ha.log(conf.logger, "WARNING", "Scheduler clock skew detected - delta = {} - resetting".format(delta))
+        return real_now
+        
     # Update sunrise/sunset etc.
 
     update_sun()
@@ -372,6 +376,8 @@ def do_every_second(utc):
     for k, v in list(conf.schedule.items()):
       if v == {}:
         del conf.schedule[k]
+        
+    return utc
 
   except:
     ha.log(conf.error, "WARNING", '-'*60)
