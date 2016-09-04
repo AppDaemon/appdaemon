@@ -28,8 +28,12 @@ import pytz
 import appdaemon.homeassistant as ha
 import appdaemon.appapi as api
 import platform
+import math
+import random
 
-# Windows does not have Daemonize package so disalow
+__version__ = "1.3.0"
+
+# Windows does not have Daemonize package so disallow
 
 if platform.system() != "Windows":
   from daemonize import Daemonize
@@ -63,7 +67,8 @@ def init_sun():
 
 def update_sun():
 
-  now = datetime.datetime.now(conf.tz)
+  #now = datetime.datetime.now(conf.tz)
+  now = conf.tz.localize(ha.get_now())
   mod = -1
   while True:
     try:
@@ -100,29 +105,24 @@ def update_sun():
     process_sun("next_setting")
     #dump_schedule()
 
-def process_sun(action):
-  conf.logger.debug("Process sun: {}, next sunrise: {}, next sunset: {}".format(action, conf.sun["next_rising"], conf.sun["next_setting"]))
-  for name in conf.schedule.keys():
-    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-      schedule = conf.schedule[name][entry]
-      if schedule["type"] == action and "inactive" in schedule:
-        del schedule["inactive"]
-        schedule["timestamp"] = ha.calc_sun(action, schedule["time"])
-
 def is_dst( ):
-  return bool(time.localtime( ).tm_isdst)
+  return bool(time.localtime(ha.get_now_ts()).tm_isdst)
 
 def do_every(period,f):
     def g_tick():
-        t = int(time.time())
+        t = math.floor(time.time())
         count = 0
         while True:
             count += 1
             yield max(t + count*period - time.time(),0)
     g = g_tick()
+    t = math.floor(ha.get_now_ts())
     while True:
-        time.sleep(next(g))
-        f()
+      time.sleep(next(g))
+      t += conf.interval
+      r = f(t)
+      if r != t:
+        t = math.floor(r)
 
 def handle_sig(signum, frame):
   if signum == signal.SIGUSR1:
@@ -135,56 +135,63 @@ def handle_sig(signum, frame):
     readApps(True)
 
 def dump_sun():
-    conf.logger.info("--------------------------------------------------")
-    conf.logger.info("Sun")
-    conf.logger.info("--------------------------------------------------")
-    conf.logger.info(conf.sun)
-    conf.logger.info("--------------------------------------------------")
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
+    ha.log(conf.logger, "INFO", "Sun")
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
+    ha.log(conf.logger, "INFO", conf.sun)
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 def dump_schedule():
   if conf.schedule == {}:
-      conf.logger.info("Schedule is empty")
+      ha.log(conf.logger, "INFO", "Schedule is empty")
   else:
-    conf.logger.info("--------------------------------------------------")
-    conf.logger.info("Scheduler Table")
-    conf.logger.info("--------------------------------------------------")
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
+    ha.log(conf.logger, "INFO", "Scheduler Table")
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
     for name in conf.schedule.keys():
-      conf.logger.info("{}:".format(name))
+      ha.log(conf.logger, "INFO", "{}:".format(name))
       for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-        conf.logger.info("  Timestamp: {} - data: {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), conf.schedule[name][entry]))
-    conf.logger.info("--------------------------------------------------")
+        ha.log(conf.logger, "INFO", "  Timestamp: {} - data: {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), conf.schedule[name][entry]))
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 def dump_callbacks():
   if conf.callbacks == {}:
-    conf.logger.info("No callbacks")
+    ha.log(conf.logger, "INFO", "No callbacks")
   else:
-    conf.logger.info("--------------------------------------------------")
-    conf.logger.info("Callbacks")
-    conf.logger.info("--------------------------------------------------")
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
+    ha.log(conf.logger, "INFO", "Callbacks")
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
     for name in conf.callbacks.keys():
-      conf.logger.info("{}:".format(name))
+      ha.log(conf.logger, "INFO", "{}:".format(name))
       for uuid in conf.callbacks[name]:
-        conf.logger.info("  {} = {}".format(uuid, conf.callbacks[name][uuid]))
-    conf.logger.info("--------------------------------------------------")
+        ha.log(conf.logger, "INFO", "  {} = {}".format(uuid, conf.callbacks[name][uuid]))
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 def dump_objects():
-  conf.logger.info("--------------------------------------------------")
-  conf.logger.info("Objects")
-  conf.logger.info("--------------------------------------------------")
+  ha.log(conf.logger, "INFO", "--------------------------------------------------")
+  ha.log(conf.logger, "INFO", "Objects")
+  ha.log(conf.logger, "INFO", "--------------------------------------------------")
   for object in conf.objects.keys():
-    conf.logger.info("{}: {}".format(object, conf.objects[object]))
-  conf.logger.info("--------------------------------------------------")
+    ha.log(conf.logger, "INFO", "{}: {}".format(object, conf.objects[object]))
+  ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 def dump_queue():
-  conf.logger.info("--------------------------------------------------")
-  conf.logger.info("Current Queue Size is {}".format(q.qsize()))
-  conf.logger.info("--------------------------------------------------")
+  ha.log(conf.logger, "INFO", "--------------------------------------------------")
+  ha.log(conf.logger, "INFO", "Current Queue Size is {}".format(q.qsize()))
+  ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 def check_constraint(key, value):
   unconstrained = True
   if key == "constrain_input_boolean":
-      if value in conf.ha_state and conf.ha_state[value]["state"] == "off":
-        unconstrained = False
+    values = value.split(",")
+    if len(values) == 2:
+      entity = values[0]
+      state = values[1]
+    else:
+      entity = value
+      state = "on"      
+    if entity in conf.ha_state and conf.ha_state[entity]["state"] != state:
+      unconstrained = False
   if key == "constrain_input_select":
     values = value.split(",")
     entity = values.pop(0)
@@ -249,39 +256,72 @@ def today_is_constrained(days):
       return False
     return True
 
+def process_sun(action):
+  ha.log(conf.logger, "DEBUG", "Process sun: {}, next sunrise: {}, next sunset: {}".format(action, conf.sun["next_rising"], conf.sun["next_setting"]))
+  for name in conf.schedule.keys():
+    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
+      schedule = conf.schedule[name][entry]
+      if schedule["type"] == action and "inactive" in schedule:
+        del schedule["inactive"]
+        c_offset = ha.get_offset(schedule)
+        schedule["timestamp"] = ha.calc_sun(action) + c_offset
+        schedule["offset"] = c_offset
+
 def exec_schedule(name, entry, args):
   if "inactive" in args:
     return
   # Call function
-  dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "kwargs": args["kwargs"], })
+  if "entity" in args["kwargs"]:
+    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": args["callback"], "attribute": args["kwargs"]["attribute"], "entity": args["kwargs"]["entity"], "new_state": args["kwargs"]["new_state"], "old_state": args["kwargs"]["old_state"], "kwargs": args["kwargs"]})
+  else:
+    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "kwargs": args["kwargs"], })
   # If it is a repeating entry, rewrite with new timestamp
-  if args["repeat"]:
+  if args["repeat"]:    
     if args["type"] == "next_rising" or args["type"] == "next_setting":
       # Its sunrise or sunset - if the offset is negative we won't know the next rise or set time yet so mark as inactive
       # So we can adjust with a scan at sun rise/set
-      if args["time"] < 0:
+      if args["offset"] < 0:
         args["inactive"] = 1
       else:
         # We have a valid time for the next sunrise/set so use it
-        args["timestamp"] = ha.calc_sun(args["type"], args["time"])
+        c_offset = ha.get_offset(args)
+        args["timestamp"] = ha.calc_sun(args["type"]) + c_offset
+        args["offset"] = c_offset
     else:
       # Not sunrise or sunset so just increment the timestamp with the repeat interval
-      args["timestamp"] += args["time"]
+      args["basetime"] += args["interval"]
+      args["timestamp"] = args["basetime"] + ha.get_offset(args)
   else: # Otherwise just delete
     del conf.schedule[name][entry]
 
-def do_every_second():
+def do_every_second(utc):
 
   global was_dst
   global last_state
-
+    
   # Lets check if we are connected, if not give up.
   if not reading_messages:
     return
   try:
 
-    now = datetime.datetime.now()
+    #now = datetime.datetime.now()
+    #now = now.replace(microsecond=0)
+    now = datetime.datetime.fromtimestamp(utc)
+    conf.now = utc
 
+    # If we have reached endtime bail out
+    
+    if conf.endtime != None and ha.get_now() >= conf.endtime:
+      ha.log(conf.logger, "INFO", "End time reached, exiting")
+      os._exit(0)
+      
+    if conf.realtime:
+      real_now = datetime.datetime.now().timestamp()
+      delta = abs(utc - real_now)
+      if delta > 1:
+        ha.log(conf.logger, "WARNING", "Scheduler clock skew detected - delta = {} - resetting".format(delta))
+        return real_now
+        
     # Update sunrise/sunset etc.
 
     update_sun()
@@ -290,8 +330,11 @@ def do_every_second():
 
     now_dst = is_dst()
     if now_dst != was_dst:
-      conf.logger.info("Detected change in DST from {} to {} - reloading all modules".format(was_dst, now_dst))
+      ha.log(conf.logger, "INFO", "Detected change in DST from {} to {} - reloading all modules".format(was_dst, now_dst))
+      dump_schedule()
+      ha.log(conf.logger, "INFO", "-" * 40)
       readApps(True)
+      dump_schedule()
     was_dst = now_dst
 
     #dump_schedule()
@@ -322,32 +365,33 @@ def do_every_second():
 
     # Process callbacks
 
-    now = datetime.datetime.now().timestamp()
-    #conf.logger.debug("Scheduler invoked at {}".format(now))
+    #ha.log(conf.logger, "DEBUG", "Scheduler invoked at {}".format(now))
     for name in conf.schedule.keys():
       for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-        #conf.logger.debug("{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
-        if conf.schedule[name][entry]["timestamp"] < now:
+        #ha.log(conf.logger, "DEBUG", "{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
+        if conf.schedule[name][entry]["timestamp"] <= utc:
           exec_schedule(name, entry, conf.schedule[name][entry])
         else:
           break
     for k, v in list(conf.schedule.items()):
       if v == {}:
         del conf.schedule[k]
+        
+    return utc
 
   except:
-    conf.error.warn('-'*60)
-    conf.error.warn("Unexpected error during do_every_second()")
-    conf.error.warn('-'*60)
-    conf.error.warn(traceback.format_exc())
-    conf.error.warn('-'*60)
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", "Unexpected error during do_every_second()")
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", traceback.format_exc())
+    ha.log(conf.error, "WARNING", '-'*60)
     if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
       # When explicitly logging to stdout and stderr, suppress
       # log messages abour writing an error (since they show up anyway)
-      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+      ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 def timer_thread():
-  do_every(1, do_every_second)
+  do_every(conf.tick, do_every_second)
 
 def worker():
   while True:
@@ -361,25 +405,25 @@ def worker():
         if type == "initialize":
           function()
         if type == "timer":
-          function(args["kwargs"])
-        elif type == "attr":
+          function(ha.sanitize_timer_kwargs(args["kwargs"]))
+        if type == "attr":
           entity = args["entity"]
-          attr = args["attr"]
+          attr = args["attribute"]
           old_state = args["old_state"]
           new_state = args["new_state"]
-          function(entity, attr, old_state, new_state, args["kwargs"])
-        elif type == "event":
+          function(entity, attr, old_state, new_state, ha.sanitize_state_kwargs(args["kwargs"]))
+        if type == "event":
           data = args["data"]
           function(args["event"], data, args["kwargs"])
 
       except:
-        conf.error.warn('-'*60)
-        conf.error.warn("Unexpected error:")
-        conf.error.warn('-'*60)
-        conf.error.warn(traceback.format_exc())
-        conf.error.warn('-'*60)
+        ha.log(conf.error, "WARNING", '-'*60)
+        ha.log(conf.error, "WARNING", "Unexpected error:")
+        ha.log(conf.error, "WARNING", '-'*60)
+        ha.log(conf.error, "WARNING", traceback.format_exc())
+        ha.log(conf.error, "WARNING", '-'*60)
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-          conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+          ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
     else:
       conf.logger.warning("Found stale callback for {} - discarding".format(name))
@@ -395,14 +439,14 @@ def clear_file(name):
 
 
 def clear_object(object):
-  conf.logger.debug("Clearing callbacks for %s", object)
+  ha.log(conf.logger, "DEBUG", "Clearing callbacks for {}".format(object))
   if object in conf.callbacks:
     del conf.callbacks[object]
   if object in conf.schedule:
     del conf.schedule[object]
 
 def init_object(name, class_name, module_name, args):
-  conf.logger.info("Loading Object {} using class {} from module {}".format(name, class_name, module_name))
+  ha.log(conf.logger, "INFO", "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
   module = __import__(module_name)
   APPclass = getattr(module, class_name)
   conf.objects[name] = {"object": APPclass(name, conf.logger, conf.error, args, conf.global_vars), "id": uuid.uuid4()}
@@ -413,28 +457,42 @@ def init_object(name, class_name, module_name, args):
 
 def check_and_disapatch(name, function, entity, attribute, new_state, old_state, cold, cnew, kwargs):
   if attribute == "all":
-    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new_state, "old_state": old_state, "kwargs": kwargs})
+    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attribute": attribute, "entity": entity, "new_state": new_state, "old_state": old_state, "kwargs": kwargs})
   else:
-    if attribute in old_state:
-      old = old_state[attribute]
-    elif attribute in old_state['attributes']:
-      old = old_state['attributes'][attribute]
-    else:
+    if old_state == None:
       old = None
-    if attribute in 'new_state':
-      new = new_state[attribute]
-    elif attribute in new_state['attributes']:
-      new = new_state['attributes'][attribute]
     else:
-      new = None
+      if attribute in old_state:
+        old = old_state[attribute]
+      elif attribute in old_state['attributes']:
+        old = old_state['attributes'][attribute]
+      else:
+        old = None
+      if attribute in 'new_state':
+        new = new_state[attribute]
+      elif attribute in new_state['attributes']:
+        new = new_state['attributes'][attribute]
+      else:
+        new = None
 
-    if (cold == None or cold == old) and (cnew == None or cnew == new):
-      dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attr": attribute, "entity": entity, "new_state": new, "old_state": old, "kwargs": kwargs})
+    if (cold == None or cold == old) and (cnew == None or cnew == new):     
+      if "duration" in kwargs:
+        # Set a timer
+        exec_time = ha.get_now_ts() + int(kwargs["duration"])
+        kwargs["handle"] = ha.insert_schedule(name, exec_time, function, False, None, entity = entity, attribute = attribute, old_state = old, new_state = new, **kwargs)
+      else:
+        # Do it now
+        dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": function, "attribute": attribute, "entity": entity, "new_state": new, "old_state": old, "kwargs": kwargs})
+    else:
+      if "handle" in kwargs:
+        #cancel timer
+        ha.cancel_timer(name, kwargs["handle"])
+        
 
 def process_state_change(data):
 
   entity_id = data['data']['entity_id']
-  conf.logger.debug("Entity ID:{}:".format(entity_id))
+  ha.log(conf.logger, "DEBUG", "Entity ID:{}:".format(entity_id))
   device, entity = entity_id.split(".")
 
   # First update our global state
@@ -463,7 +521,7 @@ def process_state_change(data):
         cnew = callback["kwargs"].get("new")
 
         if cdevice == None:
-          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew. callback["kwargs"])
+          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
         elif centity == None:
           if device == cdevice:
             check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
@@ -484,8 +542,8 @@ def process_message(msg):
       return
 
     data = json.loads(msg.data)
-    conf.logger.debug("Event type:{}:".format(data['event_type']))
-    conf.logger.debug(data["data"])
+    ha.log(conf.logger, "DEBUG", "Event type:{}:".format(data['event_type']))
+    ha.log(conf.logger, "DEBUG", data["data"])
 
     # Process state changed message
     if data['event_type'] == "state_changed":
@@ -495,13 +553,13 @@ def process_message(msg):
     process_event(data)
 
   except:
-    conf.error.warn('-'*60)
-    conf.error.warn("Unexpected error during process_message()")
-    conf.error.warn('-'*60)
-    conf.error.warn(traceback.format_exc())
-    conf.error.warn('-'*60)
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", "Unexpected error during process_message()")
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", traceback.format_exc())
+    ha.log(conf.error, "WARNING", '-'*60)
     if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+      ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 def check_config():
   global config_file_modified
@@ -510,7 +568,7 @@ def check_config():
   try:
     modified = os.path.getmtime(config_file)
     if modified > config_file_modified:
-      conf.logger.info("{} modified".format(config_file))
+      ha.log(conf.logger, "INFO", "{} modified".format(config_file))
       config_file_modified = modified
       new_config = configparser.ConfigParser()
       new_config.read_file(open(config_file))
@@ -525,14 +583,14 @@ def check_config():
 
             # Something changed, clear and reload
 
-            conf.logger.info("App '{}' changed - reloading".format(name))
+            ha.log(conf.logger, "INFO", "App '{}' changed - reloading".format(name))
             clear_object(name)
             init_object(name, new_config[name]["class"], new_config[name]["module"], new_config[name])
         else:
 
           # Section has been deleted, clear it out
 
-          conf.logger.info("App '{}' deleted - removing".format(name))
+          ha.log(conf.logger, "INFO", "App '{}' deleted - removing".format(name))
           clear_object(name)
 
       for name in new_config:
@@ -542,18 +600,18 @@ def check_config():
           #
           # New section added!
           #
-          conf.logger.info("App '{}' added - running".format(name))
+          ha.log(conf.logger, "INFO", "App '{}' added - running".format(name))
           init_object(name, new_config[name]["class"], new_config[name]["module"], new_config[name])
 
       config = new_config
   except:
-    conf.error.warn('-'*60)
-    conf.error.warn("Unexpected error:")
-    conf.error.warn('-'*60)
-    conf.error.warn(traceback.format_exc())
-    conf.error.warn('-'*60)
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", "Unexpected error:")
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", traceback.format_exc())
+    ha.log(conf.error, "WARNING", '-'*60)
     if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+      ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 def readApp(file, reload = False):
   global config
@@ -562,7 +620,7 @@ def readApp(file, reload = False):
   # Import the App
   try:
     if reload:
-      conf.logger.info("Reloading Module: %s", file)
+      ha.log(conf.logger, "INFO", "Reloading Module: {}".format(file))
 
       file, ext = os.path.splitext(name)
 
@@ -583,7 +641,7 @@ def readApp(file, reload = False):
          # A real KeyError!
          raise
     else:
-      conf.logger.info("Loading Module: %s", file)
+      ha.log(conf.logger, "INFO", "Loading Module: {}".format(file))
       conf.modules[module_name] = importlib.import_module(module_name)
 
     # Instantiate class and Run initialize() function
@@ -597,13 +655,13 @@ def readApp(file, reload = False):
         init_object(name, class_name, module_name, config[name])
 
   except:
-    conf.error.warn('-'*60)
-    conf.error.warn("Unexpected error during loading of {}:".format(name))
-    conf.error.warn('-'*60)
-    conf.error.warn(traceback.format_exc())
-    conf.error.warn('-'*60)
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", "Unexpected error during loading of {}:".format(name))
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", traceback.format_exc())
+    ha.log(conf.error, "WARNING", '-'*60)
     if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-      conf.logger.warn("Logged an error to {}".format(conf.errorfile))
+      ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 def readApps(all = False):
   found_files = []
@@ -627,14 +685,14 @@ def readApps(all = False):
         readApp(file)
         conf.monitored_files[file] = modified
     except:
-      conf.logger.warn('-'*60)
-      conf.logger.warn("Unexpected error loading file")
-      conf.logger.warn('-'*60)
-      conf.logger.warn(traceback.format_exc())
-      conf.logger.warn('-'*60)
+      ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", "Unexpected error loading file")
+      ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", traceback.format_exc())
+      ha.log(conf.logger, "WARNING", '-'*60)
 
 def get_ha_state():
-  conf.logger.debug("Refreshing HA state")
+  ha.log(conf.logger, "DEBUG", "Refreshing HA state")
   states = ha.get_ha_state()
   for state in states:
     conf.ha_state[state["entity_id"]] = state
@@ -659,6 +717,13 @@ def run():
      t.daemon = True
      t.start()
 
+  # Read apps and get HA State before we start the timer thread
+  get_ha_state()
+  ha.log(conf.logger, "INFO", "Got initial state")
+  # Load apps
+  readApps(True)
+  last_state = ha.get_now()
+
   # Create timer thread
 
   t = threading.Thread(target=timer_thread)
@@ -671,12 +736,13 @@ def run():
 
   while True:
     try:
-      # Get initial state
-      get_ha_state()
-      conf.logger.info("Got initial state")
-      # Load apps
-      readApps(True)
-      last_state = datetime.datetime.now()
+      if first_time == False:
+        # Get initial state
+        get_ha_state()
+        ha.log(conf.logger, "INFO", "Got initial state")
+        # Load apps
+        readApps(True)
+        last_state = ha.get_now()
 
       #
       # Fire HA_STARTED and APPD_STARTED Events
@@ -696,11 +762,11 @@ def run():
       reading_messages = False
       conf.logger.warning("Not connected to Home Assistant, retrying in 5 seconds")
       if last_state == None:
-        conf.logger.warn('-'*60)
-        conf.logger.warn("Unexpected error:")
-        conf.logger.warn('-'*60)
-        conf.logger.warn(traceback.format_exc())
-        conf.logger.warn('-'*60)
+        ha.log(conf.logger, "WARNING", '-'*60)
+        ha.log(conf.logger, "WARNING", "Unexpected error:")
+        ha.log(conf.logger, "WARNING", '-'*60)
+        ha.log(conf.logger, "WARNING", traceback.format_exc())
+        ha.log(conf.logger, "WARNING", '-'*60)
     time.sleep(5)
 
 def find_path(name):
@@ -728,14 +794,34 @@ def main():
 
   parser.add_argument("-c", "--config", help="full path to config file", type=str, default = None)
   parser.add_argument("-p", "--pidfile", help="full path to PID File", default = "/tmp/hapush.pid")
+  parser.add_argument("-t", "--tick", help=argparse.SUPPRESS, default = 1, type = float)
+  parser.add_argument("-s", "--starttime", help=argparse.SUPPRESS, type = str)
+  parser.add_argument("-e", "--endtime", help=argparse.SUPPRESS, type = str, default = None)
+  parser.add_argument("-i", "--interval", help=argparse.SUPPRESS, type = float, default = 1)
   parser.add_argument("-D", "--debug", help="debug level", default = "INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-
-  # Windows does not have Daemonize package so disalow
+  parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
+  
+  # Windows does not have Daemonize package so disallow
   if platform.system() != "Windows":
     parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
 
 
   args = parser.parse_args()
+  
+  conf.tick = args.tick
+  conf.interval = args.interval
+  
+  if args.starttime != None:
+    conf.now = datetime.datetime.strptime(args.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
+  else:
+    conf.now = datetime.datetime.now().timestamp()
+    
+  if args.endtime != None:
+    conf.endtime = datetime.datetime.strptime(args.endtime, "%Y-%m-%d %H:%M:%S")
+  
+  if conf.tick != 1 or conf.interval != 1 or args.starttime != None:
+    conf.realtime = False
+  
   config_file = args.config
 
   
@@ -781,20 +867,20 @@ def main():
   numeric_level = getattr(logging, args.debug, None)
   conf.logger.setLevel(numeric_level)
   conf.logger.propagate = False
-  formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+  #formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
   # Send to file if we are daemonizing, else send to console
   
   if conf.logfile != "STDOUT":
     fh = RotatingFileHandler(conf.logfile, maxBytes=1000000, backupCount=3)
     fh.setLevel(numeric_level)
-    fh.setFormatter(formatter)
+    #fh.setFormatter(formatter)
     conf.logger.addHandler(fh)
   else:
     # Default for StreamHandler() is sys.stderr
     ch = logging.StreamHandler(stream=sys.stdout)
     ch.setLevel(numeric_level)
-    ch.setFormatter(formatter)
+    #ch.setFormatter(formatter)
     conf.logger.addHandler(ch)
 
   # Setup compile output
@@ -803,7 +889,7 @@ def main():
   numeric_level = getattr(logging, args.debug, None)
   conf.error.setLevel(numeric_level)
   conf.error.propagate = False
-  formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+  #formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
   if conf.errorfile != "STDERR":
     efh = RotatingFileHandler(conf.errorfile, maxBytes=1000000, backupCount=3)
@@ -811,14 +897,14 @@ def main():
     efh = logging.StreamHandler()
 
   efh.setLevel(numeric_level)
-  efh.setFormatter(formatter)
+  #efh.setFormatter(formatter)
   conf.error.addHandler(efh)
 
   if conf.timezone == None and conf.time_zone == None:
     raise KeyError("time_zone")
 
   if conf.timezone != None:
-    conf.logger.warn("'timezone' directive is deprecated, please use time_zone instead")
+    ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please use time_zone instead")
 
   if conf.time_zone == None:
     conf.time_zone = conf.timezone
@@ -838,6 +924,8 @@ def main():
 
   # Start main loop
 
+  ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
+  
   if isdaemon:
     keep_fds = [fh.stream.fileno(), efh.stream.fileno()]
     pid = args.pidfile

@@ -167,13 +167,22 @@ An App can have as many or as few as are required. When more than one constraint
 They are described individually below.
 
 ### input_boolean
-The input_boolean constraint prevents callbacks unless the specified input_boolean is set to "on". This is useful to allow certain Apps to be turned on and off from the user interface. For example:
+By default, the input_boolean constraint prevents callbacks unless the specified input_boolean is set to "on". This is useful to allow certain Apps to be turned on and off from the user interface. For example:
 
 ```ini
 [some_app]
 module = some_module
 class = SomeClass
 constrain_input_boolean = input_boolean.enable_motion_detection
+```
+
+If you want to reverse the logic so the constraint is only called when the input_boolean is off, use the optional state parameter by appending ",off" to the argument, e.g.:
+
+```ini
+[some_app]
+module = some_module
+class = SomeClass
+constrain_input_boolean = input_boolean.enable_motion_detection,off
 ```
 
 ### input_select
@@ -246,7 +255,7 @@ State within Home Assistant is stored as a collection of dictionaries, one for e
 
 Any other attributes such as brightness for a lamp will only be present if the entity supports them, and will be stored in a sub-dictionary called `attributes`. When specifying these optional attributes in the `get_state()` call, no special distinction is required between the main attributes and the optional ones - `get_state()` will figure it out for you.
 
-Also bear in mind also, that some attributes such as brightness for a light, will not be present when the light is off.
+Also bear in mind that some attributes such as brightness for a light, will not be present when the light is off.
 
 In most cases, the attribute `state` has the most important value in it, e.g. for a light or switch this will be `on` or `off`, for a sensor it will be the value of that sensor. Many of the AppDaemon API calls and callbacks will implicitly return the value of state unless told to do otherwise.
 
@@ -321,7 +330,7 @@ set_state(entity_id, **kwargs)
 
 ##### entity_id
 
-Entity id for which the state is to be set, e.g. `"light.office_1"`.
+Entity id for which the state is to be set, e.g. `light.office_1`.
 
 ##### values
 
@@ -459,15 +468,26 @@ Name of an attribute within the entity state object. If this parameter is specif
 
 The value `all` for attribute has special significance and will listen for any state change within the specified entity, and supply the callback functions with the entire state dictionary for the specified entity rather than an individual attribute value.
 
-##### new (optional)
+##### new = <value> (optional)
 
 If `new` is supplied as a parameter, callbacks will only be made if the state of the selected attribute (usually `state`) in the new state match the value of `new`.
 
-##### old (optional)
+##### old =  <value> (optional)
 
 If `old` is supplied as a parameter, callbacks will only be made if the state of the selected attribute (usually `state`) in the old state match the value of `old`.
 
 Note: `old` and `new` can be used singly or together.
+
+##### duration =  <seconds> (optional)
+
+If duration is supplied as a parameter, the callback will not fire unless the state listened for is maintained for that number of seconds. This makes the most sense if a specific attribute is specified (or the default os `state` is used), an in conjunction with the `old` or `new` parameters, or both. When the callback is called, it is supplied with the values of `entity`, `attr`, `old` and `new` that were current at the time the actual event occured, since the assumption is that none of them have changed in the intervening period.
+
+```python
+  def my_callback(self, **kwargs):
+    <do some useful work here>
+```
+
+(Scheduler callbacks are documented in detail laer in this document)
 
 ##### \*\*kwargs
 
@@ -496,6 +516,10 @@ self.handle = self.listen_state(self.entity, "light.office_1", new = "on")
 
 # Listen for a state change involving light.office1 changing from brightness 100 to 200 and return the state attribute
 self.handle = self.listen_state(self.entity, "light.office_1", old = "100", new = "200")
+
+# Listen for a state change involving light.office1 changing to state on and remaining on for a minute
+self.handle = self.listen_state(self.entity, "light.office_1", new = "on", duration = 60)
+
 ```
 
 
@@ -523,6 +547,32 @@ The handle returned when the `listen_state()` call was made.
 
 ```python
 self.cancel_listen_state(self.office_light_handle)
+```
+
+### info_listen_state()
+
+Get information on state a callback from it's handle.
+
+#### Synopsis
+
+```python
+entity, attribute, kwargs = self.info_listen_state(self.handle)
+```
+
+#### Returns
+
+entity, attribute, kwargs - the values supplied when the callback was initially created.
+
+#### Parameters
+
+##### handle
+
+The handle returned when the `listen_state()` call was made.
+
+#### Examples
+
+```python
+entity, attribute, kwargs = self.info_listen_state(self.handle)
 ```
 
 ## Scheduler
@@ -560,7 +610,7 @@ Run the callback in a defined number of seconds. This is used to add a delay, fo
 #### Synopsis
 
 ```python
-self.handle = self.run_in(callback, delay, *args, **kwargs)
+self.handle = self.run_in(callback, delay, **kwargs)
 ```
 
 #### Returns
@@ -577,15 +627,15 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 Delay, in seconds before the callback is invoked.
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitary positional and keyword parameters to be provided to the callback function when it is invoked.
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
 ```python
-self.handle = self.run_in(self.run_in_c, 5)
-self.handle = self.run_in(self.run_in_c, 5, 5, title = "run_in5")
+self.handle = self.run_in(self.run_in_c)
+self.handle = self.run_in(self.run_in_c, title = "run_in5")
 ```
 #### run_once()
 
@@ -594,7 +644,7 @@ Run the callback once, at the specified time of day. If the time of day is in th
 #### Synopsis
 
 ```python
-self.handle = self.run_once(callback, time, *args, **kwargs)
+self.handle = self.run_once(callback, time, **kwargs)
 ```
 
 #### Returns
@@ -611,9 +661,9 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 A Python `time` object that specifies when the callback will occur. If the time specified is in the past, the callback will occur the next day at the specified time.
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitrary positional and keyword parameters to be provided to the callback function when it is invoked
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
@@ -632,7 +682,7 @@ Run the callback once, at the specified date and time.
 #### Synopsis
 
 ```python
-self.handle = self.run_at(callback, datetime, *args, **kwargs)
+self.handle = self.run_at(callback, datetime, **kwargs)
 ```
 
 #### Returns
@@ -649,9 +699,9 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 A Python `datetime` object that specifies when the callback will occur.
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitrary positional and keyword parameters to be provided to the callback function when it is invoked
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
@@ -671,7 +721,7 @@ Execute a callback at the same time every day. If the time has already passed, t
 #### Synopsis
 
 ```python
-self.handle = self.run_daily(callback, time, *args, **kwargs)
+self.handle = self.run_daily(callback, time, **kwargs)
 ```
 
 #### Returns
@@ -688,9 +738,9 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 A Python `time` object that specifies when the callback will occur. If the time specified is in the past, the callback will occur the next day at the specified time.
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitrary positional and keyword parameters to be provided to the callback function when it is invoked.
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
@@ -709,7 +759,7 @@ Execute a callback at the same time every hour. If the time has already passed, 
 #### Synopsis
 
 ```python
-self.handle = self.run_hourly(callback, time = None, *args, **kwargs)
+self.handle = self.run_hourly(callback, time = None, **kwargs)
 ```
 
 #### Returns
@@ -726,9 +776,9 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 A Python `time` object that specifies when the callback will occur, the hour component of the time object is ignored. If the time specified is in the past, the callback will occur the next hour at the specified time. If time is not supplied, the callback will start an hour from the time that `run_hourly()` was executed.
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitrary positional and keyword parameters to be provided to the callback function when it is invoked.
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
@@ -746,7 +796,7 @@ Execute a callback at the same time every minute. If the time has already passed
 #### Synopsis
 
 ```python
-self.handle = self.run_minutely(callback, time = None, *args, **kwargs)
+self.handle = self.run_minutely(callback, time = None, **kwargs)
 ```
 
 #### Returns
@@ -763,9 +813,9 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 A Python `time` object that specifies when the callback will occur, the hour and minute components of the time object are ignored. If the time specified is in the past, the callback will occur the next hour at the specified time. If time is not supplied, the callback will start a minute from the time that `run_minutely()` was executed.
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitrary positional and keyword parameters to be provided to the callback function when it is invoked.
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
@@ -784,7 +834,7 @@ Execute a repeating callback with a configurable delay starting at a specific ti
 #### Synopsis
 
 ```python
-self.handle = self.run_minutely(callback, time, repeat, *args, **kwargs)
+self.handle = self.run_minutely(callback, time, repeat, **kwargs)
 ```
 
 #### Returns
@@ -805,9 +855,9 @@ A Python `time` object that specifies when the initial callback will occur.
 
 After the initial callback has occurred, another will occur every `repeat` seconds.
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitary positional and keyword parameters to be provided to the callback function when it is invoked.
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
@@ -845,9 +895,61 @@ A handle value returned from the original call to create the timer.
 self.cancel_timer(handle)
 ```
 
+### info_timer()
+
+Get information on a scheduler event from it's handle.
+
+#### Synopsis
+
+```python
+time, interval, kwargs = self.info_timer(handle)
+```
+
+#### Returns
+
+time - datetime object representing the next time the callback will be fired
+
+interval - repeat interval if applicable, `0` otherwise.
+
+kwargs - the values supplied when the callback was initially created.
+
+#### Parameters
+
+##### handle
+
+The handle returned when the scheduler call was made.
+
+#### Examples
+
+```python
+time, interval, kwargs = self.info_timer(handle)
+```
+
+
+
+### Scheduler Ransomization
+
+All of the scheduler calls above support 2 additional optional arguments, `random_start` and `random_end`. Using these arguments it is possible to randomize the firing of callbacks to the degree desired by setting the appropriate number of seconds with the parameters.
+
+- `random_start` - start of range of the random time
+- `random_end` - end of range of the random time 
+
+`random_start` must always be numerically lower than `random_end`, they can be negative to denote a random offset before and event, or positive to denote a random offset after an event. The event would be a an absolute or relative time or sunrise/sunset depending on whcih scheduler call you use and these values affect the base time by the spcified amount. If not specified, they will default to `0`.
+
+For example:
+
+```python
+# Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
+self.handle = self.run_in(callback, 120, random_start = -60, **kwargs)
+# Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
+self.handle = self.run_in(callback, 120, random_end = 60, **kwargs)
+# Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
+self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60, **kwargs)
+```
+
 ## Sunrise and Sunset
 
-AppDaemon has a number of features to allow easy tracking of sunrise and sunset as well as a couple of scheduler functions.
+AppDaemon has a number of features to allow easy tracking of sunrise and sunset as well as a couple of scheduler functions. Note that the scheduler functions also support the randomization parameters described above, but they cannot be used in conjunction with the `offset` parameter`.
 
 ### run_at_sunrise()
 
@@ -856,7 +958,7 @@ Run a callback at or around sunrise.
 #### Synopsis
 
 ```python
-self.handle = self.run_at_sunrise(callback, offset, *args, **kwargs)
+self.handle = self.run_at_sunrise(callback, **kwargs)
 ```
 
 #### Returns
@@ -869,22 +971,27 @@ A handle that can be used to cancel the timer.
 
 Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
 
-##### offset
+##### offset = <seconds>
 
-The time in seconds that the callback should be delayed after sunrise. A negative value will result in the callback occurring before sunrise.
+The time in seconds that the callback should be delayed after sunrise. A negative value will result in the callback occurring before sunrise. This parameter cannot be combined with `random_start` or `random_end`
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitrary positional and keyword parameters to be provided to the callback function when it is invoked.
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
 ```python
 import datetime
 ...
-self.run_at_sunrise(self.sun, datetime.timedelta(minutes = -45).total_seconds(), "Sunrise -45 mins")
+# Run 45 minutes before sunset
+self.run_at_sunrise(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds(), "Sunrise -45 mins")
 # or you can just do the math yourself
-self.run_at_sunrise(self.sun, 30 * 60, "Sunrise +30 mins")
+self.run_at_sunrise(self.sun, offset = 30 * 60, "Sunrise +30 mins")
+# Run at a random time +/- 60 minutes from sunrise
+self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 60*60, "Sunrise, random +/- 60 mins")
+# Run at a random time between 30 and 60 minutes before sunrise
+self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60, "Sunrise, random - 30 - 60 mins")
 ```
 
 ### run_at_sunset()
@@ -907,13 +1014,13 @@ A handle that can be used to cancel the timer.
 
 Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
 
-##### offset
+##### offset = <seconds>
 
-The time in seconds that the callback should be delayed after sunset. A negative value will result in the callback occurring before sunset.
+The time in seconds that the callback should be delayed after sunrise. A negative value will result in the callback occurring before sunrise. This parameter cannot be combined with `random_start` or `random_end`
 
-##### \*args, \*\*kwargs
+##### \*\*kwargs
 
-Arbitrary positional and keyword parameters to be provided to the callback function when it is invoked.
+Arbitary keyword parameters to be provided to the callback function when it is invoked.
 
 #### Examples
 
@@ -924,6 +1031,10 @@ import datetime
 self.run_at_sunset(self.sun, datetime.timedelta(minutes = -45).total_seconds(), "Sunset -45 mins")
 # or you can just do the math yourself
 self.run_at_sunset(self.sun, 30 * 60, "Sunset +30 mins")
+# Run at a random time +/- 60 minutes from sunset
+self.run_at_sunset(self.sun, random_start = -60*60, random_end = 60*60, "Sunset, random +/- 60 mins")
+# Run at a random time between 30 and 60 minutes before sunset
+self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60, "Sunset, random - 30 - 60 mins")
 ```
 ### sunrise()
 
@@ -1037,8 +1148,8 @@ Each service has different parameter requirements. This argument allows you to s
 #### Examples
 
 ```python
-self.call_service("light.turn_on", entity_id = "light.office_lamp", color_name = "red")
-self.call_service("notify.notify", title = "Hello", message = "Hello World")
+self.call_service("light.turn_on", entity_id = "light/office_lamp", color_name = "red")
+self.call_service("notify/notify", title = "Hello", message = "Hello World")
 ```
 ### turn_on()
 
@@ -1268,6 +1379,32 @@ A handle returned from a previous call to `listen_event()`.
 
 ```python
 self.cancel_listen_event(handle)
+```
+
+### info_listen_event()
+
+Get information on an event callback from it's handle.
+
+#### Synopsis
+
+```python
+service, kwargs = self.info_listen_event(handle)
+```
+
+#### Returns
+
+service, kwargs - the values supplied when the callback was initially created.
+
+#### Parameters
+
+##### handle
+
+The handle returned when the `listen_event()` call was made.
+
+#### Examples
+
+```python
+service, kwargs = self.info_listen_event(handle)
 ```
 
 
@@ -1610,7 +1747,7 @@ if device == "scene":
 
 ### get_app()
 
-`get_app()` will return the instantiated object of another app running within the system. This is useful for calling functions that reside in different apps without requiring duplication of code.
+`get_app()` will return the instantiated object of another app running within the system. This is useful for calling functions or accessing variables that reside in different apps without requiring duplication of code.
 
 #### Synopsis
 
@@ -1629,9 +1766,8 @@ An object reference to the class.
 
 #### Example
 ```python
-device, entity = self.split_entity(entity_id)
-if device == "scene":
-    do something specific to scenes
+MyApp = self.get_app("MotionLights")
+MyApp.turn_light_on()
 ```
 
 ### split_device_list()
