@@ -236,7 +236,12 @@ class AppDaemon():
   def toggle(self, entity_id):
     self._check_entity(entity_id)
     self.call_service("homeassistant/toggle", entity_id = entity_id)
-    
+  
+  def select_value(self, entity_id, value):
+    self._check_entity(entity_id)
+    rargs = {"entity_id": entity_id, "value": value}
+    self.call_service("input_slider/select_value", **rargs)
+
   def notify(self, message, title=None):
     args ={}
     args["message"] = message

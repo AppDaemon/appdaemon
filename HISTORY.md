@@ -2,8 +2,25 @@
 History
 =======
 
-1.3.0 (2016-27-09)
+1.3.1 (2016-09-04)
 ------------------
+
+**Features**
+
+- Add convenience function to set input_selector called `select_value()` - contributed by [Dave Banks](https://github.com/djbanks)
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
+1.3.0 (2016-09-04)
+------------------
+
+**Features**
 
 - Add ability to randomize times in scheduler
 - Add `duration` to listen_state() to fire event when a state condition has been met for a period of time
