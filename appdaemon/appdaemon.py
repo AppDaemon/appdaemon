@@ -468,6 +468,9 @@ def check_and_disapatch(name, function, entity, attribute, new_state, old_state,
         old = old_state['attributes'][attribute]
       else:
         old = None
+    if new_state == None:
+      new = None
+    else:
       if attribute in 'new_state':
         new = new_state[attribute]
       elif attribute in new_state['attributes']:
