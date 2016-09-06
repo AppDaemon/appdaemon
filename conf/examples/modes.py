@@ -29,13 +29,6 @@ class Modes(appapi.AppDaemon):
     self.listen_event(self.mode_event, "MODE_CHANGE")
     self.listen_state(self.light_event, "sensor.side_multisensor_luminance_25")
     self.listen_state(self.motion_event, "binary_sensor.downstairs_sensor_26")
-    runtime = datetime.time(22, 0, 0)
-    self.run_daily(self.night_mode_check, runtime)
-
-  def night_mode_check(self, kwargs):
-    # If we are absent, the usual manual switch to Night will not occur, so automate if vacation flag is set
-    if self.get_state("input_boolean.vacation") == "on":
-      self.night(True)
   
   def light_event(self, entity, attribute, old, new, kwargs):
     # Use light levels to switch to Day or Evening modes as appropriate
