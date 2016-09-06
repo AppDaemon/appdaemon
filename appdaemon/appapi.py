@@ -282,7 +282,15 @@ class AppDaemon():
   
   def now_is_between(self, start_time_str, end_time_str):
     return ha.now_is_between(start_time_str, end_time_str, self.name)
-        
+
+  def time(self):
+    return datetime.datetime.fromtimestamp(conf.now).time()
+    
+  def datetime(self):
+    return datetime.datetime.fromtimestamp(conf.now)
+
+  def date(self):
+    return datetime.datetime.fromtimestamp(conf.now).date()
 #
 # Scheduler
 #

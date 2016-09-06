@@ -1639,6 +1639,79 @@ if self.noone_home():
 
 ## Miscellaneous Helper Functions
 
+### time()
+
+Returns a python `time` object representing the current time. Use this in preference to the standard Python ways to discover the current time, especially when using the "Time Travel" feature for testing.
+
+#### Synopsis
+
+```python
+time()
+```
+
+#### Returns
+
+A localised Python time object representing the current AppDaemon time.
+
+#### Parameters
+
+None
+
+#### Example
+
+```python
+now = self.time()
+```
+
+### date()
+
+Returns a python `date` object representing the current date. Use this in preference to the standard Python ways to discover the current date, especially when using the "Time Travel" feature for testing.
+
+#### Synopsis
+
+```python
+date()
+```
+
+#### Returns
+
+A localised Python time object representing the current AppDaemon date.
+
+#### Parameters
+
+None
+
+#### Example
+
+```python
+today = self.date()
+```
+
+### datetime()
+
+Returns a python `datetime` object representing the current date and time. Use this in preference to the standard Python ways to discover the current time, especially when using the "Time Travel" feature for testing.
+
+#### Synopsis
+
+```python
+datetime()
+```
+
+#### Returns
+
+A localised Python datetime object representing the current AppDaemon date and time.
+
+#### Parameters
+
+None
+
+#### Example
+
+```python
+now = self.datetime()
+```
+
+
 ### convert_utc()
 
 Home Assistant provides timestamps of several different sorts that may be used to gain additional insight into state changes. These timestamps are in UTC and are coded as ISO 8601 Combined date and time strings. `convert_utc()` will accept one of these strings and convert it to a localised Python datetime object representing the timestamp
@@ -1900,3 +1973,57 @@ The recommended workflow for development is as follows:
 With this setup, you will see that every time you write the file, AppDaemon will log the fact and let you know it has reloaded the App in the `appdaemon.log` file.
 
 If there is an error in the compilation or a runtime error, this will be directed to the `error.log` file to enable you to see the error and correct it. When an error occurs, there will also be a warning message in `appdaemon.log` to tell you to check the error log.
+
+## Time Travel
+
+OK, time travel sadly isn't really possible but it can be very useful when testing Apps. For instance, imagine you have an App that turns a light on every day at sunset. It might be nice to test it without waiting for Sunset - and with AppDaemon's "Time Travel" features you can.
+
+### Choosing a Start Time
+
+Internally, AppDaemon keeps track of it's own time relative to when it was started. This make is possible to start AppDaemon with a different start time and date to the current time. For instance to test that sunset App, start AppDaemon at a time just before sunset and see if it works as expected. To do this, simply use the "-s" argument on AppDaemon's command line. e,g,:
+
+```bash
+$ appdaemon -s "2016-06-06 19:16:00"
+2016-09-06 17:16:00 INFO AppDaemon Version 1.3.2 starting
+2016-09-06 17:16:00 INFO Got initial state
+2016-09-06 17:16:00 INFO Loading Module: /export/hass/appdaemon_test/conf/test_apps/sunset.py
+...
+```
+
+Note the timestamps in the log - AppDaemon believes it is now just before sunset and will process any callbacks appropriately.
+
+### Speeding things up
+
+Some Apps need to run for periods of a day or two for you to test all aspects. This can be time consuming, but Time Travel can also help here in two ways. The first is by speeding up time. To do this, simply use the `-t` option on the command line. This specifies the amount of time a second lasts while time travelling. The default of course is 1 second, but if you change it to `0.1` for instance,m AppDaemon will work 10x faster. If you set it to `0`, AppDaemon will work as fast as possible and, depending in your hardware, may be able to get through an entire day in a matter of minutes. Bear in mindo however, due to the threaded nature of AppDaemon, when you are running with `-t 0` you may see avctual events firing a little later than expected as the rest of the system tries to keep up with the timer. To set the tick time, start AppDaemon as follows:
+
+```bash
+$ appdaemon -t 0.1
+```
+
+AppDaemon also has an interval flag - think of this as a second multiplier. If the flag is set to 3600 for instance, each tick of the scheduler will jump the time forward by an hour. This is good for covering vast amounts of time quickly but event firing accuracy will suffer as a result. For example:
+
+```bash
+$ appdaemon -e 3600
+```
+
+### Automatically stopping
+
+AppDaemon can be set to terminate automatically at a specific time. This can be useful if you want to repeatedly rerun a test, for example to test that random values are behaving as expected. Simply specify the end time with the `-e` flag as follows:
+
+$ appdaemon -e "2016-06-06 10:10:00"
+2016-09-06 17:16:00 INFO AppDaemon Version 1.3.2 starting
+2016-09-06 17:16:00 INFO Got initial state
+2016-09-06 17:16:00 INFO Loading Module: /export/hass/appdaemon_test/conf/test_apps/sunset.py
+...
+```
+
+The `-e` flag is most useful when used in conjuntion with the -s flag and optionally the `-t` flag. For example, to run from just before sunset, for an hour, as fast as possible:
+
+```bash
+$ appdaemon -s "2016-06-06 19:16:00" -s "2016-06-06 20:16:00" -t 0
+```
+
+
+### A Note Times
+
+Some Apps you write may depend on checking times of events relative to the current time. If you are time travelling this will not work if you use standard python library calls to get the current time and date etc. For this reason, always use the AppDamon supplied `time()`, `date()` and `datetime()` calls, documented earlier. These calls will consult with AppDaemon's internal time rather than the actual time and give you the correct values.

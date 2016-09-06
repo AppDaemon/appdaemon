@@ -2,6 +2,22 @@
 History
 =======
 
+1.3.2 (2016-09-06)
+------------------
+
+**Features**
+
+- Document "Time Travel" functionality
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
+
 1.3.1 (2016-09-04)
 ------------------
 
