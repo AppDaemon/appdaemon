@@ -121,7 +121,8 @@ def do_every(period,f):
       time.sleep(next(g))
       t += conf.interval
       r = f(t)
-      if r != t:
+      if r != None and r != t:
+        print(r)
         t = math.floor(r)
 
 def handle_sig(signum, frame):
@@ -331,10 +332,10 @@ def do_every_second(utc):
     now_dst = is_dst()
     if now_dst != was_dst:
       ha.log(conf.logger, "INFO", "Detected change in DST from {} to {} - reloading all modules".format(was_dst, now_dst))
-      dump_schedule()
+      #dump_schedule()
       ha.log(conf.logger, "INFO", "-" * 40)
       readApps(True)
-      dump_schedule()
+      #dump_schedule()
     was_dst = now_dst
 
     #dump_schedule()
