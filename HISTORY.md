@@ -11,7 +11,7 @@ History
 
 **Fixes**
 
-None
+- Tidy up examples for listen state - suggested by [ReneTode](https://community.home-assistant.io/users/renetode/activity)
 
 **Breaking Changes**
 

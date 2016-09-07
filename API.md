@@ -497,28 +497,28 @@ Zero or more keyword arguments that will be supplied to the callback when it is 
 
 ```python
 # Listen for any state change and return the state attribute
-self.handle = self.listen_state(self.all_state)
+self.handle = self.listen_state(self.my_callback)
 
 # Listen for any state change involving a light and return the state attribute
-self.handle = self.listen_state(self.device, "light")
+self.handle = self.listen_state(self.my_callback, "light")
 
 # Listen for a state change involving light.office1 and return the state attribute
-self.handle = self.listen_state(self.entity, "light.office_1")
+self.handle = self.listen_state(self.my_callback, "light.office_1")
 
 # Listen for a state change involving light.office1 and return the entire state as a dict
-self.handle = self.listen_state(self.attr, "light.office_1", attribute = "all")
+self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "all")
 
 # Listen for a state change involving the brightness attribute of light.office1
-self.handle = self.listen_state(self.attr, "light.office_1", attribute = "brightness")
+self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "brightness")
 
 # Listen for a state change involving light.office1 turning on and return the state attribute
-self.handle = self.listen_state(self.entity, "light.office_1", new = "on")
+self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on")
 
 # Listen for a state change involving light.office1 changing from brightness 100 to 200 and return the state attribute
-self.handle = self.listen_state(self.entity, "light.office_1", old = "100", new = "200")
+self.handle = self.listen_state(self.my_callback, "light.office_1", old = "100", new = "200")
 
 # Listen for a state change involving light.office1 changing to state on and remaining on for a minute
-self.handle = self.listen_state(self.entity, "light.office_1", new = "on", duration = 60)
+self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60)
 
 ```
 
