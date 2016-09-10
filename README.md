@@ -164,24 +164,35 @@ $ appdaemon -c conf/appdaemon.cfg
 
 # AppDaemon arguments
 
-usage: appdaemon.py [-h] [-c CONFIG] [-d] [-p PIDFILE]
-                    [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TICK] [-s STARTTIME]
+                 [-e ENDTIME] [-i INTERVAL]
+                 [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v] [-d]
 
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
                         full path to config file
-  -d, --daemon          run as a background process
   -p PIDFILE, --pidfile PIDFILE
                         full path to PID File
+  -t TICK, --tick TICK  time in seconds that a tick in the schedular lasts
+  -s STARTTIME, --starttime STARTTIME
+                        start time for scheduler <YYYY-MM-DD HH:MM:SS>
+  -e ENDTIME, --endtime ENDTIME
+                        end time for scheduler <YYYY-MM-DD HH:MM:SS>
+  -i INTERVAL, --interval INTERVAL
+                        multiplier for scheduler tick
   -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         debug level
+  -v, --version         show program's version number and exit
+  -d, --daemon          run as a background process
 
 -c is the path to the configuration file. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the file is not specified and it is not found in either location, AppDaemon will raise an exception.                        
                         
 -d and -p are used by the init file to start the process as a daemon and are not required if running from the command line. 
 
 -D can be used to increase the debug level for internal AppDaemon operations as well as apps using the logging function.
+
+The -s, -i, -t and -s options are for the Time Travel feature and should only be used for testing. They are described in more detail in the API documentation. 
 
 # Starting At Reboot
 To run `AppDaemon` at reboot, I have provided a sample init script in the `./scripts` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems. There is also a sample Systemd script.

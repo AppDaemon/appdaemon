@@ -802,10 +802,10 @@ def main():
 
   parser.add_argument("-c", "--config", help="full path to config file", type=str, default = None)
   parser.add_argument("-p", "--pidfile", help="full path to PID File", default = "/tmp/hapush.pid")
-  parser.add_argument("-t", "--tick", help=argparse.SUPPRESS, default = 1, type = float)
-  parser.add_argument("-s", "--starttime", help=argparse.SUPPRESS, type = str)
-  parser.add_argument("-e", "--endtime", help=argparse.SUPPRESS, type = str, default = None)
-  parser.add_argument("-i", "--interval", help=argparse.SUPPRESS, type = float, default = 1)
+  parser.add_argument("-t", "--tick", help = "time in seconds that a tick in the schedular lasts", default = 1, type = float)
+  parser.add_argument("-s", "--starttime", help = "start time for scheduler <YYYY-MM-DD HH:MM:SS>", type = str)
+  parser.add_argument("-e", "--endtime", help = "end time for scheduler <YYYY-MM-DD HH:MM:SS>",type = str, default = None)
+  parser.add_argument("-i", "--interval", help = "multiplier for scheduler tick", type = float, default = 1)
   parser.add_argument("-D", "--debug", help="debug level", default = "INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
   parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
   
