@@ -20,6 +20,7 @@ class AppDaemon():
     self._error = error
     self.args = args
     self.global_vars = global_vars
+    self.config = conf.config
     
   def _check_entity(self, entity):
     if "." not in entity:
@@ -134,9 +135,12 @@ class AppDaemon():
     else:
       headers = {}
     apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
-    r = requests.post(apiurl, headers=headers, json = kwargs)
+    r = requests.post(apiurl, headers=headers, json=kwargs)
     r.raise_for_status()
-    return r.json()
+    # Update our local copy of state if necessary
+    state = r.json()
+    conf.ha_state[entity_id] = state
+    return state
 
   def listen_state(self, function, entity = None, **kwargs):
     name = self.name
@@ -242,6 +246,11 @@ class AppDaemon():
     rargs = {"entity_id": entity_id, "value": value}
     self.call_service("input_slider/select_value", **rargs)
 
+  def select_option(self, entity_id, option):
+    self._check_entity(entity_id)
+    rargs = {"entity_id": entity_id, "option": option}
+    self.call_service("input_select/select_option", **rargs)
+  
   def notify(self, message, title=None):
     args ={}
     args["message"] = message

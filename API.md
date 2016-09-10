@@ -1001,7 +1001,7 @@ Run a callback at or around sunset.
 #### Synopsis
 
 ```python
-self.handle = self.run_at_sunset(callback, offset, *args, **kwargs)
+self.handle = self.run_at_sunset(callback, offset, **kwargs)
 ```
 
 #### Returns
@@ -1262,7 +1262,7 @@ None
 
 ##### entity_id
 
-Fully qualified entity_id of the thing to be toggled, e.g. `input_slider.alarm_hour`.
+Fully qualified entity_id of the input_slider to be changed, e.g. `input_slider.alarm_hour`.
 
 ##### value
 
@@ -1272,6 +1272,36 @@ The new value to set the input slider to.
 
 ```python
 self.select_value("input_slider.alarm_hour", 6)
+```
+
+### select_option()
+
+This is a convenience function for the `input_select.select_option` function. It is able to set the value of an input_select in Home Assistant.
+
+#### Synopsis
+
+```python
+self.select_option(entity_id, option)
+```
+
+#### Returns
+
+None
+
+#### Parameters
+
+##### entity_id
+
+Fully qualified entity_id of the input_select to be changed, e.g. `input_select.mode`.
+
+##### value
+
+The new value to set the input slider to.
+
+#### Examples
+
+```python
+self.select_option("input_select.mode", "Day")
 ```
 
 ### notify()
@@ -1959,6 +1989,34 @@ self.error("Some Critical string", level = "CRITICAL")
 ## Sharing information between Apps
 
 Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some car is needed.
+
+In addition, Apps have access to the entire configuration if required, meaning they can access AppDaemon configuration items as well as parameters from other Apps. To use this, there is a class attribute called `self.config`. It contains a `ConfigParser` object, which is similar in operation to a `Dictionary`. To access any apps parameters, simply reference the ConfigParser object using the Apps name (form the config file) as the first key, and the parameter required as the second, for instance:
+
+```python
+other_apps_arg = self.config["some_app"]["some_parameter"].
+```
+
+To get AppDaemon's config parameters, use the key "AppDaemon", e.g.:
+
+```python
+app_timezone = self.config["AppDaemon"]["time_zone"]
+```
+
+And finally, it is also possible to use the AppDaemon as a global area for sharing parameters across Apps. Simply add the required parameters to the AppDaemon section of your config:
+
+```ini
+[AppDaemon]
+ha_url = <some url>
+ha_key = <some key>
+...
+global_var = hello world
+```
+
+Then access it as follows:
+
+```python
+my_global_var = conf.config["AppDaemon"]["global_var"]
+```
 
 ## Development Workflow
 

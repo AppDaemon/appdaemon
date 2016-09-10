@@ -11,6 +11,7 @@ from time import mktime
 import argparse
 import time
 import logging
+import os
 import os.path
 import glob
 from sseclient import SSEClient
@@ -122,7 +123,6 @@ def do_every(period,f):
       t += conf.interval
       r = f(t)
       if r != None and r != t:
-        print(r)
         t = math.floor(r)
 
 def handle_sig(signum, frame):
@@ -730,6 +730,10 @@ def run():
 
   # Create timer thread
 
+  # First, update "now" for less chance of clock skew error 
+  if conf.realtime:
+    conf.now = datetime.datetime.now().timestamp()
+  
   t = threading.Thread(target=timer_thread)
   t.daemon = True
   t.start()
@@ -764,7 +768,7 @@ def run():
         process_message(msg)
     except:
       reading_messages = False
-      conf.logger.warning("Not connected to Home Assistant, retrying in 5 seconds")
+      ha.log(conf.logger, "WARNING", "Not connected to Home Assistant, retrying in 5 seconds")
       if last_state == None:
         ha.log(conf.logger, "WARNING", '-'*60)
         ha.log(conf.logger, "WARNING", "Unexpected error:")
@@ -844,8 +848,9 @@ def main():
 
   assert "AppDaemon" in config, "[AppDaemon] section required in {}".format(config_file)
 
+  conf.config = config
   conf.ha_url = config['AppDaemon']['ha_url']
-  conf.ha_key = config['AppDaemon']['ha_key']
+  conf.ha_key = config['AppDaemon'].get('ha_key', "")
   conf.logfile = config['AppDaemon'].get("logfile")
   conf.errorfile = config['AppDaemon'].get("errorfile")
   conf.app_dir = config['AppDaemon'].get("app_dir")
@@ -855,7 +860,16 @@ def main():
   conf.elevation = float(config['AppDaemon']['elevation'])
   conf.timezone = config['AppDaemon'].get("timezone")
   conf.time_zone = config['AppDaemon'].get("time_zone")
+  
+  if conf.timezone == None and conf.time_zone == None:
+    raise KeyError("time_zone")
 
+  if conf.time_zone == None:
+    conf.time_zone = conf.timezone
+
+  # Use the supplied timezone
+  os.environ['TZ'] = conf.time_zone
+  
   if conf.logfile == None:
     conf.logfile = "STDOUT"
 
@@ -904,15 +918,11 @@ def main():
   #efh.setFormatter(formatter)
   conf.error.addHandler(efh)
 
-  if conf.timezone == None and conf.time_zone == None:
-    raise KeyError("time_zone")
-
+  # Now we have logging, warn about timezone
   if conf.timezone != None:
     ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please use time_zone instead")
 
-  if conf.time_zone == None:
-    conf.time_zone = conf.timezone
-
+  
   init_sun()
 
   config_file_modified = os.path.getmtime(config_file)

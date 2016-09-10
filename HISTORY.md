@@ -8,15 +8,20 @@ History
 **Features**
 
 - Document "Time Travel" functionality
+- Add convenience function to set input_select called`select_option()` - contributed by [jbardi](https://community.home-assistant.io/users/jbardi/activity)
+- Add global access to configuration and global configuration variables - suggested by [ReneTode](https://community.home-assistant.io/users/renetode/activity) 
 
 **Fixes**
 
 - Tidy up examples for listen state - suggested by [ReneTode](https://community.home-assistant.io/users/renetode/activity)
+- Warning when setting state for a non-existent entity is now only given the first time
+- Allow operation with no `ha_key` specified
+- AppDaemon will now use the supplied timezone for all operations rather than just for calculating sunrise and sunset
+- Reduce the chance of a spurious Clock Skew error at startup
 
 **Breaking Changes**
 
 None
-
 
 1.3.1 (2016-09-04)
 ------------------
