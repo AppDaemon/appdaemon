@@ -8,7 +8,7 @@ History
 **Features**
 
 - Document "Time Travel" functionality
-- Add convenience function to set input_select called`select_option()` - contributed by [jbardi](https://community.home-assistant.io/users/jbardi/activity)
+- Add convenience function to set input_select called `select_option()` - contributed by [jbardi](https://community.home-assistant.io/users/jbardi/activity)
 - Add global access to configuration and global configuration variables - suggested by [ReneTode](https://community.home-assistant.io/users/renetode/activity) 
 
 **Fixes**
