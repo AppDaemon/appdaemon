@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.3.2"
+__version__ = "1.3.3"
 
 # Windows does not have Daemonize package so disallow
 
@@ -183,31 +183,32 @@ def dump_queue():
 
 def check_constraint(key, value):
   unconstrained = True
-  if key == "constrain_input_boolean":
-    values = value.split(",")
-    if len(values) == 2:
-      entity = values[0]
-      state = values[1]
-    else:
-      entity = value
-      state = "on"      
-    if entity in conf.ha_state and conf.ha_state[entity]["state"] != state:
-      unconstrained = False
-  if key == "constrain_input_select":
-    values = value.split(",")
-    entity = values.pop(0)
-    if entity in conf.ha_state and conf.ha_state[entity]["state"] not in values:
-      unconstrained = False
-  if key == "constrain_presence":
-    if value == "everyone" and not ha.everyone_home():
-      unconstrained = False
-    elif value == "anyone" and not ha.anyone_home():
-      unconstrained = False
-    elif value == "noone" and not ha.noone_home():
-      unconstrained = False
-  if key == "constrain_days":
-    if today_is_constrained(value):
-      unconstrained = False
+  with conf.ha_state_lock:
+    if key == "constrain_input_boolean":
+      values = value.split(",")
+      if len(values) == 2:
+        entity = values[0]
+        state = values[1]
+      else:
+        entity = value
+        state = "on"      
+      if entity in conf.ha_state and conf.ha_state[entity]["state"] != state:
+        unconstrained = False
+    if key == "constrain_input_select":
+      values = value.split(",")
+      entity = values.pop(0)
+      if entity in conf.ha_state and conf.ha_state[entity]["state"] not in values:
+        unconstrained = False
+    if key == "constrain_presence":
+      if value == "everyone" and not ha.everyone_home():
+        unconstrained = False
+      elif value == "anyone" and not ha.anyone_home():
+        unconstrained = False
+      elif value == "noone" and not ha.noone_home():
+        unconstrained = False
+    if key == "constrain_days":
+      if today_is_constrained(value):
+        unconstrained = False
 
   return unconstrained
 
@@ -259,16 +260,18 @@ def today_is_constrained(days):
 
 def process_sun(action):
   ha.log(conf.logger, "DEBUG", "Process sun: {}, next sunrise: {}, next sunset: {}".format(action, conf.sun["next_rising"], conf.sun["next_setting"]))
-  for name in conf.schedule.keys():
-    for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-      schedule = conf.schedule[name][entry]
-      if schedule["type"] == action and "inactive" in schedule:
-        del schedule["inactive"]
-        c_offset = ha.get_offset(schedule)
-        schedule["timestamp"] = ha.calc_sun(action) + c_offset
-        schedule["offset"] = c_offset
+  with conf.schedule_lock:
+    for name in conf.schedule.keys():
+      for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
+        schedule = conf.schedule[name][entry]
+        if schedule["type"] == action and "inactive" in schedule:
+          del schedule["inactive"]
+          c_offset = ha.get_offset(schedule)
+          schedule["timestamp"] = ha.calc_sun(action) + c_offset
+          schedule["offset"] = c_offset
 
 def exec_schedule(name, entry, args):
+  # Locking performed in calling function
   if "inactive" in args:
     return
   # Call function
@@ -361,22 +364,24 @@ def do_every_second(utc):
 
     # Check on Queue size
 
-    if q.qsize() > 0 and q.qsize() % 10 == 0:
+    qsize = q.qsize()
+    if qsize > 0 and qsize % 10 == 0:
       conf.logger.warning("Queue size is {}, suspect thread starvation".format(q.qsize()))
 
     # Process callbacks
 
     #ha.log(conf.logger, "DEBUG", "Scheduler invoked at {}".format(now))
-    for name in conf.schedule.keys():
-      for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
-        #ha.log(conf.logger, "DEBUG", "{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
-        if conf.schedule[name][entry]["timestamp"] <= utc:
-          exec_schedule(name, entry, conf.schedule[name][entry])
-        else:
-          break
-    for k, v in list(conf.schedule.items()):
-      if v == {}:
-        del conf.schedule[k]
+    with conf.schedule_lock:
+      for name in conf.schedule.keys():
+        for entry in sorted(conf.schedule[name].keys(), key=lambda uuid: conf.schedule[name][uuid]["timestamp"]):
+          #ha.log(conf.logger, "DEBUG", "{} : {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(conf.schedule[name][entry]["timestamp"])), time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))))
+          if conf.schedule[name][entry]["timestamp"] <= utc:
+            exec_schedule(name, entry, conf.schedule[name][entry])
+          else:
+            break
+      for k, v in list(conf.schedule.items()):
+        if v == {}:
+          del conf.schedule[k]
         
     return utc
 
@@ -441,10 +446,12 @@ def clear_file(name):
 
 def clear_object(object):
   ha.log(conf.logger, "DEBUG", "Clearing callbacks for {}".format(object))
-  if object in conf.callbacks:
-    del conf.callbacks[object]
-  if object in conf.schedule:
-    del conf.schedule[object]
+  with conf.callbacks_lock:
+    if object in conf.callbacks:
+      del conf.callbacks[object]
+  with conf.schedule_lock:
+    if object in conf.schedule:
+      del conf.schedule[object]
 
 def init_object(name, class_name, module_name, args):
   ha.log(conf.logger, "INFO", "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
@@ -500,44 +507,47 @@ def process_state_change(data):
   device, entity = entity_id.split(".")
 
   # First update our global state
-  conf.ha_state[entity_id] = data['data']['new_state']
+  with conf.ha_state_lock:
+    conf.ha_state[entity_id] = data['data']['new_state']
 
   # Process state callbacks
 
-  for name in conf.callbacks.keys():
-    for uuid in conf.callbacks[name]:
-      callback = conf.callbacks[name][uuid]
-      if callback["type"] == "state":
-        cdevice = None
-        centity = None
-        if callback["entity"] != None:
-          if "." not in callback["entity"]:
-            cdevice = callback["entity"]
-            centity = None
+  with conf.callbacks_lock:
+    for name in conf.callbacks.keys():
+      for uuid in conf.callbacks[name]:
+        callback = conf.callbacks[name][uuid]
+        if callback["type"] == "state":
+          cdevice = None
+          centity = None
+          if callback["entity"] != None:
+            if "." not in callback["entity"]:
+              cdevice = callback["entity"]
+              centity = None
+            else:
+              cdevice, centity = callback["entity"].split(".")
+          if callback["kwargs"].get("attribute") == None:
+            cattribute = "state"
           else:
-            cdevice, centity = callback["entity"].split(".")
-        if callback["kwargs"].get("attribute") == None:
-          cattribute = "state"
-        else:
-          cattribute = callback["kwargs"].get("attribute")
+            cattribute = callback["kwargs"].get("attribute")
 
-        cold = callback["kwargs"].get("old")
-        cnew = callback["kwargs"].get("new")
+          cold = callback["kwargs"].get("old")
+          cnew = callback["kwargs"].get("new")
 
-        if cdevice == None:
-          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
-        elif centity == None:
-          if device == cdevice:
+          if cdevice == None:
             check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
-        elif device == cdevice and entity == centity:
-          check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
+          elif centity == None:
+            if device == cdevice:
+              check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
+          elif device == cdevice and entity == centity:
+            check_and_disapatch(name, callback["function"], entity_id, cattribute, data['data']['new_state'], data['data']['old_state'], cold, cnew, callback["kwargs"])
 
 def process_event(data):
-  for name in conf.callbacks.keys():
-    for uuid in conf.callbacks[name]:
-      callback = conf.callbacks[name][uuid]
-      if "event" in callback and data['event_type'] == callback["event"]:
-        dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"], "kwargs": callback["kwargs"]})
+  with conf.callbacks_lock:
+    for name in conf.callbacks.keys():
+      for uuid in conf.callbacks[name]:
+        callback = conf.callbacks[name][uuid]
+        if "event" in callback and data['event_type'] == callback["event"]:
+          dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"], "kwargs": callback["kwargs"]})
 
 
 def process_message(msg):
@@ -698,8 +708,9 @@ def readApps(all = False):
 def get_ha_state():
   ha.log(conf.logger, "DEBUG", "Refreshing HA state")
   states = ha.get_ha_state()
-  for state in states:
-    conf.ha_state[state["entity_id"]] = state
+  with conf.ha_state_lock:
+    for state in states:
+      conf.ha_state[state["entity_id"]] = state
 
 def run():
 
@@ -790,6 +801,9 @@ def main():
   global config_file
   global config_file_modified
 
+  #import appdaemon.stacktracer
+  #appdaemon.stacktracer.trace_start("/tmp/trace.html")
+  
   # Windows does not support SIGUSR1 or SIGUSR2
   if platform.system() != "Windows":
     signal.signal(signal.SIGUSR1, handle_sig)

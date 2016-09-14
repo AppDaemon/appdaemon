@@ -25,8 +25,9 @@ class AppDaemon():
   def _check_entity(self, entity):
     if "." not in entity:
       raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
-    if entity not in conf.ha_state:
-      ha.log(conf.logger, "WARNING", "{}: Entity {} not found in Home Assistant".format(self.name, entity))
+    with conf.ha_state_lock:
+      if entity not in conf.ha_state:
+        ha.log(conf.logger, "WARNING", "{}: Entity {} not found in Home Assistant".format(self.name, entity))
 
   def _check_service(self, service):
     if service.find("/") == -1:
@@ -54,12 +55,13 @@ class AppDaemon():
     
   def friendly_name(self, entity_id):
     self._check_entity(entity_id)
-    if entity_id in conf.ha_state:
-      if "friendly_name" in conf.ha_state[entity_id]["attributes"]:
-        return conf.ha_state[entity_id]["attributes"]["friendly_name"]
-      else:
-        return entity_id
-    return None
+    with conf.ha_state_lock:
+      if entity_id in conf.ha_state:
+        if "friendly_name" in conf.ha_state[entity_id]["attributes"]:
+          return conf.ha_state[entity_id]["attributes"]["friendly_name"]
+        else:
+          return entity_id
+      return None
 
 #
 # Device Trackers
@@ -97,35 +99,36 @@ class AppDaemon():
         entity = None
       else:
         device, entity = entity_id.split(".")
-    if device == None:
-      return conf.ha_state
-    elif entity == None:
-      devices = {}
-      for entity_id in conf.ha_state.keys():
-        thisdevice, thisentity = entity_id.split(".")
-        if device == thisdevice:
-          devices[entity_id] = conf.ha_state[entity_id]
-      return devices
-    elif attribute == None:
-      entity_id = "{}.{}".format(device, entity)
-      if entity_id in conf.ha_state:
-        return conf.ha_state[entity_id]["state"]
-      else:
-        return None
-    else:
-      entity_id = "{}.{}".format(device, entity)
-      if attribute == "all":
+    with conf.ha_state_lock:
+      if device == None:
+        return conf.ha_state
+      elif entity == None:
+        devices = {}
+        for entity_id in conf.ha_state.keys():
+          thisdevice, thisentity = entity_id.split(".")
+          if device == thisdevice:
+            devices[entity_id] = conf.ha_state[entity_id]
+        return devices
+      elif attribute == None:
+        entity_id = "{}.{}".format(device, entity)
         if entity_id in conf.ha_state:
-          return conf.ha_state[entity_id]
+          return conf.ha_state[entity_id]["state"]
         else:
           return None
       else:
-        if attribute in conf.ha_state[entity_id]:
-          return conf.ha_state[entity_id][attribute]
-        elif attribute in conf.ha_state[entity_id]["attributes"]:
-            return conf.ha_state[entity_id]["attributes"][attribute]
+        entity_id = "{}.{}".format(device, entity)
+        if attribute == "all":
+          if entity_id in conf.ha_state:
+            return conf.ha_state[entity_id]
+          else:
+            return None
         else:
-          return None
+          if attribute in conf.ha_state[entity_id]:
+            return conf.ha_state[entity_id][attribute]
+          elif attribute in conf.ha_state[entity_id]["attributes"]:
+              return conf.ha_state[entity_id]["attributes"][attribute]
+          else:
+            return None
 
   def set_state(self, entity_id, **kwargs):
     self._check_entity(entity_id)
@@ -137,37 +140,41 @@ class AppDaemon():
     apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
     r = requests.post(apiurl, headers=headers, json=kwargs)
     r.raise_for_status()
-    # Update our local copy of state if necessary
+    # Update our local copy of state
     state = r.json()
-    conf.ha_state[entity_id] = state
+    with conf.ha_state_lock:
+      conf.ha_state[entity_id] = state
     return state
 
   def listen_state(self, function, entity = None, **kwargs):
     name = self.name
     if entity != None and "." in entity:
       self._check_entity(entity)
-    if name not in conf.callbacks:
-        conf.callbacks[name] = {}
-    handle = uuid.uuid4()
-    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "state", "function": function, "entity": entity, "kwargs": kwargs}
+    with conf.callbacks_lock:
+      if name not in conf.callbacks:
+          conf.callbacks[name] = {}
+      handle = uuid.uuid4()
+      conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "state", "function": function, "entity": entity, "kwargs": kwargs}
     return handle
     
   def cancel_listen_state(self, handle):
     name = self.name
     ha.log(conf.logger, "DEBUG", "Canceling listen_state for {}".format(name))
-    if name in conf.callbacks and handle in conf.callbacks[name]:
-      del conf.callbacks[name][handle]
-    if name in conf.callbacks and conf.callbacks[name] == {}:
-      del conf.callbacks[name]
+    with conf.callbacks_lock:
+      if name in conf.callbacks and handle in conf.callbacks[name]:
+        del conf.callbacks[name][handle]
+      if name in conf.callbacks and conf.callbacks[name] == {}:
+        del conf.callbacks[name]
   
   def info_listen_state(self, handle):
     name = self.name
     ha.log(conf.logger, "DEBUG", "Calling info_listen_state for {}".format(name))
-    if name in conf.callbacks and handle in conf.callbacks[name]:
-      callback = conf.callbacks[name][handle]
-      return (callback["entity"], callback["kwargs"].get("attribute", None), ha.sanitize_state_kwargs(callback["kwargs"]))
-    else:
-      raise ValueError("Invalid handle: {}".format(handle))
+    with conf.callbacks_lock:
+      if name in conf.callbacks and handle in conf.callbacks[name]:
+        callback = conf.callbacks[name][handle]
+        return (callback["entity"], callback["kwargs"].get("attribute", None), ha.sanitize_state_kwargs(callback["kwargs"]))
+      else:
+        raise ValueError("Invalid handle: {}".format(handle))
 #
 # Event
 #
@@ -185,28 +192,31 @@ class AppDaemon():
 
   def listen_event(self, function, event, **kwargs):
     name = self.name
-    if name not in conf.callbacks:
-        conf.callbacks[name] = {}
-    handle = uuid.uuid4()
-    conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "event", "function": function, "event": event, "kwargs": kwargs}
+    with conf.callbacks_lock:
+      if name not in conf.callbacks:
+          conf.callbacks[name] = {}
+      handle = uuid.uuid4()
+      conf.callbacks[name][handle] = {"name": name, "id": conf.objects[name]["id"], "type": "event", "function": function, "event": event, "kwargs": kwargs}
     return handle
 
   def cancel_listen_event(self, handle):
     name = self.name
     ha.log(conf.logger, "DEBUG", "Canceling listen_event for {}".format(name))
-    if name in conf.callbacks and handle in conf.callbacks[name]:
-      del conf.callbacks[name][handle]
-    if name in conf.callbacks and conf.callbacks[name] == {}:
-      del conf.callbacks[name]
+    with conf.callbacks_lock:
+      if name in conf.callbacks and handle in conf.callbacks[name]:
+        del conf.callbacks[name][handle]
+      if name in conf.callbacks and conf.callbacks[name] == {}:
+        del conf.callbacks[name]
   
   def info_listen_event(self, handle):
     name = self.name
     ha.log(conf.logger, "DEBUG", "Calling info_listen_event for {}".format(name))
-    if name in conf.callbacks and handle in conf.callbacks[name]:
-      callback = conf.callbacks[name][handle]
-      return (callback["event"], callback["kwargs"].copy())
-    else:
-      raise ValueError("Invalid handle: {}".format(handle))
+    with conf.callbacks_lock:
+      if name in conf.callbacks and handle in conf.callbacks[name]:
+        callback = conf.callbacks[name][handle]
+        return (callback["event"], callback["kwargs"].copy())
+      else:
+        raise ValueError("Invalid handle: {}".format(handle))
 #
 # Service
 #
@@ -311,11 +321,12 @@ class AppDaemon():
   def info_timer(self, handle):
     name = self.name
     ha.log(conf.logger, "DEBUG", "Calling info_timer for {}".format(name))
-    if name in conf.schedule and handle in conf.schedule[name]:
-      callback = conf.schedule[name][handle]
-      return (datetime.datetime.fromtimestamp(callback["timestamp"]), callback["interval"], ha.sanitize_timer_kwargs(callback["kwargs"]))
-    else:
-      raise ValueError("Invalid handle: {}".format(handle))
+    with conf.schedule_lock:
+      if name in conf.schedule and handle in conf.schedule[name]:
+        callback = conf.schedule[name][handle]
+        return (datetime.datetime.fromtimestamp(callback["timestamp"]), callback["interval"], ha.sanitize_timer_kwargs(callback["kwargs"]))
+      else:
+        raise ValueError("Invalid handle: {}".format(handle))
 
          
   def run_in(self, callback, seconds, **kwargs):

@@ -111,28 +111,31 @@ def sunset():
   return(datetime.datetime.fromtimestamp(calc_sun("next_setting")))
 
 def anyone_home():
-  for entity_id in conf.ha_state.keys():
-    thisdevice, thisentity = entity_id.split(".")
-    if thisdevice == "device_tracker":
-      if conf.ha_state[entity_id]["state"] == "home":
-        return True
+  with conf.ha_state_lock:
+    for entity_id in conf.ha_state.keys():
+      thisdevice, thisentity = entity_id.split(".")
+      if thisdevice == "device_tracker":
+        if conf.ha_state[entity_id]["state"] == "home":
+          return True
   return False
 
 def everyone_home():
-  for entity_id in conf.ha_state.keys():
-    thisdevice, thisentity = entity_id.split(".")
-    if thisdevice == "device_tracker":
-      if conf.ha_state[entity_id]["state"] != "home":
-        return False
+  with conf.ha_state_lock:
+    for entity_id in conf.ha_state.keys():
+      thisdevice, thisentity = entity_id.split(".")
+      if thisdevice == "device_tracker":
+        if conf.ha_state[entity_id]["state"] != "home":
+          return False
   return True
     
   
 def noone_home():
-  for entity_id in conf.ha_state.keys():
-    thisdevice, thisentity = entity_id.split(".")
-    if thisdevice == "device_tracker":
-      if conf.ha_state[entity_id]["state"] == "home":
-        return False
+  with conf.ha_state_lock:
+    for entity_id in conf.ha_state.keys():
+      thisdevice, thisentity = entity_id.split(".")
+      if thisdevice == "device_tracker":
+        if conf.ha_state[entity_id]["state"] == "home":
+          return False
   return True
 
 def calc_sun(type):
@@ -176,22 +179,24 @@ def get_offset(kwargs):
   return(offset)
 
 def insert_schedule(name, utc, callback, repeat, type, **kwargs):
-  if name not in conf.schedule:
-    conf.schedule[name] = {}
-  handle = uuid.uuid4()
-  utc = int(utc)
-  c_offset = get_offset({"kwargs": kwargs})
-  ts = utc + c_offset
-  interval = kwargs.get("interval", 0)
+  with conf.schedule_lock:
+    if name not in conf.schedule:
+      conf.schedule[name] = {}
+    handle = uuid.uuid4()
+    utc = int(utc)
+    c_offset = get_offset({"kwargs": kwargs})
+    ts = utc + c_offset
+    interval = kwargs.get("interval", 0)
 
-  conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": ts, "interval": interval, "basetime": utc, "repeat": repeat, "offset": c_offset, "type": type, "kwargs": kwargs}
-  #log(conf.logger, "INFO", conf.schedule[name][handle])
+    conf.schedule[name][handle] = {"name": name, "id": conf.objects[name]["id"], "callback": callback, "timestamp": ts, "interval": interval, "basetime": utc, "repeat": repeat, "offset": c_offset, "type": type, "kwargs": kwargs}
+    #log(conf.logger, "INFO", conf.schedule[name][handle])
   return handle
     
 def cancel_timer(name, handle):
   log(conf.logger, "DEBUG", "Canceling timer for {}".format(name))
-  if name in conf.schedule and handle in conf.schedule[name]:
-    del conf.schedule[name][handle]
-  if name in conf.schedule and conf.schedule[name] == {}:
-    del conf.schedule[name]
+  with conf.schedule_lock:
+    if name in conf.schedule and handle in conf.schedule[name]:
+      del conf.schedule[name][handle]
+    if name in conf.schedule and conf.schedule[name] == {}:
+      del conf.schedule[name]
 

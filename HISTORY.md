@@ -2,7 +2,22 @@
 History
 =======
 
-1.3.2 (2016-09-06)
+1.3.3 (2016-09-13)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fix a race condition in the scheduler
+
+**Breaking Changes**
+
+None
+
+1.3.2 (2016-09-08)
 ------------------
 
 **Features**
