@@ -2,16 +2,16 @@
 History
 =======
 
-1.3.3 (2016-09-13)
+1.3.3 (2016-09-16)
 ------------------
 
 **Features**
 
-None
+- Add ability to specify a cert dirctory for self-signed certs
 
 **Fixes**
 
-- Fix a race condition in the scheduler
+- Fix a several potential race conditions in the scheduler
 
 **Breaking Changes**
 
