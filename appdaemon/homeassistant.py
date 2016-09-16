@@ -152,7 +152,7 @@ def get_tz_offset():
   return(utcOffset_min)
   
 def get_ha_state(entity_id = None):
-  log(conf.logger, "DEBUG", "get_ha_state: enitiy is {}".format(entity_id))  
+  log(conf.logger, "DEBUG", "get_ha_state: entity is {}".format(entity_id))  
   if conf.ha_key != "":
     headers = {'x-ha-access': conf.ha_key}
   else:
@@ -161,7 +161,7 @@ def get_ha_state(entity_id = None):
     apiurl = "{}/api/states".format(conf.ha_url)
   else:
     apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
-  r = requests.get(apiurl, headers=headers)
+  r = requests.get(apiurl, headers=headers, verify = conf.certpath)
   r.raise_for_status()
   return r.json()
   

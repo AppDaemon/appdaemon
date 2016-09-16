@@ -874,6 +874,7 @@ def main():
   conf.elevation = float(config['AppDaemon']['elevation'])
   conf.timezone = config['AppDaemon'].get("timezone")
   conf.time_zone = config['AppDaemon'].get("time_zone")
+  conf.certpath = config['AppDaemon'].get("cert_path")
   
   if conf.timezone == None and conf.time_zone == None:
     raise KeyError("time_zone")

@@ -138,7 +138,7 @@ class AppDaemon():
     else:
       headers = {}
     apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
-    r = requests.post(apiurl, headers=headers, json=kwargs)
+    r = requests.post(apiurl, headers=headers, json=kwargs, verify = conf.certpath)
     r.raise_for_status()
     # Update our local copy of state
     state = r.json()
@@ -185,8 +185,8 @@ class AppDaemon():
       headers = {'x-ha-access': conf.ha_key}
     else:
       headers = {}
-    apiurl = "{}/api/events/{}".format(conf.ha_url, event)
-    r = requests.post(apiurl, headers=headers, json = kwargs)
+    apiurl = "{}/api/events/{}".format(conf.ha_url, event, verify = conf.certpath)
+    r = requests.post(apiurl, headers=headers, json=kwargs)
     r.raise_for_status()
     return r.json()
 
@@ -230,7 +230,7 @@ class AppDaemon():
     else:
       headers = {}
     apiurl = "{}/api/services/{}/{}".format(conf.ha_url, d, s)
-    r = requests.post(apiurl, headers=headers, json = kwargs)
+    r = requests.post(apiurl, headers=headers, json=kwargs, verify = conf.certpath)
     r.raise_for_status()
     return r.json()
     
