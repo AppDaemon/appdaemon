@@ -190,7 +190,7 @@ class AppDaemon():
     r.raise_for_status()
     return r.json()
 
-  def listen_event(self, function, event, **kwargs):
+  def listen_event(self, function, event = None, **kwargs):
     name = self.name
     with conf.callbacks_lock:
       if name not in conf.callbacks:

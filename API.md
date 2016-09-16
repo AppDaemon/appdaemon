@@ -1386,12 +1386,12 @@ A dictionary containing Zero or more user keyword arguments to be supplied to th
 
 ### listen_event()
 
-Listen event sets up a callback for a specific event.
+Listen event sets up a callback for a specific event, or any event.
 
 #### Synopsis
 
 ```python
-handle = listen_event(function, event, **kwargs):
+handle = listen_event(function, event = None, **kwargs):
 ```
 #### Returns
 
@@ -1405,15 +1405,23 @@ The function to be called when the event is fired.
 
 ##### event
 
-Name of the event to subscribe to. Can be a standard Home Assistant event such as `service_registered` or an arbitrary custom event such as `"MODE_CHANGE"`.
+Name of the event to subscribe to. Can be a standard Home Assistant event such as `service_registered` or an arbitrary custom event such as `"MODE_CHANGE"`. If no event is specified, `listen_event()` will subscribe to all events.
 
 ##### \*\*kwargs (optional)
 
-One or more keyword value pairs representing App specific parameters to supply to the callback.
+One or more keyword value pairs representing App specific parameters to supply to the callback. If the keywords match values within the event data, they will act as filters, meaning that if they don't match the values, the callback will not fire.
+
+As an example of this, a Minimote controller when activated will generate an event called `zwave.scene_activated`, along with 2 pieces of data that are specific to the event - `entity_id` and `scene`. If you include keyword values for either of those, the values supplied to the `listen_event()1 call must match the values in the event or it will not fire. If the keywords do not match any of the data in the event they are simply ignored.
+
+Filtering will work with any event type, but it will be necessary to figure out the data associated with the event to understand what values can be filtered on. This can be achieved by examining Home Assistant's logfiles when the event fires.
 
 #### Examples
 ```python
 self.listen_event(self.mode_event, "MODE_CHANGE")
+# Listen for a minimote event activating scene 3:
+self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
+# Listen for a minimote event activating scene 3 from a specific minimote:
+self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
 ```
 
 ### cancel_listen_event()

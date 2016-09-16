@@ -546,8 +546,14 @@ def process_event(data):
     for name in conf.callbacks.keys():
       for uuid in conf.callbacks[name]:
         callback = conf.callbacks[name][uuid]
-        if "event" in callback and data['event_type'] == callback["event"]:
-          dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": callback["event"], "function": callback["function"], "data": data["data"], "kwargs": callback["kwargs"]})
+        if "event" in callback and (callback["event"] == None or data['event_type'] == callback["event"]):
+          # Check any filters
+          run = True
+          for key in callback["kwargs"]:
+            if key in data["data"] and callback["kwargs"][key] != data["data"][key]:
+              run = False
+          if run:
+            dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": data['event_type'], "function": callback["function"], "data": data["data"], "kwargs": callback["kwargs"]})
 
 
 def process_message(msg):

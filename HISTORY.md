@@ -8,6 +8,8 @@ History
 **Features**
 
 - Add ability to specify a cert dirctory for self-signed certs
+- Add ability for `listen_event()` to listen to any event
+- Add filter options to listen_event()
 
 **Fixes**
 
