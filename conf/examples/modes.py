@@ -68,7 +68,7 @@ class Modes(appapi.AppDaemon):
     #Set the house up for morning
     self.mode = "Morning"
     self.log("Switching mode to Morning")
-    self.call_service("input_select/select_option", entity_id="input_select.house_mode", option="Morning")
+    self.select_option("input_select.house_mode", "Morning")
     self.turn_on("scene.wendys_lamp")
     self.notify("Switching mode to Morning")
     
@@ -76,7 +76,7 @@ class Modes(appapi.AppDaemon):
     # Set the house up for daytime
     self.mode = "Day"
     self.log("Switching mode to Day")
-    self.call_service("input_select/select_option", entity_id="input_select.house_mode", option="Day")
+    self.select_option("input_select.house_mode", "Day")
     self.turn_on("scene.downstairs_off")
     self.turn_on("scene.upstairs_off")
     self.notify("Switching mode to Day")
@@ -85,8 +85,8 @@ class Modes(appapi.AppDaemon):
     #Set the house up for evening
     self.mode = "Evening"
     self.log("Switching mode to Evening")
-    self.call_service("input_select/select_option", entity_id="input_select.house_mode", option="Evening")
-    if self.anyone_home():
+    self.select_option("input_select.house_mode", "Evening")
+    if self.anyone_home() or self.get_state("input_boolean.vacation") == "on":
       self.turn_on("scene.downstairs_on")
     else:
       self.turn_on("scene.downstairs_front")
@@ -94,14 +94,15 @@ class Modes(appapi.AppDaemon):
     self.notify("Switching mode to Evening")
 
   def night(self, quiet = False):
-    #Set the house up for evening
+    #
+    #Set the house up for night
     #
     # Quiet flag just turns the downstairs off and does not turn on any upstairs lights to avoid
     # Waking up anyone sleeping
     #
     self.mode = "Night"
     self.log("Switching mode to Night")
-    self.call_service("input_select/select_option", entity_id="input_select.house_mode", option="Night")
+    self.select_option("input_select.house_mode", "Night")
     
     if self.anyone_home() and not quiet:
       self.turn_on("scene.upstairs_hall_on")
@@ -109,7 +110,7 @@ class Modes(appapi.AppDaemon):
       self.turn_on("scene.upstairs_hall_off")
 
     wendy = self.get_state("device_tracker.dedb5e711a24415baaae5cf8e880d852")
-    andrew = self.get_state("device_tracker.5722a8985b4043e9b59305b5e4f71502")
+    andrew = self.get_state("device_tracker.andrews_iphone")
     
     # Switch on correct bedside lights according to presence
     if not quiet:
