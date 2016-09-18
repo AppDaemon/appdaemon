@@ -140,6 +140,11 @@ class AppDaemon():
         headers = {}
       apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
       
+      if entity_id not in conf.ha_state:
+        # Its a new state entry
+        conf.ha_state[entity_id] = {}
+        conf.ha_state[entity_id]["attributes"] = {}
+      
       args = {}
       
       if "state" in kwargs:
