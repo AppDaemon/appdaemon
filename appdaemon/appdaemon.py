@@ -785,11 +785,20 @@ def run():
       if first_time == False:
         # Get initial state
         get_ha_state()
+        last_state = ha.get_now()
         ha.log(conf.logger, "INFO", "Got initial state")
         # Load apps
         readApps(True)
-        last_state = ha.get_now()
 
+        while True:
+          with conf.threads_busy_lock:
+            if conf.threads_busy == 0:
+              break
+            ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining".format(conf.threads_busy))
+          time.sleep(1)
+
+      ha.log(conf.logger, "INFO", "App initialization complete")
+        
       #
       # Fire HA_STARTED and APPD_STARTED Events
       #
