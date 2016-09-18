@@ -34,3 +34,5 @@ realtime = True
 endtime = None
 interval = 1
 certpath = None
+threads_busy = 0
+threads_busy_lock = threading.RLock()

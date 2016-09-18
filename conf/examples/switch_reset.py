@@ -24,20 +24,16 @@ class SwitchReset(appapi.AppDaemon):
     self.listen_state(self.state_change, "input_boolean")
     self.listen_state(self.state_change, "input_select")
     self.listen_state(self.state_change, "input_slider")
-    
-    #Temp for testing
-    #self.run_in(self.set_switches, 0)
-    
+       
   def ha_event(self, event_name, data, kwargs):
-    self.log_notify("Home Assistant is up", "INFO")
     self.run_in(self.set_switches, self.args["delay"])
     
   def appd_event(self, event_name, data, kwargs):
-    self.log_notify("AppDaemon is up", "INFO")
     self.run_in(self.set_switches, self.args["delay"])
 
   def state_change(self, entity, attribute, old, new, kwargs):
     self.log_notify("State change: {} to {}".format(entity, new))
+    self.device_db[entity] = new
   
   def set_switches(self, kwargs):
     self.log_notify("Setting switches")
@@ -51,9 +47,7 @@ class SwitchReset(appapi.AppDaemon):
         if entity in self.device_db:
           if self.device_db[entity] != state[entity]["state"]:
             self.log_notify("  -> Found, setting value to {} (was {})".format(self.device_db[entity], state[entity]["state"]))
-            self.log_notify(state[entity])
             new_state = self.set_state(entity, state = self.device_db[entity])
-            self.log_notify(new_state)
           else:
             self.log_notify("  -> Found, value is correct({})".format(state[entity]["state"]))
         else:

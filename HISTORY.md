@@ -2,6 +2,24 @@
 History
 =======
 
+1.3.4 (2016-09-18)
+------------------
+
+**Features**
+
+- Add Moementary Switch examples
+
+**Fixes**
+
+- Fix a several a race condition in App Initialization
+- Fix a bug that overwrote state attributes
+- Fix to smart heat example app
+
+**Breaking Changes**
+
+None
+
+
 1.3.3 (2016-09-16)
 ------------------
 

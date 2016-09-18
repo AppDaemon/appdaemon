@@ -402,6 +402,8 @@ def timer_thread():
 def worker():
   while True:
     args = q.get()
+    with conf.threads_busy_lock:
+        conf.threads_busy += 1
     type = args["type"]
     function = args["function"]
     id = args["id"]
@@ -431,9 +433,14 @@ def worker():
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
           ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
+      finally:
+        with conf.threads_busy_lock:
+          conf.threads_busy -= 1
+
     else:
       conf.logger.warning("Found stale callback for {} - discarding".format(name))
     q.task_done()
+    
 
 def clear_file(name):
   global config
@@ -745,10 +752,19 @@ def run():
   readApps(True)
   last_state = ha.get_now()
 
-  # Hack to avoid race condition when initialize threads don't complete before we fire "appd_started" event
-  # May need to make this in a semaphore to guarantee all worker threads have initialized
-  # Downside of that is  that a single initialize hanging would prevent the daemon from even starting
-  time.sleep(1)
+  # wait until all threads have finished initializing
+  
+  with conf.threads_busy_lock:
+    threads = conf.threads_busy
+  if threads > 0:
+    while True:
+      with conf.threads_busy_lock:
+        if conf.threads_busy == 0:
+          break
+      ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining".format(conf.threads_busy))
+      time.sleep(1)
+  
+  ha.log(conf.logger, "INFO", "App initialization complete")
   
   # Create timer thread
 
