@@ -7,7 +7,8 @@ History
 
 **Features**
 
-- Add Moementary Switch examples
+- Add Moementary Switch example
+- Add Switch Reset Example
 
 **Fixes**
 
