@@ -745,6 +745,11 @@ def run():
   readApps(True)
   last_state = ha.get_now()
 
+  # Hack to avoid race condition when initialize threads don't complete before we fire "appd_started" event
+  # May need to make this in a semaphore to guarantee all worker threads have initialized
+  # Downside of that is  that a single initialize hanging would prevent the daemon from even starting
+  time.sleep(1)
+  
   # Create timer thread
 
   # First, update "now" for less chance of clock skew error 

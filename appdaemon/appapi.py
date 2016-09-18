@@ -131,20 +131,38 @@ class AppDaemon():
             return None
 
   def set_state(self, entity_id, **kwargs):
-    self._check_entity(entity_id)
-    ha.log(conf.logger, "DEBUG", "set_state: {}, {}".format(entity_id, kwargs))
-    if conf.ha_key != "":
-      headers = {'x-ha-access': conf.ha_key}
-    else:
-      headers = {}
-    apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
-    r = requests.post(apiurl, headers=headers, json=kwargs, verify = conf.certpath)
-    r.raise_for_status()
-    # Update our local copy of state
-    state = r.json()
     with conf.ha_state_lock:
+      self._check_entity(entity_id)
+      ha.log(conf.logger, "DEBUG", "set_state: {}, {}".format(entity_id, kwargs))
+      if conf.ha_key != "":
+        headers = {'x-ha-access': conf.ha_key}
+      else:
+        headers = {}
+      apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
+      
+      args = {}
+      
+      if "state" in kwargs:
+        args["state"] = kwargs["state"]
+      else:
+        if "state" in conf.ha_state[entity_id]:
+          args["state"] = conf.ha_state[entity_id]["state"]
+        
+      if "attributes" in conf.ha_state[entity_id]:
+        args["attributes"] = conf.ha_state[entity_id]["attributes"]
+        if "attributes" in kwargs:
+          args["attributes"].update(kwargs["attributes"])
+      else:
+        if "attributes" in kwargs:
+          args["attributes"]= kwargs["attributes"]
+      
+      r = requests.post(apiurl, headers=headers, json=args, verify = conf.certpath)
+      r.raise_for_status()
+      # Update our local copy of state
+      state = r.json()
       conf.ha_state[entity_id] = state
-    return state
+   
+      return state
 
   def listen_state(self, function, entity = None, **kwargs):
     name = self.name

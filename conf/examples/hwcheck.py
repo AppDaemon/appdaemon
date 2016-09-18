@@ -1,5 +1,20 @@
 import appdaemon.appapi as appapi
 
+#
+# App to check if zwavbe and hue hardware is correctly configured after a restart
+#
+# Args:
+#
+#delay - amount of time after restart to perform the check
+#zwave - representative ZWave device to check the existence of
+#hue = representative Hue device to check the existence of
+# 
+#
+# Release Notes
+#
+# Version 1.0:
+#   Initial Version
+
 class HWCheck(appapi.AppDaemon):
 
   def initialize(self):
@@ -13,6 +28,7 @@ class HWCheck(appapi.AppDaemon):
     
   def appd_event(self, event_name, data, kwargs):
     self.log_notify("AppDaemon is up", "INFO")
+    self.run_in(self.hw_check, self.args["delay"])
     
   def hw_check(self, kwargs):
     state = self.get_state()
@@ -22,7 +38,8 @@ class HWCheck(appapi.AppDaemon):
     if "hue" in self.args and self.args["hue"] not in state:
       self.log_notify("HUE not started after delay period", "WARNING")
       
-  def log_notify(self, msg, level):
-    self.log(msg, level)
-    self.notify(msg)
-  
+  def log_notify(self, message, level = "INFO"):
+    if "log" in self.args:
+      self.log(message)
+    if "notify" in self.args:
+      self.notify(message, level)
