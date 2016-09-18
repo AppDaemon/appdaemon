@@ -411,7 +411,9 @@ def worker():
     if name in conf.objects and conf.objects[name]["id"] == id:
       try:
         if type == "initialize":
+          ha.log(conf.logger, "DEBUG", "Calling initialize() for {}".format(name))
           function()
+          ha.log(conf.logger, "DEBUG", "{} initialize() done".format(name))
         if type == "timer":
           function(ha.sanitize_timer_kwargs(args["kwargs"]))
         if type == "attr":

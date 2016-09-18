@@ -1,5 +1,6 @@
 import appdaemon.appapi as appapi
 import shelve
+import time
 
 #
 # App to reset input_boolean, input_select, input_slider to previous values after HA restart
@@ -24,14 +25,11 @@ class SwitchReset(appapi.AppDaemon):
     self.listen_state(self.state_change, "input_boolean")
     self.listen_state(self.state_change, "input_select")
     self.listen_state(self.state_change, "input_slider")
-    self.log_notify("Finished Init")
        
   def ha_event(self, event_name, data, kwargs):
-    self.log_notify("Home Assistant start")
     self.run_in(self.set_switches, self.args["delay"])
     
   def appd_event(self, event_name, data, kwargs):
-    self.log_notify("AppDaemon start")
     self.run_in(self.set_switches, self.args["delay"])
 
   def state_change(self, entity, attribute, old, new, kwargs):
