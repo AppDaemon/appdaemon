@@ -797,7 +797,7 @@ def run():
             ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining".format(conf.threads_busy))
           time.sleep(1)
 
-      ha.log(conf.logger, "INFO", "App initialization complete")
+        ha.log(conf.logger, "INFO", "App initialization complete")
         
       #
       # Fire HA_STARTED and APPD_STARTED Events
