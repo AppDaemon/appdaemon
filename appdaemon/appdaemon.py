@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.3.3"
+__version__ = "1.3.4"
 
 # Windows does not have Daemonize package so disallow
 
@@ -249,7 +249,9 @@ def dispatch_worker(name, args):
       unconstrained = False
 
   if unconstrained:
-    q.put_nowait(args)
+    with conf.threads_busy_lock:
+      conf.threads_busy += 1
+      q.put_nowait(args)
 
 def today_is_constrained(days):
     day = datetime.datetime.today().weekday()
@@ -402,8 +404,6 @@ def timer_thread():
 def worker():
   while True:
     args = q.get()
-    with conf.threads_busy_lock:
-        conf.threads_busy += 1
     type = args["type"]
     function = args["function"]
     id = args["id"]
@@ -433,12 +433,11 @@ def worker():
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
           ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
-      finally:
-        with conf.threads_busy_lock:
-          conf.threads_busy -= 1
-
     else:
       conf.logger.warning("Found stale callback for {} - discarding".format(name))
+
+    with conf.threads_busy_lock:
+      conf.threads_busy -= 1
     q.task_done()
     
 
@@ -468,7 +467,9 @@ def init_object(name, class_name, module_name, args):
 
   # Call it's initialize function
 
-  q.put_nowait({"type": "initialize", "name": name, "id": conf.objects[name]["id"], "function": conf.objects[name]["object"].initialize})
+  with conf.threads_busy_lock:
+    conf.threads_busy += 1
+    q.put_nowait({"type": "initialize", "name": name, "id": conf.objects[name]["id"], "function": conf.objects[name]["object"].initialize})
 
 def check_and_disapatch(name, function, entity, attribute, new_state, old_state, cold, cnew, kwargs):
   if attribute == "all":
@@ -754,16 +755,13 @@ def run():
 
   # wait until all threads have finished initializing
   
-  with conf.threads_busy_lock:
-    threads = conf.threads_busy
-  if threads > 0:
-    while True:
-      with conf.threads_busy_lock:
-        if conf.threads_busy == 0:
-          break
+  while True:
+    with conf.threads_busy_lock:
+      if conf.threads_busy == 0:
+        break
       ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining".format(conf.threads_busy))
-      time.sleep(1)
-  
+    time.sleep(1)
+
   ha.log(conf.logger, "INFO", "App initialization complete")
   
   # Create timer thread
