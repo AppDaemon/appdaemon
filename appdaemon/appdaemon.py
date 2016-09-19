@@ -254,7 +254,7 @@ def dispatch_worker(name, args):
       q.put_nowait(args)
 
 def today_is_constrained(days):
-    day = datetime.datetime.today().weekday()
+    day = ha.get_now().weekday()
     daylist = [ha.day_of_week(day) for day in days.split(",")]
     if day in daylist:
       return False

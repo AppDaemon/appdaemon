@@ -15,6 +15,7 @@ History
 - Fix a several a race condition in App Initialization
 - Fix a bug that overwrote state attributes
 - Fix to smart heat example app
+- Fix day constraints while using time travel
 
 **Breaking Changes**
 
