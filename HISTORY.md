@@ -2,6 +2,22 @@
 History
 =======
 
+1.3.4 (2016-09-20)
+------------------
+
+**Features**
+
+- Add Minimote Example
+- Add evice trackers to switch_reset example
+
+**Fixes**
+
+- Fixed a minor scheduler bug that didn't honor the delay for callbacks fired from appd and ha restart events
+
+**Breaking Changes**
+
+None
+
 1.3.4 (2016-09-18)
 ------------------
 

@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.3.4"
+__version__ = "1.3.5"
 
 # Windows does not have Daemonize package so disallow
 
@@ -779,6 +779,7 @@ def run():
   # Enter main loop
 
   first_time = True
+  reading_messages = True
 
   while True:
     try:
@@ -787,6 +788,11 @@ def run():
         get_ha_state()
         last_state = ha.get_now()
         ha.log(conf.logger, "INFO", "Got initial state")
+
+        # Let the timer thread know we are in business, and give it time to tick at least once
+        reading_messages = True
+        time.sleep(2)  
+
         # Load apps
         readApps(True)
 
@@ -798,7 +804,7 @@ def run():
           time.sleep(1)
 
         ha.log(conf.logger, "INFO", "App initialization complete")
-        
+
       #
       # Fire HA_STARTED and APPD_STARTED Events
       #
@@ -809,7 +815,6 @@ def run():
         process_event({"event_type": "ha_started", "data": {}})
 
       headers = {'x-ha-access': conf.ha_key}
-      reading_messages = True
       messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000)
       for msg in messages:
         process_message(msg)
