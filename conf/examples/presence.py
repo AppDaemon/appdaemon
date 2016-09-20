@@ -29,17 +29,18 @@ class Presence(appapi.AppDaemon):
     self.listen_state(self.someone_home, "group.all_devices", old = "not_home", new = "home")
 
   def presence_change(self, entity, attribute, old, new, kwargs):
-    person = self.friendly_name(entity)
-    if new == "not_home":
-      place = "is away"
-    elif new == "home":
-      place = "arrived home"
-    else:
-      place = "is at {}".format(new)
-    message = "{} {}".format(person, place)
-    self.log(message)
-    if "notify" in self.args:
-      self.notify(message)
+    if old != new: 
+      person = self.friendly_name(entity)
+      if new == "not_home":
+        place = "is away"
+      elif new == "home":
+        place = "arrived home"
+      else:
+        place = "is at {}".format(new)
+      message = "{} {}".format(person, place)
+      self.log(message)
+      if "notify" in self.args:
+        self.notify(message)
     
   def everyone_left(self, entity, attribute, old, new, kwargs):
     self.log("Everyone left")
