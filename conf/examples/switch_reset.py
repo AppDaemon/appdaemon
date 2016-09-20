@@ -3,7 +3,7 @@ import shelve
 import time
 
 #
-# App to reset input_boolean, input_select, input_slider to previous values after HA restart
+# App to reset input_boolean, input_select, input_slider, device_tracker to previous values after HA restart
 #
 # Args:
 #
@@ -43,7 +43,7 @@ class SwitchReset(appapi.AppDaemon):
     state = self.get_state()
     for entity in state:
       type, id = entity.split(".")
-      if type == "input_boolean" or type == "input_select" or type == "input_slider":
+      if type == "input_boolean" or type == "input_select" or type == "input_slider" or type == "device_tracker":
         self.log_notify("Checking {}".format(entity))
         if entity in self.device_db:
           if self.device_db[entity] != state[entity]["state"]:
