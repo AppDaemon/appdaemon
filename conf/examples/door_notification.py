@@ -22,5 +22,9 @@ class DoorNotification(appapi.AppDaemon):
       self.listen_state(self.motion, "binary_sensor")   
     
   def state_change(self, entity, attribute, old, new, kwargs):
-    self.log("{} is {}".format(self.friendly_name(entity), new))
-    self.notify("{} is {}".format(self.friendly_name(entity), new))
+    if new == "on" or new == "open":
+      state = "open"
+    else:
+      state = "closed"
+    self.log("{} is {}".format(self.friendly_name(entity), state))
+    self.notify("{} is {}".format(self.friendly_name(entity), state))
