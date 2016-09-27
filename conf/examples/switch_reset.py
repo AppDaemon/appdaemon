@@ -27,6 +27,7 @@ class SwitchReset(appapi.AppDaemon):
     self.listen_state(self.state_change, "input_boolean")
     self.listen_state(self.state_change, "input_select")
     self.listen_state(self.state_change, "input_slider")
+    self.listen_state(self.state_change, "device_tracker")
        
   def ha_event(self, event_name, data, kwargs):
     self.log_notify("Home Assistant restart detected")
