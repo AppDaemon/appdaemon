@@ -7,11 +7,16 @@ History
 
 **Features**
 
-None
+- Add device trackers to switch_reset example
 
 **Fixes**
 
 - Fixed a bug in which AppDaemon exited on startup if HA was not listening causing AppDaemon failure to start on reboots
+- Fixed some scheduler behavior for appd and ha restart events
+- Fix presence example to only notify when state changes (e.g. not just for position updates)
+- Change door notify example to explicitly say "open" or "closed" instead of passing through state
+- Fix a bug in device_trackers example
+
 
 **Breaking Changes**
 
