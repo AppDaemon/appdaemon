@@ -208,11 +208,14 @@ To update AppDaemon after I have released new code, just run the following comma
 
 ```bash
 $ git pull origin
+```
+If you are using pip3 for the install do this:
+
+```bash
 $ sudo pip3 uninstall appdaemon
 $ sudo pip3 install .
 ```
 
-Then rerun the docker or PIP3 commands as appropriate.
 
 # Windows Support
 
