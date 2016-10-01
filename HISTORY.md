@@ -2,6 +2,21 @@
 History
 =======
 
+1.3.6 (2016-10-01)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a bug in which AppDaemon exited on startup if HA was not listening causing AppDaemon failure to start on reboots
+
+**Breaking Changes**
+
+None
+
 1.3.4 (2016-09-20)
 ------------------
 

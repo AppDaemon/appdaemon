@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.3.5"
+__version__ = "1.3.6"
 
 # Windows does not have Daemonize package so disallow
 
@@ -734,6 +734,9 @@ def run():
   global last_state
   global reading_messages
 
+  ha.log(conf.logger, "DEBUG", "Entering run()")
+
+  
   # Take a note of DST
 
   was_dst = is_dst()
@@ -742,18 +745,39 @@ def run():
 
   update_sun()
 
+  ha.log(conf.logger, "DEBUG", "Creating worker threads ...")
+
   # Create Worker Threads
   for i in range(conf.threads):
      t = threading.Thread(target=worker)
      t.daemon = True
      t.start()
 
+  ha.log(conf.logger, "DEBUG", "Done")
+
   # Read apps and get HA State before we start the timer thread
-  get_ha_state()
+  ha.log(conf.logger, "DEBUG", "Calling HA for initial state")
+
+  while last_state == None:
+    try:
+      get_ha_state()
+      last_state = ha.get_now()
+    except:
+      ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", "Unexpected error:")
+      ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", traceback.format_exc())
+      ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", "Not connected to Home Assistant, retrying in 5 seconds")
+    time.sleep(5)
+      
+
   ha.log(conf.logger, "INFO", "Got initial state")
   # Load apps
+
+  ha.log(conf.logger, "DEBUG", "Reading Apps")
+
   readApps(True)
-  last_state = ha.get_now()
 
   # wait until all threads have finished initializing
   
@@ -771,6 +795,8 @@ def run():
   # First, update "now" for less chance of clock skew error 
   if conf.realtime:
     conf.now = datetime.datetime.now().timestamp()
+  
+  ha.log(conf.logger, "DEBUG", "Starting timer thread")
   
   t = threading.Thread(target=timer_thread)
   t.daemon = True
