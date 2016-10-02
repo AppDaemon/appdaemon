@@ -233,6 +233,13 @@ constrain_start_time = sunset - 00:45:00
 constrain_end_time = sunrise + 00:45:00
 ```
 
+### days
+The day constraint consists of as list of days for which the callbacks will fire, e.g.
+
+```ini
+constrain_days = mon,tue,wed
+```
+
 Callback constraints can also be applied to individual callbacks within Apps, see later for more details.
 
 ## A Note on Threading
