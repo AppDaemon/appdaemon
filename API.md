@@ -1996,7 +1996,7 @@ self.error("Some Critical string", level = "CRITICAL")
 
 ## Sharing information between Apps
 
-Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some car is needed.
+Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some care is needed.
 
 In addition, Apps have access to the entire configuration if required, meaning they can access AppDaemon configuration items as well as parameters from other Apps. To use this, there is a class attribute called `self.config`. It contains a `ConfigParser` object, which is similar in operation to a `Dictionary`. To access any apps parameters, simply reference the ConfigParser object using the Apps name (form the config file) as the first key, and the parameter required as the second, for instance:
 
