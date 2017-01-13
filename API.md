@@ -6,10 +6,10 @@ AppDaemon is a loosely coupled, sandboxed, multi-threaded Python execution envir
 
 Automations in AppDaemon are performed by creating a piece of code (essentially a Python Class) and then instantiating it as an Object one or more times by configuring it as an App in the configuration file. The App is given a chance to register itself for whatever events it wants to subscribe to, and AppDaemon will then make calls back into the Object's code when those events occur, allowing the App to respond to the event with some kind of action.
 
-The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a Python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `homeassistant.appapi` module. The start of an app might look like this:
+The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a Python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `appdaemon.appapi` module. The start of an app might look like this:
 
 ```python
-import homeassistant.appapi as appapi
+import appdaemon.appapi as appapi
 
 class MotionLights(appapi.AppDaemon):
 ```
@@ -43,7 +43,7 @@ These, along with their various subscription calls and helper functions, will be
 To wrap up this section, here is a complete functioning App (with comments):
 
 ```python
-import homeassistant.appapi as appapi
+import appdaemon.appapi as appapi
 import datetime
 
 # Declare Class
