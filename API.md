@@ -6,10 +6,10 @@ AppDaemon is a loosely coupled, sandboxed, multi-threaded Python execution envir
 
 Automations in AppDaemon are performed by creating a piece of code (essentially a Python Class) and then instantiating it as an Object one or more times by configuring it as an App in the configuration file. The App is given a chance to register itself for whatever events it wants to subscribe to, and AppDaemon will then make calls back into the Object's code when those events occur, allowing the App to respond to the event with some kind of action.
 
-The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a Python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `homeassistant.appapi` module. The start of an app might look like this:
+The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a Python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `appdaemon.appapi` module. The start of an app might look like this:
 
 ```python
-import homeassistant.appapi as appapi
+import appdaemon.appapi as appapi
 
 class MotionLights(appapi.AppDaemon):
 ```
@@ -43,7 +43,7 @@ These, along with their various subscription calls and helper functions, will be
 To wrap up this section, here is a complete functioning App (with comments):
 
 ```python
-import homeassistant.appapi as appapi
+import appdaemon.appapi as appapi
 import datetime
 
 # Declare Class
@@ -155,7 +155,7 @@ class = SomeClass
 constrain_presence = noone
 ```
 
-Now, although the `initialize()` function will be called for MyClass, and it will have a chance to register as many callbacks as it desires, none of the callbacks will execute, in this case, until everyone has left. This could be useful for an interior motion detector App for instance. There are several different types of constraints:
+Now, although the `initialize()` function will be called for SomeClass, and it will have a chance to register as many callbacks as it desires, none of the callbacks will execute, in this case, until everyone has left. This could be useful for an interior motion detector App for instance. There are several different types of constraints:
 
 - input_boolean
 - input_select
@@ -2029,7 +2029,7 @@ self.error("Some Critical string", level = "CRITICAL")
 
 ## Sharing information between Apps
 
-Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some car is needed.
+Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some care is needed.
 
 In addition, Apps have access to the entire configuration if required, meaning they can access AppDaemon configuration items as well as parameters from other Apps. To use this, there is a class attribute called `self.config`. It contains a `ConfigParser` object, which is similar in operation to a `Dictionary`. To access any apps parameters, simply reference the ConfigParser object using the Apps name (form the config file) as the first key, and the parameter required as the second, for instance:
 
