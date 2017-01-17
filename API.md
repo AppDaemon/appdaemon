@@ -155,7 +155,7 @@ class = SomeClass
 constrain_presence = noone
 ```
 
-Now, although the `initialize()` function will be called for MyClass, and it will have a chance to register as many callbacks as it desires, none of the callbacks will execute, in this case, until everyone has left. This could be useful for an interior motion detector App for instance. There are several different types of constraints:
+Now, although the `initialize()` function will be called for SomeClass, and it will have a chance to register as many callbacks as it desires, none of the callbacks will execute, in this case, until everyone has left. This could be useful for an interior motion detector App for instance. There are several different types of constraints:
 
 - input_boolean
 - input_select
