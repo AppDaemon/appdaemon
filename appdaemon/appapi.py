@@ -86,11 +86,23 @@ class AppDaemon():
 #
 # State
 #
-       
+
+  def entity_exists(self, entity_id):
+    if "." not in entity_id:
+      raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity_id))
+    with conf.ha_state_lock:
+      if entity_id in conf.ha_state:
+        return True
+      else:
+        return False
+      
   def get_state(self, entity_id = None, attribute = None):
     ha.log(conf.logger, "DEBUG", "get_state: {}.{}".format(entity_id, attribute))
     device = None
     entity = None
+    if entity_id != None and "." in entity_id:
+      if not self.entity_exists(entity_id):
+        return None
     if entity_id != None:
       if "." not in entity_id:
         if attribute != None:

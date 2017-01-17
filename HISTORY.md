@@ -2,6 +2,24 @@
 History
 =======
 
+1.3.7 (2016-10-20)
+------------------
+
+**Features**
+
+- Add `entity_exists()` call
+- List Apps holding up initialization
+
+**Fixes**
+
+- Add documentation for the days constraint
+- Various other contributed documentation fixes
+
+**Breaking Changes**
+
+None
+
+
 1.3.6 (2016-10-01)
 ------------------
 

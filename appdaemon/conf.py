@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 now = 0
 tick = 1
 realtime = True
+timeout = 10
 endtime = None
 interval = 1
 certpath = None

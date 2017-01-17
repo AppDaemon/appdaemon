@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.3.6"
+__version__ = "1.3.7"
 
 # Windows does not have Daemonize package so disallow
 
@@ -48,6 +48,13 @@ config_file = ""
 was_dst = None
 last_state = None
 reading_messages = False
+inits = {}
+
+def init_list():
+  list = ""
+  for key in inits:
+    list += key + " "
+  return key
 
 def init_sun():
   latitude = conf.latitude
@@ -439,6 +446,8 @@ def worker():
       conf.logger.warning("Found stale callback for {} - discarding".format(name))
 
     with conf.threads_busy_lock:
+      if inits.get(name):
+        inits.pop(name)
       conf.threads_busy -= 1
     q.task_done()
     
@@ -470,6 +479,7 @@ def init_object(name, class_name, module_name, args):
   # Call it's initialize function
 
   with conf.threads_busy_lock:
+    inits[name] = 1
     conf.threads_busy += 1
     q.put_nowait({"type": "initialize", "name": name, "id": conf.objects[name]["id"], "function": conf.objects[name]["object"].initialize})
 
@@ -785,7 +795,7 @@ def run():
     with conf.threads_busy_lock:
       if conf.threads_busy == 0:
         break
-      ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining".format(conf.threads_busy))
+      ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
     time.sleep(1)
 
   ha.log(conf.logger, "INFO", "App initialization complete")
@@ -826,7 +836,7 @@ def run():
           with conf.threads_busy_lock:
             if conf.threads_busy == 0:
               break
-            ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining".format(conf.threads_busy))
+            ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
           time.sleep(1)
 
         ha.log(conf.logger, "INFO", "App initialization complete")
@@ -841,6 +851,7 @@ def run():
         process_event({"event_type": "ha_started", "data": {}})
 
       headers = {'x-ha-access': conf.ha_key}
+      ha.log(conf.logger, "INFO", "Connecting to HA with timeout = {}".format(conf.timeout))
       messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000)
       for msg in messages:
         process_message(msg)
@@ -942,6 +953,7 @@ def main():
   conf.timezone = config['AppDaemon'].get("timezone")
   conf.time_zone = config['AppDaemon'].get("time_zone")
   conf.certpath = config['AppDaemon'].get("cert_path")
+  #conf.timeout = config['AppDaemon'].get("timeout")
   
   if conf.timezone == None and conf.time_zone == None:
     raise KeyError("time_zone")
@@ -957,7 +969,10 @@ def main():
 
   if conf.errorfile == None:
     conf.errorfile = "STDERR"
-   
+
+  if conf.timeout == None:
+    conf.timeout = 10
+    
   if isdaemon and (conf.logfile == "STDOUT" or conf.errorfile == "STDERR" or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"):
     raise ValueError("STDOUT and STDERR not allowed with -d")
     

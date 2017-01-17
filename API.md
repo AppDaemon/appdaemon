@@ -278,7 +278,7 @@ get_state(entity = None, attribute = None)
 
 #### Returns
 
-`get_state()` returns a `dictionary` or single value, the structure of which varies according to the parameters used.
+`get_state()` returns a `dictionary` or single value, the structure of which varies according to the parameters used. If an entity or attribute does not exist, `get_state()` will return `None`.
 
 #### Parameters
 
@@ -794,7 +794,7 @@ Arbitary keyword parameters to be provided to the callback function when it is i
 import datetime
 ...
 time = datetime.time(0, 0, 0)
-self.run_daily(self.run_daily_c, runtime)
+self.run_hourly(self.run_hourly_c, runtime)
 ```
 #### run_minutely()
 
@@ -841,7 +841,7 @@ Execute a repeating callback with a configurable delay starting at a specific ti
 #### Synopsis
 
 ```python
-self.handle = self.run_minutely(callback, time, repeat, **kwargs)
+self.handle = self.run_every(callback, time, repeat, **kwargs)
 ```
 
 #### Returns
@@ -872,9 +872,7 @@ Arbitary keyword parameters to be provided to the callback function when it is i
 # Run every 17 minutes starting in 2 hours time
 import datetime
 ...
-time = datetime.datetime.now() + datetime.timedelta(hours=2)
-repeat = datetime.timedelta(minutes=17)
-self.run_every(self.run_every_c, time, repeat)
+self.run_every(self.run_every_c, time, 17 * 60)
 ```
 
 #### cancel_timer()
@@ -1155,7 +1153,7 @@ Each service has different parameter requirements. This argument allows you to s
 #### Examples
 
 ```python
-self.call_service("light.turn_on", entity_id = "light/office_lamp", color_name = "red")
+self.call_service("light/turn_on", entity_id = "light/office_lamp", color_name = "red")
 self.call_service("notify/notify", title = "Hello", message = "Hello World")
 ```
 ### turn_on()
@@ -1892,6 +1890,34 @@ if device == "scene":
     do something specific to scenes
 ```
 
+### entity_exists()
+
+#### Synopsis
+
+```python
+entity_exists(entity)
+```
+
+`entity_exists()` is used to verify if a given entity exists in Home Assistant or not.
+
+#### Returns
+
+`get_state()` returns `True` if the entity exists, `False` otherwise.
+
+#### Parameters
+
+##### entity
+
+The fully qualified name of the entity to check for (including the device type)
+
+#### Examples
+
+```python
+# Return state for the entire system
+if self.entity_exists("light.living_room"):
+  do something 
+  ...
+```
 
 ### get_app()
 
@@ -2097,6 +2123,6 @@ $ appdaemon -s "2016-06-06 19:16:00" -s "2016-06-06 20:16:00" -t 0
 ```
 
 
-### A Note Times
+### A Note On Times
 
 Some Apps you write may depend on checking times of events relative to the current time. If you are time travelling this will not work if you use standard python library calls to get the current time and date etc. For this reason, always use the AppDamon supplied `time()`, `date()` and `datetime()` calls, documented earlier. These calls will consult with AppDaemon's internal time rather than the actual time and give you the correct values.
