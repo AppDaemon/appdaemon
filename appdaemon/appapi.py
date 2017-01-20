@@ -296,12 +296,17 @@ class AppDaemon():
     rargs = {"entity_id": entity_id, "option": option}
     self.call_service("input_select/select_option", **rargs)
   
-  def notify(self, message, title=None):
+  def notify(self, message, **kwargs):
     args ={}
     args["message"] = message
-    if title != None:
-      args["title"] = title
-    self.call_service("notify/notify", **args)
+    if "title" in kwargs:
+      args["title"] = kwargs["title"]
+    if "name" in kwargs:
+      service = "notify/{}".format(kwargs["name"])
+    else:
+      service = "notify/notify"
+      
+    self.call_service(service, **args)
 
   def persistent_notification(self, message, title=None, id=None):
     args ={}

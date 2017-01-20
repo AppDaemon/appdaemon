@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.3.7"
+__version__ = "1.4.0"
 
 # Windows does not have Daemonize package so disallow
 
@@ -451,7 +451,12 @@ def worker():
       conf.threads_busy -= 1
     q.task_done()
     
-
+def term_file(name):
+  global config
+  for key in config:
+    if "module" in config[key] and config[key]["module"] == name:
+      term_object(key)
+    
 def clear_file(name):
   global config
   for key in config:
@@ -470,6 +475,12 @@ def clear_object(object):
     if object in conf.schedule:
       del conf.schedule[object]
 
+def term_object(name):
+  if hasattr(conf.objects[name]["object"], "terminate"):
+    ha.log(conf.logger, "INFO", "Terminating Object {}".format(name))
+    # Call terminate directly rather than via worker thread so we know terminate has completed before we move on
+    conf.objects[name]["object"].terminate()
+      
 def init_object(name, class_name, module_name, args):
   ha.log(conf.logger, "INFO", "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
   module = __import__(module_name)
@@ -478,10 +489,12 @@ def init_object(name, class_name, module_name, args):
 
   # Call it's initialize function
 
-  with conf.threads_busy_lock:
-    inits[name] = 1
-    conf.threads_busy += 1
-    q.put_nowait({"type": "initialize", "name": name, "id": conf.objects[name]["id"], "function": conf.objects[name]["object"].initialize})
+  conf.objects[name]["object"].initialize()
+  
+  #with conf.threads_busy_lock:
+  #  inits[name] = 1
+  #  conf.threads_busy += 1
+  #  q.put_nowait({"type": "initialize", "name": name, "id": conf.objects[name]["id"], "function": conf.objects[name]["object"].initialize})
 
 def check_and_disapatch(name, function, entity, attribute, new_state, old_state, cold, cnew, kwargs):
   if attribute == "all":
@@ -624,6 +637,7 @@ def check_config():
             # Something changed, clear and reload
 
             ha.log(conf.logger, "INFO", "App '{}' changed - reloading".format(name))
+            term_object(name)
             clear_object(name)
             init_object(name, new_config[name]["class"], new_config[name]["module"], new_config[name])
         else:
@@ -667,6 +681,7 @@ def readApp(file, reload = False):
       #
       # Clear out callbacks and remove objects
       #
+      term_file(file)
       clear_file(file)
       #
       # Reload
@@ -703,8 +718,79 @@ def readApp(file, reload = False):
     if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
       ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
+def get_module_dependencies(file):
+  global config
+  module_name = get_module_from_path(file)
+  for key in config:
+    if "module" in config[key] and config[key]["module"] == module_name:
+      if "dependencies" in config[key]:
+        return config[key]["dependencies"].split(",")
+      else:
+        return None
+  
+  return None
+
+def in_previous_dependencies(dependencies, load_order):
+    
+  for dependency in dependencies:
+    dependency_found = False
+    for batch in load_order:
+      for module in batch:
+        module_name = get_module_from_path(module["name"])
+        #print(dependency, module_name)
+        if dependency == module_name:
+          #print("found {}".format(module_name))
+          dependency_found = True
+    if not dependency_found:
+      return False
+        
+  return True
+      
+def dependencies_are_satisfied(module, load_order):
+  dependencies = get_module_dependencies(module)
+  
+  if dependencies == None:
+    return True
+    
+  if in_previous_dependencies(dependencies, load_order):
+    return True
+    
+  return False
+
+def get_module_from_path(path):
+  name = os.path.basename(path)
+  module_name = os.path.splitext(name)[0]
+  return(module_name)
+  
+def find_dependent_modules(module): 
+  global config
+  module_name = get_module_from_path(module["name"])
+  dependents = []
+  for mod in config:
+    if "dependencies" in config[mod]:
+      for dep in config[mod]["dependencies"].split(","):
+        if dep == module_name:
+          dependents.append(config[mod]["module"])
+  return dependents
+  
+def get_file_from_module(module):
+  for file in conf.monitored_files:
+    module_name = get_module_from_path(file)
+    if module_name == module:
+      return file
+   
+  return None
+  
+def file_in_modules(file, modules):
+  for mod in modules:
+    if mod["name"] == file:
+      return True
+  return False
+  
 def readApps(all = False):
+  global config
   found_files = []
+  modules = []
   for root, subdirs, files in os.walk(conf.app_dir):
     if root[-11:] != "__pycache__":
       for file in files:
@@ -716,20 +802,86 @@ def readApps(all = False):
     if file == os.path.join(conf.app_dir, "__pycache__"):
      continue
     modified = os.path.getmtime(file)
-    try:
-      if file in conf.monitored_files:
-        if conf.monitored_files[file] < modified or all:
-          readApp(file, True)
-          conf.monitored_files[file] = modified
-      else:
-        readApp(file)
+    if file in conf.monitored_files:
+      if conf.monitored_files[file] < modified or all:
+        #readApp(file, True)
+        module = {"name": file, "reload": True, "load": True}
+        modules.append(module)
         conf.monitored_files[file] = modified
-    except:
-      ha.log(conf.logger, "WARNING", '-'*60)
-      ha.log(conf.logger, "WARNING", "Unexpected error loading file")
-      ha.log(conf.logger, "WARNING", '-'*60)
-      ha.log(conf.logger, "WARNING", traceback.format_exc())
-      ha.log(conf.logger, "WARNING", '-'*60)
+    else:
+      #readApp(file)
+      modules.append({"name": file, "reload": False, "load": True})
+      conf.monitored_files[file] = modified
+
+  # Add any required dependent files to the list
+  
+  if modules:
+    more_modules = True
+    while more_modules:
+      module_list = modules.copy()
+      for module in module_list:
+        dependent_modules = find_dependent_modules(module)
+        if not dependent_modules:
+          more_modules = False
+        else:
+          for mod in dependent_modules:
+            file = get_file_from_module(mod)
+            
+            if file == None:
+              ha.log(conf.logger, "ERROR", "Unable to resolve dependencies due to incorrect references")
+              ha.log(conf.logger, "ERROR", "The following modules have unresolved dependen:")
+              ha.log(conf.logger, "ERROR", get_module_from_path(module["file"]))
+              raise ValueError("Unresolved dependencies")
+            
+            mod_def = {"name": file, "reload": True, "load": True}
+            if not file_in_modules(file, modules):
+              #print("Appending {} ({})".format(mod, file))
+              modules.append(mod_def)
+  
+  # Loading order algorithm requires full population of modules so we will add in any missing modules but mark them for not loading
+  
+  for file in conf.monitored_files:
+    if not file_in_modules(file, modules):
+      modules.append({"name": file, "reload": False, "load": False})
+  
+  # Figure out loading order
+  
+  #for mod in modules:
+  #  print(mod["name"], mod["load"])
+  
+  load_order = []
+  
+  while modules:
+    batch = []
+    module_list = modules.copy()
+    for module in module_list:
+      #print(module)
+      if dependencies_are_satisfied(module["name"], load_order):
+        batch.append(module)
+        modules.remove(module)
+        
+    if not batch:
+      ha.log(conf.logger, "ERROR", "Unable to resolve dependencies due to incorrect or circular references")
+      ha.log(conf.logger, "ERROR", "The following modules have unresolved dependencies:")
+      for module in modules:
+        module_name = get_module_from_path(module["name"])
+        ha.log(conf.logger, "ERROR", module_name)
+      raise ValueError("Unresolved dependencies")
+      
+    load_order.append(batch)
+    
+  try:    
+    for batch in load_order:
+      for module in batch:
+        if module["load"]:
+          readApp(module["name"], module["reload"])
+      
+  except:
+    ha.log(conf.logger, "WARNING", '-'*60)
+    ha.log(conf.logger, "WARNING", "Unexpected error loading file")
+    ha.log(conf.logger, "WARNING", '-'*60)
+    ha.log(conf.logger, "WARNING", traceback.format_exc())
+    ha.log(conf.logger, "WARNING", '-'*60)
 
 def get_ha_state():
   ha.log(conf.logger, "DEBUG", "Refreshing HA state")
@@ -852,7 +1004,7 @@ def run():
 
       headers = {'x-ha-access': conf.ha_key}
       ha.log(conf.logger, "INFO", "Connecting to HA with timeout = {}".format(conf.timeout))
-      messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000)
+      messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000, timeout = conf.timeout)
       for msg in messages:
         process_message(msg)
     except:
@@ -947,23 +1099,9 @@ def main():
   conf.errorfile = config['AppDaemon'].get("errorfile")
   conf.app_dir = config['AppDaemon'].get("app_dir")
   conf.threads = int(config['AppDaemon']['threads'])
-  conf.latitude = float(config['AppDaemon']['latitude'])
-  conf.longitude = float(config['AppDaemon']['longitude'])
-  conf.elevation = float(config['AppDaemon']['elevation'])
-  conf.timezone = config['AppDaemon'].get("timezone")
-  conf.time_zone = config['AppDaemon'].get("time_zone")
   conf.certpath = config['AppDaemon'].get("cert_path")
-  #conf.timeout = config['AppDaemon'].get("timeout")
-  
-  if conf.timezone == None and conf.time_zone == None:
-    raise KeyError("time_zone")
-
-  if conf.time_zone == None:
-    conf.time_zone = conf.timezone
-
-  # Use the supplied timezone
-  os.environ['TZ'] = conf.time_zone
-  
+  conf.timeout = config['AppDaemon'].get("timeout")
+    
   if conf.logfile == None:
     conf.logfile = "STDOUT"
 
@@ -972,6 +1110,8 @@ def main():
 
   if conf.timeout == None:
     conf.timeout = 10
+  else:
+    conf.timeout = int(conf.timeout)
     
   if isdaemon and (conf.logfile == "STDOUT" or conf.errorfile == "STDERR" or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"):
     raise ValueError("STDOUT and STDERR not allowed with -d")
@@ -1015,11 +1155,43 @@ def main():
   #efh.setFormatter(formatter)
   conf.error.addHandler(efh)
 
-  # Now we have logging, warn about timezone
-  if conf.timezone != None:
-    ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please use time_zone instead")
+  # Check with HA to get various info
+  
+  ha_config = ha.get_ha_config()
+      
+  conf.latitude = ha_config["latitude"]
+  conf.longitude = ha_config["longitude"]
+  #
+  conf.time_zone = ha_config["time_zone"]
+  
+  if "elevation" in ha_config:
+    conf.elevation = ha_config["elevation"]
+    if "elevation" in config['AppDaemon']:
+      ha.log(conf.logger, "WARNING", "'elevation' directive is deprecated, please remove")
+  else:
+    conf.elevation = config['AppDaemon']["elevation"]
 
   
+  # Use the supplied timezone
+  os.environ['TZ'] = conf.time_zone
+
+  
+  # Now we have logging, warn about deprecated directives
+  if "latitude" in config['AppDaemon']:
+    ha.log(conf.logger, "WARNING", "'latitude' directive is deprecated, please remove")
+
+  if "longitude" in config['AppDaemon']:
+    ha.log(conf.logger, "WARNING", "'longitude' directive is deprecated, please remove")
+
+  #if "elevation" in config['AppDaemon']:
+  #  ha.log(conf.logger, "WARNING", "'elevation' directive is deprecated, please remove")
+
+  if "timezone" in config['AppDaemon']:
+    ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please remove")
+
+  if "time_zone" in config['AppDaemon']:
+    ha.log(conf.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
+
   init_sun()
 
   config_file_modified = os.path.getmtime(config_file)

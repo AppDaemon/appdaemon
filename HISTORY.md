@@ -2,7 +2,26 @@
 History
 =======
 
-1.3.7 (2016-10-20)
+1.4.0 (2017-01-20)
+------------------
+
+**Features**
+
+- notify() now supports names
+- It is now possible to set a timeout value for underlying calls to the HA EventStream
+- It is no longer neccesary to specify latitude, longitude and timezone in the config file, the info is pulled from HA
+- When being reloaded, Apps are now able to clean up if desired by creating an optional `terminate()` function.
+- Added support for module dependencies
+
+**Fixes**
+
+**Breaking Changes**
+
+- To include a title when using the `notify()` call, you must now use the keyword `title` instead of the optional positional parameter
+
+None
+
+1.3.7 (2017-01-17)
 ------------------
 
 **Features**

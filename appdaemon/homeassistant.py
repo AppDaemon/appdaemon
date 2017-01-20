@@ -164,6 +164,17 @@ def get_ha_state(entity_id = None):
   r = requests.get(apiurl, headers=headers, verify = conf.certpath)
   r.raise_for_status()
   return r.json()
+
+def get_ha_config():
+  log(conf.logger, "DEBUG", "get_ha_config()")  
+  if conf.ha_key != "":
+    headers = {'x-ha-access': conf.ha_key}
+  else:
+    headers = {}
+  apiurl = "{}/api/config".format(conf.ha_url)
+  r = requests.get(apiurl, headers=headers, verify = conf.certpath)
+  r.raise_for_status()
+  return r.json()
   
 def get_offset(kwargs):
   if "offset" in kwargs["kwargs"]:

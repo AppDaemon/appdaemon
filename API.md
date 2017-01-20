@@ -40,6 +40,10 @@ After the `initialize()` function is in place, the rest of the app consists of f
 
 These, along with their various subscription calls and helper functions, will be described in detail in later sections.
 
+Optionally, a class can add a `terminate()` function. This function will be called ahead of the reload to allow the class to perform any tidy up that is necessary. 
+
+WARNING: Unlike other types of callback, calls to `initialize() and `terminate()` are synchronous to AppDaemon's management code to ensure that initialization or cleanup is completed before the App is loaded or reloaded. This means that any significant delays in the `terminate()` code could have the effect of hanging AppDaemon for the duration of that code - this should be avoided.
+
 To wrap up this section, here is a complete functioning App (with comments):
 
 ```python
@@ -61,7 +65,7 @@ class NightLight(appapi.AppDaemon):
     self.turn_on("light.porch")
 ```
 
-To summarize - an App's lifecycle consists of being initialized, which allows it to set one or more state and/or schedule callbacks. When those callbacks are activated, the App will typically use one of the Service Calling calls to effect some change to the devices of the system and then wait for the next relevant state change. That's all there is to it!
+To summarize - an App's lifecycle consists of being initialized, which allows it to set one or more state and/or schedule callbacks. When those callbacks are activated, the App will typically use one of the Service Calling calls to effect some change to the devices of the system and then wait for the next relevant state change. Finally, if the App is reloaded, there is a call to its `terminate()` function if it exists. That's all there is to it!
 
 ## About the API
 
@@ -95,7 +99,7 @@ When starting the system for the first time or when reloading an App or Module, 
 
 ## Reloading Modules and Classes
 
-Reloading of modules is automatic. When the system spots a change in a module, it will automatically reload and recompile the module. It will also figure out which Apps were using that Module and restart them, causing all of their existing callbacks to be cleared, and their `initialize()` function to be called.
+Reloading of modules is automatic. When the system spots a change in a module, it will automatically reload and recompile the module. It will also figure out which Apps were using that Module and restart them, causing their `terminate()` functions to be called if they exist, all of their existing callbacks to be cleared, and their `initialize()` function to be called.
 
 The same is true if changes are made to an App's configuration - changing the class, or arguments (see later) will cause that app to be reloaded in the same way. The system is also capable of detecting if a new app has been added, or if one has been removed, and it will act appropriately, starting the new app immediately and removing all callbacks for the removed app.
 
@@ -139,6 +143,47 @@ class = MotionLight
 sensor = binary_sensor.garage
 light = light.garage
 ```
+
+## Module Dependencies
+
+It is possible for modules to be dependant upon other modules. Some examples where this might be the case are:
+
+- A Global module that defines constants for use in other modules
+- A module that provides a service for other modules, e.g. a TTS module
+- A Module that provides part of an object hierarchy to other modules
+
+In these cases, when changes are made to one of these modules, we also want the modules that depend upon them to be reloaded. Furthermore, we also want to guarantee that they are loaded in order so that the modules dpended upon by other modules are loaded first.
+
+AppDaemon fully supports this through the use of the dependency directive in the App configuration. Using this directice, each App identifies modules that it depends upon. Note that the dependency is at the module level, not the App level, since a change to the module will force a reload of all apps using it anyway. The dependency directive will identify the module name of the App it cares about, and AppDaemon will see to it that the dependency is loaded before the module depending on it, and that the dependent module will be reloaded if it changes. 
+
+For example, an App `Consumer`, uses another app `Sound` to play sound files. `Sound` in turn uses `Global` to store some global values. We can represent these dependencies as follows:
+
+```ini
+[Global]
+module = global
+class = Global
+
+[Sound]
+module = sound
+class = Sound
+dependencies = global # Note - module name not App name
+
+[Consumer]
+module = sound
+class = Sound
+dependencies = sound
+```
+
+It is also possible to have multiple dependencies, added as a comma separate list (no spaces)
+
+```ini
+[Consumer]
+module = sound
+class = Sound
+dependencies = sound,global
+```
+
+AppDaemon will write errors to the log if a dependency is missing and it should also detect circular dependencies.
 
 ## Callback Constraints
 
@@ -1311,12 +1356,12 @@ self.select_option("input_select.mode", "Day")
 
 ### notify()
 
-This is a convenience function for the `notify.notify` service. It will send a notification to your defualt notification service. If you have more than one, use `call_service()` to call the specific notification service you require instead.
+This is a convenience function for the `notify.notify` service. It will send a notification to a named notification service. If the name is not specified it will default to `notify/notify`.
 
 #### Synopsis
 
 ```python
-notify(message, title=None)
+notify(message, **kwargs)
 ```
 #### Returns
 
@@ -1328,14 +1373,19 @@ None
 
 Message to be sent to the notification service.
 
-##### title
+##### title = 
 
 Title of the notification - optional.
+
+##### name = 
+
+Name of the notification service - optional.
 
 #### Examples
 
 ```python
 self.notify("", "Switching mode to Evening")
+self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
 ```
 
 ## Events
@@ -1902,7 +1952,7 @@ entity_exists(entity)
 
 #### Returns
 
-`get_state()` returns `True` if the entity exists, `False` otherwise.
+`entity_exists()` returns `True` if the entity exists, `False` otherwise.
 
 #### Parameters
 
