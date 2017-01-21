@@ -2,6 +2,21 @@
 History
 =======
 
+1.5.0 (2017-01-21)
+------------------
+
+**Features**
+
+- Swap from EventStream to Websockets
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 1.4.2 (2017-01-21)
 ------------------
 

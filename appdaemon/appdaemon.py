@@ -14,7 +14,7 @@ import logging
 import os
 import os.path
 import glob
-from sseclient import SSEClient
+from websocket import create_connection
 from logging.handlers import RotatingFileHandler
 from queue import Queue
 import threading
@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.4.2"
+__version__ = "1.5.0dev"
 
 # Windows does not have Daemonize package so disallow
 
@@ -606,12 +606,8 @@ def process_event(data):
             dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "event", "event": data['event_type'], "function": callback["function"], "data": data["data"], "kwargs": callback["kwargs"]})
 
 
-def process_message(msg):
+def process_message(data):
   try:
-    if msg.data == "ping":
-      return
-
-    data = json.loads(msg.data)
     ha.log(conf.logger, "DEBUG", "Event type:{}:".format(data['event_type']))
     ha.log(conf.logger, "DEBUG", data["data"])
 
@@ -986,7 +982,10 @@ def run():
   first_time = True
   reading_messages = True
 
+  id = 0
+
   while True:
+    id += 1
     try:
       if first_time == False:
         # Get initial state
@@ -1019,15 +1018,52 @@ def run():
       else:
         process_event({"event_type": "ha_started", "data": {}})
 
-      headers = {'x-ha-access': conf.ha_key}
-      if conf.timeout == None:
-        ha.log(conf.logger, "INFO", "Connecting to HA".format(conf.timeout))
-        messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000)
-      else:
-        ha.log(conf.logger, "INFO", "Connecting to HA with timeout = {}".format(conf.timeout))
-        messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000, timeout = conf.timeout)
-      for msg in messages:
-        process_message(msg)
+      #
+      # Connect to websocket interface
+      #
+      url = conf.ha_url.replace("https", "ws")
+      url = conf.ha_url.replace("http", "ws")
+      
+      ws = create_connection("{}/api/websocket".format(url))
+      result =  json.loads(ws.recv())
+      ha.log(conf.logger, "INFO", "Connected to Home Assistant {}".format(result["ha_version"]))
+      #
+      # Check if auth required, if so send password
+      #
+      if result["type"] == "auth_required":
+        auth = json.dumps({"type": "auth", "api_password": conf.ha_key})
+        ws.send(auth)
+        result = json.loads(ws.recv())
+        if result["type"] != "auth_ok":
+          ha.log(conf.logger, "WARNING", "Error in authentication")
+          raise ValueError("Error in authentication")
+      #
+      # Subscribe to event stream
+      #
+      sub = json.dumps({"id": id, "type": "subscribe_events"})
+      ws.send(sub)
+      result = json.loads(ws.recv())
+      if not(result["id"] == id and result["type"] == "result" and result["success"] == True):
+        ha.log(conf.logger, "WARNING", "Unable to subscribe to HA events, id = {}".format(id))
+        ha.log(conf.logger, "WARNING", result)
+        raise ValueError("Error subscribing to HA Events")
+      
+      #
+      # Loop forever consuming events
+      #
+
+      while True:
+        result =  json.loads(ws.recv())
+        if not(result["id"] == id and result["type"] == "event"):
+          ha.log(conf.logger, "WARNING", "Unexpected result from Home Assistant, id = {}".format(id))
+          ha.log(conf.logger, "WARNING", result)
+          raise ValueError("Unexpected result from Home Assistant")
+          
+        if result["event"]["event_type"] == "state_changed":
+          if result["event"]["data"]["entity_id"] == "light.office_1":
+            print(result)
+        process_message(result["event"])
+
     except:
       reading_messages = False
       ha.log(conf.logger, "WARNING", "Not connected to Home Assistant, retrying in 5 seconds")
