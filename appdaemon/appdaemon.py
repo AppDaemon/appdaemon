@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.4.1"
+__version__ = "1.4.2"
 
 # Windows does not have Daemonize package so disallow
 
@@ -1020,8 +1020,12 @@ def run():
         process_event({"event_type": "ha_started", "data": {}})
 
       headers = {'x-ha-access': conf.ha_key}
-      ha.log(conf.logger, "INFO", "Connecting to HA with timeout = {}".format(conf.timeout))
-      messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000, timeout = conf.timeout)
+      if conf.timeout == None:
+        ha.log(conf.logger, "INFO", "Connecting to HA".format(conf.timeout))
+        messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000)
+      else:
+        ha.log(conf.logger, "INFO", "Connecting to HA with timeout = {}".format(conf.timeout))
+        messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000, timeout = conf.timeout)
       for msg in messages:
         process_message(msg)
     except:
@@ -1124,9 +1128,7 @@ def main():
   if conf.errorfile == None:
     conf.errorfile = "STDERR"
 
-  if conf.timeout == None:
-    conf.timeout = 10
-  else:
+  if conf.timeout != None:
     conf.timeout = int(conf.timeout)
     
   if isdaemon and (conf.logfile == "STDOUT" or conf.errorfile == "STDERR" or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"):

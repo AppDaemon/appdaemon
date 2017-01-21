@@ -2,6 +2,21 @@
 History
 =======
 
+1.4.2 (2017-01-21)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Remove timeout parameter from SSEClient call unless timeout is explicitly specified in the congi file
+
+**Breaking Changes**
+
+None
+
 1.4.1 (2017-01-21)
 ------------------
 
