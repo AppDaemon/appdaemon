@@ -901,7 +901,7 @@ Function to be invoked when the requested state change occurs. It must conform t
 
 ##### time
 
-A Python `time` object that specifies when the initial callback will occur.
+A Python `datetime` object that specifies when the initial callback will occur.
 
 ##### repeat
 
