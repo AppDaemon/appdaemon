@@ -13,7 +13,11 @@ History
 
 **Fixes**
 
+None
+
 **Breaking Changes**
+
+None
 
 1.4.0 (2017-01-20)
 ------------------
