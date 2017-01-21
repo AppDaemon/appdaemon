@@ -11,7 +11,7 @@ None
 
 **Fixes**
 
-- Remove timeout parameter from SSEClient call unless timeout is explicitly specified in the congi file
+- Remove timeout parameter from SSEClient call unless timeout is explicitly specified in the config file
 
 **Breaking Changes**
 
