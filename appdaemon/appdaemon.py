@@ -32,7 +32,7 @@ import platform
 import math
 import random
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 # Windows does not have Daemonize package so disallow
 
@@ -280,33 +280,50 @@ def process_sun(action):
           schedule["offset"] = c_offset
 
 def exec_schedule(name, entry, args):
-  # Locking performed in calling function
-  if "inactive" in args:
-    return
-  # Call function
-  if "entity" in args["kwargs"]:
-    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": args["callback"], "attribute": args["kwargs"]["attribute"], "entity": args["kwargs"]["entity"], "new_state": args["kwargs"]["new_state"], "old_state": args["kwargs"]["old_state"], "kwargs": args["kwargs"]})
-  else:
-    dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "kwargs": args["kwargs"], })
-  # If it is a repeating entry, rewrite with new timestamp
-  if args["repeat"]:    
-    if args["type"] == "next_rising" or args["type"] == "next_setting":
-      # Its sunrise or sunset - if the offset is negative we won't know the next rise or set time yet so mark as inactive
-      # So we can adjust with a scan at sun rise/set
-      if args["offset"] < 0:
-        args["inactive"] = 1
-      else:
-        # We have a valid time for the next sunrise/set so use it
-        c_offset = ha.get_offset(args)
-        args["timestamp"] = ha.calc_sun(args["type"]) + c_offset
-        args["offset"] = c_offset
+  try:
+    # Locking performed in calling function
+    if "inactive" in args:
+      return
+    # Call function
+    if "entity" in args["kwargs"]:
+      dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "attr", "function": args["callback"], "attribute": args["kwargs"]["attribute"], "entity": args["kwargs"]["entity"], "new_state": args["kwargs"]["new_state"], "old_state": args["kwargs"]["old_state"], "kwargs": args["kwargs"]})
     else:
-      # Not sunrise or sunset so just increment the timestamp with the repeat interval
-      args["basetime"] += args["interval"]
-      args["timestamp"] = args["basetime"] + ha.get_offset(args)
-  else: # Otherwise just delete
+      dispatch_worker(name, {"name": name, "id": conf.objects[name]["id"], "type": "timer", "function": args["callback"], "kwargs": args["kwargs"], })
+    # If it is a repeating entry, rewrite with new timestamp
+    if args["repeat"]:    
+      if args["type"] == "next_rising" or args["type"] == "next_setting":
+        # Its sunrise or sunset - if the offset is negative we won't know the next rise or set time yet so mark as inactive
+        # So we can adjust with a scan at sun rise/set
+        if args["offset"] < 0:
+          args["inactive"] = 1
+        else:
+          # We have a valid time for the next sunrise/set so use it
+          c_offset = ha.get_offset(args)
+          args["timestamp"] = ha.calc_sun(args["type"]) + c_offset
+          args["offset"] = c_offset
+      else:
+        # Not sunrise or sunset so just increment the timestamp with the repeat interval
+        args["basetime"] += args["interval"]
+        args["timestamp"] = args["basetime"] + ha.get_offset(args)
+    else: # Otherwise just delete
+      del conf.schedule[name][entry]
+  
+  except:
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", "Unexpected error during exec_schedule() for App: {}".format(name))
+    ha.log(conf.error, "WARNING", "Args: {}".format(args))
+    ha.log(conf.error, "WARNING", '-'*60)
+    ha.log(conf.error, "WARNING", traceback.format_exc())
+    ha.log(conf.error, "WARNING", '-'*60)
+    if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
+      # When explicitly logging to stdout and stderr, suppress
+      # log messages abour writing an error (since they show up anyway)
+      ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
+    ha.log(conf.error, "WARNING", "Scheduler entry has been deleted")
+    ha.log(conf.error, "WARNING", '-'*60)
+    
     del conf.schedule[name][entry]
-
+      
 def do_every_second(utc):
 
   global was_dst
@@ -435,13 +452,13 @@ def worker():
 
       except:
         ha.log(conf.error, "WARNING", '-'*60)
-        ha.log(conf.error, "WARNING", "Unexpected error:")
+        ha.log(conf.error, "WARNING", "Unexpected error in worker for App {}:".format(name))
+        ha.log(conf.error, "WARNING", "Worker Ags: {}".format(args))        
         ha.log(conf.error, "WARNING", '-'*60)
         ha.log(conf.error, "WARNING", traceback.format_exc())
         ha.log(conf.error, "WARNING", '-'*60)
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
           ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
-
     else:
       conf.logger.warning("Found stale callback for {} - discarding".format(name))
 
@@ -943,12 +960,12 @@ def run():
 
   # wait until all threads have finished initializing
   
-  while True:
-    with conf.threads_busy_lock:
-      if conf.threads_busy == 0:
-        break
-      ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
-    time.sleep(1)
+  #while True:
+  #  with conf.threads_busy_lock:
+  #    if conf.threads_busy == 0:
+  #      break
+  #    ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
+  #  time.sleep(1)
 
   ha.log(conf.logger, "INFO", "App initialization complete")
   
@@ -984,12 +1001,12 @@ def run():
         # Load apps
         readApps(True)
 
-        while True:
-          with conf.threads_busy_lock:
-            if conf.threads_busy == 0:
-              break
-            ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
-          time.sleep(1)
+        #while True:
+        #  with conf.threads_busy_lock:
+        #    if conf.threads_busy == 0:
+        #      break
+        #    ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
+        #  time.sleep(1)
 
         ha.log(conf.logger, "INFO", "App initialization complete")
 
@@ -1010,12 +1027,11 @@ def run():
     except:
       reading_messages = False
       ha.log(conf.logger, "WARNING", "Not connected to Home Assistant, retrying in 5 seconds")
-      if last_state == None:
-        ha.log(conf.logger, "WARNING", '-'*60)
-        ha.log(conf.logger, "WARNING", "Unexpected error:")
-        ha.log(conf.logger, "WARNING", '-'*60)
-        ha.log(conf.logger, "WARNING", traceback.format_exc())
-        ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", "Unexpected error:")
+      ha.log(conf.logger, "WARNING", '-'*60)
+      ha.log(conf.logger, "WARNING", traceback.format_exc())
+      ha.log(conf.logger, "WARNING", '-'*60)
     time.sleep(5)
 
 def find_path(name):

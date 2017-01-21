@@ -2,6 +2,19 @@
 History
 =======
 
+1.4.1 (2017-01-21)
+------------------
+
+**Features**
+
+- turn_off() now allows passing of parameters to the underlying service call
+- Better handling of scheduler and worker thread errors. More diagnostics, plus scheduler errors now delete the entry where possible to avoid spamming log entries
+- More verbose error handling with HA communication errors
+
+**Fixes**
+
+**Breaking Changes**
+
 1.4.0 (2017-01-20)
 ------------------
 
@@ -18,8 +31,6 @@ History
 **Breaking Changes**
 
 - To include a title when using the `notify()` call, you must now use the keyword `title` instead of the optional positional parameter
-
-None
 
 1.3.7 (2017-01-17)
 ------------------

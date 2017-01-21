@@ -278,10 +278,15 @@ class AppDaemon():
       rargs["entity_id"] = entity_id
     self.call_service("homeassistant/turn_on", **rargs)
     
-  def turn_off(self, entity_id):
+  def turn_off(self, entity_id, **kwargs):
     self._check_entity(entity_id)
-    self.call_service("homeassistant/turn_off", entity_id = entity_id)
-
+    if kwargs == {}:
+      rargs = {"entity_id": entity_id}
+    else:
+      rargs = kwargs
+      rargs["entity_id"] = entity_id
+    self.call_service("homeassistant/turn_off", **rargs)
+    
   def toggle(self, entity_id):
     self._check_entity(entity_id)
     self.call_service("homeassistant/toggle", entity_id = entity_id)
