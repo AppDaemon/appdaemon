@@ -17,6 +17,7 @@ import glob
 from websocket import create_connection
 from logging.handlers import RotatingFileHandler
 from queue import Queue
+from sseclient import SSEClient
 import threading
 import appdaemon.conf as conf
 import time
@@ -49,6 +50,8 @@ was_dst = None
 last_state = None
 reading_messages = False
 inits = {}
+stopping = False
+ws = None
 
 def init_list():
   list = ""
@@ -133,14 +136,20 @@ def do_every(period,f):
         t = math.floor(r)
 
 def handle_sig(signum, frame):
+  global stopping
+  global ws
   if signum == signal.SIGUSR1:
     dump_schedule()
     dump_callbacks()
     dump_objects()
     dump_queue()
     dump_sun()
-  if signum == signal.SIGUSR2:
+  if signum == signal.SIGHUP:
     readApps(True)
+  if signum == signal.SIGINT:
+    ha.log(conf.logger, "INFO", "AppDaemon is shutting down")
+    stopping = True
+    ws.close()
 
 def dump_sun():
     ha.log(conf.logger, "INFO", "--------------------------------------------------")
@@ -256,9 +265,7 @@ def dispatch_worker(name, args):
       unconstrained = False
 
   if unconstrained:
-    with conf.threads_busy_lock:
-      conf.threads_busy += 1
-      q.put_nowait(args)
+    q.put_nowait(args)
 
 def today_is_constrained(days):
     day = ha.get_now().weekday()
@@ -462,10 +469,9 @@ def worker():
     else:
       conf.logger.warning("Found stale callback for {} - discarding".format(name))
 
-    with conf.threads_busy_lock:
-      if inits.get(name):
-        inits.pop(name)
-      conf.threads_busy -= 1
+    if inits.get(name):
+      inits.pop(name)
+
     q.task_done()
     
 def term_file(name):
@@ -493,10 +499,11 @@ def clear_object(object):
       del conf.schedule[object]
 
 def term_object(name):
-  if hasattr(conf.objects[name]["object"], "terminate"):
-    ha.log(conf.logger, "INFO", "Terminating Object {}".format(name))
-    # Call terminate directly rather than via worker thread so we know terminate has completed before we move on
-    conf.objects[name]["object"].terminate()
+  if name in conf.callbacks:
+    if hasattr(conf.objects[name]["object"], "terminate"):
+      ha.log(conf.logger, "INFO", "Terminating Object {}".format(name))
+      # Call terminate directly rather than via worker thread so we know terminate has completed before we move on
+      conf.objects[name]["object"].terminate()
       
 def init_object(name, class_name, module_name, args):
   ha.log(conf.logger, "INFO", "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
@@ -908,6 +915,8 @@ def run():
   global was_dst
   global last_state
   global reading_messages
+  global stopping
+  global ws
 
   ha.log(conf.logger, "DEBUG", "Entering run()")
 
@@ -938,12 +947,13 @@ def run():
       get_ha_state()
       last_state = ha.get_now()
     except:
-      ha.log(conf.logger, "WARNING", '-'*60)
-      ha.log(conf.logger, "WARNING", "Unexpected error:")
-      ha.log(conf.logger, "WARNING", '-'*60)
-      ha.log(conf.logger, "WARNING", traceback.format_exc())
-      ha.log(conf.logger, "WARNING", '-'*60)
-      ha.log(conf.logger, "WARNING", "Not connected to Home Assistant, retrying in 5 seconds")
+      ha.log(conf.logger, "WARNING", "Disconnected from Home Assistant, retrying in 5 seconds")
+      if conf.loglevel == "DEBUG":
+        ha.log(conf.logger, "WARNING", '-'*60)
+        ha.log(conf.logger, "WARNING", "Unexpected error:")
+        ha.log(conf.logger, "WARNING", '-'*60)
+        ha.log(conf.logger, "WARNING", traceback.format_exc())
+        ha.log(conf.logger, "WARNING", '-'*60)
     time.sleep(5)
       
 
@@ -953,15 +963,6 @@ def run():
   ha.log(conf.logger, "DEBUG", "Reading Apps")
 
   readApps(True)
-
-  # wait until all threads have finished initializing
-  
-  #while True:
-  #  with conf.threads_busy_lock:
-  #    if conf.threads_busy == 0:
-  #      break
-  #    ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
-  #  time.sleep(1)
 
   ha.log(conf.logger, "INFO", "App initialization complete")
   
@@ -984,7 +985,7 @@ def run():
 
   id = 0
 
-  while True:
+  while not stopping:
     id += 1
     try:
       if first_time == False:
@@ -1000,13 +1001,6 @@ def run():
         # Load apps
         readApps(True)
 
-        #while True:
-        #  with conf.threads_busy_lock:
-        #    if conf.threads_busy == 0:
-        #      break
-        #    ha.log(conf.logger, "INFO", "Waiting for App initialization: {} remaining: {}".format(conf.threads_busy, init_list()))
-        #  time.sleep(1)
-
         ha.log(conf.logger, "INFO", "App initialization complete")
 
       #
@@ -1018,62 +1012,82 @@ def run():
       else:
         process_event({"event_type": "ha_started", "data": {}})
 
-      #
-      # Connect to websocket interface
-      #
-      url = conf.ha_url.replace("https", "ws")
-      url = conf.ha_url.replace("http", "ws")
-      
-      ws = create_connection("{}/api/websocket".format(url))
-      result =  json.loads(ws.recv())
-      ha.log(conf.logger, "INFO", "Connected to Home Assistant {}".format(result["ha_version"]))
-      #
-      # Check if auth required, if so send password
-      #
-      if result["type"] == "auth_required":
-        auth = json.dumps({"type": "auth", "api_password": conf.ha_key})
-        ws.send(auth)
-        result = json.loads(ws.recv())
-        if result["type"] != "auth_ok":
-          ha.log(conf.logger, "WARNING", "Error in authentication")
-          raise ValueError("Error in authentication")
-      #
-      # Subscribe to event stream
-      #
-      sub = json.dumps({"id": id, "type": "subscribe_events"})
-      ws.send(sub)
-      result = json.loads(ws.recv())
-      if not(result["id"] == id and result["type"] == "result" and result["success"] == True):
-        ha.log(conf.logger, "WARNING", "Unable to subscribe to HA events, id = {}".format(id))
-        ha.log(conf.logger, "WARNING", result)
-        raise ValueError("Error subscribing to HA Events")
-      
-      #
-      # Loop forever consuming events
-      #
-
-      while True:
+      if conf.version < 340 or conf.commtype == "SSE":
+        #
+        # Older version of HA - connect using SSEClient
+        #
+        if conf.commtype == "SSE":
+          ha.log(conf.logger, "INFO", "Using SSE")
+        else:
+          ha.log(conf.logger, "INFO", "Home Assistant version < 0.34.0 - falling back to SSE")
+        headers = {'x-ha-access': conf.ha_key}
+        if conf.timeout == None:
+          messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000)
+          ha.log(conf.logger, "INFO", "Connected to Home Assistant".format(conf.timeout))
+        else:
+          messages = SSEClient("{}/api/stream".format(conf.ha_url), verify = False, headers = headers, retry = 3000, timeout = conf.timeout)
+          ha.log(conf.logger, "INFO", "Connected to Home Assistant with timeout = {}".format(conf.timeout))
+        for msg in messages:
+          if msg.data != "ping":
+            process_message(json.loads(msg.data))
+      else:
+        #
+        # Connect to websocket interface
+        #
+        url = conf.ha_url.replace("https", "ws")
+        url = conf.ha_url.replace("http", "ws")
+        
+        ws = create_connection("{}/api/websocket".format(url))
         result =  json.loads(ws.recv())
-        if not(result["id"] == id and result["type"] == "event"):
-          ha.log(conf.logger, "WARNING", "Unexpected result from Home Assistant, id = {}".format(id))
+        ha.log(conf.logger, "INFO", "Connected to Home Assistant {}".format(result["ha_version"]))
+        #
+        # Check if auth required, if so send password
+        #
+        if result["type"] == "auth_required":
+          auth = json.dumps({"type": "auth", "api_password": conf.ha_key})
+          ws.send(auth)
+          result = json.loads(ws.recv())
+          if result["type"] != "auth_ok":
+            ha.log(conf.logger, "WARNING", "Error in authentication")
+            raise ValueError("Error in authentication")
+        #
+        # Subscribe to event stream
+        #
+        sub = json.dumps({"id": id, "type": "subscribe_events"})
+        ws.send(sub)
+        result = json.loads(ws.recv())
+        if not(result["id"] == id and result["type"] == "result" and result["success"] == True):
+          ha.log(conf.logger, "WARNING", "Unable to subscribe to HA events, id = {}".format(id))
           ha.log(conf.logger, "WARNING", result)
-          raise ValueError("Unexpected result from Home Assistant")
-          
-        if result["event"]["event_type"] == "state_changed":
-          if result["event"]["data"]["entity_id"] == "light.office_1":
-            print(result)
-        process_message(result["event"])
+          raise ValueError("Error subscribing to HA Events")
+        
+        #
+        # Loop forever consuming events
+        #
+
+        while not stopping:
+          result =  json.loads(ws.recv())
+          if not(result["id"] == id and result["type"] == "event"):
+            ha.log(conf.logger, "WARNING", "Unexpected result from Home Assistant, id = {}".format(id))
+            ha.log(conf.logger, "WARNING", result)
+            raise ValueError("Unexpected result from Home Assistant")
+            
+          process_message(result["event"])
 
     except:
       reading_messages = False
-      ha.log(conf.logger, "WARNING", "Not connected to Home Assistant, retrying in 5 seconds")
-      ha.log(conf.logger, "WARNING", '-'*60)
-      ha.log(conf.logger, "WARNING", "Unexpected error:")
-      ha.log(conf.logger, "WARNING", '-'*60)
-      ha.log(conf.logger, "WARNING", traceback.format_exc())
-      ha.log(conf.logger, "WARNING", '-'*60)
-    time.sleep(5)
+      if not stopping:
+        ha.log(conf.logger, "WARNING", "Disconnected from Home Assistant, retrying in 5 seconds")
+        if conf.loglevel == "DEBUG":
+          ha.log(conf.logger, "WARNING", '-'*60)
+          ha.log(conf.logger, "WARNING", "Unexpected error:")
+          ha.log(conf.logger, "WARNING", '-'*60)
+          ha.log(conf.logger, "WARNING", traceback.format_exc())
+          ha.log(conf.logger, "WARNING", '-'*60)
+        time.sleep(5)
 
+  ha.log(conf.logger, "INFO", "Disconnected from Home Assistant")
+  
 def find_path(name):
   for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"), os.path.join(os.path.sep, "etc", "appdaemon")]:
     file = os.path.join(path, name)
@@ -1093,7 +1107,8 @@ def main():
   # Windows does not support SIGUSR1 or SIGUSR2
   if platform.system() != "Windows":
     signal.signal(signal.SIGUSR1, handle_sig)
-    signal.signal(signal.SIGUSR2, handle_sig)
+    signal.signal(signal.SIGINT, handle_sig)
+    signal.signal(signal.SIGHUP, handle_sig)
 
   
   # Get command line args
@@ -1108,6 +1123,7 @@ def main():
   parser.add_argument("-i", "--interval", help = "multiplier for scheduler tick", type = float, default = 1)
   parser.add_argument("-D", "--debug", help="debug level", default = "INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
   parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
+  parser.add_argument('--commtype', help="Communication Library to use", default = "WEBSOCKETS", choices=["SSE", "WEBSOCKETS"])
   
   # Windows does not have Daemonize package so disallow
   if platform.system() != "Windows":
@@ -1118,6 +1134,7 @@ def main():
   
   conf.tick = args.tick
   conf.interval = args.interval
+  conf.loglevel = args.debug
   
   if args.starttime != None:
     conf.now = datetime.datetime.strptime(args.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
@@ -1132,6 +1149,7 @@ def main():
   
   config_file = args.config
 
+  conf.commtype = args.commtype
   
   if config_file == None:
     config_file = find_path("appdaemon.cfg")
@@ -1156,16 +1174,12 @@ def main():
   conf.app_dir = config['AppDaemon'].get("app_dir")
   conf.threads = int(config['AppDaemon']['threads'])
   conf.certpath = config['AppDaemon'].get("cert_path")
-  conf.timeout = config['AppDaemon'].get("timeout")
     
   if conf.logfile == None:
     conf.logfile = "STDOUT"
 
   if conf.errorfile == None:
     conf.errorfile = "STDERR"
-
-  if conf.timeout != None:
-    conf.timeout = int(conf.timeout)
     
   if isdaemon and (conf.logfile == "STDOUT" or conf.errorfile == "STDERR" or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"):
     raise ValueError("STDOUT and STDERR not allowed with -d")
@@ -1209,13 +1223,36 @@ def main():
   #efh.setFormatter(formatter)
   conf.error.addHandler(efh)
 
-  # Check with HA to get various info
+  # Startup message
   
-  ha_config = ha.get_ha_config()
+  ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
+
+  
+  # Check with HA to get various info
+
+
+  ha_config = None
+  while ha_config == None:
+    try:
+      ha_config = ha.get_ha_config()
+    except:
+      ha.log(conf.logger, "WARNING", "Unable to connect to Home Assistant, retrying in 5 seconds")
+      if conf.loglevel == "DEBUG":
+        ha.log(conf.logger, "WARNING", '-'*60)
+        ha.log(conf.logger, "WARNING", "Unexpected error:")
+        ha.log(conf.logger, "WARNING", '-'*60)
+        ha.log(conf.logger, "WARNING", traceback.format_exc())
+        ha.log(conf.logger, "WARNING", '-'*60)
+    time.sleep(5)
+    first_time = False
+  
+  #ha_config["version"] = "0.28.1"
+  conf.version = int(ha_config["version"].replace(".", ""))
+  
+  conf.ha_config = ha_config
       
   conf.latitude = ha_config["latitude"]
   conf.longitude = ha_config["longitude"]
-  #
   conf.time_zone = ha_config["time_zone"]
   
   if "elevation" in ha_config:
@@ -1237,9 +1274,6 @@ def main():
   if "longitude" in config['AppDaemon']:
     ha.log(conf.logger, "WARNING", "'longitude' directive is deprecated, please remove")
 
-  #if "elevation" in config['AppDaemon']:
-  #  ha.log(conf.logger, "WARNING", "'elevation' directive is deprecated, please remove")
-
   if "timezone" in config['AppDaemon']:
     ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please remove")
 
@@ -1260,8 +1294,6 @@ def main():
   
 
   # Start main loop
-
-  ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
   
   if isdaemon:
     keep_fds = [fh.stream.fileno(), efh.stream.fileno()]

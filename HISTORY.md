@@ -7,13 +7,19 @@ History
 
 **Features**
 
-- Swap from EventStream to Websockets
+- Swap from EventStream to Websockets (Requires Home Assistant 0.34 or later). Earlier versions of HA will fallback to EventStream.
+- Restored less verbose messages on HA restart, but verbose messages can be enabled by setting `-D DEBUG` when starting AppDaemon
+- From the command line ctrl-c now results in a clean shutdown.
+- Home Assistant config e.g. Latitude, Longitude are now available in Apps in the `self.ha_config` dictionary.
+- Logging can now take placeholder strings for line number, function and module which will be appropriately expanded in the actual message
 
 **Fixes**
 
-None
+- get_app() will now return `None` if the app is not found rather than throwing an exception.
 
 **Breaking Changes**
+
+- get_app() will now return `None` if the app is not found rather than throwing an exception.
 
 None
 

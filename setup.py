@@ -11,10 +11,10 @@ with open('HISTORY.md') as history_file:
 
 REQUIREMENTS = [
     'daemonize',
-    'sseclient',
     'configparser',
     'astral',
     'requests>=2.6.0',
+    'sseclient',
     'websocket-client'
 ]
 
@@ -25,7 +25,7 @@ setup(
     long_description=README + '\n\n' + HISTORY,
     author="Andrew I Cockburn",
     author_email='appdaemon@acockburn.com',
-    url='https://github.com/acockburn/appdaemon',
+    url='https://github.com/home-assistant/appdaemon.git',
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     include_package_data=True,
     install_requires=REQUIREMENTS,
@@ -38,7 +38,7 @@ setup(
         ]
     },
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',

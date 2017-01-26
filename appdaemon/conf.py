@@ -35,5 +35,8 @@ timeout = 10
 endtime = None
 interval = 1
 certpath = None
-threads_busy = 0
-threads_busy_lock = threading.RLock()
+
+loglevel = "INFO"
+ha_config = None
+version = 0
+commtype = None

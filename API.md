@@ -406,7 +406,7 @@ There are 3 types of callbacks within AppDaemon:
 - Scheduler Callbacks - react to a specific time or interval
 - Event Callbacks - react to specific Home Assistant and Appdaemon events.
 
-All callbacks allow the user to specify additional parameters to be handed to the callback via the standard Python `**kwargs` mechanism for greater flexibility.
+All callbacks allow the user to specify additional parameters to be handed to the callback via the standard Python `**kwargs` mechanism for greater flexibility, these additional arguments are handed to the callback as a standard Python dictionary,
 
 ### About Registering Callbacks
 
@@ -436,10 +436,10 @@ Any callback has the ability to allow the App creator to pass through arbitrary 
 
 `self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")`
 
-Then in the callback you could use it as follows:
+Then in the callback it is presented back to the function as a dictionary and you could use it as follows:
 
 ```python
-def motion(self, entity, attribute, old, new, **kwargs):
+def motion(self, entity, attribute, old, new, kwargs):
     self.log("Arg1 is {}".format(kwargs["arg1"]))
 ```
 
@@ -452,7 +452,7 @@ AppDaemons's state callbacks allow an App to listen to a wide variety of events,
 When calling back into the App, the App must provide a class function with a known signature for AppDaemon to call. The callback will provide various information to the function to enable the function to respond appropriately. For state callbacks, a class defined callback function should look like this:
 
 ```python
-  def my_callback(self, entity, attribute, old, new, **kwargs):
+  def my_callback(self, entity, attribute, old, new, kwargs):
     <do some useful work here>
 ```
 
@@ -535,11 +535,11 @@ Note: `old` and `new` can be used singly or together.
 If duration is supplied as a parameter, the callback will not fire unless the state listened for is maintained for that number of seconds. This makes the most sense if a specific attribute is specified (or the default os `state` is used), an in conjunction with the `old` or `new` parameters, or both. When the callback is called, it is supplied with the values of `entity`, `attr`, `old` and `new` that were current at the time the actual event occured, since the assumption is that none of them have changed in the intervening period.
 
 ```python
-  def my_callback(self, **kwargs):
+  def my_callback(self, kwargs):
     <do some useful work here>
 ```
 
-(Scheduler callbacks are documented in detail laer in this document)
+(Scheduler callbacks are documented in detail later in this document)
 
 ##### \*\*kwargs
 
@@ -636,7 +636,7 @@ AppDaemon contains a powerful scheduler that is able to run with 1 second resolu
 As with State Change callbacks, Scheduler Callbacks expect to call into functions with a known and specific signature and a class defined Scheduler callback function should look like this:
 
 ```python
-  def my_callback(self, **kwargs):
+  def my_callback(self, kwargs):
     <do some useful work here>
 ```
 
@@ -773,7 +773,7 @@ Execute a callback at the same time every day. If the time has already passed, t
 #### Synopsis
 
 ```python
-self.handle = self.run_daily(callback, time, **kwargs)
+self.handle = self.run_daily(callback, start, **kwargs)
 ```
 
 #### Returns
@@ -786,7 +786,7 @@ A handle that can be used to cancel the timer.
 
 Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
 
-##### time
+##### start
 
 A Python `time` object that specifies when the callback will occur. If the time specified is in the past, the callback will occur the next day at the specified time.
 
@@ -811,7 +811,7 @@ Execute a callback at the same time every hour. If the time has already passed, 
 #### Synopsis
 
 ```python
-self.handle = self.run_hourly(callback, time = None, **kwargs)
+self.handle = self.run_hourly(callback, start, **kwargs)
 ```
 
 #### Returns
@@ -824,7 +824,7 @@ A handle that can be used to cancel the timer.
 
 Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
 
-##### time
+##### start
 
 A Python `time` object that specifies when the callback will occur, the hour component of the time object is ignored. If the time specified is in the past, the callback will occur the next hour at the specified time. If time is not supplied, the callback will start an hour from the time that `run_hourly()` was executed.
 
@@ -848,7 +848,7 @@ Execute a callback at the same time every minute. If the time has already passed
 #### Synopsis
 
 ```python
-self.handle = self.run_minutely(callback, time = None, **kwargs)
+self.handle = self.run_minutely(callback, start, **kwargs)
 ```
 
 #### Returns
@@ -861,7 +861,7 @@ A handle that can be used to cancel the timer.
 
 Function to be invoked when the requested state change occurs. It must conform to the standard Scheduler Callback format documented above.
 
-##### time
+##### start
 
 A Python `time` object that specifies when the callback will occur, the hour and minute components of the time object are ignored. If the time specified is in the past, the callback will occur the next hour at the specified time. If time is not supplied, the callback will start a minute from the time that `run_minutely()` was executed.
 
@@ -2020,6 +2020,16 @@ for sensor in self.split_device_list(self.args["sensors"]):
 
 AppDaemon uses 2 separate logs - the general log and the error log. An AppDaemon App can write to either of these using the supplied convenience methods `log()` and `error()`, which are provided as part of parent `AppDaemon` class, and the call will automatically pre-pend the name of the App making the call. The `-D` option of AppDaemon can be used to specify what level of logging is required and the logger objects will work as expected.
 
+ApDaemon loggin also allows you to use placeholders for the module, fucntion and line number. If you include the following in the test of your message:
+
+```
+__function__
+__module__
+__line__
+```
+
+They will automatically be expanded to the appropriate values in the log message.
+
 ### log()
 
 #### Synopsis
@@ -2047,7 +2057,7 @@ The log level of the message - takes a string representing the standard logger l
 ```python
 self.log("Log Test: Parameter is {}".format(some_variable))
 self.log("Log Test: Parameter is {}".format(some_variable), level = "ERROR")
-```
+self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")```
 
 ### error()
 
@@ -2077,7 +2087,7 @@ self.error("Some Warning string")
 self.error("Some Critical string", level = "CRITICAL")
 ```
 
-## Sharing information between Apps
+## Getting Information in Apps and Sharing information between Apps
 
 Sharing information between different Apps is very simple if required. Each app gets access to a global dictionary stored in a class attribute called `self.global_vars`. Any App can add or read any key as required. This operation is not however threadsafe so some care is needed.
 
@@ -2091,6 +2101,12 @@ To get AppDaemon's config parameters, use the key "AppDaemon", e.g.:
 
 ```python
 app_timezone = self.config["AppDaemon"]["time_zone"]
+```
+
+AppDaemon also exposes configuration from Home Assistant such as the Latitude and Longitude configured in HA. All of the information available from the Home Assistant `/api/config` endpoint is available in the `self.ha_config` dictionary. E.g.:
+
+```python
+self.log("My current position is {}(Lat), {}(Long)".format(self.ha_config["latitude"], self.ha_config["longitude"]))
 ```
 
 And finally, it is also possible to use the AppDaemon as a global area for sharing parameters across Apps. Simply add the required parameters to the AppDaemon section of your config:

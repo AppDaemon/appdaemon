@@ -5,6 +5,7 @@ import time
 import uuid
 import re
 import requests
+import inspect
 
 import appdaemon.homeassistant as ha
 
@@ -21,6 +22,7 @@ class AppDaemon():
     self.args = args
     self.global_vars = global_vars
     self.config = conf.config
+    self.ha_config = conf.ha_config
     
   def _check_entity(self, entity):
     if "." not in entity:
@@ -33,6 +35,13 @@ class AppDaemon():
     if service.find("/") == -1:
       raise ValueError("Invalid Service Name: {}".format(service))  
 
+  def _sub_stack(self, msg):
+    stack = inspect.stack()
+    msg = msg.replace("__module__", stack[2].filename)
+    msg = msg.replace("__line__", str(stack[2].lineno))
+    msg = msg.replace("__function__", stack[2].function)
+    return(msg)
+  
 #
 # Utility
 #      
@@ -45,13 +54,18 @@ class AppDaemon():
     return list.split(",")
 
   def log(self, msg, level = "INFO"):
+    msg = self._sub_stack(msg)
     ha.log(self._logger, level, msg, self.name)
 
   def error(self, msg, level = "WARNING"):
+    msg = self._sub_stack(msg)
     ha.log(self._error, level, msg, self.name)
 
   def get_app(self, name):
-    return conf.objects[name]["object"]
+    if name in conf.objects:
+      return conf.objects[name]["object"]
+    else:
+      return None
     
   def friendly_name(self, entity_id):
     self._check_entity(entity_id)
