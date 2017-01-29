@@ -33,7 +33,7 @@ import platform
 import math
 import random
 
-__version__ = "1.5.0dev"
+__version__ = "1.5.0"
 
 # Windows does not have Daemonize package so disallow
 

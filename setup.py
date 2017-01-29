@@ -20,16 +20,16 @@ REQUIREMENTS = [
 
 setup(
     name='appdaemon',
-    version='1.5.0dev',
+    version='1.5.0',
     description="Apps for the Home Assistant home automation package.",
     long_description=README + '\n\n' + HISTORY,
-    author="Andrew I Cockburn",
+    author='Andrew I Cockburn',
     author_email='appdaemon@acockburn.com',
     url='https://github.com/home-assistant/appdaemon.git',
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     include_package_data=True,
     install_requires=REQUIREMENTS,
-    license="MIT license",
+    license='Apache License 2.0',
     zip_safe=False,
     keywords=['appdaemon', 'home', 'automation'],
     entry_points={
@@ -40,7 +40,7 @@ setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
