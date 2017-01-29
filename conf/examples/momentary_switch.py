@@ -30,4 +30,4 @@ class MomentarySwitch(appapi.AppDaemon):
     if "log" in self.args:
       self.log(message)
     if "notify" in self.args:
-      self.notify(message)
+      self.notify(message, name="ios")

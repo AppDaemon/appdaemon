@@ -12,9 +12,13 @@ import appdaemon.appapi as appapi
 # night_scene_present = scene to use to turn lights on at night
 # input_select = input_select.house_mode,Day
 # vacation = optional input boolean to turn off when someone comes home
+# announce = Comma seprated list of people's arrival home to announce (Friendly name of the device tracker)
+# player = entity id of the media player for the announcement
 #
 # Release Notes
 #
+# Version 1.1:
+#   Add media player support
 # Version 1.0:
 #   Initial Version
 
@@ -33,14 +37,20 @@ class Presence(appapi.AppDaemon):
       person = self.friendly_name(entity)
       if new == "not_home":
         place = "is away"
+        if "announce" in self.args and self.args["announce"].find(person) != -1:
+          self.announce = self.get_app("Sound")
+          self.announce.tts("{} just left".format(person), self.args["volume"], 3)
       elif new == "home":
         place = "arrived home"
+        if "announce" in self.args and self.args["announce"].find(person) != -1:
+          self.announce = self.get_app("Sound")
+          self.announce.tts("{} arrived home".format(person), self.args["volume"], 3)
       else:
         place = "is at {}".format(new)
       message = "{} {}".format(person, place)
       self.log(message)
       if "notify" in self.args:
-        self.notify(message)
+        self.notify(message, name="ios")
     
   def everyone_left(self, entity, attribute, old, new, kwargs):
     self.log("Everyone left")
@@ -61,6 +71,7 @@ class Presence(appapi.AppDaemon):
       self.turn_on(self.args["day_scene_present"])
     else:
       self.turn_on(self.args["night_scene_present"])
-      
+     
+    
     
     

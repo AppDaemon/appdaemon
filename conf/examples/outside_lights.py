@@ -11,11 +11,7 @@ import appdaemon.appapi as appapi
 class OutsideLights(appapi.AppDaemon):
 
   def initialize(self):
-      
-    #  Test    
-    #self.run_in(self.sunset_cb, 5)
-    #self.run_in(self.sunrise_cb, 10)
-    
+         
     # Run at Sunrise  
     self.run_at_sunrise(self.sunrise_cb)
     

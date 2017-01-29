@@ -41,7 +41,7 @@ class MotionLights(appapi.AppDaemon):
       else:
         delay = 60
       self.cancel_timer(self.handle)
-      self.porch_handle = self.run_in(self.light_off, delay)
+      self.handle = self.run_in(self.light_off, delay)
   
   def light_off(self, kwargs):
     if "entity_off" in self.args:

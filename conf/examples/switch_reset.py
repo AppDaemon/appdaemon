@@ -5,8 +5,6 @@ import time
 #
 # App to reset input_boolean, input_select, input_slider, device_tracker to previous values after HA restart
 #
-# Minimote can send up to 8 scenes. Odd numbered scenes are short presses of the buttons, even are long presses
-#
 # Args:
 #
 #delay - amount of time after restart to set the switches
@@ -61,4 +59,4 @@ class SwitchReset(appapi.AppDaemon):
     if "log" in self.args:
       self.log(message)
     if "notify" in self.args:
-      self.notify(message)
+      self.notify(message, "ios", name="ios")

@@ -1,6 +1,6 @@
 import appdaemon.appapi as appapi
 import datetime
-
+import appdaemon
 #
 # App to manage house modes
 #
@@ -27,9 +27,17 @@ class Modes(appapi.AppDaemon):
     self.mode = self.get_state("input_select.house_mode")
     # Create some callbacks
     self.listen_event(self.mode_event, "MODE_CHANGE")
-    self.listen_state(self.light_event, "sensor.side_multisensor_luminance_25")
-    self.listen_state(self.motion_event, "binary_sensor.downstairs_sensor_26")
-  
+    self.listen_state(self.light_event, "sensor.side_multisensor_luminance_25_3")
+    self.listen_state(self.motion_event, "binary_sensor.downstairs_sensor_26_0")
+    self.listen_state(self.presence_change, "device_tracker")
+    time = datetime.datetime.fromtimestamp(appdaemon.conf.now)
+    
+  def presence_change(self, entity, attribute, old, new, kwargs):
+    if old != new: 
+      if entity == "device_tracker.dedb5e711a24415baaae5cf8e880d852" and new != "home" and self.mode == "Morning":
+        self.log("Wendy left - changing lighting")
+        self.turn_on("scene.downstairs_on")
+    
   def light_event(self, entity, attribute, old, new, kwargs):
     # Use light levels to switch to Day or Evening modes as appropriate
     lux = float(new)
@@ -70,7 +78,7 @@ class Modes(appapi.AppDaemon):
     self.log("Switching mode to Morning")
     self.select_option("input_select.house_mode", "Morning")
     self.turn_on("scene.wendys_lamp")
-    self.notify("Switching mode to Morning")
+    self.notify("Switching mode to Morning", name="ios")
     
   def day(self):
     # Set the house up for daytime
@@ -79,10 +87,12 @@ class Modes(appapi.AppDaemon):
     self.select_option("input_select.house_mode", "Day")
     self.turn_on("scene.downstairs_off")
     self.turn_on("scene.upstairs_off")
-    self.notify("Switching mode to Day")
+    self.notify("Switching mode to Day", name="ios")
 
   def evening(self):
     #Set the house up for evening
+    wendy = self.get_state("device_tracker.dedb5e711a24415baaae5cf8e880d852")
+    andrew = self.get_state("device_tracker.andrews_iphone")
     self.mode = "Evening"
     self.log("Switching mode to Evening")
     self.select_option("input_select.house_mode", "Evening")
@@ -90,8 +100,11 @@ class Modes(appapi.AppDaemon):
       self.turn_on("scene.downstairs_on")
     else:
       self.turn_on("scene.downstairs_front")
-      
-    self.notify("Switching mode to Evening")
+    
+    if andrew == "home":
+      self.turn_on("scene.office_on")
+    
+    self.notify("Switching mode to Evening", name="ios")
 
   def night(self, quiet = False):
     #
@@ -121,7 +134,7 @@ class Modes(appapi.AppDaemon):
       elif andrew == "home":
         self.turn_on("scene.bedroom_on_andrew")
               
-    self.notify("Switching mode to Night")
+    self.notify("Switching mode to Night", name="ios")
     
     # We turned the upstairs lights on, wait 5 seconds before turning off the downstairs lights
     self.run_in(self.downstairs_off, 5)

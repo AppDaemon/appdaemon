@@ -60,6 +60,9 @@ class SmartHeat(appapi.AppDaemon):
     
     input_select = self.split_device_list(self.args["input_select"]).pop(0)
     self.listen_state(self.mode, input_select)
+    # Set current state according to switch
+    self.state = self.get_state(self.args["switch"])
+    self.log("Current state = {}".format(self.state))
     
   def mode(self, entity, attribute, old, new, kwargs):
     # Mode has changed = if it isn't in the list of modes for which we want heat, turn the heat off
@@ -87,19 +90,23 @@ class SmartHeat(appapi.AppDaemon):
       self.heat_on()
 
   def presence_change(self, entity, attribute, old, new, kwargs):
-    if self.get_state(self.args["switch"]) == "on":
+    if old != new and self.get_state(self.args["switch"]) == "on":
       if self.anyone_home():
         self.heat_on()
       else:
         self.heat_off()
       
   def heat_on(self):
-    self.log("Turning heat on")
-    for tstat in self.split_device_list(self.args["thermostats"]):
-      self.call_service("climate/set_temperature", entity_id = tstat, temperature = self.args["on_temp"])
+    if self.state == "off":
+      self.state = "on"
+      self.log("Turning heat on")
+      for tstat in self.split_device_list(self.args["thermostats"]):
+        self.call_service("climate/set_temperature", entity_id = tstat, temperature = self.args["on_temp"])
       
   def heat_off(self):
-    self.log("Turning heat off")
-    for tstat in self.split_device_list(self.args["thermostats"]):
-      self.call_service("climate/set_temperature", entity_id = tstat, temperature = self.args["off_temp"])
+    if self.state == "on":
+      self.state = "off"    
+      self.log("Turning heat off")
+      for tstat in self.split_device_list(self.args["thermostats"]):
+        self.call_service("climate/set_temperature", entity_id = tstat, temperature = self.args["off_temp"])
       
