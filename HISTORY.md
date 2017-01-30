@@ -2,6 +2,19 @@
 History
 =======
 
+1.5.1 (2017-01-30)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Functionality to substitute line umbers and module names in log statements temporarily removed
+
+**Breaking Changes**
+
 1.5.0 (2017-01-21)
 ------------------
 

@@ -54,11 +54,11 @@ class AppDaemon():
     return list.split(",")
 
   def log(self, msg, level = "INFO"):
-    msg = self._sub_stack(msg)
+    #msg = self._sub_stack(msg)
     ha.log(self._logger, level, msg, self.name)
 
   def error(self, msg, level = "WARNING"):
-    msg = self._sub_stack(msg)
+    #msg = self._sub_stack(msg)
     ha.log(self._error, level, msg, self.name)
 
   def get_app(self, name):
