@@ -2020,16 +2020,6 @@ for sensor in self.split_device_list(self.args["sensors"]):
 
 AppDaemon uses 2 separate logs - the general log and the error log. An AppDaemon App can write to either of these using the supplied convenience methods `log()` and `error()`, which are provided as part of parent `AppDaemon` class, and the call will automatically pre-pend the name of the App making the call. The `-D` option of AppDaemon can be used to specify what level of logging is required and the logger objects will work as expected.
 
-ApDaemon loggin also allows you to use placeholders for the module, fucntion and line number. If you include the following in the test of your message:
-
-```
-__function__
-__module__
-__line__
-```
-
-They will automatically be expanded to the appropriate values in the log message.
-
 ### log()
 
 #### Synopsis
