@@ -284,13 +284,13 @@ def check_constraint(key, value):
                 entity = value
                 state = "on"
             if entity in conf.ha_state and \
-                            conf.ha_state[entity]["state"] != state:
+                    conf.ha_state[entity]["state"] != state:
                 unconstrained = False
         if key == "constrain_input_select":
             values = value.split(",")
             entity = values.pop(0)
             if entity in conf.ha_state and \
-                            conf.ha_state[entity]["state"] not in values:
+                    conf.ha_state[entity]["state"] not in values:
                 unconstrained = False
         if key == "constrain_presence":
             if value == "everyone" and not ha.everyone_home():
@@ -1625,8 +1625,10 @@ def main():
         try:
             ha_config = ha.get_ha_config()
         except:
-            ha.log(conf.logger, "WARNING",
-                   "Unable to connect to Home Assistant, retrying in 5 seconds")
+            ha.log(
+                conf.logger, "WARNING",
+                "Unable to connect to Home Assistant, retrying in 5 seconds"
+            )
             if conf.loglevel == "DEBUG":
                 ha.log(conf.logger, "WARNING", '-' * 60)
                 ha.log(conf.logger, "WARNING", "Unexpected error:")
