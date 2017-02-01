@@ -53,8 +53,8 @@ class AppDaemon:
         self._check_entity(entity_id)
         return entity_id.split(".")
 
-    def split_device_list(self, list):
-        return list.split(",")
+    def split_device_list(self, list_):
+        return list_.split(",")
 
     def log(self, msg, level="INFO"):
         # msg = self._sub_stack(msg)
@@ -538,10 +538,10 @@ class AppDaemon:
                                     interval=interval, **kwargs)
         return handle
 
-    def _schedule_sun(self, name, type, callback, **kwargs):
-        event = ha.calc_sun(type)
+    def _schedule_sun(self, name, type_, callback, **kwargs):
+        event = ha.calc_sun(type_)
         handle = ha.insert_schedule(
-            name, event, callback, True, type, **kwargs
+            name, event, callback, True, type_, **kwargs
         )
 
     def run_at_sunset(self, callback, **kwargs):

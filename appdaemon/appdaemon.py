@@ -129,11 +129,11 @@ def is_dst():
 
 def do_every(period, f):
     def g_tick():
-        t = math.floor(time.time())
+        t_ = math.floor(time.time())
         count = 0
         while True:
             count += 1
-            yield max(t + count * period - time.time(), 0)
+            yield max(t_ + count * period - time.time(), 0)
 
     g = g_tick()
     t = math.floor(ha.get_now_ts())
@@ -196,7 +196,7 @@ def dump_schedule():
             ha.log(conf.logger, "INFO", "{}:".format(name))
             for entry in sorted(
                 conf.schedule[name].keys(),
-                key=lambda uuid: conf.schedule[name][uuid]["timestamp"]
+                key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
             ):
                 ha.log(
                     conf.logger, "INFO",
@@ -228,10 +228,10 @@ def dump_callbacks():
         )
         for name in conf.callbacks.keys():
             ha.log(conf.logger, "INFO", "{}:".format(name))
-            for uuid in conf.callbacks[name]:
+            for uuid_ in conf.callbacks[name]:
                 ha.log(
                     conf.logger, "INFO",
-                    "  {} = {}".format(uuid, conf.callbacks[name][uuid])
+                    "  {} = {}".format(uuid_, conf.callbacks[name][uuid_])
                 )
         ha.log(
             conf.logger, "INFO",
@@ -249,10 +249,10 @@ def dump_objects():
         conf.logger, "INFO",
         "--------------------------------------------------"
     )
-    for object in conf.objects.keys():
+    for object_ in conf.objects.keys():
         ha.log(
             conf.logger, "INFO",
-            "{}: {}".format(object, conf.objects[object])
+            "{}: {}".format(object_, conf.objects[object_])
         )
     ha.log(
         conf.logger, "INFO",
@@ -366,7 +366,7 @@ def process_sun(action):
         for name in conf.schedule.keys():
             for entry in sorted(
                 conf.schedule[name].keys(),
-                key=lambda uuid: conf.schedule[name][uuid]["timestamp"]
+                key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
             ):
                 schedule = conf.schedule[name][entry]
                 if schedule["type"] == action and "inactive" in schedule:
@@ -538,7 +538,7 @@ def do_every_second(utc):
             for name in conf.schedule.keys():
                 for entry in sorted(
                     conf.schedule[name].keys(),
-                    key=lambda uuid: conf.schedule[name][uuid]["timestamp"]
+                    key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
                 ):
                     # ha.log(
                     #     conf.logger,
@@ -586,28 +586,28 @@ def timer_thread():
 def worker():
     while True:
         args = q.get()
-        type = args["type"]
+        _type = args["type"]
         function = args["function"]
-        id = args["id"]
+        _id = args["id"]
         name = args["name"]
-        if name in conf.objects and conf.objects[name]["id"] == id:
+        if name in conf.objects and conf.objects[name]["id"] == _id:
             try:
-                if type == "initialize":
+                if _type == "initialize":
                     ha.log(conf.logger, "DEBUG",
                            "Calling initialize() for {}".format(name))
                     function()
                     ha.log(conf.logger, "DEBUG",
                            "{} initialize() done".format(name))
-                if type == "timer":
+                if _type == "timer":
                     function(ha.sanitize_timer_kwargs(args["kwargs"]))
-                if type == "attr":
+                if _type == "attr":
                     entity = args["entity"]
                     attr = args["attribute"]
                     old_state = args["old_state"]
                     new_state = args["new_state"]
                     function(entity, attr, old_state, new_state,
                              ha.sanitize_state_kwargs(args["kwargs"]))
-                if type == "event":
+                if _type == "event":
                     data = args["data"]
                     function(args["event"], data, args["kwargs"])
 
@@ -650,14 +650,14 @@ def clear_file(name):
                 del conf.objects[key]
 
 
-def clear_object(object):
-    ha.log(conf.logger, "DEBUG", "Clearing callbacks for {}".format(object))
+def clear_object(object_):
+    ha.log(conf.logger, "DEBUG", "Clearing callbacks for {}".format(object_))
     with conf.callbacks_lock:
-        if object in conf.callbacks:
-            del conf.callbacks[object]
+        if object_ in conf.callbacks:
+            del conf.callbacks[object_]
     with conf.schedule_lock:
-        if object in conf.schedule:
-            del conf.schedule[object]
+        if object_ in conf.schedule:
+            del conf.schedule[object_]
 
 
 def term_object(name):
@@ -777,8 +777,8 @@ def process_state_change(data):
 
     with conf.callbacks_lock:
         for name in conf.callbacks.keys():
-            for uuid in conf.callbacks[name]:
-                callback = conf.callbacks[name][uuid]
+            for uuid_ in conf.callbacks[name]:
+                callback = conf.callbacks[name][uuid_]
                 if callback["type"] == "state":
                     cdevice = None
                     centity = None
@@ -829,18 +829,18 @@ def process_state_change(data):
 def process_event(data):
     with conf.callbacks_lock:
         for name in conf.callbacks.keys():
-            for uuid in conf.callbacks[name]:
-                callback = conf.callbacks[name][uuid]
+            for uuid_ in conf.callbacks[name]:
+                callback = conf.callbacks[name][uuid_]
                 if "event" in callback and (
-                        callback["event"] is None or data['event_type'] ==
-                    callback["event"]):
+                        callback["event"] is None
+                        or data['event_type'] == callback["event"]):
                     # Check any filters
-                    run = True
+                    _run = True
                     for key in callback["kwargs"]:
                         if key in data["data"] and callback["kwargs"][key] != \
                                 data["data"][key]:
-                            run = False
-                    if run:
+                            _run = False
+                    if _run:
                         dispatch_worker(name, {
                             "name": name,
                             "id": conf.objects[name]["id"],
@@ -1084,7 +1084,7 @@ def file_in_modules(file, modules):
     return False
 
 
-def read_apps(all=False):
+def read_apps(all_=False):
     global config
     found_files = []
     modules = []
@@ -1100,7 +1100,7 @@ def read_apps(all=False):
             continue
         modified = os.path.getmtime(file)
         if file in conf.monitored_files:
-            if conf.monitored_files[file] < modified or all:
+            if conf.monitored_files[file] < modified or all_:
                 # read_app(file, True)
                 module = {"name": file, "reload": True, "load": True}
                 modules.append(module)
@@ -1281,10 +1281,10 @@ def run():
     first_time = True
     reading_messages = True
 
-    id = 0
+    _id = 0
 
     while not stopping:
-        id += 1
+        _id += 1
         try:
             if first_time is False:
                 # Get initial state
@@ -1378,16 +1378,16 @@ def run():
                 # Subscribe to event stream
                 #
                 sub = json.dumps({
-                    "id": id,
+                    "id": _id,
                     "type": "subscribe_events"
                 })
                 ws.send(sub)
                 result = json.loads(ws.recv())
-                if not (result["id"] == id and result["type"] == "result" and
+                if not (result["id"] == _id and result["type"] == "result" and
                         result["success"] is True):
                     ha.log(
                         conf.logger, "WARNING",
-                        "Unable to subscribe to HA events, id = {}".format(id)
+                        "Unable to subscribe to HA events, id = {}".format(_id)
                     )
                     ha.log(conf.logger, "WARNING", result)
                     raise ValueError("Error subscribing to HA Events")
@@ -1398,11 +1398,11 @@ def run():
 
                 while not stopping:
                     result = json.loads(ws.recv())
-                    if not (result["id"] == id and result["type"] == "event"):
+                    if not (result["id"] == _id and result["type"] == "event"):
                         ha.log(
                             conf.logger, "WARNING",
                             "Unexpected result from Home Assistant, "
-                            "id = {}".format(id)
+                            "id = {}".format(_id)
                         )
                         ha.log(conf.logger, "WARNING", result)
                         raise ValueError(
@@ -1432,9 +1432,9 @@ def run():
 def find_path(name):
     for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
                  os.path.join(os.path.sep, "etc", "appdaemon")]:
-        file = os.path.join(path, name)
-        if os.path.isfile(file) or os.path.isdir(file):
-            return (file)
+        _file = os.path.join(path, name)
+        if os.path.isfile(_file) or os.path.isdir(_file):
+            return _file
     raise ValueError(
         "{} not specified and not found in default locations".format(name)
     )

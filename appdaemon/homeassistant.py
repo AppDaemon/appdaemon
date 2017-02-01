@@ -193,9 +193,9 @@ def noone_home():
     return True
 
 
-def calc_sun(type):
+def calc_sun(type_):
     # convert to a localized timestamp
-    return conf.sun[type].timestamp()
+    return conf.sun[type_].timestamp()
 
 
 def parse_utc_string(s):
@@ -259,7 +259,7 @@ def get_offset(kwargs):
     return offset
 
 
-def insert_schedule(name, utc, callback, repeat, type, **kwargs):
+def insert_schedule(name, utc, callback, repeat, type_, **kwargs):
     with conf.schedule_lock:
         if name not in conf.schedule:
             conf.schedule[name] = {}
@@ -278,7 +278,7 @@ def insert_schedule(name, utc, callback, repeat, type, **kwargs):
             "basetime": utc,
             "repeat": repeat,
             "offset": c_offset,
-            "type": type,
+            "type": type_,
             "kwargs": kwargs
         }
         # log(conf.logger, "INFO", conf.schedule[name][handle])
