@@ -198,11 +198,13 @@ def parse_utc_string(s):
 
 def get_tz_offset():
     utc_offset_min = int(round(
-        (datetime.datetime.get_now()
-         - datetime.datetime.utcget_now()).total_seconds())
+        (datetime.datetime.now()
+         - datetime.datetime.utcnow()).total_seconds())
     ) / 60   # round for taking time twice
     utc_offset_h = utc_offset_min / 60
-    assert utc_offset_min == utc_offset_h * 60  # we do not handle 1/2 h timezone offsets
+
+    # we do not handle 1/2 h timezone offsets
+    assert utc_offset_min == utc_offset_h * 60
     return utc_offset_min
 
 
@@ -284,4 +286,3 @@ def cancel_timer(name, handle):
             del conf.schedule[name][handle]
         if name in conf.schedule and conf.schedule[name] == {}:
             del conf.schedule[name]
-
