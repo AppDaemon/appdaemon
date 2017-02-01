@@ -464,7 +464,7 @@ def do_every_second(utc):
 
         if conf.endtime is not None and ha.get_now() >= conf.endtime:
             ha.log(conf.logger, "INFO", "End time reached, exiting")
-            os._exit(0)
+            sys.exit(0)
 
         if conf.realtime:
             real_now = datetime.datetime.now().timestamp()
