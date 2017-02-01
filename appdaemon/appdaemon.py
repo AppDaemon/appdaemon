@@ -1352,8 +1352,11 @@ def run():
                 #
                 # Connect to websocket interface
                 #
-                url = conf.ha_url.replace("https", "ws")
-                url = conf.ha_url.replace("http", "ws")
+                url = conf.ha_url
+                if url.startswith('https://'):
+                    url = url.replace('https', 'wss', 1)
+                elif url.startswith('http://'):
+                    url = url.replace('http', 'ws', 1)
 
                 ws = create_connection("{}/api/websocket".format(url))
                 result = json.loads(ws.recv())
