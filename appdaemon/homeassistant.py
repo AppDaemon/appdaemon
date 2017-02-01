@@ -65,16 +65,8 @@ def get_now_ts():
 
   
 def day_of_week(day):
-    days = {
-        "mon": 0,
-        "tue": 1,
-        "wed": 2,
-        "thu": 3,
-        "fri": 4,
-        "sat": 5,
-        "sun": 6,
-    }
     nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    days = {day: idx for idx, day in enumerate(nums)}
 
     if type(day) == str:
         return days[day]

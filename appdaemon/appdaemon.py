@@ -598,16 +598,16 @@ def worker():
                     function()
                     ha.log(conf.logger, "DEBUG",
                            "{} initialize() done".format(name))
-                if _type == "timer":
+                elif _type == "timer":
                     function(ha.sanitize_timer_kwargs(args["kwargs"]))
-                if _type == "attr":
+                elif _type == "attr":
                     entity = args["entity"]
                     attr = args["attribute"]
                     old_state = args["old_state"]
                     new_state = args["new_state"]
                     function(entity, attr, old_state, new_state,
                              ha.sanitize_state_kwargs(args["kwargs"]))
-                if _type == "event":
+                elif _type == "event":
                     data = args["data"]
                     function(args["event"], data, args["kwargs"])
 

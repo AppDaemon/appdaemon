@@ -366,8 +366,7 @@ class AppDaemon:
         self.call_service("input_select/select_option", **rargs)
 
     def notify(self, message, **kwargs):
-        args = {}
-        args["message"] = message
+        args = {"message": message}
         if "title" in kwargs:
             args["title"] = kwargs["title"]
         if "name" in kwargs:
@@ -378,8 +377,7 @@ class AppDaemon:
         self.call_service(service, **args)
 
     def persistent_notification(self, message, title=None, id=None):
-        args = {}
-        args["message"] = message
+        args = {"message": message}
         if title is not None:
             args["title"] = title
         if id is not None:
