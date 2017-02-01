@@ -541,6 +541,7 @@ class AppDaemon:
         handle = ha.insert_schedule(
             name, event, callback, True, type_, **kwargs
         )
+        return handle
 
     def run_at_sunset(self, callback, **kwargs):
         name = self.name
