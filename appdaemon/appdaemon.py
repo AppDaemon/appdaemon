@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-
+from pkg_resources import parse_version
 import json
 import sys
 import importlib
@@ -1311,7 +1311,7 @@ def run():
             else:
                 process_event({"event_type": "ha_started", "data": {}})
 
-            if conf.version < 340 or conf.commtype == "SSE":
+            if conf.version < parse_version('0.34') or conf.commtype == "SSE":
                 #
                 # Older version of HA - connect using SSEClient
                 #
@@ -1639,7 +1639,7 @@ def main():
         first_time = False
 
     # ha_config["version"] = "0.28.1"
-    conf.version = int(ha_config["version"].replace(".", ""))
+    conf.version = parse_version(ha_config["version"])
 
     conf.ha_config = ha_config
 
