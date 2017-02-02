@@ -977,7 +977,7 @@ time, interval, kwargs = self.info_timer(handle)
 
 
 
-### Scheduler Ransomization
+### Scheduler Randomization
 
 All of the scheduler calls above support 2 additional optional arguments, `random_start` and `random_end`. Using these arguments it is possible to randomize the firing of callbacks to the degree desired by setting the appropriate number of seconds with the parameters.
 
