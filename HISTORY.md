@@ -2,6 +2,21 @@
 History
 =======
 
+1.5.2 (2017-02-02)
+------------------
+
+**Features**
+
+- Code formatted to PEP8, various code optimizations  - contributed by [yawor](https://github.com/yawor)
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 1.5.1 (2017-01-30)
 ------------------
 
@@ -11,9 +26,11 @@ None
 
 **Fixes**
 
-- Functionality to substitute line umbers and module names in log statements temporarily removed
+- Functionality to substitute line numbers and module names in log statements temporarily removed
 
 **Breaking Changes**
+
+- Functionality to substitute line numbers and module names in log statements temporarily removed
 
 1.5.0 (2017-01-21)
 ------------------
