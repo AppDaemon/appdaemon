@@ -7,7 +7,10 @@ History
 
 **Features**
 
-- Code formatted to PEP8, various code optimizations  - contributed by [yawor](https://github.com/yawor)
+- Code formatted to PEP8, various code optimizations - contributed by [yawor](https://github.com/yawor)
+- Version check for WebSockets now understands dev versions - contributed by [yawor](https://github.com/yawor)
+- `turn_off()` will now call `turn_on()` for scenes since turning a scene off makes no sense, to allow extra flexibility
+- Restored the ability to use __line__, __module__ and __function__ in log messages. Recoded to prevent errors in non-compatible Python versions if the templates are not used.
 
 **Fixes**
 

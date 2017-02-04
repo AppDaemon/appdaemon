@@ -40,9 +40,12 @@ class AppDaemon:
 
     def _sub_stack(self, msg):
         stack = inspect.stack()
-        msg = msg.replace("__module__", stack[2].filename)
-        msg = msg.replace("__line__", str(stack[2].lineno))
-        msg = msg.replace("__function__", stack[2].function)
+        if msg.find("__module__") != -1:
+            msg = msg.replace("__module__", stack[2][1])
+        if msg.find("__line__") != -1:
+            msg = msg.replace("__line__", str(stack[2][2]))
+        if msg.find("__function__") != -1:
+            msg = msg.replace("__function__", stack[2][3])
         return msg
 
     #
@@ -57,11 +60,11 @@ class AppDaemon:
         return list_.split(",")
 
     def log(self, msg, level="INFO"):
-        # msg = self._sub_stack(msg)
+        msg = self._sub_stack(msg)
         ha.log(self._logger, level, msg, self.name)
 
     def error(self, msg, level="WARNING"):
-        # msg = self._sub_stack(msg)
+        msg = self._sub_stack(msg)
         ha.log(self._error, level, msg, self.name)
 
     def get_app(self, name):
@@ -349,7 +352,12 @@ class AppDaemon:
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-        self.call_service("homeassistant/turn_off", **rargs)
+        
+        device, entity = self.split_entity(entity_id)
+        if device == "scene":
+            self.call_service("homeassistant/turn_on", **rargs)
+        else:
+            self.call_service("homeassistant/turn_off", **rargs)
 
     def toggle(self, entity_id):
         self._check_entity(entity_id)

@@ -50,10 +50,6 @@ logfile = STDOUT
 errorfile = STDERR
 app_dir = <Path to appdaemon dir>/conf/apps
 threads = 10
-latitude = <latitude>
-longitude = <longitude>
-elevation = <elevation
-timezone = <timezone>
 cert_path = <path/to/root/CA/cert>
 # Apps
 [hello_world]
@@ -67,7 +63,6 @@ class = HelloWorld
 - `errorfile` (optional) is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps. If `errorfile = STDERR` errors will be sent to stderr instead of a file, if not specified, output will be sent to STDERR.
 - `app_dir` (optional) is the directory the apps are placed in. If not specified, AppDaemon will look first in `~/.homeassistant` then `/etc/appdaemon` for a subdirectory named `apps`
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization, leave this set to 10 unless you experience thread starvation
-- `latitude`, `longitude`, `elevation`, `timezone` - should all be copied from your home assistant configuration file
 - `cert_path` (optional) - path to root CA cert directory - use only if you are using self signed certs.
 
 The `#Apps` section is the configuration for the Hello World program and should be left in place for initial testing but can be removed later if desired, as other Apps are added, App configuration is described in the [API doc](API.md).
@@ -100,10 +95,6 @@ logfile = STDOUT
 errorfile = STDERR
 app_dir = /conf/apps
 threads = 10
-latitude = <latitude>
-longitude = <longitude>
-elevation = <elevation
-timezone = <timezone>
 ```
 
 You can run Docker and point the conf volume to that directory.
