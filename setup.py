@@ -15,7 +15,7 @@ REQUIREMENTS = [
     'astral',
     'requests>=2.6.0',
     'sseclient',
-    'websocket-client'
+    'websocket-client',
 ]
 
 setup(
