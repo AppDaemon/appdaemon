@@ -7,6 +7,7 @@ import re
 import requests
 import inspect
 
+from appdaemon.logging import log_limit
 import appdaemon.homeassistant as ha
 
 
@@ -38,16 +39,6 @@ class AppDaemon:
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
 
-    def _sub_stack(self, msg):
-        stack = inspect.stack()
-        if msg.find("__module__") != -1:
-            msg = msg.replace("__module__", stack[2][1])
-        if msg.find("__line__") != -1:
-            msg = msg.replace("__line__", str(stack[2][2]))
-        if msg.find("__function__") != -1:
-            msg = msg.replace("__function__", stack[2][3])
-        return msg
-
     #
     # Utility
     #
@@ -59,12 +50,12 @@ class AppDaemon:
     def split_device_list(self, list_):
         return list_.split(",")
 
+    @log_limit
     def log(self, msg, level="INFO"):
-        msg = self._sub_stack(msg)
         ha.log(self._logger, level, msg, self.name)
 
+    @log_limit
     def error(self, msg, level="WARNING"):
-        msg = self._sub_stack(msg)
         ha.log(self._error, level, msg, self.name)
 
     def get_app(self, name):
