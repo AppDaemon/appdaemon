@@ -4,6 +4,8 @@ import datetime
 import re
 import random
 import uuid
+import logging
+from appdaemon.logging import log_limit
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -36,24 +38,10 @@ def _sanitize_kwargs(kwargs, keys):
     return kwargs
 
 
-def log(logger, level, msg, name=""):
-    levels = {
-        "CRITICAL": 50,
-        "ERROR": 40,
-        "WARNING": 30,
-        "INFO": 20,
-        "DEBUG": 10,
-        "NOTSET": 0
-    }
-    if name != "":
-        name = " {}:".format(name)
-
-    if conf.realtime:
-        timestamp = datetime.datetime.now()
-    else:
-        timestamp = get_now()
-
-    logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
+@log_limit
+def log(logger, level, msg, name="appdaemon"):
+    extra = {'appname': name}
+    logger.log(logging.getLevelName(level), msg, extra=extra)
 
 
 def get_now():

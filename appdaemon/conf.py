@@ -36,6 +36,7 @@ endtime = None
 interval = 1
 certpath = None
 
+logformat = None
 loglevel = "INFO"
 ha_config = None
 version = 0

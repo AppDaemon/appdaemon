@@ -27,6 +27,7 @@ import re
 import uuid
 import astral
 import pytz
+import appdaemon.logging
 import appdaemon.homeassistant as ha
 import appdaemon.appapi as api
 import platform
@@ -1555,6 +1556,10 @@ def main():
     conf.config = config
     conf.ha_url = config['AppDaemon']['ha_url']
     conf.ha_key = config['AppDaemon'].get('ha_key', "")
+    conf.logformat = config['AppDaemon'].get(
+        "logformat", "%(asctime)s %(levelname)s %(appname)s %(message)s",
+        raw=True,
+    )
     conf.logfile = config['AppDaemon'].get("logfile")
     conf.errorfile = config['AppDaemon'].get("errorfile")
     conf.app_dir = config['AppDaemon'].get("app_dir")
@@ -1575,31 +1580,37 @@ def main():
 
     # Setup Logging
 
+    formatter_kwargs = {}
+    if not conf.realtime:
+        formatter_kwargs.update({
+            'timestamp_conv': lambda ts: ha.get_now()
+        })
+    formatter = appdaemon.logging.CustomFormatter(
+        conf.logformat, **formatter_kwargs
+    )
+
     conf.logger = logging.getLogger("log1")
-    numeric_level = getattr(logging, args.debug, None)
-    conf.logger.setLevel(numeric_level)
+    conf.logger.setLevel(args.debug)
     conf.logger.propagate = False
-    # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
     # Send to file if we are daemonizing, else send to console
 
     if conf.logfile != "STDOUT":
         fh = RotatingFileHandler(conf.logfile, maxBytes=1000000, backupCount=3)
-        fh.setLevel(numeric_level)
-        # fh.setFormatter(formatter)
+        fh.setLevel(args.debug)
+        fh.setFormatter(formatter)
         conf.logger.addHandler(fh)
     else:
         # Default for StreamHandler() is sys.stderr
         ch = logging.StreamHandler(stream=sys.stdout)
-        ch.setLevel(numeric_level)
-        # ch.setFormatter(formatter)
+        ch.setLevel(args.debug)
+        ch.setFormatter(formatter)
         conf.logger.addHandler(ch)
 
     # Setup compile output
 
     conf.error = logging.getLogger("log2")
-    numeric_level = getattr(logging, args.debug, None)
-    conf.error.setLevel(numeric_level)
+    conf.error.setLevel(args.debug)
     conf.error.propagate = False
     # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
@@ -1610,8 +1621,8 @@ def main():
     else:
         efh = logging.StreamHandler()
 
-    efh.setLevel(numeric_level)
-    # efh.setFormatter(formatter)
+    efh.setLevel(args.debug)
+    efh.setFormatter(formatter)
     conf.error.addHandler(efh)
 
     # Startup message
