@@ -1358,7 +1358,12 @@ def run():
                 elif url.startswith('http://'):
                     url = url.replace('http', 'ws', 1)
 
-                ws = create_connection("{}/api/websocket".format(url))
+                sslopt = {}
+                if conf.certpath:
+                    sslopt['ca_certs'] = conf.certpath
+                ws = create_connection(
+                    "{}/api/websocket".format(url), sslopt=sslopt
+                )
                 result = json.loads(ws.recv())
                 ha.log(conf.logger, "INFO",
                        "Connected to Home Assistant {}".format(
