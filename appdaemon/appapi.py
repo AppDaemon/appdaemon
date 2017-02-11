@@ -267,10 +267,10 @@ class AppDaemon:
             headers = {'x-ha-access': conf.ha_key}
         else:
             headers = {}
-        apiurl = "{}/api/events/{}".format(
-            conf.ha_url, event, verify=conf.certpath
+        apiurl = "{}/api/events/{}".format(conf.ha_url, event)
+        r = requests.post(
+            apiurl, headers=headers, json=kwargs, verify=conf.certpath
         )
-        r = requests.post(apiurl, headers=headers, json=kwargs)
         r.raise_for_status()
         return r.json()
 
