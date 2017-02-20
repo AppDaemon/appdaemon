@@ -11,7 +11,7 @@ Installation is either by pip3 or Docker.
 For either method you will need to clone the **AppDaemon** repository to the current local directory on your machine.
 
 ``` bash
-$ git clone https://github.com/acockburn/appdaemon.git
+$ git clone https://github.com/home-assistant/appdaemon.git
 ```
 
 Change your working directory to the repository root. Moving forward, we will be working from this directory.
