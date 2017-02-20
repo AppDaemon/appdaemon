@@ -3,10 +3,14 @@
 // ----------------------------------------------------------------------------
 // Widget styles
 // ----------------------------------------------------------------------------
-.widget-dimmer {
+.widget-sliderpicker {
 
   position: relative;
 
+  .state_text {
+    font-size: 85%;
+  }
+  
   .title {
     margin-bottom: 0;
     margin-top: 10px;

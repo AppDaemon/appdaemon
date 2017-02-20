@@ -1,0 +1,21 @@
+widget_type: sliderpicker
+state_entity: {{entity}}
+state_active: playing
+state_inactive: paused
+inactive_level_valid: 1
+min_level: 0
+max_level: 1
+increment: 0.1
+state_text_attribute: media_title
+icon_on: fa-music
+icon_off: fa-music
+post_service_active:
+    service: media_player/media_play
+    entity_id: {{entity}}
+post_service_inactive:
+    service: media_player/media_pause
+    entity_id: {{entity}}
+post_service_level:
+    service: media_player/volume_set
+    entity_id: {{entity}}
+level_attribute: "volume_level"

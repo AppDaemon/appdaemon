@@ -1,0 +1,13 @@
+widget_type: sliderpicker
+state_entity: {{entity}}
+icon_on: fa-circle
+icon_off: fa-circle-thin
+on_level: 127
+post_service_active:
+    service: homeassistant/turn_on
+    entity_id: {{entity}}
+post_service_inactive:
+    service: homeassistant/turn_off
+    entity_id: {{entity}}
+level_attribute: "brightness"
+round: 1

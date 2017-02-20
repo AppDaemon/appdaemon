@@ -1,0 +1,11 @@
+widget_type: sliderpicker
+state_entity: {{entity}}
+level_attribute: state
+icon_on: none
+icon_off: none
+round: 1
+inactive_level_valid: 1
+post_service_level_attribute: value
+post_service_level:
+    service: input_slider/select_value
+    entity_id: {{entity}}

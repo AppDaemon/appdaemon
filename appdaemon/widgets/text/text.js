@@ -45,11 +45,15 @@ function text(widget_id, url, parameters)
     }
     
     // Fill in text
-    if "text" in parameters:
+    if ("text" in parameters)
+    {
         this.ViewModel.value(parameters.text)
+    }
     // Get initial state
-    if "state_entity" in parameters:
+    if ("state_entity" in parameters)
+    {
         this.get_state(url, parameters.state_entity)
+    }
 
     // Methods
     

@@ -20,7 +20,7 @@ dash_url = http://192.168.1.20:5050
 
 Note that at this time only http is supported.
 
-Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
+By default, dashboards are searched for under the config directory in a sub directory called `dashboards`. Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
 
 e.g.:
 
@@ -28,7 +28,7 @@ e.g.:
 dash_dir = /etc/appdaemon/dashboards
 ```
 
-When you have added those lines, restart AppDaemon and you will be ready to go. If you navigate to the top level, e.g. ```http://192.168.1.20:5050``` in the case above, you will see a welcomne page with a list of configured dashboards. If you haven't yet configured any the list will be empty.
+When you have added those lines, restart AppDaemon and you will be ready to go. If you navigate to the top level, e.g. ```http://192.168.1.20:5050``` in the case above, you will see a welcome page with a list of configured dashboards. If you haven't yet configured any the list will be empty.
 
 When you have created a dashboard you can navigate to it by going to ```http://192.168.1.20:5050/<Dashboard Name>```
 
@@ -52,7 +52,7 @@ This will force dashboard recompilation whenever the dashboard is loaded but may
 
 Dashboard configuration is simple yet very powerful. Dashboards can be created in single files or made modular for reuse of blocks of widgets. Dashboards are configured using YAML.
 
-We will start with a simple single file configuration. Create a file with a `.dash` extension in the dashboards directory, and pull it up in your favorite editor.
+We will start with a simple single file configuration. Create a file with a `.dash` extension in the `dashboards` directory, and pull it up in your favorite editor.
 
 ## Main Settings
 
@@ -459,6 +459,27 @@ A widget to show the value of any text based sensor
 - `title_color`
 - `title_size`
 
+## label
+
+A widget to show a simple static text string
+
+### Mandatory Arguments
+
+None
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `text` - the text displayed on the tile
+
+### Cosmetic Arguments
+
+- `background_color`
+- `text_color`
+- `text_size`
+- `title_color`
+- `title_size`
+
 ## scene
 
 A widget to activate a scene
@@ -548,8 +569,51 @@ A widget to monitor and contol a dimmable light
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
-- `on_brightness` - how bright you want the light tocome on when activated in percent.
+- `on_brightness` - how bright you want the light to come on when activated in percent.
 - `increment` - the size of step in brightness when fading the light up or down
+
+### Cosmetic Arguments
+   
+- `backgropund_color`
+- `icon_on`
+- `icon_off`
+- `icon_size`
+- `title_color`
+- `title_size`
+
+## input_slider
+
+A widget to monitor and contol an input slider
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the input_slider
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `increment` - the size of step in brightness when fading the slider up or down
+
+### Cosmetic Arguments
+   
+- `backgropund_color`
+- `icon_on`
+- `icon_off`
+- `icon_size`
+- `title_color`
+- `title_size`
+
+## media_player
+
+A widget to monitor and contol a media player light
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the media player
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
 
 ### Cosmetic Arguments
    
