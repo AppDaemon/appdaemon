@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="shortcut icon" href="images/favicon.ico" />
+    {% if main is defined %}
+        <title>Welcome to HADashboard</title>
+        <link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
+    {% elif dash_list is defined %}
+        <title>Dashboard Not Found</title>
+        <link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
+    {% elif errors %}
+        <title>Dashboard Has Errors</title>
+        <link rel="stylesheet" type="text/css" href="css/non_dashboard.css">  
+    {%else%}
+    <title>{{ title }}</title>
+    <link rel="stylesheet" type="text/css" href="css/{{skin}}/dashboard.css">
+    <link rel="stylesheet" type="text/css" href="css/jquery.gridster.css">
+    <link rel="stylesheet" type="text/css" href="css/climacons-font.css">
+    <link rel="stylesheet" type="text/css" href="css/font-awesome.css">
+    <link rel="stylesheet" type="text/css" href="css/materialdesignicons.min.css" media="all" />
+    <link rel="stylesheet" type="text/css" href="compiled_css/{{skin}}/application.css">
+    <script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
+    <script type="text/javascript" src="javascript/jquery.gridster.js"></script>
+    <script type="text/javascript" src="javascript/knockout-3.4.1.js"></script>
+    <script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
+    <script type="text/javascript" src="javascript/dashboard.js"></script>
+    <script type="text/javascript" src="compiled_javascript/application.js"></script>
+    <script type="text/javascript" src="compiled_javascript/{{name}}_init.js"></script>
+    {%endif%}
+</head>
+<body>
+    {% if dash_list is defined %}
+        <h1>HADashboard</h1>
+        <br>Welcome to HADashboard for Home Assistant.</br>
+        {% if main is defined %}
+        {% else %}
+            <br>I'm sorry, your Dashboard has an error or was not found - check the log for details</br>
+        {% endif %}
+        <br>The following Dashboards are available:</br>
+        <ul id="dashes">
+        {% for item in dash_list %}
+            <li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
+        {% endfor %}
+    {%else%}
+        {% if errors %}
+            <div>
+                <h1>Your Dashboard has the following errors:</h1>
+                {% for item in errors %}
+                    <br>{{ item }}
+                {% endfor %}
+            </div>
+        {% else %}
+    <div id="container">
+        <div class="gridster">
+            <ul>
+            </ul>
+        </div>
+    </div>
+        {% endif %}
+    {%endif%}
+</body>
+</html>

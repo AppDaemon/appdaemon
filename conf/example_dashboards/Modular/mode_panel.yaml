@@ -1,0 +1,46 @@
+morning:
+    widget_type: binary
+    title: Morning
+    icon_on: fa-clock-o
+    icon_off: fa-clock-o
+    state_entity: input_select.house_mode
+    state_active: Morning
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.morning
+
+day:
+    widget_type: binary
+    title: Day
+    icon_on: fa-sun-o
+    icon_off: fa-sun-o
+    state_entity: input_select.house_mode
+    state_active: Day
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.day
+
+evening:
+    widget_type: binary
+    title: Evening
+    icon_on: fa-moon-o
+    icon_off: fa-moon-o
+    state_entity: input_select.house_mode
+    state_active: Evening
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.evening
+
+night:
+    widget_type: binary
+    title: Night
+    icon_on: fa-star-o
+    icon_off: fa-star-o
+    state_entity: input_select.house_mode
+    state_active: Night
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.night
+
+layout: 
+    - morning(2x1), day(2x1), evening(2x1), night(2x1)

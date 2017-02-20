@@ -1,0 +1,79 @@
+@import "variables";
+// ----------------------------------------------------------------------------
+// Widget-weather styles
+// ----------------------------------------------------------------------------
+.widget-weather {
+
+  color: $color-weather;
+
+  h1 {
+  	margin-bottom: 0px;
+  }
+
+  [class^="primary"] {
+  	display: inline-block;
+  	vertical-align: middle;
+  	padding: 0;
+  	margin-left: 10px;
+  	margin-right: 10px;
+  	margin-top: 0px;
+  	margin-bottom: 0px;
+  }
+
+  [class^="secondary"] {
+  	display: inline-block;
+  	vertical-align: middle;
+  	padding: 0;
+  	margin-left: 0px;
+  	margin-right: 0px;
+  	margin-top: 0px;
+  	margin-bottom: 0px;
+  }
+
+  .primary-climacon {
+  	font-family: "Climacons-Font";
+  	font-size: 70px;
+  }
+
+  .primary-info {
+   	font-size: 300%;
+  	font-weight: 400;
+  }
+
+  .primary-unit {
+    font-size: 200%;
+    font-weight: 400;
+    margin-left: 0;
+    margin-top: 20px;
+    vertical-align: top;
+  }
+
+  .secondary-icon {
+  	font-family: "Climacons-Font";
+  	font-size: 40px;
+  	margin-left: 10px;
+  	margin-right: 0px;
+  }
+
+  .secondary-climacon {
+  	font-family: "Climacons-Font";
+  	font-size: 55px;
+  	margin-left: 10px;
+  	margin-right: 10px;
+  }
+
+  .secondary-info {
+   	font-size: 125%;
+  	font-weight: 200;
+  }
+
+  hr {
+  	width: 90%;
+  	border: 0;
+  	height: 1px;
+  	background: rgba(255, 255, 255, 0.25);
+  	margin-top: 15px;
+  	margin-bottom: 15px;
+  }
+
+}

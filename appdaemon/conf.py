@@ -7,6 +7,7 @@ app_dir = ""
 threads = 0
 monitored_files = {}
 modules = {}
+apps = False
 
 # Will require object based locking if implemented
 objects = {}
@@ -40,3 +41,23 @@ loglevel = "INFO"
 ha_config = None
 version = 0
 commtype = None
+
+# Dashboard
+
+dash_host = None
+dash_dir = None
+dash_port = None
+dashboard = False
+
+dashboard_dir = None
+javascript_dir = None
+template_dir = None
+css_dir = None
+fonts_dir = None
+images_dir = None
+base_url = None
+stream_url = None
+state_url = None
+max_include_depth = 10
+dash_force_compile = False
+

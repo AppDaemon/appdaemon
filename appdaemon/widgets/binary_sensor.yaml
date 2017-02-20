@@ -1,0 +1,6 @@
+widget_type: binary
+icon_on: fa-bullseye
+icon_off: fa-minus
+state_active: "on"
+warn: 1
+state_entity: {{entity}}

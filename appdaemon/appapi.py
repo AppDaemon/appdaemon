@@ -34,10 +34,6 @@ class AppDaemon:
                        "{}: Entity {} not found in Home Assistant".format(
                            self.name, entity))
 
-    def _check_service(self, service):
-        if service.find("/") == -1:
-            raise ValueError("Invalid Service Name: {}".format(service))
-
     def _sub_stack(self, msg):
         stack = inspect.stack()
         if msg.find("__module__") != -1:
@@ -319,22 +315,7 @@ class AppDaemon:
             #
 
     def call_service(self, service, **kwargs):
-        self._check_service(service)
-        d, s = service.split("/")
-        ha.log(
-            conf.logger, "DEBUG",
-            "call_service: {}/{}, {}".format(d, s, kwargs)
-        )
-        if conf.ha_key != "":
-            headers = {'x-ha-access': conf.ha_key}
-        else:
-            headers = {}
-        apiurl = "{}/api/services/{}/{}".format(conf.ha_url, d, s)
-        r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=conf.certpath
-        )
-        r.raise_for_status()
-        return r.json()
+        return ha.call_service(service, **kwargs)
 
     def turn_on(self, entity_id, **kwargs):
         self._check_entity(entity_id)

@@ -32,8 +32,10 @@ import appdaemon.appapi as api
 import platform
 import math
 import random
+import appdaemon.appdash as appdash
+import asyncio
 
-__version__ = "1.5.2"
+__version__ = "2.0.0beta"
 
 # Windows does not have Daemonize package so disallow
 
@@ -769,10 +771,6 @@ def process_state_change(data):
     ha.log(conf.logger, "DEBUG", "Entity ID:{}:".format(entity_id))
     device, entity = entity_id.split(".")
 
-    # First update our global state
-    with conf.ha_state_lock:
-        conf.ha_state[entity_id] = data['data']['new_state']
-
     # Process state callbacks
 
     with conf.callbacks_lock:
@@ -860,12 +858,25 @@ def process_message(data):
         )
         ha.log(conf.logger, "DEBUG", data["data"])
 
-        # Process state changed message
         if data['event_type'] == "state_changed":
-            process_state_change(data)
+            entity_id = data['data']['entity_id']
+        
+            # First update our global state
+            with conf.ha_state_lock:
+                conf.ha_state[entity_id] = data['data']['new_state']
 
-        # Process non-state callbacks
-        process_event(data)
+        if conf.apps is True:
+            # Process state changed message
+            if data['event_type'] == "state_changed":
+                process_state_change(data)
+
+            # Process non-state callbacks
+            process_event(data)
+
+        # Update dashboards
+        
+        if conf.dashboard is True:
+            appdash.ws_update(data)
 
     except:
         ha.log(conf.error, "WARNING", '-' * 60)
@@ -1225,15 +1236,16 @@ def run():
 
     update_sun()
 
-    ha.log(conf.logger, "DEBUG", "Creating worker threads ...")
+    if conf.apps is True:
+        ha.log(conf.logger, "DEBUG", "Creating worker threads ...")
 
-    # Create Worker Threads
-    for i in range(conf.threads):
-        t = threading.Thread(target=worker)
-        t.daemon = True
-        t.start()
+        # Create Worker Threads
+        for i in range(conf.threads):
+            t = threading.Thread(target=worker)
+            t.daemon = True
+            t.start()
 
-    ha.log(conf.logger, "DEBUG", "Done")
+            ha.log(conf.logger, "DEBUG", "Done")
 
     # Read apps and get HA State before we start the timer thread
     ha.log(conf.logger, "DEBUG", "Calling HA for initial state")
@@ -1253,29 +1265,39 @@ def run():
                 ha.log(conf.logger, "WARNING", '-' * 60)
                 ha.log(conf.logger, "WARNING", traceback.format_exc())
                 ha.log(conf.logger, "WARNING", '-' * 60)
-        time.sleep(5)
+            time.sleep(5)
 
     ha.log(conf.logger, "INFO", "Got initial state")
     # Load apps
 
-    ha.log(conf.logger, "DEBUG", "Reading Apps")
+    if conf.apps is True:
+        ha.log(conf.logger, "DEBUG", "Reading Apps")
 
-    read_apps(True)
+        read_apps(True)
 
-    ha.log(conf.logger, "INFO", "App initialization complete")
+        ha.log(conf.logger, "INFO", "App initialization complete")
 
-    # Create timer thread
+        # Create timer thread
 
-    # First, update "now" for less chance of clock skew error
-    if conf.realtime:
-        conf.now = datetime.datetime.now().timestamp()
+        # First, update "now" for less chance of clock skew error
+        if conf.realtime:
+            conf.now = datetime.datetime.now().timestamp()
 
-    ha.log(conf.logger, "DEBUG", "Starting timer thread")
+            ha.log(conf.logger, "DEBUG", "Starting timer thread")
 
-    t = threading.Thread(target=timer_thread)
-    t.daemon = True
-    t.start()
+            t = threading.Thread(target=timer_thread)
+            t.daemon = True
+            t.start()
 
+    # Start Dashboard Thread
+
+    if conf.dashboard is True:
+        ha.log(conf.logger, "INFO", "Starting dashboard")
+        loop = asyncio.get_event_loop()
+        t = threading.Thread(target=appdash.run_dash, args=(loop,))
+        t.daemon = True
+        t.start()
+    
     # Enter main loop
 
     first_time = True
@@ -1295,12 +1317,14 @@ def run():
                 # Let the timer thread know we are in business,
                 # and give it time to tick at least once
                 reading_messages = True
-                time.sleep(2)
+                if conf.apps is True:
+                    time.sleep(2)
 
                 # Load apps
-                read_apps(True)
+                if conf.apps is True:
+                    read_apps(True)
 
-                ha.log(conf.logger, "INFO", "App initialization complete")
+                    ha.log(conf.logger, "INFO", "App initialization complete")
 
             #
             # Fire HA_STARTED and APPD_STARTED Events
@@ -1433,13 +1457,14 @@ def run():
 
 
 def find_path(name):
-    for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
+    for path in [os.path.join(os.path.expanduser("~"), ".appdaemon"), 
+                 os.path.join(os.path.expanduser("~"), ".homeassistant"),
                  os.path.join(os.path.sep, "etc", "appdaemon")]:
         _file = os.path.join(path, name)
         if os.path.isfile(_file) or os.path.isdir(_file):
             return _file
     raise ValueError(
-        "{} not specified and not found in default locations".format(name)
+        "{} not found in default locations".format(name)
     )
 
 
@@ -1462,7 +1487,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-c", "--config", help="full path to config file",
+        "-c", "--config", help="full path to config directory",
         type=str, default=None
     )
     parser.add_argument(
@@ -1531,12 +1556,14 @@ def main():
     if conf.tick != 1 or conf.interval != 1 or args.starttime is not None:
         conf.realtime = False
 
-    config_file = args.config
+    config_dir = args.config
 
     conf.commtype = args.commtype
 
-    if config_file is None:
+    if config_dir is None:
         config_file = find_path("appdaemon.cfg")
+    else:
+        config_file = os.path.join(config_dir, "appdaemon.cfg")
 
     if platform.system() != "Windows":
         isdaemon = args.daemon
@@ -1558,9 +1585,33 @@ def main():
     conf.logfile = config['AppDaemon'].get("logfile")
     conf.errorfile = config['AppDaemon'].get("errorfile")
     conf.app_dir = config['AppDaemon'].get("app_dir")
-    conf.threads = int(config['AppDaemon']['threads'])
+    conf.threads = int(config['AppDaemon'].get('threads'))
     conf.certpath = config['AppDaemon'].get("cert_path")
-
+    conf.dash_host = config['AppDaemon'].get("dash_host")
+    conf.dash_port = config['AppDaemon'].get("dash_port")
+    
+    if config['AppDaemon'].get("disable_apps") == "1":
+        conf.apps = False
+    else:
+        conf.apps = True        
+    
+    if config['AppDaemon'].get("dash_force_compile") == "1":
+        conf.dash_force_compile = True
+    else:
+        conf.dash_force_compile = False        
+     
+    # Need all dashboard parameters or none
+    if conf.dash_host != None or conf.dash_port != None:
+        if conf.dash_host == None:
+            raise ValueError("dash_host must be set")
+        elif conf.dash_port == None:
+            raise ValueError("dash_port must be set")
+        else:
+            conf.dashboard = True
+            
+    if conf.threads == None:
+        conf.threads = 10
+            
     if conf.logfile is None:
         conf.logfile = "STDOUT"
 
@@ -1621,6 +1672,13 @@ def main():
         "AppDaemon Version {} starting".format(__version__)
     )
 
+    if not conf.apps:
+    
+        ha.log(
+                conf.logger, "INFO",
+                "Apps are disabled"
+               )
+    
     # Check with HA to get various info
 
     ha_config = None
@@ -1641,7 +1699,6 @@ def main():
         time.sleep(5)
         first_time = False
 
-    # ha_config["version"] = "0.28.1"
     conf.version = parse_version(ha_config["version"])
 
     conf.ha_config = ha_config
@@ -1686,18 +1743,48 @@ def main():
             "'time_zone' directive is deprecated, please remove"
         )
 
+    if "app_dir" in config['AppDaemon']:
+        ha.log(
+            conf.logger, "WARNING",
+            "'app_dir' directive is deprecated, please remove"
+        )
+
     init_sun()
 
     config_file_modified = os.path.getmtime(config_file)
 
     # Add appdir  and subdirs to path
-    if conf.app_dir is None:
-        conf.app_dir = find_path("apps")
+    if conf.apps:
+        if config_dir is None:
+            conf.app_dir = find_path("apps")
+        else:
+            conf.app_dir = os.path.join(config_dir, "apps")
+        
+        for root, subdirs, files in os.walk(conf.app_dir):
+            if root[-11:] != "__pycache__":
+                sys.path.insert(0, root)
 
-    for root, subdirs, files in os.walk(conf.app_dir):
-        if root[-11:] != "__pycache__":
-            sys.path.insert(0, root)
-
+    # find dashboard dir
+    
+    if conf.dashboard:
+        if config_dir is None:
+            conf.dashboard_dir = find_path("dashboards")
+        else:
+            conf.dashboard_dir = os.path.join(config_dir, "dashboards") 
+    
+        #
+        # Figure out where our data files are
+        #
+        conf.dash_dir = os.path.dirname(__file__)
+    
+        #
+        # Setup compile directories
+        #
+        if config_dir is None:
+            conf.compile_dir = find_path("compiled")
+        else:
+            conf.compile_dir = os.path.join(config_dir, "compiled")
+    
     # Start main loop
 
     if isdaemon:

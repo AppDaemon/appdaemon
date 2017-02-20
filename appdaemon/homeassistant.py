@@ -286,3 +286,26 @@ def cancel_timer(name, handle):
             del conf.schedule[name][handle]
         if name in conf.schedule and conf.schedule[name] == {}:
             del conf.schedule[name]
+
+def _check_service(service):
+    if service.find("/") == -1:
+        raise ValueError("Invalid Service Name: {}".format(service))
+
+
+def call_service(service, **kwargs):
+    _check_service(service)
+    d, s = service.split("/")
+    log(
+        conf.logger, "DEBUG",
+        "call_service: {}/{}, {}".format(d, s, kwargs)
+    )
+    if conf.ha_key != "":
+        headers = {'x-ha-access': conf.ha_key}
+    else:
+        headers = {}
+    apiurl = "{}/api/services/{}/{}".format(conf.ha_url, d, s)
+    r = requests.post(
+        apiurl, headers=headers, json=kwargs, verify=conf.certpath
+    )
+    r.raise_for_status()
+    return r.json()

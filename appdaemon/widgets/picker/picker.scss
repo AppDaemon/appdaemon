@@ -1,0 +1,18 @@
+@import "variables";
+// ----------------------------------------------------------------------------
+// Widget-picker styles
+// ----------------------------------------------------------------------------
+.widget-picker {
+
+  .icon-active {
+  	color: $color-active;
+  }
+
+  .icon-active-warn {
+  	color: $color-active-warn;
+  }
+
+  .icon-inactive {
+  	color: $color-inactive;
+  }
+}

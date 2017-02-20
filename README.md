@@ -1,6 +1,6 @@
 # Description
 
-AppDaemon is a loosely coupled, multithreaded, sandboxed python execution environment for writing automation apps for [Home Assistant](https://home-assistant.io/) home automation software.
+AppDaemon is a loosely coupled, multithreaded, sandboxed python execution environment for writing automation apps for [Home Assistant](https://home-assistant.io/) home automation software. As of release 2,0,0 it also provides a configurable dashboard (HADashboard) suitable for wall mounted tablets.
 
 # Installation
 
@@ -48,7 +48,6 @@ ha_url = <some_url>
 ha_key = <some key>
 logfile = STDOUT
 errorfile = STDERR
-app_dir = <Path to appdaemon dir>/conf/apps
 threads = 10
 cert_path = <path/to/root/CA/cert>
 # Apps
@@ -61,11 +60,14 @@ class = HelloWorld
 - `ha_key` should be set to your key if you have one, otherwise it can be removed.
 - `logfile` (optional) is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `appdaemon` directory of the cloned repository. If `logfile = STDOUT`, output will be sent to stdout instead of stderr when running in the foreground, if not specified, output will be sent to STDOUT.
 - `errorfile` (optional) is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps. If `errorfile = STDERR` errors will be sent to stderr instead of a file, if not specified, output will be sent to STDERR.
-- `app_dir` (optional) is the directory the apps are placed in. If not specified, AppDaemon will look first in `~/.homeassistant` then `/etc/appdaemon` for a subdirectory named `apps`
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization, leave this set to 10 unless you experience thread starvation
 - `cert_path` (optional) - path to root CA cert directory - use only if you are using self signed certs.
 
 The `#Apps` section is the configuration for the Hello World program and should be left in place for initial testing but can be removed later if desired, as other Apps are added, App configuration is described in the [API doc](API.md).
+
+## Configuring the Dashboard
+
+Configuratiopn of the dashboard component (HADashboard) is described separately in the [Dashboard doc](DASHBOARD.md)
 
 ## Docker
 
@@ -83,18 +85,6 @@ known_devices.yaml
 appdaemon.cfg
 apps
 apps/magic.py
-```
-
-You will need to modify the `appdaemon.cfg` file to point to these apps in `/conf/apps`:
-
-```
-[AppDaemon]
-ha_url = <some_url>
-ha_key = <some key>
-logfile = STDOUT
-errorfile = STDERR
-app_dir = /conf/apps
-threads = 10
 ```
 
 You can run Docker and point the conf volume to that directory.
@@ -141,13 +131,13 @@ Note that for Docker, the error and regular logs are combined.
 You can then run AppDaemon from the command line as follows:
 
 ```bash
-$ appdaemon -c conf/appdaemon.cfg
+$ appdaemon -c conf
 ```
 
 If all is well, you should see something like the following:
 
 ```
-$ appdaemon -c conf/appdaemon.cfg
+$ appdaemon -c conf
 2016-08-22 10:08:16,575 INFO Got initial state
 2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
 2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
@@ -164,7 +154,7 @@ usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TICK] [-s STARTTIME]
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
-                        full path to config file
+                        full path to config diectory
   -p PIDFILE, --pidfile PIDFILE
                         full path to PID File
   -t TICK, --tick TICK  time in seconds that a tick in the schedular lasts
@@ -179,7 +169,7 @@ optional arguments:
   -v, --version         show program's version number and exit
   -d, --daemon          run as a background process
 
--c is the path to the configuration file. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the file is not specified and it is not found in either location, AppDaemon will raise an exception.                        
+-c is the path to the configuration directory. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the directory is not specified and it is not found in either location, AppDaemon will raise an exception. In addition, AppDaemon expects to find a dir named `apps` immediately subordinate to the config directory.                    
                         
 -d and -p are used by the init file to start the process as a daemon and are not required if running from the command line. 
 

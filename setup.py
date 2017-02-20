@@ -9,6 +9,8 @@ with open('README.md') as readme_file:
 with open('HISTORY.md') as history_file:
     HISTORY = history_file.read()
 
+#sudo apt-get install python3-aiohttp-dbg
+
 REQUIREMENTS = [
     'daemonize',
     'configparser',
@@ -16,11 +18,18 @@ REQUIREMENTS = [
     'requests>=2.6.0',
     'sseclient',
     'websocket-client',
+    'async',
+    'aiohttp>=1.2.0',
+    'Jinja2>=2.9.5',
+    'aiohttp_jinja2',
+    'pyScss',
+    'pyyaml',
+    'voluptuous',
 ]
 
 setup(
     name='appdaemon',
-    version='1.5.2',
+    version='2.0.0',
     description="Apps for the Home Assistant home automation package.",
     long_description=README + '\n\n' + HISTORY,
     author='Andrew I Cockburn',

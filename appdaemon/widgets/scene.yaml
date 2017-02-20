@@ -1,0 +1,8 @@
+widget_type: binary
+state_entity: {{entity}}
+icon_on: fa-square
+icon_off: fa-square
+momentary: 1000
+post_service_active:
+    service: homeassistant/turn_on
+    entity_id: {{entity}}

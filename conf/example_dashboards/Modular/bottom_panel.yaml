@@ -1,0 +1,53 @@
+load_main_panel:
+    widget_type: navigate
+    title: Main Panel
+    icon: fa-home
+    url: /MainPanel
+    #background_color: "#00f"
+    #icon_color: green
+    #icon_size: 200%
+    #title_color: red
+    #title_size: 200%
+
+load_upstairs_panel:
+    widget_type: navigate
+    title: Office Panel
+    icon: fa-windows
+    url: /OfficePanel
+
+load_upstairs:
+    widget_type: navigate
+    title: Upstairs
+    icon: fa-bed
+    url: /Upstairs
+
+load_downstairs:
+    widget_type: navigate
+    title: Downstairs
+    icon: fa-tv
+    url: /Downstairs
+
+load_outside:
+    widget_type: navigate
+    title: Outside
+    icon: fa-twitter
+    url: /Outside
+
+load_doors:
+    widget_type: navigate
+    title: Doors and Locks
+    icon: fa-lock
+    url: /Doors
+
+load_controls:
+    widget_type: navigate
+    title: Controls
+    icon: fa-dashboard
+    url: /Controls
+    
+reload:
+    widget_type: reload
+    title: Reload
+    
+layout: 
+    - load_main_panel, load_upstairs_panel, load_upstairs, load_downstairs, load_outside,         load_doors,             load_controls,        reload

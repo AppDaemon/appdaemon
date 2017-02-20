@@ -1,0 +1,17 @@
+widget_type: binary
+icon_on: fa-user
+icon_off: fa-times
+state_active: home
+state_text: 1
+state_entity: device_tracker.{{device}}
+state_map:
+    home: HOME
+    not_home: AWAY
+post_service_active:
+    service: device_tracker/see
+    dev_id: {{device}}
+    location_name: home
+post_service_inactive:
+    service: device_tracker/see
+    dev_id: {{device}}
+    location_name: not_home

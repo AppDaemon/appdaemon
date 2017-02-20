@@ -1,0 +1,32 @@
+$(function(){ //DOM Ready
+
+    $(document).attr("title", "{{title}}");
+    content_width = ({{widget_dimensions[0]}} + {{widget_margins[0]}}) * {{columns}}
+    $('.gridster').width(content_width)
+    $(".gridster ul").gridster({
+        widget_margins: [{{ widget_margins[0] }}, {{ widget_margins[1] }}],
+        widget_base_dimensions: [{{ widget_dimensions[0] }}, {{ widget_dimensions[1] }}],
+        avoid_overlapped_widgets: true,
+        max_size_x: {{columns}},
+        shift_widgets_up: false
+    }).data('gridster').disable();
+    
+    // Add Widgets
+
+    var gridster = $(".gridster ul").gridster().data('gridster');
+    {% for widget in widgets%}
+        gridster.add_widget('<li><div class="widget widget-{{widget.parameters.widget_type}}" id="{{widget.id}}">{{widget.html}}</div></li>', {{widget.size[0]}}, {{widget.size[1]}}, {{widget.position[0]}}, {{widget.position[1]}})
+    {% endfor %}
+    
+    
+    var widgets = {}
+    // Initialize Widgets
+    {% for widget in widgets%}
+        widgets["{{widget.id}}"] = new {{widget.parameters.widget_type}}("{{widget.id}}", "{{ base_url }}", {{widget.parameters}})
+    {% endfor %}
+    
+    // Start listening for HA Events
+    
+    ha_status('{{ stream_url }}', "{{ title }}", widgets);
+
+});
