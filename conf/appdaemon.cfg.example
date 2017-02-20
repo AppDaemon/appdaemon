@@ -3,7 +3,6 @@ ha_url =
 ha_key = 
 logfile = STDOUT
 errorfile = STDERR
-app_dir = 
 threads = 10
 latitude = 
 longitude = 
