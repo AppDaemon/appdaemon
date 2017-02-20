@@ -44,8 +44,12 @@ function text(widget_id, url, parameters)
         $('#' + widget_id + ' > h1').css("font-size", parameters["title_size"])
     }
     
+    // Fill in text
+    if "text" in parameters:
+        this.ViewModel.value(parameters.text)
     // Get initial state
-    this.get_state(url, parameters.state_entity)
+    if "state_entity" in parameters:
+        this.get_state(url, parameters.state_entity)
 
     // Methods
     

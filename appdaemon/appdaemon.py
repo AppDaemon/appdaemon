@@ -34,6 +34,7 @@ import math
 import random
 import appdaemon.appdash as appdash
 import asyncio
+from urllib.parse import urlparse
 
 __version__ = "2.0.0beta"
 
@@ -1355,13 +1356,13 @@ def run():
                     )
                     ha.log(
                         conf.logger, "INFO",
-                        "Connected to Home Assistant".format(conf.timeout)
+                        "Connected to Home Assistant"
                     )
                 else:
                     messages = SSEClient(
                         "{}/api/stream".format(conf.ha_url),
                         verify=False, headers=headers, retry=3000,
-                        timeout=conf.timeout
+                        timeout=int(conf.timeout)
                     )
                     ha.log(
                         conf.logger, "INFO",
@@ -1587,8 +1588,10 @@ def main():
     conf.app_dir = config['AppDaemon'].get("app_dir")
     conf.threads = int(config['AppDaemon'].get('threads'))
     conf.certpath = config['AppDaemon'].get("cert_path")
-    conf.dash_host = config['AppDaemon'].get("dash_host")
-    conf.dash_port = config['AppDaemon'].get("dash_port")
+    conf.dash_url = config['AppDaemon'].get("dash_url")
+    conf.app_dir = config['AppDaemon'].get("app_dir")
+    conf.dashboard_dir = config['AppDaemon'].get("dash_dir")
+    conf.timeout = config['AppDaemon'].get("timeout")
     
     if config['AppDaemon'].get("disable_apps") == "1":
         conf.apps = False
@@ -1600,15 +1603,23 @@ def main():
     else:
         conf.dash_force_compile = False        
      
-    # Need all dashboard parameters or none
-    if conf.dash_host != None or conf.dash_port != None:
-        if conf.dash_host == None:
-            raise ValueError("dash_host must be set")
-        elif conf.dash_port == None:
-            raise ValueError("dash_port must be set")
-        else:
-            conf.dashboard = True
-            
+    if conf.dash_url != None:
+        conf.dashboard = True
+        url = urlparse(conf.dash_url)        
+        
+        if url.scheme != "http":
+            raise ValueError("Invalid scheme for 'dash_url' - only HTTP is supported")
+        
+        dash_net = url.netloc.split(":")
+        conf.dash_host = dash_net[0]
+        try:
+            conf.dash_port = dash_net[1]
+        except IndexError:
+            conf.dash_port = 80
+
+        if conf.dash_host == "":
+            raise ValueError("Invalid host for 'dash_url'")
+        
     if conf.threads == None:
         conf.threads = 10
             
@@ -1743,23 +1754,18 @@ def main():
             "'time_zone' directive is deprecated, please remove"
         )
 
-    if "app_dir" in config['AppDaemon']:
-        ha.log(
-            conf.logger, "WARNING",
-            "'app_dir' directive is deprecated, please remove"
-        )
-
     init_sun()
 
     config_file_modified = os.path.getmtime(config_file)
 
     # Add appdir  and subdirs to path
     if conf.apps:
-        if config_dir is None:
-            conf.app_dir = find_path("apps")
-        else:
-            conf.app_dir = os.path.join(config_dir, "apps")
-        
+        if conf.app_dir == None:
+            if config_dir is None:
+                conf.app_dir = find_path("apps")
+            else:
+                conf.app_dir = os.path.join(config_dir, "apps")
+        print(conf.app_dir)
         for root, subdirs, files in os.walk(conf.app_dir):
             if root[-11:] != "__pycache__":
                 sys.path.insert(0, root)
@@ -1767,10 +1773,11 @@ def main():
     # find dashboard dir
     
     if conf.dashboard:
-        if config_dir is None:
-            conf.dashboard_dir = find_path("dashboards")
-        else:
-            conf.dashboard_dir = os.path.join(config_dir, "dashboards") 
+        if conf.dashboard_dir == None:
+            if config_dir is None:
+                conf.dashboard_dir = find_path("dashboards")
+            else:
+                conf.dashboard_dir = os.path.join(config_dir, "dashboards") 
     
         #
         # Figure out where our data files are

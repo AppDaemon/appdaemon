@@ -64,11 +64,15 @@ def load_dash(request):
     #
     
     dash = dashboard.compile_dash(name, skin)
+    if dash == None:
+        errors = []
+    else:
+        errors = dash["errors"]
     
     #
     #return params
     #
-    return {"errors": dash["errors"], "name": name.lower(), "skin": skin}
+    return {"errors": errors, "name": name.lower(), "skin": skin}
 
 @asyncio.coroutine
 def get_state(request):
@@ -93,6 +97,10 @@ def call_service(request):
     data = yield from request.post()
     ha.call_service(**request.POST)
     return web.Response(status = 200)
+    
+@asyncio.coroutine
+def not_found(request):
+    return web.Response(status = 404)
     
 # Websockets Handler
 
@@ -140,6 +148,7 @@ def ws_update(data):
 #Routes, Status and Templates
 
 def setup_routes():
+    app.router.add_get('/favicon.ico', not_found)
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)

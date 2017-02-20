@@ -63,6 +63,14 @@ class = HelloWorld
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization, leave this set to 10 unless you experience thread starvation
 - `cert_path` (optional) - path to root CA cert directory - use only if you are using self signed certs.
 
+Optionally, you can place your apps in a directory other than under the config directory using the `app_dir` directive.
+
+e.g.:
+
+```ini
+app_dir = /etc/appdaemon/apps
+```
+
 The `#Apps` section is the configuration for the Hello World program and should be left in place for initial testing but can be removed later if desired, as other Apps are added, App configuration is described in the [API doc](API.md).
 
 ## Configuring the Dashboard

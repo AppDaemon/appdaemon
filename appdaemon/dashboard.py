@@ -208,7 +208,7 @@ def compile_dash(name, skin):
     dash = get_dash(name, skin)
     if dash == None:
         dash_list = list_dashes()
-        return {"dash_list": dash_list}
+        return {"errors":["Dashboard not found"], "dash_list": dash_list}
         
     params = dash
     params["stream_url"] = conf.stream_url
@@ -283,7 +283,6 @@ def get_dash(name, skin):
     return dash
     
 def list_dashes():
-    print(conf.dashboard_dir)
     if not os.path.isdir(conf.dashboard_dir):
         return {}
         

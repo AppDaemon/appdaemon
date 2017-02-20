@@ -8,21 +8,29 @@ HADashboard is a dashboard for [Home Assistant](https://home-assistant.io/) that
 
 HADashboard is dependent upon AppDaemon. As a first step please refer to the [AppDaemon Documentation](README.md).
 
-When you have AppDaemon installed and running, configuration of the Dashboard is pretty simple. You just need to add a couple of directives to the config file - `dash_port` and `dash_host`.
+When you have AppDaemon installed and running, configuration of the Dashboard is pretty simple. You just need to add a directive to the config file - `dash_url`.
 
-- `dash_port` - the port you want the dashboard service to listen on
-- `dash_host` - the IP address of the machine running AppDaemon
+- `dash_url` - the url you want the dashboard service to listen on
 
 For instance:
 
 ```ini
-dash_port = 5050
-dash_host = 192.168.1.20
+dash_url = http://192.168.1.20:5050
+```
+
+Note that at this time only http is supported.
+
+Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
+
+e.g.:
+
+```ini
+dash_dir = /etc/appdaemon/dashboards
 ```
 
 When you have added those lines, restart AppDaemon and you will be ready to go. If you navigate to the top level, e.g. ```http://192.168.1.20:5050``` in the case above, you will see a welcomne page with a list of configured dashboards. If you haven't yet configured any the list will be empty.
 
-When you have created a dashboard you can naviget to it by going to ```http://192.168.1.20:5050/<Dashboard Name>```
+When you have created a dashboard you can navigate to it by going to ```http://192.168.1.20:5050/<Dashboard Name>```
 
 If you are using AppDaemon just for the dasboard and not the Apps, you can disable the app engine with the following directive:
 

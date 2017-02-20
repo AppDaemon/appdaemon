@@ -7,6 +7,7 @@ app_dir = ""
 threads = 0
 monitored_files = {}
 modules = {}
+app_dir = None
 apps = False
 
 # Will require object based locking if implemented

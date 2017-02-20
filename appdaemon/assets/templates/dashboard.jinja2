@@ -36,11 +36,15 @@
         {% else %}
             <br>I'm sorry, your Dashboard has an error or was not found - check the log for details</br>
         {% endif %}
-        <br>The following Dashboards are available:</br>
-        <ul id="dashes">
-        {% for item in dash_list %}
-            <li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
-        {% endfor %}
+        {% if dash_list %}
+            <br>The following Dashboards are available:</br>
+            <ul id="dashes">
+            {% for item in dash_list %}
+                <li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
+            {% endfor %}
+        {% else %}
+            <br>No dashboards were found</br>
+        {% endif %}
     {%else%}
         {% if errors %}
             <div>
