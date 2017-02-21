@@ -161,6 +161,7 @@ function sliderpicker(widget_id, url, parameters)
     $('#' + widget_id + ' #level-up').click(
         function()
         {
+            
             that.level = that.level + that.increment;
             if (that.level > that.max_level)
             {
@@ -339,29 +340,49 @@ function sliderpicker(widget_id, url, parameters)
         if ("state_entity" in parameters)
         {
             var that = this;
-            state_url = base_url + "/detailedstate/" + entity;
+            state_url = base_url + "/state/" + entity;
             $.get(state_url, "", function(data)
             {
-                that.state = data.state.state;
-                
-                if (that.level_attribute == "state")
+                if (data.state == null)
                 {
-                    that.level = data.state.state
+                    that.ViewModel.title("Entity not found")
                 }
                 else
                 {
-                    if (that.level_attribute in data.state.attributes)
+                    that.state = data.state.state;
+                    
+                    if (that.level_attribute == "state")
                     {
-                        that.level = data.state.attributes[that.level_attribute]                   
+                        that.level = Number(data.state.state)
                     }
+                    else
+                    {
+                        if (that.level_attribute in data.state.attributes)
+                        {
+                            that.level = Number(data.state.attributes[that.level_attribute])
+                        }
+                    }
+                    
+                    state_text = ""
+                    if ("state_text_attribute" in that.parameters)
+                    {
+                        state_text = data.state.attributes[that.parameters["state_text_attribute"]]
+                    }
+                    
+                    if ("title_is_friendly_name" in that.parameters)
+                    {
+                        if ("friendly_name" in data.state.attributes)
+                        {
+                            that.ViewModel.title(data.state.attributes["friendly_name"])
+                        }
+                        else
+                        {
+                            that.ViewModel.title(that.widget_id)
+                        }
+                    }
+                    
+                    set_view(that, data.state, state_text)
                 }
-                
-                state_text = ""
-                if ("state_text_attribute" in that.parameters)
-                {
-                    state_text = data.state.attributes[that.parameters["state_text_attribute"]]
-                }
-                set_view(that, data.state, state_text)
             }, "json");
         }
         else

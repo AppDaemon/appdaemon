@@ -123,56 +123,55 @@ function weather(widget_id, url, parameters)
         url = base_url + "/state/" + "sensor.dark_sky_icon";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_icon(that.icons[data.state])
+            that.ViewModel.dark_sky_icon(that.icons[data.state.state])
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_temperature";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_temperature(data.state)
+            that.ViewModel.dark_sky_temperature(data.state.state)
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_humidity";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_humidity(data.state)
+            that.ViewModel.dark_sky_humidity(data.state.state)
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_apparent_temperature";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_apparent_temperature(data.state)
+            that.ViewModel.dark_sky_apparent_temperature(data.state.state)
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_precip_probability";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_precip_probability(data.state)
+            that.ViewModel.dark_sky_precip_probability(data.state.state)
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_precip_intensity";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_precip_intensity(data.state)
+            that.ViewModel.dark_sky_precip_intensity(data.state.state)
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_wind_speed";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_wind_speed(data.state)
+            that.ViewModel.dark_sky_wind_speed(data.state.state)
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_wind_bearing";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_wind_bearing(data.state)
+            that.ViewModel.dark_sky_wind_bearing(data.state.state)
         }, "json");    
 
         url = base_url + "/state/" + "sensor.dark_sky_pressure";
         $.get(url, "", function(data)
         {
-            that.ViewModel.dark_sky_pressure(data.state)
+            that.ViewModel.dark_sky_pressure(data.state.state)
         }, "json");    
-
     };
 }

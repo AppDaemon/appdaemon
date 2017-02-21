@@ -84,12 +84,14 @@ function binary(widget_id, url, parameters)
     this.get_state(url, parameters.state_entity)
     // Define onClick handler
     
+    console.log(parameters)
     if ("post_service_active" in parameters || "post_service_inactive" in parameters)
     {
         var that = this
         $('#' + widget_id + ' > h2').click(
             function()
             {
+                console.log("click")
                 args = "";
                 if (that.state == that.state_active)
                 {
@@ -156,8 +158,27 @@ function binary(widget_id, url, parameters)
             state_url = base_url + "/state/" + entity;
             $.get(state_url, "", function(data)
             {
-                that.state = data.state;
-                set_view(that, that.state)
+                if (data.state == null)
+                {
+                    that.ViewModel.title("Entity not found")
+                }
+                else
+                {
+                    that.state = data.state.state;
+                    set_view(that, that.state)
+                    if ("title_is_friendly_name" in that.parameters)
+                    {
+                        if ("friendly_name" in data.state.attributes)
+                        {
+                            that.ViewModel.title(data.state.attributes["friendly_name"])
+                        }
+                        else
+                        {
+                            that.ViewModel.title(that.widget_id)
+                        }
+                    }
+
+                }
             }, "json");
         }
         else

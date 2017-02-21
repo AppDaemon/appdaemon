@@ -532,6 +532,33 @@ A widget to monitor and activate a switch
 - `state_size`
 - `warn`
 
+## input_boolean
+
+A widget to monitor and activate an input_boolean
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the input_boolean
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+
+### Cosmetic Arguments
+    
+- `background_color`
+- `icon_color_active`
+- `icon_color_inactive`
+- `icon_on`
+- `icon_off`
+- `icon_size`
+- `title_color`
+- `title_size`
+- `state_color`
+- `state_size`
+- `warn`
+
+
 ## binary_sensor
 
 A widget to monitor a binary_sensor
@@ -558,7 +585,7 @@ A widget to monitor a binary_sensor
 - `state_size`
 - `warn`
 
-## dimmer
+## light
 
 A widget to monitor and contol a dimmable light
 

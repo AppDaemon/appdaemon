@@ -71,7 +71,25 @@ function text(widget_id, url, parameters)
         url = base_url + "/state/" + entity;
         $.get(url, "", function(data)
         {
-            that.ViewModel.value(data.state)
+            if (data.state == null)
+            {
+                that.ViewModel.title("Entity not found")
+            }
+            else
+            {
+                that.ViewModel.value(data.state.state)
+                if ("title_is_friendly_name" in that.parameters)
+                {
+                    if ("friendly_name" in data.state.attributes)
+                    {
+                        that.ViewModel.title(data.state.attributes["friendly_name"])
+                    }
+                    else
+                    {
+                        that.ViewModel.title(that.widget_id)
+                    }
+                }
+           }
         }, "json");    
     };
 }

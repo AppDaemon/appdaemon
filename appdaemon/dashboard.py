@@ -18,14 +18,21 @@ def load_widget(includes, name):
                 instantiated_widget = include[name]
                 
         if instantiated_widget == None:
-            yaml_path = os.path.join(conf.dashboard_dir, "{}.yaml".format(name))
-            with open(yaml_path, 'r') as yamlfd:
-                widget = yamlfd.read()
-            instantiated_widget = yaml.load(widget)
+            # No widget definition - check if it's an implicit definition
+            
+            if name.find(".") != -1:
+                parts = name.split(".")
+                instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
+            else:
+                # Try to find in in a yaml file
+                yaml_path = os.path.join(conf.dashboard_dir, "{}.yaml".format(name))
+                with open(yaml_path, 'r') as yamlfd:
+                    widget = yamlfd.read()
+                instantiated_widget = yaml.load(widget)
     except FileNotFoundError:
         ha.log(conf.logger, "WARNING", "Unable to find widget definition for '{}'".format(name))
         # Return some valid data so the browser will render a blank widget
-        return {"widget_type": "text"}
+        return {"widget_type": "title", "text": "Widget definition not found"}
                 
     try:
         widget_type = instantiated_widget["widget_type"]
@@ -59,7 +66,7 @@ def load_widget(includes, name):
     except FileNotFoundError:
         ha.log(conf.logger, "WARNING", "Unable to find widget type '{}'".format(widget_type))
         # Return some valid data so the browser will render a blank widget
-        return {"widget_type": "text"}
+        return {"widget_type": "text", "title": "Widget type not found"}
  
 def add_layout(value, layout, occupied, dash, page, includes):
     widgetdimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
@@ -82,8 +89,9 @@ def add_layout(value, layout, occupied, dash, page, includes):
             column = column + 1
         
         if name != "spacer":
+            sanitized_name = name.replace(".", "_")
             widget = {}
-            widget["id"] = "{}_{}".format(page, name)
+            widget["id"] = "{}_{}".format(page, sanitized_name)
             widget["position"] = [column, layout]
             widget["size"] = [xsize, ysize]
             widget["parameters"] = load_widget(includes, name)

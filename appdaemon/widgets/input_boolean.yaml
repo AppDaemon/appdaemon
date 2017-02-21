@@ -1,0 +1,10 @@
+widget_type: binary
+state_entity: {{entity}}
+icon_on: fa-sliders
+icon_off: fa-sliders
+post_service_active:
+    service: homeassistant/turn_on
+    entity_id: {{entity}}
+post_service_inactive:
+    service: homeassistant/turn_off
+    entity_id: {{entity}}

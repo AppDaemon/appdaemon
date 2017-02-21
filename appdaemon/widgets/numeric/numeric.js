@@ -33,7 +33,7 @@ function numeric(widget_id, url, parameters)
     
     if ("text_size" in parameters)
     {
-        $('#' + widget_id + ' > p').css("font-size", parameters["unit_size"])
+        $('#' + widget_id + ' > p').css("font-size", parameters["text_size"])
     }
     
     if ("unit_color" in parameters)
@@ -43,7 +43,7 @@ function numeric(widget_id, url, parameters)
     
     if ("unit_size" in parameters)
     {
-        $('#' + widget_id + ' > h2').css("font-size", parameters["text_size"])
+        $('#' + widget_id + ' > h2').css("font-size", parameters["unit_size"])
     }
     
     if ("title_color" in parameters)
@@ -75,7 +75,26 @@ function numeric(widget_id, url, parameters)
         url = base_url + "/state/" + entity;
         $.get(url, "", function(data)
         {
-            that.ViewModel.value(that.format_value(data.state))
+            if (data.state == null)
+            {
+                that.ViewModel.title("Entity not found")
+            }
+            else
+            {
+                that.ViewModel.value(that.format_value(data.state.state))
+                if ("title_is_friendly_name" in that.parameters)
+                {
+                    if ("friendly_name" in data.state.attributes)
+                    {
+                        that.ViewModel.title(data.state.attributes["friendly_name"])
+                    }
+                    else
+                    {
+                        that.ViewModel.title(that.widget_id)
+                    }
+                }
+
+            }
         }, "json");    
     };
         

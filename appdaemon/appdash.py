@@ -55,8 +55,16 @@ def load_dash(request):
     # Set correct skin
     
     if "skin" in request.rel_url.query:
-        skin = params["skin"]
+        skin = request.rel_url.query["skin"]
     else:
+        skin = "default"
+
+    #
+    # Check skin exists
+    #
+    skindir = os.path.join(conf.css_dir, skin)
+    if not os.path.isdir(skindir):
+        ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
         skin = "default"
 
     #
@@ -76,15 +84,6 @@ def load_dash(request):
 
 @asyncio.coroutine
 def get_state(request):
-    entity = request.match_info.get('entity')
-    if entity in conf.ha_state:
-        state = conf.ha_state[entity]["state"]
-    else:
-        state = None
-    return web.json_response({"state": state})
-
-@asyncio.coroutine
-def get_detailed_state(request):
     entity = request.match_info.get('entity')
     if entity in conf.ha_state:
         state = conf.ha_state[entity]
@@ -152,7 +151,6 @@ def setup_routes():
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)
-    app.router.add_get('/detailedstate/{entity}', get_detailed_state)
     app.router.add_get('/', list_dash)
     app.router.add_get('/{name}', load_dash)
 
