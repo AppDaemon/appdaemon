@@ -11,28 +11,25 @@ import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
 
 def load_widget(includes, name):
-    try:
-        instantiated_widget = None
-        for include in includes:
-            if name in include:
-                instantiated_widget = include[name]
-                
-        if instantiated_widget == None:
-            # No widget definition - check if it's an implicit definition
+    instantiated_widget = None
+    for include in includes:
+        if name in include:
+            instantiated_widget = include[name]
             
-            if name.find(".") != -1:
-                parts = name.split(".")
-                instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
-            else:
-                # Try to find in in a yaml file
-                yaml_path = os.path.join(conf.dashboard_dir, "{}.yaml".format(name))
-                with open(yaml_path, 'r') as yamlfd:
-                    widget = yamlfd.read()
-                instantiated_widget = yaml.load(widget)
-    except FileNotFoundError:
-        ha.log(conf.logger, "WARNING", "Unable to find widget definition for '{}'".format(name))
-        # Return some valid data so the browser will render a blank widget
-        return {"widget_type": "title", "text": "Widget definition not found"}
+    if instantiated_widget == None:
+        # Try to find in in a yaml file
+        yaml_path = os.path.join(conf.dashboard_dir, "{}.yaml".format(name))
+        if os.path.isfile(yaml_path):
+            with open(yaml_path, 'r') as yamlfd:
+                widget = yamlfd.read()
+            instantiated_widget = yaml.load(widget)
+        elif name.find(".") != -1:
+            parts = name.split(".")
+            instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
+        else:
+            ha.log(conf.logger, "WARNING", "Unable to find widget definition for '{}'".format(name))
+            # Return some valid data so the browser will render a blank widget
+            return {"widget_type": "text", "title": "Widget definition not found"}
                 
     try:
         widget_type = instantiated_widget["widget_type"]
@@ -69,6 +66,8 @@ def load_widget(includes, name):
         return {"widget_type": "text", "title": "Widget type not found"}
  
 def add_layout(value, layout, occupied, dash, page, includes):
+    if value == None:
+        return
     widgetdimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
     value = ''.join(value.split())
     widgets = value.split(",")

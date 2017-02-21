@@ -9,3 +9,6 @@ post_service_level_attribute: value
 post_service_level:
     service: input_slider/select_value
     entity_id: {{entity}}
+max_attribute: max
+min_attribute: min
+step_attribute: step

@@ -84,7 +84,7 @@ layout:
     - media_player(2x1), sensor.temperature
 ```
 
-As you can see, here we are refering directly to native Home Assistant entities. From this, HADashboard is able to figure out the right widget type and grab it's friendly name and add it to the dasboard.
+As you can see, here we are refering directly to native Home Assistant entities. From this, HADashboard is able to figure out the right widget type and grab it's friendly name and add it to the dasboard. For the `clock` and `weather` widgets there is no associated entity id so just your `clock.clock` or `weather.weather`.
 
 The layout command is intended to be visual in how you lay out the widgets. Each enty represents a row on the dashboard, each comma separated widget represents a cell on that row.
 
@@ -102,7 +102,15 @@ For a better visual cue you can lay the widgets out with appropriate spacing to 
 
 Make sure that the number of widths specified adds up to the total number of columns, and don't forget to take into account widgets that are more than one row high (e.g. the weather widget here).
 
-If you want a blank space you can use the special widget name `spacer`.
+If you want a blank space you can use the special widget name `spacer`. To leave a whole row empty, just leave an entry for it with no text. For instance:
+
+```yaml
+    - light.hall, light.living_room, input_boolean.heating
+    -
+    - media_player(2x1), sensor.temperature
+``
+
+The above would leave the 2nd row empty.
 
 And that is all there to it, for a simple one file dashboard.
 
@@ -134,14 +142,14 @@ weather:
     units: "&deg;F"
     
 side_temperature:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Temperature
     units: "&deg;F"
     precision: 0
     entity: sensor.side_temp_corrected
 
 side_humidity:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Humidity
     units: "%"
     precision: 0
@@ -163,7 +171,7 @@ mode:
     entity: input_select.house_mode
 
 light_level:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Light Level
     units: "lux"
     precision: 0
@@ -202,6 +210,8 @@ background_color: red
 ```
 
 Note that the indentation level starts at 0. To include this file, just reference a widget called `clock` in the layout, and HADashboard will automatically load the widget.
+
+A file will override a native entity, so you can create your dashboard just using entities, but if you want to customize a specific entity, yoou can just create a file named `<entity_name>.yaml` and put the settings in there. You can also override entity names by specifying a widget of that name in the same or any other file, which will take priority over a standalone yaml file.
 
 And that is all there to it, for a simple one file dashboard.
 
@@ -261,7 +271,7 @@ weather:
     #unit_size: 100%
     
 side_temperature:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Temperature
     units: "&deg;F"
     precision: 0
@@ -275,7 +285,7 @@ side_temperature:
     #title_size: 100%
 
 side_humidity:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Humidity
     units: "%"
     precision: 0
@@ -313,7 +323,7 @@ mode:
     #title_size: 200%
 
 light_level:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Light Level
     units: "lux"
     precision: 0
@@ -411,9 +421,15 @@ None
 - `title_color`
 - `title_size`
     
-## numeric_sensor
+## sensor
 
-A widget to report on values for any numeric sensor in Home Assistant
+A widget to report on values for any sensor in Home Assistant
+
+The defauts for sensor are biased towards numeric entities. If you want to represent text in the sensor it will work fine with the following caveats:
+
+- Do not set the precision parameter
+- You might want to set `text_color` to white
+- You will want to reduce the text_size = `100%` is a good starting place.
 
 ### Mandatory Arguments:
 

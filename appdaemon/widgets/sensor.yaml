@@ -1,2 +1,2 @@
-widget_type: numeric
+widget_type: display
 state_entity: {{entity}}

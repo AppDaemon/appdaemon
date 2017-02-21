@@ -1,4 +1,4 @@
-function numeric(widget_id, url, parameters)
+function display(widget_id, url, parameters)
 {
     // Store Args
     this.widget_id = widget_id
@@ -30,10 +30,10 @@ function numeric(widget_id, url, parameters)
     {
         $('#' + widget_id + ' > h2').css("color", parameters["text_color"])
     }
-    
+    console.log(parameters["text_size"])
     if ("text_size" in parameters)
     {
-        $('#' + widget_id + ' > p').css("font-size", parameters["text_size"])
+        $('#' + widget_id + ' > h2').css("font-size", parameters["text_size"])
     }
     
     if ("unit_color" in parameters)

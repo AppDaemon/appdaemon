@@ -72,10 +72,10 @@ function sliderpicker(widget_id, url, parameters)
         this.ViewModel.units(parameters.units)
     }
     
-    this.increment = 25.4
-    if ("increment" in parameters)
+    this.step = 25.4
+    if ("step" in parameters)
     {
-        this.increment = parameters["increment"]
+        this.step = parameters["step"]
     }
     
     this.icon_on = "fa-circle";
@@ -168,7 +168,7 @@ function sliderpicker(widget_id, url, parameters)
         function()
         {
             
-            that.level = that.level + that.increment;
+            that.level = that.level + that.step;
             if (that.level > that.max_level)
             {
                 that.level = that.max_level
@@ -184,7 +184,6 @@ function sliderpicker(widget_id, url, parameters)
                 {
                     args[that.level_attribute] = round(that, that.level)
                 }
-                that.call_service(url, args)   
             }
             else
             {
@@ -197,8 +196,8 @@ function sliderpicker(widget_id, url, parameters)
                 {
                     args[that.level_attribute] = round(that, that.level)
                 }
-                that.call_service(url, args)
             }
+            that.call_service(url, args)
         }
     )
 
@@ -207,7 +206,7 @@ function sliderpicker(widget_id, url, parameters)
     $('#' + widget_id + ' #level-down').click(
         function()
         {
-            that.level = that.level - that.increment;
+            that.level = that.level - that.step;
             if (that.level < that.min_level)
             {
                 that.level = that.min_level
@@ -224,22 +223,23 @@ function sliderpicker(widget_id, url, parameters)
                 {
                     args[that.level_attribute] = round(that, that.level)
                 }
-                that.call_service(url, args)   
             }
             else
             {
                 if (that.state == that.state_inactive)
                 {
                     args = parameters["post_service_inactive"]
+                    new_view = new_view = {"state": that.state_inactive, "attributes": {}}
                     if ("post_service_level_attribute" in parameters)
                     {
                         args[parameters["post_service_level_attribute"]] = round(that, that.level)
+                        new_view.attributes[parameters["post_service_level_attribute"]] = round(that, that.min_level)
                     }
                     else
                     {
-                        args[that.level_attribute] = round(that, that.level)
+                        //args[that.level_attribute] = round(that, that.level)
+                        new_view.attributes[that.level_attribute] = round(that, that.min_level)
                     }
-                    new_view.attributes[that.level_attribute] = round(that, that.on_level)
                     set_view(that, new_view, "")
                 }
                 else
@@ -248,7 +248,7 @@ function sliderpicker(widget_id, url, parameters)
                     args[that.level_attribute] = round(that, that.level)
                 }
             }
-
+            
             that.call_service(url, args)
         }
     )
@@ -282,10 +282,6 @@ function sliderpicker(widget_id, url, parameters)
                 this.level = this.min_level                
             }
         }
-
-        new_view = {"state": that.state_active, "attributes": {}}
-        new_view.attributes[that.level_attribute] = this.level
-        set_view(this, new_view, "")
     }
     
     function on_ha_data(data)
@@ -387,6 +383,20 @@ function sliderpicker(widget_id, url, parameters)
                         }
                     }
                     
+                    if ("step_attribute" in that.parameters)
+                    {
+                        that.step = data.state.attributes[that.parameters["step_attribute"]]
+                    }
+                    
+                    if ("min_attribute" in that.parameters)
+                    {
+                        that.min_level = data.state.attributes[that.parameters["min_attribute"]]
+                    }
+                    
+                    if ("max_attribute" in that.parameters)
+                    {
+                        that.max_level = data.state.attributes[that.parameters["max_attribute"]]
+                    }
                     set_view(that, data.state, state_text)
                 }
             }, "json");

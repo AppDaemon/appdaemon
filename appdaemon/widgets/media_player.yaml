@@ -5,7 +5,7 @@ state_inactive: paused
 inactive_level_valid: 1
 min_level: 0
 max_level: 1
-increment: 0.1
+step: 0.1
 state_text_attribute: media_title
 icon_on: fa-music
 icon_off: fa-music

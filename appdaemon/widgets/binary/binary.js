@@ -84,7 +84,6 @@ function binary(widget_id, url, parameters)
     this.get_state(url, parameters.state_entity)
     // Define onClick handler
     
-    console.log(parameters)
     if ("post_service_active" in parameters || "post_service_inactive" in parameters)
     {
         var that = this
