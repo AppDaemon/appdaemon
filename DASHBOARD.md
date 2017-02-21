@@ -75,9 +75,41 @@ These are all fairly self explanatory:
 - `widget_margins` - the size of blank space between widgets.
 - `columns` - the number of columns the dasboard will have.
 
-## Widget Definition
+The very simplest dashboard needs a layout so it can understand where to place the widgets. We use a `layout` directive to tell HADasboard how to place them. Here is an example:
 
-Next it is necesary to define a number of widgets. There is a large and growing selection of widgets available, for the complete list see below.
+```yaml
+
+layout:
+    - light.hall, light.living_room, input_boolean.heating
+    - media_player(2x1), sensor.temperature
+```
+
+As you can see, here we are refering directly to native Home Assistant entities. From this, HADashboard is able to figure out the right widget type and grab it's friendly name and add it to the dasboard.
+
+The layout command is intended to be visual in how you lay out the widgets. Each enty represents a row on the dashboard, each comma separated widget represents a cell on that row.
+
+Widgets can also have a size associated with them - that is the `(2x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will default to (1x1).
+
+For a better visual cue you can lay the widgets out with appropriate spacing to see what the grid will look like more intuitively:
+
+```yaml
+ layout:
+    - light.hall,       light.living_room, input_boolean.heating
+    - media_player(2x1),                   sensor.temperature
+```
+
+... and so on.
+
+Make sure that the number of widths specified adds up to the total number of columns, and don't forget to take into account widgets that are more than one row high (e.g. the weather widget here).
+
+If you want a blank space you can use the special widget name `spacer`.
+
+And that is all there to it, for a simple one file dashboard.
+
+
+## Detailed Widget Definition
+
+The approach above is ok for simple widgets like lights, but HADashboard has a huge range of customization options. To access these, you need to formally dsefine the widget along with its associated parameters.
 
 To define a widget simply give it a name, a widget type and a number of optional parameters like this:
 
@@ -153,7 +185,7 @@ garage:
 
 ```
 
-Once we have defined all of the widgets how we like them, we use a `layout` directive to tell HADasboard how to place them. Here is an example:
+Now, instead of an entity id we refer to the name of the widgets we just defined:
 
 ```yaml
 
@@ -162,23 +194,14 @@ layout:
     - mode(2x1), light_level(2x1), porch_motion(1x1), garage(1x1)
 ```
 
-The layout command is intended to be visual in how you lay out the widgets. Each enty represents a row on the dashboard, each comma separated widget represents a cell on that row. The first part of the names above refer back to and must match a predefined widget name that you have configured elsewhere in the file.
-
-Widgets also have a size associated with them - the `(1x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will default to (1x1).
-
-
-For a better visual cue you can lay the widgets out with appropriate spacing to see what the grid will look like more intuitively:
+It is also possible to add a widget from a standalone file. The file will contain a single widget definition. To create a clock widget this way we would make a file called `clock.yaml` and place it in the dashboard directory along with the dashboard. The contents would look something like this:
 
 ```yaml
-    - clock(2x1), weather(2x2), side_temperature(1x1), side_humidity(1x1), andrew_presence(1x1), wendy_presence(1x1)
-    - mode(2x1),                light_level(2x1),                          porch_motion(1x1),    garage(1x1)
+widget_type: clock
+background_color: red
 ```
 
-... and so on.
-
-Make sure that the number of widths specified adds up to the total number of columns, and don;t forget to take into account widgets that are more than one row high (e.g. the weather widget here).
-
-If you want a blank space you can uise the special widget name `spacer`.
+Note that the indentation level starts at 0. To include this file, just reference a widget called `clock` in the layout, and HADashboard will automatically load the widget.
 
 And that is all there to it, for a simple one file dashboard.
 
@@ -620,10 +643,11 @@ A widget to monitor and contol an input slider
 
 - `title` - the title displayed on the tile
 - `increment` - the size of step in brightness when fading the slider up or down
+- `units` - the unit symbol to be displayed
 
 ### Cosmetic Arguments
    
-- `backgropund_color`
+- `background_color`
 - `icon_on`
 - `icon_off`
 - `icon_size`

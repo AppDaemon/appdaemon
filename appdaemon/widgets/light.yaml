@@ -11,3 +11,4 @@ post_service_inactive:
     entity_id: {{entity}}
 level_attribute: "brightness"
 round: 1
+units: "%"

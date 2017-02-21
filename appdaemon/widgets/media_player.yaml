@@ -19,3 +19,4 @@ post_service_level:
     service: media_player/volume_set
     entity_id: {{entity}}
 level_attribute: "volume_level"
+units: "%"

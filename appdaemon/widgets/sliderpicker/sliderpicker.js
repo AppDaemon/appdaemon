@@ -17,6 +17,7 @@ function sliderpicker(widget_id, url, parameters)
         title: ko.observable(parameters.title),
         icon: ko.observable(),
         icon_style: ko.observable(),
+        units: ko.observable(),
         level: ko.observable(),
         state_text: ko.observable()
     };
@@ -64,6 +65,11 @@ function sliderpicker(widget_id, url, parameters)
     if ("on_level" in parameters)
     {
         this.on_level = parameters["on_level"]
+    }
+
+    if ("units" in parameters)
+    {
+        this.ViewModel.units(parameters.units)
     }
     
     this.increment = 25.4
@@ -425,7 +431,14 @@ function sliderpicker(widget_id, url, parameters)
                 {
                     level = state.attributes[self.level_attribute]
                 }
-                value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
+                if (self.parameters.numeric)
+                {
+                    value = level
+                }
+                else
+                {
+                    value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
+                }
                 self.ViewModel.level(value)
             }
             self.ViewModel.icon(self.icon_on.split("-")[0] + ' ' + self.icon_on)
@@ -452,7 +465,14 @@ function sliderpicker(widget_id, url, parameters)
                 {
                     level = state.attributes[self.level_attribute]
                 }
-                value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
+                if (self.parameters.numeric)
+                {
+                    value = level
+                }
+                else
+                {
+                    value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
+                }
                 self.ViewModel.level(value)
             }
             else
