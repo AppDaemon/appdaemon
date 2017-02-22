@@ -113,15 +113,8 @@ function sliderpicker(widget_id, url, parameters)
     }    
 
     // Get initial state
-    if ("monitored_entity" in parameters)
-    {
-        entity = parameters.monitored_entity
-    }
-    else
-    {
-        entity = parameters.state_entity
-    }
-    this.get_state(url, entity)
+   
+    this.get_state(url, parameters.state_entity)
 
     var that = this
     
@@ -212,6 +205,7 @@ function sliderpicker(widget_id, url, parameters)
                 that.level = that.min_level
                 that.state = that.state_inactive
             }
+
             if ("post_service_level" in parameters)
             {
                 args = parameters["post_service_level"]
@@ -286,9 +280,9 @@ function sliderpicker(widget_id, url, parameters)
     
     function on_ha_data(data)
     {
-        if ("monitored_entity" in parameters)
+        if ("monitored_entity" in this)
         {
-            entity = this.parameters.monitored_entity
+            entity = this.monitored_entity
         }
         else
         {
@@ -336,7 +330,7 @@ function sliderpicker(widget_id, url, parameters)
         service_url = base_url + "/" + "call_service";
         $.post(service_url, args);    
     }
-        
+       
     function get_state(base_url, entity)
     {
         if ("state_entity" in parameters)
@@ -351,6 +345,15 @@ function sliderpicker(widget_id, url, parameters)
                 }
                 else
                 {
+                    console.log(entity)
+                    console.log(data.state.entity_id)
+                    
+                    if (data.state.entity_id != entity)
+                    {
+                        // This is a group and we need to monitor a member
+                        that.monitored_entity = data.state.entity_id
+                    }
+                    
                     that.state = data.state.state;
                     
                     if (that.level_attribute == "state")
@@ -413,6 +416,10 @@ function sliderpicker(widget_id, url, parameters)
     {
         if (state_text != "")
         {
+            if ("truncate_name" in self.parameters)
+            {
+               state_text = state_text.substring(0, self.parameters.truncate_name)
+            }
             self.ViewModel.state_text(state_text)
         }
         if (state.state == self.state_active)

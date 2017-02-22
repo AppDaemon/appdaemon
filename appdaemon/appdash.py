@@ -85,10 +85,22 @@ def load_dash(request):
 @asyncio.coroutine
 def get_state(request):
     entity = request.match_info.get('entity')
+    
+    # Groups don;t have the kind of state we need, so find a group member and
+    # Substitute its state instead. 
+    # This is a fix for controlling groups of lights
+    
     if entity in conf.ha_state:
-        state = conf.ha_state[entity]
+        parts = entity.split(".")
+        if parts[0] == "group":
+            # pick the first group member
+            sub_entity = conf.ha_state[entity]["attributes"]["entity_id"][0]
+            state = conf.ha_state[sub_entity]
+        else:
+            state = conf.ha_state[entity]
     else:
         state = None
+
     return web.json_response({"state": state})
     
 @asyncio.coroutine

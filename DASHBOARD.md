@@ -681,6 +681,7 @@ A widget to monitor and contol a media player light
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `truncate_name` - if specified, the name of the media will be truncated to this length. 
 
 ### Cosmetic Arguments
    

@@ -30,7 +30,7 @@ function display(widget_id, url, parameters)
     {
         $('#' + widget_id + ' > h2').css("color", parameters["text_color"])
     }
-    console.log(parameters["text_size"])
+
     if ("text_size" in parameters)
     {
         $('#' + widget_id + ' > h2').css("font-size", parameters["text_size"])
