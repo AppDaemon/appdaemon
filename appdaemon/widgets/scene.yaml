@@ -1,7 +1,9 @@
 widget_type: binary
 state_entity: {{entity}}
-icon_on: fa-square
-icon_off: fa-square
+icon_on: "$scene_icon_on"
+icon_off: "$scene_icon_off"
+icon_style_active: "$scene_icon_style_active"
+icon_style_inactive: "$scene_icon_style_inactive"
 momentary: 1000
 post_service_active:
     service: homeassistant/turn_on

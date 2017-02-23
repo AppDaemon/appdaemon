@@ -1,0 +1,34 @@
+<div data-bind="attr: {style: main_style}">
+	<p class="primary-climacon" data-bind="html: dark_sky_icon"></p>
+
+	<p class="primary-info" data-bind="text: dark_sky_temperature"></p>
+	<p class="primary-unit" data-bind="html: unit"></p>
+</div>
+<br>
+<div data-bind="attr: {style: sub_style}">
+	<p class="secondary-info">Humidity:&nbsp;</p>
+	<p class="secondary-info" data-bind="text: dark_sky_humidity"></p>
+	<p class="secondary-info">%</p>
+	<br>
+	<p class="secondary-info">Apparent Temp:&nbsp;</p>
+	<p class="secondary-info" data-bind="html: dark_sky_apparent_temperature"></p>
+	<p class="secondary-info" data-bind="html: unit"></p>
+	<br>
+	<p class="secondary-info">Rain:&nbsp;</p>
+	<p class="secondary-info" data-bind="text: dark_sky_precip_probability"></p>
+	<p class="secondary-info">&nbsp;%</p>
+	<p class="secondary-info">&nbsp;/&nbsp;</p>
+	<p class="secondary-info" data-bind="text: dark_sky_precip_intensity"></p>
+	<p class="secondary-info">in</p>
+	<br>
+	<p class="secondary-info">Wind:&nbsp;</p>
+	<p class="secondary-info" data-bind="text: dark_sky_wind_speed"></p>
+	<p class="secondary-info">&nbsp;Mph</p>
+	<p class="secondary-info">&nbsp;/&nbsp;</p>
+	<p class="secondary-info" data-bind="html: dark_sky_wind_bearing"></p>
+	<p class="secondary-info">&nbsp;&deg;</p>
+	<br>
+	<p class="secondary-info">Pressure:&nbsp;</p>
+	<p class="secondary-info" data-bind="text: dark_sky_pressure"></p>
+	<p class="secondary-info">&nbsp;Mbar</p>
+</div>

@@ -1,8 +1,6 @@
 widget_type: sliderpicker
 state_entity: {{entity}}
 level_attribute: state
-icon_on: none
-icon_off: none
 numeric: 1
 inactive_level_valid: 1
 post_service_level_attribute: value
@@ -12,3 +10,14 @@ post_service_level:
 max_attribute: max
 min_attribute: min
 step_attribute: step
+icon_on: $input_slider_icon_on
+icon_off: $input_slider_icon_off
+icon_up: $input_slider_icon_up
+icon_down: $input_slider_icon_down
+title_style: $input_slider_title_style
+icon_style_active: $input_slider_icon_style_active
+icon_style_inactive: $input_slider_icon_style_inactive
+state_text_style: $input_slider_state_text_style
+level_style: $input_slider_level_style
+level_up_style: $input_slider_level_up_style
+level_down_style: $input_slider_level_down_style

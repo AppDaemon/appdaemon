@@ -1,10 +1,9 @@
-@import "variables";
 // ----------------------------------------------------------------------------
-// Widget-clock styles
+// Widget-baseclock styles
 // ----------------------------------------------------------------------------
-.widget-clock {
+.widget-baseclock-{{id}} {
 
  .time {
-    color: $color-time;
+    color: white;
   }
 }

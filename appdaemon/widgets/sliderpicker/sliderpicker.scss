@@ -1,9 +1,7 @@
-@import "variables";
-
 // ----------------------------------------------------------------------------
-// Widget styles
+// Widget sliderpicker styles
 // ----------------------------------------------------------------------------
-.widget-sliderpicker {
+.widget-sliderpicker-{{id}} {
 
   position: relative;
 
@@ -16,17 +14,6 @@
     margin-top: 10px;
   }
 
-  .dimmer-icon-off .dimmer-icon-on {
-    font-size: 150%;
-  }
-
-  .dimmer-icon-off {
-    color: $color-inactive;
-  }
-
-  .dimmer-icon-on {
-    color: $color-active;
-  }
 
   .toggle-area {
     z-index: 10;
@@ -51,9 +38,9 @@
   .secondary-icon {
     position: absolute;
     bottom: 0px;
-    font-size: 25px;
+    font-size: 20px;
     width: 32px;
-    color: $color-inactive;
+    color: white;
 
     &.plus {
       right: 24px;

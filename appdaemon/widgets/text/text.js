@@ -13,36 +13,29 @@ function text(widget_id, url, parameters)
     {
         title: ko.observable(parameters.title),
         value: ko.observable(),
+        widget_style: ko.observable(),
+        text_style: ko.observable(),
+        title_style: ko.observable()
     };
     
     ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
 
-    // Setup Override Styles
+	// Setup Override Styles
+
+	if ("widget_style" in parameters)
+	{
+		this.ViewModel.widget_style(parameters.widget_style)
+	}
     
-    if ("background_color" in parameters)
-    {
-        $('#' + widget_id).css("background-color", parameters["background_color"])
-    }
+	if ("title_style" in parameters)
+	{
+		this.ViewModel.title_style(parameters.title_style)
+	}
     
-    if ("text_color" in parameters)
-    {
-        $('#' + widget_id + ' > h2').css("color", parameters["text_color"])
-    }
-    
-    if ("text_size" in parameters)
-    {
-        $('#' + widget_id + ' > h2').css("font-size", parameters["text_size"])
-    }
-    
-    if ("title_color" in parameters)
-    {
-        $('#' + widget_id + ' > h1').css("color", parameters["title_color"])
-    }
-    
-    if ("title_size" in parameters)
-    {
-        $('#' + widget_id + ' > h1').css("font-size", parameters["title_size"])
-    }
+	if ("text_style" in parameters)
+	{
+		this.ViewModel.text_style(parameters.text_style)
+	}
     
     // Fill in text
     if ("text" in parameters)

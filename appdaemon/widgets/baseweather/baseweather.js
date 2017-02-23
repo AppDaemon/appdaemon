@@ -1,4 +1,4 @@
-function weather(widget_id, url, parameters)
+function baseweather(widget_id, url, parameters)
 {
     // Store Args
     this.widget_id = widget_id
@@ -45,49 +45,28 @@ function weather(widget_id, url, parameters)
     }
     
     this.ViewModel.unit = ko.observable(parameters.units)
-    
+	this.ViewModel.widget_style = ko.observable()
+	this.ViewModel.main_style = ko.observable()
+	this.ViewModel.sub_style = ko.observable()
+   
     ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
     
-    // Setup Override Styles
-    
-    if ("background_color" in parameters)
-    {
-        $('#' + widget_id).css("background-color", parameters["background_color"])
-    }
-    
-    if ("text_color" in parameters)
-    {
-        $('#' + widget_id + ' > .secondary-info').css("color", parameters["text_color"])
-    }
-    
-    if ("text_size" in parameters)
-    {
-        $('#' + widget_id + ' > .secondary-info').css("font-size", parameters["text_size"])
-    }
-    
-    if ("title_color" in parameters)
-    {
-        $('#' + widget_id + ' > .primary-climacon').css("color", parameters["title_color"])
-        $('#' + widget_id + ' > .primary-info').css("color", parameters["title_color"])
-    }
-    
-    if ("title_size" in parameters)
-    {
-        $('#' + widget_id + ' > .primary-climacon').css("font-size", parameters["title_size"])
-        $('#' + widget_id + ' > .primary-info').css("font-size", parameters["title_size"])
-    }
-    
-    if ("unit_color" in parameters)
-    {
-        $('#' + widget_id + ' > .primary-unit').css("color", parameters["unit_color"])
-    }
-    
-    if ("unit_size" in parameters)
-    {
-        $('#' + widget_id + ' > .primary-unit').css("font-size", parameters["unit_size"])
-    }
-    
-    
+	// Setup Override Styles
+
+	if ("widget_style" in parameters)
+	{
+		this.ViewModel.widget_style(parameters.widget_style)
+	}    
+
+	if ("main_style" in parameters)
+	{
+		this.ViewModel.main_style(parameters.main_style)
+	}    
+
+	if ("sub_style" in parameters)
+	{
+		this.ViewModel.sub_style(parameters.sub_style)
+	}    
     
     // Get initial state
     this.get_state(url, parameters.entity)

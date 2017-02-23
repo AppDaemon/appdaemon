@@ -1,6 +1,7 @@
 widget_type: binary
-icon_on: fa-bullseye
-icon_off: fa-minus
+icon_on: "$binary_sensor_icon_on"
+icon_off: "$binary_sensor_icon_off"
+icon_style_active: "$binary_sensor_icon_style_active"
+icon_style_inactive: "$binary_sensor_icon_style_inactive"
 state_active: "on"
-warn: 1
 state_entity: {{entity}}

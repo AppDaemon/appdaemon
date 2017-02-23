@@ -14,47 +14,37 @@ function display(widget_id, url, parameters)
     {
         title: ko.observable(parameters.title),
         value: ko.observable(),
-        unit: ko.observable(parameters.units)
+        unit: ko.observable(parameters.units),
+		widget_style: ko.observable(),
+		title_style: ko.observable(),
+		value_style: ko.observable(),
+		unit_style: ko.observable()
     };
     
     ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
 
-    // Setup Override Styles
-    
-    if ("background_color" in parameters)
-    {
-        $('#' + widget_id).css("background-color", parameters["background_color"])
-    }
-    
-    if ("text_color" in parameters)
-    {
-        $('#' + widget_id + ' > h2').css("color", parameters["text_color"])
-    }
+	// Setup Override Styles
 
-    if ("text_size" in parameters)
-    {
-        $('#' + widget_id + ' > h2').css("font-size", parameters["text_size"])
-    }
+	if ("widget_style" in parameters)
+	{
+		this.ViewModel.widget_style(parameters.widget_style)
+	}
+
+	if ("title_style" in parameters)
+	{
+		this.ViewModel.title_style(parameters.title_style)
+	}
     
-    if ("unit_color" in parameters)
-    {
-        $('#' + widget_id + ' > p').css("color", parameters["unit_color"])
-    }
+	if ("value_style" in parameters)
+	{
+		this.ViewModel.value_style(parameters.value_style)
+	}
     
-    if ("unit_size" in parameters)
-    {
-        $('#' + widget_id + ' > h2').css("font-size", parameters["unit_size"])
-    }
+	if ("unit_style" in parameters)
+	{
+		this.ViewModel.unit_style(parameters.unit_style)
+	}
     
-    if ("title_color" in parameters)
-    {
-        $('#' + widget_id + ' > h1').css("color", parameters["title_color"])
-    }
-    
-    if ("title_size" in parameters)
-    {
-        $('#' + widget_id + ' > h1').css("font-size", parameters["title_size"])
-    }
     
     // Get initial state
     this.get_state(url, parameters.state_entity)

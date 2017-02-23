@@ -7,8 +7,6 @@ min_level: 0
 max_level: 1
 step: 0.1
 state_text_attribute: media_title
-icon_on: fa-music
-icon_off: fa-music
 post_service_active:
     service: media_player/media_play
     entity_id: {{entity}}
@@ -20,3 +18,14 @@ post_service_level:
     entity_id: {{entity}}
 level_attribute: "volume_level"
 units: "%"
+icon_on: $media_player_icon_on
+icon_off: $media_player_icon_off
+icon_up: $media_player_icon_up
+icon_down: $media_player_icon_down
+title_style: $media_player_title_style
+icon_style_active: $media_player_icon_style_active
+icon_style_inactive: $media_player_icon_style_inactive
+state_text_style: $media_player_state_text_style
+level_style: $media_player_level_style
+level_up_style: $media_player_level_up_style
+level_down_style: $media_player_level_down_style

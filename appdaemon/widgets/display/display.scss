@@ -1,12 +1,10 @@
-@import "variables";
 // ----------------------------------------------------------------------------
 // Widget-display styles
 // ----------------------------------------------------------------------------
 
-.widget-display {
+.widget-display-{{id}} {
 
   .unit {
-    color: $color-info;
     font-size: 225%;
     font-weight: 400;
     display: inline-block;
@@ -16,7 +14,6 @@
   }
 
   .value {
-    color: $color-info;
     display: inline-block;
     vertical-align: middle;
   }

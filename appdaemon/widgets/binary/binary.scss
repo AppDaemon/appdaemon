@@ -1,18 +1,13 @@
-@import "variables";
 // ----------------------------------------------------------------------------
 // Widget-binary styles
 // ----------------------------------------------------------------------------
-.widget-binary {
+.widget-binary-{{id}} {
 
   .icon-active {
-  	color: $color-active;
-  }
-
-  .icon-active-warn {
-  	color: $color-active-warn;
+	color: white;
   }
 
   .icon-inactive {
-  	color: $color-inactive;
+	color: white;
   }
 }

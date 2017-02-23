@@ -1,7 +1,5 @@
 widget_type: sliderpicker
 state_entity: {{entity}}
-icon_on: fa-circle
-icon_off: fa-circle-thin
 on_level: 127
 post_service_active:
     service: homeassistant/turn_on
@@ -12,3 +10,14 @@ post_service_inactive:
 level_attribute: "brightness"
 round: 1
 units: "%"
+icon_on: $light_icon_on
+icon_off: $light_icon_off
+icon_up: $light_icon_up
+icon_down: $light_icon_down
+title_style: $light_title_style
+icon_style_active: $light_icon_style_active
+icon_style_inactive: $light_icon_style_inactive
+state_text_style: $light_state_text_style
+level_style: $light_level_style
+level_up_style: $light_level_up_style
+level_down_style: $light_level_down_style

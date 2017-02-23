@@ -1,3 +1,5 @@
 widget_type: javascript
-icon: fa-gears
+icon: $navigate_icon
+title_style: $navigate_title_style
+icon_style: $navigate_icon_style
 command: window.location.href = '{{url}}'

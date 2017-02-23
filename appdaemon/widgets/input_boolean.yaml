@@ -1,7 +1,9 @@
 widget_type: binary
 state_entity: {{entity}}
-icon_on: fa-sliders
-icon_off: fa-sliders
+icon_on: $input_boolean_icon_on
+icon_off: $input_boolean_icon_off
+icon_style_active: $input_boolean_icon_style_active
+icon_style_inactive: $input_boolean_icon_style_inactive
 post_service_active:
     service: homeassistant/turn_on
     entity_id: {{entity}}

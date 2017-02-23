@@ -1,0 +1,3 @@
+widget_type: baseclock
+date_style: $clock_date_style
+time_style: $clock_time_style

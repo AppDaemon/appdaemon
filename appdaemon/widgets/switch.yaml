@@ -1,7 +1,9 @@
 widget_type: binary
 state_entity: {{entity}}
-icon_on: fa-circle
-icon_off: fa-circle-thin
+icon_on: $switch_icon_on
+icon_off: $switch_icon_off
+icon_style_active: $switch_icon_style_active 
+icon_style_inactive: $switch_icon_style_inactive 
 post_service_active:
     service: homeassistant/turn_on
     entity_id: {{entity}}

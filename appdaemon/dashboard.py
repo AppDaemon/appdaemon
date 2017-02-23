@@ -5,12 +5,51 @@ import re
 import yaml
 import sys
 import jinja2
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
+import traceback
 
 import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
 
-def load_widget(includes, name):
+def load_css_params(skin):
+    yaml_path = os.path.join(conf.css_dir, skin, "variables.yaml")
+    if os.path.isfile(yaml_path):
+        with open(yaml_path, 'r') as yamlfd:
+            css_text = yamlfd.read()
+        try:
+            css = yaml.load(css_text)
+        except yaml.YAMLError as exc:
+            ha.log(conf.logger, "WARNING",  "Error loading CSS variables")
+            if hasattr(exc, 'problem_mark'):
+                if exc.context != None:
+                    ha.log(conf.logger, "WARNING", "parser says")
+                    ha.log(conf.logger, "WARNING", str(exc.problem_mark))  
+                    ha.log(conf.logger, "WARNING", str(exc.problem) + " " + str(exc.context))
+                else:
+                    ha.log(conf.logger, "WARNING", "parser says")
+                    ha.log(conf.logger, "WARNING", str(exc.problem_mark))
+                    ha.log(conf.logger, "WARNING", str(exc.problem)) 
+            return None
+            
+    return expand_vars(css)
+
+def expand_vars(css):
+    done = False
+    while not done:
+        done = True
+        for var in css:
+            if css[var] != None:
+                if css[var].startswith("$"):
+                    done = False
+                    subvar = css[var][1:]
+                    if subvar in css: 
+                        css[var] = css[subvar]
+                    else:
+                        ha.log(conf.logger, "WARNING",  "Variable definition not found in CSS Skin variables: ${}".format(subvar))
+                        return None
+    return css
+
+def load_widget(dash, includes, name, css_vars):
     instantiated_widget = None
     for include in includes:
         if name in include:
@@ -22,7 +61,21 @@ def load_widget(includes, name):
         if os.path.isfile(yaml_path):
             with open(yaml_path, 'r') as yamlfd:
                 widget = yamlfd.read()
-            instantiated_widget = yaml.load(widget)
+            try:
+                instantiated_widget = yaml.load(widget)
+            except yaml.YAMLError as exc:
+                log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
+                if hasattr(exc, 'problem_mark'):
+                    if exc.context != None:
+                        log_error(dash, name, "parser says")
+                        log_error(dash, name, str(exc.problem_mark))  
+                        log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                    else:
+                        log_error(dash, name, "parser says")
+                        log_error(dash, name, str(exc.problem_mark))
+                        log_error(dash, name, str(exc.problem))
+                return {"widget_type": "text", "title": "Error loading widget"}
+                
         elif name.find(".") != -1:
             parts = name.split(".")
             instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
@@ -53,11 +106,35 @@ def load_widget(includes, name):
             
                 yaml_file = yaml_file + line
 
-        final_widget = yaml.load(yaml_file)
+        try:
+            final_widget = yaml.load(yaml_file)
+        except yaml.YAMLError as exc:
+            log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
+            if hasattr(exc, 'problem_mark'):
+                if exc.context != None:
+                    log_error(dash, name, "parser says")
+                    log_error(dash, name, str(exc.problem_mark))  
+                    log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                else:
+                    log_error(dash, name, "parser says")
+                    log_error(dash, name, str(exc.problem_mark))
+                    log_error(dash, name, str(exc.problem))
+            return {"widget_type": "text", "title": "Error loading widget definition"}
+
         
         for key in instantiated_widget:
             if key != "widget_type" and not key in templates:
                 final_widget[key] = instantiated_widget[key]
+
+        for key in final_widget:
+            if type(final_widget[key]) == str and final_widget[key].startswith("$"):
+                if final_widget[key] != None:
+                    subvar = final_widget[key][1:]
+                    if subvar in css_vars: 
+                        final_widget[key] = css_vars[subvar]
+                    else:
+                        ha.log(conf.logger, "WARNING",  "Variable definition for {} not found in widget: {}".format(subvar, widget_type))
+                        return {"widget_type": "text", "title": "Widget variable not found"} 
                 
         return final_widget
     except FileNotFoundError:
@@ -65,7 +142,7 @@ def load_widget(includes, name):
         # Return some valid data so the browser will render a blank widget
         return {"widget_type": "text", "title": "Widget type not found"}
  
-def add_layout(value, layout, occupied, dash, page, includes):
+def add_layout(value, layout, occupied, dash, page, includes, css_vars):
     if value == None:
         return
     widgetdimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
@@ -88,12 +165,12 @@ def add_layout(value, layout, occupied, dash, page, includes):
             column = column + 1
         
         if name != "spacer":
-            sanitized_name = name.replace(".", "_")
+            sanitized_name = name.replace(".", "-").replace("_", "-").lower()
             widget = {}
-            widget["id"] = "{}_{}".format(page, sanitized_name)
+            widget["id"] = "{}-{}".format(page, sanitized_name)
             widget["position"] = [column, layout]
             widget["size"] = [xsize, ysize]
-            widget["parameters"] = load_widget(includes, name)
+            widget["parameters"] = load_widget(dash, includes, name, css_vars)
             dash["widgets"].append(widget)
     
         for x in range(column, column + int(xsize)):
@@ -114,15 +191,15 @@ def merge_dashes(dash1, dash2):
             
     return dash1
  
-def load_dash(name):
-    dash, layout, occupied, includes = _load_dash(name, "dash", 0, {}, [], 1)
+def load_dash(name, css_vars):
+    dash, layout, occupied, includes = _load_dash(name, "dash", 0, {}, [], 1, css_vars)
     return(dash)
 
 def log_error(dash, name, error):
     dash["errors"].append("{}: {}".format(os.path.basename(name), error))
     ha.log(conf.logger, "WARNING", error)
     
-def _load_dash(name, extension, layout, occupied, includes, level):
+def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
 
     if extension == "dash":
         dash = {"title": "HADashboard", "widget_dimensions": [120, 120], "widget_margins": [5, 5], "columns": 8}
@@ -139,7 +216,7 @@ def _load_dash(name, extension, layout, occupied, includes, level):
         return dash, layout, occupied, includes
         
     dashfile = os.path.join(conf.dashboard_dir, "{}.{}".format(name, extension))
-    page = "Default"
+    page = "default"
 
     try:
         with open(dashfile, 'r') as yamlfd:
@@ -182,14 +259,14 @@ def _load_dash(name, extension, layout, occupied, includes, level):
         for lay in layouts:
             if isinstance(lay, dict):
                 if "include" in lay:
-                    new_dash, layout, occupied, includes = _load_dash(os.path.join(conf.dashboard_dir, lay["include"]), "yaml", layout, occupied, includes, level + 1)
+                    new_dash, layout, occupied, includes = _load_dash(os.path.join(conf.dashboard_dir, lay["include"]), "yaml", layout, occupied, includes, level + 1, css_vars)
                     if new_dash != None:
                         merge_dashes(dash, new_dash)
                 else:
                    log_error(dash, name, "Incorrect directive, should be 'include': {}".format(lay)) 
             else:
                 layout = layout + 1
-                add_layout(lay, layout, occupied, dash, page, includes)
+                add_layout(lay, layout, occupied, dash, page, includes, css_vars)
                     
     return dash, layout, occupied, includes
     
@@ -215,7 +292,7 @@ def compile_dash(name, skin):
     dash = get_dash(name, skin)
     if dash == None:
         dash_list = list_dashes()
-        return {"errors":["Dashboard not found"], "dash_list": dash_list}
+        return {"errors":["Dashboard has errors or is not found"], "dash_list": dash_list}
         
     params = dash
     params["stream_url"] = conf.stream_url
@@ -242,12 +319,19 @@ def get_dash(name, skin):
            
     pydashfile = os.path.join(conf.dashboard_dir, "{}.pydash".format(name))
     dashfile = os.path.join(conf.dashboard_dir, "{}.dash".format(name))
+    
+    #
+    # Grab CSS Variables
+    #
+    css_vars = load_css_params(skin)
+    if css_vars == None:
+        return None
+
     if os.path.isfile(pydashfile):
         with open(pydashfile, 'r') as dashfd:
             dash = ast.literal_eval(dashfd.read())
-
     elif os.path.isfile(dashfile):
-        dash = load_dash(name)
+        dash = load_dash(name, css_vars)
         if dash == None:
             return None
     else:
@@ -265,11 +349,39 @@ def get_dash(name, skin):
     #
     scss = ""
     js = ""
-    for widget in dash["widgets"]:
-        scss = scss + widgets[widget["parameters"]["widget_type"]]["scss"] + "\n"
-        js = js + widgets[widget["parameters"]["widget_type"]]["js"] + "\n"
-        
+    
     compiler = Compiler(search_path = [os.path.join(conf.css_dir, skin)])
+    
+        
+    
+    try: 
+        for widget in dash["widgets"]:
+            scss_template = Environment(loader=BaseLoader).from_string(widgets[widget["parameters"]["widget_type"]]["scss"])
+            css_vars["id"] = widget["id"]
+            rendered_scss = scss_template.render(css_vars)
+            
+            # Test if it compiles to give more informative message
+            compiled_scss = compiler.compile_string(rendered_scss)
+
+            scss = scss + rendered_scss + "\n"
+            js = js + widgets[widget["parameters"]["widget_type"]]["js"] + "\n"
+            
+    except KeyError:
+        ha.log(conf.logger, "WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
+        return None
+    except:
+        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.logger, "WARNING", "Unexpected error in CSS file")
+        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.logger, "WARNING", traceback.format_exc())
+        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.logger, "WARNING", "Rendered CSS:")
+        ha.log(conf.logger, "WARNING", rendered_scss)
+        ha.log(conf.logger, "WARNING", '-' * 60)
+        return None
+        
+    
+
     compiled_scss = compiler.compile_string(scss)
     
     if not os.path.exists(os.path.join(conf.compiled_css_dir, skin)):
@@ -279,6 +391,8 @@ def get_dash(name, skin):
     with open(css_path, "w") as css_file:
         css_file.write(compiled_scss)
 
+ 
+    
     js_path = os.path.join(conf.compiled_javascript_dir, "application.js")
     with open(js_path, "w") as js_file:
         js_file.write(js)

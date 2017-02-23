@@ -253,36 +253,17 @@ As you can see, it includes for modular pieces. Since these pieces all have thei
 ```yaml
 clock:
     widget_type: clock
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 200%
-    #title_color: red
-    #title_size: 200%
 
 weather:
     widget_type: weather
     units: "&deg;F"
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 50%
-    #title_color: red
-    #title_size: 200%
-    #unit_color: pink
-    #unit_size: 100%
-    
+
 side_temperature:
     widget_type: sensor
     title: Temperature
     units: "&deg;F"
     precision: 0
     entity: sensor.side_temp_corrected
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 250%
-    #unit_color: red
-    #unit_size: 100%
-    #title_color: red
-    #title_size: 100%
 
 side_humidity:
     widget_type: sensor
@@ -295,32 +276,16 @@ andrew_presence:
     widget_type: device_tracker
     title: Andrew
     device: andrews_iphone
-    icon_on: fa-male
-    #background_color: "#00f"
-    icon_color_active: "#4bcdea"
-    #icon_color_inactive: red
-    #icon_size: 500%
-    #title_color: red
-    #title_size: 200%
-    #state_color: red
-    #state_size: 200%
 
 wendy_presence:
     widget_type: device_tracker
     title: Wendy
-    icon_color_active: "#ea4b82"
-    icon_on: fa-female
     device: dedb5e711a24415baaae5cf8e880d852
 
 mode:
     widget_type: text_sensor
     title: House Mode
     entity: input_select.house_mode
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 200%
-    #title_color: red
-    #title_size: 200%
 
 light_level:
     widget_type: sensor
@@ -377,6 +342,36 @@ A few caveats for loaded sub files:
 - Sub files can include other subfiles to a maximum depth of 10 - please avoid circular references!
 - When layout information is included in a sub file, the subfile must comprise 1 or more complete rows
 
+# Widget Customization
+
+Widgets allow customization using arbitary CSS styles for the individual elements that make up the widget. Every widget has a ``widget_style` argument to apply styles to the whole widget, as well as one or more additional style arguments that differ for each widget. To customize a widget background for instance:
+
+```yaml
+clock:
+  widget_type: clock
+  widget_style: "background: white;"
+```
+As is usual with CSS you can feed it multiple parameters at once, e.g.:
+
+```yaml
+clock:
+  widget_type: clock
+  widget_style: "background: white; font-size: 150%;"
+```
+
+You can use any valid CSS style here although you should probably steer away from some of the formatting types as they may interact badly with HADasboards formatting.
+
+In the case of the clock widget, it also supports `date_style` and `time_style` to modify those elements accordingly:
+
+```yaml
+clock:
+  widget_type: clock
+  widget_style: "background: white"
+  date_style: "color: black"
+  time_style: "color: green"
+```
+Since `date_style` and `time_style` are applied to more specific elements, they will override `widget_style`. Also note that some widget styles may be specified in the widget's CSS, in which case that style will override `widget_style` but not the more specific styles.
+
 # Widget Reference
 
 Here is the current list of widgets and their description and supported parameters:
@@ -391,15 +386,14 @@ None
 
 ### Optional Arguments: 
 
-None
+- `time_format` - set to "24hr" if you want military time/24 hour clock
+- `show_seconds` - set to 1 if you want to see seconds on the display
 
-### Cosmetic Arguments: 
+### Style Arguments: 
 
-- `background_color`
-- `text_color`
-- `text_size`
-- `title_color`
-- `title_size`
+- `widget_style`
+- `time_style`
+- `date_style`
 
 ## weather
 
@@ -415,11 +409,9 @@ None
 
 ### Cosmetic Arguments: 
 
-- `background_color`
-- `text_color`
-- `text_size`
-- `title_color`
-- `title_size`
+- `widget_style`
+- `main_style`
+- `sub_style`
     
 ## sensor
 
@@ -442,15 +434,12 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
 
-### Cosmetic Arguments: 
+### Style Arguments: 
 
-- `background_color`
-- `text_color`
-- `text_size`
-- `unit_color`
-- `unit_size`
-- `title_color`
-- `title_size`
+- `widget_style`
+- `title_style`
+- `value_style`
+- `unit_style`
 
 ## device_tracker
 
@@ -464,19 +453,13 @@ A Widget that reports on device tracker status. It can also be used to toggle th
 
 - `title` - the title displayed on the tile
 
-### Cosmetic Arguments
+### Style Arguments: 
 
-- `background_color`
-- `icon_color_active`
-- `icon_color_inactive`
-- `icon_on`
-- `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
-- `state_color`
-- `state_size`
-- `warn`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
+- `state_text_style`
     
 ## text_sensor
 
@@ -492,11 +475,9 @@ A widget to show the value of any text based sensor
 
 ### Cosmetic Arguments
 
-- `background_color`
-- `text_color`
-- `text_size`
-- `title_color`
-- `title_size`
+- `widget_style`
+- `title_style`
+- `text_style`
 
 ## label
 
@@ -513,11 +494,9 @@ None
 
 ### Cosmetic Arguments
 
-- `background_color`
-- `text_color`
-- `text_size`
-- `title_color`
-- `title_size`
+- `widget_style`
+- `title_style`
+- `text_style`
 
 ## scene
 
@@ -531,19 +510,12 @@ A widget to activate a scene
 
 - `title` - the title displayed on the tile
 
-### Cosmetic Arguments
-    
-- `background_color`
-- `icon_color_active`
-- `icon_color_inactive`
-- `icon_on`
-- `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
-- `state_color`
-- `state_size`
-- `warn`
+### Style Arguments: 
+
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
 
 ## switch
 
@@ -559,17 +531,10 @@ A widget to monitor and activate a switch
 
 ### Cosmetic Arguments
     
-- `background_color`
-- `icon_color_active`
-- `icon_color_inactive`
-- `icon_on`
-- `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
-- `state_color`
-- `state_size`
-- `warn`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
 
 ## input_boolean
 
@@ -585,17 +550,10 @@ A widget to monitor and activate an input_boolean
 
 ### Cosmetic Arguments
     
-- `background_color`
-- `icon_color_active`
-- `icon_color_inactive`
-- `icon_on`
-- `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
-- `state_color`
-- `state_size`
-- `warn`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
 
 
 ## binary_sensor
@@ -612,17 +570,10 @@ A widget to monitor a binary_sensor
 
 ### Cosmetic Arguments
     
-- `background_color`
-- `icon_color_active`
-- `icon_color_inactive`
-- `icon_on`
-- `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
-- `state_color`
-- `state_size`
-- `warn`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
 
 ## light
 
@@ -640,12 +591,19 @@ A widget to monitor and contol a dimmable light
 
 ### Cosmetic Arguments
    
-- `backgropund_color`
+- `widget_style`
 - `icon_on`
 - `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
+- `icon_up`
+- `icon_down`
+- `title_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
 
 ## input_slider
 
@@ -663,12 +621,7 @@ A widget to monitor and contol an input slider
 
 ### Cosmetic Arguments
    
-- `background_color`
-- `icon_on`
-- `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
+- `widget_style`
 
 ## media_player
 
@@ -685,12 +638,69 @@ A widget to monitor and contol a media player light
 
 ### Cosmetic Arguments
    
-- `backgropund_color`
+- `widget_style`
 - `icon_on`
 - `icon_off`
-- `icon_size`
-- `title_color`
-- `title_size`
+- `icon_up`
+- `icon_down`
+- `title_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
+## group
+
+A widget to monitor and contol a group of lights
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the media player
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `icon_on`
+- `icon_off`
+- `icon_up`
+- `icon_down`
+- `title_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
+## input_slider
+
+A widget to monitor and contol an input_slider
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the media player
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `title_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
 
 ## navigate
 
@@ -707,6 +717,9 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 ### Cosmetic Arguments
    
 - `icon`
+- `widget_style`
+- `title_style`
+- `icon_style`
   
 ## reload
 
@@ -723,6 +736,9 @@ None.
 ### Cosmetic Arguments
    
 - `icon`
+- `widget_style`
+- `title_style`
+- `icon_style`
 
 # Widget Development
 

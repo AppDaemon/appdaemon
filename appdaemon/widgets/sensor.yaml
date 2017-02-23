@@ -1,2 +1,5 @@
 widget_type: display
 state_entity: {{entity}}
+title_style: $sensor_title_style
+value_style: $sensor_value_style
+unit_style: $sensor_unit_style

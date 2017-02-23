@@ -76,11 +76,15 @@ def load_dash(request):
         errors = []
     else:
         errors = dash["errors"]
-    
+
+    if "widgets" in dash:
+        widgets = dash["widgets"]
+    else:
+        widgets = {}
     #
     #return params
     #
-    return {"errors": errors, "name": name.lower(), "skin": skin}
+    return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets}
 
 @asyncio.coroutine
 def get_state(request):

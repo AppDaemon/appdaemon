@@ -17,9 +17,19 @@ function sliderpicker(widget_id, url, parameters)
         title: ko.observable(parameters.title),
         icon: ko.observable(),
         icon_style: ko.observable(),
+        icon_class: ko.observable(),
         units: ko.observable(),
         level: ko.observable(),
-        state_text: ko.observable()
+        state_text: ko.observable(),
+		title_style: ko.observable(),
+		state_text_style: ko.observable(),
+		level_style: ko.observable(),
+		units_style: ko.observable(),
+		level_up_style: ko.observable(),
+		level_down_style: ko.observable(),
+		icon_up: ko.observable(),
+		icon_down: ko.observable(),
+		widget_style: ko.observable()
     };
     
     ko.applyBindings(this.ViewModel, document.getElementById(widget_id));
@@ -90,28 +100,49 @@ function sliderpicker(widget_id, url, parameters)
         this.icon_off = parameters["icon_off"];
     }
     
-    // Setup Override Styles
-    
-    if ("background_color" in parameters)
-    {
-        $('#' + widget_id).css("background-color", parameters["background_color"])
-    }
-        
-    if ("icon_size" in parameters)
-    {
-        $('#' + widget_id + ' > h2').css("font-size", parameters["icon_size"])
-    }
-    
-    if ("title_color" in parameters)
-    {
-        $('#' + widget_id + ' > h1').css("color", parameters["title_color"])
-    }
-    
-    if ("title_size" in parameters)
-    {
-        $('#' + widget_id + ' > h1').css("font-size", parameters["title_size"])
-    }    
+	// Setup Override Styles
 
+	if ("widget_style" in parameters)
+	{
+		this.ViewModel.widget_style(parameters.widget_style)
+	}   
+
+	if ("title_style" in parameters)
+	{
+		this.ViewModel.title_style(parameters.title_style)
+	}   
+
+	if ("icon_down" in parameters)
+	{
+		this.ViewModel.icon_down(parameters.icon_down.split("-")[0] + ' ' + parameters.icon_down)
+	}
+
+	if ("icon_up" in parameters)
+	{
+		this.ViewModel.icon_up(parameters.icon_up.split("-")[0] + ' ' + parameters.icon_up)
+	}   
+	
+	if ("state_text_style" in parameters)
+	{
+		this.ViewModel.state_text_style(parameters.state_text_style)
+	}   
+	
+	if ("level_style" in parameters)
+	{
+		this.ViewModel.level_style(parameters.level_style)
+		this.ViewModel.units_style(parameters.level_style)
+	}   
+	
+	if ("level_up_style" in parameters)
+	{
+		this.ViewModel.level_up_style(parameters.level_up_style)
+	}   
+
+	if ("level_down_style" in parameters)
+	{
+		this.ViewModel.level_down_style(parameters.level_down_style)
+	}   
+	
     // Get initial state
    
     this.get_state(url, parameters.state_entity)
@@ -345,8 +376,6 @@ function sliderpicker(widget_id, url, parameters)
                 }
                 else
                 {
-                    console.log(entity)
-                    console.log(data.state.entity_id)
                     
                     if (data.state.entity_id != entity)
                     {
@@ -424,53 +453,46 @@ function sliderpicker(widget_id, url, parameters)
         }
         if (state.state == self.state_active)
         {
-            if ("icon_color_active" in parameters)
-            {
-                $('#' + widget_id + ' > h2').css("color", parameters["icon_color_active"])
-            }
-            else
-            {
-                if ("warn" in self.parameters && self.parameters["warn"] == 1)
-                {
-                    $('#' + widget_id + ' > h2').css("color", "")
-                    self.ViewModel.icon_style("icon-active-warn")
-                }
-                else
-                {
-                    $('#' + widget_id + ' > h2').css("color", "")
-                    self.ViewModel.icon_style("dimmer-icon-on")                
-                }
-                if (self.level_attribute == "state")
-                {
-                    level = state.state                   
-                }
-                else                
-                {
-                    level = state.attributes[self.level_attribute]
-                }
-                if (self.parameters.numeric)
-                {
-                    value = level
-                }
-                else
-                {
-                    value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
-                }
-                self.ViewModel.level(value)
-            }
+			if ("icon_style_active" in parameters)
+			{
+				self.ViewModel.icon_style(parameters["icon_style_active"])
+			}
+			else
+			{
+				self.ViewModel.icon_style("")
+				self.ViewModel.icon_class("icon-active")                
+			}
+			if (self.level_attribute == "state")
+			{
+				level = state.state                   
+			}
+			else                
+			{
+				level = state.attributes[self.level_attribute]
+			}
+			if (self.parameters.numeric)
+			{
+				value = level
+			}
+			else
+			{
+				value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
+			}
+			self.ViewModel.level(value)
+            
             self.ViewModel.icon(self.icon_on.split("-")[0] + ' ' + self.icon_on)
         }
         else
         {
-            if ("icon_color_inactive" in parameters)
-            {
-                $('#' + widget_id + ' > h2').css("color", parameters["icon_color_inactive"])
-            }
-            else
-            {
-                $('#' + widget_id + ' > h2').css("color", "")
-                self.ViewModel.icon_style("dimmer-icon-off")
-            }
+			if ("icon_style_inactive" in parameters)
+			{
+				self.ViewModel.icon_style(parameters["icon_style_inactive"])
+			}
+			else
+			{
+				self.ViewModel.icon_style("")
+				self.ViewModel.icon_class("icon-inactive")                
+			}
             self.ViewModel.icon(self.icon_off.split("-")[0] + ' ' + self.icon_off)
             if (parameters.inactive_level_valid)
             {

@@ -1,6 +1,8 @@
 widget_type: binary
-icon_on: fa-user
-icon_off: fa-times
+icon_on: "$device_tracker_icon_on"
+icon_off: "$device_tracker_icon_off"
+icon_style_active: "$device_tracker_icon_style_active"
+icon_style_inactive: "$device_tracker_icon_style_inactive"
 state_active: home
 state_text: 1
 state_entity: device_tracker.{{device}}

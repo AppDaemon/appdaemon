@@ -1,10 +1,9 @@
-@import "variables";
 // ----------------------------------------------------------------------------
 // Widget-weather styles
 // ----------------------------------------------------------------------------
-.widget-weather {
+.widget-baseweather-{{id}} {
 
-  color: $color-weather;
+  color: white;
 
   h1 {
   	margin-bottom: 0px;

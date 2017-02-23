@@ -1,3 +1,5 @@
 widget_type: javascript
-icon: fa-refresh
+icon: $reload_icon
+title_style: $reload_title_style
+icon_style: $reload_icon_style
 command: location.reload(true)
