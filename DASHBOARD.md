@@ -411,6 +411,7 @@ None
 
 - `widget_style`
 - `main_style`
+- `unit_style`
 - `sub_style`
     
 ## sensor
