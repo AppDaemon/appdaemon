@@ -13,10 +13,12 @@ function display(widget_id, url, parameters)
     this.ViewModel = 
     {
         title: ko.observable(parameters.title),
+        title2: ko.observable(parameters.title2),
         value: ko.observable(),
         unit: ko.observable(parameters.units),
 		widget_style: ko.observable(),
 		title_style: ko.observable(),
+		title2_style: ko.observable(),
 		value_style: ko.observable(),
 		unit_style: ko.observable()
     };
@@ -33,6 +35,11 @@ function display(widget_id, url, parameters)
 	if ("title_style" in parameters)
 	{
 		this.ViewModel.title_style(parameters.title_style)
+	}
+    
+	if ("title2_style" in parameters)
+	{
+		this.ViewModel.title2_style(parameters.title2_style)
 	}
     
 	if ("value_style" in parameters)

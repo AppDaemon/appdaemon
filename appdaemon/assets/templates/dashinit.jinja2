@@ -1,7 +1,7 @@
 $(function(){ //DOM Ready
 
     $(document).attr("title", "{{title}}");
-    content_width = ({{widget_dimensions[0]}} + {{widget_margins[0]}}) * {{columns}}
+    content_width = ({{widget_dimensions[0]}} + {{widget_margins[0]}}) * {{columns}} + {{widget_margins[0]}}
     $('.gridster').width(content_width)
     $(".gridster ul").gridster({
         widget_margins: [{{ widget_margins[0] }}, {{ widget_margins[1] }}],

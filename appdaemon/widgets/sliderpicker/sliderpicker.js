@@ -15,6 +15,7 @@ function sliderpicker(widget_id, url, parameters)
     this.ViewModel = 
     {
         title: ko.observable(parameters.title),
+        title2: ko.observable(parameters.title2),
         icon: ko.observable(),
         icon_style: ko.observable(),
         icon_class: ko.observable(),
@@ -22,6 +23,7 @@ function sliderpicker(widget_id, url, parameters)
         level: ko.observable(),
         state_text: ko.observable(),
 		title_style: ko.observable(),
+		title2_style: ko.observable(),
 		state_text_style: ko.observable(),
 		level_style: ko.observable(),
 		units_style: ko.observable(),
@@ -110,6 +112,11 @@ function sliderpicker(widget_id, url, parameters)
 	if ("title_style" in parameters)
 	{
 		this.ViewModel.title_style(parameters.title_style)
+	}   
+
+	if ("title2_style" in parameters)
+	{
+		this.ViewModel.title2_style(parameters.title2_style)
 	}   
 
 	if ("icon_down" in parameters)
