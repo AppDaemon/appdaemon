@@ -30,3 +30,4 @@ state_text_style: $media_player_state_text_style
 level_style: $media_player_level_style
 level_up_style: $media_player_level_up_style
 level_down_style: $media_player_level_down_style
+widget_style: $media_player_widget_style

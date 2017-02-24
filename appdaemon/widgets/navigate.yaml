@@ -3,4 +3,5 @@ icon: $navigate_icon
 title_style: $navigate_title_style
 title2_style: $navigate_title2_style
 icon_style: $navigate_icon_style
+widget_style: $navigate_widget_style
 command: window.location.href = '{{url}}'

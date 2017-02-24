@@ -43,8 +43,9 @@ function baseweather(widget_id, url, parameters)
     {
         this.ViewModel[this.sensors[i]] = ko.observable()
     }
-    
-    this.ViewModel.unit = ko.observable(parameters.units)
+
+    this.ViewModel.unit = ko.observable(parameters.unit)
+    this.ViewModel.unit_style = ko.observable()
 	this.ViewModel.widget_style = ko.observable()
 	this.ViewModel.main_style = ko.observable()
 	this.ViewModel.sub_style = ko.observable()
@@ -61,6 +62,11 @@ function baseweather(widget_id, url, parameters)
 	if ("main_style" in parameters)
 	{
 		this.ViewModel.main_style(parameters.main_style)
+	}    
+
+	if ("unit_style" in parameters)
+	{
+		this.ViewModel.unit_style(parameters.unit_style)
 	}    
 
 	if ("sub_style" in parameters)

@@ -3,6 +3,7 @@ icon_on: "$binary_sensor_icon_on"
 icon_off: "$binary_sensor_icon_off"
 icon_style_active: "$binary_sensor_icon_style_active"
 icon_style_inactive: "$binary_sensor_icon_style_inactive"
+widget_style: $binary_sensor_widget_style
 title_style: $binary_sensor_title_style
 title2_style: $binary_sensor_title2_style
 state_active: "on"

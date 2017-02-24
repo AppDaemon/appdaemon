@@ -1,3 +1,5 @@
 widget_type: baseweather
+unit_style: $weather_unit_style
 main_style: $weather_main_style
 sub_style: $weather_sub_style
+widget_style: $weather_widget_style

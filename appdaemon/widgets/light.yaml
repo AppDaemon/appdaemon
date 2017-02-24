@@ -21,3 +21,4 @@ state_text_style: $light_state_text_style
 level_style: $light_level_style
 level_up_style: $light_level_up_style
 level_down_style: $light_level_down_style
+widget_style: $light_widget_style

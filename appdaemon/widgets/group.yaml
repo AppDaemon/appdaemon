@@ -22,3 +22,4 @@ state_text_style: $group_state_text_style
 level_style: $group_level_style
 level_up_style: $group_level_up_style
 level_down_style: $group_level_down_style
+widget_style: $group_widget_style

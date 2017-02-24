@@ -35,8 +35,6 @@ style_inactive: "$gray_light"
 style_active: "$green"
 style_active_warn: "$red"
 style_info: "$blue"
-style_weather: "$orange"
-style_time: "$purple"
 style_title: $white
 style_title2: $white
 
@@ -48,6 +46,7 @@ scene_icon_style_active: $style_active
 scene_icon_style_inactive: $style_inactive
 scene_title_style: $style_title
 scene_title2_style: $style_title2
+scene_widget_style: ""
 
 binary_sensor_icon_on: fa-bullseye
 binary_sensor_icon_off: fa-minus
@@ -55,6 +54,7 @@ binary_sensor_icon_style_active: $style_active_warn
 binary_sensor_icon_style_inactive: $style_inactive
 binary_sensor_title_style: $style_title
 binary_sensor_title2_style: $style_title2
+binary_sensor_widget_style: ""
 
 device_tracker_icon_on: fa-user
 device_tracker_icon_off: fa-user
@@ -62,6 +62,7 @@ device_tracker_icon_style_active: $style_active
 device_tracker_icon_style_inactive: $style_inactive
 device_tracker_title_style: $style_title
 device_tracker_title2_style: $style_title2
+device_tracker_widget_style: ""
 
 input_boolean_icon_on: fa-sliders
 input_boolean_icon_off: fa-sliders
@@ -69,6 +70,7 @@ input_boolean_icon_style_active: $style_active
 input_boolean_icon_style_inactive: $style_inactive
 input_boolean_title_style: $style_title
 input_boolean_title2_style: $style_title2
+input_boolean_widget_style: ""
 
 switch_icon_on: fa-circle
 switch_icon_off: fa-circle-thin
@@ -76,35 +78,44 @@ switch_icon_style_active: $style_active
 switch_icon_style_inactive: $style_inactive
 switch_title_style: $style_title
 switch_title2_style: $style_title2
+switch_widget_style: ""
 
 clock_date_style: $white
 clock_time_style: $purple
+clock_widget_style: ""
 
 weather_main_style: $orange
+weather_unit_style: $orange
 weather_sub_style: $blue
+weather_widget_style: ""
 
 text_sensor_title_style: $style_title
 text_sensor_title2_style: $style_title2
 text_sensor_text_style: $white
+text_sensor_widget_style: ""
 
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: $white
+label_widget_style: ""
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
 sensor_value_style: $blue
 sensor_unit_style: $blue
+sensor_widget_style: ""
 
 reload_icon: fa-refresh
 reload_title_style: $style_title
 reload_title2_style: $style_title2
 reload_icon_style: $white
+reload_widget_style: ""
 
 navigate_icon: fa-gear
 navigate_title_style: $style_title
 navigate_title2_style: $style_title2
 navigate_icon_style: $white
+navigate_widget_style: ""
 
 media_player_icon_on: fa-music
 media_player_icon_off: fa-music
@@ -118,6 +129,7 @@ media_player_state_text_style: $white
 media_player_level_style: $gray_light
 media_player_level_up_style: $gray_light
 media_player_level_down_style: $gray_light
+media_player_widget_style: ""
 
 light_icon_on: fa-circle
 light_icon_off: fa-circle-thin
@@ -131,6 +143,7 @@ light_state_text_style: $white
 light_level_style: $gray_light
 light_level_up_style: $gray_light
 light_level_down_style: $gray_light
+light_widget_style: ""
 
 input_slider_icon_on: none
 input_slider_icon_off: none
@@ -144,6 +157,7 @@ input_slider_state_text_style: $white
 input_slider_level_style: $gray_light
 input_slider_level_up_style: $gray_light
 input_slider_level_down_style: $gray_light
+input_slider_widget_style: ""
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin
@@ -157,3 +171,4 @@ group_state_text_style: $white
 group_level_style: $gray_light
 group_level_up_style: $gray_light
 group_level_down_style: $gray_light
+group_widget_style: ""

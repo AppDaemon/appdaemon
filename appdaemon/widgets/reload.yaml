@@ -3,4 +3,5 @@ icon: $reload_icon
 title_style: $reload_title_style
 title2_style: $reload_title2_style
 icon_style: $reload_icon_style
+widget_style: $reload_widget_style
 command: location.reload(true)
