@@ -1,5 +1,6 @@
 widget_type: javascript
 icon: $reload_icon
 title_style: $reload_title_style
+title2_style: $reload_title2_style
 icon_style: $reload_icon_style
 command: location.reload(true)

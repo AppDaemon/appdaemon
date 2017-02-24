@@ -4,6 +4,8 @@ icon_on: $switch_icon_on
 icon_off: $switch_icon_off
 icon_style_active: $switch_icon_style_active 
 icon_style_inactive: $switch_icon_style_inactive 
+title_style: $switch_title_style
+title2_style: $switch_title2_style
 post_service_active:
     service: homeassistant/turn_on
     entity_id: {{entity}}

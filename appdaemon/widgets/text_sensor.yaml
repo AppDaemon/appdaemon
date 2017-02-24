@@ -1,4 +1,5 @@
 widget_type: text
 state_entity: {{entity}}
 title_style: $text_sensor_title_style
+title2_style: $text_sensor_title2_style
 text_style: $text_sensor_text_style

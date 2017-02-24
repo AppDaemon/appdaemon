@@ -430,6 +430,7 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 - `units` - the unit symbol to be displayed
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
@@ -438,6 +439,7 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 
 - `widget_style`
 - `title_style`
+- `title2_style`
 - `value_style`
 - `unit_style`
 
@@ -452,6 +454,7 @@ A Widget that reports on device tracker status. It can also be used to toggle th
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Style Arguments: 
 
@@ -459,6 +462,7 @@ A Widget that reports on device tracker status. It can also be used to toggle th
 - `icon_style_active`
 - `icon_style_inactive`
 - `title_style`
+- `title2_style`
 - `state_text_style`
     
 ## text_sensor
@@ -472,11 +476,13 @@ A widget to show the value of any text based sensor
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Cosmetic Arguments
 
 - `widget_style`
 - `title_style`
+- `title2_style`
 - `text_style`
 
 ## label
@@ -490,12 +496,14 @@ None
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 - `text` - the text displayed on the tile
 
 ### Cosmetic Arguments
 
 - `widget_style`
 - `title_style`
+- `title2_style`
 - `text_style`
 
 ## scene
@@ -509,6 +517,7 @@ A widget to activate a scene
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Style Arguments: 
 
@@ -516,6 +525,7 @@ A widget to activate a scene
 - `icon_style_active`
 - `icon_style_inactive`
 - `title_style`
+- `title2_style`
 
 ## switch
 
@@ -528,6 +538,7 @@ A widget to monitor and activate a switch
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Cosmetic Arguments
     
@@ -535,6 +546,7 @@ A widget to monitor and activate a switch
 - `icon_style_active`
 - `icon_style_inactive`
 - `title_style`
+- `title2_style`
 
 ## input_boolean
 
@@ -547,6 +559,7 @@ A widget to monitor and activate an input_boolean
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Cosmetic Arguments
     
@@ -554,6 +567,7 @@ A widget to monitor and activate an input_boolean
 - `icon_style_active`
 - `icon_style_inactive`
 - `title_style`
+- `title2_style`
 
 
 ## binary_sensor
@@ -567,6 +581,7 @@ A widget to monitor a binary_sensor
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Cosmetic Arguments
     
@@ -574,6 +589,7 @@ A widget to monitor a binary_sensor
 - `icon_style_active`
 - `icon_style_inactive`
 - `title_style`
+- `title2_style`
 
 ## light
 
@@ -586,6 +602,7 @@ A widget to monitor and contol a dimmable light
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 - `on_brightness` - how bright you want the light to come on when activated in percent.
 - `increment` - the size of step in brightness when fading the light up or down
 
@@ -597,6 +614,7 @@ A widget to monitor and contol a dimmable light
 - `icon_up`
 - `icon_down`
 - `title_style`
+- `title2_style`
 - `icon_style_active`
 - `icon_style_inactive`
 - `text_style`
@@ -616,6 +634,7 @@ A widget to monitor and contol an input slider
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 - `increment` - the size of step in brightness when fading the slider up or down
 - `units` - the unit symbol to be displayed
 
@@ -634,6 +653,7 @@ A widget to monitor and contol a media player light
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 - `truncate_name` - if specified, the name of the media will be truncated to this length. 
 
 ### Cosmetic Arguments
@@ -644,6 +664,7 @@ A widget to monitor and contol a media player light
 - `icon_up`
 - `icon_down`
 - `title_style`
+- `title2_style`
 - `icon_style_active`
 - `icon_style_inactive`
 - `text_style`
@@ -662,6 +683,7 @@ A widget to monitor and contol a group of lights
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Cosmetic Arguments
    
@@ -671,6 +693,7 @@ A widget to monitor and contol a group of lights
 - `icon_up`
 - `icon_down`
 - `title_style`
+- `title2_style`
 - `icon_style_active`
 - `icon_style_inactive`
 - `text_style`
@@ -689,11 +712,13 @@ A widget to monitor and contol an input_slider
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Cosmetic Arguments
    
 - `widget_style`
 - `title_style`
+- `title2_style`
 - `icon_style_active`
 - `icon_style_inactive`
 - `text_style`
@@ -719,6 +744,7 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 - `icon`
 - `widget_style`
 - `title_style`
+- `title2_style`
 - `icon_style`
   
 ## reload
@@ -732,12 +758,14 @@ None.
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `title2` - a second line of title text 
 
 ### Cosmetic Arguments
    
 - `icon`
 - `widget_style`
 - `title_style`
+- `title2_style`
 - `icon_style`
 
 # Widget Development
