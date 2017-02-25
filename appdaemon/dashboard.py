@@ -7,9 +7,22 @@ import sys
 import jinja2
 from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
 import traceback
+import functools
+import time
 
 import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
+
+def timeit(func):
+    @functools.wraps(func)
+    def newfunc(*args, **kwargs):
+        startTime = time.time()
+        result = func(*args, **kwargs)
+        elapsedTime = time.time() - startTime
+        ha.log(conf.logger, "INFO",'function [{}] finished in {} ms'.format(
+            func.__name__, int(elapsedTime * 1000)))
+        return result
+    return newfunc
 
 def load_css_params(skin, skindir):
     yaml_path = os.path.join(skindir, "variables.yaml")
@@ -281,6 +294,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
                     
     return dash, layout, occupied, includes
     
+@timeit
 def compile_dash(name, skin, skindir):
 
     if conf.dash_force_compile is False:

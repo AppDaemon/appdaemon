@@ -72,7 +72,6 @@ def load_dash(request):
             ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
             skin = "default"
             skindir = os.path.join(conf.css_dir, "default")
-    print(skindir)
 
     #
     # Conditionally compile Dashboard

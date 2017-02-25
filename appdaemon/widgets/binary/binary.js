@@ -190,6 +190,7 @@ function binary(widget_id, url, parameters)
 			if ("icon_style_active" in parameters)
 			{
 				self.ViewModel.icon_style(parameters["icon_style_active"])
+				self.ViewModel.icon_class("icon-active")                
 			}
 			else
 			{
@@ -203,6 +204,7 @@ function binary(widget_id, url, parameters)
 			if ("icon_style_inactive" in parameters)
 			{
 				self.ViewModel.icon_style(parameters["icon_style_inactive"])
+				self.ViewModel.icon_class("icon-inactive")                
 			}
 			else
 			{

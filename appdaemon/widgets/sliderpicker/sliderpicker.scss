@@ -10,13 +10,33 @@
   }
 
   .title {
-    margin-bottom: 0px;
-    margin-top: 5px;
+ 	position: absolute;
+	top: 5px;
+	width: 100%;
   }
 
   .title2 {
-    margin-bottom: 5px;
-    margin-top: 0px;
+	position: absolute;
+	top: 20px;
+	width: 100%;
+  }
+  .state_text {
+	position: absolute;
+	top: 35px;
+	width: 100%;
+  }
+  
+   .icon-active {
+	position: absolute;
+	top: 45px;
+	width: 100%
+
+  }
+
+  .icon-inactive {
+	position: absolute;
+	top: 45px;
+	width: 100%;
   }
   
   .toggle-area {
@@ -30,15 +50,17 @@
 
   .level {
     display: inline-block;
-    margin-bottom: 5px;
-    color: rgba(255, 255, 255, 0.7);
   }
 
   .unit {
-    display: inline-block;
-    color: rgba(255, 255, 255, 0.7);
+   display: inline-block;
   }
 
+  .levelunit {
+	position: absolute;
+	bottom: 5px;
+	width: 100%;
+  }
   .secondary-icon {
     position: absolute;
     bottom: 0px;

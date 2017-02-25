@@ -4,20 +4,33 @@
 .widget-binary-{{id}} {
 
   .icon-active {
-	color: white;
+	position: absolute;
+	top: 45px;
+	width: 100%
+
   }
 
   .icon-inactive {
-	color: white;
+	position: absolute;
+	top: 45px;
+	width: 100%;
   }
   
   .title {
-    margin-bottom: 5px;
-    margin-top: 5px;
+	position: absolute;
+	top: 5px;
+	width: 100%;
   }
 
   .title2 {
-    margin-bottom: 10px;
-    margin-top: 0px;
+	position: absolute;
+	top: 20px;
+	width: 100%;
+  }
+  
+.state_text {
+	position: absolute;
+	bottom: 0px;
+	width: 100%;
   }
 }

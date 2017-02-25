@@ -3,7 +3,14 @@
 // ----------------------------------------------------------------------------
 .widget-baseclock-{{id}} {
 
+ .date {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
  .time {
-    color: white;
+ 	position: absolute;
+	top: 45px;
+	width: 100%;
   }
 }

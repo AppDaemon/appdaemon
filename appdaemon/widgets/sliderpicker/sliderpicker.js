@@ -463,6 +463,7 @@ function sliderpicker(widget_id, url, parameters)
 			if ("icon_style_active" in parameters)
 			{
 				self.ViewModel.icon_style(parameters["icon_style_active"])
+				self.ViewModel.icon_class("icon-active")                
 			}
 			else
 			{
@@ -483,7 +484,7 @@ function sliderpicker(widget_id, url, parameters)
 			}
 			else
 			{
-				value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
+				value = (Math.round((level - self.min_level)/(self.max_level - self.min_level)*10))*10
 			}
 			self.ViewModel.level(value)
             
@@ -494,6 +495,7 @@ function sliderpicker(widget_id, url, parameters)
 			if ("icon_style_inactive" in parameters)
 			{
 				self.ViewModel.icon_style(parameters["icon_style_inactive"])
+				self.ViewModel.icon_class("icon-inactive")                
 			}
 			else
 			{
@@ -517,7 +519,7 @@ function sliderpicker(widget_id, url, parameters)
                 }
                 else
                 {
-                    value = Math.round((level - self.min_level)/(self.max_level - self.min_level)*100)
+                    value = (Math.round((level - self.min_level)/(self.max_level - self.min_level)*10))*10
                 }
                 self.ViewModel.level(value)
             }
