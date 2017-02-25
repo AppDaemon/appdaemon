@@ -43,6 +43,8 @@ ha_config = None
 version = 0
 commtype = None
 
+config_dir = None
+
 # Dashboard
 
 dash_host = None

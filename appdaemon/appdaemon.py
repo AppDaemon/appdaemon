@@ -1576,6 +1576,9 @@ def main():
     config = configparser.ConfigParser()
     config.read_file(open(config_file))
 
+    conf.config_dir = os.path.dirname(config_file)
+
+    
     assert "AppDaemon" in config, "[AppDaemon] section required in {}".format(
         config_file
     )

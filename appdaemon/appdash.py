@@ -62,20 +62,32 @@ def load_dash(request):
     #
     # Check skin exists
     #
-    skindir = os.path.join(conf.css_dir, skin)
-    if not os.path.isdir(skindir):
-        ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
-        skin = "default"
+    skindir = os.path.join(conf.config_dir, "custom_css", skin)
+    if os.path.isdir(skindir):
+        ha.log(conf.logger, "INFO", "Loading custom skin '{}'".format(skin))
+    else:
+        # Not a custom skin, try product skins
+        skindir = os.path.join(conf.css_dir, skin)
+        if not os.path.isdir(skindir):
+            ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
+            skin = "default"
+            skindir = os.path.join(conf.css_dir, "default")
+    print(skindir)
 
     #
     # Conditionally compile Dashboard
     #
     
-    dash = dashboard.compile_dash(name, skin)
+    dash = dashboard.compile_dash(name, skin, skindir)
     if dash == None:
         errors = []
+        includes = []
     else:
         errors = dash["errors"]
+        if "includes" in dash:
+            includes = dash["includes"]
+        else:
+            includes = []
 
     if "widgets" in dash:
         widgets = dash["widgets"]
@@ -84,13 +96,13 @@ def load_dash(request):
     #
     #return params
     #
-    return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets}
+    return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "includes": includes}
 
 @asyncio.coroutine
 def get_state(request):
     entity = request.match_info.get('entity')
     
-    # Groups don;t have the kind of state we need, so find a group member and
+    # Groups don't have the kind of state we need, so find a group member and
     # Substitute its state instead. 
     # This is a fix for controlling groups of lights
     

@@ -33,29 +33,29 @@ includes: []
 # Styles
 #
 
-white: "#fff"
-red: "#ff0055"
-green: "#aaff00"
-blue: "#00aaff"
-purple: "#aa00ff"
-yellow: "#ffff00"
-orange: "#ffaa00"
+white: "color: #fff"
+red: "color: #ff0055"
+green: "color: #aaff00"
+blue: "color: #00aaff"
+purple: "color: #aa00ff"
+yellow: "color: #ffff00"
+orange: "color: #ffaa00"
 
-gray_dark: "#444"
-gray_medium: "#666"
-gray_light: "#888"
+gray_dark: "color: #444"
+gray_medium: "color: #666"
+gray_light: "color: #888"
 
 #Page and widget defaults
-background_style: "background-color: #444"
+background_style: "background-color: #00aa00"
 text_style: "color: #fff"
 
 #These are used for icons and indicators
-style_inactive: "color: $gray_light"
-style_active: "color: $green"
-style_active_warn: "color: $red"
-style_info: "color: $blue"
-style_title: "color: $white"
-style_title2: "color: $white"
+style_inactive: "$gray_light"
+style_active: "$green"
+style_active_warn: "$red"
+style_info: "$blue"
+style_title: $white
+style_title2: $white
 
 # Widget Default Definitions
 
@@ -99,41 +99,41 @@ switch_title_style: $style_title
 switch_title2_style: $style_title2
 switch_widget_style: $background_style
 
-clock_date_style: "color: $white"
-clock_time_style: "color: $purple"
+clock_date_style: $white
+clock_time_style: $purple
 clock_widget_style: $background_style
 
-weather_main_style: "color: $orange"
-weather_unit_style: "color: $orange"
-weather_sub_style: "color: $blue"
+weather_main_style: $orange
+weather_unit_style: $orange
+weather_sub_style: $blue
 weather_widget_style: $background_style
 
 text_sensor_title_style: $style_title
 text_sensor_title2_style: $style_title2
-text_sensor_text_style: "color: $white"
+text_sensor_text_style: $white
 text_sensor_widget_style: $background_style
 
 label_title_style: $style_title
 label_title2_style: $style_title2
-label_text_style: "color: $white"
+label_text_style: $white
 label_widget_style: $background_style
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
-sensor_value_style: "color: $blue"
-sensor_unit_style: "color: $blue"
+sensor_value_style: $blue
+sensor_unit_style: $blue
 sensor_widget_style: $background_style
 
 reload_icon: fa-refresh
 reload_title_style: $style_title
 reload_title2_style: $style_title2
-reload_icon_style: "color: $white"
+reload_icon_style: $white
 reload_widget_style: $background_style
 
 navigate_icon: fa-gear
 navigate_title_style: $style_title
 navigate_title2_style: $style_title2
-navigate_icon_style: "color: $white"
+navigate_icon_style: $white
 navigate_widget_style: $background_style
 
 media_player_icon_on: fa-music
@@ -144,10 +144,10 @@ media_player_title_style: $style_title
 media_player_title2_style: $style_title2
 media_player_icon_style_active: $style_active
 media_player_icon_style_inactive: $style_inactive
-media_player_state_text_style: "color: $white"
-media_player_level_style: "color: $gray_light"
-media_player_level_up_style: "color: $gray_light"
-media_player_level_down_style: "color: $gray_light"
+media_player_state_text_style: $white
+media_player_level_style: $gray_light
+media_player_level_up_style: $gray_light
+media_player_level_down_style: $gray_light
 media_player_widget_style: $background_style
 
 light_icon_on: fa-circle
@@ -158,10 +158,10 @@ light_title_style: $style_title
 light_title2_style: $style_title2
 light_icon_style_active: $style_active
 light_icon_style_inactive: $style_inactive
-light_state_text_style: "color: $white"
-light_level_style: "color: $gray_light"
-light_level_up_style: "color: $gray_light"
-light_level_down_style: "color: $gray_light"
+light_state_text_style: $white
+light_level_style: $gray_light
+light_level_up_style: $gray_light
+light_level_down_style: $gray_light
 light_widget_style: $background_style
 
 input_slider_icon_on: none
@@ -172,10 +172,10 @@ input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
 input_slider_icon_style_active: $style_active
 input_slider_icon_style_inactive: $style_inactive
-input_slider_state_text_style: "color: $white"
-input_slider_level_style: "color: $gray_light"
-input_slider_level_up_style: "color: $gray_light"
-input_slider_level_down_style: "color: $gray_light"
+input_slider_state_text_style: $white
+input_slider_level_style: $gray_light
+input_slider_level_up_style: $gray_light
+input_slider_level_down_style: $gray_light
 input_slider_widget_style: $background_style
 
 group_icon_on: fa-circle
@@ -186,8 +186,8 @@ group_title_style: $style_title
 group_title2_style: $style_title2
 group_icon_style_active: $style_active
 group_icon_style_inactive: $style_inactive
-group_state_text_style: "color: $white"
-group_level_style: "color: $gray_light"
-group_level_up_style: "color: $gray_light"
-group_level_down_style: "color: $gray_light"
+group_state_text_style: $white
+group_level_style: $gray_light
+group_level_up_style: $gray_light
+group_level_down_style: $gray_light
 group_widget_style: $background_style

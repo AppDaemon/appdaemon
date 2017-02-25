@@ -1,14 +1,20 @@
+// ----------------------------------------------------------------------------
+// Base page styles
+// ----------------------------------------------------------------------------
+
 html {
   font-size: 100%;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
+  padding: 0;
 }
 
 body {
   margin: 0;
-  background-color: #222;
+  background-color: green;
   font-size: 15px;
   color: #fff;
+  padding: 0;
   font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 
@@ -61,7 +67,6 @@ h1 {
   font-weight: 200;
 }
 h2 {
-  text-transform: uppercase;
   font-size: 300%;
   font-weight: 400;
   color: #fff;
@@ -75,6 +80,8 @@ h3 {
 // ----------------------------------------------------------------------------
 // Base widget styles
 // ----------------------------------------------------------------------------
+
+
 .gridster {
   margin: 0px auto;
 }
@@ -127,3 +134,6 @@ h3 {
   }
 }
 
+#container {
+  padding-top: 5px;
+}

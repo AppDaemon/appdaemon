@@ -459,6 +459,8 @@ A Widget that reports on device tracker status. It can also be used to toggle th
 
 ### Style Arguments: 
 
+- `icon_on`
+- `icon_off`
 - `widget_style`
 - `icon_style_active`
 - `icon_style_inactive`
@@ -522,6 +524,8 @@ A widget to activate a scene
 
 ### Style Arguments: 
 
+- `icon_on`
+- `icon_off`
 - `widget_style`
 - `icon_style_active`
 - `icon_style_inactive`
@@ -543,6 +547,8 @@ A widget to monitor and activate a switch
 
 ### Cosmetic Arguments
     
+- `icon_on`
+- `icon_off`
 - `widget_style`
 - `icon_style_active`
 - `icon_style_inactive`
@@ -564,6 +570,8 @@ A widget to monitor and activate an input_boolean
 
 ### Cosmetic Arguments
     
+- `icon_on`
+- `icon_off`
 - `widget_style`
 - `icon_style_active`
 - `icon_style_inactive`
@@ -586,6 +594,8 @@ A widget to monitor a binary_sensor
 
 ### Cosmetic Arguments
     
+- `icon_on`
+- `icon_off`
 - `widget_style`
 - `icon_style_active`
 - `icon_style_inactive`
@@ -602,6 +612,8 @@ A widget to monitor and contol a dimmable light
 
 ### Optional Arguments:
 
+- `icon_on`
+- `icon_off`
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
 - `on_brightness` - how bright you want the light to come on when activated in percent.
