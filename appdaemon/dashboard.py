@@ -451,8 +451,9 @@ def get_dash(name, skin, skindir):
             rendered_css = css_template.render(css_vars)
             
             css = css + rendered_css + "\n"
-            
-            js = js + widgets[widget["parameters"]["widget_type"]]["js"] + "\n"
+         
+        for widget in widgets:
+            js = js + widgets[widget]["js"] + "\n"
             
     except KeyError:
         ha.log(conf.logger, "WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
