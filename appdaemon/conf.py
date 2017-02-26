@@ -51,7 +51,7 @@ dash_host = None
 dash_dir = None
 dash_port = None
 dashboard = False
-
+profile_dashboard = False
 dashboard_dir = None
 javascript_dir = None
 template_dir = None

@@ -9,9 +9,33 @@ from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
 import traceback
 import functools
 import time
+import cProfile
+import io
+import pstats
 
 import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
+
+
+def profile_this(fn):
+    def profiled_fn(*args, **kwargs):
+    
+        if conf.profile_dashboard:
+            pr = cProfile.Profile()
+            pr.enable()
+        
+        dash = fn(*args, **kwargs)
+        
+        if conf.profile_dashboard:
+            pr.disable()
+            s = io.StringIO()
+            sortby = 'cumulative'
+            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            ps.print_stats()
+            print(s.getvalue())
+        return dash
+    return profiled_fn
+
 
 def timeit(func):
     @functools.wraps(func)
@@ -295,6 +319,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
     return dash, layout, occupied, includes
     
 @timeit
+@profile_this
 def compile_dash(name, skin, skindir):
 
     if conf.dash_force_compile is False:

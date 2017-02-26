@@ -7,6 +7,7 @@ import json
 import os
 import traceback
 
+
 import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
 import appdaemon.dashboard as dashboard
@@ -78,6 +79,7 @@ def load_dash(request):
     #
     
     dash = dashboard.compile_dash(name, skin, skindir)
+    
     if dash == None:
         errors = []
         includes = []

@@ -1529,6 +1529,10 @@ def main():
         '--commtype', help="Communication Library to use",
         default="WEBSOCKETS", choices=["SSE", "WEBSOCKETS"]
     )
+    parser.add_argument(
+        '--profiledash', help=argparse.SUPPRESS,
+        action = 'store_true'
+    )
 
     # Windows does not have Daemonize package so disallow
     if platform.system() != "Windows":
@@ -1541,6 +1545,7 @@ def main():
     conf.tick = args.tick
     conf.interval = args.interval
     conf.loglevel = args.debug
+    conf.profile_dashboard = args.profiledash
 
     if args.starttime is not None:
         conf.now = datetime.datetime.strptime(
