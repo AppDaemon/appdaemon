@@ -1,0 +1,17 @@
+.widget-text-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-text-{{id}} .title2 {
+	position: absolute;
+	top: 20px;
+	width: 100%;
+}
+
+.widget-text-{{id}} .value {
+	position: absolute;
+	top: 45px;
+	width: 100%;
+}

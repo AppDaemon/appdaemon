@@ -1,0 +1,17 @@
+.widget-javascript-{{id}} .icon {
+	position: absolute;
+	top: 45px;
+	width: 100%;
+}
+
+.widget-javascript-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-javascript-{{id}} .title2 {
+	position: absolute;
+	top: 20px;
+	width: 100%;
+}

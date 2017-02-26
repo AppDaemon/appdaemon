@@ -1,4 +1,4 @@
-function sliderpicker(widget_id, url, parameters)
+function sliderswitch(widget_id, url, parameters)
 {
     // Store Args
     this.widget_id = widget_id;

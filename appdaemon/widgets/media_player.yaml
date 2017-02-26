@@ -1,4 +1,4 @@
-widget_type: sliderpicker
+widget_type: sliderswitch
 state_entity: {{entity}}
 state_active: playing
 state_inactive: paused

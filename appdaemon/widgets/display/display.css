@@ -1,0 +1,31 @@
+.widget-display-{{id}} .unit {
+	font-size: 225%;
+	font-weight: 400;
+	display: inline-block;
+	vertical-align: top;
+	margin-left: 5px;
+	margin-top: 5px;
+}
+
+.widget-display-{{id}} .value {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.widget-display-{{id}} .valueunit {
+	position: absolute;
+	top: 45px;
+	width: 100%;
+}
+
+.widget-display-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-display-{{id}} .title2 {
+	position: absolute;
+	top: 20px;
+	width: 100%;
+}

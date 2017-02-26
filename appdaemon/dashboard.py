@@ -1,6 +1,5 @@
 import os
 import ast
-from scss.compiler import Compiler
 import re
 import yaml
 import sys
@@ -12,6 +11,7 @@ import time
 import cProfile
 import io
 import pstats
+import datetime
 
 import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
@@ -307,7 +307,9 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
         for lay in layouts:
             if isinstance(lay, dict):
                 if "include" in lay:
-                    new_dash, layout, occupied, includes = _load_dash(os.path.join(conf.dashboard_dir, lay["include"]), "yaml", layout, occupied, includes, level + 1, css_vars)
+                    new_dash, layout, occupied, includes = _load_dash(
+                        os.path.join(conf.dashboard_dir, lay["include"]), 
+                        "yaml", layout, occupied, includes, level + 1, css_vars)
                     if new_dash != None:
                         merge_dashes(dash, new_dash)
                 else:
@@ -317,15 +319,28 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
                 add_layout(lay, layout, occupied, dash, page, includes, css_vars)
                     
     return dash, layout, occupied, includes
+
+def latest_file(path):
+    latest_file = datetime.datetime.fromtimestamp(0)
+    for root, subdirs, files in os.walk(path):
+        for file in files:
+            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root, file)))
+            if mtime > latest_file:
+                latest_file = mtime
+    return(latest_file)
     
-@timeit
 @profile_this
+@timeit
 def compile_dash(name, skin, skindir):
 
     if conf.dash_force_compile is False:
     
         compile = False
         
+        #
+        # Check if compiled versions even exist and get their timestamps.
+        #
+        last_compiled = datetime.datetime.fromtimestamp(0)
         for file in [
                      os.path.join(conf.compiled_css_dir, skin, "application.css"),
                      os.path.join(conf.compiled_javascript_dir, "application.js"),   
@@ -333,7 +348,23 @@ def compile_dash(name, skin, skindir):
                     ]:
             if not os.path.isfile(file):
                 compile = True
-
+            
+            try:
+                mtime = os.path.getmtime(file)
+            except OSError:
+                mtime = 0
+            last_modified_date = datetime.datetime.fromtimestamp(mtime)
+            
+            if last_modified_date > last_compiled:
+                last_compiled = last_modified_date
+        
+        widget_mod = latest_file(os.path.join(conf.dash_dir, "widgets"))
+        skin_mod = latest_file(skindir)
+        dash_mod = latest_file(conf.dashboard_dir)
+               
+        if widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
+            compile = True
+                
         if compile is False:
             return {"errors": []}
     
@@ -376,7 +407,6 @@ def get_dash(name, skin, skindir):
     css_vars = load_css_params(skin, skindir)
     if css_vars == None:
         return None
-
     if os.path.isfile(pydashfile):
         with open(pydashfile, 'r') as dashfd:
             dash = ast.literal_eval(dashfd.read())
@@ -397,40 +427,30 @@ def get_dash(name, skin, skindir):
     #
     widgets = get_widgets()
     
-    #
-    # Compile scss
-    #
-    scss = ""
-    js = ""
-    rendered_scss = None
     
-    compiler = Compiler(search_path = [skindir])
-
+    css = ""
+    js = ""
+    rendered_css = None
+    
     try: 
         #
-        # Base SCSS template and compile
+        # Base CSS template and compile
         #
-        scss_env = Environment(loader=FileSystemLoader(skindir))
-        template = scss_env.get_template("dashboard.scss")
-        rendered_scss = template.render(css_vars)
+        css_env = Environment(loader=FileSystemLoader(skindir))
+        template = css_env.get_template("dashboard.css")
+        rendered_css = template.render(css_vars)
         
-        # Test if it compiles to give more informative message
-        compiled_scss = compiler.compile_string(rendered_scss)
+        css = css + rendered_css + "\n"
 
-        scss = scss + rendered_scss + "\n"
-    
         #
-        # Template and compile widget SCSS
+        # Template and compile widget CSS
         #
         for widget in dash["widgets"]:
-            scss_template = Environment(loader=BaseLoader).from_string(widgets[widget["parameters"]["widget_type"]]["scss"])
+            css_template = Environment(loader=BaseLoader).from_string(widgets[widget["parameters"]["widget_type"]]["css"])
             css_vars["id"] = widget["id"]
-            rendered_scss = scss_template.render(css_vars)
+            rendered_css = css_template.render(css_vars)
             
-            # Test if it compiles to give more informative message
-            compiled_scss = compiler.compile_string(rendered_scss)
-
-            scss = scss + rendered_scss + "\n"
+            css = css + rendered_css + "\n"
             
             js = js + widgets[widget["parameters"]["widget_type"]]["js"] + "\n"
             
@@ -443,22 +463,19 @@ def get_dash(name, skin, skindir):
         ha.log(conf.logger, "WARNING", '-' * 60)
         ha.log(conf.logger, "WARNING", traceback.format_exc())
         ha.log(conf.logger, "WARNING", '-' * 60)
-        if rendered_scss != None:
+        if rendered_css != None:
             ha.log(conf.logger, "WARNING", "Rendered CSS:")
-            ha.log(conf.logger, "WARNING", rendered_scss)
+            ha.log(conf.logger, "WARNING", rendered_css)
             ha.log(conf.logger, "WARNING", '-' * 60)
         return None
-        
-    
+  
 
-    compiled_scss = compiler.compile_string(scss)
-    
     if not os.path.exists(os.path.join(conf.compiled_css_dir, skin)):
         os.makedirs(os.path.join(conf.compiled_css_dir, skin))
 
     css_path = os.path.join(conf.compiled_css_dir, skin, "application.css")
     with open(css_path, "w") as css_file:
-        css_file.write(compiled_scss)
+        css_file.write(css)
 
  
     
@@ -486,7 +503,7 @@ def list_dashes():
             name = file.replace('.dash', '')
             dash_list[name] = "{}/{}".format(conf.base_url, name)
     return dash_list
-    
+
 def get_widgets():
     widget_dir =  os.path.join(conf.dash_dir, "widgets")
     widget_dirs = os.listdir(path = widget_dir)
@@ -494,14 +511,14 @@ def get_widgets():
     for widget in widget_dirs:
         if os.path.isdir(os.path.join(widget_dir, widget)):
             jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
-            csspath = os.path.join(widget_dir, widget, "{}.scss".format(widget))
+            csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
             htmlpath = os.path.join(widget_dir, widget, "{}.html".format(widget))
             with open (jspath, 'r') as fd:
                 js = fd.read()
             with open (csspath, 'r') as fd:
-                scss = fd.read()
+                css = fd.read()
             with open (htmlpath, 'r') as fd:
                 html = fd.read()
-            widgets[widget] = {"js": js, "scss": scss, "html": html}
+            widgets[widget] = {"js": js, "css": css, "html": html}
     return widgets
         

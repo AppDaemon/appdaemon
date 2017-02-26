@@ -1,4 +1,4 @@
-widget_type: sliderpicker
+widget_type: sliderswitch
 state_entity: {{entity}}
 on_level: 127
 post_service_active:
