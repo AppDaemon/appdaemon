@@ -33,7 +33,6 @@ def set_paths():
     conf.template_dir = os.path.join(conf.dash_dir, "assets", "templates")
     conf.css_dir = os.path.join(conf.dash_dir, "assets", "css")
     conf.compiled_css_dir = os.path.join(conf.compile_dir, "css")
-    conf.custom_css_dir = os.path.join(conf.dashboard_dir, "custom_css")
     conf.fonts_dir = os.path.join(conf.dash_dir, "assets", "fonts")
     conf.images_dir = os.path.join(conf.dash_dir, "assets", "images")
     conf.base_url = "http://{}:{}".format(conf.dash_host, conf.dash_port)
@@ -64,7 +63,7 @@ def load_dash(request):
     #
     # Check skin exists
     #
-    skindir = os.path.join(conf.custom_css_dir, skin)
+    skindir = os.path.join(conf.config_dir, "custom_css", skin)
     if os.path.isdir(skindir):
         ha.log(conf.logger, "INFO", "Loading custom skin '{}'".format(skin))
     else:
@@ -207,8 +206,12 @@ def setup_routes():
     # Add static path for css
     app.router.add_static('/css', conf.css_dir)
     app.router.add_static('/compiled_css', conf.compiled_css_dir)
-    app.router.add_static('/custom_css', conf.custom_css_dir)
 
+    # Add path for custom_css if it exists
+    custom_css = os.path.join(conf.config_dir, "custom_css")
+    if os.path.isdir(custom_css):
+       app.router.add_static('/custom_css', custom_css) 
+    
     # Add static path for fonts
     app.router.add_static('/fonts', conf.fonts_dir)
 
