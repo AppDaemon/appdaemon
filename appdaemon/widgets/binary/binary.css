@@ -1,12 +1,12 @@
 .widget-binary-{{id}} .icon-active {
 	position: absolute;
-	top: 45px;
+	top: 48px;
 	width: 100%;
 }
 
 .widget-binary-{{id}} .icon-inactive {
 	position: absolute;
-	top: 45px;
+	top: 48px;
 	width: 100%;
 }
 
@@ -18,7 +18,7 @@
 
 .widget-binary-{{id}} .title2 {
 	position: absolute;
-	top: 20px;
+	top: 23px;
 	width: 100%;
 }
 

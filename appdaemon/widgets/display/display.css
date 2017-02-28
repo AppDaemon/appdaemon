@@ -14,7 +14,7 @@
 
 .widget-display-{{id}} .valueunit {
 	position: absolute;
-	top: 45px;
+	top: 48px;
 	width: 100%;
 }
 
@@ -26,6 +26,6 @@
 
 .widget-display-{{id}} .title2 {
 	position: absolute;
-	top: 20px;
+	top: 23px;
 	width: 100%;
 }

@@ -133,7 +133,7 @@ def load_widget(dash, includes, name, css_vars):
         widget_type = instantiated_widget["widget_type"]
         if os.path.isdir(os.path.join(conf.dash_dir, "widgets", widget_type)):
             # This is a base widget so return it in full
-            return instantiated_widget
+            return expand_vars(instantiated_widget, css_vars)
             
         # We are working with a derived widget so we need to do some merges and substitutions
         
@@ -141,14 +141,23 @@ def load_widget(dash, includes, name, css_vars):
         
         yaml_file = ""
         templates = {}
+        sub = re.compile("\{\{(.+)\}\}")
+
+        #size = widgetdimensions.search(wid)
+        #if size:
         with open(yaml_path, 'r') as yamlfd:
-            for line in yamlfd:            
+            for line in yamlfd:
                 for ikey in instantiated_widget:
+                    newline = ""
                     match = "{{{{{}}}}}".format(ikey)
                     if match in line:
                         templates[ikey] = 1
                         line = line.replace(match, instantiated_widget[ikey])
             
+                var = sub.search(line)
+                if var:
+                    return {"widget_type": "text", "title": "Missing argument in widget definition: {}".format(var.group(1))}
+                    
                 yaml_file = yaml_file + line
 
         try:
@@ -478,7 +487,8 @@ def get_dash(name, skin, skindir):
     with open(css_path, "w") as css_file:
         css_file.write(css)
 
- 
+    if not os.path.exists(conf.compiled_javascript_dir):
+        os.makedirs(conf.compiled_javascript_dir) 
     
     js_path = os.path.join(conf.compiled_javascript_dir, "application.js")
     with open(js_path, "w") as js_file:

@@ -14,25 +14,25 @@
 
 .widget-sliderswitch-{{id}} .title2 {
 	position: absolute;
-	top: 20px;
+	top: 23px;
 	width: 100%;
 }
 
 .widget-sliderswitch-{{id}} .state_text {
 	position: absolute;
-	top: 35px;
+	top: 38px;
 	width: 100%;
 }
 
 .widget-sliderswitch-{{id}} .icon-active {
 	position: absolute;
-	top: 45px;
+	top: 48px;
 	width: 100%;
 }
 
 .widget-sliderswitch-{{id}} .icon-inactive {
 	position: absolute;
-	top: 45px;
+	top: 48px;
 	width: 100%;
 }
 

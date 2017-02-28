@@ -63,4 +63,5 @@ stream_url = None
 state_url = None
 max_include_depth = 10
 dash_force_compile = False
+custom_css_dir = None
 

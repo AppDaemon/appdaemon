@@ -10,7 +10,7 @@
 
 .widget-slider-{{id}} .title2 {
 	position: absolute;
-	top: 20px;
+	top: 23px;
 	width: 100%;
 }
 
@@ -30,7 +30,7 @@
 
 .widget-slider-{{id}} .levelunit {
 	position: absolute;
-	top: 45px;
+	top: 48px;
 	width: 100%;
 }
 

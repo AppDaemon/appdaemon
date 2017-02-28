@@ -3,4 +3,4 @@ title_style: $label_title_style
 title2_style: $label_title2_style
 text_style: $label_text_style
 widget_style: $label_widget_style
-text: {{text}}
+
