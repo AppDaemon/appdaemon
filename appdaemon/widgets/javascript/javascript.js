@@ -66,15 +66,23 @@ function javascript(widget_id, url, skin, parameters)
 				i++
 			}
 		}
+        if ("skin" in parameters)
+        {
+            theskin = parameters.skin
+        }
+        else
+        {
+            theskin = skin
+        }
 		if (i == 0)
 		{
-			url = url + "?skin=" + skin
+			url = url + "?skin=" + theskin
 		}
 		else
 		{
-			url = url + "&skin=" + skin
+			url = url + "&skin=" + theskin
 		}
-		command = "window.location.href(" + url + ")"
+		command = "window.location.href = '" + url + "'"
 		console.log(command)
 	}
 	
@@ -83,7 +91,7 @@ function javascript(widget_id, url, skin, parameters)
 	$('#' + widget_id + ' > span').click(
 		function()
 		{
-			eval(command);
+			eval(that.command);
 		}
 	);
 	

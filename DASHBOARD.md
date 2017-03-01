@@ -752,6 +752,7 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 
 - `title` - the title displayed on the tile
 - `args` - a list of arguments.
+- `skin` - Skin to use with the new screen (for HADash URLs only)
 
 If adding arguments use the args variable do not append them to the URL or you may break skinning. Add arguments like this:
 
