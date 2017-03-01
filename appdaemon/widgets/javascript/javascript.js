@@ -42,7 +42,7 @@ function javascript(widget_id, url, parameters)
     // Do some setup
         
     var that = this
-    $('#' + widget_id).on('click', '*',
+    $('#' + widget_id + ' > span').click(
         function()
         {
             eval(parameters.command);

@@ -84,7 +84,7 @@ function binary(widget_id, url, parameters)
 	if ("post_service_active" in parameters || "post_service_inactive" in parameters)
 	{
 		var that = this
-		$('#' + widget_id + ' > h2').click(
+		$('#' + widget_id + ' > span').click(
 			function()
 			{
 				args = "";

@@ -9,6 +9,7 @@ monitored_files = {}
 modules = {}
 app_dir = None
 apps = False
+start_time = None
 
 # Will require object based locking if implemented
 objects = {}

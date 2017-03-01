@@ -17,7 +17,7 @@
 #
 # Custom head includes - should be a YAML List, e.g.:
 #
-#includes:
+#head_includes:
 #  - some include
 #  - some other include
 #
@@ -27,7 +27,21 @@
 # It is your responsibility to ensure the HTML is correct
 #
 
-includes: []
+head_includes: []
+
+#
+# Custom body includes - should be a YAML List, e.g.:
+#
+#body_includes:
+#  - some include
+#  - some other include
+#
+# Text will be included verbatim in the body section of the doc, use it for JavaScript
+#
+# It is your responsibility to ensure the HTML is correct
+#
+
+body_includes: []
 
 #
 # Styles

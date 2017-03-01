@@ -349,7 +349,7 @@ def compile_dash(name, skin, skindir):
         #
         # Check if compiled versions even exist and get their timestamps.
         #
-        last_compiled = datetime.datetime.fromtimestamp(0)
+        last_compiled = datetime.datetime.now()
         for file in [
                      os.path.join(conf.compiled_css_dir, skin, "application.css"),
                      os.path.join(conf.compiled_javascript_dir, "application.js"),   
@@ -364,7 +364,7 @@ def compile_dash(name, skin, skindir):
                 mtime = 0
             last_modified_date = datetime.datetime.fromtimestamp(mtime)
             
-            if last_modified_date > last_compiled:
+            if last_modified_date < last_compiled:
                 last_compiled = last_modified_date
         
         widget_mod = latest_file(os.path.join(conf.dash_dir, "widgets"))
@@ -373,7 +373,10 @@ def compile_dash(name, skin, skindir):
                
         if widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
             compile = True
-                
+
+        if conf.start_time > last_compiled:
+            compile = True
+            
         if compile is False:
             return {"errors": []}
     
@@ -427,10 +430,14 @@ def get_dash(name, skin, skindir):
         ha.log(conf.logger, "WARNING", "Dashboard '{}' not found".format(name))
         return None
     
-    if "includes" in css_vars and css_vars["includes"] != None:
-        dash["includes"] = css_vars["includes"]
+    if "head_includes" in css_vars and css_vars["head_includes"] != None:
+        dash["head_includes"] = css_vars["head_includes"]
     else:
-        dash["includes"] = []
+        dash["head_includes"] = []
+    if "body_includes" in css_vars and css_vars["body_includes"] != None:
+        dash["body_includes"] = css_vars["body_includes"]
+    else:
+        dash["body_includes"] = []
     #
     # Load Widgets
     #

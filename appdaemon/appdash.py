@@ -82,13 +82,18 @@ def load_dash(request):
     
     if dash == None:
         errors = []
-        includes = []
+        head_includes = []
+        body_includes = []
     else:
         errors = dash["errors"]
-        if "includes" in dash:
-            includes = dash["includes"]
+        if "head_includes" in dash:
+            head_includes = dash["head_includes"]
         else:
-            includes = []
+            head_includes = []
+        if "body_includes" in dash:
+            body_includes = dash["body_includes"]
+        else:
+            body_includes = []
 
     if "widgets" in dash:
         widgets = dash["widgets"]
@@ -97,7 +102,7 @@ def load_dash(request):
     #
     #return params
     #
-    return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "includes": includes}
+    return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "head_includes": head_includes, "body_includes": body_includes}
 
 @asyncio.coroutine
 def get_state(request):

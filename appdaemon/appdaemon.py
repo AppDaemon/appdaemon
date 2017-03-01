@@ -36,7 +36,7 @@ import appdaemon.appdash as appdash
 import asyncio
 from urllib.parse import urlparse
 
-__version__ = "2.0.0beta"
+__version__ = "2.0.0beta1"
 
 # Windows does not have Daemonize package so disallow
 
@@ -1229,6 +1229,10 @@ def run():
 
     ha.log(conf.logger, "DEBUG", "Entering run()")
 
+    # Save start time
+    
+    conf.start_time = datetime.datetime.now()
+    
     # Take a note of DST
 
     was_dst = is_dst()
