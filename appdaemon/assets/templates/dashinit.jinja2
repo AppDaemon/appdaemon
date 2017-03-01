@@ -22,7 +22,7 @@ $(function(){ //DOM Ready
     var widgets = {}
     // Initialize Widgets
     {% for widget in widgets%}
-        widgets["{{widget.id}}"] = new {{widget.parameters.widget_type}}("{{widget.id}}", "{{ base_url }}", {{widget.parameters}})
+        widgets["{{widget.id}}"] = new {{widget.parameters.widget_type}}("{{widget.id}}", "{{ base_url }}", "{{skin}}", {{widget.parameters}})
     {% endfor %}
     
     // Simple hack to hide the address bar in most mobile browsers.

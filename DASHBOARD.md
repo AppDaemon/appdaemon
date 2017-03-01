@@ -751,6 +751,19 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
+- `args` - a list of arguments.
+
+If adding arguments use the args variable do not append them to the URL or you may break skinning. Add arguments like this:
+
+```yaml
+some_widget:
+    widget_type: navigate
+    title: Amazon
+    url: http://amazon.com
+    args:
+      arg1: fred
+      arg2: jim
+```
 
 ### Cosmetic Arguments
    

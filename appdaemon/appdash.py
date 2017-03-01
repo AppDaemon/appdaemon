@@ -213,6 +213,7 @@ def setup_routes():
     app.router.add_static('/compiled_css', conf.compiled_css_dir)
 
     # Add path for custom_css if it exists
+
     custom_css = os.path.join(conf.config_dir, "custom_css")
     if os.path.isdir(custom_css):
        app.router.add_static('/custom_css', custom_css) 

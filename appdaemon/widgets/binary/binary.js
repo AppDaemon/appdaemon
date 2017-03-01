@@ -1,4 +1,4 @@
-function binary(widget_id, url, parameters)
+function binary(widget_id, url, skin, parameters)
 {
 	// Store Args
 	this.widget_id = widget_id

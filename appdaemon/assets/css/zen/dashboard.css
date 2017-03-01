@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css?family=Orbitron');
+
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  margin: 20;
+  background-image: url("/css/zen/img/zen_bg.jpg"); 
+  background-repeat: repeat;
+  font-size: 14px;
+  color: #fff;
+  font-family: 'Orbitron', 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
+}
+
+b, strong {
+  font-weight: bold;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  border: 0;
+  -ms-interpolation-mode: bicubic;
+  vertical-align: middle;
+}
+
+img, object {
+  max-width: 100%;
+}
+
+iframe {
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+}
+
+td {
+  vertical-align: middle;
+}
+
+ul, ol {
+  padding: 0;
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, p {
+  padding: 0;
+  margin: 0;
+}
+h1 {
+  margin-bottom: 6px;
+  text-align: center;
+  font-size: 100%;
+  font-weight: 300;
+  color: #000;
+  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.6);
+}
+h2 {
+  font-size: 300%;
+  font-weight: 500;
+  color: #000;
+}
+h3 {
+  font-size: 125%;
+  font-weight: 300;
+  color: #000;
+}
+
+
+/*Base widget styles*/
+ 
+
+.dashboard_main {
+  margin: 0px auto;
+  
+}
+
+.gridster {
+  margin: 0px auto;
+  
+}
+
+.icon-background {
+  pointer-events: none;
+  width: 100%!important;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0.1;
+  font-size: 1375%;
+  text-align: center;
+  margin-top: 82px;
+}
+
+.list-nostyle {
+  list-style: none;
+}
+
+.gridster ul {
+  list-style: none;
+}
+
+.gs-w {
+  width: 100%;
+  display: table;
+  cursor: pointer;
+}
+.gs-w:hover {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: inherit; 
+}
+
+.widget {
+  padding: 0px 0px;
+  text-align: center;
+  width: 100%;
+  display: table-cell;
+  vertical-align: middle;
+  background-color: rgba(255, 255, 255, 0.25);
+  border: 1px solid #000;
+  border-right: 3px solid #000;
+  border-bottom: 3px solid #000;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
+ }
+  .title {
+    color: rgba(0, 0, 0, 0);
+  }
+
+  .icon-inactive {
+    color: #888;
+  }
+
+  .icon-active {
+    color: #ff0000;
+  }
+}
+
+#container {
+  padding-top: 10px;
+
+}

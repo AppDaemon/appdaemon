@@ -391,6 +391,7 @@ def compile_dash(name, skin, skindir):
     params["stream_url"] = conf.stream_url
     params["base_url"] = conf.base_url
     params["name"] = name.lower()
+    params["skin"] = skin
     
     #
     # Build dash specific code

@@ -55,7 +55,7 @@
 
 .widget-sliderswitch-{{id}} .levelunit {
 	position: absolute;
-	bottom: 5px;
+	bottom: 0px;
 	width: 100%;
 }
 

@@ -1,0 +1,216 @@
+# Zen Skin for AppDash
+# Version 1.0
+# Date: 02/27/17
+# Author: Robert Pitera
+#
+# Custom head includes - should be a YAML List, e.g.:
+#
+#includes:
+#  - some include
+#  - some other include
+#
+# Text will be included verbatim in the head section of the doc, use for styles,
+# javascript or 3rd party css etc. etc.
+#
+# It is your responsibility to ensure the HTML is correct
+#
+
+includes: []
+
+#
+# Core Styles
+#
+
+white: "#fff"
+black: "#000"
+red: "#ff0055"
+green: "#aaff00"
+blue: "#00aaff"
+purple: "#aa00ff"
+yellow: "#ffff00"
+orange: "#ffaa00"
+
+gray_dark: "#444"
+gray_medium: "#666"
+gray_light: "#888"
+
+white_trans: "rgba(255,255,255,0.6)"
+black_trans: "rgba(0,0,0,0.5)"
+gray_trans: "rgba(169,169,169,0.6)"
+
+#Page and widget defaults
+background_style: "background-image: url(css/zen/img/zen_bg2.jpg)"
+text_style: ""
+
+#These are used for icons and indicators
+style_inactive: "color: $black_trans"
+style_active: "color: $red"
+style_active_warn: "color: $red"
+style_info: "color: $red"
+style_title: "color: $black; font-weight: bold"
+style_title2: "color: $black"
+
+#
+# Zen custom styles
+#
+
+#Overlay Colors - These change the transparent ovelays on the widgets. 
+#These can be copied and pasted to a new variable name if you want to change the color.
+transparent_red: "background-color: rgba(255,0,0,0.5)"
+transparent_black1: "background-color: rgba(0,0,0,0.25)"
+transparent_black2: "background-color: rgba(0,0,0,0.5)"
+
+#FX - 3D text effects. These can be copied and pasted to a new variable name if you want to change the color.
+3d_white: "font-weight: bold; color: white; text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 4px 0 #aaa,
+           0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 4px rgba(0,0,0,.2),
+           0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"
+3d_black: "font-weight: bold; color: black; text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 4px 0 #aaa,
+           0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 4px rgba(0,0,0,.2),
+           0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"               
+3d_red: "font-weight: bold; color: red; text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 4px 0 #aaa,
+           0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 4px rgba(0,0,0,.2),
+           0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"  
+
+
+#Inset borders - This is used to override the widget border styles
+inset_silver: "border-style: inset; border-width: 6px; border-color: silver; border-radius: 0px"             
+inset_white: "border-style: inset; border-width: 6px; border-color: white; border-radius: 0px"
+
+
+#
+# Widget Default Definitions
+#
+
+scene_icon_on: fa-square
+scene_icon_off: fa-square
+scene_icon_style_active: $style_active
+scene_icon_style_inactive: $style_inactive
+scene_title_style: $style_title
+scene_title2_style: $style_title2
+scene_widget_style: $background_style
+
+binary_sensor_icon_on: fa-spinner fa-pulse 
+binary_sensor_icon_off: fa-bars 
+binary_sensor_icon_style_active: $style_active_warn
+binary_sensor_icon_style_inactive: $style_inactive
+binary_sensor_title_style: $style_title
+binary_sensor_title2_style: $style_title2
+binary_sensor_widget_style: $background_style
+
+device_tracker_icon_on: fa-user
+device_tracker_icon_off: fa-user
+device_tracker_icon_style_active: $style_active
+device_tracker_icon_style_inactive: $style_inactive
+device_tracker_title_style: $style_title
+device_tracker_title2_style: $style_title2
+device_tracker_widget_style: $background_style
+
+input_boolean_icon_on: fa-sliders
+input_boolean_icon_off: fa-sliders
+input_boolean_icon_style_active: $style_active
+input_boolean_icon_style_inactive: $style_inactive
+input_boolean_title_style: $style_title
+input_boolean_title2_style: $style_title2
+input_boolean_widget_style: $background_style
+
+switch_icon_on: fa-circle-o-notch fa-spin 
+switch_icon_off: fa-circle-thin
+switch_icon_style_active: $style_active
+switch_icon_style_inactive: $style_inactive
+switch_title_style: $style_title
+switch_title2_style: $style_title2
+switch_widget_style: $background_style
+
+clock_date_style: "color: $white"
+clock_time_style: $3d_white
+clock_widget_style: $transparent_black1
+
+weather_main_style: "color: $3d_white; font-size: 85%"
+weather_unit_style: "color: $3d_white; font-weight: bold; font-size: 95%"
+weather_sub_style: "color: white; text-shadow: 0px 4px 5px #222"
+weather_widget_style: "background-image: url(css/zen/img/zen_weatherbg.jpg); background-size: 180%; $inset_silver"
+
+text_sensor_title_style: $style_title
+text_sensor_title2_style: $style_title2
+text_sensor_text_style: "font-weight: bold; font-size: 100%; color: red"
+text_sensor_widget_style: $background_style
+
+label_title_style: $style_title
+label_title2_style: $style_title2
+label_text_style: "color: $white"
+label_widget_style: $background_style
+
+sensor_title_style: $style_title
+sensor_title2_style: $style_title2
+sensor_value_style: "color: $red"
+sensor_unit_style: "color: red; font-size: 90%"
+sensor_widget_style: $background_style
+
+reload_icon: fa-refresh 
+reload_title_style: "color: $white"
+reload_title2_style: $style_title2
+reload_icon_style: $3d_red
+reload_widget_style: "$transparent_black2"
+
+navigate_icon: fa-gear
+navigate_title_style: "color: $white"
+navigate_title2_style: $style_title2
+navigate_icon_style: $3d_white
+navigate_widget_style: $transparent_red
+
+media_player_icon_on: fa-music
+media_player_icon_off: fa-music
+media_player_icon_up: fa-plus
+media_player_icon_down: fa-minus
+media_player_title_style: $style_title
+media_player_title2_style: $style_title2
+media_player_icon_style_active: "color: red; font-size: 200%"
+media_player_icon_style_inactive: "color: white; font-size: 200%"
+media_player_state_text_style: "color: red; font-weight: bold"
+media_player_level_style: "color: $white"
+media_player_level_up_style: "color: $red"
+media_player_level_down_style: "color: $black"
+media_player_widget_style: $transparent_black1
+
+light_icon_on: fa-circle-o-notch fa-spin
+light_icon_off: fa-circle-thin
+light_icon_up: fa-plus
+light_icon_down: fa-minus
+light_title_style: $style_title
+light_title2_style: $style_title2
+light_icon_style_active: $style_active
+light_icon_style_inactive: $style_inactive
+light_state_text_style: "color: $white"
+light_level_style: "color: $gray_light"
+light_level_up_style: "color: $red"
+light_level_down_style: "color: $black"
+light_widget_style: $background_style
+
+input_slider_icon_on: none
+input_slider_icon_off: none
+input_slider_icon_up: fa-plus
+input_slider_icon_down: fa-minus
+input_slider_title_style: $style_title
+input_slider_title2_style: $style_title2
+input_slider_icon_style_active: $style_active
+input_slider_icon_style_inactive: $style_inactive
+input_slider_unit_style: "color: $red"
+input_slider_state_text_style: "color: $white"
+input_slider_level_style: "color: $red"
+input_slider_level_up_style: "color: $red"
+input_slider_level_down_style: "color: $black"
+input_slider_widget_style: $transparent_black1
+
+group_icon_on: fa-circle
+group_icon_off: fa-circle-thin
+group_icon_up: fa-plus
+group_icon_down: fa-minus
+group_title_style: $style_title
+group_title2_style: $style_title2
+group_icon_style_active: $style_active
+group_icon_style_inactive: $style_inactive
+group_state_text_style: "color: $white"
+group_level_style: "color: $gray_light"
+group_level_up_style: "color: $gray_light"
+group_level_down_style: "color: $gray_light"
+group_widget_style: $background_style

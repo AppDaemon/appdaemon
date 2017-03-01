@@ -14,63 +14,36 @@
 #       dashboards you want to use it
 # ----------------------------------------------------------------------------
 
-#
-# Custom head includes - should be a YAML List, e.g.:
-#
-#head_includes:
-#  - some include
-#  - some other include
-#
-# Text will be included verbatim in the head section of the doc, use for styles,
-# javascript or 3rd party css etc. etc.
-#
-# It is your responsibility to ensure the HTML is correct
-#
+white: "color: #fff"
+red: "color: #ff0055"
+green: "color: #aaff00"
+blue: "color: #00aaff"
+purple: "color: #aa00ff"
+yellow: "color: #ffff00"
+cyan: "color: #00FFFF"
 
-head_includes: []
-
-#
-# Custom body includes - should be a YAML List, e.g.:
-#
-#body_includes:
-#  - some include
-#  - some other include
-#
-# Text will be included verbatim in the body section of the doc, use it for JavaScript
-#
-# It is your responsibility to ensure the HTML is correct
-#
-
-body_includes: []
-
-#
-# Styles
-#
-
-white: "#fff"
-red: "#ff0055"
-green: "#aaff00"
-blue: "#00aaff"
-purple: "#aa00ff"
-yellow: "#ffff00"
-orange: "#ffaa00"
-
-gray_very_dark: "#333"
-gray_dark: "#444"
-gray_medium: "#666"
-gray_light: "#888"
+gray_dark: "color: #444"
+gray_medium: "color: #666"
+gray_light: "color: #888"
 
 #Page and widget defaults
-background_style: "background-color: #444"
+background_style: "background-image: url(css/obsidian/img/obsidian_w_bg.jpg)"
 text_style: "color: #fff"
 
+#FX
+
+
 #These are used for icons and indicators
-style_inactive: "color: $gray_light"
-style_active: "color: $green"
-style_active_warn: "color: $red"
-style_info: "color: $blue"
-style_title: "color: $white"
-style_title2: "color: $white"
+style_inactive: $gray_light
+style_active: $cyan
+style_active_warn: $yellow
+style_info: $cyan
+style_title: $white
+style_title2: $white
+
+#Alternate widget styles
+stripped: "background-image: none; background-color: rgba(0,0,0,0.6); border-style: none; box-shadow: none !important"
+no_texture: "background: black; background-image: none; color: black; border-style: inset"
 
 # Widget Default Definitions
 
@@ -82,7 +55,7 @@ scene_title_style: $style_title
 scene_title2_style: $style_title2
 scene_widget_style: $background_style
 
-binary_sensor_icon_on: fa-bullseye
+binary_sensor_icon_on: fa-bullseye fa-spin
 binary_sensor_icon_off: fa-minus
 binary_sensor_icon_style_active: $style_active_warn
 binary_sensor_icon_style_inactive: $style_inactive
@@ -114,42 +87,42 @@ switch_title_style: $style_title
 switch_title2_style: $style_title2
 switch_widget_style: $background_style
 
-clock_date_style: "color: $white"
-clock_time_style: "color: $purple"
-clock_widget_style: $background_style
+clock_date_style: "color: $white; font-size: 150%"
+clock_time_style: "color: $cyan"
+clock_widget_style: "border-style: solid; border-width: 2px; border-color: white"
 
-weather_main_style: "color: $orange"
-weather_unit_style: "color: $orange"
-weather_sub_style: "color: $blue"
-weather_widget_style: $background_style
+weather_main_style: "color: cyan; font-size: 75%"
+weather_unit_style: "color: cyan; font-size: 85%"
+weather_sub_style: "color: white; font-size: 130%"
+weather_widget_style: $stripped
 
 text_sensor_title_style: $style_title
 text_sensor_title2_style: $style_title2
-text_sensor_text_style: "color: $white"
+text_sensor_text_style: "color: cyan; font-size: 120%"
 text_sensor_widget_style: $background_style
 
 label_title_style: $style_title
 label_title2_style: $style_title2
-label_text_style: "color: $white"
+label_text_style: "color: white; font-size: 120%"
 label_widget_style: $background_style
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
-sensor_value_style: "color: $blue"
-sensor_unit_style: "color: $blue"
+sensor_value_style: "color: cyan; font-size: 300%"
+sensor_unit_style: "color: cyan; font-size: 95%"
 sensor_widget_style: $background_style
 
 reload_icon: fa-refresh
-reload_title_style: $style_title
+reload_title_style: "color: $white"
 reload_title2_style: $style_title2
-reload_icon_style: "color: $white"
-reload_widget_style: $background_style
+reload_icon_style: "color: $cyan"
+reload_widget_style: $stripped
 
 navigate_icon: fa-gear
 navigate_title_style: $style_title
 navigate_title2_style: $style_title2
-navigate_icon_style: "color: $white"
-navigate_widget_style: $background_style
+navigate_icon_style: "color: $cyan"
+navigate_widget_style: $no_texture
 
 media_player_icon_on: fa-music
 media_player_icon_off: fa-music
@@ -179,12 +152,17 @@ light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
 light_widget_style: $background_style
 
+input_slider_icon_on: none
+input_slider_icon_off: none
 input_slider_icon_up: fa-plus
 input_slider_icon_down: fa-minus
 input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
-input_slider_level_style: "color: $blue"
-input_slider_unit_style: "color: $blue"
+input_slider_unit_style: "color: $white"
+input_slider_icon_style_active: $style_active
+input_slider_icon_style_inactive: $style_inactive
+input_slider_state_text_style: "color: $white"
+input_slider_level_style: "color: $gray_light"
 input_slider_level_up_style: "color: $gray_light"
 input_slider_level_down_style: "color: $gray_light"
 input_slider_widget_style: $background_style
@@ -201,4 +179,4 @@ group_state_text_style: "color: $white"
 group_level_style: "color: $gray_light"
 group_level_up_style: "color: $gray_light"
 group_level_down_style: "color: $gray_light"
-group_widget_style: $background_style
+group_widget_style: ""
