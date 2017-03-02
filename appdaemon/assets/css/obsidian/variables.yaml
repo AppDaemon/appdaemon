@@ -22,9 +22,9 @@ purple: "color: #aa00ff"
 yellow: "color: #ffff00"
 cyan: "color: #00FFFF"
 
-gray_dark: "color: #444"
-gray_medium: "color: #666"
-gray_light: "color: #888"
+gray_dark: "#444"
+gray_medium: "#666"
+gray_light: "#888"
 
 #Page and widget defaults
 background_style: "background-image: url(css/obsidian/img/obsidian_w_bg.jpg)"
@@ -38,8 +38,8 @@ style_inactive: $gray_light
 style_active: $cyan
 style_active_warn: $yellow
 style_info: $cyan
-style_title: $white
-style_title2: $white
+style_title: "color: white"
+style_title2: "color: white"
 
 #Alternate widget styles
 stripped: "background-image: none; background-color: rgba(0,0,0,0.6); border-style: none; box-shadow: none !important"
@@ -87,8 +87,8 @@ switch_title_style: $style_title
 switch_title2_style: $style_title2
 switch_widget_style: $background_style
 
-clock_date_style: "color: $white; font-size: 150%"
-clock_time_style: "color: $cyan"
+clock_date_style: "color: white; font-size: 150%"
+clock_time_style: "color: cyan"
 clock_widget_style: "border-style: solid; border-width: 2px; border-color: white"
 
 weather_main_style: "color: cyan; font-size: 75%"
@@ -98,12 +98,12 @@ weather_widget_style: $stripped
 
 text_sensor_title_style: $style_title
 text_sensor_title2_style: $style_title2
-text_sensor_text_style: "color: cyan; font-size: 120%"
+text_sensor_text_style: "color: cyan; font-size: 100%"
 text_sensor_widget_style: $background_style
 
 label_title_style: $style_title
 label_title2_style: $style_title2
-label_text_style: "color: white; font-size: 120%"
+label_text_style: $style_title
 label_widget_style: $background_style
 
 sensor_title_style: $style_title
@@ -113,15 +113,15 @@ sensor_unit_style: "color: cyan; font-size: 95%"
 sensor_widget_style: $background_style
 
 reload_icon: fa-refresh
-reload_title_style: "color: $white"
+reload_title_style: "color: white"
 reload_title2_style: $style_title2
-reload_icon_style: "color: $cyan"
-reload_widget_style: $stripped
+reload_icon_style: "color: cyan"
+reload_widget_style: $background_style
 
 navigate_icon: fa-gear
 navigate_title_style: $style_title
 navigate_title2_style: $style_title2
-navigate_icon_style: "color: $cyan"
+navigate_icon_style: "color: cyan"
 navigate_widget_style: $no_texture
 
 media_player_icon_on: fa-music
@@ -132,7 +132,7 @@ media_player_title_style: $style_title
 media_player_title2_style: $style_title2
 media_player_icon_style_active: $style_active
 media_player_icon_style_inactive: $style_inactive
-media_player_state_text_style: "color: $white"
+media_player_state_text_style: $white
 media_player_level_style: "color: $gray_light"
 media_player_level_up_style: "color: $gray_light"
 media_player_level_down_style: "color: $gray_light"
@@ -146,7 +146,7 @@ light_title_style: $style_title
 light_title2_style: $style_title2
 light_icon_style_active: $style_active
 light_icon_style_inactive: $style_inactive
-light_state_text_style: "color: $white"
+light_state_text_style: $white
 light_level_style: "color: $gray_light"
 light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
@@ -158,10 +158,10 @@ input_slider_icon_up: fa-plus
 input_slider_icon_down: fa-minus
 input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
-input_slider_unit_style: "color: $white"
+input_slider_unit_style: $white
 input_slider_icon_style_active: $style_active
 input_slider_icon_style_inactive: $style_inactive
-input_slider_state_text_style: "color: $white"
+input_slider_state_text_style: $white
 input_slider_level_style: "color: $gray_light"
 input_slider_level_up_style: "color: $gray_light"
 input_slider_level_down_style: "color: $gray_light"
@@ -175,8 +175,8 @@ group_title_style: $style_title
 group_title2_style: $style_title2
 group_icon_style_active: $style_active
 group_icon_style_inactive: $style_inactive
-group_state_text_style: "color: $white"
+group_state_text_style: $white
 group_level_style: "color: $gray_light"
 group_level_up_style: "color: $gray_light"
 group_level_down_style: "color: $gray_light"
-group_widget_style: ""
+group_widget_style: $background_style

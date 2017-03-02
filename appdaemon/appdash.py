@@ -78,7 +78,7 @@ def load_dash(request):
     # Conditionally compile Dashboard
     #
     
-    dash = dashboard.compile_dash(name, skin, skindir)
+    dash = dashboard.compile_dash(name, skin, skindir, request.rel_url.query)
     
     if dash == None:
         errors = []

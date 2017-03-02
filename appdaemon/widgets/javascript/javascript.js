@@ -83,7 +83,6 @@ function javascript(widget_id, url, skin, parameters)
 			url = url + "&skin=" + theskin
 		}
 		command = "window.location.href = '" + url + "'"
-		console.log(command)
 	}
 	
 	this.command = command

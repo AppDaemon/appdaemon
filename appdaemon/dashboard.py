@@ -340,18 +340,19 @@ def latest_file(path):
     
 @profile_this
 @timeit
-def compile_dash(name, skin, skindir):
+def compile_dash(name, skin, skindir, params):
 
     if conf.dash_force_compile is False:
-    
         compile = False
         
+        if "recompile" in params:
+            compile = True
         #
         # Check if compiled versions even exist and get their timestamps.
         #
         last_compiled = datetime.datetime.now()
         for file in [
-                     os.path.join(conf.compiled_css_dir, skin, "application.css"),
+                     os.path.join(conf.compiled_css_dir, skin, "{}_application.css".format(name.lower())),
                      os.path.join(conf.compiled_javascript_dir, "application.js"),   
                      os.path.join(conf.compiled_javascript_dir, "{}_init.js".format(name.lower())),
                     ]:
@@ -376,7 +377,7 @@ def compile_dash(name, skin, skindir):
 
         if conf.start_time > last_compiled:
             compile = True
-            
+               
         if compile is False:
             return {"errors": []}
     
@@ -491,7 +492,7 @@ def get_dash(name, skin, skindir):
     if not os.path.exists(os.path.join(conf.compiled_css_dir, skin)):
         os.makedirs(os.path.join(conf.compiled_css_dir, skin))
 
-    css_path = os.path.join(conf.compiled_css_dir, skin, "application.css")
+    css_path = os.path.join(conf.compiled_css_dir, skin, "{}_application.css".format(name.lower()))
     with open(css_path, "w") as css_file:
         css_file.write(css)
 
