@@ -67,7 +67,10 @@ def load_css_params(skin, skindir):
                     ha.log(conf.logger, "WARNING", str(exc.problem_mark))
                     ha.log(conf.logger, "WARNING", str(exc.problem)) 
             return None
-            
+        return expand_vars(css, css)
+    else:
+        ha.log(conf.logger, "WARNING",  "Error loading variables.yaml for skin '{}'".format(skin))
+        return None
     return expand_vars(css, css)
 
 def expand_vars(fields, subs):
@@ -457,11 +460,14 @@ def get_dash(name, skin, skindir):
         #
         # Base CSS template and compile
         #
-        css_env = Environment(loader=FileSystemLoader(skindir))
-        template = css_env.get_template("dashboard.css")
-        rendered_css = template.render(css_vars)
-        
-        css = css + rendered_css + "\n"
+        if not os.path.isfile(os.path.join(skindir, "dashboard.css")):
+           ha.log(conf.logger, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
+        else:
+            css_env = Environment(loader=FileSystemLoader(skindir))
+            template = css_env.get_template("dashboard.css")
+            rendered_css = template.render(css_vars)
+            
+            css = css + rendered_css + "\n"
 
         #
         # Template and compile widget CSS
