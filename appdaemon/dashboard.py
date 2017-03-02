@@ -354,7 +354,7 @@ def compile_dash(name, skin, skindir, params):
         for file in [
                      os.path.join(conf.compiled_css_dir, skin, "{}_application.css".format(name.lower())),
                      os.path.join(conf.compiled_javascript_dir, "application.js"),   
-                     os.path.join(conf.compiled_javascript_dir, "{}_init.js".format(name.lower())),
+                     os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower())),
                     ]:
             if not os.path.isfile(file):
                 compile = True
@@ -365,8 +365,11 @@ def compile_dash(name, skin, skindir, params):
                 mtime = 0
             last_modified_date = datetime.datetime.fromtimestamp(mtime)
             
-            if last_modified_date < last_compiled:
-                last_compiled = last_modified_date
+            #
+            # Force compilation at startup - need to add a flag
+            #
+            #if last_modified_date < last_compiled:
+            #    last_compiled = last_modified_date
         
         widget_mod = latest_file(os.path.join(conf.dash_dir, "widgets"))
         skin_mod = latest_file(skindir)
@@ -404,7 +407,7 @@ def compile_dash(name, skin, skindir, params):
     template = env.get_template("dashinit.jinja2")
     rendered_template = template.render(params)
     
-    js_path = os.path.join(conf.compiled_javascript_dir, "{}_init.js".format(name.lower()))
+    js_path = os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower()))
     with open(js_path, "w") as js_file:
         js_file.write(rendered_template)
     
@@ -498,6 +501,9 @@ def get_dash(name, skin, skindir):
 
     if not os.path.exists(conf.compiled_javascript_dir):
         os.makedirs(conf.compiled_javascript_dir) 
+    
+    if not os.path.exists(os.path.join(conf.compiled_javascript_dir, skin)):
+        os.makedirs(os.path.join(conf.compiled_javascript_dir, skin)) 
     
     js_path = os.path.join(conf.compiled_javascript_dir, "application.js")
     with open(js_path, "w") as js_file:
