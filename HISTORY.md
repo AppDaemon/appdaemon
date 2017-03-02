@@ -2,6 +2,20 @@
 History
 =======
 
+2.0.0beta1
+
+**Features**
+
+- Initial release of HADashboard v2
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+- appdaemon's `-c` option now identifies a directory not a file. The previously identified file must exist in that directory and be named `appdaemon'cfg`
+
 1.5.2 (2017-02-04)
 ------------------
 

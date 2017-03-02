@@ -10,7 +10,7 @@ function javascript(widget_id, url, skin, parameters)
 	{
 		title: ko.observable(parameters.title),
 		title2: ko.observable(parameters.title2),
-		icon: ko.observable(parameters.icon.split("-")[0] + ' ' + parameters.icon),
+		icon: ko.observable(),
 		widget_style: ko.observable(),
 		title_style: ko.observable(),
 		title2_style: ko.observable(),
@@ -36,10 +36,45 @@ function javascript(widget_id, url, skin, parameters)
 		this.ViewModel.title2_style(parameters.title2_style)
 	}	 
 
-	if ("icon_style" in parameters)
+	if ("icon_active_style" in parameters)
 	{
-		this.ViewModel.icon_style(parameters.icon_style)
-	}	 
+		this.icon_active_style = parameters.icon_active_style
+	}
+    else
+    {
+        this.icon_active_style = "color: white"
+    }
+    
+	if ("icon_inactive_style" in parameters)
+	{
+		this.icon_inactive_style = parameters.icon_inactive_style
+	}
+    else
+    {
+        this.icon_inactive_style = "color: white"
+    }
+
+    if ("icon_inactive" in parameters)
+    {
+        this.icon_inactive = parameters.icon_inactive
+    }
+    else
+    {
+        this.icon_inactive = "fa-gear"
+    }
+    
+    if ("icon_active" in parameters)
+    {
+        this.icon_active = parameters.icon_active
+    }
+    else
+    {
+        this.icon_active = "fa-spinner fa-spin"
+    }
+    
+    this.ViewModel.icon(this.icon_inactive.split("-")[0] + ' ' + this.icon_inactive)
+    this.ViewModel.icon_style(this.icon_inactive_style)
+    
 	// Do some setup
 	
 	if ("command" in parameters)
@@ -60,7 +95,7 @@ function javascript(widget_id, url, skin, parameters)
 			{
 				if (i != 0)
 				{
-					url = url + "&"					
+					url = url + "&"
 				}
 				url = url + key + "=" + parameters.args[key]
 				i++
@@ -90,6 +125,8 @@ function javascript(widget_id, url, skin, parameters)
 	$('#' + widget_id + ' > span').click(
 		function()
 		{
+            that.ViewModel.icon(that.icon_active.split("-")[0] + ' ' + that.icon_active)
+            that.ViewModel.icon_style(that.icon_active_style)
 			eval(that.command);
 		}
 	);

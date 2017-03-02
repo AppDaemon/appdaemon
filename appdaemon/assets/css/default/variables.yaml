@@ -140,17 +140,22 @@ sensor_value_style: "color: $blue"
 sensor_unit_style: "color: $blue"
 sensor_widget_style: $background_style
 
-reload_icon: fa-refresh
+reload_icon_active: fa-spinner fa-spin
+reload_icon_inactive: fa-refresh
+reload_icon_active_style: "color: $white"
+reload_icon_inactive_style: "color: $white"
 reload_title_style: $style_title
 reload_title2_style: $style_title2
-reload_icon_style: "color: $white"
 reload_widget_style: $background_style
 
-navigate_icon: fa-gear
+navigate_icon_active: fa-spinner fa-spin
+navigate_icon_inactive: fa-gear
+navigate_icon_active_style: "color: $white"
+navigate_icon_inactive_style: "color: $white"
 navigate_title_style: $style_title
 navigate_title2_style: $style_title2
-navigate_icon_style: "color: $white"
 navigate_widget_style: $background_style
+
 
 media_player_icon_on: fa-music
 media_player_icon_off: fa-music

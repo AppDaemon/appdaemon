@@ -368,11 +368,8 @@ def compile_dash(name, skin, skindir, params):
                 mtime = 0
             last_modified_date = datetime.datetime.fromtimestamp(mtime)
             
-            #
-            # Force compilation at startup - need to add a flag
-            #
-            #if last_modified_date < last_compiled:
-            #    last_compiled = last_modified_date
+            if last_modified_date < last_compiled:
+                last_compiled = last_modified_date
         
         widget_mod = latest_file(os.path.join(conf.dash_dir, "widgets"))
         skin_mod = latest_file(skindir)
@@ -381,8 +378,11 @@ def compile_dash(name, skin, skindir, params):
         if widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
             compile = True
 
-        if conf.start_time > last_compiled:
-            compile = True
+        #
+        # Force compilation at startup - need to add a flag
+        #
+        #if conf.start_time > last_compiled:
+        #    compile = True
                
         if compile is False:
             return {"errors": []}

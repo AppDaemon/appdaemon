@@ -113,16 +113,20 @@ sensor_value_style: "color: cyan; font-size: 300%"
 sensor_unit_style: "color: cyan; font-size: 95%"
 sensor_widget_style: $background_style
 
-reload_icon: fa-refresh
+reload_icon_active: fa-spinner fa-spin
+reload_icon_inactive: fa-refresh
+reload_icon_active_style: $style_active
+reload_icon_inactive_style: $style_active
 reload_title_style: "color: white"
 reload_title2_style: $style_title2
-reload_icon_style: "color: cyan"
 reload_widget_style: $background_style
 
-navigate_icon: fa-gear
+navigate_icon_active: fa-spinner fa-spin
+navigate_icon_inactive: fa-gear
+navigate_icon_active_style: $style_active
+navigate_icon_inactive_style: $style_active
 navigate_title_style: $style_title
 navigate_title2_style: $style_title2
-navigate_icon_style: "color: cyan"
 navigate_widget_style: $no_texture
 
 media_player_icon_on: fa-music

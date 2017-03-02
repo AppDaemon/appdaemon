@@ -789,16 +789,21 @@ None.
 
 ### Cosmetic Arguments
    
-- `icon`
+- `icon_active`
+- `icon_inactive`
 - `widget_style`
 - `title_style`
 - `title2_style`
-- `icon_style`
+- `icon_active_style`
+- `icon_inactive_style`
+
+
+# Skin development
+
+HADashboard supports skinning. It ships with a number of skins courtesy of @rpitera, and we encourage users to create new skins and contribute them back to the project.
+
+
 
 # Widget Development
 
 Widget Development is currently not supported in the Beta version of HADashboard. When the full release is available, there will be a fully developed Widget API and a description of how to add new widgets and contribute them back to the community.
-
-# Skin development
-
-Skin Development is currently not supported in the Beta version of HADashboard. When the full release is available it will be easy to design and contibute new skins based on CSS styles.

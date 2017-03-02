@@ -147,16 +147,20 @@ sensor_value_style: "color: $red"
 sensor_unit_style: "color: red; font-size: 90%"
 sensor_widget_style: $background_style
 
-reload_icon: fa-refresh 
+reload_icon_active: fa-spinner fa-spin
+reload_icon_inactive: fa-refresh
+reload_icon_active_style: $style_active
+reload_icon_inactive_style: $style_active
 reload_title_style: "color: $white"
 reload_title2_style: $style_title2
-reload_icon_style: $3d_red
 reload_widget_style: "$transparent_black2"
 
-navigate_icon: fa-gear
+navigate_icon_active: fa-spinner fa-spin
+navigate_icon_inactive: fa-gear
+navigate_icon_active_style: $style_active
+navigate_icon_inactive_style: $style_active
 navigate_title_style: "color: $white"
 navigate_title2_style: $style_title2
-navigate_icon_style: $3d_white
 navigate_widget_style: $transparent_red
 
 media_player_icon_on: fa-music
