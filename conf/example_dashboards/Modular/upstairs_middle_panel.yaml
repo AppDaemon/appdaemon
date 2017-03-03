@@ -1,0 +1,16 @@
+office_light:
+  widget_type: group
+  title: Office
+  entity: group.office_light
+  monitored_entity: light.office_1
+
+upstairs_smoke_alarm:
+  title: Smoke Alarm
+  widget_type: sensor
+  entity: sensor.upstairs_smoke
+  value_style: "color: white; font-size: 150%;"
+    
+layout:
+  - upstairs_smoke_alarm, binary_sensor.upstairs_sensor_28_0
+  - scene.bedroom_on, scene.bedroom_off, office_light, light.andrew_bedside, light.wendy_bedside, light.upstairs_hall, light.office_lamp
+  - scene.upstairs_on, scene.upstairs_off, scene.upstairs_hall_dim, scene.upstairs_bright, scene.office_on, scene.office_off, scene.office_dim, scene.office_bright

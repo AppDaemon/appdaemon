@@ -3,6 +3,11 @@ morning:
     title: Morning
     icon_on: fa-clock-o
     icon_off: fa-clock-o
+    icon_style_active: $switch_icon_style_active 
+    icon_style_inactive: $switch_icon_style_inactive 
+    title_style: $style_title
+    title2_style: $style_title2
+    widget_style: $background_style    
     state_entity: input_select.house_mode
     state_active: Morning
     post_service_active:
@@ -14,6 +19,11 @@ day:
     title: Day
     icon_on: fa-sun-o
     icon_off: fa-sun-o
+    icon_style_active: $switch_icon_style_active 
+    icon_style_inactive: $switch_icon_style_inactive 
+    title_style: $style_title
+    title2_style: $style_title2
+    widget_style: $background_style
     state_entity: input_select.house_mode
     state_active: Day
     post_service_active:
@@ -25,6 +35,11 @@ evening:
     title: Evening
     icon_on: fa-moon-o
     icon_off: fa-moon-o
+    icon_style_active: $switch_icon_style_active 
+    icon_style_inactive: $switch_icon_style_inactive 
+    title_style: $style_title
+    title2_style: $style_title2
+    widget_style: $background_style
     state_entity: input_select.house_mode
     state_active: Evening
     post_service_active:
@@ -36,6 +51,11 @@ night:
     title: Night
     icon_on: fa-star-o
     icon_off: fa-star-o
+    icon_style_active: $switch_icon_style_active 
+    icon_style_inactive: $switch_icon_style_inactive 
+    title_style: $style_title
+    title2_style: $style_title2
+    widget_style: $background_style
     state_entity: input_select.house_mode
     state_active: Night
     post_service_active:

@@ -1,0 +1,6 @@
+widget_type: sensor
+title: Humidity
+units: "%"
+precision: 0
+background_color: yellow
+entity: sensor.side_humidity_corrected

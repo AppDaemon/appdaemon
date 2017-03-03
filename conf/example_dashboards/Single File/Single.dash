@@ -1,0 +1,271 @@
+#
+# Main arguments, all optional
+#
+title: Main Panel
+widget_dimensions: [122, 120]
+widget_margins: [5, 5]
+columns: 8
+#
+# Layout
+#    
+layout:
+    - clock(2x1), weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
+    - mode(2x1), light_level(2x1), porch_motion, garage
+    - wlamp_scene,     don_scene,           doff_scene,    dbright_scene,   upstairs_thermometer, downstairs_thermometer, basement_thermometer, thermostat_setpoint  
+    - obright_scene,   ooff_scene,          pon_scene,     poff_scene,      night_motion,         guest_mode,             cooling,              heat
+    - morning(2x1), day(2x1), evening(2x1), night(2x1)
+    - load_main_panel, load_upstairs_panel, load_upstairs, load_downstairs, load_outside,         load_doors,             load_controls,        reload
+
+
+clock:
+    widget_type: clock
+
+weather:
+    widget_type: weather
+    units: "&deg;F"
+    
+side_temperature:
+    widget_type: sensor
+    title: Temperature
+    units: "&deg;F"
+    precision: 0
+    entity: sensor.side_temp_corrected
+ 
+side_humidity:
+    widget_type: sensor
+    title: Humidity
+    units: "%"
+    precision: 0
+    entity: sensor.side_humidity_corrected
+
+andrew_presence:
+    widget_type: device_tracker
+    title: Andrew
+    device: andrews_iphone
+    icon_on: fa-male
+    icon_off: fa-male
+
+wendy_presence:
+    widget_type: device_tracker
+    title: Wendy
+    icon_on: fa-female
+    icon_off: fa-female
+    device: dedb5e711a24415baaae5cf8e880d852
+
+mode:
+    widget_type: sensor
+    title: House Mode
+    entity: input_select.house_mode
+
+light_level:
+    widget_type: sensor
+    title: Light Level
+    units: "lux"
+    precision: 0
+    shorten: 1
+    entity: sensor.side_multisensor_luminance_25_3
+        
+porch_motion:
+    widget_type: binary_sensor
+    title: Porch
+    entity: binary_sensor.porch_multisensor_sensor_27_0
+
+garage:
+    widget_type: switch
+    title: Garage
+    entity: switch.garage_door
+    icon_on: fa-car
+    icon_off: fa-car
+    warn: 1
+wlamp_scene:
+    widget_type: scene
+    title: Wendy's Lamp
+    entity: scene.wendys_lamp
+    icon_on: mdi-lamp
+    icon_off: mdi-lamp
+
+don_scene:
+    widget_type: scene
+    title: Downstairs On
+    entity: scene.downstairs_on
+
+doff_scene:
+    widget_type: scene
+    title: Downstairs Off
+    entity: scene.downstairs_off
+
+dbright_scene:
+    widget_type: scene
+    title: Downstairs Bright
+    entity: scene.downstairs_bright
+
+downstairs_thermometer:
+    widget_type: sensor
+    title: Downstairs
+    units: "&deg;F"
+    precision: 0
+    entity: sensor.downstairs_thermometer
+
+upstairs_thermometer:
+    widget_type: sensor
+    title: Upstairs
+    units: "&deg;F"
+    precision: 0
+    entity: sensor.upstairs_thermometer
+
+basement_thermometer:
+    widget_type: sensor
+    title: Basement
+    units: "&deg;F"
+    precision: 0
+    entity: sensor.basement_thermometer
+
+thermostat_setpoint:
+    widget_type: sensor
+    title: Thermostat
+    units: "&deg;F"
+    precision: 0
+    entity: sensor.thermostat_set
+    
+obright_scene:
+    widget_type: scene
+    title: Outside Bright
+    entity: scene.outside_bright
+
+ooff_scene:
+    widget_type: scene
+    title: Outside Off
+    entity: scene.outside_off
+
+pon_scene:
+    widget_type: scene
+    title: Porch  On
+    entity: scene.porch_on
+    
+poff_scene:
+    widget_type: scene
+    title: Porch Off
+    entity: scene.porch_off
+
+night_motion:
+    widget_type: switch
+    title: Night Outside Motion
+    icon_on: fa-sliders
+    icon_off: fa-sliders
+    entity: input_boolean.night_outside_motion
+    
+guest_mode:
+    widget_type: switch
+    title: Guest Mode
+    icon_on: fa-sliders
+    icon_off: fa-sliders
+    entity: input_boolean.guest
+    
+cooling:
+    widget_type: switch
+    title: Cooling
+    icon_on: fa-sliders
+    icon_off: fa-sliders
+    entity: input_boolean.cooling
+    
+heat:
+    widget_type: switch
+    title: Heat
+    icon_on: fa-sliders
+    icon_off: fa-sliders
+    entity: input_boolean.heating
+
+morning:
+    widget_type: binary
+    title: Morning
+    icon_on: fa-clock-o
+    icon_off: fa-clock-o
+    state_entity: input_select.house_mode
+    state_active: Morning
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.morning
+
+day:
+    widget_type: binary
+    title: Day
+    icon_on: fa-sun-o
+    icon_off: fa-sun-o
+    state_entity: input_select.house_mode
+    state_active: Day
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.day
+
+evening:
+    widget_type: binary
+    title: Evening
+    icon_on: fa-moon-o
+    icon_off: fa-moon-o
+    state_entity: input_select.house_mode
+    state_active: Evening
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.evening
+
+night:
+    widget_type: binary
+    title: Night
+    icon_on: fa-star-o
+    icon_off: fa-star-o
+    state_entity: input_select.house_mode
+    state_active: Night
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.night
+
+load_main_panel:
+    widget_type: navigate
+    title: Main Panel
+    icon: fa-home
+    url: /MainPanel
+    #background_color: "#00f"
+    #icon_color: green
+    #icon_size: 200%
+    #title_color: red
+    #title_size: 200%
+
+load_upstairs_panel:
+    widget_type: navigate
+    title: Office Panel
+    icon: fa-windows
+    url: /OfficePanel
+
+load_upstairs:
+    widget_type: navigate
+    title: Upstairs
+    icon: fa-bed
+    url: /Upstairs
+
+load_downstairs:
+    widget_type: navigate
+    title: Downstairs
+    icon: fa-tv
+    url: /Downstairs
+
+load_outside:
+    widget_type: navigate
+    title: Outside
+    icon: fa-twitter
+    url: /Outside
+
+load_doors:
+    widget_type: navigate
+    title: Doors and Locks
+    icon: fa-lock
+    url: /Doors
+
+load_controls:
+    widget_type: navigate
+    title: Controls
+    icon: fa-dashboard
+    url: /Controls
+    
+reload:
+    widget_type: reload
+    title: Reload

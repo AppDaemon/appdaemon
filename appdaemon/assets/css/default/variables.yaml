@@ -27,7 +27,8 @@
 # It is your responsibility to ensure the HTML is correct
 #
 
-head_includes: []
+head_includes:
+ - <! head tags go here ->
 
 #
 # Custom body includes - should be a YAML List, e.g.:
@@ -41,7 +42,8 @@ head_includes: []
 # It is your responsibility to ensure the HTML is correct
 #
 
-body_includes: []
+body_includes:
+ - <! body tags go here ->
 
 #
 # Styles

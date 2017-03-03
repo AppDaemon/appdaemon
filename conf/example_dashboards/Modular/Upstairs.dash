@@ -1,0 +1,19 @@
+#
+# Main arguments, all optional
+#
+title: Upstairs
+widget_dimensions: [122, 120]
+widget_margins: [5, 5]
+columns: 8
+#
+# Includes (Optional)
+#
+includes:
+    - top_panel
+    - upstairs_middle_panel
+    - bottom_panel
+
+layout:
+    - include: top_panel
+    - include: upstairs_middle_panel
+    - include: bottom_panel

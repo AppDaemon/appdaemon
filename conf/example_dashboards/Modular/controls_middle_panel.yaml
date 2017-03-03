@@ -1,0 +1,5 @@
+
+layout:
+  - input_boolean.heating, input_boolean.vacation, input_boolean.motion_notifications
+  -
+  -

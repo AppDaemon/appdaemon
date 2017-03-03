@@ -40,13 +40,13 @@ disable_apps = 1
 
 This will free up some CPU and memory.
 
-HADashboard pre-compiles all of the user created Dashboard for efficiency. This nehavior is not desirable when developing dashboards as they will only ever be compiled the first time. To prevent this behavior, use the following directive:
+HADashboard pre-compiles all of the user created Dashboard for efficiency. It will detect when changes have been made to widgets, styles or dahsboards and automatically recompile. This is usually desirable as compilation can take several seconds on slower hardware for a fully loaded dashboard, however to force a recompilation every time,  use the following directive:
 
 ```ini
 dash_force_compile = 1
 ```
 
-This will force dashboard recompilation whenever the dashboard is loaded but may run more slowly on lesws powerful hardware. When you are happy with your dashboard remove the directive to benefit from the extra speed if necessary. In a future release this function will be automated.
+This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
 
 # Dashboard Configuration
 
@@ -86,9 +86,9 @@ layout:
 
 As you can see, here we are refering directly to native Home Assistant entities. From this, HADashboard is able to figure out the right widget type and grab it's friendly name and add it to the dasboard. For the `clock` and `weather` widgets there is no associated entity id so just your `clock.clock` or `weather.weather`.
 
-The layout command is intended to be visual in how you lay out the widgets. Each enty represents a row on the dashboard, each comma separated widget represents a cell on that row.
+The layout command is intended to be visual in how you lay out the widgets. Each layout entry represents a row on the dashboard, each comma separated widget represents a cell on that row.
 
-Widgets can also have a size associated with them - that is the `(2x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will default to (1x1).
+Widgets can also have a size associated with them - that is the `(2x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will default to (1x1). HADasboard will do it's best to calculate the right layout from what you give it but expect strange behavior if you add too many widgets on a line.
 
 For a better visual cue you can lay the widgets out with appropriate spacing to see what the grid will look like more intuitively:
 
@@ -108,7 +108,7 @@ If you want a blank space you can use the special widget name `spacer`. To leave
     - light.hall, light.living_room, input_boolean.heating
     -
     - media_player(2x1), sensor.temperature
-``
+```
 
 The above would leave the 2nd row empty.
 
@@ -117,19 +117,17 @@ And that is all there to it, for a simple one file dashboard.
 
 ## Detailed Widget Definition
 
-The approach above is ok for simple widgets like lights, but HADashboard has a huge range of customization options. To access these, you need to formally dsefine the widget along with its associated parameters.
+The approach above is ok for simple widgets like lights, but HADashboard has a huge range of customization options. To access these, you need to formally define the widget along with its associated parameters.
 
-To define a widget simply give it a name, a widget type and a number of optional parameters like this:
+To define a widget simply add lines elsewhere in the file. Give it a name , a widget type and a number of optional parameters like this:
 
 ```yaml
-weather:
+weather_widget:
     widget_type: weather
     units: "&deg;F"
 ```
 
-Here we have defined a widget of type "weather", and given it an optional parameter to tell it what units to use for temperature. Each widget type will have different required parameters, refer to the documentation below for a complete list for each type. Most if not all widgets support ways to customize colors and text sizes as well as attibutes they need to understand how to link the widget to Home Assistant, such as entity_ids.
-
-Widget definitions are reusable meaning that this particular version of a clock we can place in multiple locations on the same dashboard, or if we construct our dashboards correctly, on multiple different dashboards. Once we have it how we like it, a single change to the widget definition will be reflected across all the widgets using it.
+Here we have defined a widget of type "weather", and given it an optional parameter to tell it what units to use for temperature. Each widget type will have different required parameters, refer to the documentation below for a complete list for each type. All widgets support ways to customize colors and text sizes as well as attibutes they need to understand how to link the widget to Home Assistant, such as entity_ids.
 
 Lets look at a couple more examples of widget definitions:
 
@@ -211,7 +209,7 @@ background_color: red
 
 Note that the indentation level starts at 0. To include this file, just reference a widget called `clock` in the layout, and HADashboard will automatically load the widget.
 
-A file will override a native entity, so you can create your dashboard just using entities, but if you want to customize a specific entity, yoou can just create a file named `<entity_name>.yaml` and put the settings in there. You can also override entity names by specifying a widget of that name in the same or any other file, which will take priority over a standalone yaml file.
+A file will override a native entity, so you can create your dashboard just using entities, but if you want to customize a specific entity, you can just create a file named `<entity_name>.yaml` and put the settings in there. You can also override entity names by specifying a widget of that name in the same or any other file, which will take priority over a standalone yaml file.
 
 And that is all there to it, for a simple one file dashboard.
 
@@ -231,7 +229,7 @@ layout:
 This will look for a file called `top_panel.yaml` in the dashboards directory, then include it. There are a couple of different ways this can be used.
 
 - If the yaml file includes it's own layouts directive, the widgets from that file will be placed as a block, in the way described by its layout, making it reusable. You can change the order of the blocks inclusion by moving where in the original layout directive you include them.
-- If the yaml file jsut includes widget definitions, it is possible to perform the layout in the higher level dash if you prefer so you still get an overall view of the dashboard. This approach has the benefit that you can be completely flexible in the layout wheras the first method defines fixed layouts for the included blocks.
+- If the yaml file just includes widget definitions, it is possible to perform the layout in the higher level dash if you prefer so you still get an overall view of the dashboard. This approach has the benefit that you can be completely flexible in the layout wheras the first method defines fixed layouts for the included blocks.
 
 I prefer the completely modular approach - here is an example of a full top level dashboard created in that way:
 
@@ -248,7 +246,7 @@ layout:
     - include: bottom_panel
 ```
 
-As you can see, it includes for modular pieces. Since these pieces all have their own layout information there is no need for additional layout in the top level file. Here is an example of one of the self contained sub modules (mode_panel.yaml):
+As you can see, it includes four modular sub-dashes. Since these pieces all have their own layout information there is no need for additional layout in the top level file. Here is an example of one of the self contained sub modules (mode_panel.yaml):
 
 ```yaml
 clock:
@@ -340,7 +338,7 @@ In this case, the actual layout including a widget must be after the include as 
 A few caveats for loaded sub files:
 
 - Sub files can include other subfiles to a maximum depth of 10 - please avoid circular references!
-- When layout information is included in a sub file, the subfile must comprise 1 or more complete rows
+- When layout information is included in a sub file, the subfile must comprise 1 or more complete dashboard rows - partial rows or blocks are not supported.
 
 # Widget Customization
 
@@ -359,7 +357,7 @@ clock:
   widget_style: "background: white; font-size: 150%;"
 ```
 
-You can use any valid CSS style here although you should probably steer away from some of the formatting types as they may interact badly with HADasboards formatting.
+You can use any valid CSS style here although you should probably steer away from some of the formatting types as they may interact badly with HADasboards formatting. Also, dpeneding upon the options used in specific skins, you may get unexpected results as the widget definition of a style will completely override the skin's own definition. This is fine if the skin uses just colors for instance, but if it uses other effects you will need to suplicate them in your widget definition or they will be removed. 
 
 In the case of the clock widget, it also supports `date_style` and `time_style` to modify those elements accordingly:
 
@@ -797,6 +795,18 @@ None.
 - `icon_active_style`
 - `icon_inactive_style`
 
+# Skins
+
+HADashboard fully supports skinning and ships with a number of skins. To access a specific skin, append the parameter `skin=<skin name>` to the dashboard URL. Skin names are sticky if you use the Navigate widet to switch between dashboards and will stay in force until another skin or no skin is specified.
+
+HADasboard currently has the following skins available:
+
+- default - the classic HADashboard skin, very simple
+- obsidian, contributed by `@rpitera`
+- znn, contributed by `@rpitera`
+- simplyredn, contributed by `@rpitera`
+- glass, contributed by `@rpitera`
+
 
 # Skin development
 
@@ -845,7 +855,9 @@ style_title: "color: gold; font-weight: 900"
 style_title2: "color: $white"
 ```
 
-Here we are setting up some general variables that we can reuse for styling the actual widgets:
+Here we are setting up some general variables that we can reuse for styling the actual widgets.
+
+Below, we are setting styles for a specific widget, the light widget. All entries are required but can be left blank by using double quotes.
 
 ```yaml
 light_icon_on: fa-circle
@@ -860,7 +872,7 @@ light_state_text_style: $white
 light_level_style: "color: $gray_light"
 light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
-light_widget_style: $background_style
+light_widget_style: ""
 ```
 
 Images can be included - create a sub directory in your skin directory, call it `img` or whatever you like, then refer to it in the css as:
@@ -890,4 +902,4 @@ To learn more about complete styles, take a look at the supplied styles to see h
 
 # Widget Development
 
-Widget Development is currently not supported in the Beta version of HADashboard. When the full release is available, there will be a fully developed Widget API and a description of how to add new widgets and contribute them back to the community.
+Widget Development is currently not supported in the Beta version of HADashboard. When the full release is available, there will be a fully developed Widget API and a description of how to add new widgets and contribute them back to the community. For nowm although the widgets supplied are fully finctional they are likely to change significantly in the future, and are not currently a good basis for widget development.

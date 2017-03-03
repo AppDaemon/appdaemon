@@ -44,7 +44,8 @@ head_includes:
 # It is your responsibility to ensure the HTML is correct
 #
 
-body_includes: []
+body_includes:
+ - <! body tags go here ->
 
 #
 # Styles

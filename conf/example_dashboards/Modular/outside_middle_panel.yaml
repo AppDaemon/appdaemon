@@ -1,0 +1,10 @@
+porch_light:
+  widget_type: group
+  title: Porch
+  entity: group.porch_light
+  monitored_entity: light.porch_1
+
+layout:
+  - porch_light, light.drive, switch.front_path_switch_42_0, switch.outside_decorations_switch_23_0
+  - 
+  - scene.porch_on, scene.porch_off, scene.drive_on, scene.drive_off, scene.outside_off, scene.outside_dim, scene.outside_bright

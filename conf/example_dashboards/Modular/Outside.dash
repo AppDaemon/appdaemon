@@ -1,13 +1,15 @@
 #
 # Main arguments, all optional
 #
-title: Main Panel
+title: Outside
 widget_dimensions: [122, 120]
 widget_margins: [5, 5]
 columns: 8
-
+#skin = green
+#
+# Includes (Optional)
+#
 layout:
     - include: top_panel
-    - include: main_middle_panel
-    - include: mode_panel
+    - include: outside_middle_panel
     - include: bottom_panel

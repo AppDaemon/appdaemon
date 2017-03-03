@@ -1,0 +1,123 @@
+#
+# Main arguments, all optional
+#
+title: Test Panel
+widget_dimensions: [120, 120]
+widget_margins: [5, 5]
+columns: 8
+
+#clock:
+#    widget_type: clock
+
+weather:
+  widget_type: weather
+  unit: "&deg;F"
+
+label:
+  widget_type: label
+  title: label
+  title2: label 2
+  text: Hello World
+
+hall:
+  widget_type: light
+  title: Hall
+  title2: Light
+  entity: light.upstairs_hall
+
+rene:
+  title: Rene
+  widget_type: input_slider
+  entity: input_slider.rene
+  units: "&deg;C"
+
+andrew_presence:
+  widget_type: device_tracker
+  title: Andrew
+  device: andrews_iphone
+  icon_on: fa-male
+  icon_style_active: "color: #4bcdea"
+  #icon_style_inactive: "color: red"
+  #widget_style: "background: white"
+  #state_text_style: "color:green"
+  #title_style: "color: red"
+
+mode:
+  widget_type: text_sensor
+  title: House Mode
+  text_style: "text-transform: uppercase;"
+  entity: input_select.house_mode
+
+side_humidity:
+  widget_type: sensor
+  title: Humidity
+  title2: Sensor
+  units: "%"
+  precision: 0
+  entity: sensor.side_humidity_corrected
+
+garage:
+  widget_type: switch
+  title: Garage
+  title2: Another title
+  entity: switch.garage_door
+  icon_on: fa-car
+  icon_off: fa-car
+
+office_light:
+  widget_type: group
+  title: Office
+  entity: group.office_light
+
+office_off:
+  widget_type: scene
+  title: Office
+  title2: "Off"
+  entity: scene.office_off
+
+office_light_switch:
+  widget_type: switch
+  title: Office
+  entity: group.office_light
+
+media_player:
+  title: Sonos
+  title2: Living Room
+  widget_type: media_player
+  truncate_name: 35
+  entity: media_player.living_room
+#  level_down_style: "color: green"
+  
+summary:
+  widget_type: sensor
+  title: Summary
+  #precision: 0
+  value_style: "font-size: 100%"
+  entity: sensor.dark_sky_minutely_summary
+
+day:
+    widget_type: binary
+    title: Day
+    icon_on: fa-sun-o
+    icon_off: fa-sun-o
+    icon_style_active: $switch_icon_style_active 
+    icon_style_inactive: $switch_icon_style_inactive 
+    state_entity: input_select.house_mode
+    state_active: Day
+    post_service_active:
+        service: script/turn_on
+        entity_id: script.day    
+
+porch_sensor:
+    widget_type: binary_sensor
+    entity: binary_sensor.porch_multisensor_sensor_27_0
+    title: Fred
+    title2: Jim
+     
+layout:
+  - mode(2x1), label(3x1), side_humidity, andrew_presence, porch_sensor
+  - clock.clock(2x1), weather(2x2), scene.office_on, office_off, hall, office_light
+  - media_player(2x1), rene, input_slider.test, input_boolean.heating, office_light_switch
+  - summary(2x1), garage
+  - spacer(8x1)
+  - include: bottom_panel

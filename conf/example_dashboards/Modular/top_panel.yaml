@@ -1,38 +1,13 @@
-clock:
-    widget_type: clock
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 200%
-    #title_color: red
-    #title_size: 200%
-
-weather:
-    widget_type: weather
-    units: "&deg;F"
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 50%
-    #title_color: red
-    #title_size: 200%
-    #unit_color: pink
-    #unit_size: 100%
-    
 side_temperature:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Temperature
     units: "&deg;F"
     precision: 0
     entity: sensor.side_temp_corrected
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 250%
-    #unit_color: red
-    #unit_size: 100%
-    #title_color: red
-    #title_size: 100%
+
 
 side_humidity:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Humidity
     units: "%"
     precision: 0
@@ -42,35 +17,27 @@ andrew_presence:
     widget_type: device_tracker
     title: Andrew
     device: andrews_iphone
-    icon_on: fa-male
-    #background_color: "#00f"
-    icon_color_active: "#4bcdea"
-    #icon_color_inactive: red
-    #icon_size: 500%
-    #title_color: red
-    #title_size: 200%
-    #state_color: red
-    #state_size: 200%
+#    icon_on: fa-male
+#    icon_off: fa-male
+#    icon_style_active: "color: #4bcdea"
 
 wendy_presence:
     widget_type: device_tracker
     title: Wendy
-    icon_color_active: "#ea4b82"
-    icon_on: fa-female
+#    icon_style_active: "color: #ea4b82"
+#    icon_on: fa-female
+#    icon_off: fa-female
     device: dedb5e711a24415baaae5cf8e880d852
 
 mode:
     widget_type: text_sensor
     title: House Mode
+    text_style: "text-transform: uppercase;"
     entity: input_select.house_mode
-    #background_color: "#00f"
-    #text_color: green
-    #text_size: 200%
-    #title_color: red
-    #title_size: 200%
+
 
 light_level:
-    widget_type: numeric_sensor
+    widget_type: sensor
     title: Light Level
     units: "lux"
     precision: 0
@@ -88,8 +55,8 @@ garage:
     entity: switch.garage_door
     icon_on: fa-car
     icon_off: fa-car
-    warn: 1
+    icon_style_active: $style_active_warn
 
 layout:
-    - clock(2x1), weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
-    - mode(2x1), light_level(2x1), porch_motion, garage
+    - clock.clock(2x1), weather.weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
+    - mode(2x1), light_level(2x1), binary_sensor.porch_multisensor_sensor_27_0, garage

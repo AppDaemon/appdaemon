@@ -1,6 +1,6 @@
 /* Base page styles*/
 @import url('https://fonts.googleapis.com/css?family=Exo:900');
-@import url('https://fonts.googleapis.com/css?family=Exo:500');
+@import url('https://fonts.googleapis.com/css?family=Exo:500,900');
 
 
 html {
@@ -151,6 +151,7 @@ h3 {
 
   .icon-inactive {
     color: #888;
+    
   }
 
   .icon-active {
