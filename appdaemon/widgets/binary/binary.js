@@ -69,7 +69,7 @@ function binary(widget_id, url, skin, parameters)
 	
 	if ("title2_style" in parameters)
 	{
-		this.ViewModel.title_style(parameters.title_style)
+		this.ViewModel.title2_style(parameters.title2_style)
 	}
 	
 	if ("state_text_style" in parameters)

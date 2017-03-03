@@ -5,9 +5,9 @@ html {
 }
 
 body {
-  background-color: #222;
-  /*font-size: 15px;*/
-  color: #fff;
+  background-color: #eeeeee;
+  font-size: 25px;
+  color: #03A9F4;
   font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 
@@ -17,4 +17,37 @@ a {
 }
 
 
+#backgroundImage{z-index: 1;}
 
+#backgroundImage:before {
+   content: "";
+   position: absolute;
+   z-index: -1;
+   top: 0;
+   bottom: 0;
+   left: 0;
+   right: 0;
+   background-image: url("/images/android-chrome-512x512.png");
+   background-repeat: no-repeat;
+   background-size: 100%;
+   opacity: 0.1;
+   filter:alpha(opacity=40);
+   height:100%;
+   width:100%;
+ }
+
+.main{
+   height:320px;
+   width:80%;
+   margin:auto;
+   z-index:-1;
+   opacity: 1;
+   filter:alpha(opacity=100);
+}
+
+.iconattrib {
+   font-size: 15px;
+   position: absolute;
+   bottom: 0;
+   left: 20;
+}

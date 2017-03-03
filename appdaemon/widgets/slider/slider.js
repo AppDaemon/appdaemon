@@ -8,7 +8,6 @@ function slider(widget_id, url, skin, parameters)
 	// Add in methods
 	this.on_ha_data = on_ha_data;
 	this.get_state = get_state;
-	this.toggle = toggle;
 	this.call_service = call_service;
 	
 	// Create and initialize bindings
@@ -32,25 +31,7 @@ function slider(widget_id, url, skin, parameters)
 	ko.applyBindings(this.ViewModel, document.getElementById(widget_id));
 
 	// Do some setup
-	
-	this.level_attribute = "level"
-	if ("level_attribute" in parameters)
-	{
-		this.level_attribute = parameters["level_attribute"]
-	}
-	
-	
-	this.state_active = "on";
-	if ("state_active" in parameters)
-	{
-		this.state_active = parameters["state_active"]
-	}
-
-	this.state_inactive = "off";
-	if ("state_inactive" in parameters)
-	{
-		this.state_inactive = parameters["state_inactive"]
-	}
+		
 	
 	this.min_level = 0;
 	if ("min_level" in parameters)
@@ -68,13 +49,7 @@ function slider(widget_id, url, skin, parameters)
 	this.level = this.min_level;
 	
 	this.state = this.state_inactive;
-	
-	if ("on_level" in parameters)
-	{
-		this.on_level = parameters["on_level"]
-	}
-
-	
+		
 	this.step = 25.4
 	if ("step" in parameters)
 	{
@@ -105,37 +80,17 @@ function slider(widget_id, url, skin, parameters)
 	$('#' + widget_id + ' #level-up').click(
 		function()
 		{
-			
-			that.level = that.level + that.step;
+			that.level = parseFloat(that.level) + that.step;
 			if (that.level > that.max_level)
 			{
 				that.level = that.max_level
 			}
-			if ("post_service_level" in parameters)
+			if ("post_service" in parameters)
 			{
-				args = parameters["post_service_level"]
-				if ("post_service_level_attribute" in parameters)
-				{
-					args[parameters["post_service_level_attribute"]] = round(that, that.level)
-				}
-				else
-				{
-					args[that.level_attribute] = round(that, that.level)
-				}
+				args = parameters["post_service"]
+                args["value"] = round(that, that.level)
+                that.call_service(url, args)
 			}
-			else
-			{
-				args = parameters["post_service_active"]
-				if ("post_service_level_attribute" in parameters)
-				{
-					args[parameters["post_service_level_attribute"]] = round(that, that.level)
-				}
-				else
-				{
-					args[that.level_attribute] = round(that, that.level)
-				}
-			}
-			that.call_service(url, args)
 		}
 	)
 
@@ -144,116 +99,34 @@ function slider(widget_id, url, skin, parameters)
 	$('#' + widget_id + ' #level-down').click(
 		function()
 		{
-			that.level = that.level - that.step;
+			that.level = parseFloat(that.level) - that.step;
 			if (that.level < that.min_level)
 			{
 				that.level = that.min_level
 				that.state = that.state_inactive
 			}
 
-			if ("post_service_level" in parameters)
+			if ("post_service" in parameters)
 			{
-				args = parameters["post_service_level"]
-				if ("post_service_level_attribute" in parameters)
-				{
-					args[parameters["post_service_level_attribute"]] = round(that, that.level)
-				}
-				else
-				{
-					args[that.level_attribute] = round(that, that.level)
-				}
+				args = parameters["post_service"]
+                args["value"] = round(that, that.level)
 			}
-			else
-			{
-				if (that.state == that.state_inactive)
-				{
-					args = parameters["post_service_inactive"]
-					new_view = new_view = {"state": that.state_inactive, "attributes": {}}
-					if ("post_service_level_attribute" in parameters)
-					{
-						args[parameters["post_service_level_attribute"]] = round(that, that.level)
-						new_view.attributes[parameters["post_service_level_attribute"]] = round(that, that.min_level)
-					}
-					else
-					{
-						//args[that.level_attribute] = round(that, that.level)
-						new_view.attributes[that.level_attribute] = round(that, that.min_level)
-					}
-					set_view(that, new_view, "")
-				}
-				else
-				{
-					args = parameters["post_service_active"]
-					args[that.level_attribute] = round(that, that.level)
-				}
-			}
-			
 			that.call_service(url, args)
+
 		}
 	)
 
 	
 	// Methods
 
-	function toggle()
-	{
-		if (this.state == this.state_active)
-		{
-			this.state = this.state_inactive;
-			if (this.parameters.inactive_level_valid)
-			{
-				this.level = this.level
-			}
-			else
-			{
-				this.level = this.min_level				   
-			}
-		}
-		else
-		{
-			this.state = this.state_active
-			if (this.parameters.inactive_level_valid)
-			{
-				this.level = this.level
-			}
-			else
-			{
-				this.level = this.min_level				   
-			}
-		}
-	}
-	
 	function on_ha_data(data)
 	{
-		if ("monitored_entity" in this)
-		{
-			entity = this.monitored_entity
-		}
-		else
-		{
-			entity = this.parameters.state_entity
-		}
+
+		entity = this.parameters.state_entity
 		if (data.event_type == "state_changed" && data.data.entity_id == entity)
 		{
-			state_text = ""
-			this.state = data.data.new_state.state
-			if (this.level_attribute in data.data.new_state.attributes)
-			{
-				if (this.level_attribute == "state")
-				{
-					this.level = data.data.new_state.state
-				}
-				else
-				{	 
-					this.level = data.data.new_state.attributes[this.level_attribute]
-				}
-			}
-			
-			if ("state_text_attribute" in this.parameters)
-			{
-				state_text = data.data.new_state.attributes[this.parameters["state_text_attribute"]]
-			}
-			set_view(this, data.data.new_state, state_text)
+			this.level = data.data.new_state.state
+			set_view(this, data.data.new_state.state, state_text)
 		}
 	}
 	
@@ -289,33 +162,8 @@ function slider(widget_id, url, skin, parameters)
 					that.ViewModel.title("Entity not found")
 				}
 				else
-				{
-					
-					if (data.state.entity_id != entity)
-					{
-						// This is a group and we need to monitor a member
-						that.monitored_entity = data.state.entity_id
-					}
-					
-					that.state = data.state.state;
-					
-					if (that.level_attribute == "state")
-					{
-						that.level = Number(data.state.state)
-					}
-					else
-					{
-						if (that.level_attribute in data.state.attributes)
-						{
-							that.level = Number(data.state.attributes[that.level_attribute])
-						}
-					}
-					
-					state_text = ""
-					if ("state_text_attribute" in that.parameters)
-					{
-						state_text = data.state.attributes[that.parameters["state_text_attribute"]]
-					}
+				{   
+					that.level = parseFloat(data.state.state);
 					
 					if ("title_is_friendly_name" in that.parameters)
 					{
@@ -343,7 +191,7 @@ function slider(widget_id, url, skin, parameters)
 					{
 						that.max_level = data.state.attributes[that.parameters["max_attribute"]]
 					}
-					set_view(that, data.state, state_text)
+					set_view(that, that.level, state_text)
 				}
 			}, "json");
 		}
@@ -355,18 +203,8 @@ function slider(widget_id, url, skin, parameters)
 		}
 	};
 	
-	function set_view(self, state, state_text)
+	function set_view(self, level, state_text)
 	{
-		if (self.level_attribute == "state")
-		{
-			level = state.state
-		}
-		else
-		{
-			level = state.attributes[self.level_attribute]
-		}
-		value = level
-
-		self.ViewModel.level(value)
+		self.ViewModel.level(level)
 	}
 }

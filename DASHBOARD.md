@@ -746,10 +746,10 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 
 ### Mandatory Arguments
 
-- `url` - the url to navigate to. To Specify a new dashboard use a relative path, e.g. `/MainDash`
-
 ### Optional Arguments:
 
+- `url` - a url to navigate to. Use a full URL including the "http" part.
+- `dashbaord` - a dashboard to navigate to e.g. `MainPanel`
 - `title` - the title displayed on the tile
 - `args` - a list of arguments.
 - `skin` - Skin to use with the new screen (for HADash URLs only)
@@ -800,9 +800,93 @@ None.
 
 # Skin development
 
-HADashboard supports skinning. It ships with a number of skins courtesy of @rpitera, and we encourage users to create new skins and contribute them back to the project.
+HADashboard fully supports customization through skinning. It ships with a number of skins courtesy of @rpitera, and we encourage users to create new skins and contribute them back to the project.
 
+To create a custom skin you will need to know a little bit of CSS. Start off by creating a directory called `custom_css` in the configuration directory, at the same level as your dashboards directory. Next, create a subdirectory in `custom_css` named for your skin.
 
+The skin itself consists of 2 separate files:
+
+- `dashboard.css` - This is the base dashboard CSS that sets widget styles, background look and feel etc.
+- `variables.yaml` - This is a list of variables that describe how different elements of the widgets will look. Using the correct variables you can skin pretty much every element of every widget type.
+
+Dashboard.css is a regular css file, and knowledge of CSS is required to make changes to it.
+
+Variables.yaml is really a set of overrise styles, so you can use fragments of CSS here, basically anything that you could normally put in an HTML `style` tag. Variables .yaml also supports variable expansion to make structuring the file easier. Anything that starts with a `$` is treated as a variable that refers back to one of the other yaml fields in the file. 
+
+Here is an example of a piece of a variables.yaml file:
+
+```yaml
+#
+# Styles
+#
+
+white: "#fff"
+red: "#ff0055"
+green: "#aaff00"
+blue: "#00aaff"
+purple: "#aa00ff"
+yellow: "#ffff00"
+orange: "#ffaa00"
+
+gray_dark: "#444"
+gray_medium: "#666"
+gray_light: "#888"
+
+#Page and widget defaults
+background_style: ""
+text_style: ""
+
+#These are used for icons and indicators
+style_inactive: "color: $gray_light"
+style_active: "color: gold"
+style_active_warn: "color: gold"
+style_info: "color: gold; font-weight: 500; font-size: 250%"
+style_title: "color: gold; font-weight: 900"
+style_title2: "color: $white"
+```
+
+Here we are setting up some general variables that we can reuse for styling the actual widgets:
+
+```yaml
+light_icon_on: fa-circle
+light_icon_off: fa-circle-thin
+light_icon_up: fa-plus
+light_icon_down: fa-minus
+light_title_style: $style_title
+light_title2_style: $style_title2
+light_icon_style_active: $style_active
+light_icon_style_inactive: $style_inactive
+light_state_text_style: $white
+light_level_style: "color: $gray_light"
+light_level_up_style: "color: $gray_light"
+light_level_down_style: "color: $gray_light"
+light_widget_style: $background_style
+```
+
+Images can be included - create a sub directory in your skin directory, call it `img` or whatever you like, then refer to it in the css as:
+
+`/custom_css/<skin name>/<image directory>/<image filename>`
+
+One final feature is the ability to include additional files in the header and body of the page if required. This can be useful to allow additional CSS from 3rd parties or include JavaScript.
+
+Custom head includes - should be a YAML List inside `variables.yaml`, e.g.:
+
+```yaml
+head_includes:
+  - some include
+  - some other include
+```
+Text will be included verbatim in the head section of the doc, use for styles, javascript or 3rd party css etc. etc. It is your responsibility to ensure the HTML is correct
+
+Similarly for body includes:
+
+```yaml
+body_includes:
+  - some include
+  - some other include
+```
+
+To learn more about complete styles, take a look at the supplied styles to see how they are put together. Start off with the `dashboard.css` and `variables.yaml` from an exisitng file and edit to suit your needs.
 
 # Widget Development
 

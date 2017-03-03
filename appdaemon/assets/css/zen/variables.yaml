@@ -1,8 +1,9 @@
-# Zen Skin for AppDash
+# Zen Skin for HADashboard v2
 # Version 1.0
-# Date: 02/27/17
+# Date: 03/02/17
 # Author: Robert Pitera
 #
+
 # Custom head includes - should be a YAML List, e.g.:
 #
 #includes:
@@ -15,10 +16,24 @@
 # It is your responsibility to ensure the HTML is correct
 #
 
-includes: []
+head_includes: []
 
 #
-# Core Styles
+# Custom body includes - should be a YAML List, e.g.:
+#
+#body_includes:
+#  - some include
+#  - some other include
+#
+# Text will be included verbatim in the body section of the doc, use it for JavaScript
+#
+# It is your responsibility to ensure the HTML is correct
+#
+
+body_includes: []
+
+#
+# Styles
 #
 
 white: "#fff"
@@ -151,17 +166,17 @@ reload_icon_active: fa-spinner fa-spin
 reload_icon_inactive: fa-refresh
 reload_icon_active_style: $style_active
 reload_icon_inactive_style: $style_active
-reload_title_style: "color: $white"
+reload_title_style: "color: white"
 reload_title2_style: $style_title2
-reload_widget_style: "$transparent_black2"
+reload_widget_style: $background_style
 
 navigate_icon_active: fa-spinner fa-spin
 navigate_icon_inactive: fa-gear
 navigate_icon_active_style: $style_active
 navigate_icon_inactive_style: $style_active
-navigate_title_style: "color: $white"
-navigate_title2_style: $style_title2
-navigate_widget_style: $transparent_red
+navigate_title_style: "color: white"
+navigate_title2_style: "color: white"
+navigate_widget_style: $background_style
 
 media_player_icon_on: fa-music
 media_player_icon_off: fa-music

@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 	<link rel="shortcut icon" href="images/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-apple-180x180.png">	
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="images/manifest.json">
+    <meta name="theme-color" content="#ffffff">
     {% if main is defined %}
 		<title>Welcome to HADashboard</title>
 		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
@@ -40,42 +44,46 @@
 </head>
 <body>
 	{% if dash_list is defined %}
-		<h1>HADashboard</h1>
-		<br>Welcome to HADashboard for Home Assistant.</br>
-		{% if main is defined %}
-		{% else %}
-			<br>I'm sorry, your Dashboard has an error or was not found - check the log for details</br>
-		{% endif %}
-		{% if dash_list %}
-			<br>The following Dashboards are available:</br>
-			<ul id="dashes">
-			{% for item in dash_list %}
-				<li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
-			{% endfor %}
-		{% else %}
-			<br>No dashboards were found</br>
-		{% endif %}
-	{%else%}
-		{% if errors %}
-			<div>
-				<h1>Your Dashboard has the following errors:</h1>
-				{% for item in errors %}
-					<br>{{ item }}
-				{% endfor %}
-			</div>
-		{% else %}
-	{% if body_includes is defined %}
-		{% for item in body_includes %}
-			{{ item }}
-		{% endfor %}
-	{%endif%}	
-    <div class="dasboard-main" id="container">
-		<div class="gridster">
+		<div id="backgroundImage">
+        <div class="main">
+        <h1><img src="/images/favicon-32x32.png">&nbsp;HADashboard</h1>
+        <br>Welcome to HADashboard for Home Assistant.</br>
+        {% if main is defined %}
+        {% else %}
+             <br>I'm sorry, your Dashboard has an error or was not found - check the log for details</br>        
+        {% endif %}
+        {% if dash_list %}
+            <br>The following Dashboards are available:</br>
+            <ul id="dashes">
+            {% for item in dash_list %}
+                <li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
+            {% endfor %}
+        {% else %}
+            <br>No dashboards were found</br>
+        {%endif%}
+        {% if errors %}
+            <div>
+            <h1>Your Dashboard has the following errors:</h1>
+            {% for item in errors %}
+            <br>{{ item }}
+            {% endfor %}
+            </div>
+        {%endif%}
+        </div>
+        </div>
+        <div class="iconattrib">Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    {% else %}
+        {% if body_includes is defined %}
+            {% for item in body_includes %}
+                {{ item }}
+            {% endfor %}
+        {%endif%}	
+            <div class="dasboard-main" id="container">
+            <div class="gridster">
 			<ul>
 			</ul>
-		</div>
-	</div>
-		{% endif %}
+            </div>
+            </div>
 	{%endif%}
 </body>
 </html>

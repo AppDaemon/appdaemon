@@ -25,11 +25,6 @@ $(function(){ //DOM Ready
         widgets["{{widget.id}}"] = new {{widget.parameters.widget_type}}("{{widget.id}}", "{{ base_url }}", "{{skin}}", {{widget.parameters}})
     {% endfor %}
     
-    // Simple hack to hide the address bar in most mobile browsers.
-    window.addEventListener('load', function(e) {
-        setTimeout(function() { window.scrollTo(0, 1);}, 1);
-      }, false);
-    
     // Start listening for HA Events
     
     ha_status('{{ stream_url }}', "{{ title }}", widgets);

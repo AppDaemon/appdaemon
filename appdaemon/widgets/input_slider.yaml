@@ -1,8 +1,6 @@
 widget_type: slider
 state_entity: {{entity}}
-level_attribute: state
-post_service_level_attribute: value
-post_service_level:
+post_service:
     service: input_slider/select_value
     entity_id: {{entity}}
 max_attribute: max
