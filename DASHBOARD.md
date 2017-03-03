@@ -805,7 +805,7 @@ HADasboard currently has the following skins available:
 - obsidian, contributed by `@rpitera`
 - znn, contributed by `@rpitera`
 - simplyredn, contributed by `@rpitera`
-- glass, contributed by `@rpitera`
+- glassic, contributed by `@rpitera`
 
 
 # Skin development
