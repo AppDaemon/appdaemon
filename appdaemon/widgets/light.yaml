@@ -15,6 +15,7 @@ icon_off: $light_icon_off
 icon_up: $light_icon_up
 icon_down: $light_icon_down
 title_style: $light_title_style
+title2_style: $light_title2_style
 icon_style_active: $light_icon_style_active
 icon_style_inactive: $light_icon_style_inactive
 state_text_style: $light_state_text_style
