@@ -7,7 +7,7 @@ History
 
 **Features**
 
-None
+- Widget level styles now correctly override just the styles they are replacing in the skin, not the whole style
 
 **Fixes**
 

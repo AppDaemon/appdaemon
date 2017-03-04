@@ -151,8 +151,8 @@ clock_date_style: "color: $white"
 clock_time_style: $3d_white
 clock_widget_style: $transparent_black1
 
-weather_main_style: "color: $3d_white; font-size: 85%"
-weather_unit_style: "color: $3d_white; font-weight: bold; font-size: 95%"
+weather_main_style: "$3d_white; font-size: 85%"
+weather_unit_style: "$3d_white; font-weight: bold; font-size: 95%"
 weather_sub_style: "color: white; text-shadow: 0px 4px 5px #222"
 weather_widget_style: "background-image: url(css/zen/img/zen_weatherbg.jpg); background-size: 180%; $inset_silver"
 

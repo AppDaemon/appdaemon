@@ -69,12 +69,12 @@ background_style: "background-image: url(/css/glassic/img/carbon3.jpg)"
 text_style: ""
 
 #These are used for icons and indicators
-style_inactive: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7) font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
+style_inactive: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
 style_active: "line-height: 90%; color: $blue"
 style_active_warn: "line-height: 90%; color: cyan"
-style_info: "line-height: 90%; font-weight: bold; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7) font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
-style_title: "font-weight: bold; color: #899B9A; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7) font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
-style_title2: "font-weight: bold; color: #899B9A; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7) font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
+style_info: "line-height: 90%; font-weight: bold; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
+style_title: "font-weight: bold; color: #899B9A; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
+style_title2: "font-weight: bold; color: #899B9A; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
 
 
 
@@ -159,7 +159,7 @@ reload_icon_inactive: fa-refresh
 reload_title_style: "color: $blue; font-weight: bold"
 reload_title2_style: $style_title2
 reload_icon_active_style: $style_active
-reload_icon_inactive_style: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7) font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
+reload_icon_inactive_style: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
 reload_widget_style: $background_style
 
 navigate_icon_active: fa-gear
@@ -167,7 +167,7 @@ navigate_icon_inactive: fa-gear
 navigate_title_style: "color: $blue; font-weight: bold"
 navigate_title2_style: $style_title2
 navigate_icon_active_style: $style_active
-navigate_icon_inactive_style: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7) font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
+navigate_icon_inactive_style: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
 navigate_widget_style: $background_style
 
 media_player_icon_on: fa-music

@@ -357,7 +357,7 @@ clock:
   widget_style: "background: white; font-size: 150%;"
 ```
 
-You can use any valid CSS style here although you should probably steer away from some of the formatting types as they may interact badly with HADasboards formatting. Also, dpeneding upon the options used in specific skins, you may get unexpected results as the widget definition of a style will completely override the skin's own definition. This is fine if the skin uses just colors for instance, but if it uses other effects you will need to suplicate them in your widget definition or they will be removed. 
+You can use any valid CSS style here although you should probably steer away from some of the formatting types as they may interact badly with HADasboards formatting. Widget level styles will correctly override just the style in the skin they are replacing.
 
 In the case of the clock widget, it also supports `date_style` and `time_style` to modify those elements accordingly:
 

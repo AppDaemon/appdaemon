@@ -58,9 +58,9 @@ purple: "color: #aa00ff"
 yellow: "color: #ffff00"
 cyan: "color: #00FFFF"
 
-gray_dark: "#444"
-gray_medium: "#666"
-gray_light: "#888"
+gray_dark: "color: #444"
+gray_medium: "color: #666"
+gray_light: "color: #888"
 
 #Page and widget defaults
 background_style: "background-image: url(css/obsidian/img/obsidian_w_bg.jpg)"
@@ -181,9 +181,9 @@ media_player_title2_style: $style_title2
 media_player_icon_style_active: $style_active
 media_player_icon_style_inactive: $style_inactive
 media_player_state_text_style: $white
-media_player_level_style: "color: $gray_light"
-media_player_level_up_style: "color: $gray_light"
-media_player_level_down_style: "color: $gray_light"
+media_player_level_style: $gray_light
+media_player_level_up_style: $gray_light
+media_player_level_down_style: $gray_light
 media_player_widget_style: $background_style
 
 light_icon_on: fa-circle
@@ -195,9 +195,9 @@ light_title2_style: $style_title2
 light_icon_style_active: $style_active
 light_icon_style_inactive: $style_inactive
 light_state_text_style: $white
-light_level_style: "color: $gray_light"
-light_level_up_style: "color: $gray_light"
-light_level_down_style: "color: $gray_light"
+light_level_style: $gray_light
+light_level_up_style: $gray_light
+light_level_down_style: $gray_light
 light_widget_style: $background_style
 
 input_slider_icon_on: none
@@ -210,9 +210,9 @@ input_slider_unit_style: $white
 input_slider_icon_style_active: $style_active
 input_slider_icon_style_inactive: $style_inactive
 input_slider_state_text_style: $white
-input_slider_level_style: "color: $gray_light"
-input_slider_level_up_style: "color: $gray_light"
-input_slider_level_down_style: "color: $gray_light"
+input_slider_level_style: $gray_light
+input_slider_level_up_style: $gray_light
+input_slider_level_down_style: $gray_light
 input_slider_widget_style: $background_style
 
 group_icon_on: fa-circle
@@ -224,7 +224,7 @@ group_title2_style: $style_title2
 group_icon_style_active: $style_active
 group_icon_style_inactive: $style_inactive
 group_state_text_style: $white
-group_level_style: "color: $gray_light"
-group_level_up_style: "color: $gray_light"
-group_level_down_style: "color: $gray_light"
+group_level_style: "$gray_light"
+group_level_up_style: "$gray_light"
+group_level_down_style: "$gray_light"
 group_widget_style: $background_style

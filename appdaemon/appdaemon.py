@@ -1777,7 +1777,6 @@ def main():
                 conf.app_dir = find_path("apps")
             else:
                 conf.app_dir = os.path.join(config_dir, "apps")
-        print(conf.app_dir)
         for root, subdirs, files in os.walk(conf.app_dir):
             if root[-11:] != "__pycache__":
                 sys.path.insert(0, root)

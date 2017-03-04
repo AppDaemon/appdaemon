@@ -95,12 +95,43 @@ def expand_vars(fields, subs):
         ha.log(conf.logger, "WARNING",  "Unable to resolve CSS Skin variables, check for circular references") 
     return fields
 
+def get_styles(style_str, name, field):
+    result = {}
+    styles = style_str.split(";")
+    for style in styles:
+        if style != "" and style != None:
+            pieces = style.split(":")
+            if len(pieces) == 2:
+               result[pieces[0]] = pieces[1]
+            else:
+               ha.log(conf.logger, "WARNING", "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".format(style, name, field)) 
+        
+    return result
+    
+def merge_styles(widget, name):
+    result = {}
+    for key in widget:
+        if key.find("style") == -1:
+            result[key] = widget[key]
+        else:
+            line = ""
+            styles = get_styles(widget[key], name, key)
+            for style in styles:
+                line = line + style + ":" + styles[style] + ";"
+            result[key] = line
+    return result
+
 def load_widget(dash, includes, name, css_vars):
     instantiated_widget = None
+    #
+    # Check if we have already encountered a definition
+    #
     for include in includes:
         if name in include:
             instantiated_widget = include[name]
-            
+    #
+    # If not, go find it elsewhere
+    # 
     if instantiated_widget == None:
         # Try to find in in a yaml file
         yaml_path = os.path.join(conf.dashboard_dir, "{}.yaml".format(name))
@@ -123,6 +154,9 @@ def load_widget(dash, includes, name, css_vars):
                 return {"widget_type": "text", "title": "Error loading widget"}
                 
         elif name.find(".") != -1:
+            #
+            # No file, check if it is implicitly defined via an entity id
+            #
             parts = name.split(".")
             instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
         else:
@@ -133,6 +167,10 @@ def load_widget(dash, includes, name, css_vars):
     try:
         if "widget_type" not in instantiated_widget:
             return {"widget_type": "text", "title": "Widget type not specified"}
+
+        #
+        # One way or another we now have the widget definition
+        #
         widget_type = instantiated_widget["widget_type"]
         if os.path.isdir(os.path.join(conf.dash_dir, "widgets", widget_type)):
             # This is a base widget so return it in full
@@ -146,8 +184,9 @@ def load_widget(dash, includes, name, css_vars):
         templates = {}
         sub = re.compile("\{\{(.+)\}\}")
 
-        #size = widgetdimensions.search(wid)
-        #if size:
+        #
+        # Variable substitutions
+        #
         with open(yaml_path, 'r') as yamlfd:
             for line in yamlfd:
                 for ikey in instantiated_widget:
@@ -164,6 +203,9 @@ def load_widget(dash, includes, name, css_vars):
                 yaml_file = yaml_file + line
 
         try:
+            #
+            # Parse the substituted YAML file - this is ferived widget definition
+            #
             final_widget = yaml.load(yaml_file)
         except yaml.YAMLError as exc:
             log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
@@ -178,14 +220,28 @@ def load_widget(dash, includes, name, css_vars):
                     log_error(dash, name, str(exc.problem))
             return {"widget_type": "text", "title": "Error loading widget definition"}
 
-        
+        #
+        # Override defaults with parameters in users definition
+        #
         for key in instantiated_widget:
             if key != "widget_type" and not key in templates:
-                final_widget[key] = instantiated_widget[key]
-
+                #if it is an existing key and it is a style attirpute, prepend, don't overwrite
+                if key in final_widget and key.find("style") != -1:
+                    #if it is an existing key and it is a style attirpute, prepend, don't overwrite
+                    final_widget[key] =  final_widget[key] + ";" + instantiated_widget[key];
+                else:
+                    final_widget[key] = instantiated_widget[key]
+        
+        #
+        # Process variables from skin
+        #
         final_widget = expand_vars(final_widget, css_vars)
-                
-                
+        #
+        # Merge styles
+        #
+        final_widget = merge_styles(final_widget, name)
+
+             
         return final_widget
     except FileNotFoundError:
         ha.log(conf.logger, "WARNING", "Unable to find widget type '{}'".format(widget_type))
