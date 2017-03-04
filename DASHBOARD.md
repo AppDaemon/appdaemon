@@ -828,8 +828,8 @@ HADasboard currently has the following skins available:
 
 - default - the classic HADashboard skin, very simple
 - obsidian, contributed by `@rpitera`
-- znn, contributed by `@rpitera`
-- simplyredn, contributed by `@rpitera`
+- zen, contributed by `@rpitera`
+- simplyred, contributed by `@rpitera`
 - glassic, contributed by `@rpitera`
 
 
