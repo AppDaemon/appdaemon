@@ -96,13 +96,16 @@ def expand_vars(fields, subs):
     return fields
 
 def get_styles(style_str, name, field):
+    #
+    # Parse styles in order from a string and allow later entries to override earlier ones
+    #
     result = {}
     styles = style_str.split(";")
     for style in styles:
         if style != "" and style != None:
             pieces = style.split(":")
             if len(pieces) == 2:
-               result[pieces[0]] = pieces[1]
+               result[pieces[0].strip()] = pieces[1]
             else:
                ha.log(conf.logger, "WARNING", "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".format(style, name, field)) 
         
