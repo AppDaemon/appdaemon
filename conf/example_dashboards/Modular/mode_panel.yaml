@@ -1,66 +1,38 @@
 morning:
-    widget_type: binary
-    title: Morning
+    widget_type: mode
     icon_on: fa-clock-o
     icon_off: fa-clock-o
-    icon_style_active: $switch_icon_style_active 
-    icon_style_inactive: $switch_icon_style_inactive 
-    title_style: $style_title
-    title2_style: $style_title2
-    widget_style: $background_style    
-    state_entity: input_select.house_mode
-    state_active: Morning
-    post_service_active:
-        service: script/turn_on
-        entity_id: script.morning
+    title: Morning   
+    entity: input_select.house_mode
+    mode: Morning
+    script: script.morning
 
 day:
-    widget_type: binary
+    widget_type: mode
     title: Day
     icon_on: fa-sun-o
     icon_off: fa-sun-o
-    icon_style_active: $switch_icon_style_active 
-    icon_style_inactive: $switch_icon_style_inactive 
-    title_style: $style_title
-    title2_style: $style_title2
-    widget_style: $background_style
-    state_entity: input_select.house_mode
-    state_active: Day
-    post_service_active:
-        service: script/turn_on
-        entity_id: script.day
+    entity: input_select.house_mode
+    mode: Day
+    script: script.day
 
 evening:
-    widget_type: binary
+    widget_type: mode
     title: Evening
     icon_on: fa-moon-o
     icon_off: fa-moon-o
-    icon_style_active: $switch_icon_style_active 
-    icon_style_inactive: $switch_icon_style_inactive 
-    title_style: $style_title
-    title2_style: $style_title2
-    widget_style: $background_style
-    state_entity: input_select.house_mode
-    state_active: Evening
-    post_service_active:
-        service: script/turn_on
-        entity_id: script.evening
+    entity: input_select.house_mode
+    mode: Evening
+    script: script.evening
 
 night:
-    widget_type: binary
+    widget_type: mode
     title: Night
     icon_on: fa-star-o
     icon_off: fa-star-o
-    icon_style_active: $switch_icon_style_active 
-    icon_style_inactive: $switch_icon_style_inactive 
-    title_style: $style_title
-    title2_style: $style_title2
-    widget_style: $background_style
-    state_entity: input_select.house_mode
-    state_active: Night
-    post_service_active:
-        service: script/turn_on
-        entity_id: script.night
+    entity: input_select.house_mode
+    mode: Night
+    script: script.night
 
 layout: 
     - morning(2x1), day(2x1), evening(2x1), night(2x1)

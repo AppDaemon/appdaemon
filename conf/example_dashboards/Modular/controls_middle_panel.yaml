@@ -1,5 +1,39 @@
+default:
+  title: Skin Change
+  title2: Default
+  widget_type: navigate
+  dashboard: Controls
+  skin: default
+
+glassic:
+  title: Skin Change
+  title2: Glassic
+  widget_type: navigate
+  dashboard: Controls
+  skin: glassic
+
+simplyred:
+  title: Skin Change
+  title2: Simply Red
+  widget_type: navigate
+  dashboard: Controls
+  skin: simplyred
+
+zen:
+  title: Skin Change
+  title2: Zen
+  widget_type: navigate
+  dashboard: Controls
+  skin: zen
+
+obsidian:
+  title: Skin Change
+  title2: Obsidian
+  widget_type: navigate
+  dashboard: Controls
+  skin: obsidian
 
 layout:
   - input_boolean.heating, input_boolean.vacation, input_boolean.motion_notifications
   -
-  -
+  - default, obsidian, zen, simplyred, glassic

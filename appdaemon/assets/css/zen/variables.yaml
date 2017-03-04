@@ -106,6 +106,14 @@ scene_title_style: $style_title
 scene_title2_style: $style_title2
 scene_widget_style: $background_style
 
+mode_icon_on: fa-arrows-alt
+mode_icon_off: fa-arrows-alt
+mode_icon_style_active: $style_active
+mode_icon_style_inactive: $style_inactive
+mode_title_style: $style_title
+mode_title2_style: $style_title2
+mode_widget_style: $background_style
+
 binary_sensor_icon_on: fa-spinner fa-pulse 
 binary_sensor_icon_off: fa-bars 
 binary_sensor_icon_style_active: $style_active_warn

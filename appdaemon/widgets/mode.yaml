@@ -1,0 +1,13 @@
+widget_type: binary
+icon_on: $mode_icon_on
+icon_off: $mode_icon_off
+icon_style_active: $mode_icon_style_active 
+icon_style_inactive: $mode_icon_style_inactive 
+title_style: $mode_title_style
+title2_style: $mode_title2_style
+widget_style: $mode_widget_style    
+state_entity: {{entity}}
+state_active: {{mode}}
+post_service_active:
+    service: script/turn_on
+    entity_id: {{script}}
