@@ -2,7 +2,23 @@
 History
 =======
 
+2.0.0beta2
+----------
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 2.0.0beta1
+----------
 
 **Features**
 
