@@ -228,6 +228,8 @@ climate_level_up_style: $gray_light
 climate_level_down_style: $gray_light
 climate_widget_style: $background_style
 climate_state_text_style: $white
+climate_level2_style: $gray_light
+climate_unit2_style: $white
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin

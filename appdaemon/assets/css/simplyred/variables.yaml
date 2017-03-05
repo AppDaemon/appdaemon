@@ -240,6 +240,8 @@ climate_level_up_style: "color: $gray_light"
 climate_level_down_style: "color: $gray_light"
 climate_widget_style: $background_style
 climate_state_text_style: "color: $white"
+climate_level2_style: "color: white"
+climate_unit2_style: "color: white"
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin
