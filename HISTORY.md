@@ -10,6 +10,7 @@ History
 - Widget level styles now correctly override just the styles they are replacing in the skin, not the whole style
 - Device tracker toggling of state is optional and defaults to off
 - Add climate widget
+- Add script widget
 
 **Fixes**
 

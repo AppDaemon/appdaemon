@@ -133,8 +133,11 @@ function binary(widget_id, url, skin, parameters)
 	{
 		if ("state_entity" in parameters && data.event_type == "state_changed" && data.data.entity_id == this.parameters.state_entity)
 		{
-			this.state = data.data.new_state.state
-			set_view(this, this.state)
+            if (!("ignore_state" in parameters) || parameters.ignore_state == false)
+            {
+                this.state = data.data.new_state.state
+                set_view(this, this.state)
+            }
 		}
 	}
 	

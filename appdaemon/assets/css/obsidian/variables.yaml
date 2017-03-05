@@ -98,6 +98,14 @@ mode_title_style: $style_title
 mode_title2_style: $style_title2
 mode_widget_style: $background_style
 
+script_icon_on: fa-th-large
+script_icon_off: fa-th-large
+script_icon_style_active: $style_active
+script_icon_style_inactive: $style_inactive
+script_title_style: $style_title
+script_title2_style: $style_title2
+script_widget_style: $background_style
+
 binary_sensor_icon_on: fa-bullseye fa-spin
 binary_sensor_icon_off: fa-minus
 binary_sensor_icon_style_active: $style_active_warn
@@ -219,6 +227,7 @@ climate_unit_style: $white
 climate_level_up_style: $gray_light
 climate_level_down_style: $gray_light
 climate_widget_style: $background_style
+climate_state_text_style: $white
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin

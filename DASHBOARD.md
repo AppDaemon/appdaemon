@@ -560,6 +560,29 @@ A widget to activate a scene
 - `title_style`
 - `title2_style`
 
+## script
+
+A widget to run a script
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the script
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+
+### Style Arguments: 
+
+- `icon_on`
+- `icon_off`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
+- `title2_style`
+
 ## mode
 
 A widget to track the state of an `input_select` by showing active when it is set to a specific value. Also allows scripts to be run when activated.

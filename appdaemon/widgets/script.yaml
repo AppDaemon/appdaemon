@@ -1,0 +1,15 @@
+widget_type: binary
+state_entity: {{entity}}
+icon_on: "$script_icon_on"
+icon_off: "$script_icon_off"
+icon_style_active: "$script_icon_style_active"
+icon_style_inactive: "$script_icon_style_inactive"
+title_style: $script_title_style
+title2_style: $script_title2_style
+widget_style: $script_widget_style
+enable: 1
+ignore_state: 1
+momentary: 1000
+post_service_active:
+    service: homeassistant/turn_on
+    entity_id: {{entity}}
