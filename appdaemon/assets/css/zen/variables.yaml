@@ -216,20 +216,25 @@ light_level_up_style: "color: $red"
 light_level_down_style: "color: $black"
 light_widget_style: $background_style
 
-input_slider_icon_on: none
-input_slider_icon_off: none
 input_slider_icon_up: fa-plus
 input_slider_icon_down: fa-minus
 input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
-input_slider_icon_style_active: $style_active
-input_slider_icon_style_inactive: $style_inactive
 input_slider_unit_style: "color: $red"
-input_slider_state_text_style: "color: $white"
 input_slider_level_style: "color: $red"
 input_slider_level_up_style: "color: $red"
 input_slider_level_down_style: "color: $black"
 input_slider_widget_style: $transparent_black1
+
+climate_icon_up: fa-plus
+climate_icon_down: fa-minus
+climate_title_style: $style_title
+climate_title2_style: $style_title2
+climate_unit_style: "color: $red"
+climate_level_style: "color: $red"
+climate_level_up_style: "color: $red"
+climate_level_down_style: "color: $black"
+climate_widget_style: $transparent_black1
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin

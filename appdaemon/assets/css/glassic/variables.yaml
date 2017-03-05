@@ -154,7 +154,7 @@ sensor_value_style: $style_info
 sensor_unit_style: "color: $blue; font-size: 125%"
 sensor_widget_style: $background_style
 
-reload_icon_active: fa-refresh
+reload_icon_active: fa-spinner fa-spin
 reload_icon_inactive: fa-refresh
 reload_title_style: "color: $blue; font-weight: bold"
 reload_title2_style: $style_title2
@@ -162,7 +162,7 @@ reload_icon_active_style: $style_active
 reload_icon_inactive_style: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
 reload_widget_style: $background_style
 
-navigate_icon_active: fa-gear
+navigate_icon_active: fa-spinner fa-spin
 navigate_icon_inactive: fa-gear
 navigate_title_style: "color: $blue; font-weight: bold"
 navigate_title2_style: $style_title2
@@ -207,6 +207,16 @@ input_slider_unit_style: "color: $blue"
 input_slider_level_up_style: "color: $gray_light"
 input_slider_level_down_style: "color: $gray_light"
 input_slider_widget_style: $background_style
+
+climate_icon_up: fa-plus
+climate_icon_down: fa-minus
+climate_title_style: $style_title
+climate_title2_style: $style_title2
+climate_level_style: "color: $blue"
+climate_unit_style: "color: $blue"
+climate_level_up_style: "color: $gray_light"
+climate_level_down_style: "color: $gray_light"
+climate_widget_style: $background_style
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin

@@ -81,7 +81,7 @@ function binary(widget_id, url, skin, parameters)
 	this.get_state(url, parameters.state_entity)
 	// Define onClick handler
 	
-	if ("post_service_active" in parameters || "post_service_inactive" in parameters)
+	if (("post_service_active" in parameters || "post_service_inactive" in parameters) && "enable" in parameters && parameters.enable == true)
 	{
 		var that = this
 		$('#' + widget_id + ' > span').click(

@@ -88,7 +88,14 @@ function slider(widget_id, url, skin, parameters)
 			if ("post_service" in parameters)
 			{
 				args = parameters["post_service"]
-                args["value"] = round(that, that.level)
+                if ("post_state_value" in parameters)
+                {
+                    args[parameters.post_state_value] = round(that, that.level)
+                }
+                else
+                {
+                    args["value"] = round(that, that.level)
+                }
                 that.call_service(url, args)
 			}
 		}
@@ -109,7 +116,14 @@ function slider(widget_id, url, skin, parameters)
 			if ("post_service" in parameters)
 			{
 				args = parameters["post_service"]
-                args["value"] = round(that, that.level)
+                if ("post_state_value" in parameters)
+                {
+                    args[parameters.post_state_value] = round(that, that.level)
+                }
+                else
+                {
+                    args["value"] = round(that, that.level)
+                }
 			}
 			that.call_service(url, args)
 
@@ -125,8 +139,15 @@ function slider(widget_id, url, skin, parameters)
 		entity = this.parameters.state_entity
 		if (data.event_type == "state_changed" && data.data.entity_id == entity)
 		{
-			this.level = data.data.new_state.state
-			set_view(this, data.data.new_state.state, state_text)
+			if ("state_attribute" in this.parameters)
+            {
+                this.level = parseFloat(data.data.new_state.attributes[this.parameters.state_attribute]);
+            }
+            else
+            {
+                this.level = parseFloat(data.data.new_state.state);
+            }
+			set_view(this, this.level, state_text)
 		}
 	}
 	
@@ -163,7 +184,14 @@ function slider(widget_id, url, skin, parameters)
 				}
 				else
 				{   
-					that.level = parseFloat(data.state.state);
+                    if ("state_attribute" in that.parameters)
+                    {
+                        that.level = parseFloat(data.state.attributes[that.parameters.state_attribute]);
+                    }
+                    else
+					{
+                        that.level = parseFloat(data.state.state);
+                    }
 					
 					if ("title_is_friendly_name" in that.parameters)
 					{

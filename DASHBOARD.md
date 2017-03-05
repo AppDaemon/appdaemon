@@ -10,6 +10,8 @@ HADashboard is dependent upon AppDaemon. As a first step please refer to the [Ap
 
 When you have AppDaemon installed and running, configuration of the Dashboard is pretty simple. You just need to add a directive to the config file - `dash_url`.
 
+This and the optional `dash_dir` directive should be in the top of the file under the `[AppDaemon]` section, ahead of any of the App definitions or they won't be recognized and the dashboard piece of AppDaemon will not start.
+
 - `dash_url` - the url you want the dashboard service to listen on
 
 For instance:
@@ -340,6 +342,33 @@ A few caveats for loaded sub files:
 - Sub files can include other subfiles to a maximum depth of 10 - please avoid circular references!
 - When layout information is included in a sub file, the subfile must comprise 1 or more complete dashboard rows - partial rows or blocks are not supported.
 
+As a final option, you can create widget definitions in the main file and use them in the layout of the header/footer/etc. For example, if you have a header that has a label in it that lists the room that the dashboard is associated with, you can put the label widget definition in the header file but all the pages get the same message. If you put the label widget definition in the main file for the room, and reference it from the layout in the header, each page has the right name displayed in the header.
+
+For example:
+
+```yaml
+clock:
+    widget_type: clock
+layout:
+    - label(2x2),clock(2x2)
+```
+
+In this example of a header, we reference a clock and a label in the layout. We can re-use this header, but in order to make the label change for every page we use it on we actually define it in the dashboard file itself, and include the header in the layout:
+
+```yaml
+title: Den Panel
+widget_dimensions: [120, 120]
+widget_margins: [5, 5]
+columns: 8
+
+label:
+    widget_type: label
+    text: Welcome to the Den
+    
+layout:
+    - include: header
+```
+
 # Widget Customization
 
 Widgets allow customization using arbitary CSS styles for the individual elements that make up the widget. Every widget has a ``widget_style` argument to apply styles to the whole widget, as well as one or more additional style arguments that differ for each widget. To customize a widget background for instance:
@@ -444,7 +473,7 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 
 ## device_tracker
 
-A Widget that reports on device tracker status. It can also be used to toggle the status between "home" and "not_home".
+A Widget that reports on device tracker status. It can also be optionally be used to toggle the status between "home" and "not_home".
 
 ### Mandatory Arguments:
 
@@ -453,7 +482,8 @@ A Widget that reports on device tracker status. It can also be used to toggle th
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
-- `title2` - a second line of title text 
+- `title2` - a second line of title text
+- `enable` - set to 1 to enable the widget to toggle the device_tracker status
 
 ### Style Arguments: 
 
@@ -671,16 +701,52 @@ A widget to monitor and contol an input slider
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `increment` - the size of step in brightness when fading the slider up or down
+- `step` - the size of step in brightness when fading the slider up or down
 - `units` - the unit symbol to be displayed
 
 ### Cosmetic Arguments
    
 - `widget_style`
+- `icon_up`
+- `icon_down`
+- `title_style`
+- `title2_style`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
+## climate
+
+A widget to monitor and contol a climate entity
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the climate entity
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+- `step` - the size of step in brightness when fading the slider up or down
+- `units` - the unit symbol to be displayed
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `icon_up`
+- `icon_down`
+- `title_style`
+- `title2_style`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
 
 ## media_player
 
-A widget to monitor and contol a media player light
+A widget to monitor and contol a media player
 
 ### Mandatory Arguments
 
@@ -736,32 +802,6 @@ A widget to monitor and contol a group of lights
 - `level_style`
 - `level_up_style`
 - `level_down_style`
-
-## input_slider
-
-A widget to monitor and contol an input_slider
-
-### Mandatory Arguments
-
-- `entity` - the entity_id of the media player
-
-### Optional Arguments:
-
-- `title` - the title displayed on the tile
-- `title2` - a second line of title text 
-
-### Cosmetic Arguments
-   
-- `widget_style`
-- `title_style`
-- `title2_style`
-- `icon_style_active`
-- `icon_style_inactive`
-- `text_style`
-- `level_style`
-- `level_up_style`
-- `level_down_style`
-
 
 ## navigate
 

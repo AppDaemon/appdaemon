@@ -51,59 +51,68 @@ def list_dash(request):
 @asyncio.coroutine
 @aiohttp_jinja2.template('dashboard.jinja2')
 def load_dash(request):
-    name = request.match_info.get('name', "Anonymous")
+    try:
+        name = request.match_info.get('name', "Anonymous")
 
-    # Set correct skin
-    
-    if "skin" in request.rel_url.query:
-        skin = request.rel_url.query["skin"]
-    else:
-        skin = "default"
-
-    #
-    # Check skin exists
-    #
-    skindir = os.path.join(conf.config_dir, "custom_css", skin)
-    if os.path.isdir(skindir):
-        ha.log(conf.logger, "INFO", "Loading custom skin '{}'".format(skin))
-    else:
-        # Not a custom skin, try product skins
-        skindir = os.path.join(conf.css_dir, skin)
-        if not os.path.isdir(skindir):
-            ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
+        # Set correct skin
+        
+        if "skin" in request.rel_url.query:
+            skin = request.rel_url.query["skin"]
+        else:
             skin = "default"
-            skindir = os.path.join(conf.css_dir, "default")
 
-    #
-    # Conditionally compile Dashboard
-    #
-    
-    dash = dashboard.compile_dash(name, skin, skindir, request.rel_url.query)
-    
-    if dash == None:
-        errors = []
-        head_includes = []
-        body_includes = []
-    else:
-        errors = dash["errors"]
-        if "head_includes" in dash:
-            head_includes = dash["head_includes"]
+        #
+        # Check skin exists
+        #
+        skindir = os.path.join(conf.config_dir, "custom_css", skin)
+        if os.path.isdir(skindir):
+            ha.log(conf.logger, "INFO", "Loading custom skin '{}'".format(skin))
         else:
+            # Not a custom skin, try product skins
+            skindir = os.path.join(conf.css_dir, skin)
+            if not os.path.isdir(skindir):
+                ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
+                skin = "default"
+                skindir = os.path.join(conf.css_dir, "default")
+
+        #
+        # Conditionally compile Dashboard
+        #
+        
+        dash = dashboard.compile_dash(name, skin, skindir, request.rel_url.query)
+        
+        if dash == None:
+            errors = []
             head_includes = []
-        if "body_includes" in dash:
-            body_includes = dash["body_includes"]
-        else:
             body_includes = []
+        else:
+            errors = dash["errors"]
+            if "head_includes" in dash:
+                head_includes = dash["head_includes"]
+            else:
+                head_includes = []
+            if "body_includes" in dash:
+                body_includes = dash["body_includes"]
+            else:
+                body_includes = []
 
-    if "widgets" in dash:
-        widgets = dash["widgets"]
-    else:
-        widgets = {}
-    #
-    #return params
-    #
-    return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "head_includes": head_includes, "body_includes": body_includes}
-
+        if "widgets" in dash:
+            widgets = dash["widgets"]
+        else:
+            widgets = {}
+        #
+        #return params
+        #
+        return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "head_includes": head_includes, "body_includes": body_includes}
+        
+    except:
+        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.logger, "WARNING", "Unexpected error in CSS file")
+        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.logger, "WARNING", traceback.format_exc())
+        ha.log(conf.logger, "WARNING", '-' * 60)
+        return {"errors": ["An unrecoverable error occured fetching dashboard"]}
+        
 @asyncio.coroutine
 def get_state(request):
     entity = request.match_info.get('entity')

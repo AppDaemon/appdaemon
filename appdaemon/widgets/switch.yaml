@@ -7,6 +7,7 @@ icon_style_inactive: $switch_icon_style_inactive
 title_style: $switch_title_style
 title2_style: $switch_title2_style
 widget_style: $switch_widget_style
+enable: 1
 post_service_active:
     service: homeassistant/turn_on
     entity_id: {{entity}}

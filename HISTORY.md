@@ -8,14 +8,16 @@ History
 **Features**
 
 - Widget level styles now correctly override just the styles they are replacing in the skin, not the whole style
+- Device tracker toggling of state is optional and defaults to off
+- Add climate widget
 
 **Fixes**
 
-None
+- Various minor skin fixes
 
 **Breaking Changes**
 
-None
+- Device trackers must now be explicitly configured to allow the user to toggle state, by setting the `enable` parameter
 
 2.0.0beta1
 ----------

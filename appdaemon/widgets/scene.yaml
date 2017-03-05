@@ -7,6 +7,7 @@ icon_style_inactive: "$scene_icon_style_inactive"
 title_style: $scene_title_style
 title2_style: $scene_title2_style
 widget_style: $scene_widget_style
+enable: 1
 momentary: 1000
 post_service_active:
     service: homeassistant/turn_on
