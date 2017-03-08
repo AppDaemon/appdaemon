@@ -50,6 +50,19 @@ dash_force_compile = 1
 
 This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
 
+# Dashboard parameters
+
+The dashboard URL supports a couple of extra parameters:
+
+- `skin` - name of the skin you want to use, default is `default`
+- `recompile` - set to anything to force a recompilation of the dashboard
+
+For example, the following url will load a dasboard called main with the obsidian skin:
+
+```
+http://<ip address>/<port>/Main?skin=obsidian
+```
+
 # Dashboard Configuration
 
 Dashboard configuration is simple yet very powerful. Dashboards can be created in single files or made modular for reuse of blocks of widgets. Dashboards are configured using YAML.
@@ -115,7 +128,6 @@ If you want a blank space you can use the special widget name `spacer`. To leave
 The above would leave the 2nd row empty.
 
 And that is all there to it, for a simple one file dashboard.
-
 
 ## Detailed Widget Definition
 
@@ -206,7 +218,7 @@ It is also possible to add a widget from a standalone file. The file will contai
 
 ```yaml
 widget_type: clock
-background_color: red
+widget_style: "color: red"
 ```
 
 Note that the indentation level starts at 0. To include this file, just reference a widget called `clock` in the layout, and HADashboard will automatically load the widget.
@@ -748,7 +760,7 @@ A widget to monitor and contol a dimmable light
 - `icon_off`
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `on_brightness` - how bright you want the light to come on when activated in percent.
+- `on_brightness` - how bright you want the light to come on when activated, 1 - 255.
 
 ### Cosmetic Arguments
    

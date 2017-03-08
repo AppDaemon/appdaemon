@@ -1,5 +1,8 @@
 widget_type: baseswitch
 entity: {{entity}}
+state_active: "unlocked"
+state_inactive: "locked"
+enable: 1
 post_service_active:
     service: lock/lock
     entity_id: {{entity}}

@@ -238,26 +238,27 @@ def load_widget(dash, includes, name, css_vars):
                 if key in final_widget and key.find("style") != -1:
                     #if it is an existing key and it is a style attirpute, prepend, don't overwrite
                     final_widget[key] =  final_widget[key] + ";" + instantiated_widget[key];
-                elif "css" in final_widget and key in final_widget["css"]:
-                    final_widget["css"][key] = final_widget["css"][key] + ";" + instantiated_widget[key];
-                elif "static_css" in final_widget and key in final_widget["static_css"]:
-                    final_widget["static_css"][key] = final_widget["static_css"][key] + ";" + instantiated_widget[key];
-                elif "icons" in final_widget and key in final_widget["icons"]:
-                    final_widget["icons"][key] = instantiated_widget[key];
-                elif "static_icons" in final_widget and key in final_widget["static_icons"]:
-                    final_widget["static_icons"][key] = instantiated_widget[key];
                 else:
                     final_widget[key] = instantiated_widget[key]
+                if "css" in final_widget and key in final_widget["css"]:
+                    final_widget["css"][key] = final_widget["css"][key] + ";" + instantiated_widget[key];
+                if "static_css" in final_widget and key in final_widget["static_css"]:
+                    final_widget["static_css"][key] = final_widget["static_css"][key] + ";" + instantiated_widget[key];
+                if "icons" in final_widget and key in final_widget["icons"]:
+                    final_widget["icons"][key] = instantiated_widget[key];
+                if "static_icons" in final_widget and key in final_widget["static_icons"]:
+                    final_widget["static_icons"][key] = instantiated_widget[key];
         
         #
         # Process variables from skin
         #
+
         final_widget = expand_vars(final_widget, css_vars)
         #
         # Merge styles
         #
         final_widget = merge_styles(final_widget, name)
-             
+                     
         return final_widget
     except FileNotFoundError:
         ha.log(conf.logger, "WARNING", "Unable to find widget type '{}'".format(widget_type))

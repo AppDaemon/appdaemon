@@ -1,5 +1,8 @@
 widget_type: baseswitch
 entity: {{entity}}
+state_active: "open"
+state_inactive: "closed"
+enable: 1
 post_service_active:
     service: cover/open_cover
     entity_id: {{entity}}

@@ -13,6 +13,26 @@ function baselight(widget_id, url, skin, parameters)
     
     self.parameters = parameters
     
+    // Parameter handling
+    
+    if ("monitored_entity" in self.parameters)
+    {
+        entity = self.parameters.monitored_entity
+    }
+    else
+    {
+        entity = self.parameters.entity
+    }
+    
+    if ("on_brightness" in self.parameters)
+    {
+        self.on_brightness = self.parameters.on_brightness
+    }
+    else
+    {
+        self.on_brightness = 127
+    }
+    
     // Define callbacks for on click events
     // They are defined as functions below and can be any name as long as the
     // 'self'variables match the callbacks array below
@@ -35,15 +55,6 @@ function baselight(widget_id, url, skin, parameters)
      
     self.OnStateAvailable = OnStateAvailable
     self.OnStateUpdate = OnStateUpdate
-    
-    if ("monitored_entity" in self.parameters)
-    {
-        entity = self.parameters.monitored_entity
-    }
-    else
-    {
-        entity = self.parameters.entity
-    }
     
     var monitored_entities = 
         [
@@ -95,7 +106,6 @@ function baselight(widget_id, url, skin, parameters)
     
     function OnButtonClick(self)
     {
-        toggle(self)
         if (self.state == "off")
         {
             args = self.parameters.post_service_active 
@@ -106,6 +116,7 @@ function baselight(widget_id, url, skin, parameters)
             args = self.parameters.post_service_inactive
         }
         self.call_service(self, args)
+        toggle(self)
     }
 
     function OnRaiseLevelClick(self)
@@ -143,14 +154,14 @@ function baselight(widget_id, url, skin, parameters)
 
     function toggle(self)
     {
-        if (this.state == "on")
+        if (self.state == "on")
         {
-            this.state = "off";
-            this.level = 0
+            self.state = "off";
+            self.level = 0
         }
         else
         {
-            this.state = "off";
+            self.state = "on";
         }
         set_view(self, self.state, self.level)
     }

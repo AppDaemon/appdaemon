@@ -15,6 +15,10 @@ function baseswitch(widget_id, url, skin, parameters)
     
     self.parameters = parameters
     
+    // Toggle needs to be referenced from self for the timeout function
+    
+    self.toggle = toggle
+    
     // Define callbacks for on click events
     // They are defined as functions below and can be any name as long as the
     // 'self'variables match the callbacks array below
@@ -22,11 +26,17 @@ function baseswitch(widget_id, url, skin, parameters)
    
     self.OnButtonClick = OnButtonClick
     
-    var callbacks =
-        [
-            {"selector": '#' + widget_id + ' > span', "callback": self.OnButtonClick},
-        ]        
-     
+    if ("enable" in self.parameters && self.parameters.enable == 1)
+    {
+        var callbacks =
+            [
+                {"selector": '#' + widget_id + ' > span', "callback": self.OnButtonClick},
+            ]
+    }            
+    else
+    {
+        var callbacks = []
+    }        
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
@@ -61,14 +71,16 @@ function baseswitch(widget_id, url, skin, parameters)
     
     function OnStateUpdate(self, state)
     {
-        self.state = state.state;
-        set_view(self, self.state)
+        if (!("ignore_state" in self.parameters) || self.parameters.ignore_state == 0)
+        {
+            self.state = state.state;
+            set_view(self, self.state)
+        }
     }
     
     function OnButtonClick(self)
     {
-        toggle(self)
-        if (self.state == "off")
+        if (self.state == self.parameters.state_inactive)
         {
             args = self.parameters.post_service_active
         }
@@ -77,17 +89,22 @@ function baseswitch(widget_id, url, skin, parameters)
             args = self.parameters.post_service_inactive
         }
         self.call_service(self, args)
+        toggle(self)
+        if ("momentary" in self.parameters)
+        {
+            setTimeout(function() { self.toggle(self) }, self.parameters["momentary"])
+        }
     }
     
     function toggle(self)
     {
-        if (this.state == "on")
+        if (self.state == self.parameters.state_inactive)
         {
-            this.state = "off";
+            self.state = self.parameters.state_active;
         }
         else
         {
-            this.state = "off";
+            self.state = self.parameters.state_inactive;
         }
         set_view(self, self.state)
     }
@@ -98,18 +115,15 @@ function baseswitch(widget_id, url, skin, parameters)
     
     function set_view(self, state, level)
     {
-        
-        if (state == "on")
-        {
-            // Set Icon will set the style correctly for an icon
-            self.set_icon(self, "icon", self.icons.icon_on)
-            // Set view will set the view for the appropriate field
-            self.set_field(self, "icon_style", self.css.icon_style_active)
-        }
-        else
+        if (state == self.parameters.state_inactive)
         {
             self.set_icon(self, "icon", self.icons.icon_off)
             self.set_field(self, "icon_style", self.css.icon_style_inactive)
+        }
+        else
+        {
+            self.set_icon(self, "icon", self.icons.icon_on)
+            self.set_field(self, "icon_style", self.css.icon_style_active)
         }
     }
 }
