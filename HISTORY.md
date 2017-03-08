@@ -11,6 +11,9 @@ History
 - Device tracker toggling of state is optional and defaults to off
 - Add climate widget
 - Add script widget
+- Add lock widget
+- Add cover widget
+- Introduce new widget definition model in preparation for custom widgets
 
 **Fixes**
 

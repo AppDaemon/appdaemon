@@ -1,25 +1,34 @@
-widget_type: sliderswitch
-state_entity: {{entity}}
-on_level: 127
+widget_type: baselight
+entity: {{entity}}
 post_service_active:
     service: homeassistant/turn_on
     entity_id: {{entity}}
 post_service_inactive:
     service: homeassistant/turn_off
     entity_id: {{entity}}
-level_attribute: "brightness"
-round: 1
-units: "%"
-group: 1
-icon_on: $group_icon_on
-icon_off: $group_icon_off
-icon_up: $group_icon_up
-icon_down: $group_icon_down
-title_style: $group_title_style
-icon_style_active: $group_icon_style_active
-icon_style_inactive: $group_icon_style_inactive
-state_text_style: $group_state_text_style
-level_style: $group_level_style
-level_up_style: $group_level_up_style
-level_down_style: $group_level_down_style
-widget_style: $group_widget_style
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  units: "%"
+  level: ""
+  state_text: ""
+  icon_style: ""
+icons:
+  icon_on: $group_icon_on
+  icon_off: $group_icon_off
+static_icons:
+  icon_up: $group_icon_up
+  icon_down: $group_icon_down
+static_css:
+  title_style: $group_title_style
+  title2_style: $group_title2_style
+  state_text_style: $group_state_text_style
+  level_style: $group_level_style
+  unit_style: $group_unit_style
+  level_up_style: $group_level_up_style
+  level_down_style: $group_level_down_style
+  widget_style: $group_widget_style
+css:
+  icon_style_active: $group_icon_style_active
+  icon_style_inactive: $group_icon_style_inactive

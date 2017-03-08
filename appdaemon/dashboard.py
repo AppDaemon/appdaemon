@@ -81,7 +81,9 @@ def expand_vars(fields, subs):
         index = index + 1
         done = True
         for varline in fields:
-            if fields[varline] != None and type(fields[varline]) == str:
+            if isinstance(fields[varline], dict):
+               fields[varline] = expand_vars(fields[varline], subs) 
+            elif fields[varline] != None and type(fields[varline]) == str:
                 vars = variable.finditer(fields[varline])
                 for var in vars:
                     subvar = var.group()[1:]
@@ -93,6 +95,7 @@ def expand_vars(fields, subs):
                         None
     if index == 100:
         ha.log(conf.logger, "WARNING",  "Unable to resolve CSS Skin variables, check for circular references") 
+    
     return fields
 
 def get_styles(style_str, name, field):
@@ -114,7 +117,9 @@ def get_styles(style_str, name, field):
 def merge_styles(widget, name):
     result = {}
     for key in widget:
-        if key.find("style") == -1:
+        if key == "css" or key == "static_css":
+            result[key] = merge_styles(widget[key], name)            
+        elif key.find("style") == -1:
             result[key] = widget[key]
         else:
             line = ""
@@ -124,6 +129,24 @@ def merge_styles(widget, name):
             result[key] = line
     return result
 
+def do_subs(file, vars, blank):
+    sub = re.compile("\{\{(.+)\}\}")
+    templates = {}
+    result = ""
+    with open(file, 'r') as fd:
+        for line in fd:
+            for ikey in vars:
+                newline = ""
+                match = "{{{{{}}}}}".format(ikey)
+                if match in line:
+                    templates[ikey] = 1
+                    line = line.replace(match, vars[ikey])
+        
+            line = sub.sub(blank, line)
+                
+            result = result + line
+    return(result, templates)
+    
 def load_widget(dash, includes, name, css_vars):
     instantiated_widget = None
     #
@@ -183,31 +206,14 @@ def load_widget(dash, includes, name, css_vars):
         
         yaml_path = os.path.join(conf.dash_dir, "widgets", "{}.yaml".format(widget_type))
         
-        yaml_file = ""
-        templates = {}
-        sub = re.compile("\{\{(.+)\}\}")
-
         #
         # Variable substitutions
         #
-        with open(yaml_path, 'r') as yamlfd:
-            for line in yamlfd:
-                for ikey in instantiated_widget:
-                    newline = ""
-                    match = "{{{{{}}}}}".format(ikey)
-                    if match in line:
-                        templates[ikey] = 1
-                        line = line.replace(match, instantiated_widget[ikey])
-            
-                var = sub.search(line)
-                if var:
-                    return {"widget_type": "text", "title": "Missing argument in widget definition: {}".format(var.group(1))}
-                    
-                yaml_file = yaml_file + line
+        yaml_file, templates = do_subs(yaml_path, instantiated_widget, '""')
 
         try:
             #
-            # Parse the substituted YAML file - this is ferived widget definition
+            # Parse the substituted YAML file - this is a derived widget definition
             #
             final_widget = yaml.load(yaml_file)
         except yaml.YAMLError as exc:
@@ -228,10 +234,18 @@ def load_widget(dash, includes, name, css_vars):
         #
         for key in instantiated_widget:
             if key != "widget_type" and not key in templates:
-                #if it is an existing key and it is a style attirpute, prepend, don't overwrite
+                #if it is an existing key and it is a style attirbute, prepend, don't overwrite
                 if key in final_widget and key.find("style") != -1:
                     #if it is an existing key and it is a style attirpute, prepend, don't overwrite
                     final_widget[key] =  final_widget[key] + ";" + instantiated_widget[key];
+                elif "css" in final_widget and key in final_widget["css"]:
+                    final_widget["css"][key] = final_widget["css"][key] + ";" + instantiated_widget[key];
+                elif "static_css" in final_widget and key in final_widget["static_css"]:
+                    final_widget["static_css"][key] = final_widget["static_css"][key] + ";" + instantiated_widget[key];
+                elif "icons" in final_widget and key in final_widget["icons"]:
+                    final_widget["icons"][key] = instantiated_widget[key];
+                elif "static_icons" in final_widget and key in final_widget["static_icons"]:
+                    final_widget["static_icons"][key] = instantiated_widget[key];
                 else:
                     final_widget[key] = instantiated_widget[key]
         
@@ -243,7 +257,6 @@ def load_widget(dash, includes, name, css_vars):
         # Merge styles
         #
         final_widget = merge_styles(final_widget, name)
-
              
         return final_widget
     except FileNotFoundError:
@@ -522,9 +535,8 @@ def get_dash(name, skin, skindir):
         if not os.path.isfile(os.path.join(skindir, "dashboard.css")):
            ha.log(conf.logger, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
         else:
-            css_env = Environment(loader=FileSystemLoader(skindir))
-            template = css_env.get_template("dashboard.css")
-            rendered_css = template.render(css_vars)
+            template = os.path.join(skindir, "dashboard.css")
+            rendered_css, subs = do_subs(template, css_vars, "")
             
             css = css + rendered_css + "\n"
 

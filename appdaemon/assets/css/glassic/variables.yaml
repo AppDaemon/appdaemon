@@ -137,6 +137,22 @@ switch_title_style: $style_title
 switch_title2_style: $style_title2
 switch_widget_style: $background_style
 
+lock_icon_on: fa-unlock-alt
+lock_icon_off: fa-lock
+lock_icon_style_active: $style_active_warn
+lock_icon_style_inactive: $style_inactive
+lock_title_style: $style_title
+lock_title2_style: $style_title2
+lock_widget_style: $background_style
+
+cover_icon_on: fa-car
+cover_icon_off: fa-car
+cover_icon_style_active: $style_active_warn
+cover_icon_style_inactive: $style_inactive
+cover_title_style: $style_title
+cover_title2_style: $style_title2
+cover_widget_style: $background_style
+
 clock_date_style: "color: $white; font-weight: 700; font-size: 175%"
 clock_time_style: $style_info
 clock_widget_style: $background_style
@@ -205,6 +221,7 @@ light_level_style: "color: $gray_light"
 light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
 light_widget_style: $background_style
+light_unit_style:  "color: $gray_light"
 
 input_slider_icon_up: fa-plus
 input_slider_icon_down: fa-minus
@@ -242,3 +259,4 @@ group_level_style: "color: $gray_light"
 group_level_up_style: "color: $gray_light"
 group_level_down_style: "color: $gray_light"
 group_widget_style: $background_style
+group_unit_style: "color: $gray_light"

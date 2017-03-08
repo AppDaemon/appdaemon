@@ -122,13 +122,7 @@ def get_state(request):
     # This is a fix for controlling groups of lights
     
     if entity in conf.ha_state:
-        parts = entity.split(".")
-        if parts[0] == "group":
-            # pick the first group member
-            sub_entity = conf.ha_state[entity]["attributes"]["entity_id"][0]
-            state = conf.ha_state[sub_entity]
-        else:
-            state = conf.ha_state[entity]
+        state = conf.ha_state[entity]
     else:
         state = None
 

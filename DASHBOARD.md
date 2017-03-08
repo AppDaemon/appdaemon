@@ -426,6 +426,16 @@ None
 
 Up to date weather reports. Requires dark sky to be configured in Home Assistant with at minimum the following sensors:
 
+- temperature
+- humidity
+- precip_probability
+- precip_intensity
+- wind_speed
+- pressure
+- wind_bearing
+- apparent_temperature
+- icon
+
 ### Mandatory arguments: 
 
 None
@@ -631,6 +641,52 @@ A widget to monitor and activate a switch
 - `title_style`
 - `title2_style`
 
+## lock
+
+A widget to monitor and activate a lock
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the lock
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+
+### Cosmetic Arguments
+    
+- `icon_on`
+- `icon_off`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
+- `title2_style`
+
+## cover
+
+A widget to monitor and activate a cover. At this time only the open and close actions are supported.
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the cover
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+
+### Cosmetic Arguments
+    
+- `icon_on`
+- `icon_off`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
+- `title2_style`
+
 ## input_boolean
 
 A widget to monitor and activate an input_boolean
@@ -693,7 +749,6 @@ A widget to monitor and contol a dimmable light
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
 - `on_brightness` - how bright you want the light to come on when activated in percent.
-- `increment` - the size of step in brightness when fading the light up or down
 
 ### Cosmetic Arguments
    
@@ -808,7 +863,10 @@ A widget to monitor and contol a group of lights
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
-- `title2` - a second line of title text 
+- `title2` - a second line of title text
+- `monitored_entity` - the actual entity to monitor
+
+Groups currently do no report back state changes correctly when attributes light brightness are changed. As a workaround, instead of looking for state changes in the group, we use `monitored_entity` instead. This is not necessary of there are no dimmable lights in the group, however if there are, it should be set to the entity_id of one of the dimmable group members.
 
 ### Cosmetic Arguments
    
@@ -854,7 +912,8 @@ some_widget:
 
 ### Cosmetic Arguments
    
-- `icon`
+- `icon_active`
+- `icon_inactive`
 - `widget_style`
 - `title_style`
 - `title2_style`

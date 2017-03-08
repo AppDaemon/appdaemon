@@ -116,7 +116,9 @@ h3 {
   display: table-cell;
   vertical-align: middle;
   background-color: #444444;
-}
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;}
 
   .title {
     color: #fff;
