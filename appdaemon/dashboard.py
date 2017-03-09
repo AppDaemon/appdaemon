@@ -92,7 +92,8 @@ def expand_vars(fields, subs):
                         fields[varline] = fields[varline].replace(var.group(), subs[subvar], 1)
                     else:
                         ha.log(conf.logger, "WARNING",  "Variable definition not found in CSS Skin variables: ${}".format(subvar))
-                        None
+                        fields[varline] = ""
+
     if index == 100:
         ha.log(conf.logger, "WARNING",  "Unable to resolve CSS Skin variables, check for circular references") 
     
@@ -252,7 +253,6 @@ def load_widget(dash, includes, name, css_vars):
         #
         # Process variables from skin
         #
-
         final_widget = expand_vars(final_widget, css_vars)
         #
         # Merge styles

@@ -68,6 +68,26 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         self.ViewModel[field](value)
     }
     
+    this.set_state_text = function(self, field, value)
+    {
+        if ("state_map" in self.parameters)
+        {
+            if (value in self.parameters.state_map)
+            {
+                state = self.parameters.state_map[value]
+            }
+            else
+            {
+                state = value
+            }
+        }
+        else
+        {
+            state = value
+        }
+        self.ViewModel[field](state)
+    }
+    
     this.set_icon = function(self, field, value)
     {
         self.ViewModel[field](value.split("-")[0] + ' ' + value)

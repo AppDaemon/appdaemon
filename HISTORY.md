@@ -14,6 +14,7 @@ History
 - Add lock widget
 - Add cover widget
 - Introduce new widget definition model in preparation for custom widgets
+- Add state map and state text functions to scene, binary_sensor, switch, device_tracker, script, lock, cover, input_boolean
 
 **Fixes**
 

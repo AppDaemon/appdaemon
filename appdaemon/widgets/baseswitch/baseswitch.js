@@ -80,13 +80,13 @@ function baseswitch(widget_id, url, skin, parameters)
     
     function OnButtonClick(self)
     {
-        if (self.state == self.parameters.state_inactive)
+        if (self.state == self.parameters.state_active)
         {
-            args = self.parameters.post_service_active
+            args = self.parameters.post_service_inactive
         }
         else
         {
-            args = self.parameters.post_service_inactive
+            args = self.parameters.post_service_active
         }
         self.call_service(self, args)
         toggle(self)
@@ -98,13 +98,13 @@ function baseswitch(widget_id, url, skin, parameters)
     
     function toggle(self)
     {
-        if (self.state == self.parameters.state_inactive)
+        if (self.state == self.parameters.state_active)
         {
-            self.state = self.parameters.state_active;
+            self.state = self.parameters.state_inactive;
         }
         else
         {
-            self.state = self.parameters.state_inactive;
+            self.state = self.parameters.state_active;
         }
         set_view(self, self.state)
     }
@@ -115,15 +115,19 @@ function baseswitch(widget_id, url, skin, parameters)
     
     function set_view(self, state, level)
     {
-        if (state == self.parameters.state_inactive)
+        if (state == self.parameters.state_active)
+        {
+            self.set_icon(self, "icon", self.icons.icon_on)
+            self.set_field(self, "icon_style", self.css.icon_style_active)
+        }
+        else
         {
             self.set_icon(self, "icon", self.icons.icon_off)
             self.set_field(self, "icon_style", self.css.icon_style_inactive)
         }
-        else
+        if ("state_text" in self.parameters && self.parameters.state_text == 1)
         {
-            self.set_icon(self, "icon", self.icons.icon_on)
-            self.set_field(self, "icon_style", self.css.icon_style_active)
+            self.set_state_text(self, "state_text", state)
         }
     }
 }

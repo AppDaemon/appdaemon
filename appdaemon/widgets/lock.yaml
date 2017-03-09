@@ -4,16 +4,17 @@ state_active: "unlocked"
 state_inactive: "locked"
 enable: 1
 post_service_active:
-    service: lock/lock
+    service: lock/unock
     entity_id: {{entity}}
 post_service_inactive:
-    service: lock/unlock
+    service: lock/lock
     entity_id: {{entity}}
 fields:
   title: {{title}}
   title2: {{title2}}
   icon: ""
   icon_style: ""
+  state_text: ""
 icons:
   icon_on: $lock_icon_on
   icon_off: $lock_icon_off
@@ -24,4 +25,5 @@ css:
 static_css:
   title_style: $lock_title_style
   title2_style: $lock_title2_style
+  state_text_style: $lock_state_text_style
   widget_style: $lock_widget_style

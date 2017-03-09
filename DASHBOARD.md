@@ -411,6 +411,37 @@ clock:
 ```
 Since `date_style` and `time_style` are applied to more specific elements, they will override `widget_style`. Also note that some widget styles may be specified in the widget's CSS, in which case that style will override `widget_style` but not the more specific styles.
 
+# State and state text
+
+Some widgets allow you to display not only an icon showing the state but also text of the state itself. The following widgets allow this:
+
+- scene
+- binary_sensor
+- switch
+- device_tracker
+- script
+- lock
+- cover
+- input_boolean
+
+In order to enable this, just add:
+
+```yaml
+state_text: 1
+```
+
+to the widget definition. This will then make the widget show the HA state below the icon. Since native HA state is not always very pretty it is also possible to map this to better values, for instance in a different language than English.
+
+To add a state map, just add a state_map list to the widget definition listing the HA states and what you actually want displayed. For instance:
+
+```yaml
+state_map:
+  "on": Op
+  "off": Uit
+```
+
+One wrinkle here is that YAML over enthusiastically "helps" by interpreting things like `on` and `off` as booleans so the quotes are needed to prevent this.
+
 # Widget Reference
 
 Here is the current list of widgets and their description and supported parameters:
@@ -506,6 +537,8 @@ A Widget that reports on device tracker status. It can also be optionally be use
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text
 - `enable` - set to 1 to enable the widget to toggle the device_tracker status
+- `state_text`
+- `state_map`
 
 ### Style Arguments: 
 
@@ -571,6 +604,8 @@ A widget to activate a scene
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Style Arguments: 
 
@@ -594,6 +629,8 @@ A widget to run a script
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Style Arguments: 
 
@@ -614,6 +651,8 @@ A widget to track the state of an `input_select` by showing active when it is se
 - `entity` - the entity_id of the `input_select`
 - `mode` - value of the input select to show as active
 - `script` - script to run when pressed
+- `state_text`
+- `state_map`
 
 ### Optional Arguments:
 
@@ -642,6 +681,8 @@ A widget to monitor and activate a switch
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     
@@ -665,6 +706,8 @@ A widget to monitor and activate a lock
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     
@@ -688,6 +731,8 @@ A widget to monitor and activate a cover. At this time only the open and close a
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     
@@ -711,6 +756,8 @@ A widget to monitor and activate an input_boolean
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     
@@ -735,6 +782,8 @@ A widget to monitor a binary_sensor
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     

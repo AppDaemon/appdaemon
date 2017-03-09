@@ -2,10 +2,6 @@
 	position: relative;
 }
 
-.widget-baseswitch-{{id}} .state_text {
-	font-size: 85%;
-}
-
 .widget-baseswitch-{{id}} .title {
 	position: absolute;
 	top: 5px;
@@ -20,7 +16,7 @@
 
 .widget-baseswitch-{{id}} .state_text {
 	position: absolute;
-	top: 38px;
+	bottom: -3px;
 	width: 100%;
 }
 
