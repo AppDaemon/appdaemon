@@ -4,7 +4,7 @@ state_active: "unlocked"
 state_inactive: "locked"
 enable: 1
 post_service_active:
-    service: lock/unock
+    service: lock/unlock
     entity_id: {{entity}}
 post_service_inactive:
     service: lock/lock

@@ -43,7 +43,7 @@ def timeit(func):
         startTime = time.time()
         result = func(*args, **kwargs)
         elapsedTime = time.time() - startTime
-        ha.log(conf.logger, "INFO",'function [{}] finished in {} ms'.format(
+        ha.log(conf.dash, "INFO",'function [{}] finished in {} ms'.format(
             func.__name__, int(elapsedTime * 1000)))
         return result
     return newfunc
@@ -56,20 +56,20 @@ def load_css_params(skin, skindir):
         try:
             css = yaml.load(css_text)
         except yaml.YAMLError as exc:
-            ha.log(conf.logger, "WARNING",  "Error loading CSS variables")
+            ha.log(conf.dash, "WARNING",  "Error loading CSS variables")
             if hasattr(exc, 'problem_mark'):
                 if exc.context != None:
-                    ha.log(conf.logger, "WARNING", "parser says")
-                    ha.log(conf.logger, "WARNING", str(exc.problem_mark))  
-                    ha.log(conf.logger, "WARNING", str(exc.problem) + " " + str(exc.context))
+                    ha.log(conf.dash, "WARNING", "parser says")
+                    ha.log(conf.dash, "WARNING", str(exc.problem_mark))  
+                    ha.log(conf.dash, "WARNING", str(exc.problem) + " " + str(exc.context))
                 else:
-                    ha.log(conf.logger, "WARNING", "parser says")
-                    ha.log(conf.logger, "WARNING", str(exc.problem_mark))
-                    ha.log(conf.logger, "WARNING", str(exc.problem)) 
+                    ha.log(conf.dash, "WARNING", "parser says")
+                    ha.log(conf.dash, "WARNING", str(exc.problem_mark))
+                    ha.log(conf.dash, "WARNING", str(exc.problem)) 
             return None
         return expand_vars(css, css)
     else:
-        ha.log(conf.logger, "WARNING",  "Error loading variables.yaml for skin '{}'".format(skin))
+        ha.log(conf.dash, "WARNING",  "Error loading variables.yaml for skin '{}'".format(skin))
         return None
     return expand_vars(css, css)
 
@@ -91,11 +91,11 @@ def expand_vars(fields, subs):
                         done = False
                         fields[varline] = fields[varline].replace(var.group(), subs[subvar], 1)
                     else:
-                        ha.log(conf.logger, "WARNING",  "Variable definition not found in CSS Skin variables: ${}".format(subvar))
+                        ha.log(conf.dash, "WARNING",  "Variable definition not found in CSS Skin variables: ${}".format(subvar))
                         fields[varline] = ""
 
     if index == 100:
-        ha.log(conf.logger, "WARNING",  "Unable to resolve CSS Skin variables, check for circular references") 
+        ha.log(conf.dash, "WARNING",  "Unable to resolve CSS Skin variables, check for circular references") 
     
     return fields
 
@@ -111,7 +111,7 @@ def get_styles(style_str, name, field):
             if len(pieces) == 2:
                result[pieces[0].strip()] = pieces[1]
             else:
-               ha.log(conf.logger, "WARNING", "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".format(style, name, field)) 
+               ha.log(conf.dash, "WARNING", "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".format(style, name, field)) 
         
     return result
     
@@ -187,7 +187,7 @@ def load_widget(dash, includes, name, css_vars):
             parts = name.split(".")
             instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
         else:
-            ha.log(conf.logger, "WARNING", "Unable to find widget definition for '{}'".format(name))
+            ha.log(conf.dash, "WARNING", "Unable to find widget definition for '{}'".format(name))
             # Return some valid data so the browser will render a blank widget
             return {"widget_type": "text", "title": "Widget definition not found"}
                 
@@ -261,7 +261,7 @@ def load_widget(dash, includes, name, css_vars):
                      
         return final_widget
     except FileNotFoundError:
-        ha.log(conf.logger, "WARNING", "Unable to find widget type '{}'".format(widget_type))
+        ha.log(conf.dash, "WARNING", "Unable to find widget type '{}'".format(widget_type))
         # Return some valid data so the browser will render a blank widget
         return {"widget_type": "text", "title": "Widget type not found"}
  
@@ -299,7 +299,7 @@ def add_layout(value, layout, occupied, dash, page, includes, css_vars):
             widget["id"] = "{}-{}".format(page, sanitized_name)
             
             if widget_exists(dash["widgets"], widget["id"]):
-                ha.log(conf.logger, "WARNING", "Duplicate widget name '{}' - ignored".format(name))
+                ha.log(conf.dash, "WARNING", "Duplicate widget name '{}' - ignored".format(name))
             else:
                 widget["position"] = [column, layout]
                 widget["size"] = [xsize, ysize]
@@ -330,7 +330,7 @@ def load_dash(name, css_vars):
 
 def log_error(dash, name, error):
     dash["errors"].append("{}: {}".format(os.path.basename(name), error))
-    ha.log(conf.logger, "WARNING", error)
+    ha.log(conf.dash, "WARNING", error)
     
 def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
 
@@ -385,7 +385,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
                 if extension == "dash":
                     dash[thing] = stuff[thing]
                 else:
-                    ha.log(conf.logger, "WARNING", "Top level dashboard directive illegal in imported dashboard '{}.{}': {}: {}".format(name, extension, thing, stuff[thing]))
+                    ha.log(conf.dash, "WARNING", "Top level dashboard directive illegal in imported dashboard '{}.{}': {}: {}".format(name, extension, thing, stuff[thing]))
             else:
                 includes.append({thing: stuff[thing]})
         
@@ -460,7 +460,7 @@ def compile_dash(name, skin, skindir, params):
         if compile is False:
             return {"errors": []}
     
-    ha.log(conf.logger, "INFO", "Compiling dashboard '{}'".format(name))
+    ha.log(conf.dash, "INFO", "Compiling dashboard '{}'".format(name))
     
     dash = get_dash(name, skin, skindir)
     if dash == None:
@@ -508,7 +508,7 @@ def get_dash(name, skin, skindir):
         if dash == None:
             return None
     else:
-        ha.log(conf.logger, "WARNING", "Dashboard '{}' not found".format(name))
+        ha.log(conf.dash, "WARNING", "Dashboard '{}' not found".format(name))
         return None
     
     if "head_includes" in css_vars and css_vars["head_includes"] != None:
@@ -534,7 +534,7 @@ def get_dash(name, skin, skindir):
         # Base CSS template and compile
         #
         if not os.path.isfile(os.path.join(skindir, "dashboard.css")):
-           ha.log(conf.logger, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
+           ha.log(conf.dash, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
         else:
             template = os.path.join(skindir, "dashboard.css")
             rendered_css, subs = do_subs(template, css_vars, "")
@@ -555,18 +555,18 @@ def get_dash(name, skin, skindir):
             js = js + widgets[widget]["js"] + "\n"
             
     except KeyError:
-        ha.log(conf.logger, "WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
+        ha.log(conf.dash, "WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
         return None
     except:
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", "Unexpected error in CSS file")
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", traceback.format_exc())
-        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error in CSS file")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
         if rendered_css != None:
-            ha.log(conf.logger, "WARNING", "Rendered CSS:")
-            ha.log(conf.logger, "WARNING", rendered_css)
-            ha.log(conf.logger, "WARNING", '-' * 60)
+            ha.log(conf.dash, "WARNING", "Rendered CSS:")
+            ha.log(conf.dash, "WARNING", rendered_css)
+            ha.log(conf.dash, "WARNING", '-' * 60)
         return None
   
 

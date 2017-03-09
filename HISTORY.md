@@ -15,6 +15,7 @@ History
 - Add cover widget
 - Introduce new widget definition model in preparation for custom widgets
 - Add state map and state text functions to scene, binary_sensor, switch, device_tracker, script, lock, cover, input_boolean
+- Allow dashboard accesses to be logged in a separate file
 
 **Fixes**
 

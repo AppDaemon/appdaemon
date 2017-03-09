@@ -66,12 +66,12 @@ def load_dash(request):
         #
         skindir = os.path.join(conf.config_dir, "custom_css", skin)
         if os.path.isdir(skindir):
-            ha.log(conf.logger, "INFO", "Loading custom skin '{}'".format(skin))
+            ha.log(conf.dash, "INFO", "Loading custom skin '{}'".format(skin))
         else:
             # Not a custom skin, try product skins
             skindir = os.path.join(conf.css_dir, skin)
             if not os.path.isdir(skindir):
-                ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
+                ha.log(conf.dash, "WARNING", "Skin '{}' does not exist".format(skin))
                 skin = "default"
                 skindir = os.path.join(conf.css_dir, "default")
 
@@ -106,11 +106,11 @@ def load_dash(request):
         return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "head_includes": head_includes, "body_includes": body_includes}
         
     except:
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", "Unexpected error in CSS file")
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", traceback.format_exc())
-        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error in CSS file")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
         return {"errors": ["An unrecoverable error occured fetching dashboard"]}
         
 @asyncio.coroutine
@@ -156,7 +156,7 @@ def wshandler(request):
         while True:
             msg = yield from ws.receive()
             if msg.type == aiohttp.WSMsgType.TEXT:
-                ha.log(conf.logger, "INFO", 
+                ha.log(conf.dash, "INFO", 
                        "New dashboard connected: {}".format(msg.data))
                 #
                 # There is a race condition here
@@ -167,17 +167,17 @@ def wshandler(request):
 
                 request.app['websockets'][ws]["dashboard"] =  msg.data                
             elif msg.type == aiohttp.WSMsgType.ERROR:
-                ha.log(conf.logger, "INFO", 
+                ha.log(conf.dash, "INFO", 
                 "ws connection closed with exception {}".format(ws.exception()))       
     except: 
-                ha.log(conf.logger, "INFO", "Dashboard disconnected")
+                ha.log(conf.dash, "INFO", "Dashboard disconnected")
     finally:
         request.app['websockets'].pop(ws, None)
 
     return ws
 
 def ws_update(data):
-    ha.log(conf.logger, 
+    ha.log(conf.dash, 
            "DEBUG", 
            "Sending data to {} dashes: {}".format(len(app['websockets']), 
            data))
@@ -187,7 +187,7 @@ def ws_update(data):
         # This will give a key error for dashboard if the race condition occurs
         # Will leave it in the code for now so I can test the fix when it occurs
         #
-        ha.log(conf.logger, 
+        ha.log(conf.dash, 
            "DEBUG", 
            "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
         ws.send_str(json.dumps(data))
@@ -238,7 +238,8 @@ def run_dash(loop):
         handler = app.make_handler()
         f = loop.create_server(handler, conf.dash_host, int(conf.dash_port))
         srv = loop.run_until_complete(f)
-        ha.log(conf.logger, "INFO", 
+        ha.log(conf.dash, "INFO", "HADashboard Started")
+        ha.log(conf.dash, "INFO", 
                "Listening on {}".format(srv.sockets[0].getsockname()))
         try:
             loop.run_forever()
@@ -252,9 +253,9 @@ def run_dash(loop):
             loop.run_until_complete(app.cleanup())
         loop.close()
     except:
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", "Unexpected error in dashboard thread")
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", traceback.format_exc())
-        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
     

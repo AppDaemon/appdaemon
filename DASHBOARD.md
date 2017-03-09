@@ -48,6 +48,18 @@ HADashboard pre-compiles all of the user created Dashboard for efficiency. It wi
 dash_force_compile = 1
 ```
 
+By default, information and errors around acces to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
+
+```ini
+accessfile = STDOUT
+```
+
+or
+
+```ini
+accessfile = /var/log/dash_access
+```
+
 This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
 
 # Dashboard parameters

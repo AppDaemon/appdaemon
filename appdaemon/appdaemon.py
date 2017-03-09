@@ -1688,6 +1688,24 @@ def main():
     # efh.setFormatter(formatter)
     conf.error.addHandler(efh)
 
+    # Setup dash output
+    
+    if config['AppDaemon'].get("accessfile") is not None:
+        conf.dash = logging.getLogger("log3")
+        numeric_level = getattr(logging, args.debug, None)
+        conf.dash.setLevel(numeric_level)
+        conf.dash.propagate = False
+        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        efh = RotatingFileHandler(
+            config['AppDaemon'].get("accessfile"), maxBytes=1000000, backupCount=3
+        )
+
+        efh.setLevel(numeric_level)
+        # efh.setFormatter(formatter)
+        conf.dash.addHandler(efh)
+    else:
+        conf.dash = conf.logger
+
     # Startup message
 
     ha.log(
