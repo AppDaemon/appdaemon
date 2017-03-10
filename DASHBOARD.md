@@ -1034,12 +1034,16 @@ A widget to display other content within the dashboard
 
 ### Mandatory Arguments
 
-- `url_list` - a list of 1 or more URLS to cycle though.
+- `url_list` - a list of 1 or more URLs to cycle though.
+or
+- `img_list` - a list of 1 or more Image URLs to cycle through.
 
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
 - `refresh` - (seconds) if set, the iframe widget will progress down it's list every refresh period, returning to the beginning when it hits the end. Use this in conjunction with a single entry in the `url_list` to have a single url refresh at a set interval.
+
+For regular HTTP sites, use the `url_list` argument, for images the `img_list` argument should work better.
 
 Example:
 
@@ -1056,6 +1060,19 @@ iframe:
       - https://www.pexels.com/photo/grey-fur-kitten-127028/
       - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
       - https://www.pexels.com/photo/cat-sleeping-62640/
+```
+
+Content will be shown with scroll bars which can be undesirable. For images this can be alleviated by using an image resizing service such as the one offered by [Google](https://carlo.zottmann.org/posts/2013/04/14/google-image-resizer.html).
+
+```yaml
+weather_frame:
+    widget_type: iframe
+    title: Radar
+    refresh: 300
+    frame_style: ""
+    img_list: 
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refres=300&resize_h=640&resize_h=640
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refres=300&resize_h=640&resize_h=640
 ```
 
 ### Cosmetic Arguments
