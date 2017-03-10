@@ -1039,10 +1039,11 @@ A widget to display other content within the dashboard
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
-- `refresh` - (seconds) if set, the iframe widget will progress down it's list every refresh period. Use this in conjunction with a single entry in the `url_list` to have a single url regresh at a set interval.
+- `refresh` - (seconds) if set, the iframe widget will progress down it's list every refresh period, returning to the beginning when it hits the end. Use this in conjunction with a single entry in the `url_list` to have a single url refresh at a set interval.
 
 Example:
 
+```yaml
 iframe:
     widget_type: iframe
     title: Cats
@@ -1055,16 +1056,12 @@ iframe:
       - https://www.pexels.com/photo/grey-fur-kitten-127028/
       - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
       - https://www.pexels.com/photo/cat-sleeping-62640/
+```
 
 ### Cosmetic Arguments
    
-- `icon_active`
-- `icon_inactive`
 - `widget_style`
 - `title_style`
-- `title2_style`
-- `icon_active_style`
-- `icon_inactive_style`
 
 
 # Skins

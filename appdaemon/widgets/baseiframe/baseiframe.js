@@ -24,7 +24,7 @@ function baseiframe(widget_id, url, skin, parameters)
     
     function refresh_frame(self)
     {
-        $('#' + widget_id + ' .frame').attr('src', self.parameters.url_list[self.url]);
+        self.set_field(self, "frame_src", self.parameters.url_list[self.url]);
         
         if ("refresh" in self.parameters)
         {
