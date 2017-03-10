@@ -22,6 +22,8 @@ History
 - Additional error checks in many places
 - Dashboard determines the stream URL dynamically rather than by having it hard coded
 - Add IFRAME widget
+- Sensor widget now automatically detects units
+- Sensor widget has separate styles for text and numeric
 
 **Fixes**
 

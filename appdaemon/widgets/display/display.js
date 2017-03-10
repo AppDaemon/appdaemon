@@ -15,7 +15,7 @@ function display(widget_id, url, skin, parameters)
         title: ko.observable(parameters.title),
         title2: ko.observable(parameters.title2),
         value: ko.observable(),
-        unit: ko.observable(parameters.units),
+        unit: ko.observable(),
 		widget_style: ko.observable(),
 		title_style: ko.observable(),
 		title2_style: ko.observable(),
@@ -24,7 +24,7 @@ function display(widget_id, url, skin, parameters)
     };
     
     ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
-
+    
 	// Setup Override Styles
 
 	if ("widget_style" in parameters)
@@ -41,17 +41,6 @@ function display(widget_id, url, skin, parameters)
 	{
 		this.ViewModel.title2_style(parameters.title2_style)
 	}
-    
-	if ("value_style" in parameters)
-	{
-		this.ViewModel.value_style(parameters.value_style)
-	}
-    
-	if ("unit_style" in parameters)
-	{
-		this.ViewModel.unit_style(parameters.unit_style)
-	}
-    
     
     // Get initial state
     this.get_state(url, parameters.state_entity)
@@ -90,7 +79,23 @@ function display(widget_id, url, skin, parameters)
                         that.ViewModel.title(that.widget_id)
                     }
                 }
-
+                if (isNaN(data.state.state))
+                {
+                    that.ViewModel.value_style(that.parameters.text_style)
+                }
+                else
+                {
+                    that.ViewModel.value_style(that.parameters.value_style)
+                    that.ViewModel.unit_style(that.parameters.unit_style)
+                    if ("units" in that.parameters)
+                    {
+                        that.ViewModel.unit(that.parameters.units)
+                    }
+                    else
+                    {
+                        that.ViewModel.unit(data.state.attributes["unit_of_measurement"])    
+                    }
+                }
             }
         }, "json");    
     };

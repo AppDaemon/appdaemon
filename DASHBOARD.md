@@ -535,7 +535,7 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `units` - the unit symbol to be displayed
+- `units` - the unit symbol to be displayed, if not specified HAs unit will be used, specify "" for no units
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
 
@@ -545,7 +545,10 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 - `title_style`
 - `title2_style`
 - `value_style`
+- `text_style`
 - `unit_style`
+
+The sensor widget will detect if the data is numeric, in which case `value_style` and `unit_style` will be applied, otherwise `text_style` will be applied and no units will be shown.
 
 ## device_tracker
 
@@ -1071,8 +1074,8 @@ weather_frame:
     refresh: 300
     frame_style: ""
     img_list: 
-      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refres=300&resize_h=640&resize_h=640
-      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refres=300&resize_h=640&resize_h=640
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
 ```
 
 ### Cosmetic Arguments

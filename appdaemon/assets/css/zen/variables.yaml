@@ -201,6 +201,7 @@ label_widget_style: $background_style
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
 sensor_value_style: "color: $red"
+sensor_text_style: "color: $white; font-size: 100%"
 sensor_unit_style: "color: red; font-size: 90%"
 sensor_widget_style: $background_style
 
