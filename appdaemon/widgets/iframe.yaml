@@ -1,0 +1,9 @@
+widget_type: baseiframe
+fields:
+  title: {{title}}
+icons: []
+static_css:
+  title_style: $iframe_title_style
+  widget_style: $iframe_widget_style
+css: []
+static_icons: []

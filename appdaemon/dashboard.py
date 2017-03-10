@@ -67,11 +67,17 @@ def load_css_params(skin, skindir):
                     ha.log(conf.dash, "WARNING", str(exc.problem_mark))
                     ha.log(conf.dash, "WARNING", str(exc.problem)) 
             return None
-        return expand_vars(css, css)
+        if css == None:
+            return {}
+        else:
+            return expand_vars(css, css)
     else:
         ha.log(conf.dash, "WARNING",  "Error loading variables.yaml for skin '{}'".format(skin))
         return None
-    return expand_vars(css, css)
+    if css == None:
+        return {}
+    else:    
+        return expand_vars(css, css)
 
 def expand_vars(fields, subs):
     done = False
@@ -451,11 +457,11 @@ def compile_dash(name, skin, skindir, params):
         if widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
             compile = True
 
-        #
-        # Force compilation at startup - need to add a flag
-        #
-        #if conf.start_time > last_compiled:
-        #    compile = True
+        
+        # Force compilation at startup
+        
+        if conf.start_time > last_compiled and conf.dash_compile_on_start is True:
+            compile = True
                
         if compile is False:
             return {"errors": []}

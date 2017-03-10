@@ -13,9 +13,15 @@ History
 - Add script widget
 - Add lock widget
 - Add cover widget
+- Added optional `monitored_state` argument to group to pick a representative entity to track dimming instead of guessing
 - Introduce new widget definition model in preparation for custom widgets
+- Rewrite several widgets using the new model
 - Add state map and state text functions to scene, binary_sensor, switch, device_tracker, script, lock, cover, input_boolean
 - Allow dashboard accesses to be logged in a separate file
+- Flag to force recompilation after startup
+- Additional error checks in many places
+- Dashboard determines the stream URL dynamically rather than by having it hard coded
+- Add IFRAME widget
 
 **Fixes**
 
@@ -23,7 +29,9 @@ History
 
 **Breaking Changes**
 
+- Widget level styles that relied on overriding the whole skin style may no longer work as expected
 - Device trackers must now be explicitly configured to allow the user to toggle state, by setting the `enable` parameter
+- Groups of lights must have the `monitored_entity` argument to work properly if they contain any dimmable lights
 
 2.0.0beta1
 ----------

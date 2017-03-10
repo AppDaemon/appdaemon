@@ -131,6 +131,8 @@ def get_state(request):
 @asyncio.coroutine
 def call_service(request):
     data = yield from request.post()
+    # Should be using aiohttp client here
+    # Will fix when I fully convert to async
     ha.call_service(**request.POST)
     return web.Response(status = 200)
     

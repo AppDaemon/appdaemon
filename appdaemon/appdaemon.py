@@ -1615,6 +1615,11 @@ def main():
     else:
         conf.dash_force_compile = False        
      
+    if config['AppDaemon'].get("dash_compile_on_start") == "1":
+        conf.dash_compile_on_start = True
+    else:
+        conf.dash_compile_on_start = False        
+     
     if conf.dash_url != None:
         conf.dashboard = True
         url = urlparse(conf.dash_url)        

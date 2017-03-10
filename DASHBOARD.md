@@ -48,19 +48,21 @@ HADashboard pre-compiles all of the user created Dashboard for efficiency. It wi
 dash_force_compile = 1
 ```
 
+This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
+
 By default, information and errors around acces to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
-
-```ini
-accessfile = STDOUT
-```
-
-or
 
 ```ini
 accessfile = /var/log/dash_access
 ```
 
-This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
+To force dashboard recompilation of all dashboards after a restart, use:
+
+```ini
+dash_compile_on_start = 1
+```
+
+This should not be necessary but may on occasion be required after an upgrade to pickup changes.
 
 # Dashboard parameters
 
@@ -448,11 +450,20 @@ To add a state map, just add a state_map list to the widget definition listing t
 
 ```yaml
 state_map:
-  "on": Op
+  "on": Aan
   "off": Uit
 ```
 
 One wrinkle here is that YAML over enthusiastically "helps" by interpreting things like `on` and `off` as booleans so the quotes are needed to prevent this.
+
+# Icons
+
+Widgets that allow the specification of icons have access to both [Font Awesome](http://fontawesome.io/cheatsheet/) and [Material Design](https://materialdesignicons.com/) Icons. To specify an icon simply use the prefix `fa-` for Font Aweesome and `mdi-` for Material Design. e,g,:
+
+```yaml
+icon_on: fa-alert
+icon_off: mdi-cancel
+```
 
 # Widget Reference
 
@@ -709,6 +720,8 @@ A widget to monitor and activate a switch
 ## lock
 
 A widget to monitor and activate a lock
+
+Note that unlike HASS, Dashboard regards an unlocked lock as active. By contrast, the HASS UI shows a locked lock as "on". Since the purpose of the dashboard is to alert at a glance on anything that is unusual, I chose to make the unlocked state "active" which means in the default skin it is shown as red, wheras a locked icon is shown as gray. You can easily change this behavior by setting active and inactive styles if you prefer.
 
 ### Mandatory Arguments
 
@@ -1014,6 +1027,45 @@ None.
 - `title2_style`
 - `icon_active_style`
 - `icon_inactive_style`
+
+## iframe
+
+A widget to display other content within the dashboard
+
+### Mandatory Arguments
+
+- `url_list` - a list of 1 or more URLS to cycle though.
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `refresh` - (seconds) if set, the iframe widget will progress down it's list every refresh period. Use this in conjunction with a single entry in the `url_list` to have a single url regresh at a set interval.
+
+Example:
+
+iframe:
+    widget_type: iframe
+    title: Cats
+    refresh: 60
+    url_list: 
+      - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
+      - https://www.pexels.com/photo/eyes-cat-coach-sofa-96938/
+      - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
+      - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
+      - https://www.pexels.com/photo/grey-fur-kitten-127028/
+      - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
+      - https://www.pexels.com/photo/cat-sleeping-62640/
+
+### Cosmetic Arguments
+   
+- `icon_active`
+- `icon_inactive`
+- `widget_style`
+- `title_style`
+- `title2_style`
+- `icon_active_style`
+- `icon_inactive_style`
+
 
 # Skins
 

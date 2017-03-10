@@ -114,7 +114,7 @@ binary_sensor_icon_style_inactive: $style_inactive
 binary_sensor_title_style: $style_title
 binary_sensor_title2_style: $style_title2
 binary_sensor_widget_style: $background_style
-binary_state_text_style: "color: white"
+binary_sensor_state_text_style: "color: white"
 
 device_tracker_icon_on: fa-user
 device_tracker_icon_off: fa-user
@@ -268,3 +268,6 @@ group_level_up_style: "color: $gray_light"
 group_level_down_style: "color: $gray_light"
 group_widget_style: $background_style
 group_unit_style: "color: $gray_light"
+
+iframe_title_style: $style_title
+iframe_widget_style: $background_style
