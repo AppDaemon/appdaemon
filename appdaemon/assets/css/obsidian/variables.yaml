@@ -1,4 +1,4 @@
-# Obsidian Skin for HA Dashoboard v2
+# Obsidian Skin for HA Dashboard v2
 # Version 1.0
 # Date: 03/02/17
 # Author: Robert Pitera
@@ -234,7 +234,7 @@ input_slider_icon_down: fa-minus
 input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
 input_slider_unit_style: $style_info
-input_slider_level_style: $style_inactive
+input_slider_level_style: $style_info
 input_slider_level_up_style: $style_inactive
 input_slider_level_down_style: $style_inactive
 input_slider_widget_style: $background_style
