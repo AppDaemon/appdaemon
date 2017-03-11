@@ -68,7 +68,33 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         self.ViewModel[field](value)
     }
     
-    this.set_state_text = function(self, field, value)
+    this.format_number = function(self, value)
+    {
+        if ("precision" in self.parameters)
+        {
+            value = round(value, self.parameters.precision)
+        }
+        
+        if ("shorten" in self.parameters && self.parameters.shorten == 1)
+        {
+            if (value >= 1E9)
+            {
+                value = round(value / 1E9, 1) + "B"
+            }
+            else if (value >= 1E6)
+            {
+                value = round(value / 1E6, 1) + "M"
+            }
+            else if (value >= 1E3)
+            {
+                value = round(value / 1E3, 1) + "K"
+            }
+        }
+        return value
+    }
+
+    
+    this.map_state = function(self, value)
     {
         if ("state_map" in self.parameters)
         {
@@ -85,7 +111,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         {
             state = value
         }
-        self.ViewModel[field](state)
+        return (state)
     }
     
     this.set_icon = function(self, field, value)

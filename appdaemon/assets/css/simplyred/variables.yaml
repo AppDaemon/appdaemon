@@ -184,11 +184,6 @@ weather_unit_style: "color: gold; font-size: 90%"
 weather_sub_style: "color: $white"
 weather_widget_style: "$blackbg"
 
-text_sensor_title_style: $style_title
-text_sensor_title2_style: $style_title2
-text_sensor_text_style: "color: $white; font-size: 90%"
-text_sensor_widget_style: $background_style
-
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $white"

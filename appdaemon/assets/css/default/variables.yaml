@@ -166,11 +166,6 @@ weather_unit_style: "color: $orange"
 weather_sub_style: "color: $blue"
 weather_widget_style: $background_style
 
-text_sensor_title_style: $style_title
-text_sensor_title2_style: $style_title2
-text_sensor_text_style: "color: $white"
-text_sensor_widget_style: $background_style
-
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $white"
@@ -178,7 +173,7 @@ label_widget_style: $background_style
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
-sensor_value_style: "color: $blue; ; font-size: 250%"
+sensor_value_style: "color: $blue; font-size: 250%"
 sensor_text_style: "color: $white; font-size: 100%"
 sensor_unit_style: "color: $blue"
 sensor_widget_style: $background_style

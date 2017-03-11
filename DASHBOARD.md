@@ -192,7 +192,7 @@ wendy_presence:
     device: wendys_iphone
 
 mode:
-    widget_type: text_sensor
+    widget_type: sensor
     title: House Mode
     entity: input_select.house_mode
 
@@ -309,7 +309,7 @@ wendy_presence:
     device: dedb5e711a24415baaae5cf8e880d852
 
 mode:
-    widget_type: text_sensor
+    widget_type: sensor
     title: House Mode
     entity: input_select.house_mode
 
@@ -437,6 +437,7 @@ Some widgets allow you to display not only an icon showing the state but also te
 - lock
 - cover
 - input_boolean
+- sensor
 
 In order to enable this, just add:
 
@@ -538,6 +539,7 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 - `units` - the unit symbol to be displayed, if not specified HAs unit will be used, specify "" for no units
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
+- `state_map`
 
 ### Style Arguments: 
 
@@ -565,7 +567,27 @@ A Widget that reports on device tracker status. It can also be optionally be use
 - `enable` - set to 1 to enable the widget to toggle the device_tracker status
 - `state_text`
 - `state_map`
+- `active_map`
 
+Active map is used to specify states other than "home" that will be regarded as active, meaning the icon will light up. This can be useful if tracking a device tracker within the house using beacons for instance.
+
+Example:
+
+```yaml
+wendy_presence_mapped:
+  widget_type: device_tracker
+  title: Wendy
+  title2: Mapped
+  device: wendys_iphone
+  active_map:
+    - home
+    - house
+    - back_yard
+    - upstairs
+```
+
+In the absence of an active map, only the state `home` will be regarded as active.
+    
 ### Style Arguments: 
 
 - `icon_on`
@@ -576,26 +598,6 @@ A Widget that reports on device tracker status. It can also be optionally be use
 - `title_style`
 - `title2_style`
 - `state_text_style`
-    
-## text_sensor
-
-A widget to show the value of any text based sensor
-
-### Mandatory Arguments
-
-- `entity` - the entity_id of the sensor to be monitored
-
-### Optional Arguments:
-
-- `title` - the title displayed on the tile
-- `title2` - a second line of title text 
-
-### Cosmetic Arguments
-
-- `widget_style`
-- `title_style`
-- `title2_style`
-- `text_style`
 
 ## label
 

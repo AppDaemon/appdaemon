@@ -205,6 +205,9 @@ def load_widget(dash, includes, name, css_vars):
         # One way or another we now have the widget definition
         #
         widget_type = instantiated_widget["widget_type"]
+    
+        if widget_type == "text_sensor":
+            ha.log(conf.dash, "WARNING", "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '{}'".format(name))
         if os.path.isdir(os.path.join(conf.dash_dir, "widgets", widget_type)):
             # This is a base widget so return it in full
             return expand_vars(instantiated_widget, css_vars)

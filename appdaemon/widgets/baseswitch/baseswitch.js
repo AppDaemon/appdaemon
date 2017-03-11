@@ -115,7 +115,7 @@ function baseswitch(widget_id, url, skin, parameters)
     
     function set_view(self, state, level)
     {
-        if (state == self.parameters.state_active)
+        if (state == self.parameters.state_active || ("active_map" in self.parameters && self.parameters.active_map.includes(state)))
         {
             self.set_icon(self, "icon", self.icons.icon_on)
             self.set_field(self, "icon_style", self.css.icon_style_active)
@@ -127,7 +127,7 @@ function baseswitch(widget_id, url, skin, parameters)
         }
         if ("state_text" in self.parameters && self.parameters.state_text == 1)
         {
-            self.set_state_text(self, "state_text", state)
+            self.set_field(self, "state_text", self.map_state(self, state))
         }
     }
 }

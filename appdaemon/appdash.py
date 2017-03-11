@@ -198,6 +198,7 @@ def ws_update(data):
 
 def setup_routes():
     app.router.add_get('/favicon.ico', not_found)
+    app.router.add_get('/{gfx}.png', not_found)
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)
