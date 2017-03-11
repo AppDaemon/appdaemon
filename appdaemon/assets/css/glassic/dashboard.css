@@ -15,6 +15,7 @@ body {
   background-repeat: repeat
   font-size: 15px;
   padding: 0;
+  line-height: 1;
   font-family: 'Titillium Web', 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 
