@@ -187,7 +187,7 @@ sensor_widget_style: $background_style
 reload_icon_active: fa-spinner fa-spin
 reload_icon_inactive: fa-refresh
 reload_icon_active_style: $style_active
-reload_icon_inactive_style: $style_active
+reload_icon_inactive_style: "color: $white"
 reload_title_style: "color: $white"
 reload_title2_style: $style_title2
 reload_widget_style: $background_style

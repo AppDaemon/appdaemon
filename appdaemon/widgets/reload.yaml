@@ -14,5 +14,5 @@ static_css:
   widget_style: $reload_widget_style
 css:
   icon_active_style: $reload_icon_active_style
-  icon_inactive_style: "color: $white"
+  icon_inactive_style: $reload_icon_inactive_style
 static_icons: []
