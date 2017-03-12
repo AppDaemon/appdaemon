@@ -36,7 +36,7 @@ import appdaemon.appdash as appdash
 import asyncio
 from urllib.parse import urlparse
 
-__version__ = "2.0.0beta3"
+__version__ = "2.0.0beta2"
 
 # Windows does not have Daemonize package so disallow
 
