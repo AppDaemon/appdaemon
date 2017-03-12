@@ -2,7 +2,7 @@
 History
 =======
 
-2.0.0beta2
+2.0.0beta3
 ----------
 
 **Features**
