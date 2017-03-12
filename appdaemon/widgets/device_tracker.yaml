@@ -1,18 +1,9 @@
-widget_type: binary
-icon_on: "$device_tracker_icon_on"
-icon_off: "$device_tracker_icon_off"
-icon_style_active: "$device_tracker_icon_style_active"
-icon_style_inactive: "$device_tracker_icon_style_inactive"
-title_style: $device_tracker_title_style
-title2_style: $device_tracker_title2_style
-widget_style: $device_tracker_widget_style
-state_active: home
+widget_type: baseswitch
+entity: device_tracker.{{device}}
+state_active: "home"
+state_inactive: "not_home"
+enable: 0
 state_text: 1
-state_text_style: $device_tracker_state_text_style
-state_entity: device_tracker.{{device}}
-state_map:
-    home: HOME
-    not_home: AWAY
 post_service_active:
     service: device_tracker/see
     dev_id: {{device}}
@@ -21,3 +12,24 @@ post_service_inactive:
     service: device_tracker/see
     dev_id: {{device}}
     location_name: not_home
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+  state_text: ""
+icons:
+  icon_on: $device_tracker_icon_on
+  icon_off: $device_tracker_icon_off
+static_icons: []
+css:
+  icon_style_active: $device_tracker_icon_style_active 
+  icon_style_inactive: $device_tracker_icon_style_inactive 
+static_css:
+  title_style: $device_tracker_title_style
+  title2_style: $device_tracker_title2_style
+  state_text_style: $device_tracker_state_text_style
+  widget_style: $device_tracker_widget_style
+state_map:
+    home: HOME
+    not_home: AWAY

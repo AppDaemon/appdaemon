@@ -1,4 +1,11 @@
 widget_type: baseclock
-date_style: $clock_date_style
-time_style: $clock_time_style
-widget_style: $clock_widget_style
+fields:
+  date: ""
+  time: ""
+static_css:
+  date_style: $clock_date_style
+  time_style: $clock_time_style
+  widget_style: $clock_widget_style
+static_icons: []
+icons: []
+css: []

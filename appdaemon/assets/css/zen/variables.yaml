@@ -105,6 +105,7 @@ scene_icon_style_inactive: $style_inactive
 scene_title_style: $style_title
 scene_title2_style: $style_title2
 scene_widget_style: $background_style
+scene_state_text_style: "color: red; font-weight: bold"
 
 mode_icon_on: fa-arrows-alt
 mode_icon_off: fa-arrows-alt
@@ -113,6 +114,16 @@ mode_icon_style_inactive: $style_inactive
 mode_title_style: $style_title
 mode_title2_style: $style_title2
 mode_widget_style: $background_style
+mode_state_text_style: "color: red; font-weight: bold"
+
+script_icon_on: fa-th-large
+script_icon_off: fa-th-large
+script_icon_style_active: $style_active
+script_icon_style_inactive: $style_inactive
+script_title_style: $style_title
+script_title2_style: $style_title2
+script_widget_style: $background_style
+script_state_text_style: "color: $red; font-weight: bold"
 
 binary_sensor_icon_on: fa-spinner fa-pulse 
 binary_sensor_icon_off: fa-bars 
@@ -121,6 +132,7 @@ binary_sensor_icon_style_inactive: $style_inactive
 binary_sensor_title_style: $style_title
 binary_sensor_title2_style: $style_title2
 binary_sensor_widget_style: $background_style
+binary_sensor_state_text_style: "color: $red; font-weight: bold"
 
 device_tracker_icon_on: fa-user
 device_tracker_icon_off: fa-user
@@ -129,7 +141,7 @@ device_tracker_icon_style_inactive: $style_inactive
 device_tracker_title_style: $style_title
 device_tracker_title2_style: $style_title2
 device_tracker_widget_style: $background_style
-device_tracker_state_text_style: "color: red; font-weight: bold"
+device_tracker_state_text_style: "color: $red; font-weight: bold"
 
 input_boolean_icon_on: fa-sliders
 input_boolean_icon_off: fa-sliders
@@ -138,6 +150,7 @@ input_boolean_icon_style_inactive: $style_inactive
 input_boolean_title_style: $style_title
 input_boolean_title2_style: $style_title2
 input_boolean_widget_style: $background_style
+input_boolean_state_text_style: "color: $red; font-weight: bold"
 
 switch_icon_on: fa-circle-o-notch fa-spin 
 switch_icon_off: fa-circle-thin
@@ -146,30 +159,45 @@ switch_icon_style_inactive: $style_inactive
 switch_title_style: $style_title
 switch_title2_style: $style_title2
 switch_widget_style: $background_style
+switch_state_text_style: "color: $red; font-weight: bold"
+
+lock_icon_on: fa-unlock-alt
+lock_icon_off: fa-lock
+lock_icon_style_active: $style_active_warn
+lock_icon_style_inactive: $style_inactive
+lock_title_style: $style_title
+lock_title2_style: $style_title2
+lock_widget_style: $background_style
+lock_state_text_style: "color: $red; font-weight: bold"
+
+cover_icon_on: fa-car
+cover_icon_off: fa-car
+cover_icon_style_active: $style_active_warn
+cover_icon_style_inactive: $style_inactive
+cover_title_style: $style_title
+cover_title2_style: $style_title2
+cover_widget_style: $background_style
+cover_state_text_style: "color: $red; font-weight: bold"
 
 clock_date_style: "color: $white"
 clock_time_style: $3d_white
 clock_widget_style: $transparent_black1
 
-weather_main_style: "color: $3d_white; font-size: 85%"
-weather_unit_style: "color: $3d_white; font-weight: bold; font-size: 95%"
+weather_main_style: "$3d_white; font-size: 85%"
+weather_unit_style: "$3d_white; font-weight: bold; font-size: 95%"
 weather_sub_style: "color: white; text-shadow: 0px 4px 5px #222"
 weather_widget_style: "background-image: url(css/zen/img/zen_weatherbg.jpg); background-size: 180%; $inset_silver"
 
-text_sensor_title_style: $style_title
-text_sensor_title2_style: $style_title2
-text_sensor_text_style: "font-weight: bold; font-size: 100%; color: red"
-text_sensor_widget_style: $background_style
-
 label_title_style: $style_title
 label_title2_style: $style_title2
-label_text_style: "color: $white"
+label_text_style: "color: $red"
 label_widget_style: $background_style
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
 sensor_value_style: "color: $red"
-sensor_unit_style: "color: red; font-size: 90%"
+sensor_text_style: "color: $red; font-size: 100%"
+sensor_unit_style: "color: $red; font-size: 90%"
 sensor_widget_style: $background_style
 
 reload_icon_active: fa-spinner fa-spin
@@ -215,21 +243,30 @@ light_level_style: "color: $gray_light"
 light_level_up_style: "color: $red"
 light_level_down_style: "color: $black"
 light_widget_style: $background_style
+light_unit_style: "color: $gray_light"
 
-input_slider_icon_on: none
-input_slider_icon_off: none
 input_slider_icon_up: fa-plus
 input_slider_icon_down: fa-minus
 input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
-input_slider_icon_style_active: $style_active
-input_slider_icon_style_inactive: $style_inactive
 input_slider_unit_style: "color: $red"
-input_slider_state_text_style: "color: $white"
 input_slider_level_style: "color: $red"
 input_slider_level_up_style: "color: $red"
 input_slider_level_down_style: "color: $black"
 input_slider_widget_style: $transparent_black1
+
+climate_icon_up: fa-plus
+climate_icon_down: fa-minus
+climate_title_style: $style_title
+climate_title2_style: $style_title2
+climate_unit_style: "color: $red"
+climate_level_style: "color: $red; font-size: 200%"
+climate_level_up_style: "color: $red"
+climate_level_down_style: "color: $black"
+climate_widget_style: $transparent_black1
+climate_state_text_style: "color: $white"
+climate_level2_style: "color: $red"
+climate_unit2_style: "color: $red"
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin
@@ -244,3 +281,7 @@ group_level_style: "color: $gray_light"
 group_level_up_style: "color: $gray_light"
 group_level_down_style: "color: $gray_light"
 group_widget_style: $background_style
+group_unit_style: "color: $gray_light"
+
+iframe_title_style: $style_title
+iframe_widget_style: $background_style

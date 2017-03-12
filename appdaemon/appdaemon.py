@@ -36,7 +36,7 @@ import appdaemon.appdash as appdash
 import asyncio
 from urllib.parse import urlparse
 
-__version__ = "2.0.0beta1"
+__version__ = "2.0.0beta2"
 
 # Windows does not have Daemonize package so disallow
 
@@ -1615,6 +1615,11 @@ def main():
     else:
         conf.dash_force_compile = False        
      
+    if config['AppDaemon'].get("dash_compile_on_start") == "1":
+        conf.dash_compile_on_start = True
+    else:
+        conf.dash_compile_on_start = False        
+     
     if conf.dash_url != None:
         conf.dashboard = True
         url = urlparse(conf.dash_url)        
@@ -1687,6 +1692,24 @@ def main():
     efh.setLevel(numeric_level)
     # efh.setFormatter(formatter)
     conf.error.addHandler(efh)
+
+    # Setup dash output
+    
+    if config['AppDaemon'].get("accessfile") is not None:
+        conf.dash = logging.getLogger("log3")
+        numeric_level = getattr(logging, args.debug, None)
+        conf.dash.setLevel(numeric_level)
+        conf.dash.propagate = False
+        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        efh = RotatingFileHandler(
+            config['AppDaemon'].get("accessfile"), maxBytes=1000000, backupCount=3
+        )
+
+        efh.setLevel(numeric_level)
+        # efh.setFormatter(formatter)
+        conf.dash.addHandler(efh)
+    else:
+        conf.dash = conf.logger
 
     # Startup message
 
@@ -1777,7 +1800,6 @@ def main():
                 conf.app_dir = find_path("apps")
             else:
                 conf.app_dir = os.path.join(config_dir, "apps")
-        print(conf.app_dir)
         for root, subdirs, files in os.walk(conf.app_dir):
             if root[-11:] != "__pycache__":
                 sys.path.insert(0, root)

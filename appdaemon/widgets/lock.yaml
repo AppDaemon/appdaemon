@@ -1,0 +1,29 @@
+widget_type: baseswitch
+entity: {{entity}}
+state_active: "unlocked"
+state_inactive: "locked"
+enable: 1
+post_service_active:
+    service: lock/unlock
+    entity_id: {{entity}}
+post_service_inactive:
+    service: lock/lock
+    entity_id: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+  state_text: ""
+icons:
+  icon_on: $lock_icon_on
+  icon_off: $lock_icon_off
+static_icons: []
+css:
+  icon_style_active: $lock_icon_style_active 
+  icon_style_inactive: $lock_icon_style_inactive 
+static_css:
+  title_style: $lock_title_style
+  title2_style: $lock_title2_style
+  state_text_style: $lock_state_text_style
+  widget_style: $lock_widget_style

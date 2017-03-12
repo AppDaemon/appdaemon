@@ -1,123 +1,81 @@
 function display(widget_id, url, skin, parameters)
 {
-    // Store Args
-    this.widget_id = widget_id
-    this.parameters = parameters
+    // Will be using "self" throughout for the various flavors of "this"
+    // so for consistency ...
     
-    // Add in methods
-    this.on_ha_data = on_ha_data
-    this.format_value = format_value
-    this.get_state = get_state
+    self = this
     
-    // Create and initialize bindings
-    this.ViewModel = 
+    // Initialization
+    
+    self.widget_id = widget_id
+    
+    // Store on brightness or fallback to a default
+        
+    // Parameters may come in useful later on
+    
+    self.parameters = parameters
+       
+    var callbacks = []
+
+    // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
+    // Initial will be called when the dashboard loads and state has been gathered for the entity
+    // Update will be called every time an update occurs for that entity
+     
+    self.OnStateAvailable = OnStateAvailable
+    self.OnStateUpdate = OnStateUpdate
+    
+    if ("entity" in parameters)
     {
-        title: ko.observable(parameters.title),
-        title2: ko.observable(parameters.title2),
-        value: ko.observable(),
-        unit: ko.observable(parameters.units),
-		widget_style: ko.observable(),
-		title_style: ko.observable(),
-		title2_style: ko.observable(),
-		value_style: ko.observable(),
-		unit_style: ko.observable()
-    };
+        var monitored_entities = 
+            [
+                {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
+            ]
+    }
+    else
+    {
+        var monitored_entities =  []
+    }
+    // Finally, call the parent constructor to get things moving
     
-    ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
 
-	// Setup Override Styles
-
-	if ("widget_style" in parameters)
-	{
-		this.ViewModel.widget_style(parameters.widget_style)
-	}
-
-	if ("title_style" in parameters)
-	{
-		this.ViewModel.title_style(parameters.title_style)
-	}
+    // Function Definitions
     
-	if ("title2_style" in parameters)
-	{
-		this.ViewModel.title2_style(parameters.title2_style)
-	}
-    
-	if ("value_style" in parameters)
-	{
-		this.ViewModel.value_style(parameters.value_style)
-	}
-    
-	if ("unit_style" in parameters)
-	{
-		this.ViewModel.unit_style(parameters.unit_style)
-	}
-    
-    
-    // Get initial state
-    this.get_state(url, parameters.state_entity)
-
+    // The StateAvailable function will be called when 
+    // self.state[<entity>] has valid information for the requested entity
+    // state is the initial state
     // Methods
 
-    function on_ha_data(data)
-    {
-        if (data.event_type == "state_changed" && data.data.entity_id == this.parameters.state_entity)
-        {
-            this.ViewModel.value(this.format_value(data.data.new_state.state))
-        }
+    function OnStateAvailable(self, state)
+    {    
+        set_value(self, state)
     }
-        
-    function get_state(base_url, entity)
+ 
+    function OnStateUpdate(self, state)
     {
-        var that = this;
-        url = base_url + "/state/" + entity;
-        $.get(url, "", function(data)
+        set_value(self, state)
+    }
+
+    function set_value(self, state)
+    {
+        if (isNaN(state.state))
         {
-            if (data.state == null)
+            self.set_field(self, "value_style", self.parameters.css.text_style)
+            self.set_field(self, "value", self.map_state(self, state.state))
+        }
+        else
+        {
+            self.set_field(self, "value_style", self.parameters.css.value_style)
+            self.set_field(self, "value", self.format_number(self, state.state))
+            self.set_field(self, "unit_style", self.parameters.css.unit_style)
+            if ("units" in self.parameters)
             {
-                that.ViewModel.title("Entity not found")
+                self.set_field(self, "unit", self.parameters.units)
             }
             else
             {
-                that.ViewModel.value(that.format_value(data.state.state))
-                if ("title_is_friendly_name" in that.parameters)
-                {
-                    if ("friendly_name" in data.state.attributes)
-                    {
-                        that.ViewModel.title(data.state.attributes["friendly_name"])
-                    }
-                    else
-                    {
-                        that.ViewModel.title(that.widget_id)
-                    }
-                }
-
+                self.set_field(self, "unit", state.attributes["unit_of_measurement"])    
             }
-        }, "json");    
-    };
-        
-    function format_value(value)
-    {
-        if ("precision" in this.parameters)
-        {
-            value = round(value, this.parameters.precision)
-        }
-        
-        if ("shorten" in this.parameters && this.parameters.shorten == 1)
-        {
-            if (value >= 1E9)
-            {
-                value = round(value / 1E9, 1) + "B"
-            }
-            else if (value >= 1E6)
-            {
-                value = round(value / 1E6, 1) + "M"
-            }
-            else if (value >= 1E3)
-            {
-                value = round(value / 1E3, 1) + "K"
-            }
-        }
-        return value
+        }    
     }
-
 }

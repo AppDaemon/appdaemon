@@ -1,0 +1,33 @@
+.widget-baseiframe-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-baseiframe-{{id}} .outer-frame {
+    position: absolute;
+    top: 30px;
+    bottom: 30px;
+    left: 30px;
+    right: 30px;
+}
+
+.widget-baseiframe-{{id}} .outer-image {
+    position: absolute;
+    top: 30px;
+    bottom: 30px;
+    left: 30px;
+    right: 30px;
+}
+
+.widget-baseiframe-{{id}} .scaled-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.widget-baseiframe-{{id}} .img-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}

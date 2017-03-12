@@ -44,7 +44,7 @@ function baseweather(widget_id, url, skin, parameters)
         this.ViewModel[this.sensors[i]] = ko.observable()
     }
 
-    this.ViewModel.unit = ko.observable(parameters.unit)
+    this.ViewModel.unit = ko.observable(parameters.units)
     this.ViewModel.unit_style = ko.observable()
 	this.ViewModel.widget_style = ko.observable()
 	this.ViewModel.main_style = ko.observable()

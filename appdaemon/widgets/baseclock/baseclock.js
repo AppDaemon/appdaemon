@@ -1,53 +1,56 @@
 function baseclock(widget_id, url, skin, parameters)
 {
-	// Store Args
-	this.widget_id = widget_id;
-	this.parameters = parameters;
-	
-	// Create and initialize bindings
-	this.ViewModel = 
-	{
-		date: ko.observable(),
-		time: ko.observable(),
-		widget_style: ko.observable(),
-		date_style: ko.observable(),
-		time_style: ko.observable()
-	};
-	
-	ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
+    // Will be using "self" throughout for the various flavors of "this"
+    // so for consistency ...
+    
+    self = this
+    
+    // Initialization
+    
+    self.widget_id = widget_id
+    
+    // Parameters may come in useful later on
+    
+    self.parameters = parameters
+    
+    // Define callbacks for on click events
+    // They are defined as functions below and can be any name as long as the
+    // 'self'variables match the callbacks array below
+    // We need to add them into the object for later reference
+   
+    var callbacks = []        
+     
+    // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
+    // Initial will be called when the dashboard loads and state has been gathered for the entity
+    // Update will be called every time an update occurs for that entity
+     
+    var monitored_entities = []
+    
+    // Finally, call the parent constructor to get things moving
+    
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
 
-	// Setup Override Styles
+    // Function Definitions
+    
+    // The StateAvailable function will be called when 
+    // self.state[<entity>] has valid information for the requested entity
+    // state is the initial state
+    
+	updateTime(self)
+	
+	setInterval(updateTime, 500, self);
 
-	if ("widget_style" in parameters)
-	{
-		this.ViewModel.widget_style(parameters.widget_style)
-	}
-	
-	if ("date_style" in parameters)
-	{
-		this.ViewModel.date_style(parameters.date_style)
-	}
-	
-	if ("time_style" in parameters)
-	{
-		this.ViewModel.time_style(parameters.time_style)
-	}
-	
-	updateTime(this)
-	
-	setInterval(updateTime, 500, this);
-
-	function updateTime(that) 
+	function updateTime(self) 
 	{
 		var today = new Date();
 		h = today.getHours();
 		m = today.getMinutes();
 		s = today.getSeconds();
 		m = formatTime(m);
-		that.ViewModel.date(today.toLocaleDateString());
 		
+        self.set_field(self, "date", today.toLocaleDateString());
 		
-		if ("time_format" in that.parameters && that.parameters.time_format == "24hr")
+		if ("time_format" in self.parameters && self.parameters.time_format == "24hr")
 		{
 			time = h + ":" + m;
 			pm = ""
@@ -58,13 +61,13 @@ function baseclock(widget_id, url, skin, parameters)
 			pm = " " + formatAmPm(h)
 		}
 		
-		if (that.parameters.show_seconds)
+		if ("show_seconds" in self.parameters && self.parameters.show_seconds == 1)
 		{
 			time = time + ":" + formatTime(s)
 		}
 		
 		time = time + pm
-		that.ViewModel.time(time);
+		self.set_field(self, "time", time);
 	}
 
 	function formatTime(i)

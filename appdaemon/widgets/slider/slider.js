@@ -17,10 +17,14 @@ function slider(widget_id, url, skin, parameters)
 		title2: ko.observable(parameters.title2),
 		unit: ko.observable(parameters.units),
 		level: ko.observable(),
+		unit2: ko.observable(),
+		level2: ko.observable(),
 		title_style: ko.observable(parameters.title_style),
 		title2_style: ko.observable(parameters.title2_style),
 		level_style: ko.observable(parameters.level_style),
 		unit_style: ko.observable(parameters.unit_style),
+		level2_style: ko.observable(parameters.level2_style),
+		unit2_style: ko.observable(parameters.unit2_style),
 		level_up_style: ko.observable(parameters.level_up_style),
 		level_down_style: ko.observable(parameters.level_down_style),
 		icon_up: ko.observable(),
@@ -88,9 +92,16 @@ function slider(widget_id, url, skin, parameters)
 			if ("post_service" in parameters)
 			{
 				args = parameters["post_service"]
-                args["value"] = round(that, that.level)
-                that.call_service(url, args)
+                if ("level_attribute" in parameters)
+                {
+                    args[parameters.level_attribute] = round(that, that.level)
+                }
+                else
+                {
+                    args["value"] = round(that, that.level)
+                }
 			}
+			that.call_service(url, args)
 		}
 	)
 
@@ -109,7 +120,14 @@ function slider(widget_id, url, skin, parameters)
 			if ("post_service" in parameters)
 			{
 				args = parameters["post_service"]
-                args["value"] = round(that, that.level)
+                if ("level_attribute" in parameters)
+                {
+                    args[parameters.level_attribute] = round(that, that.level)
+                }
+                else
+                {
+                    args["value"] = round(that, that.level)
+                }
 			}
 			that.call_service(url, args)
 
@@ -125,8 +143,31 @@ function slider(widget_id, url, skin, parameters)
 		entity = this.parameters.state_entity
 		if (data.event_type == "state_changed" && data.data.entity_id == entity)
 		{
-			this.level = data.data.new_state.state
-			set_view(this, data.data.new_state.state, state_text)
+            current = ""
+            if ("level_attribute" in this.parameters)
+            {
+                this.level = parseFloat(data.data.new_state.attributes[this.parameters.level_attribute]);
+                if (isNaN(data.data.new_state.attributes[that.parameters.level_attribute]))
+                {
+                    current = "AUTO"                            
+                }
+                else
+                {
+                    current = parseFloat(data.data.new_state.attributes[this.parameters.state_attribute]);
+                }
+            }
+            else
+            {    
+                if ("state_attribute" in this.parameters)
+                {
+                    this.level = parseFloat(data.data.new_state.attributes[this.parameters.state_attribute]);
+                }
+                else
+                {
+                    this.level = parseFloat(data.data.new_state.state);
+                }
+            }
+			set_view(this, this.level, current)
 		}
 	}
 	
@@ -151,6 +192,7 @@ function slider(widget_id, url, skin, parameters)
 	   
 	function get_state(base_url, entity)
 	{
+        current = ""
 		if ("state_entity" in parameters)
 		{
 			var that = this;
@@ -163,8 +205,30 @@ function slider(widget_id, url, skin, parameters)
 				}
 				else
 				{   
-					that.level = parseFloat(data.state.state);
-					
+                    if ("level_attribute" in that.parameters)
+                    {
+                        that.level = parseFloat(data.state.attributes[that.parameters.level_attribute]);
+                        if (data.state.attributes[that.parameters.level_attribute] == null)
+                        {
+                            current = "AUTO"                            
+                        }
+                        else
+                        {
+                            current = parseFloat(data.state.attributes[that.parameters.state_attribute]);
+                        }
+                    }
+                    else
+                    {
+                        if ("state_attribute" in that.parameters)
+                        {
+                            that.level = parseFloat(data.state.attributes[that.parameters.state_attribute]);
+                        }
+                        else
+                        {
+                            that.level = parseFloat(data.state.state);
+                        }
+					}
+                    
 					if ("title_is_friendly_name" in that.parameters)
 					{
 						if ("friendly_name" in data.state.attributes)
@@ -191,7 +255,7 @@ function slider(widget_id, url, skin, parameters)
 					{
 						that.max_level = data.state.attributes[that.parameters["max_attribute"]]
 					}
-					set_view(that, that.level, state_text)
+					set_view(that, that.level, current)
 				}
 			}, "json");
 		}
@@ -203,8 +267,17 @@ function slider(widget_id, url, skin, parameters)
 		}
 	};
 	
-	function set_view(self, level, state_text)
+	function set_view(self, level, current)
 	{
-		self.ViewModel.level(level)
+        if ("level_attribute" in self.parameters)
+        {
+            self.ViewModel.level(current)
+            self.ViewModel.level2(level)
+            self.ViewModel.unit2(self.parameters.units)
+		}
+        else
+        {
+            self.ViewModel.level(level)
+        }
 	}
 }

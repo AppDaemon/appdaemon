@@ -521,7 +521,14 @@ function sliderswitch(widget_id, url, skin, parameters)
                 {
                     value = (Math.round((level - self.min_level)/(self.max_level - self.min_level)*10))*10
                 }
-                self.ViewModel.level(value)
+                if (isNaN(value))
+                {
+                    self.ViewModel.level(self.min_level)
+                }
+                else
+                {
+                    self.ViewModel.level(value)
+                }
             }
             else
             {

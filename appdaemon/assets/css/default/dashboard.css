@@ -12,6 +12,7 @@ body {
   font-size: 15px;
   color: #fff;
   padding: 0;
+  line-height: 1;
   font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 
@@ -116,7 +117,9 @@ h3 {
   display: table-cell;
   vertical-align: middle;
   background-color: #444444;
-}
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;}
 
   .title {
     color: #fff;

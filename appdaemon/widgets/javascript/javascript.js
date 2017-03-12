@@ -5,77 +5,49 @@ function javascript(widget_id, url, skin, parameters)
     this.parameters = parameters
     this.skin = skin
         
-    // Create and initialize bindings
-    this.ViewModel = 
-    {
-        title: ko.observable(parameters.title),
-        title2: ko.observable(parameters.title2),
-        icon: ko.observable(),
-        widget_style: ko.observable(),
-        title_style: ko.observable(),
-        title2_style: ko.observable(),
-        icon_style: ko.observable()
-    };
+    // Will be using "self" throughout for the various flavors of "this"
+    // so for consistency ...
     
-    ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
-
-    // Setup Override Styles
-
-    if ("widget_style" in parameters)
-    {
-        this.ViewModel.widget_style(parameters.widget_style)
-    }    
-
-    if ("title_style" in parameters)
-    {
-        this.ViewModel.title_style(parameters.title_style)
-    }    
-
-    if ("title2_style" in parameters)
-    {
-        this.ViewModel.title2_style(parameters.title2_style)
-    }    
-
-    if ("icon_active_style" in parameters)
-    {
-        this.icon_active_style = parameters.icon_active_style
-    }
-    else
-    {
-        this.icon_active_style = "color: white"
-    }
+    self = this
     
-    if ("icon_inactive_style" in parameters)
-    {
-        this.icon_inactive_style = parameters.icon_inactive_style
-    }
-    else
-    {
-        this.icon_inactive_style = "color: white"
-    }
+    // Initialization
+    
+    self.widget_id = widget_id
+    
+    // Store on brightness or fallback to a default
+        
+    // Parameters may come in useful later on
+    
+    self.parameters = parameters
+        
+    // Define callbacks for on click events
+    // They are defined as functions below and can be any name as long as the
+    // 'self'variables match the callbacks array below
+    // We need to add them into the object for later reference
+   
+    self.OnButtonClick = OnButtonClick
 
-    if ("icon_inactive" in parameters)
-    {
-        this.icon_inactive = parameters.icon_inactive
-    }
-    else
-    {
-        this.icon_inactive = "fa-gear"
-    }
+    var callbacks =
+        [
+            {"selector": '#' + widget_id + ' > span', "callback": self.OnButtonClick},
+        ]
+       
+    // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
+    // Initial will be called when the dashboard loads and state has been gathered for the entity
+    // Update will be called every time an update occurs for that entity
     
-    if ("icon_active" in parameters)
-    {
-        this.icon_active = parameters.icon_active
-    }
-    else
-    {
-        this.icon_active = "fa-spinner fa-spin"
-    }
+    var monitored_entities = 
+        []
     
-    this.ViewModel.icon(this.icon_inactive.split("-")[0] + ' ' + this.icon_inactive)
-    this.ViewModel.icon_style(this.icon_inactive_style)
+    // Finally, call the parent constructor to get things moving
     
-    // Do some setup
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
+
+    // Function Definitions
+    
+    // The StateAvailable function will be called when 
+    // self.state[<entity>] has valid information for the requested entity
+    // state is the initial state
     
     if ("command" in parameters)
     {
@@ -127,15 +99,15 @@ function javascript(widget_id, url, skin, parameters)
         command = "window.location.href = '" + url + "'"
     }
     
-    this.command = command
-    var that = this
-    $('#' + widget_id + ' > span').click(
-        function()
-        {
-            that.ViewModel.icon(that.icon_active.split("-")[0] + ' ' + that.icon_active)
-            that.ViewModel.icon_style(that.icon_active_style)
-            eval(that.command);
-        }
-    );
+    self.set_icon(self, "icon", self.icons.icon_inactive)
+    self.set_field(self, "icon_style", self.css.icon_inactive_style)
     
+    self.command = command
+    
+    function OnButtonClick(self)
+    {
+        self.set_icon(self, "icon", self.icons.icon_active)
+        self.set_field(self, "icon_style", self.css.icon_active_style)
+        eval(self.command);
+    }
 }

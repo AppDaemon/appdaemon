@@ -87,7 +87,7 @@ textblur: "color: inherit; text-shadow: 3px 3px 8px #BF7F00, -3px -3px 8px #BF7F
 
 # Be aware that using either of these alternate widget styles also turns off the hover/button press effects!!
 goldbg: "$no_shadow; background-image: url(/css/simplyred/img/goldtexture.jpg); border: ridge 4px gold; border-radius: 10px"
-blackbg: "$no_shadow; background: black; border: 5px solid transparent; padding 15px; 
+blackbg: "$no_shadow; background: black; border: 5px solid transparent; padding: 15px; 
  -webkit-border-image: url(/css/simplyred/img/goldgradient.png) 20 round; /* Safari 3.1-5 */
  -o-border-image: url(/css/simplyred/img/goldgradient.png) 20 round; /* Opera 11-12.1 */
  border-image: url(/css/simplyred/img/goldgradient.png) 20 round; border-radius: 10px"
@@ -101,6 +101,7 @@ scene_icon_style_inactive: $style_inactive
 scene_title_style: $style_title
 scene_title2_style: $style_title2
 scene_widget_style: $background_style
+scene_state_text_style: "color: white; font-weight: bold"
 
 mode_icon_on: fa-arrows-alt
 mode_icon_off: fa-arrows-alt
@@ -109,6 +110,16 @@ mode_icon_style_inactive: $style_inactive
 mode_title_style: $style_title
 mode_title2_style: $style_title2
 mode_widget_style: $background_style
+mode_state_text_style: "color: white; font-weight: bold"
+
+script_icon_on: fa-th-large
+script_icon_off: fa-th-large
+script_icon_style_active: $style_active
+script_icon_style_inactive: $style_inactive
+script_title_style: $style_title
+script_title2_style: $style_title2
+script_widget_style: $background_style
+script_state_text_style: "color: white; font-weight: bold"
 
 binary_sensor_icon_on: fa-bullseye
 binary_sensor_icon_off: fa-minus
@@ -117,6 +128,7 @@ binary_sensor_icon_style_inactive: $style_inactive
 binary_sensor_title_style: $style_title
 binary_sensor_title2_style: $style_title2
 binary_sensor_widget_style: $background_style
+binary_sensor_state_text_style: "color: white; font-weight: bold"
 
 device_tracker_icon_on: fa-user
 device_tracker_icon_off: fa-user
@@ -134,6 +146,7 @@ input_boolean_icon_style_inactive: $style_inactive
 input_boolean_title_style: $style_title
 input_boolean_title2_style: $style_title2
 input_boolean_widget_style: $background_style
+input_boolean_state_text_style: "color: white; font-weight: bold"
 
 switch_icon_on: fa-circle
 switch_icon_off: fa-circle-thin
@@ -142,6 +155,25 @@ switch_icon_style_inactive: $style_inactive
 switch_title_style: $style_title
 switch_title2_style: $style_title2
 switch_widget_style: $background_style
+switch_state_text_style: "color: white; font-weight: bold"
+
+lock_icon_on: fa-unlock-alt
+lock_icon_off: fa-lock
+lock_icon_style_active: $style_active_warn
+lock_icon_style_inactive: $style_inactive
+lock_title_style: $style_title
+lock_title2_style: $style_title2
+lock_widget_style: $background_style
+lock_state_text_style: "color: white; font-weight: bold"
+
+cover_icon_on: fa-car
+cover_icon_off: fa-car
+cover_icon_style_active: $style_active_warn
+cover_icon_style_inactive: $style_inactive
+cover_title_style: $style_title
+cover_title2_style: $style_title2
+cover_widget_style: $background_style
+cover_state_text_style: "color: white; font-weight: bold"
 
 clock_date_style: "$textblur; font-weight: 900; font-style: bold"
 clock_time_style: "$textblur; font-weight: 900; font-style: bold"
@@ -152,11 +184,6 @@ weather_unit_style: "color: gold; font-size: 90%"
 weather_sub_style: "color: $white"
 weather_widget_style: "$blackbg"
 
-text_sensor_title_style: $style_title
-text_sensor_title2_style: $style_title2
-text_sensor_text_style: "color: $white; font-size: 90%"
-text_sensor_widget_style: $background_style
-
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $white"
@@ -165,6 +192,7 @@ label_widget_style: $background_style
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
 sensor_value_style: $style_info
+sensor_text_style: "color: $white; font-size: 100%"
 sensor_unit_style: "color: gold; font-size: 95%"
 sensor_widget_style: $background_style
 
@@ -211,6 +239,7 @@ light_level_style: "color: $gray_light"
 light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
 light_widget_style: $background_style
+light_unit_style: "color: $gray_light"
 
 input_slider_icon_up: fa-plus
 input_slider_icon_down: fa-minus
@@ -221,6 +250,19 @@ input_slider_unit_style: "color: white"
 input_slider_level_up_style: "color: $gray_light"
 input_slider_level_down_style: "color: $gray_light"
 input_slider_widget_style: $background_style
+
+climate_icon_up: fa-plus
+climate_icon_down: fa-minus
+climate_title_style: $style_title
+climate_title2_style: $style_title2
+climate_level_style: "color: white"
+climate_unit_style: "color: white"
+climate_level_up_style: "color: $gray_light"
+climate_level_down_style: "color: $gray_light"
+climate_widget_style: $background_style
+climate_state_text_style: "color: $white"
+climate_level2_style: "color: white"
+climate_unit2_style: "color: white"
 
 group_icon_on: fa-circle
 group_icon_off: fa-circle-thin
@@ -235,3 +277,7 @@ group_level_style: "color: $gray_light"
 group_level_up_style: "color: $gray_light"
 group_level_down_style: "color: $gray_light"
 group_widget_style: $background_style
+group_unit_style: "color: $gray_light"
+
+iframe_title_style: $style_title
+iframe_widget_style: $background_style

@@ -1,0 +1,21 @@
+widget_type: slider
+state_entity: {{entity}}
+state_attribute: current_temperature
+level_attribute: temperature
+post_service:
+    service: climate/set_temperature
+    entity_id: {{entity}}
+max_attribute: max_temp
+min_attribute: min_temp
+step: 1
+icon_up: $climate_icon_up
+icon_down: $climate_icon_down
+title_style: $climate_title_style
+title2_style: $climate_title2_style
+level_up_style: $climate_level_up_style
+level_down_style: $climate_level_down_style
+widget_style: $climate_widget_style
+level_style: $climate_level_style
+unit_style: $climate_unit_style
+level2_style: $climate_level2_style
+unit2_style: $climate_unit2_style

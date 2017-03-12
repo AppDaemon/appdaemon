@@ -12,6 +12,7 @@ body {
   background-image: url("/css/obsidian/img/obsidian_bg.jpg");
   font-size: 14px;
   color: #000;
+  line-height: 1;
   font-family: 'Russo One', 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 

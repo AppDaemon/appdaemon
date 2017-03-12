@@ -10,6 +10,8 @@ modules = {}
 app_dir = None
 apps = False
 start_time = None
+logfile = None
+error = None
 
 # Will require object based locking if implemented
 objects = {}
@@ -65,4 +67,5 @@ state_url = None
 max_include_depth = 10
 dash_force_compile = False
 custom_css_dir = None
-
+dash = None
+dash_compile_on_start = None

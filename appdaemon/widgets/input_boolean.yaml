@@ -1,15 +1,29 @@
-widget_type: binary
-state_entity: {{entity}}
-icon_on: $input_boolean_icon_on
-icon_off: $input_boolean_icon_off
-icon_style_active: $input_boolean_icon_style_active
-icon_style_inactive: $input_boolean_icon_style_inactive
-title_style: $input_boolean_title_style
-title2_style: $input_boolean_title2_style
-widget_style: $input_boolean_widget_style
+widget_type: baseswitch
+entity: {{entity}}
+state_active: "on"
+state_inactive: "off"
+enable: 1
 post_service_active:
     service: homeassistant/turn_on
     entity_id: {{entity}}
 post_service_inactive:
     service: homeassistant/turn_off
     entity_id: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+  state_text: ""
+icons:
+  icon_on: $input_boolean_icon_on
+  icon_off: $input_boolean_icon_off
+static_icons: []
+css:
+  icon_style_active: $input_boolean_icon_style_active 
+  icon_style_inactive: $input_boolean_icon_style_inactive 
+static_css:
+  title_style: $input_boolean_title_style
+  title2_style: $input_boolean_title2_style
+  state_text_style: $input_boolean_state_text_style
+  widget_style: $input_boolean_widget_style

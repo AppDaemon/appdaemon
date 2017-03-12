@@ -20,7 +20,7 @@
 }
 
 .widget-slider-{{id}} .unit {
-	font-size: 150%;
+	font-size: 100%;
 	font-weight: 400;
 	display: inline-block;
 	vertical-align: top;
@@ -42,6 +42,23 @@
 	color: white;
 }
 
+.widget-slider-{{id}} .level2 {
+	display: inline-block;
+}
+
+.widget-slider-{{id}} .unit2 {
+	font-size: 65%;
+	font-weight: 400;
+	display: inline-block;
+	vertical-align: top;
+
+}
+
+.widget-slider-{{id}} .levelunit2 {
+	position: absolute;
+	bottom: 5px;
+	width: 100%;
+}
 .widget-slider-{{id}} .secondary-icon.plus {
 	right: 24px;
 }

@@ -1,6 +1,19 @@
-widget_type: text
-state_entity: {{entity}}
-title_style: $text_sensor_title_style
-title2_style: $text_sensor_title2_style
-text_style: $text_sensor_text_style
-widget_style: $text_sensor_widget_style
+widget_type: display
+entity: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  value: ""
+  unit: ""
+static_css:
+  title_style: $sensor_title_style
+  title2_style: $sensor_title2_style
+  unit_style: ""
+  value_style: ""
+  widget_style: $sensor_widget_style
+css:
+  value_style: $sensor_value_style
+  text_style: $sensor_text_style
+  unit_style: $sensor_unit_style
+icons: []
+static_icons: []

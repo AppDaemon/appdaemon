@@ -10,6 +10,8 @@ HADashboard is dependent upon AppDaemon. As a first step please refer to the [Ap
 
 When you have AppDaemon installed and running, configuration of the Dashboard is pretty simple. You just need to add a directive to the config file - `dash_url`.
 
+This and the optional `dash_dir` directive should be in the top of the file under the `[AppDaemon]` section, ahead of any of the App definitions or they won't be recognized and the dashboard piece of AppDaemon will not start.
+
 - `dash_url` - the url you want the dashboard service to listen on
 
 For instance:
@@ -47,6 +49,33 @@ dash_force_compile = 1
 ```
 
 This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
+
+By default, information and errors around acces to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
+
+```ini
+accessfile = /var/log/dash_access
+```
+
+To force dashboard recompilation of all dashboards after a restart, use:
+
+```ini
+dash_compile_on_start = 1
+```
+
+This should not be necessary but may on occasion be required after an upgrade to pickup changes.
+
+# Dashboard parameters
+
+The dashboard URL supports a couple of extra parameters:
+
+- `skin` - name of the skin you want to use, default is `default`
+- `recompile` - set to anything to force a recompilation of the dashboard
+
+For example, the following url will load a dasboard called main with the obsidian skin:
+
+```
+http://<ip address>/<port>/Main?skin=obsidian
+```
 
 # Dashboard Configuration
 
@@ -114,7 +143,6 @@ The above would leave the 2nd row empty.
 
 And that is all there to it, for a simple one file dashboard.
 
-
 ## Detailed Widget Definition
 
 The approach above is ok for simple widgets like lights, but HADashboard has a huge range of customization options. To access these, you need to formally define the widget along with its associated parameters.
@@ -164,7 +192,7 @@ wendy_presence:
     device: wendys_iphone
 
 mode:
-    widget_type: text_sensor
+    widget_type: sensor
     title: House Mode
     entity: input_select.house_mode
 
@@ -204,7 +232,7 @@ It is also possible to add a widget from a standalone file. The file will contai
 
 ```yaml
 widget_type: clock
-background_color: red
+widget_style: "color: red"
 ```
 
 Note that the indentation level starts at 0. To include this file, just reference a widget called `clock` in the layout, and HADashboard will automatically load the widget.
@@ -281,7 +309,7 @@ wendy_presence:
     device: dedb5e711a24415baaae5cf8e880d852
 
 mode:
-    widget_type: text_sensor
+    widget_type: sensor
     title: House Mode
     entity: input_select.house_mode
 
@@ -340,6 +368,33 @@ A few caveats for loaded sub files:
 - Sub files can include other subfiles to a maximum depth of 10 - please avoid circular references!
 - When layout information is included in a sub file, the subfile must comprise 1 or more complete dashboard rows - partial rows or blocks are not supported.
 
+As a final option, you can create widget definitions in the main file and use them in the layout of the header/footer/etc. For example, if you have a header that has a label in it that lists the room that the dashboard is associated with, you can put the label widget definition in the header file but all the pages get the same message. If you put the label widget definition in the main file for the room, and reference it from the layout in the header, each page has the right name displayed in the header.
+
+For example:
+
+```yaml
+clock:
+    widget_type: clock
+layout:
+    - label(2x2),clock(2x2)
+```
+
+In this example of a header, we reference a clock and a label in the layout. We can re-use this header, but in order to make the label change for every page we use it on we actually define it in the dashboard file itself, and include the header in the layout:
+
+```yaml
+title: Den Panel
+widget_dimensions: [120, 120]
+widget_margins: [5, 5]
+columns: 8
+
+label:
+    widget_type: label
+    text: Welcome to the Den
+    
+layout:
+    - include: header
+```
+
 # Widget Customization
 
 Widgets allow customization using arbitary CSS styles for the individual elements that make up the widget. Every widget has a ``widget_style` argument to apply styles to the whole widget, as well as one or more additional style arguments that differ for each widget. To customize a widget background for instance:
@@ -357,7 +412,7 @@ clock:
   widget_style: "background: white; font-size: 150%;"
 ```
 
-You can use any valid CSS style here although you should probably steer away from some of the formatting types as they may interact badly with HADasboards formatting. Also, dpeneding upon the options used in specific skins, you may get unexpected results as the widget definition of a style will completely override the skin's own definition. This is fine if the skin uses just colors for instance, but if it uses other effects you will need to suplicate them in your widget definition or they will be removed. 
+You can use any valid CSS style here although you should probably steer away from some of the formatting types as they may interact badly with HADasboards formatting. Widget level styles will correctly override just the style in the skin they are replacing.
 
 In the case of the clock widget, it also supports `date_style` and `time_style` to modify those elements accordingly:
 
@@ -369,6 +424,47 @@ clock:
   time_style: "color: green"
 ```
 Since `date_style` and `time_style` are applied to more specific elements, they will override `widget_style`. Also note that some widget styles may be specified in the widget's CSS, in which case that style will override `widget_style` but not the more specific styles.
+
+# State and state text
+
+Some widgets allow you to display not only an icon showing the state but also text of the state itself. The following widgets allow this:
+
+- scene
+- binary_sensor
+- switch
+- device_tracker
+- script
+- lock
+- cover
+- input_boolean
+- sensor
+
+In order to enable this, just add:
+
+```yaml
+state_text: 1
+```
+
+to the widget definition. This will then make the widget show the HA state below the icon. Since native HA state is not always very pretty it is also possible to map this to better values, for instance in a different language than English.
+
+To add a state map, just add a state_map list to the widget definition listing the HA states and what you actually want displayed. For instance:
+
+```yaml
+state_map:
+  "on": Aan
+  "off": Uit
+```
+
+One wrinkle here is that YAML over enthusiastically "helps" by interpreting things like `on` and `off` as booleans so the quotes are needed to prevent this.
+
+# Icons
+
+Widgets that allow the specification of icons have access to both [Font Awesome](http://fontawesome.io/cheatsheet/) and [Material Design](https://materialdesignicons.com/) Icons. To specify an icon simply use the prefix `fa-` for Font Aweesome and `mdi-` for Material Design. e,g,:
+
+```yaml
+icon_on: fa-alert
+icon_off: mdi-cancel
+```
 
 # Widget Reference
 
@@ -396,6 +492,16 @@ None
 ## weather
 
 Up to date weather reports. Requires dark sky to be configured in Home Assistant with at minimum the following sensors:
+
+- temperature
+- humidity
+- precip_probability
+- precip_intensity
+- wind_speed
+- pressure
+- wind_bearing
+- apparent_temperature
+- icon
 
 ### Mandatory arguments: 
 
@@ -430,9 +536,10 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `units` - the unit symbol to be displayed
+- `units` - the unit symbol to be displayed, if not specified HAs unit will be used, specify "" for no units
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
+- `state_map`
 
 ### Style Arguments: 
 
@@ -440,11 +547,14 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 - `title_style`
 - `title2_style`
 - `value_style`
+- `text_style`
 - `unit_style`
+
+The sensor widget will detect if the data is numeric, in which case `value_style` and `unit_style` will be applied, otherwise `text_style` will be applied and no units will be shown.
 
 ## device_tracker
 
-A Widget that reports on device tracker status. It can also be used to toggle the status between "home" and "not_home".
+A Widget that reports on device tracker status. It can also be optionally be used to toggle the status between "home" and "not_home".
 
 ### Mandatory Arguments:
 
@@ -453,8 +563,31 @@ A Widget that reports on device tracker status. It can also be used to toggle th
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
-- `title2` - a second line of title text 
+- `title2` - a second line of title text
+- `enable` - set to 1 to enable the widget to toggle the device_tracker status
+- `state_text`
+- `state_map`
+- `active_map`
 
+Active map is used to specify states other than "home" that will be regarded as active, meaning the icon will light up. This can be useful if tracking a device tracker within the house using beacons for instance.
+
+Example:
+
+```yaml
+wendy_presence_mapped:
+  widget_type: device_tracker
+  title: Wendy
+  title2: Mapped
+  device: wendys_iphone
+  active_map:
+    - home
+    - house
+    - back_yard
+    - upstairs
+```
+
+In the absence of an active map, only the state `home` will be regarded as active.
+    
 ### Style Arguments: 
 
 - `icon_on`
@@ -465,26 +598,6 @@ A Widget that reports on device tracker status. It can also be used to toggle th
 - `title_style`
 - `title2_style`
 - `state_text_style`
-    
-## text_sensor
-
-A widget to show the value of any text based sensor
-
-### Mandatory Arguments
-
-- `entity` - the entity_id of the sensor to be monitored
-
-### Optional Arguments:
-
-- `title` - the title displayed on the tile
-- `title2` - a second line of title text 
-
-### Cosmetic Arguments
-
-- `widget_style`
-- `title_style`
-- `title2_style`
-- `text_style`
 
 ## label
 
@@ -519,6 +632,33 @@ A widget to activate a scene
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
+
+### Style Arguments: 
+
+- `icon_on`
+- `icon_off`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
+- `title2_style`
+
+## script
+
+A widget to run a script
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the script
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Style Arguments: 
 
@@ -539,6 +679,8 @@ A widget to track the state of an `input_select` by showing active when it is se
 - `entity` - the entity_id of the `input_select`
 - `mode` - value of the input select to show as active
 - `script` - script to run when pressed
+- `state_text`
+- `state_map`
 
 ### Optional Arguments:
 
@@ -567,6 +709,60 @@ A widget to monitor and activate a switch
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
+
+### Cosmetic Arguments
+    
+- `icon_on`
+- `icon_off`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
+- `title2_style`
+
+## lock
+
+A widget to monitor and activate a lock
+
+Note that unlike HASS, Dashboard regards an unlocked lock as active. By contrast, the HASS UI shows a locked lock as "on". Since the purpose of the dashboard is to alert at a glance on anything that is unusual, I chose to make the unlocked state "active" which means in the default skin it is shown as red, wheras a locked icon is shown as gray. You can easily change this behavior by setting active and inactive styles if you prefer.
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the lock
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+- `state_text`
+- `state_map`
+
+### Cosmetic Arguments
+    
+- `icon_on`
+- `icon_off`
+- `widget_style`
+- `icon_style_active`
+- `icon_style_inactive`
+- `title_style`
+- `title2_style`
+
+## cover
+
+A widget to monitor and activate a cover. At this time only the open and close actions are supported.
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the cover
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     
@@ -590,6 +786,8 @@ A widget to monitor and activate an input_boolean
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     
@@ -614,6 +812,8 @@ A widget to monitor a binary_sensor
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
+- `state_text`
+- `state_map`
 
 ### Cosmetic Arguments
     
@@ -639,8 +839,7 @@ A widget to monitor and contol a dimmable light
 - `icon_off`
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `on_brightness` - how bright you want the light to come on when activated in percent.
-- `increment` - the size of step in brightness when fading the light up or down
+- `on_brightness` - how bright you want the light to come on when activated, 1 - 255.
 
 ### Cosmetic Arguments
    
@@ -671,16 +870,52 @@ A widget to monitor and contol an input slider
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `increment` - the size of step in brightness when fading the slider up or down
+- `step` - the size of step in brightness when fading the slider up or down
 - `units` - the unit symbol to be displayed
 
 ### Cosmetic Arguments
    
 - `widget_style`
+- `icon_up`
+- `icon_down`
+- `title_style`
+- `title2_style`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
+## climate
+
+A widget to monitor and contol a climate entity
+
+### Mandatory Arguments
+
+- `entity` - the entity_id of the climate entity
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+- `step` - the size of step in brightness when fading the slider up or down
+- `units` - the unit symbol to be displayed
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `icon_up`
+- `icon_down`
+- `title_style`
+- `title2_style`
+- `text_style`
+- `level_style`
+- `level_up_style`
+- `level_down_style`
+
 
 ## media_player
 
-A widget to monitor and contol a media player light
+A widget to monitor and contol a media player
 
 ### Mandatory Arguments
 
@@ -719,7 +954,10 @@ A widget to monitor and contol a group of lights
 ### Optional Arguments:
 
 - `title` - the title displayed on the tile
-- `title2` - a second line of title text 
+- `title2` - a second line of title text
+- `monitored_entity` - the actual entity to monitor
+
+Groups currently do no report back state changes correctly when attributes light brightness are changed. As a workaround, instead of looking for state changes in the group, we use `monitored_entity` instead. This is not necessary of there are no dimmable lights in the group, however if there are, it should be set to the entity_id of one of the dimmable group members.
 
 ### Cosmetic Arguments
    
@@ -736,32 +974,6 @@ A widget to monitor and contol a group of lights
 - `level_style`
 - `level_up_style`
 - `level_down_style`
-
-## input_slider
-
-A widget to monitor and contol an input_slider
-
-### Mandatory Arguments
-
-- `entity` - the entity_id of the media player
-
-### Optional Arguments:
-
-- `title` - the title displayed on the tile
-- `title2` - a second line of title text 
-
-### Cosmetic Arguments
-   
-- `widget_style`
-- `title_style`
-- `title2_style`
-- `icon_style_active`
-- `icon_style_inactive`
-- `text_style`
-- `level_style`
-- `level_up_style`
-- `level_down_style`
-
 
 ## navigate
 
@@ -791,7 +1003,8 @@ some_widget:
 
 ### Cosmetic Arguments
    
-- `icon`
+- `icon_active`
+- `icon_inactive`
 - `widget_style`
 - `title_style`
 - `title2_style`
@@ -819,6 +1032,59 @@ None.
 - `title2_style`
 - `icon_active_style`
 - `icon_inactive_style`
+
+## iframe
+
+A widget to display other content within the dashboard
+
+### Mandatory Arguments
+
+- `url_list` - a list of 1 or more URLs to cycle though.
+or
+- `img_list` - a list of 1 or more Image URLs to cycle through.
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `refresh` - (seconds) if set, the iframe widget will progress down it's list every refresh period, returning to the beginning when it hits the end. Use this in conjunction with a single entry in the `url_list` to have a single url refresh at a set interval.
+
+For regular HTTP sites, use the `url_list` argument, for images the `img_list` argument should work better.
+
+Example:
+
+```yaml
+iframe:
+    widget_type: iframe
+    title: Cats
+    refresh: 60
+    url_list: 
+      - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
+      - https://www.pexels.com/photo/eyes-cat-coach-sofa-96938/
+      - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
+      - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
+      - https://www.pexels.com/photo/grey-fur-kitten-127028/
+      - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
+      - https://www.pexels.com/photo/cat-sleeping-62640/
+```
+
+Content will be shown with scroll bars which can be undesirable. For images this can be alleviated by using an image resizing service such as the one offered by [Google](https://carlo.zottmann.org/posts/2013/04/14/google-image-resizer.html).
+
+```yaml
+weather_frame:
+    widget_type: iframe
+    title: Radar
+    refresh: 300
+    frame_style: ""
+    img_list: 
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
+```
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `title_style`
+
 
 # Skins
 

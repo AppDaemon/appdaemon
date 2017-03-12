@@ -1,0 +1,29 @@
+widget_type: baseswitch
+entity: {{entity}}
+state_active: "open"
+state_inactive: "closed"
+enable: 1
+post_service_active:
+    service: cover/open_cover
+    entity_id: {{entity}}
+post_service_inactive:
+    service: cover/close_cover
+    entity_id: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+  state_text: ""
+icons:
+  icon_on: $cover_icon_on
+  icon_off: $cover_icon_off
+static_icons: []
+css:
+  icon_style_active: $cover_icon_style_active 
+  icon_style_inactive: $cover_icon_style_inactive 
+static_css:
+  title_style: $cover_title_style
+  title2_style: $cover_title2_style
+  state_text_style: $cover_state_text_style
+  widget_style: $cover_widget_style

@@ -51,59 +51,68 @@ def list_dash(request):
 @asyncio.coroutine
 @aiohttp_jinja2.template('dashboard.jinja2')
 def load_dash(request):
-    name = request.match_info.get('name', "Anonymous")
+    try:
+        name = request.match_info.get('name', "Anonymous")
 
-    # Set correct skin
-    
-    if "skin" in request.rel_url.query:
-        skin = request.rel_url.query["skin"]
-    else:
-        skin = "default"
-
-    #
-    # Check skin exists
-    #
-    skindir = os.path.join(conf.config_dir, "custom_css", skin)
-    if os.path.isdir(skindir):
-        ha.log(conf.logger, "INFO", "Loading custom skin '{}'".format(skin))
-    else:
-        # Not a custom skin, try product skins
-        skindir = os.path.join(conf.css_dir, skin)
-        if not os.path.isdir(skindir):
-            ha.log(conf.logger, "WARNING", "Skin '{}' does not exist".format(skin))
+        # Set correct skin
+        
+        if "skin" in request.rel_url.query:
+            skin = request.rel_url.query["skin"]
+        else:
             skin = "default"
-            skindir = os.path.join(conf.css_dir, "default")
 
-    #
-    # Conditionally compile Dashboard
-    #
-    
-    dash = dashboard.compile_dash(name, skin, skindir, request.rel_url.query)
-    
-    if dash == None:
-        errors = []
-        head_includes = []
-        body_includes = []
-    else:
-        errors = dash["errors"]
-        if "head_includes" in dash:
-            head_includes = dash["head_includes"]
+        #
+        # Check skin exists
+        #
+        skindir = os.path.join(conf.config_dir, "custom_css", skin)
+        if os.path.isdir(skindir):
+            ha.log(conf.dash, "INFO", "Loading custom skin '{}'".format(skin))
         else:
+            # Not a custom skin, try product skins
+            skindir = os.path.join(conf.css_dir, skin)
+            if not os.path.isdir(skindir):
+                ha.log(conf.dash, "WARNING", "Skin '{}' does not exist".format(skin))
+                skin = "default"
+                skindir = os.path.join(conf.css_dir, "default")
+
+        #
+        # Conditionally compile Dashboard
+        #
+        
+        dash = dashboard.compile_dash(name, skin, skindir, request.rel_url.query)
+        
+        if dash == None:
+            errors = []
             head_includes = []
-        if "body_includes" in dash:
-            body_includes = dash["body_includes"]
-        else:
             body_includes = []
+        else:
+            errors = dash["errors"]
+            if "head_includes" in dash:
+                head_includes = dash["head_includes"]
+            else:
+                head_includes = []
+            if "body_includes" in dash:
+                body_includes = dash["body_includes"]
+            else:
+                body_includes = []
 
-    if "widgets" in dash:
-        widgets = dash["widgets"]
-    else:
-        widgets = {}
-    #
-    #return params
-    #
-    return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "head_includes": head_includes, "body_includes": body_includes}
-
+        if "widgets" in dash:
+            widgets = dash["widgets"]
+        else:
+            widgets = {}
+        #
+        #return params
+        #
+        return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets, "head_includes": head_includes, "body_includes": body_includes}
+        
+    except:
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error in CSS file")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        return {"errors": ["An unrecoverable error occured fetching dashboard"]}
+        
 @asyncio.coroutine
 def get_state(request):
     entity = request.match_info.get('entity')
@@ -113,13 +122,7 @@ def get_state(request):
     # This is a fix for controlling groups of lights
     
     if entity in conf.ha_state:
-        parts = entity.split(".")
-        if parts[0] == "group":
-            # pick the first group member
-            sub_entity = conf.ha_state[entity]["attributes"]["entity_id"][0]
-            state = conf.ha_state[sub_entity]
-        else:
-            state = conf.ha_state[entity]
+        state = conf.ha_state[entity]
     else:
         state = None
 
@@ -128,6 +131,8 @@ def get_state(request):
 @asyncio.coroutine
 def call_service(request):
     data = yield from request.post()
+    # Should be using aiohttp client here
+    # Will fix when I fully convert to async
     ha.call_service(**request.POST)
     return web.Response(status = 200)
     
@@ -153,7 +158,7 @@ def wshandler(request):
         while True:
             msg = yield from ws.receive()
             if msg.type == aiohttp.WSMsgType.TEXT:
-                ha.log(conf.logger, "INFO", 
+                ha.log(conf.dash, "INFO", 
                        "New dashboard connected: {}".format(msg.data))
                 #
                 # There is a race condition here
@@ -164,17 +169,17 @@ def wshandler(request):
 
                 request.app['websockets'][ws]["dashboard"] =  msg.data                
             elif msg.type == aiohttp.WSMsgType.ERROR:
-                ha.log(conf.logger, "INFO", 
+                ha.log(conf.dash, "INFO", 
                 "ws connection closed with exception {}".format(ws.exception()))       
     except: 
-                ha.log(conf.logger, "INFO", "Dashboard disconnected")
+                ha.log(conf.dash, "INFO", "Dashboard disconnected")
     finally:
         request.app['websockets'].pop(ws, None)
 
     return ws
 
 def ws_update(data):
-    ha.log(conf.logger, 
+    ha.log(conf.dash, 
            "DEBUG", 
            "Sending data to {} dashes: {}".format(len(app['websockets']), 
            data))
@@ -184,7 +189,7 @@ def ws_update(data):
         # This will give a key error for dashboard if the race condition occurs
         # Will leave it in the code for now so I can test the fix when it occurs
         #
-        ha.log(conf.logger, 
+        ha.log(conf.dash, 
            "DEBUG", 
            "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
         ws.send_str(json.dumps(data))
@@ -193,6 +198,7 @@ def ws_update(data):
 
 def setup_routes():
     app.router.add_get('/favicon.ico', not_found)
+    app.router.add_get('/{gfx}.png', not_found)
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)
@@ -235,7 +241,8 @@ def run_dash(loop):
         handler = app.make_handler()
         f = loop.create_server(handler, conf.dash_host, int(conf.dash_port))
         srv = loop.run_until_complete(f)
-        ha.log(conf.logger, "INFO", 
+        ha.log(conf.dash, "INFO", "HADashboard Started")
+        ha.log(conf.dash, "INFO", 
                "Listening on {}".format(srv.sockets[0].getsockname()))
         try:
             loop.run_forever()
@@ -249,9 +256,9 @@ def run_dash(loop):
             loop.run_until_complete(app.cleanup())
         loop.close()
     except:
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", "Unexpected error in dashboard thread")
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", traceback.format_exc())
-        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
     

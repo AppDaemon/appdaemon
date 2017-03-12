@@ -1,10 +1,24 @@
-widget_type: binary
-icon_on: "$binary_sensor_icon_on"
-icon_off: "$binary_sensor_icon_off"
-icon_style_active: "$binary_sensor_icon_style_active"
-icon_style_inactive: "$binary_sensor_icon_style_inactive"
-widget_style: $binary_sensor_widget_style
-title_style: $binary_sensor_title_style
-title2_style: $binary_sensor_title2_style
+widget_type: baseswitch
+entity: {{entity}}
 state_active: "on"
-state_entity: {{entity}}
+state_inactive: "off"
+enable: 0
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+  state_text: ""
+icons:
+  icon_on: $binary_sensor_icon_on
+  icon_off: $binary_sensor_icon_off
+static_icons: []
+css:
+  icon_style_active: $binary_sensor_icon_style_active 
+  icon_style_inactive: $binary_sensor_icon_style_inactive 
+static_css:
+  title_style: $binary_sensor_title_style
+  title2_style: $binary_sensor_title2_style
+  state_text_style: $binary_sensor_state_text_style
+  widget_style: $binary_sensor_widget_style
+

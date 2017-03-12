@@ -43,7 +43,7 @@ def timeit(func):
         startTime = time.time()
         result = func(*args, **kwargs)
         elapsedTime = time.time() - startTime
-        ha.log(conf.logger, "INFO",'function [{}] finished in {} ms'.format(
+        ha.log(conf.dash, "INFO",'function [{}] finished in {} ms'.format(
             func.__name__, int(elapsedTime * 1000)))
         return result
     return newfunc
@@ -56,22 +56,28 @@ def load_css_params(skin, skindir):
         try:
             css = yaml.load(css_text)
         except yaml.YAMLError as exc:
-            ha.log(conf.logger, "WARNING",  "Error loading CSS variables")
+            ha.log(conf.dash, "WARNING",  "Error loading CSS variables")
             if hasattr(exc, 'problem_mark'):
                 if exc.context != None:
-                    ha.log(conf.logger, "WARNING", "parser says")
-                    ha.log(conf.logger, "WARNING", str(exc.problem_mark))  
-                    ha.log(conf.logger, "WARNING", str(exc.problem) + " " + str(exc.context))
+                    ha.log(conf.dash, "WARNING", "parser says")
+                    ha.log(conf.dash, "WARNING", str(exc.problem_mark))  
+                    ha.log(conf.dash, "WARNING", str(exc.problem) + " " + str(exc.context))
                 else:
-                    ha.log(conf.logger, "WARNING", "parser says")
-                    ha.log(conf.logger, "WARNING", str(exc.problem_mark))
-                    ha.log(conf.logger, "WARNING", str(exc.problem)) 
+                    ha.log(conf.dash, "WARNING", "parser says")
+                    ha.log(conf.dash, "WARNING", str(exc.problem_mark))
+                    ha.log(conf.dash, "WARNING", str(exc.problem)) 
             return None
-        return expand_vars(css, css)
+        if css == None:
+            return {}
+        else:
+            return expand_vars(css, css)
     else:
-        ha.log(conf.logger, "WARNING",  "Error loading variables.yaml for skin '{}'".format(skin))
+        ha.log(conf.dash, "WARNING",  "Error loading variables.yaml for skin '{}'".format(skin))
         return None
-    return expand_vars(css, css)
+    if css == None:
+        return {}
+    else:    
+        return expand_vars(css, css)
 
 def expand_vars(fields, subs):
     done = False
@@ -81,7 +87,9 @@ def expand_vars(fields, subs):
         index = index + 1
         done = True
         for varline in fields:
-            if fields[varline] != None and type(fields[varline]) == str:
+            if isinstance(fields[varline], dict):
+               fields[varline] = expand_vars(fields[varline], subs) 
+            elif fields[varline] != None and type(fields[varline]) == str:
                 vars = variable.finditer(fields[varline])
                 for var in vars:
                     subvar = var.group()[1:]
@@ -89,18 +97,74 @@ def expand_vars(fields, subs):
                         done = False
                         fields[varline] = fields[varline].replace(var.group(), subs[subvar], 1)
                     else:
-                        ha.log(conf.logger, "WARNING",  "Variable definition not found in CSS Skin variables: ${}".format(subvar))
-                        None
+                        ha.log(conf.dash, "WARNING",  "Variable definition not found in CSS Skin variables: ${}".format(subvar))
+                        fields[varline] = ""
+
     if index == 100:
-        ha.log(conf.logger, "WARNING",  "Unable to resolve CSS Skin variables, check for circular references") 
+        ha.log(conf.dash, "WARNING",  "Unable to resolve CSS Skin variables, check for circular references") 
+    
     return fields
 
+def get_styles(style_str, name, field):
+    #
+    # Parse styles in order from a string and allow later entries to override earlier ones
+    #
+    result = {}
+    styles = style_str.split(";")
+    for style in styles:
+        if style != "" and style != None:
+            pieces = style.split(":")
+            if len(pieces) == 2:
+               result[pieces[0].strip()] = pieces[1]
+            else:
+               ha.log(conf.dash, "WARNING", "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".format(style, name, field)) 
+        
+    return result
+    
+def merge_styles(widget, name):
+    result = {}
+    for key in widget:
+        if key == "css" or key == "static_css":
+            result[key] = merge_styles(widget[key], name)            
+        elif key.find("style") == -1:
+            result[key] = widget[key]
+        else:
+            line = ""
+            styles = get_styles(widget[key], name, key)
+            for style in styles:
+                line = line + style + ":" + styles[style] + ";"
+            result[key] = line
+    return result
+
+def do_subs(file, vars, blank):
+    sub = re.compile("\{\{(.+)\}\}")
+    templates = {}
+    result = ""
+    with open(file, 'r') as fd:
+        for line in fd:
+            for ikey in vars:
+                newline = ""
+                match = "{{{{{}}}}}".format(ikey)
+                if match in line:
+                    templates[ikey] = 1
+                    line = line.replace(match, vars[ikey])
+        
+            line = sub.sub(blank, line)
+                
+            result = result + line
+    return(result, templates)
+    
 def load_widget(dash, includes, name, css_vars):
     instantiated_widget = None
+    #
+    # Check if we have already encountered a definition
+    #
     for include in includes:
         if name in include:
             instantiated_widget = include[name]
-            
+    #
+    # If not, go find it elsewhere
+    # 
     if instantiated_widget == None:
         # Try to find in in a yaml file
         yaml_path = os.path.join(conf.dashboard_dir, "{}.yaml".format(name))
@@ -123,17 +187,27 @@ def load_widget(dash, includes, name, css_vars):
                 return {"widget_type": "text", "title": "Error loading widget"}
                 
         elif name.find(".") != -1:
+            #
+            # No file, check if it is implicitly defined via an entity id
+            #
             parts = name.split(".")
             instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
         else:
-            ha.log(conf.logger, "WARNING", "Unable to find widget definition for '{}'".format(name))
+            ha.log(conf.dash, "WARNING", "Unable to find widget definition for '{}'".format(name))
             # Return some valid data so the browser will render a blank widget
             return {"widget_type": "text", "title": "Widget definition not found"}
                 
     try:
         if "widget_type" not in instantiated_widget:
             return {"widget_type": "text", "title": "Widget type not specified"}
+
+        #
+        # One way or another we now have the widget definition
+        #
         widget_type = instantiated_widget["widget_type"]
+    
+        if widget_type == "text_sensor":
+            ha.log(conf.dash, "WARNING", "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '{}'".format(name))
         if os.path.isdir(os.path.join(conf.dash_dir, "widgets", widget_type)):
             # This is a base widget so return it in full
             return expand_vars(instantiated_widget, css_vars)
@@ -142,28 +216,15 @@ def load_widget(dash, includes, name, css_vars):
         
         yaml_path = os.path.join(conf.dash_dir, "widgets", "{}.yaml".format(widget_type))
         
-        yaml_file = ""
-        templates = {}
-        sub = re.compile("\{\{(.+)\}\}")
-
-        #size = widgetdimensions.search(wid)
-        #if size:
-        with open(yaml_path, 'r') as yamlfd:
-            for line in yamlfd:
-                for ikey in instantiated_widget:
-                    newline = ""
-                    match = "{{{{{}}}}}".format(ikey)
-                    if match in line:
-                        templates[ikey] = 1
-                        line = line.replace(match, instantiated_widget[ikey])
-            
-                var = sub.search(line)
-                if var:
-                    return {"widget_type": "text", "title": "Missing argument in widget definition: {}".format(var.group(1))}
-                    
-                yaml_file = yaml_file + line
+        #
+        # Variable substitutions
+        #
+        yaml_file, templates = do_subs(yaml_path, instantiated_widget, '""')
 
         try:
+            #
+            # Parse the substituted YAML file - this is a derived widget definition
+            #
             final_widget = yaml.load(yaml_file)
         except yaml.YAMLError as exc:
             log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
@@ -178,17 +239,38 @@ def load_widget(dash, includes, name, css_vars):
                     log_error(dash, name, str(exc.problem))
             return {"widget_type": "text", "title": "Error loading widget definition"}
 
-        
+        #
+        # Override defaults with parameters in users definition
+        #
         for key in instantiated_widget:
             if key != "widget_type" and not key in templates:
-                final_widget[key] = instantiated_widget[key]
-
+                #if it is an existing key and it is a style attirbute, prepend, don't overwrite
+                if key in final_widget and key.find("style") != -1:
+                    #if it is an existing key and it is a style attirpute, prepend, don't overwrite
+                    final_widget[key] =  final_widget[key] + ";" + instantiated_widget[key];
+                else:
+                    final_widget[key] = instantiated_widget[key]
+                if "css" in final_widget and key in final_widget["css"]:
+                    final_widget["css"][key] = final_widget["css"][key] + ";" + instantiated_widget[key];
+                if "static_css" in final_widget and key in final_widget["static_css"]:
+                    final_widget["static_css"][key] = final_widget["static_css"][key] + ";" + instantiated_widget[key];
+                if "icons" in final_widget and key in final_widget["icons"]:
+                    final_widget["icons"][key] = instantiated_widget[key];
+                if "static_icons" in final_widget and key in final_widget["static_icons"]:
+                    final_widget["static_icons"][key] = instantiated_widget[key];
+        
+        #
+        # Process variables from skin
+        #
         final_widget = expand_vars(final_widget, css_vars)
-                
-                
+        #
+        # Merge styles
+        #
+        final_widget = merge_styles(final_widget, name)
+                     
         return final_widget
     except FileNotFoundError:
-        ha.log(conf.logger, "WARNING", "Unable to find widget type '{}'".format(widget_type))
+        ha.log(conf.dash, "WARNING", "Unable to find widget type '{}'".format(widget_type))
         # Return some valid data so the browser will render a blank widget
         return {"widget_type": "text", "title": "Widget type not found"}
  
@@ -226,7 +308,7 @@ def add_layout(value, layout, occupied, dash, page, includes, css_vars):
             widget["id"] = "{}-{}".format(page, sanitized_name)
             
             if widget_exists(dash["widgets"], widget["id"]):
-                ha.log(conf.logger, "WARNING", "Duplicate widget name '{}' - ignored".format(name))
+                ha.log(conf.dash, "WARNING", "Duplicate widget name '{}' - ignored".format(name))
             else:
                 widget["position"] = [column, layout]
                 widget["size"] = [xsize, ysize]
@@ -257,7 +339,7 @@ def load_dash(name, css_vars):
 
 def log_error(dash, name, error):
     dash["errors"].append("{}: {}".format(os.path.basename(name), error))
-    ha.log(conf.logger, "WARNING", error)
+    ha.log(conf.dash, "WARNING", error)
     
 def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
 
@@ -312,7 +394,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
                 if extension == "dash":
                     dash[thing] = stuff[thing]
                 else:
-                    ha.log(conf.logger, "WARNING", "Top level dashboard directive illegal in imported dashboard '{}.{}': {}: {}".format(name, extension, thing, stuff[thing]))
+                    ha.log(conf.dash, "WARNING", "Top level dashboard directive illegal in imported dashboard '{}.{}': {}: {}".format(name, extension, thing, stuff[thing]))
             else:
                 includes.append({thing: stuff[thing]})
         
@@ -378,16 +460,16 @@ def compile_dash(name, skin, skindir, params):
         if widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
             compile = True
 
-        #
-        # Force compilation at startup - need to add a flag
-        #
-        #if conf.start_time > last_compiled:
-        #    compile = True
+        
+        # Force compilation at startup
+        
+        if conf.start_time > last_compiled and conf.dash_compile_on_start is True:
+            compile = True
                
         if compile is False:
             return {"errors": []}
     
-    ha.log(conf.logger, "INFO", "Compiling dashboard '{}'".format(name))
+    ha.log(conf.dash, "INFO", "Compiling dashboard '{}'".format(name))
     
     dash = get_dash(name, skin, skindir)
     if dash == None:
@@ -435,7 +517,7 @@ def get_dash(name, skin, skindir):
         if dash == None:
             return None
     else:
-        ha.log(conf.logger, "WARNING", "Dashboard '{}' not found".format(name))
+        ha.log(conf.dash, "WARNING", "Dashboard '{}' not found".format(name))
         return None
     
     if "head_includes" in css_vars and css_vars["head_includes"] != None:
@@ -461,11 +543,10 @@ def get_dash(name, skin, skindir):
         # Base CSS template and compile
         #
         if not os.path.isfile(os.path.join(skindir, "dashboard.css")):
-           ha.log(conf.logger, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
+           ha.log(conf.dash, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
         else:
-            css_env = Environment(loader=FileSystemLoader(skindir))
-            template = css_env.get_template("dashboard.css")
-            rendered_css = template.render(css_vars)
+            template = os.path.join(skindir, "dashboard.css")
+            rendered_css, subs = do_subs(template, css_vars, "")
             
             css = css + rendered_css + "\n"
 
@@ -483,18 +564,18 @@ def get_dash(name, skin, skindir):
             js = js + widgets[widget]["js"] + "\n"
             
     except KeyError:
-        ha.log(conf.logger, "WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
+        ha.log(conf.dash, "WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
         return None
     except:
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", "Unexpected error in CSS file")
-        ha.log(conf.logger, "WARNING", '-' * 60)
-        ha.log(conf.logger, "WARNING", traceback.format_exc())
-        ha.log(conf.logger, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error in CSS file")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
         if rendered_css != None:
-            ha.log(conf.logger, "WARNING", "Rendered CSS:")
-            ha.log(conf.logger, "WARNING", rendered_css)
-            ha.log(conf.logger, "WARNING", '-' * 60)
+            ha.log(conf.dash, "WARNING", "Rendered CSS:")
+            ha.log(conf.dash, "WARNING", rendered_css)
+            ha.log(conf.dash, "WARNING", '-' * 60)
         return None
   
 

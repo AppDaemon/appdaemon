@@ -1,0 +1,80 @@
+.widget-baselight-{{id}} {
+	position: relative;
+}
+
+.widget-baselight-{{id}} .state_text {
+	font-size: 85%;
+}
+
+.widget-baselight-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-baselight-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
+
+.widget-baselight-{{id}} .state_text {
+	position: absolute;
+	top: 38px;
+	width: 100%;
+}
+
+.widget-baselight-{{id}} .icon {
+	position: absolute;
+	top: 43px;
+	width: 100%;
+}
+
+.widget-baselight-{{id}} .toggle-area {
+	z-index: 10;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100px;
+}
+
+.widget-baselight-{{id}} .level {
+	display: inline-block;
+}
+
+.widget-baselight-{{id}} .unit {
+	display: inline-block;
+}
+
+.widget-baselight-{{id}} .levelunit {
+	position: absolute;
+	bottom: 5px;
+	width: 100%;
+}
+
+.widget-baselight-{{id}} .secondary-icon {
+	position: absolute;
+	bottom: 0px;
+	font-size: 20px;
+	width: 32px;
+	color: white;
+}
+
+.widget-baselight-{{id}} .secondary-icon.plus {
+	right: 24px;
+}
+
+.widget-baselight-{{id}} .secondary-icon.plus i {
+	padding-top: 10px;
+	padding-left: 30px;
+}
+
+.widget-baselight-{{id}} .secondary-icon.minus {
+	left: 8px;
+}
+
+.widget-baselight-{{id}} .secondary-icon.minus i {
+	padding-top: 10px;
+	padding-right: 30px;
+}

@@ -1,9 +1,17 @@
 widget_type: javascript
-icon_active: $navigate_icon_active
-icon_inactive: $navigate_icon_inactive
-title_style: $navigate_title_style
-title2_style: $navigate_title2_style
-icon_active_style: $navigate_icon_active_style
-icon_inactive_style: $navigate_icon_inactive_style
-widget_style: $navigate_widget_style
-
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+icons:
+  icon_active: $navigate_icon_active
+  icon_inactive: $navigate_icon_inactive
+static_css:
+  title_style: $navigate_title_style
+  title2_style: $navigate_title2_style
+  widget_style: $navigate_widget_style
+css:
+  icon_active_style: $navigate_icon_active_style
+  icon_inactive_style: $navigate_icon_inactive_style
+static_icons: []
