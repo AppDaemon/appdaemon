@@ -112,6 +112,8 @@ h3 {
   width: 100%;
   display: table;
   cursor: pointer;
+  z-index: auto !important;
+
 }
 
 .widget {

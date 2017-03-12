@@ -195,13 +195,13 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     for (i=0;i < clen;i++)
     {
         $(callbacks[i].selector).click((
-            function(callback, ch)
+            function(callback, ch, params)
             {
                 return function()
                 {
-                    callback(ch)
+                    callback(ch, params)
                 };
-            }(callbacks[i].callback, child))
+            }(callbacks[i].callback, child,callbacks[i].parameters))
         );
     }
     

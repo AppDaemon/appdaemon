@@ -116,6 +116,7 @@ h3 {
   width: 100%;
   display: table;
   cursor: pointer;
+  z-index: auto !important;
 }
 .gs-w:hover {
   background-color: rgba(0, 0, 0, 0.5);
