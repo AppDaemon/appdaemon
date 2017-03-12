@@ -1,0 +1,90 @@
+
+.widget-basealarm-{{id}} .state {
+	basealarm: inline-block;
+	vertical-align: middle;
+}
+
+.widget-basealarm-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-basealarm-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
+
+.widget-basealarm-{{id}} .modalDialog {
+	position: fixed;
+	font-family: Arial, Helvetica, sans-serif;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background: rgba(0,0,0,0.8);
+	z-index: 10;
+	opacity:0;
+	-webkit-transition: opacity 400ms ease-in;
+	-moz-transition: opacity 400ms ease-in;
+	transition: opacity 400ms ease-in;
+	pointer-events: none;
+}
+
+.widget-basealarm-{{id}} .modalDialog:target {
+	opacity:1;
+	pointer-events: auto;
+}
+
+.widget-basealarm-{{id}} .modalDialog > div {
+	width: 400px;
+	position: relative;
+	margin: 10% auto;
+	padding: 5px 20px 13px 20px;
+	border-radius: 10px;
+    background: #444
+}
+
+.widget-basealarm-{{id}} .close {
+	line-height: 25px;
+	position: absolute;
+	right: -12px;
+	text-align: center;
+	top: -10px;
+	width: 24px;
+	text-decoration: none;
+	font-weight: bold;
+	-webkit-border-radius: 12px;
+	-moz-border-radius: 12px;
+	border-radius: 12px;
+}
+
+.widget-basealarm-{{id}} .close:hover { background: #444; }
+
+
+.widget-basealarm-{{id}} container {
+    width: 342px;
+    display: inline-block;
+}
+
+.widget-basealarm-{{id}} block {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    margin: 5px;
+    background: #555;
+    float: left;
+    font-size: 300%;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 100px; 
+}
+
+.widget-basealarm-{{id}} block[v2] {
+    height: 210px;
+}
+
+.widget-basealarm-{{id}} block[h2] {
+    width: 210px;
+}

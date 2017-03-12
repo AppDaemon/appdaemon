@@ -122,29 +122,39 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     this.get_state = function(child, base_url, entity)
     {
         state_url = base_url + "/state/" + entity.entity;
-        $.get(state_url, "", function(data)
-        {
-            if (data.state == null)
-            {
-                child.ViewModel.title("entity not found: " + entity.entity)
-                new_state = null
-            }
-            else
-            {
-                new_state = data.state
-                if ("title_is_friendly_name" in child.parameters 
-                && child.parameters.title_is_friendly_name == 1
-                && "friendly_name" in new_state.attributes)
-                {
-                    child.ViewModel.title(new_state.attributes.friendly_name)
-                }
-                if (typeof child.entity_state === 'undefined')
-                {
-                    child.entity_state = {}
-                }
-                child.entity_state[entity.entity] = new_state
-                entity.initial(child, new_state)
-            }
+        $.ajax
+        ({
+            url: state_url, 
+            type: 'GET',
+            success: function(data)
+                    {
+                        if (data.state == null)
+                        {
+                            child.ViewModel.title("entity not found: " + entity.entity)
+                            new_state = null
+                        }
+                        else
+                        {
+                            new_state = data.state
+                            if ("title_is_friendly_name" in child.parameters 
+                            && child.parameters.title_is_friendly_name == 1
+                            && "friendly_name" in new_state.attributes)
+                            {
+                                child.ViewModel.title(new_state.attributes.friendly_name)
+                            }
+                            if (typeof child.entity_state === 'undefined')
+                            {
+                                child.entity_state = {}
+                            }
+                            child.entity_state[entity.entity] = new_state
+                            entity.initial(child, new_state)
+                        }
+                    },
+            error: function(data)
+                    {
+                        alert("Error getting state, check Java Console for details")
+                    }
+                  
         });
     }
    

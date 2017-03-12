@@ -1,4 +1,4 @@
-function display(widget_id, url, skin, parameters)
+function basealarm(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
@@ -8,8 +8,6 @@ function display(widget_id, url, skin, parameters)
     // Initialization
     
     self.widget_id = widget_id
-    
-    // Store on brightness or fallback to a default
         
     // Parameters may come in useful later on
     
@@ -48,35 +46,11 @@ function display(widget_id, url, skin, parameters)
 
     function OnStateAvailable(self, state)
     {    
-        set_value(self, state)
+        self.set_field(self, "state", self.map_state(self, state.state))
     }
  
     function OnStateUpdate(self, state)
     {
-        set_value(self, state)
-    }
-
-    function set_value(self, state)
-    {
-        state = self.map_state(self, state.state)
-        if (isNaN(state))
-        {
-            self.set_field(self, "value_style", self.parameters.css.text_style)
-            self.set_field(self, "value", self.map_state(self, state))
-        }
-        else
-        {
-            self.set_field(self, "value_style", self.parameters.css.value_style)
-            self.set_field(self, "value", self.format_number(self, state))
-            self.set_field(self, "unit_style", self.parameters.css.unit_style)
-            if ("units" in self.parameters)
-            {
-                self.set_field(self, "unit", self.parameters.units)
-            }
-            else
-            {
-                self.set_field(self, "unit", state.attributes["unit_of_measurement"])    
-            }
-        }    
-    }
+        self.set_field(self, "state", self.map_state(self, state.state))
+    }   
 }
