@@ -33,7 +33,9 @@ img {
 
 img, object {
   max-width: 100%;
-}
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  border-radius: 15px;}
 
 iframe {
   max-width: 100%;
@@ -114,6 +116,14 @@ h3 {
   cursor: pointer;
   z-index: auto !important;
 
+}
+
+.iframe {
+  position: relative;
+  overflow: hidden; 
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  border-radius: 15px;
 }
 
 .widget {

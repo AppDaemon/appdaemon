@@ -58,16 +58,16 @@ function display(widget_id, url, skin, parameters)
 
     function set_value(self, state)
     {
-        state = self.map_state(self, state.state)
-        if (isNaN(state))
+        value = self.map_state(self, state.state)
+        if (isNaN(value))
         {
             self.set_field(self, "value_style", self.parameters.css.text_style)
-            self.set_field(self, "value", self.map_state(self, state))
+            self.set_field(self, "value", self.map_state(self, value))
         }
         else
         {
             self.set_field(self, "value_style", self.parameters.css.value_style)
-            self.set_field(self, "value", self.format_number(self, state))
+            self.set_field(self, "value", self.format_number(self, value))
             self.set_field(self, "unit_style", self.parameters.css.unit_style)
             if ("units" in self.parameters)
             {

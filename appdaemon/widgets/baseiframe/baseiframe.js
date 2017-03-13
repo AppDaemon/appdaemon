@@ -27,6 +27,7 @@ function baseiframe(widget_id, url, skin, parameters)
         if ("url_list" in self.parameters)
         {
             self.set_field(self, "frame_src", self.parameters.url_list[self.index]);
+            self.set_field(self, "img_src", "/images/Blank.gif");
             size = self.parameters.url_list.length
         }
         else

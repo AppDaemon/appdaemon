@@ -11,6 +11,7 @@
     left: 0px;
     right: 0px;
     z-index: 1;
+    border: none;
 }
 
 .widget-baseiframe-{{id}} .outer-image {
@@ -20,6 +21,7 @@
     left: 0px;
     right: 0px;
     z-index: 0;
+    border: none;
 }
 
 .widget-baseiframe-{{id}} .scaled-frame {

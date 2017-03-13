@@ -33,12 +33,14 @@ img {
 
 img, object {
   max-width: 100%;
-}
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;}
 
 iframe {
   max-width: 100%;
 }
-
+  
 table {
   border-collapse: collapse;
   border-spacing: 0;
@@ -115,6 +117,13 @@ input {
   cursor: pointer;
   z-index: auto !important;
 }
+
+.iframe {
+  position: relative;
+  overflow: hidden;  
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;}
 
 .widget {
   padding: 0px 0px;
