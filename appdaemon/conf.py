@@ -68,4 +68,4 @@ max_include_depth = 10
 dash_force_compile = False
 custom_css_dir = None
 dash = None
-
+dash_compile_on_start = None

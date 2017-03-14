@@ -68,7 +68,33 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         self.ViewModel[field](value)
     }
     
-    this.set_state_text = function(self, field, value)
+    this.format_number = function(self, value)
+    {
+        if ("precision" in self.parameters)
+        {
+            value = round(value, self.parameters.precision)
+        }
+        
+        if ("shorten" in self.parameters && self.parameters.shorten == 1)
+        {
+            if (value >= 1E9)
+            {
+                value = round(value / 1E9, 1) + "B"
+            }
+            else if (value >= 1E6)
+            {
+                value = round(value / 1E6, 1) + "M"
+            }
+            else if (value >= 1E3)
+            {
+                value = round(value / 1E3, 1) + "K"
+            }
+        }
+        return value
+    }
+
+    
+    this.map_state = function(self, value)
     {
         if ("state_map" in self.parameters)
         {
@@ -85,7 +111,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         {
             state = value
         }
-        self.ViewModel[field](state)
+        return (state)
     }
     
     this.set_icon = function(self, field, value)
@@ -96,29 +122,39 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     this.get_state = function(child, base_url, entity)
     {
         state_url = base_url + "/state/" + entity.entity;
-        $.get(state_url, "", function(data)
-        {
-            if (data.state == null)
-            {
-                child.ViewModel.title("entity not found: " + entity.entity)
-                new_state = null
-            }
-            else
-            {
-                new_state = data.state
-                if ("title_is_friendly_name" in child.parameters 
-                && child.parameters.title_is_friendly_name == 1
-                && "friendly_name" in new_state.attributes)
-                {
-                    child.ViewModel.title(new_state.attributes.friendly_name)
-                }
-                if (typeof child.entity_state === 'undefined')
-                {
-                    child.entity_state = {}
-                }
-                child.entity_state[entity.entity] = new_state
-                entity.initial(child, new_state)
-            }
+        $.ajax
+        ({
+            url: state_url, 
+            type: 'GET',
+            success: function(data)
+                    {
+                        if (data.state == null)
+                        {
+                            child.ViewModel.title("entity not found: " + entity.entity)
+                            new_state = null
+                        }
+                        else
+                        {
+                            new_state = data.state
+                            if ("title_is_friendly_name" in child.parameters 
+                            && child.parameters.title_is_friendly_name == 1
+                            && "friendly_name" in new_state.attributes)
+                            {
+                                child.ViewModel.title(new_state.attributes.friendly_name)
+                            }
+                            if (typeof child.entity_state === 'undefined')
+                            {
+                                child.entity_state = {}
+                            }
+                            child.entity_state[entity.entity] = new_state
+                            entity.initial(child, new_state)
+                        }
+                    },
+            error: function(data)
+                    {
+                        alert("Error getting state, check Java Console for details")
+                    }
+                  
         });
     }
    
@@ -159,13 +195,13 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     for (i=0;i < clen;i++)
     {
         $(callbacks[i].selector).click((
-            function(callback, ch)
+            function(callback, ch, params)
             {
                 return function()
                 {
-                    callback(ch)
+                    callback(ch, params)
                 };
-            }(callbacks[i].callback, child))
+            }(callbacks[i].callback, child,callbacks[i].parameters))
         );
     }
     

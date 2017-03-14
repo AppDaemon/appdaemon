@@ -131,6 +131,8 @@ def get_state(request):
 @asyncio.coroutine
 def call_service(request):
     data = yield from request.post()
+    # Should be using aiohttp client here
+    # Will fix when I fully convert to async
     ha.call_service(**request.POST)
     return web.Response(status = 200)
     
@@ -158,12 +160,6 @@ def wshandler(request):
             if msg.type == aiohttp.WSMsgType.TEXT:
                 ha.log(conf.dash, "INFO", 
                        "New dashboard connected: {}".format(msg.data))
-                #
-                # There is a race condition here
-                # Since AIOHTTP is running in a separate thread from the rest of
-                # Appdaemon, it is possible for an event to occur between the connections
-                # Setup and the addition of this field
-                # Fix is to convert AppDaemon core to Async.
 
                 request.app['websockets'][ws]["dashboard"] =  msg.data                
             elif msg.type == aiohttp.WSMsgType.ERROR:
@@ -183,19 +179,18 @@ def ws_update(data):
            data))
            
     for ws in app['websockets']:
-        #
-        # This will give a key error for dashboard if the race condition occurs
-        # Will leave it in the code for now so I can test the fix when it occurs
-        #
-        ha.log(conf.dash, 
-           "DEBUG", 
-           "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
-        ws.send_str(json.dumps(data))
+        
+        if "dashboard" in app['websockets'][ws]:
+            ha.log(conf.dash, 
+               "DEBUG", 
+               "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
+            ws.send_str(json.dumps(data))
     
 #Routes, Status and Templates
 
 def setup_routes():
     app.router.add_get('/favicon.ico', not_found)
+    app.router.add_get('/{gfx}.png', not_found)
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)

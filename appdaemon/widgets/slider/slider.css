@@ -20,7 +20,7 @@
 }
 
 .widget-slider-{{id}} .unit {
-	font-size: 150%;
+	font-size: 100%;
 	font-weight: 400;
 	display: inline-block;
 	vertical-align: top;
@@ -47,7 +47,11 @@
 }
 
 .widget-slider-{{id}} .unit2 {
+	font-size: 65%;
+	font-weight: 400;
 	display: inline-block;
+	vertical-align: top;
+
 }
 
 .widget-slider-{{id}} .levelunit2 {

@@ -48,19 +48,21 @@ HADashboard pre-compiles all of the user created Dashboard for efficiency. It wi
 dash_force_compile = 1
 ```
 
+This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
+
 By default, information and errors around acces to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
-
-```ini
-accessfile = STDOUT
-```
-
-or
 
 ```ini
 accessfile = /var/log/dash_access
 ```
 
-This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
+To force dashboard recompilation of all dashboards after a restart, use:
+
+```ini
+dash_compile_on_start = 1
+```
+
+This should not be necessary but may on occasion be required after an upgrade to pickup changes.
 
 # Dashboard parameters
 
@@ -190,7 +192,7 @@ wendy_presence:
     device: wendys_iphone
 
 mode:
-    widget_type: text_sensor
+    widget_type: sensor
     title: House Mode
     entity: input_select.house_mode
 
@@ -307,7 +309,7 @@ wendy_presence:
     device: dedb5e711a24415baaae5cf8e880d852
 
 mode:
-    widget_type: text_sensor
+    widget_type: sensor
     title: House Mode
     entity: input_select.house_mode
 
@@ -435,6 +437,7 @@ Some widgets allow you to display not only an icon showing the state but also te
 - lock
 - cover
 - input_boolean
+- sensor
 
 In order to enable this, just add:
 
@@ -448,11 +451,20 @@ To add a state map, just add a state_map list to the widget definition listing t
 
 ```yaml
 state_map:
-  "on": Op
+  "on": Aan
   "off": Uit
 ```
 
 One wrinkle here is that YAML over enthusiastically "helps" by interpreting things like `on` and `off` as booleans so the quotes are needed to prevent this.
+
+# Icons
+
+Widgets that allow the specification of icons have access to both [Font Awesome](http://fontawesome.io/cheatsheet/) and [Material Design](https://materialdesignicons.com/) Icons. To specify an icon simply use the prefix `fa-` for Font Aweesome and `mdi-` for Material Design. e,g,:
+
+```yaml
+icon_on: fa-alert
+icon_off: mdi-cancel
+```
 
 # Widget Reference
 
@@ -524,9 +536,10 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `units` - the unit symbol to be displayed
+- `units` - the unit symbol to be displayed, if not specified HAs unit will be used, specify "" for no units
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
+- `state_map`
 
 ### Style Arguments: 
 
@@ -534,7 +547,10 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 - `title_style`
 - `title2_style`
 - `value_style`
+- `text_style`
 - `unit_style`
+
+The sensor widget will detect if the data is numeric, in which case `value_style` and `unit_style` will be applied, otherwise `text_style` will be applied and no units will be shown.
 
 ## device_tracker
 
@@ -551,7 +567,27 @@ A Widget that reports on device tracker status. It can also be optionally be use
 - `enable` - set to 1 to enable the widget to toggle the device_tracker status
 - `state_text`
 - `state_map`
+- `active_map`
 
+Active map is used to specify states other than "home" that will be regarded as active, meaning the icon will light up. This can be useful if tracking a device tracker within the house using beacons for instance.
+
+Example:
+
+```yaml
+wendy_presence_mapped:
+  widget_type: device_tracker
+  title: Wendy
+  title2: Mapped
+  device: wendys_iphone
+  active_map:
+    - home
+    - house
+    - back_yard
+    - upstairs
+```
+
+In the absence of an active map, only the state `home` will be regarded as active.
+    
 ### Style Arguments: 
 
 - `icon_on`
@@ -562,26 +598,6 @@ A Widget that reports on device tracker status. It can also be optionally be use
 - `title_style`
 - `title2_style`
 - `state_text_style`
-    
-## text_sensor
-
-A widget to show the value of any text based sensor
-
-### Mandatory Arguments
-
-- `entity` - the entity_id of the sensor to be monitored
-
-### Optional Arguments:
-
-- `title` - the title displayed on the tile
-- `title2` - a second line of title text 
-
-### Cosmetic Arguments
-
-- `widget_style`
-- `title_style`
-- `title2_style`
-- `text_style`
 
 ## label
 
@@ -709,6 +725,8 @@ A widget to monitor and activate a switch
 ## lock
 
 A widget to monitor and activate a lock
+
+Note that unlike HASS, Dashboard regards an unlocked lock as active. By contrast, the HASS UI shows a locked lock as "on". Since the purpose of the dashboard is to alert at a glance on anything that is unusual, I chose to make the unlocked state "active" which means in the default skin it is shown as red, wheras a locked icon is shown as gray. You can easily change this behavior by setting active and inactive styles if you prefer.
 
 ### Mandatory Arguments
 
@@ -1014,6 +1032,59 @@ None.
 - `title2_style`
 - `icon_active_style`
 - `icon_inactive_style`
+
+## iframe
+
+A widget to display other content within the dashboard
+
+### Mandatory Arguments
+
+- `url_list` - a list of 1 or more URLs to cycle though.
+or
+- `img_list` - a list of 1 or more Image URLs to cycle through.
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `refresh` - (seconds) if set, the iframe widget will progress down it's list every refresh period, returning to the beginning when it hits the end. Use this in conjunction with a single entry in the `url_list` to have a single url refresh at a set interval.
+
+For regular HTTP sites, use the `url_list` argument, for images the `img_list` argument should work better.
+
+Example:
+
+```yaml
+iframe:
+    widget_type: iframe
+    title: Cats
+    refresh: 60
+    url_list: 
+      - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
+      - https://www.pexels.com/photo/eyes-cat-coach-sofa-96938/
+      - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
+      - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
+      - https://www.pexels.com/photo/grey-fur-kitten-127028/
+      - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
+      - https://www.pexels.com/photo/cat-sleeping-62640/
+```
+
+Content will be shown with scroll bars which can be undesirable. For images this can be alleviated by using an image resizing service such as the one offered by [Google](https://carlo.zottmann.org/posts/2013/04/14/google-image-resizer.html).
+
+```yaml
+weather_frame:
+    widget_type: iframe
+    title: Radar
+    refresh: 300
+    frame_style: ""
+    img_list: 
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
+      - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
+```
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `title_style`
+
 
 # Skins
 

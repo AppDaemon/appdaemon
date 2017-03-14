@@ -15,6 +15,7 @@ body {
   background-repeat: repeat
   font-size: 15px;
   padding: 0;
+  line-height: 1;
   font-family: 'Titillium Web', 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 
@@ -35,7 +36,9 @@ img {
 
 img, object {
   max-width: 100%;
-}
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;}
 
 iframe {
   max-width: 100%;
@@ -111,6 +114,15 @@ h3 {
   width: 100%;
   display: table;
   cursor: pointer;
+  z-index: auto !important;
+}
+
+.iframe {
+  position: relative;
+  overflow: hidden; 
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
 }
 
 .widget {
@@ -119,6 +131,8 @@ h3 {
   width: 100%;
   display: table-cell;
   vertical-align: middle;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
   border-radius: 6px;
   transform: translateY(5px);
   background-color: rgba(46, 174, 212, 0.15);

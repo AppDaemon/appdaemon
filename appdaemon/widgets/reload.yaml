@@ -1,9 +1,18 @@
 widget_type: javascript
-icon_active: $reload_icon_active
-icon_inactive: $reload_icon_inactive
-title_style: $reload_title_style
-title2_style: $reload_title2_style
-icon_active_style: $reload_icon_active_style
-icon_inactive_style: $reload_icon_inactive_style
-widget_style: $reload_widget_style
 command: location.reload(true)
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+icons:
+  icon_active: $reload_icon_active
+  icon_inactive: $reload_icon_inactive
+static_css:
+  title_style: $reload_title_style
+  title2_style: $reload_title2_style
+  widget_style: $reload_widget_style
+css:
+  icon_active_style: $reload_icon_active_style
+  icon_inactive_style: $reload_icon_inactive_style
+static_icons: []

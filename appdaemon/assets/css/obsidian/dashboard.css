@@ -12,6 +12,7 @@ body {
   background-image: url("/css/obsidian/img/obsidian_bg.jpg");
   font-size: 14px;
   color: #000;
+  line-height: 1;
   font-family: 'Russo One', 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 
@@ -32,7 +33,9 @@ img {
 
 img, object {
   max-width: 100%;
-}
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  border-radius: 15px;}
 
 iframe {
   max-width: 100%;
@@ -111,6 +114,16 @@ h3 {
   width: 100%;
   display: table;
   cursor: pointer;
+  z-index: auto !important;
+
+}
+
+.iframe {
+  position: relative;
+  overflow: hidden; 
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  border-radius: 15px;
 }
 
 .widget {

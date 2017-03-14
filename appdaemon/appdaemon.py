@@ -36,7 +36,7 @@ import appdaemon.appdash as appdash
 import asyncio
 from urllib.parse import urlparse
 
-__version__ = "2.0.0beta2"
+__version__ = "2.0.0beta3"
 
 # Windows does not have Daemonize package so disallow
 
@@ -1614,6 +1614,11 @@ def main():
         conf.dash_force_compile = True
     else:
         conf.dash_force_compile = False        
+     
+    if config['AppDaemon'].get("dash_compile_on_start") == "1":
+        conf.dash_compile_on_start = True
+    else:
+        conf.dash_compile_on_start = False        
      
     if conf.dash_url != None:
         conf.dashboard = True
