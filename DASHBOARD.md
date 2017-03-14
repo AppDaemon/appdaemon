@@ -839,7 +839,19 @@ A widget to monitor and contol a dimmable light
 - `icon_off`
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `on_brightness` - how bright you want the light to come on when activated, 1 - 255.
+- `on_attributes` - a list of supported HA attributes to set as initial values for the light.
+
+e.g.
+
+```yaml
+testlight2:
+    widget_type: light
+    entity: light.office_2
+    title: office_2
+    on_attributes:
+        brightness: 100
+        color_temp: 250
+```
 
 ### Cosmetic Arguments
    
