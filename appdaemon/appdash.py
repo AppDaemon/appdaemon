@@ -116,11 +116,7 @@ def load_dash(request):
 @asyncio.coroutine
 def get_state(request):
     entity = request.match_info.get('entity')
-    
-    # Groups don't have the kind of state we need, so find a group member and
-    # Substitute its state instead. 
-    # This is a fix for controlling groups of lights
-    
+        
     if entity in conf.ha_state:
         state = conf.ha_state[entity]
     else:
@@ -160,31 +156,33 @@ def wshandler(request):
             if msg.type == aiohttp.WSMsgType.TEXT:
                 ha.log(conf.dash, "INFO", 
                        "New dashboard connected: {}".format(msg.data))
-
-                request.app['websockets'][ws]["dashboard"] =  msg.data                
+                with conf.ws_lock:
+                    request.app['websockets'][ws]["dashboard"] =  msg.data                
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 ha.log(conf.dash, "INFO", 
                 "ws connection closed with exception {}".format(ws.exception()))       
     except: 
                 ha.log(conf.dash, "INFO", "Dashboard disconnected")
     finally:
-        request.app['websockets'].pop(ws, None)
+        with conf.ws_lock:
+            request.app['websockets'].pop(ws, None)
 
     return ws
 
 def ws_update(data):
-    ha.log(conf.dash, 
-           "DEBUG", 
-           "Sending data to {} dashes: {}".format(len(app['websockets']), 
-           data))
-           
-    for ws in app['websockets']:
-        
-        if "dashboard" in app['websockets'][ws]:
-            ha.log(conf.dash, 
+    with conf.ws_lock:
+        ha.log(conf.dash, 
                "DEBUG", 
-               "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
-            ws.send_str(json.dumps(data))
+               "Sending data to {} dashes: {}".format(len(app['websockets']), 
+               data))
+               
+        for ws in app['websockets']:
+            
+            if "dashboard" in app['websockets'][ws]:
+                ha.log(conf.dash, 
+                   "DEBUG", 
+                   "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
+                ws.send_str(json.dumps(data))
     
 #Routes, Status and Templates
 

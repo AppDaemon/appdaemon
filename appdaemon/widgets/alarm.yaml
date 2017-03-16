@@ -29,6 +29,10 @@ static_css:
   title2_style: $alarm_title2_style
   state_style: $alarm_state_style
   widget_style: $alarm_widget_style
+  panel_state_style: $alarm_panel_state_style
+  panel_code_style: $alarm_panel_code_style
+  panel_background_style: $alarm_panel_background_style
+  panel_button_style: $alarm_panel_button_style
 css: []
 icons: []
 static_icons: []

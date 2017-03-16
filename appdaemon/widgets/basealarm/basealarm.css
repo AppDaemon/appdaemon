@@ -29,7 +29,7 @@
 	height: 100%;
 }
 
-.widget-basealarm-{{id}} container {
+.widget-basealarm-{{id}} .container {
     width: 300px;
     display: inline-block;
 }
@@ -37,12 +37,11 @@
 .widget-basealarm-{{id}} panel-state {
     font-size: 100%;
 }
-.widget-basealarm-{{id}} block {
+.widget-basealarm-{{id}} .block {
     display: inline-block;
     width: 75px;
     height: 75px;
     margin: 5px;
-    background: #555;
     float: left;
     font-size: 175%;
     text-align: center;
@@ -50,10 +49,10 @@
     line-height: 75px; 
 }
 
-.widget-basealarm-{{id}} block[h2] {
+.widget-basealarm-{{id}} .block2 {
     width: 160px;
 }
 
-.widget-basealarm-{{id}} block[h3] {
+.widget-basealarm-{{id}} .block3 {
     width: 245px;
 }

@@ -5,9 +5,14 @@ History
 2.0.0beta3
 ----------
 
-**Features**
+- Added alarm widget
+- Dimmers and groups now allow you to specify a list of on parameters to control brightness, color etc.
 
 **Fixes**
+
+- IFrames now follow widget borders better
+- IFrame now allows user input
+- Fixed a race condition on dashboard reload
 
 **Breaking Changes**
 

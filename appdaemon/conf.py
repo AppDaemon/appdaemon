@@ -69,3 +69,4 @@ dash_force_compile = False
 custom_css_dir = None
 dash = None
 dash_compile_on_start = None
+ws_lock = threading.RLock()
