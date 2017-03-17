@@ -30,7 +30,7 @@
 }
 
 .widget-basealarm-{{id}} .container {
-    width: 300px;
+    width: 275px;
     display: inline-block;
 }
 
@@ -42,7 +42,7 @@
     width: 75px;
     height: 75px;
     margin: 5px;
-    float: left;
+    float: center;
     font-size: 175%;
     text-align: center;
     vertical-align: middle;
@@ -50,9 +50,9 @@
 }
 
 .widget-basealarm-{{id}} .block2 {
-    width: 160px;
+    width: 165px;
 }
 
 .widget-basealarm-{{id}} .block3 {
-    width: 245px;
+    width: 255px;
 }

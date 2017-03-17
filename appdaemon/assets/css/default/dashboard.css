@@ -169,7 +169,7 @@ input {
 }
 
 .modalDialogOpen {
-	opacity:1;
+	opacity:0.95;
 	pointer-events: auto;
 }
 
@@ -179,7 +179,7 @@ input {
 }
 
 .modalDialog > div {
-	width: 400px;
+	width: 275px;
 	position: relative;
 	margin: 3% auto;
 	padding: 5px 20px 13px 20px;

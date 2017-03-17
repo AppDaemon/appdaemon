@@ -258,7 +258,7 @@ h3 {
 }
 
 .modalDialogOpen {
-	opacity:1;
+	opacity:0.95;
 	pointer-events: auto;
 }
 
@@ -268,7 +268,7 @@ h3 {
 }
 
 .modalDialog > div {
-	width: 400px;
+	width: 275px;
 	position: relative;
 	margin: 3% auto;
 	padding: 5px 20px 13px 20px;
@@ -289,4 +289,4 @@ h3 {
 	border-radius: 25px;
 }
 
-.modalDialogCloseButton:hover { background: #444; }
+.modalDialogCloseButton:hover { background: #00001e; }

@@ -269,11 +269,11 @@ group_unit_style: "color: $gray_light"
 iframe_title_style: $style_title
 iframe_widget_style: $background_style
 
-alarm_title_style: $style_title
+alarm_title_style: "color: $blue"
 alarm_widget_style: $background_style
 alarm_title2_style: $style_title2
 alarm_state_style: "color: $white;font-size: 100%"
 alarm_panel_state_style: "color: $white"
 alarm_panel_code_style: "color: $white"
-alarm_panel_background_style: $background_style
+alarm_panel_background_style: "background-color: $gray_dark"
 alarm_panel_button_style: "background-color: $gray_medium"

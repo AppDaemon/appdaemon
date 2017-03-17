@@ -276,5 +276,5 @@ alarm_title2_style: $style_title2
 alarm_state_style: "color: $cyan;font-size: 100%"
 alarm_panel_state_style: "color: $cyan"
 alarm_panel_code_style: "color: $cyan"
-alarm_panel_background_style: $background_style
-alarm_panel_button_style: "color: $cyan; background-color: $gray_medium"
+alarm_panel_background_style: "background-color: rgba(0,0,30,1)"
+alarm_panel_button_style: "color: $cyan; background-color: rgba(0,0,50,1)"
