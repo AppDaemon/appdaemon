@@ -522,11 +522,7 @@ None
 
 A widget to report on values for any sensor in Home Assistant
 
-The defauts for sensor are biased towards numeric entities. If you want to represent text in the sensor it will work fine with the following caveats:
-
-- Do not set the precision parameter
-- You might want to set `text_color` to white
-- You will want to reduce the text_size = `100%` is a good starting place.
+The widget will detect whether or not it is showing a numeric value, and if so, it will use the numeric style. If it is showing text it will use the text style, which among other things makes the text size smaller.
 
 ### Mandatory Arguments:
 
@@ -1097,6 +1093,51 @@ weather_frame:
 - `widget_style`
 - `title_style`
 
+## camera
+
+A widget to display a camera refreshing image in the dashboard
+
+### Mandatory Arguments
+
+- `entity_picture`
+
+This can be found using the developer tools, and will be one of the parameters associated with the camera you want to view. If you are using a password, you will need to append `&api_password=<your password>` to the end of the entity_picture. It will look seomthing like this:
+
+`http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=b3bccd0dcdd8aa44260f6239250059ee27cecdbb493131575b13f2931fe8a303&api_password=<redacted>'
+
+### Optional Arguments:
+
+- `refresh` - (seconds) if set, the camera image will refresh every interval.
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `title_style`
+
+
+## alarm
+
+A widget to report on the state of an alarm and allow code entry
+
+### Mandatory Arguments:
+
+- `entity` - the entity_id of the alarm to be monitored
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+
+### Style Arguments: 
+
+- `widget_style`
+- `title_style`
+- `title2_style`
+- `state_style`
+- `panel_state_style`
+- `panel_code_style`
+- `panel_background_style`
+- `panel_button_style`
 
 # Skins
 
