@@ -129,6 +129,7 @@ def get_state(request):
 
     return web.json_response({"state": state})
 
+
 # noinspection PyUnusedLocal
 @asyncio.coroutine
 def call_service(request):

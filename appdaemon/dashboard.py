@@ -427,8 +427,10 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
                         "yaml", layout, occupied, includes, level + 1, css_vars)
                     if new_dash is not None:
                         merge_dashes(dash, new_dash)
+                elif "empty" in lay:
+                    layout += lay["empty"]
                 else:
-                    log_error(dash, name, "Incorrect directive, should be 'include': {}".format(lay))
+                    log_error(dash, name, "Incorrect directive, should be 'include or empty': {}".format(lay))
             else:
                 layout += 1
                 add_layout(lay, layout, occupied, dash, page, includes, css_vars)

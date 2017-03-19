@@ -141,7 +141,15 @@ If you want a blank space you can use the special widget name `spacer`. To leave
     - media_player(2x1), sensor.temperature
 ```
 
-The above would leave the 2nd row empty.
+The above would leave the 2nd row empty. If you want more than one empty line use `empty` as follows":
+
+```yaml
+    - light.hall, light.living_room, input_boolean.heating
+    - empty: 2
+    - media_player(2x1), sensor.temperature
+```
+
+This would leave the 2nd and 3rd rows empty.
 
 And that is all there to it, for a simple one file dashboard.
 
