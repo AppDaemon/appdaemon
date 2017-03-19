@@ -8,6 +8,7 @@ History
 - Added camera widget
 - Dimmers and groups now allow you to specify a list of on parameters to control brightness, color etc.
 - Edited code for PEP8 Compliance
+- Widgets can now have a default size other than `(1x1)`
 
 **Fixes**
 

@@ -93,6 +93,7 @@ A top level dashboard will usually have one of a number of initial directives to
 #
 title: Main Panel
 widget_dimensions: [120, 120]
+widget_size: [1, 1]
 widget_margins: [5, 5]
 columns: 8
 ```
@@ -100,7 +101,8 @@ columns: 8
 These are all fairly self explanatory:
 
 - `title` - the name that will end up in the title of the web page, defaults to "HADashboard".
-- `widget_dimensions` - the unit height and width of the individual widgets in pixels. Note tha the absolute size is not too important as on tablets at least the browser will scale the page to fit. What is more important is the aspect ratio of the widgets as this will affect whether or not the dashboard completely fills the tablets screen. The default is [120, 120] (width, height). This works well for a regular iPad. 
+- `widget_dimensions` - the unit height and width of the individual widgets in pixels. Note tha the absolute size is not too important as on tablets at least the browser will scale the page to fit. What is more important is the aspect ratio of the widgets as this will affect whether or not the dashboard completely fills the tablets screen. The default is [120, 120] (width, height). This works well for a regular iPad.
+- `widget_size` - the number of grid blocks each widget will be by default if not specified
 - `widget_margins` - the size of blank space between widgets.
 - `columns` - the number of columns the dasboard will have.
 
@@ -117,7 +119,7 @@ As you can see, here we are refering directly to native Home Assistant entities.
 
 The layout command is intended to be visual in how you lay out the widgets. Each layout entry represents a row on the dashboard, each comma separated widget represents a cell on that row.
 
-Widgets can also have a size associated with them - that is the `(2x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will default to (1x1). HADasboard will do it's best to calculate the right layout from what you give it but expect strange behavior if you add too many widgets on a line.
+Widgets can also have a size associated with them - that is the `(2x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will use the `widget_size` dashboard parameter if specified, or default to `(1x1)` if not. HADasboard will do it's best to calculate the right layout from what you give it but expect strange behavior if you add too many widgets on a line.
 
 For a better visual cue you can lay the widgets out with appropriate spacing to see what the grid will look like more intuitively:
 

@@ -305,6 +305,10 @@ def add_layout(value, layout, occupied, dash, page, includes, css_vars):
             xsize = size.group(2)
             ysize = size.group(3)
 
+        elif "widget_size" in dash:
+            name = wid
+            xsize = dash["widget_size"][0]
+            ysize = dash["widget_size"][1]
         else:
             name = wid
             xsize = 1
@@ -365,7 +369,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
 
     dash["widgets"] = []
     dash["errors"] = []
-    valid_params = ["title", "widget_dimensions", "widget_margins", "columns"]
+    valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size"]
     layouts = []
 
     if level > conf.max_include_depth:
