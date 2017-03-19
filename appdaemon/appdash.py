@@ -204,7 +204,6 @@ def setup_routes():
     app.router.add_get('/{gfx}.png', not_found)
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
-    app.router.add_post('/get_cam', get_cam)
     app.router.add_get('/state/{entity}', get_state)
     app.router.add_get('/', list_dash)
     app.router.add_get('/{name}', load_dash)
