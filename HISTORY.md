@@ -1,4 +1,3 @@
-=======
 History
 =======
 
@@ -6,7 +5,9 @@ History
 ----------
 
 - Added alarm widget
+- Added camera widget
 - Dimmers and groups now allow you to specify a list of on parameters to control brightness, color etc.
+- Edited code for PEP8 Compliance
 
 **Fixes**
 
@@ -65,7 +66,7 @@ None
 
 **Breaking Changes**
 
-- appdaemon's `-c` option now identifies a directory not a file. The previously identified file must exist in that directory and be named `appdaemon'cfg`
+- appdaemon's `-c` option now identifies a directory not a file. The previously identified file must exist in that directory and be named `appdaemon.cfg`
 
 1.5.2 (2017-02-04)
 ------------------

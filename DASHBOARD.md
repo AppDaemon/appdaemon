@@ -50,7 +50,7 @@ dash_force_compile = 1
 
 This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
 
-By default, information and errors around acces to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
+By default, information and errors around access to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
 
 ```ini
 accessfile = /var/log/dash_access
@@ -1095,7 +1095,7 @@ weather_frame:
 
 ## camera
 
-A widget to display a camera refreshing image in the dashboard
+A widget to display a refreshing camera image on the dashboard
 
 ### Mandatory Arguments
 
@@ -1103,7 +1103,9 @@ A widget to display a camera refreshing image in the dashboard
 
 This can be found using the developer tools, and will be one of the parameters associated with the camera you want to view. If you are using a password, you will need to append `&api_password=<your password>` to the end of the entity_picture. It will look seomthing like this:
 
-`http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=b3bccd0dcdd8aa44260f6239250059ee27cecdbb493131575b13f2931fe8a303&api_password=<redacted>'
+`http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>`
+
+If you are using SSL, remeber to use the full DNS name and not the IP address.
 
 ### Optional Arguments:
 

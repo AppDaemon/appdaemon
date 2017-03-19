@@ -22,7 +22,6 @@ REQUIREMENTS = [
     'aiohttp>=1.2.0',
     'Jinja2>=2.9.5',
     'aiohttp_jinja2',
-    'pyScss',
     'pyyaml',
     'voluptuous',
 ]

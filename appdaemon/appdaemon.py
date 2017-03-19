@@ -3,17 +3,12 @@ from pkg_resources import parse_version
 import json
 import sys
 import importlib
-from importlib.machinery import SourceFileLoader
 import traceback
 import configparser
-import datetime
-from time import mktime
 import argparse
-import time
 import logging
 import os
 import os.path
-import glob
 from websocket import create_connection
 from logging.handlers import RotatingFileHandler
 from queue import Queue
@@ -23,15 +18,12 @@ import appdaemon.conf as conf
 import time
 import datetime
 import signal
-import re
 import uuid
 import astral
 import pytz
 import appdaemon.homeassistant as ha
-import appdaemon.appapi as api
 import platform
 import math
-import random
 import appdaemon.appdash as appdash
 import asyncio
 from urllib.parse import urlparse
@@ -54,13 +46,6 @@ reading_messages = False
 inits = {}
 stopping = False
 ws = None
-
-
-def init_list():
-    list = ""
-    for key in inits:
-        list += key + " "
-    return key
 
 
 def init_sun():
@@ -148,6 +133,7 @@ def do_every(period, f):
             t = math.floor(r)
 
 
+# noinspection PyUnusedLocal
 def handle_sig(signum, frame):
     global stopping
     global ws
@@ -198,16 +184,16 @@ def dump_schedule():
         for name in conf.schedule.keys():
             ha.log(conf.logger, "INFO", "{}:".format(name))
             for entry in sorted(
-                conf.schedule[name].keys(),
-                key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
+                    conf.schedule[name].keys(),
+                    key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
             ):
                 ha.log(
                     conf.logger, "INFO",
                     "  Timestamp: {} - data: {}".format(
-                           time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(
-                               conf.schedule[name][entry]["timestamp"]
-                           )),
-                           conf.schedule[name][entry]
+                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(
+                            conf.schedule[name][entry]["timestamp"]
+                        )),
+                        conf.schedule[name][entry]
                     )
                 )
         ha.log(
@@ -286,14 +272,12 @@ def check_constraint(key, value):
             else:
                 entity = value
                 state = "on"
-            if entity in conf.ha_state and \
-                    conf.ha_state[entity]["state"] != state:
+            if entity in conf.ha_state and conf.ha_state[entity]["state"] != state:
                 unconstrained = False
         if key == "constrain_input_select":
             values = value.split(",")
             entity = values.pop(0)
-            if entity in conf.ha_state and \
-                    conf.ha_state[entity]["state"] not in values:
+            if entity in conf.ha_state and conf.ha_state[entity]["state"] not in values:
                 unconstrained = False
         if key == "constrain_presence":
             if value == "everyone" and not ha.everyone_home():
@@ -368,8 +352,8 @@ def process_sun(action):
     with conf.schedule_lock:
         for name in conf.schedule.keys():
             for entry in sorted(
-                conf.schedule[name].keys(),
-                key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
+                    conf.schedule[name].keys(),
+                    key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
             ):
                 schedule = conf.schedule[name][entry]
                 if schedule["type"] == action and "inactive" in schedule:
@@ -379,6 +363,7 @@ def process_sun(action):
                     schedule["offset"] = c_offset
 
 
+# noinspection PyBroadException
 def exec_schedule(name, entry, args):
     try:
         # Locking performed in calling function
@@ -438,7 +423,7 @@ def exec_schedule(name, entry, args):
         ha.log(conf.error, "WARNING", '-' * 60)
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
             # When explicitly logging to stdout and stderr, suppress
-            # log messages abour writing an error (since they show up anyway)
+            # log messages about writing an error (since they show up anyway)
             ha.log(
                 conf.logger, "WARNING",
                 "Logged an error to {}".format(conf.errorfile)
@@ -449,6 +434,7 @@ def exec_schedule(name, entry, args):
         del conf.schedule[name][entry]
 
 
+# noinspection PyBroadException,PyBroadException
 def do_every_second(utc):
     global was_dst
     global last_state
@@ -521,10 +507,10 @@ def do_every_second(utc):
                 get_ha_state()
                 last_state = now
             except:
-                conf.log.warn(
-                    "Unexpected error refreshing HA state -"
-                    " retrying in 10 minutes"
-                )
+                ha.log(conf.logger, "WARNING",
+                       "Unexpected error refreshing HA state -"
+                       " retrying in 10 minutes"
+                       )
 
         # Check on Queue size
 
@@ -540,8 +526,8 @@ def do_every_second(utc):
         with conf.schedule_lock:
             for name in conf.schedule.keys():
                 for entry in sorted(
-                    conf.schedule[name].keys(),
-                    key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
+                        conf.schedule[name].keys(),
+                        key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
                 ):
                     # ha.log(
                     #     conf.logger,
@@ -575,7 +561,7 @@ def do_every_second(utc):
         ha.log(conf.error, "WARNING", '-' * 60)
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
             # When explicitly logging to stdout and stderr, suppress
-            # log messages abour writing an error (since they show up anyway)
+            # log messages about writing an error (since they show up anyway)
             ha.log(
                 conf.logger, "WARNING",
                 "Logged an error to {}".format(conf.errorfile)
@@ -586,6 +572,7 @@ def timer_thread():
     do_every(conf.tick, do_every_second)
 
 
+# noinspection PyBroadException
 def worker():
     while True:
         args = q.get()
@@ -831,7 +818,7 @@ def process_event(data):
             for uuid_ in conf.callbacks[name]:
                 callback = conf.callbacks[name][uuid_]
                 if "event" in callback and (
-                        callback["event"] is None
+                                callback["event"] is None
                         or data['event_type'] == callback["event"]):
                     # Check any filters
                     _run = True
@@ -851,6 +838,7 @@ def process_event(data):
                         })
 
 
+# noinspection PyBroadException
 def process_message(data):
     try:
         ha.log(
@@ -861,7 +849,7 @@ def process_message(data):
 
         if data['event_type'] == "state_changed":
             entity_id = data['data']['entity_id']
-        
+
             # First update our global state
             with conf.ha_state_lock:
                 conf.ha_state[entity_id] = data['data']['new_state']
@@ -875,7 +863,7 @@ def process_message(data):
             process_event(data)
 
         # Update dashboards
-        
+
         if conf.dashboard is True:
             appdash.ws_update(data)
 
@@ -893,6 +881,7 @@ def process_message(data):
             )
 
 
+# noinspection PyBroadException
 def check_config():
     global config_file_modified
     global config
@@ -964,6 +953,7 @@ def check_config():
             )
 
 
+# noinspection PyBroadException
 def read_app(file, reload=False):
     global config
     name = os.path.basename(file)
@@ -1096,6 +1086,7 @@ def file_in_modules(file, modules):
     return False
 
 
+# noinspection PyBroadException
 def read_apps(all_=False):
     global config
     found_files = []
@@ -1220,6 +1211,7 @@ def get_ha_state():
             conf.ha_state[state["entity_id"]] = state
 
 
+# noinspection PyBroadException,PyBroadException
 def run():
     global was_dst
     global last_state
@@ -1230,9 +1222,9 @@ def run():
     ha.log(conf.logger, "DEBUG", "Entering run()")
 
     # Save start time
-    
+
     conf.start_time = datetime.datetime.now()
-    
+
     # Take a note of DST
 
     was_dst = is_dst()
@@ -1302,7 +1294,7 @@ def run():
         t = threading.Thread(target=appdash.run_dash, args=(loop,))
         t.daemon = True
         t.start()
-    
+
     # Enter main loop
 
     first_time = True
@@ -1371,7 +1363,7 @@ def run():
                     ha.log(
                         conf.logger, "INFO",
                         "Connected to Home Assistant with timeout = {}".format(
-                           conf.timeout
+                            conf.timeout
                         )
                     )
                 for msg in messages:
@@ -1462,7 +1454,7 @@ def run():
 
 
 def find_path(name):
-    for path in [os.path.join(os.path.expanduser("~"), ".appdaemon"), 
+    for path in [os.path.join(os.path.expanduser("~"), ".appdaemon"),
                  os.path.join(os.path.expanduser("~"), ".homeassistant"),
                  os.path.join(os.path.sep, "etc", "appdaemon")]:
         _file = os.path.join(path, name)
@@ -1473,6 +1465,7 @@ def find_path(name):
     )
 
 
+# noinspection PyBroadException
 def main():
     global config
     global config_file
@@ -1535,7 +1528,7 @@ def main():
     )
     parser.add_argument(
         '--profiledash', help=argparse.SUPPRESS,
-        action = 'store_true'
+        action='store_true'
     )
 
     # Windows does not have Daemonize package so disallow
@@ -1587,7 +1580,6 @@ def main():
 
     conf.config_dir = os.path.dirname(config_file)
 
-    
     assert "AppDaemon" in config, "[AppDaemon] section required in {}".format(
         config_file
     )
@@ -1604,29 +1596,29 @@ def main():
     conf.app_dir = config['AppDaemon'].get("app_dir")
     conf.dashboard_dir = config['AppDaemon'].get("dash_dir")
     conf.timeout = config['AppDaemon'].get("timeout")
-    
+
     if config['AppDaemon'].get("disable_apps") == "1":
         conf.apps = False
     else:
-        conf.apps = True        
-    
+        conf.apps = True
+
     if config['AppDaemon'].get("dash_force_compile") == "1":
         conf.dash_force_compile = True
     else:
-        conf.dash_force_compile = False        
-     
+        conf.dash_force_compile = False
+
     if config['AppDaemon'].get("dash_compile_on_start") == "1":
         conf.dash_compile_on_start = True
     else:
-        conf.dash_compile_on_start = False        
-     
-    if conf.dash_url != None:
+        conf.dash_compile_on_start = False
+
+    if conf.dash_url is not None:
         conf.dashboard = True
-        url = urlparse(conf.dash_url)        
-        
+        url = urlparse(conf.dash_url)
+
         if url.scheme != "http":
             raise ValueError("Invalid scheme for 'dash_url' - only HTTP is supported")
-        
+
         dash_net = url.netloc.split(":")
         conf.dash_host = dash_net[0]
         try:
@@ -1636,10 +1628,10 @@ def main():
 
         if conf.dash_host == "":
             raise ValueError("Invalid host for 'dash_url'")
-        
-    if conf.threads == None:
+
+    if conf.threads is None:
         conf.threads = 10
-            
+
     if conf.logfile is None:
         conf.logfile = "STDOUT"
 
@@ -1647,9 +1639,9 @@ def main():
         conf.errorfile = "STDERR"
 
     if isdaemon and (
-            conf.logfile == "STDOUT" or conf.errorfile == "STDERR"
-            or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"
-    ):
+                        conf.logfile == "STDOUT" or conf.errorfile == "STDERR"
+                        or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"
+                    ):
         raise ValueError("STDOUT and STDERR not allowed with -d")
 
     # Setup Logging
@@ -1662,6 +1654,7 @@ def main():
 
     # Send to file if we are daemonizing, else send to console
 
+    fh = None
     if conf.logfile != "STDOUT":
         fh = RotatingFileHandler(conf.logfile, maxBytes=1000000, backupCount=3)
         fh.setLevel(numeric_level)
@@ -1694,7 +1687,7 @@ def main():
     conf.error.addHandler(efh)
 
     # Setup dash output
-    
+
     if config['AppDaemon'].get("accessfile") is not None:
         conf.dash = logging.getLogger("log3")
         numeric_level = getattr(logging, args.debug, None)
@@ -1719,12 +1712,11 @@ def main():
     )
 
     if not conf.apps:
-    
         ha.log(
-                conf.logger, "INFO",
-                "Apps are disabled"
-               )
-    
+            conf.logger, "INFO",
+            "Apps are disabled"
+        )
+
     # Check with HA to get various info
 
     ha_config = None
@@ -1743,7 +1735,6 @@ def main():
                 ha.log(conf.logger, "WARNING", traceback.format_exc())
                 ha.log(conf.logger, "WARNING", '-' * 60)
         time.sleep(5)
-        first_time = False
 
     conf.version = parse_version(ha_config["version"])
 
@@ -1795,7 +1786,7 @@ def main():
 
     # Add appdir  and subdirs to path
     if conf.apps:
-        if conf.app_dir == None:
+        if conf.app_dir is None:
             if config_dir is None:
                 conf.app_dir = find_path("apps")
             else:
@@ -1805,19 +1796,19 @@ def main():
                 sys.path.insert(0, root)
 
     # find dashboard dir
-    
+
     if conf.dashboard:
-        if conf.dashboard_dir == None:
+        if conf.dashboard_dir is None:
             if config_dir is None:
                 conf.dashboard_dir = find_path("dashboards")
             else:
-                conf.dashboard_dir = os.path.join(config_dir, "dashboards") 
-    
-        #
+                conf.dashboard_dir = os.path.join(config_dir, "dashboards")
+
+                #
         # Figure out where our data files are
         #
         conf.dash_dir = os.path.dirname(__file__)
-    
+
         #
         # Setup compile directories
         #
@@ -1825,7 +1816,7 @@ def main():
             conf.compile_dir = find_path("compiled")
         else:
             conf.compile_dir = os.path.join(config_dir, "compiled")
-    
+
     # Start main loop
 
     if isdaemon:

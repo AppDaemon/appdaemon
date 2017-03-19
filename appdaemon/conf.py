@@ -3,7 +3,6 @@ import threading
 
 ha_url = ""
 ha_key = ""
-app_dir = ""
 threads = 0
 monitored_files = {}
 modules = {}
@@ -12,6 +11,11 @@ apps = False
 start_time = None
 logfile = None
 error = None
+latitude = None
+longitude = None
+elevation = None
+time_zone = None
+errorfile = None
 
 # Will require object based locking if implemented
 objects = {}
@@ -54,6 +58,8 @@ dash_host = None
 dash_dir = None
 dash_port = None
 dashboard = False
+compile_dir = None
+dash_url = None
 profile_dashboard = False
 dashboard_dir = None
 javascript_dir = None
@@ -69,4 +75,6 @@ dash_force_compile = False
 custom_css_dir = None
 dash = None
 dash_compile_on_start = None
+compiled_javascript_dir = None
+compiled_css_dir = None
 ws_lock = threading.RLock()
