@@ -10,6 +10,7 @@ History
 - Edited code for PEP8 Compliance
 - Widgets can now have a default size other than `(1x1)`
 - Added `empty` to layouts for multiple blank lines
+- Numeric values can now have a comma as the decimal separator
 
 **Fixes**
 

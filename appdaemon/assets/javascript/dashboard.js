@@ -90,6 +90,10 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                 value = round(value / 1E3, 1) + "K"
             }
         }
+        if ("use_comma" in self.parameters && self.parameters.use_comma == 1)
+        {
+            value = value.toString().replace(".", ",")
+        }
         return value
     }
 
@@ -130,12 +134,19 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                     {
                         if (data.state == null)
                         {
-                            child.ViewModel.title("entity not found: " + entity.entity)
-                            new_state = null
+                            if ("title" in child.ViewModel)
+                            {
+                                child.ViewModel.title("entity not found: " + entity.entity);
+                                new_state = null
+                            }
+                            else
+                            {
+                                console.log("Entity not found: " + entity.entity)
+                            }
                         }
                         else
                         {
-                            new_state = data.state
+                            new_state = data.state;
                             if ("title_is_friendly_name" in child.parameters 
                             && child.parameters.title_is_friendly_name == 1
                             && "friendly_name" in new_state.attributes)

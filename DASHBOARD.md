@@ -545,6 +545,7 @@ The widget will detect whether or not it is showing a numeric value, and if so, 
 - `units` - the unit symbol to be displayed, if not specified HAs unit will be used, specify "" for no units
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
+- `use_comma` - if set to one`, a comma will be used as the decimal separator
 - `state_map`
 
 ### Style Arguments: 
@@ -890,6 +891,7 @@ A widget to monitor and contol an input slider
 - `title2` - a second line of title text 
 - `step` - the size of step in brightness when fading the slider up or down
 - `units` - the unit symbol to be displayed
+- `use_comma` - if set to one, a comma will be used as the decimal separator
 
 ### Cosmetic Arguments
    

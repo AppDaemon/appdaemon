@@ -1,5 +1,20 @@
 widget_type: baseweather
-unit_style: $weather_unit_style
-main_style: $weather_main_style
-sub_style: $weather_sub_style
-widget_style: $weather_widget_style
+fields:
+  unit: ""
+  dark_sky_temperature: ""
+  dark_sky_humidity: ""
+  dark_sky_precip_probability: ""
+  dark_sky_precip_intensity: ""
+  dark_sky_wind_speed: ""
+  dark_sky_pressure: ""
+  dark_sky_wind_bearing: ""
+  dark_sky_apparent_temperature: ""
+  dark_sky_icon: ""
+css: []
+static_css:
+  unit_style: $weather_unit_style
+  main_style: $weather_main_style
+  sub_style: $weather_sub_style
+  widget_style: $weather_widget_style
+icons: []
+static_icons: []

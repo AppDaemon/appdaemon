@@ -99,13 +99,11 @@ def update_sun():
     conf.sun["next_rising"] = next_rising_dt
     conf.sun["next_setting"] = next_setting_dt
 
-    if old_next_rising_dt is not None \
-            and old_next_rising_dt != conf.sun["next_rising"]:
+    if old_next_rising_dt is not None and old_next_rising_dt != conf.sun["next_rising"]:
         # dump_schedule()
         process_sun("next_rising")
         # dump_schedule()
-    if old_next_setting_dt is not None \
-            and old_next_setting_dt != conf.sun["next_setting"]:
+    if old_next_setting_dt is not None and old_next_setting_dt != conf.sun["next_setting"]:
         # dump_schedule()
         process_sun("next_setting")
         # dump_schedule()
@@ -152,35 +150,20 @@ def handle_sig(signum, frame):
 
 
 def dump_sun():
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
     ha.log(conf.logger, "INFO", "Sun")
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
     ha.log(conf.logger, "INFO", conf.sun)
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 
 def dump_schedule():
     if conf.schedule == {}:
         ha.log(conf.logger, "INFO", "Schedule is empty")
     else:
-        ha.log(
-            conf.logger, "INFO",
-            "--------------------------------------------------"
-        )
+        ha.log(conf.logger, "INFO", "--------------------------------------------------")
         ha.log(conf.logger, "INFO", "Scheduler Table")
-        ha.log(
-            conf.logger, "INFO",
-            "--------------------------------------------------"
-        )
+        ha.log(conf.logger, "INFO", "--------------------------------------------------")
         for name in conf.schedule.keys():
             ha.log(conf.logger, "INFO", "{}:".format(name))
             for entry in sorted(
@@ -196,69 +179,36 @@ def dump_schedule():
                         conf.schedule[name][entry]
                     )
                 )
-        ha.log(
-            conf.logger, "INFO",
-            "--------------------------------------------------"
-        )
+        ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 
 def dump_callbacks():
     if conf.callbacks == {}:
         ha.log(conf.logger, "INFO", "No callbacks")
     else:
-        ha.log(
-            conf.logger, "INFO",
-            "--------------------------------------------------"
-        )
+        ha.log(conf.logger, "INFO", "--------------------------------------------------")
         ha.log(conf.logger, "INFO", "Callbacks")
-        ha.log(
-            conf.logger, "INFO",
-            "--------------------------------------------------"
-        )
+        ha.log(conf.logger, "INFO", "--------------------------------------------------")
         for name in conf.callbacks.keys():
             ha.log(conf.logger, "INFO", "{}:".format(name))
             for uuid_ in conf.callbacks[name]:
-                ha.log(
-                    conf.logger, "INFO",
-                    "  {} = {}".format(uuid_, conf.callbacks[name][uuid_])
-                )
-        ha.log(
-            conf.logger, "INFO",
-            "--------------------------------------------------"
-        )
+                ha.log(conf.logger, "INFO", "  {} = {}".format(uuid_, conf.callbacks[name][uuid_]))
+        ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 
 def dump_objects():
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
     ha.log(conf.logger, "INFO", "Objects")
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
     for object_ in conf.objects.keys():
-        ha.log(
-            conf.logger, "INFO",
-            "{}: {}".format(object_, conf.objects[object_])
-        )
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+        ha.log(conf.logger, "INFO", "{}: {}".format(object_, conf.objects[object_]))
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 
 def dump_queue():
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
     ha.log(conf.logger, "INFO", "Current Queue Size is {}".format(q.qsize()))
-    ha.log(
-        conf.logger, "INFO",
-        "--------------------------------------------------"
-    )
+    ha.log(conf.logger, "INFO", "--------------------------------------------------")
 
 
 def check_constraint(key, value):
@@ -344,10 +294,10 @@ def today_is_constrained(days):
 
 def process_sun(action):
     ha.log(
-        conf.logger, "DEBUG",
-        "Process sun: {}, next sunrise: {}, next sunset: {}".format(
-            action, conf.sun["next_rising"], conf.sun["next_setting"]
-        )
+            conf.logger, "DEBUG",
+            "Process sun: {}, next sunrise: {}, next sunset: {}".format(
+                action, conf.sun["next_rising"], conf.sun["next_setting"]
+            )
     )
     with conf.schedule_lock:
         for name in conf.schedule.keys():
@@ -424,10 +374,7 @@ def exec_schedule(name, entry, args):
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
             # When explicitly logging to stdout and stderr, suppress
             # log messages about writing an error (since they show up anyway)
-            ha.log(
-                conf.logger, "WARNING",
-                "Logged an error to {}".format(conf.errorfile)
-            )
+            ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
         ha.log(conf.error, "WARNING", "Scheduler entry has been deleted")
         ha.log(conf.error, "WARNING", '-' * 60)
 
@@ -459,11 +406,7 @@ def do_every_second(utc):
             real_now = datetime.datetime.now().timestamp()
             delta = abs(utc - real_now)
             if delta > 1:
-                ha.log(
-                    conf.logger, "WARNING",
-                    "Scheduler clock skew detected -"
-                    " delta = {} - resetting".format(delta)
-                )
+                ha.log(conf.logger, "WARNING", "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                 return real_now
 
         # Update sunrise/sunset etc.
@@ -501,24 +444,18 @@ def do_every_second(utc):
         # in case we miss events for whatever reason
         # Every 10 minutes seems like a good place to start
 
-        if last_state is not None and now - last_state > datetime.timedelta(
-                minutes=10):
+        if last_state is not None and now - last_state > datetime.timedelta(minutes=10):
             try:
                 get_ha_state()
                 last_state = now
             except:
-                ha.log(conf.logger, "WARNING",
-                       "Unexpected error refreshing HA state -"
-                       " retrying in 10 minutes"
-                       )
+                ha.log(conf.logger, "WARNING", "Unexpected error refreshing HA state - retrying in 10 minutes")
 
         # Check on Queue size
 
         qsize = q.qsize()
         if qsize > 0 and qsize % 10 == 0:
-            conf.logger.warning(
-                "Queue size is {}, suspect thread starvation".format(
-                    q.qsize()))
+            conf.logger.warning("Queue size is {}, suspect thread starvation".format(q.qsize()))
 
         # Process callbacks
 
@@ -529,19 +466,7 @@ def do_every_second(utc):
                         conf.schedule[name].keys(),
                         key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
                 ):
-                    # ha.log(
-                    #     conf.logger,
-                    #     "DEBUG", "{} : {}".format(
-                    #         time.strftime(
-                    #             '%Y-%m-%d %H:%M:%S', time.localtime(
-                    #                 conf.schedule[name][entry]["timestamp"]
-                    #             )
-                    #         ),
-                    #         time.strftime(
-                    #             '%Y-%m-%d %H:%M:%S', time.localtime(now)
-                    #         )
-                    #     )
-                    # )
+
                     if conf.schedule[name][entry]["timestamp"] <= utc:
                         exec_schedule(name, entry, conf.schedule[name][entry])
                     else:
@@ -554,8 +479,7 @@ def do_every_second(utc):
 
     except:
         ha.log(conf.error, "WARNING", '-' * 60)
-        ha.log(conf.error, "WARNING",
-               "Unexpected error during do_every_second()")
+        ha.log(conf.error, "WARNING", "Unexpected error during do_every_second()")
         ha.log(conf.error, "WARNING", '-' * 60)
         ha.log(conf.error, "WARNING", traceback.format_exc())
         ha.log(conf.error, "WARNING", '-' * 60)
@@ -583,11 +507,9 @@ def worker():
         if name in conf.objects and conf.objects[name]["id"] == _id:
             try:
                 if _type == "initialize":
-                    ha.log(conf.logger, "DEBUG",
-                           "Calling initialize() for {}".format(name))
+                    ha.log(conf.logger, "DEBUG", "Calling initialize() for {}".format(name))
                     function()
-                    ha.log(conf.logger, "DEBUG",
-                           "{} initialize() done".format(name))
+                    ha.log(conf.logger, "DEBUG", "{} initialize() done".format(name))
                 elif _type == "timer":
                     function(ha.sanitize_timer_kwargs(args["kwargs"]))
                 elif _type == "attr":
@@ -603,20 +525,15 @@ def worker():
 
             except:
                 ha.log(conf.error, "WARNING", '-' * 60)
-                ha.log(conf.error, "WARNING",
-                       "Unexpected error in worker for App {}:".format(name))
+                ha.log(conf.error, "WARNING", "Unexpected error in worker for App {}:".format(name))
                 ha.log(conf.error, "WARNING", "Worker Ags: {}".format(args))
                 ha.log(conf.error, "WARNING", '-' * 60)
                 ha.log(conf.error, "WARNING", traceback.format_exc())
                 ha.log(conf.error, "WARNING", '-' * 60)
                 if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-                    ha.log(
-                        conf.logger, "WARNING",
-                        "Logged an error to {}".format(conf.errorfile)
-                    )
+                    ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
         else:
-            conf.logger.warning(
-                "Found stale callback for {} - discarding".format(name))
+            conf.logger.warning("Found stale callback for {} - discarding".format(name))
 
         if inits.get(name):
             inits.pop(name)
@@ -660,12 +577,7 @@ def term_object(name):
 
 
 def init_object(name, class_name, module_name, args):
-    ha.log(
-        conf.logger, "INFO",
-        "Loading Object {} using class {} from module {}".format(
-            name, class_name, module_name
-        )
-    )
+    ha.log(conf.logger, "INFO", "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
     module = __import__(module_name)
     app_class = getattr(module, class_name)
     conf.objects[name] = {
@@ -869,16 +781,12 @@ def process_message(data):
 
     except:
         ha.log(conf.error, "WARNING", '-' * 60)
-        ha.log(conf.error, "WARNING",
-               "Unexpected error during process_message()")
+        ha.log(conf.error, "WARNING", "Unexpected error during process_message()")
         ha.log(conf.error, "WARNING", '-' * 60)
         ha.log(conf.error, "WARNING", traceback.format_exc())
         ha.log(conf.error, "WARNING", '-' * 60)
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-            ha.log(
-                conf.logger, "WARNING",
-                "Logged an error to {}".format(conf.errorfile)
-            )
+            ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 
 # noinspection PyBroadException
@@ -903,10 +811,7 @@ def check_config():
                     if config[name] != new_config[name]:
                         # Something changed, clear and reload
 
-                        ha.log(
-                            conf.logger, "INFO",
-                            "App '{}' changed - reloading".format(name)
-                        )
+                        ha.log(conf.logger, "INFO", "App '{}' changed - reloading".format(name))
                         term_object(name)
                         clear_object(name)
                         init_object(
@@ -917,10 +822,7 @@ def check_config():
 
                     # Section has been deleted, clear it out
 
-                    ha.log(
-                        conf.logger, "INFO",
-                        "App '{}' deleted - removing".format(name)
-                    )
+                    ha.log(conf.logger, "INFO", "App '{}' deleted - removing".format(name))
                     clear_object(name)
 
             for name in new_config:
@@ -930,10 +832,7 @@ def check_config():
                     #
                     # New section added!
                     #
-                    ha.log(
-                        conf.logger, "INFO",
-                        "App '{}' added - running".format(name)
-                    )
+                    ha.log(conf.logger, "INFO", "App '{}' added - running".format(name))
                     init_object(
                         name, new_config[name]["class"],
                         new_config[name]["module"], new_config[name]
@@ -947,10 +846,7 @@ def check_config():
         ha.log(conf.error, "WARNING", traceback.format_exc())
         ha.log(conf.error, "WARNING", '-' * 60)
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-            ha.log(
-                conf.logger, "WARNING",
-                "Logged an error to {}".format(conf.errorfile)
-            )
+            ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 
 # noinspection PyBroadException
@@ -999,16 +895,12 @@ def read_app(file, reload=False):
 
     except:
         ha.log(conf.error, "WARNING", '-' * 60)
-        ha.log(conf.error, "WARNING",
-               "Unexpected error during loading of {}:".format(name))
+        ha.log(conf.error, "WARNING", "Unexpected error during loading of {}:".format(name))
         ha.log(conf.error, "WARNING", '-' * 60)
         ha.log(conf.error, "WARNING", traceback.format_exc())
         ha.log(conf.error, "WARNING", '-' * 60)
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
-            ha.log(
-                conf.logger, "WARNING",
-                "Logged an error to {}".format(conf.errorfile)
-            )
+            ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 
 def get_module_dependencies(file):
@@ -1128,20 +1020,9 @@ def read_apps(all_=False):
                         file = get_file_from_module(mod)
 
                         if file is None:
-                            ha.log(
-                                conf.logger, "ERROR",
-                                "Unable to resolve dependencies due to "
-                                "incorrect references"
-                            )
-                            ha.log(
-                                conf.logger, "ERROR",
-                                "The following modules have unresolved"
-                                " dependen:"
-                            )
-                            ha.log(
-                                conf.logger, "ERROR",
-                                get_module_from_path(module["file"])
-                            )
+                            ha.log(conf.logger, "ERROR", "Unable to resolve dependencies due to incorrect references")
+                            ha.log(conf.logger, "ERROR", "The following modules have unresolved dependencies:")
+                            ha.log(conf.logger, "ERROR",  get_module_from_path(module["file"]))
                             raise ValueError("Unresolved dependencies")
 
                         mod_def = {"name": file, "reload": True, "load": True}
@@ -1173,15 +1054,8 @@ def read_apps(all_=False):
                 modules.remove(module)
 
         if not batch:
-            ha.log(
-                conf.logger, "ERROR",
-                "Unable to resolve dependencies due to incorrect "
-                "or circular references"
-            )
-            ha.log(
-                conf.logger, "ERROR",
-                "The following modules have unresolved dependencies:"
-            )
+            ha.log(conf.logger, "ERROR",  "Unable to resolve dependencies due to incorrect or circular references")
+            ha.log(conf.logger, "ERROR",  "The following modules have unresolved dependencies:")
             for module in modules:
                 module_name = get_module_from_path(module["name"])
                 ha.log(conf.logger, "ERROR", module_name)
@@ -1360,12 +1234,7 @@ def run():
                         verify=False, headers=headers, retry=3000,
                         timeout=int(conf.timeout)
                     )
-                    ha.log(
-                        conf.logger, "INFO",
-                        "Connected to Home Assistant with timeout = {}".format(
-                            conf.timeout
-                        )
-                    )
+                    ha.log(conf.logger, "INFO", "Connected to Home Assistant with timeout = {}".format(conf.timeout))
                 for msg in messages:
                     if msg.data != "ping":
                         process_message(json.loads(msg.data))
@@ -1381,9 +1250,7 @@ def run():
 
                 ws = create_connection("{}/api/websocket".format(url))
                 result = json.loads(ws.recv())
-                ha.log(conf.logger, "INFO",
-                       "Connected to Home Assistant {}".format(
-                           result["ha_version"]))
+                ha.log(conf.logger, "INFO", "Connected to Home Assistant {}".format(result["ha_version"]))
                 #
                 # Check if auth required, if so send password
                 #
@@ -1409,10 +1276,7 @@ def run():
                 result = json.loads(ws.recv())
                 if not (result["id"] == _id and result["type"] == "result" and
                         result["success"] is True):
-                    ha.log(
-                        conf.logger, "WARNING",
-                        "Unable to subscribe to HA events, id = {}".format(_id)
-                    )
+                    ha.log(conf.logger, "WARNING", "Unable to subscribe to HA events, id = {}".format(_id))
                     ha.log(conf.logger, "WARNING", result)
                     raise ValueError("Error subscribing to HA Events")
 
@@ -1423,25 +1287,16 @@ def run():
                 while not stopping:
                     result = json.loads(ws.recv())
                     if not (result["id"] == _id and result["type"] == "event"):
-                        ha.log(
-                            conf.logger, "WARNING",
-                            "Unexpected result from Home Assistant, "
-                            "id = {}".format(_id)
-                        )
+                        ha.log(conf.logger, "WARNING", "Unexpected result from Home Assistant, id = {}".format(_id))
                         ha.log(conf.logger, "WARNING", result)
-                        raise ValueError(
-                            "Unexpected result from Home Assistant"
-                        )
+                        raise ValueError("Unexpected result from Home Assistant")
 
                     process_message(result["event"])
 
         except:
             reading_messages = False
             if not stopping:
-                ha.log(
-                    conf.logger, "WARNING",
-                    "Disconnected from Home Assistant, retrying in 5 seconds"
-                )
+                ha.log(conf.logger, "WARNING", "Disconnected from Home Assistant, retrying in 5 seconds")
                 if conf.loglevel == "DEBUG":
                     ha.log(conf.logger, "WARNING", '-' * 60)
                     ha.log(conf.logger, "WARNING", "Unexpected error:")
@@ -1460,9 +1315,7 @@ def find_path(name):
         _file = os.path.join(path, name)
         if os.path.isfile(_file) or os.path.isdir(_file):
             return _file
-    raise ValueError(
-        "{} not found in default locations".format(name)
-    )
+    raise ValueError("{} not found in default locations".format(name))
 
 
 # noinspection PyBroadException
@@ -1484,58 +1337,27 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "-c", "--config", help="full path to config directory",
-        type=str, default=None
-    )
-    parser.add_argument(
-        "-p", "--pidfile", help="full path to PID File",
-        default="/tmp/hapush.pid"
-    )
-    parser.add_argument(
-        "-t", "--tick",
-        help="time in seconds that a tick in the schedular lasts",
-        default=1, type=float
-    )
-    parser.add_argument(
-        "-s", "--starttime",
-        help="start time for scheduler <YYYY-MM-DD HH:MM:SS>",
-        type=str
-    )
-    parser.add_argument(
-        "-e", "--endtime",
-        help="end time for scheduler <YYYY-MM-DD HH:MM:SS>",
-        type=str, default=None
-    )
-    parser.add_argument(
-        "-i", "--interval",
-        help="multiplier for scheduler tick", type=float,
-        default=1
-    )
-    parser.add_argument(
-        "-D", "--debug", help="debug level", default="INFO",
-        choices=[
-            "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
-        ]
-    )
-    parser.add_argument(
-        '-v', '--version', action='version',
-        version='%(prog)s ' + __version__
-    )
-    parser.add_argument(
-        '--commtype', help="Communication Library to use",
-        default="WEBSOCKETS", choices=["SSE", "WEBSOCKETS"]
-    )
-    parser.add_argument(
-        '--profiledash', help=argparse.SUPPRESS,
-        action='store_true'
-    )
+    parser.add_argument("-c", "--config", help="full path to config directory", type=str, default=None)
+    parser.add_argument("-p", "--pidfile", help="full path to PID File", default="/tmp/hapush.pid")
+    parser.add_argument("-t", "--tick", help="time that a tick in the schedular lasts (seconds)", default=1, type=float)
+    parser.add_argument("-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str)
+    parser.add_argument("-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None)
+    parser.add_argument("-i", "--interval", help="multiplier for scheduler tick", type=float, default=1)
+    parser.add_argument("-D", "--debug", help="debug level", default="INFO", choices=
+                        [
+                            "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+                        ])
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
+    parser.add_argument('--commtype', help="Communication Library to use", default="WEBSOCKETS", choices=
+                        [
+                            "SSE",
+                            "WEBSOCKETS"
+                        ])
+    parser.add_argument('--profiledash', help=argparse.SUPPRESS, action='store_true')
 
     # Windows does not have Daemonize package so disallow
     if platform.system() != "Windows":
-        parser.add_argument("-d", "--daemon",
-                            help="run as a background process",
-                            action="store_true")
+        parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
 
     args = parser.parse_args()
 
@@ -1545,16 +1367,12 @@ def main():
     conf.profile_dashboard = args.profiledash
 
     if args.starttime is not None:
-        conf.now = datetime.datetime.strptime(
-            args.starttime, "%Y-%m-%d %H:%M:%S"
-        ).timestamp()
+        conf.now = datetime.datetime.strptime(args.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
     else:
         conf.now = datetime.datetime.now().timestamp()
 
     if args.endtime is not None:
-        conf.endtime = datetime.datetime.strptime(
-            args.endtime, "%Y-%m-%d %H:%M:%S"
-        )
+        conf.endtime = datetime.datetime.strptime(args.endtime, "%Y-%m-%d %H:%M:%S")
 
     if conf.tick != 1 or conf.interval != 1 or args.starttime is not None:
         conf.realtime = False
@@ -1706,16 +1524,10 @@ def main():
 
     # Startup message
 
-    ha.log(
-        conf.logger, "INFO",
-        "AppDaemon Version {} starting".format(__version__)
-    )
+    ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
 
     if not conf.apps:
-        ha.log(
-            conf.logger, "INFO",
-            "Apps are disabled"
-        )
+        ha.log(conf.logger, "INFO", "Apps are disabled")
 
     # Check with HA to get various info
 
@@ -1725,9 +1537,7 @@ def main():
             ha_config = ha.get_ha_config()
         except:
             ha.log(
-                conf.logger, "WARNING",
-                "Unable to connect to Home Assistant, retrying in 5 seconds"
-            )
+                conf.logger, "WARNING", "Unable to connect to Home Assistant, retrying in 5 seconds")
             if conf.loglevel == "DEBUG":
                 ha.log(conf.logger, "WARNING", '-' * 60)
                 ha.log(conf.logger, "WARNING", "Unexpected error:")
@@ -1747,8 +1557,7 @@ def main():
     if "elevation" in ha_config:
         conf.elevation = ha_config["elevation"]
         if "elevation" in config['AppDaemon']:
-            ha.log(conf.logger, "WARNING",
-                   "'elevation' directive is deprecated, please remove")
+            ha.log(conf.logger, "WARNING",  "'elevation' directive is deprecated, please remove")
     else:
         conf.elevation = config['AppDaemon']["elevation"]
 
@@ -1757,28 +1566,16 @@ def main():
 
     # Now we have logging, warn about deprecated directives
     if "latitude" in config['AppDaemon']:
-        ha.log(
-            conf.logger, "WARNING",
-            "'latitude' directive is deprecated, please remove"
-        )
+        ha.log(conf.logger, "WARNING", "'latitude' directive is deprecated, please remove")
 
     if "longitude" in config['AppDaemon']:
-        ha.log(
-            conf.logger, "WARNING",
-            "'longitude' directive is deprecated, please remove"
-        )
+        ha.log(conf.logger, "WARNING", "'longitude' directive is deprecated, please remove")
 
     if "timezone" in config['AppDaemon']:
-        ha.log(
-            conf.logger, "WARNING",
-            "'timezone' directive is deprecated, please remove"
-        )
+        ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please remove")
 
     if "time_zone" in config['AppDaemon']:
-        ha.log(
-            conf.logger, "WARNING",
-            "'time_zone' directive is deprecated, please remove"
-        )
+        ha.log(conf.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
 
     init_sun()
 

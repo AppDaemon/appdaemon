@@ -387,7 +387,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
         return dash, layout, occupied, includes
 
     try:
-        stuff = yaml.load(defs, yaml.SafeLoader)
+        dash_params = yaml.load(defs, yaml.SafeLoader)
     except yaml.YAMLError as exc:
         log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
         if hasattr(exc, 'problem_mark'):
@@ -404,20 +404,20 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
 
         return dash, layout, occupied, includes
 
-    if stuff is not None:
-        for thing in stuff:
-            if thing == "layout" and stuff[thing] is not None:
-                for lay in stuff[thing]:
+    if dash_params is not None:
+        for param in dash_params:
+            if param == "layout" and dash_params[param] is not None:
+                for lay in dash_params[param]:
                     layouts.append(lay)
-            elif thing in valid_params:
+            elif param in valid_params:
                 if extension == "dash":
-                    dash[thing] = stuff[thing]
+                    dash[param] = dash_params[param]
                 else:
                     ha.log(conf.dash, "WARNING",
                            "Top level dashboard directive illegal in imported dashboard '{}.{}': {}: {}".
-                           format(name, extension, thing, stuff[thing]))
+                           format(name, extension, param, dash_params[param]))
             else:
-                includes.append({thing: stuff[thing]})
+                includes.append({param: dash_params[param]})
 
         for lay in layouts:
             if isinstance(lay, dict):
