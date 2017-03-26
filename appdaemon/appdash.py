@@ -29,6 +29,7 @@ def set_paths():
 
     conf.javascript_dir = os.path.join(conf.dash_dir, "assets", "javascript")
     conf.compiled_javascript_dir = os.path.join(conf.compile_dir, "javascript")
+    conf.compiled_html_dir = os.path.join(conf.compile_dir, "html")
     conf.template_dir = os.path.join(conf.dash_dir, "assets", "templates")
     conf.css_dir = os.path.join(conf.dash_dir, "assets", "css")
     conf.compiled_css_dir = os.path.join(conf.compile_dir, "css")
@@ -90,19 +91,19 @@ def load_dash(request):
             body_includes = []
         else:
             errors = dash["errors"]
-            if "head_includes" in dash:
-                head_includes = dash["head_includes"]
-            else:
-                head_includes = []
-            if "body_includes" in dash:
-                body_includes = dash["body_includes"]
-            else:
-                body_includes = []
 
         if "widgets" in dash:
             widgets = dash["widgets"]
         else:
             widgets = {}
+
+        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
+        with open(include_path, "r") as include_file:
+            head_includes = include_file.read()
+        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
+        with open(include_path, "r") as include_file:
+            body_includes = include_file.read()
+
         #
         # return params
         #

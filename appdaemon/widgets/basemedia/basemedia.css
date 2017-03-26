@@ -1,0 +1,94 @@
+.widget-basemedia-{{id}} {
+	position: relative;
+}
+
+.widget-basemedia-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-basemedia-{{id}} .artist {
+	position: absolute;
+	top: 30px;
+	width: 100%;
+}
+
+.widget-basemedia-{{id}} .album {
+	position: absolute;
+	top: 55px;
+	width: 100%;
+}
+
+.widget-basemedia-{{id}} .media_title {
+	position: absolute;
+	top: 80px;
+	width: 100%;
+}
+
+.widget-basemedia-{{id}} .state_text {
+	position: absolute;
+	top: 38px;
+	width: 100%;
+}
+
+.widget-basemedia-{{id}} .stop {
+    position: absolute;
+	top: 130px;
+	left: 25px;
+    z-index: 10;
+}
+
+.widget-basemedia-{{id}} .pause {
+    position: absolute;
+	top: 130px;
+	width: 100%;
+}
+
+.widget-basemedia-{{id}} .play {
+    position: absolute;
+	top: 130px;
+	right: 25px;
+    z-index: 10;
+}
+
+
+.widget-basemedia-{{id}} .level {
+	display: inline-block;
+}
+
+.widget-basemedia-{{id}} .unit {
+	display: inline-block;
+}
+
+.widget-basemedia-{{id}} .levelunit {
+	position: absolute;
+	bottom: 5px;
+	width: 100%;
+}
+
+.widget-basemedia-{{id}} .secondary-icon {
+	position: absolute;
+	bottom: 0px;
+	font-size: 20px;
+	width: 32px;
+	color: white;
+}
+
+.widget-basemedia-{{id}} .secondary-icon.plus {
+	right: 24px;
+}
+
+.widget-basemedia-{{id}} .secondary-icon.plus i {
+	padding-top: 10px;
+	padding-left: 30px;
+}
+
+.widget-basemedia-{{id}} .secondary-icon.minus {
+	left: 8px;
+}
+
+.widget-basemedia-{{id}} .secondary-icon.minus i {
+	padding-top: 10px;
+	padding-right: 30px;
+}

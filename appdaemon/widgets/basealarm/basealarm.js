@@ -99,7 +99,7 @@ function basealarm(widget_id, url, skin, parameters)
         $('#' + widget_id + ' > #Dialog').removeClass("modalDialogOpen")
         $('#' + widget_id + ' > #Dialog').addClass("modalDialogClose")
     }
-    
+
     function OnDigitClick(self, parameters)
     {
         if (parameters.digit == "BS")

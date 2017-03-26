@@ -200,19 +200,24 @@ navigate_title_style: $style_title
 navigate_title2_style: $style_title2
 navigate_widget_style: $no_texture
 
-media_player_icon_on: fa-music
-media_player_icon_off: fa-music
+media_player_icon_play: fa-play
+media_player_icon_pause: fa-pause
+media_player_icon_stop: fa-stop
 media_player_icon_up: fa-plus
 media_player_icon_down: fa-minus
 media_player_title_style: $style_title
-media_player_title2_style: $style_title2
-media_player_icon_style_active: $style_active
-media_player_icon_style_inactive: $style_inactive
-media_player_state_text_style: $style_info
-media_player_level_style: $style_inactive
-media_player_level_up_style: $style_inactive
-media_player_level_down_style: $style_inactive
+media_player_media_title_style: $style_title2
+media_player_album_style: $style_title2
+media_player_artist_style: $style_title2
+media_player_icon_style_active: "color: $cyan"
+media_player_icon_style_inactive: "color: $gray_light"
+media_player_state_text_style: "color: $white"
+media_player_units_style: "color: $white"
+media_player_level_style: "color: $white"
+media_player_level_up_style: "color: $gray_light"
+media_player_level_down_style: "color: $gray_light"
 media_player_widget_style: $background_style
+
 
 light_icon_on: fa-circle
 light_icon_off: fa-circle-thin
@@ -278,3 +283,6 @@ alarm_panel_state_style: "color: $cyan"
 alarm_panel_code_style: "color: $cyan"
 alarm_panel_background_style: "background-color: rgba(0,0,30,1)"
 alarm_panel_button_style: "color: $cyan; background-color: rgba(0,0,50,1)"
+
+camera_widget_style: $background_style
+camera_title_style: $style_title

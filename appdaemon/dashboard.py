@@ -161,7 +161,7 @@ def do_subs(file, _vars, blank):
 
 
 # noinspection PyUnresolvedReferences
-def load_widget(dash, includes, name, css_vars):
+def load_widget(dash, includes, name, css_vars, global_parameters):
     instantiated_widget = None
     #
     # Check if we have already encountered a definition
@@ -249,6 +249,13 @@ def load_widget(dash, includes, name, css_vars):
             return {"widget_type": "text", "title": "Error loading widget definition"}
 
         #
+        # Add in global params
+        #
+        if global_parameters is not None:
+            for key in global_parameters:
+                final_widget[key] = global_parameters[key]
+
+        #
         # Override defaults with parameters in users definition
         #
         for key in instantiated_widget:
@@ -291,7 +298,7 @@ def widget_exists(widgets, _id):
     return False
 
 
-def add_layout(value, layout, occupied, dash, page, includes, css_vars):
+def add_layout(value, layout, occupied, dash, page, includes, css_vars, global_parameters):
     if value is None:
         return
     widgetdimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
@@ -327,7 +334,7 @@ def add_layout(value, layout, occupied, dash, page, includes, css_vars):
             else:
                 widget["position"] = [column, layout]
                 widget["size"] = [xsize, ysize]
-                widget["parameters"] = load_widget(dash, includes, name, css_vars)
+                widget["parameters"] = load_widget(dash, includes, name, css_vars, global_parameters)
                 dash["widgets"].append(widget)
 
         for x in range(column, column + int(xsize)):
@@ -351,7 +358,7 @@ def merge_dashes(dash1, dash2):
 
 
 def load_dash(name, css_vars):
-    dash, layout, occupied, includes = _load_dash(name, "dash", 0, {}, [], 1, css_vars)
+    dash, layout, occupied, includes = _load_dash(name, "dash", 0, {}, [], 1, css_vars, None)
     return dash
 
 
@@ -361,7 +368,7 @@ def log_error(dash, name, error):
 
 
 # noinspection PyBroadException
-def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
+def _load_dash(name, extension, layout, occupied, includes, level, css_vars, global_parameters):
     if extension == "dash":
         dash = {"title": "HADashboard", "widget_dimensions": [120, 120], "widget_margins": [5, 5], "columns": 8}
     else:
@@ -403,8 +410,15 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
             log_error(dash, name, "Something went wrong while parsing dashboard file")
 
         return dash, layout, occupied, includes
-
     if dash_params is not None:
+        if "global_parameters" in dash_params:
+            if extension == "dash":
+                global_parameters = dash_params["global_parameters"]
+            else:
+                ha.log(conf.dash, "WARNING",
+                       "global_parameters dashboard directive illegal in imported dashboard '{}.{}'".
+                       format(name, extension))
+
         for param in dash_params:
             if param == "layout" and dash_params[param] is not None:
                 for lay in dash_params[param]:
@@ -424,7 +438,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
                 if "include" in lay:
                     new_dash, layout, occupied, includes = _load_dash(
                         os.path.join(conf.dashboard_dir, lay["include"]),
-                        "yaml", layout, occupied, includes, level + 1, css_vars)
+                        "yaml", layout, occupied, includes, level + 1, css_vars, global_parameters)
                     if new_dash is not None:
                         merge_dashes(dash, new_dash)
                 elif "empty" in lay:
@@ -433,7 +447,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars):
                     log_error(dash, name, "Incorrect directive, should be 'include or empty': {}".format(lay))
             else:
                 layout += 1
-                add_layout(lay, layout, occupied, dash, page, includes, css_vars)
+                add_layout(lay, layout, occupied, dash, page, includes, css_vars, global_parameters)
 
     return dash, layout, occupied, includes
 
@@ -464,6 +478,8 @@ def compile_dash(name, skin, skindir, params):
             os.path.join(conf.compiled_css_dir, skin, "{}_application.css".format(name.lower())),
             os.path.join(conf.compiled_javascript_dir, "application.js"),
             os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower())),
+            os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower())),
+            os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower())),
         ]:
             if not os.path.isfile(file):
                 do_compile = True
@@ -473,7 +489,6 @@ def compile_dash(name, skin, skindir, params):
             except OSError:
                 mtime = 0
             last_modified_date = datetime.datetime.fromtimestamp(mtime)
-
             if last_modified_date < last_compiled:
                 last_compiled = last_modified_date
 
@@ -512,12 +527,26 @@ def compile_dash(name, skin, skindir, params):
         loader=FileSystemLoader(conf.template_dir),
         autoescape=select_autoescape(['html', 'xml'])
     )
+
     template = env.get_template("dashinit.jinja2")
     rendered_template = template.render(params)
-
     js_path = os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower()))
     with open(js_path, "w") as js_file:
         js_file.write(rendered_template)
+
+    template = env.get_template("head_include.jinja2")
+    rendered_template = template.render(params)
+    js_path = os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
+    with open(js_path, "w") as js_file:
+        js_file.write(rendered_template)
+
+    template = env.get_template("body_include.jinja2")
+    rendered_template = template.render(params)
+    js_path = os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
+    with open(js_path, "w") as js_file:
+        js_file.write(rendered_template)
+
+
 
     return dash
 
@@ -615,6 +644,13 @@ def get_dash(name, skin, skindir):
 
     if not os.path.exists(os.path.join(conf.compiled_javascript_dir, skin)):
         os.makedirs(os.path.join(conf.compiled_javascript_dir, skin))
+
+    if not os.path.exists(conf.compiled_html_dir):
+        os.makedirs(conf.compiled_html_dir)
+
+    if not os.path.exists(os.path.join(conf.compiled_html_dir, skin)):
+        os.makedirs(os.path.join(conf.compiled_html_dir, skin))
+
 
     js_path = os.path.join(conf.compiled_javascript_dir, "application.js")
     with open(js_path, "w") as js_file:

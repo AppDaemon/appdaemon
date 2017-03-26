@@ -1,0 +1,7 @@
+<! body tags ->
+
+{% if body_includes is defined %}
+    {% for item in body_includes %}
+        {{ item }}
+    {% endfor %}
+{%endif%}

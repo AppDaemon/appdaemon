@@ -116,7 +116,6 @@ function baselight(widget_id, url, skin, parameters)
                     args[attr] = self.parameters.on_attributes[attr]
                 }
             }
-            console.log(args)
         }
         else
         {

@@ -11,6 +11,8 @@ History
 - Widgets can now have a default size other than `(1x1)`
 - Added `empty` to layouts for multiple blank lines
 - Numeric values can now have a comma as the decimal separator
+- Add Global Parameters
+- Rewrote media widget
 
 **Fixes**
 
@@ -19,6 +21,8 @@ History
 - Fixed a race condition on dashboard reload
 
 **Breaking Changes**
+
+- Media Widget now needs to be 2 cells high
 
 2.0.0beta2
 ----------

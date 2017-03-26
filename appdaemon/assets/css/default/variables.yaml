@@ -200,16 +200,20 @@ navigate_title2_style: $style_title2
 navigate_widget_style: $background_style
 
 
-media_player_icon_on: fa-music
-media_player_icon_off: fa-music
+media_player_icon_play: fa-play
+media_player_icon_pause: fa-pause
+media_player_icon_stop: fa-stop
 media_player_icon_up: fa-plus
 media_player_icon_down: fa-minus
 media_player_title_style: $style_title
-media_player_title2_style: $style_title2
-media_player_icon_style_active: $style_active
-media_player_icon_style_inactive: $style_inactive
+media_player_media_title_style: $style_title2
+media_player_album_style: $style_title2
+media_player_artist_style: $style_title2
+media_player_icon_style_active: "color: $green"
+media_player_icon_style_inactive: "color: $gray_light"
 media_player_state_text_style: "color: $white"
-media_player_level_style: "color: $gray_light"
+media_player_units_style: "color: $white"
+media_player_level_style: "color: $white"
 media_player_level_up_style: "color: $gray_light"
 media_player_level_down_style: "color: $gray_light"
 media_player_widget_style: $background_style
@@ -224,7 +228,7 @@ light_icon_style_active: $style_active
 light_icon_style_inactive: $style_inactive
 light_state_text_style: "color: $white"
 light_level_style: "color: $gray_light"
-light_unit_style:  "color: $gray_light"
+light_unit_style:  "color: $white"
 light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
 light_widget_style: $background_style
@@ -277,3 +281,6 @@ alarm_panel_state_style: "color: $white"
 alarm_panel_code_style: "color: $white"
 alarm_panel_background_style: "background-color: $gray_dark"
 alarm_panel_button_style: "background-color: $gray_medium"
+
+camera_widget_style: $background_style
+camera_title_style: $style_title

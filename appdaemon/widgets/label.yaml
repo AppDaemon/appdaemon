@@ -1,4 +1,4 @@
-widget_type: display
+widget_type: basedisplay
 fields:
   title: {{title}}
   title2: {{title2}}

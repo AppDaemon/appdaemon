@@ -76,5 +76,6 @@ custom_css_dir = None
 dash = None
 dash_compile_on_start = None
 compiled_javascript_dir = None
+compiled_html_dir = None
 compiled_css_dir = None
 ws_lock = threading.RLock()
