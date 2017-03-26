@@ -108,7 +108,7 @@ These are all fairly self explanatory:
 - `widget_size` - the number of grid blocks each widget will be by default if not specified
 - `widget_margins` - the size of blank space between widgets.
 - `columns` - the number of columns the dasboard will have.
-- `global_parameters` a list of parameters that will be applied to every widget. If the widget does not accept that parameter it will be ignored. Global parameters can be overriden at the widget definition if desired. This is useful for instance if you want to use commas as decimals for all of your widgets. This will also apply to widgets defined with just their entity ids so they will not require a formal widget definition just to change the decimal separator.
+- `global_parameters` - a list of parameters that will be applied to every widget. If the widget does not accept that parameter it will be ignored. Global parameters can be overriden at the widget definition if desired. This is useful for instance if you want to use commas as decimals for all of your widgets. This will also apply to widgets defined with just their entity ids so they will not require a formal widget definition just to change the decimal separator.
 
 The very simplest dashboard needs a layout so it can understand where to place the widgets. We use a `layout` directive to tell HADasboard how to place them. Here is an example:
 

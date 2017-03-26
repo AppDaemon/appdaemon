@@ -227,7 +227,7 @@ light_title2_style: $style_title2
 light_icon_style_active: $style_active
 light_icon_style_inactive: $style_inactive
 light_state_text_style: "color: $white"
-light_level_style: "color: $gray_light"
+light_level_style: "color: $white"
 light_unit_style:  "color: $white"
 light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
