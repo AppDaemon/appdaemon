@@ -19,7 +19,7 @@ REQUIREMENTS = [
     'sseclient',
     'websocket-client',
     'async',
-    'aiohttp>=1.2.0',
+    'aiohttp==1.2.0',
     'Jinja2>=2.9.5',
     'aiohttp_jinja2',
     'pyyaml',
