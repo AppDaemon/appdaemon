@@ -1,6 +1,28 @@
-=======
 History
 =======
+
+2.0.0beta3
+----------
+
+- Added alarm widget
+- Added camera widget
+- Dimmers and groups now allow you to specify a list of on parameters to control brightness, color etc.
+- Edited code for PEP8 Compliance
+- Widgets can now have a default size other than `(1x1)`
+- Added `empty` to layouts for multiple blank lines
+- Numeric values can now have a comma as the decimal separator
+- Add Global Parameters
+- Rewrote media widget
+
+**Fixes**
+
+- IFrames now follow widget borders better
+- IFrame now allows user input
+- Fixed a race condition on dashboard reload
+
+**Breaking Changes**
+
+- Media Widget now needs to be 2 cells high
 
 2.0.0beta2
 ----------
@@ -51,7 +73,7 @@ None
 
 **Breaking Changes**
 
-- appdaemon's `-c` option now identifies a directory not a file. The previously identified file must exist in that directory and be named `appdaemon'cfg`
+- appdaemon's `-c` option now identifies a directory not a file. The previously identified file must exist in that directory and be named `appdaemon.cfg`
 
 1.5.2 (2017-02-04)
 ------------------

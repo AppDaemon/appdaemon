@@ -50,7 +50,7 @@ dash_force_compile = 1
 
 This will force dashboard recompilation whenever the dashboard is loaded. You can also force a recompilation by adding the parameter `recompile=1` to the dashboard URL.
 
-By default, information and errors around acces to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
+By default, information and errors around access to the Dashboard will go to the same place as AppDaemon's log. To split the page access out to a different file, use the `accessfile` directive, e.g.:
 
 ```ini
 accessfile = /var/log/dash_access
@@ -93,16 +93,22 @@ A top level dashboard will usually have one of a number of initial directives to
 #
 title: Main Panel
 widget_dimensions: [120, 120]
+widget_size: [1, 1]
 widget_margins: [5, 5]
 columns: 8
+global_parameters:
+    use_comma: 0
+    precision: 1
 ```
 
 These are all fairly self explanatory:
 
 - `title` - the name that will end up in the title of the web page, defaults to "HADashboard".
-- `widget_dimensions` - the unit height and width of the individual widgets in pixels. Note tha the absolute size is not too important as on tablets at least the browser will scale the page to fit. What is more important is the aspect ratio of the widgets as this will affect whether or not the dashboard completely fills the tablets screen. The default is [120, 120] (width, height). This works well for a regular iPad. 
+- `widget_dimensions` - the unit height and width of the individual widgets in pixels. Note tha the absolute size is not too important as on tablets at least the browser will scale the page to fit. What is more important is the aspect ratio of the widgets as this will affect whether or not the dashboard completely fills the tablets screen. The default is [120, 120] (width, height). This works well for a regular iPad.
+- `widget_size` - the number of grid blocks each widget will be by default if not specified
 - `widget_margins` - the size of blank space between widgets.
 - `columns` - the number of columns the dasboard will have.
+- `global_parameters` - a list of parameters that will be applied to every widget. If the widget does not accept that parameter it will be ignored. Global parameters can be overriden at the widget definition if desired. This is useful for instance if you want to use commas as decimals for all of your widgets. This will also apply to widgets defined with just their entity ids so they will not require a formal widget definition just to change the decimal separator.
 
 The very simplest dashboard needs a layout so it can understand where to place the widgets. We use a `layout` directive to tell HADasboard how to place them. Here is an example:
 
@@ -117,7 +123,7 @@ As you can see, here we are refering directly to native Home Assistant entities.
 
 The layout command is intended to be visual in how you lay out the widgets. Each layout entry represents a row on the dashboard, each comma separated widget represents a cell on that row.
 
-Widgets can also have a size associated with them - that is the `(2x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will default to (1x1). HADasboard will do it's best to calculate the right layout from what you give it but expect strange behavior if you add too many widgets on a line.
+Widgets can also have a size associated with them - that is the `(2x1)` directive appended to the name. This is simply the width of the widget in columns and the height of the widget in rows. For instance, `(2x1)` would refer to a widget 2 cells wide and 1 cell high. If you leave of the sizing information, the widget will use the `widget_size` dashboard parameter if specified, or default to `(1x1)` if not. HADasboard will do it's best to calculate the right layout from what you give it but expect strange behavior if you add too many widgets on a line.
 
 For a better visual cue you can lay the widgets out with appropriate spacing to see what the grid will look like more intuitively:
 
@@ -139,7 +145,15 @@ If you want a blank space you can use the special widget name `spacer`. To leave
     - media_player(2x1), sensor.temperature
 ```
 
-The above would leave the 2nd row empty.
+The above would leave the 2nd row empty. If you want more than one empty line use `empty` as follows":
+
+```yaml
+    - light.hall, light.living_room, input_boolean.heating
+    - empty: 2
+    - media_player(2x1), sensor.temperature
+```
+
+This would leave the 2nd and 3rd rows empty.
 
 And that is all there to it, for a simple one file dashboard.
 
@@ -522,11 +536,7 @@ None
 
 A widget to report on values for any sensor in Home Assistant
 
-The defauts for sensor are biased towards numeric entities. If you want to represent text in the sensor it will work fine with the following caveats:
-
-- Do not set the precision parameter
-- You might want to set `text_color` to white
-- You will want to reduce the text_size = `100%` is a good starting place.
+The widget will detect whether or not it is showing a numeric value, and if so, it will use the numeric style. If it is showing text it will use the text style, which among other things makes the text size smaller.
 
 ### Mandatory Arguments:
 
@@ -539,6 +549,7 @@ The defauts for sensor are biased towards numeric entities. If you want to repre
 - `units` - the unit symbol to be displayed, if not specified HAs unit will be used, specify "" for no units
 - `precision` - the number of decimal places
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
+- `use_comma` - if set to one`, a comma will be used as the decimal separator
 - `state_map`
 
 ### Style Arguments: 
@@ -839,7 +850,19 @@ A widget to monitor and contol a dimmable light
 - `icon_off`
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `on_brightness` - how bright you want the light to come on when activated, 1 - 255.
+- `on_attributes` - a list of supported HA attributes to set as initial values for the light.
+
+e.g.
+
+```yaml
+testlight2:
+    widget_type: light
+    entity: light.office_2
+    title: office_2
+    on_attributes:
+        brightness: 100
+        color_temp: 250
+```
 
 ### Cosmetic Arguments
    
@@ -872,6 +895,7 @@ A widget to monitor and contol an input slider
 - `title2` - a second line of title text 
 - `step` - the size of step in brightness when fading the slider up or down
 - `units` - the unit symbol to be displayed
+- `use_comma` - if set to one, a comma will be used as the decimal separator
 
 ### Cosmetic Arguments
    
@@ -1085,6 +1109,53 @@ weather_frame:
 - `widget_style`
 - `title_style`
 
+## camera
+
+A widget to display a refreshing camera image on the dashboard
+
+### Mandatory Arguments
+
+- `entity_picture`
+
+This can be found using the developer tools, and will be one of the parameters associated with the camera you want to view. If you are using a password, you will need to append `&api_password=<your password>` to the end of the entity_picture. It will look seomthing like this:
+
+`http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>`
+
+If you are using SSL, remeber to use the full DNS name and not the IP address.
+
+### Optional Arguments:
+
+- `refresh` - (seconds) if set, the camera image will refresh every interval.
+
+### Cosmetic Arguments
+   
+- `widget_style`
+- `title_style`
+
+
+## alarm
+
+A widget to report on the state of an alarm and allow code entry
+
+### Mandatory Arguments:
+
+- `entity` - the entity_id of the alarm to be monitored
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text 
+
+### Style Arguments: 
+
+- `widget_style`
+- `title_style`
+- `title2_style`
+- `state_style`
+- `panel_state_style`
+- `panel_code_style`
+- `panel_background_style`
+- `panel_button_style`
 
 # Skins
 

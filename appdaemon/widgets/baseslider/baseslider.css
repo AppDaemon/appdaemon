@@ -1,0 +1,78 @@
+.widget-baseslider-{{id}} {
+	position: relative;
+}
+
+.widget-baseslider-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-baseslider-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
+
+.widget-baseslider-{{id}} .level {
+	font-size: 250%;
+	display: inline-block;
+}
+
+.widget-baseslider-{{id}} .unit {
+	font-size: 100%;
+	font-weight: 400;
+	display: inline-block;
+	vertical-align: top;
+	margin-left: 5px;
+	margin-top: 5px;
+}
+
+.widget-baseslider-{{id}} .levelunit {
+	position: absolute;
+	top: 43px;
+	width: 100%;
+}
+
+.widget-baseslider-{{id}} .secondary-icon {
+	position: absolute;
+	bottom: 0px;
+	font-size: 20px;
+	width: 32px;
+	color: white;
+}
+
+.widget-baseslider-{{id}} .level2 {
+	display: inline-block;
+}
+
+.widget-baseslider-{{id}} .unit2 {
+	font-size: 65%;
+	font-weight: 400;
+	display: inline-block;
+	vertical-align: top;
+
+}
+
+.widget-baseslider-{{id}} .levelunit2 {
+	position: absolute;
+	bottom: 5px;
+	width: 100%;
+}
+.widget-baseslider-{{id}} .secondary-icon.plus {
+	right: 24px;
+}
+
+.widget-baseslider-{{id}} .secondary-icon.plus i {
+	padding-top: 10px;
+	padding-left: 30px;
+}
+
+.widget-baseslider-{{id}} .secondary-icon.minus {
+	left: 8px;
+}
+
+.widget-baseslider-{{id}} .secondary-icon.minus i {
+	padding-top: 10px;
+	padding-right: 30px;
+}

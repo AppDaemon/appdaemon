@@ -27,22 +27,22 @@
 	<link rel="stylesheet" type="text/css" href="css/climacons-font.css">
 	<link rel="stylesheet" type="text/css" href="css/font-awesome.css">
 	<link rel="stylesheet" type="text/css" href="css/materialdesignicons.min.css" media="all" />
+	<link rel="stylesheet" type="text/css" href="css/jquery-ui.css"/>
 	<script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
 	<script type="text/javascript" src="javascript/jquery.gridster.js"></script>
+	<script type="text/javascript" src="javascript/jquery-ui.js"></script>
 	<script type="text/javascript" src="javascript/knockout-3.4.1.js"></script>
 	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
 	<script type="text/javascript" src="javascript/dashboard.js"></script>
 	<script type="text/javascript" src="compiled_javascript/application.js"></script>
 	<script type="text/javascript" src="compiled_javascript/{{skin}}/{{name}}_init.js"></script>
 	{%endif%}
-	{% if head_includes is defined %}
-		{% for item in head_includes %}
-			{{ item }}
-		{% endfor %}
-	{%endif%}
+
+    {{  head_includes }}
 
 </head>
 <body>
+    {{ body_includes }}
 	{% if dash_list is defined or errors%}
 		<div id="backgroundImage">
         <div class="main">
@@ -73,11 +73,6 @@
         </div>
         <div class="iconattrib">Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
     {% else %}
-        {% if body_includes is defined %}
-            {% for item in body_includes %}
-                {{ item }}
-            {% endfor %}
-        {%endif%}	
             <div class="dasboard-main" id="container">
             <div class="gridster">
 			<ul>

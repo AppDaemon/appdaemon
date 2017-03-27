@@ -1,4 +1,4 @@
-.widget-display-{{id}} .unit {
+.widget-basedisplay-{{id}} .unit {
 	font-size: 225%;
 	font-weight: 400;
 	display: inline-block;
@@ -7,24 +7,24 @@
 	margin-top: 5px;
 }
 
-.widget-display-{{id}} .value {
+.widget-basedisplay-{{id}} .value {
 	display: inline-block;
 	vertical-align: middle;
 }
 
-.widget-display-{{id}} .valueunit {
+.widget-basedisplay-{{id}} .valueunit {
 	position: absolute;
 	top: 43px;
 	width: 100%;
 }
 
-.widget-display-{{id}} .title {
+.widget-basedisplay-{{id}} .title {
 	position: absolute;
 	top: 5px;
 	width: 100%;
 }
 
-.widget-display-{{id}} .title2 {
+.widget-basedisplay-{{id}} .title2 {
 	position: absolute;
 	top: 23px;
 	width: 100%;

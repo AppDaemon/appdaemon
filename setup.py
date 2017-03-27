@@ -19,17 +19,16 @@ REQUIREMENTS = [
     'sseclient',
     'websocket-client',
     'async',
-    'aiohttp>=1.2.0',
+    'aiohttp==1.2.0',
     'Jinja2>=2.9.5',
     'aiohttp_jinja2',
-    'pyScss',
     'pyyaml',
     'voluptuous',
 ]
 
 setup(
     name='appdaemon',
-    version='2.0.0beta2',
+    version='2.0.0beta3',
     description="Apps for the Home Assistant home automation package.",
     long_description=README + '\n\n' + HISTORY,
     author='Andrew I Cockburn',

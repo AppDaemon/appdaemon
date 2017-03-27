@@ -1,0 +1,58 @@
+
+.widget-basealarm-{{id}} .state {
+	basealarm: inline-block;
+	vertical-align: middle;
+}
+
+.widget-basealarm-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-basealarm-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
+
+.widget-basealarm-{{id}} .code {
+	width: 100%;
+}
+
+.widget-basealarm-{{id}} .toggle-area {
+	z-index: 10;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.widget-basealarm-{{id}} .container {
+    width: 275px;
+    display: inline-block;
+}
+
+.widget-basealarm-{{id}} panel-state {
+    font-size: 100%;
+}
+.widget-basealarm-{{id}} .block {
+    display: inline-block;
+    width: 75px;
+    height: 75px;
+    margin: 5px;
+    float: center;
+    font-size: 175%;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 75px; 
+}
+
+.widget-basealarm-{{id}} .block2 {
+    width: 165px;
+}
+
+.widget-basealarm-{{id}} .block3 {
+    width: 255px;
+}

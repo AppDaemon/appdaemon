@@ -1,0 +1,14 @@
+<h1 class="title" data-bind="text: title, attr:{style: title_style}"></h1>
+<h1 class="artist" data-bind="text: artist, attr:{style: artist_style}"></h1>
+<h1 class="media_title" data-bind="text: media_title, attr:{style: media_title_style}"></h1>
+<h1 class="album" data-bind="text: album, attr:{style: album_style}"></h1>
+<h2 id="stop" class="stop" data-bind="attr:{style: stop_icon_style,}"><i data-bind="attr: {class: stop_icon}"></i></h2>
+<h2 id="pause" class="pause" data-bind="attr:{style: pause_icon_style}"><i data-bind="attr: {class: pause_icon}"></i></h2>
+<h2 id="play" class="play" data-bind="attr:{style: play_icon_style}"><i data-bind="attr: {class: play_icon}"></i></h2>
+<p class="state_text" data-bind="text: state_text, attr:{style: state_text_style}"></p>
+<div class="levelunit">
+<p class="level" data-bind="text: level, attr:{style: level_style}"></p>
+<p class="unit" data-bind="attr:{style: units_style}">%</p>
+</div>
+<p class="secondary-icon minus"><i data-bind="attr: {class: icon_down, style: level_down_style}" id="level-down"></i></p>
+<p class="secondary-icon plus"><i data-bind="attr: {class: icon_up, style: level_up_style}" id="level-up"></i></p>

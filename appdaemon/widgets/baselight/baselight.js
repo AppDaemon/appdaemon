@@ -109,7 +109,13 @@ function baselight(widget_id, url, skin, parameters)
         if (self.state == "off")
         {
             args = self.parameters.post_service_active 
-            args["brightness"] = self.on_brightness
+            if ("on_attributes" in self.parameters)
+            {
+                for (var attr in self.parameters.on_attributes)
+                {
+                    args[attr] = self.parameters.on_attributes[attr]
+                }
+            }
         }
         else
         {

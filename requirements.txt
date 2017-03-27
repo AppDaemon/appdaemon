@@ -1,5 +1,12 @@
+websocket
+websocket
 daemonize>=2.4.7
 sseclient>=0.0.12
 configparser>=3.5.0
 astral>=1.2
 requests>=2.6.0
+aiohttp
+jinja2
+aiohttp_jinja2
+websocket-client
+yaml

@@ -1,27 +1,11 @@
 function baseweather(widget_id, url, skin, parameters)
 {
-    // Store Args
-    this.widget_id = widget_id
-    this.parameters = parameters
-    
-    // Add in methods
-    this.on_ha_data = on_ha_data
-    this.get_state = get_state
-    
-    this.sensors =
-    [
-        "dark_sky_temperature",
-        "dark_sky_humidity",
-        "dark_sky_precip_probability",
-        "dark_sky_precip_intensity",
-        "dark_sky_wind_speed",
-        "dark_sky_pressure",
-        "dark_sky_wind_bearing",
-        "dark_sky_apparent_temperature",
-        "dark_sky_icon"
-    ]
+    // Will be using "self" throughout for the various flavors of "this"
+    // so for consistency ...
 
-    this.icons =
+    self = this;
+
+    self.weather_icons =
     {
       "rain": '&#xe009',
       "snow": '&#xe036',
@@ -33,130 +17,75 @@ function baseweather(widget_id, url, skin, parameters)
       "clear-night": '&#xe02d',
       "partly-cloudy-day": '&#xe001',
       "partly-cloudy-night": '&#xe002'    
-    }
-    
-    // Create and initialize bindings
-    
-    this.ViewModel = {}
-    var arrayLength = this.sensors.length;
-    for (var i = 0; i < arrayLength; i++) 
-    {
-        this.ViewModel[this.sensors[i]] = ko.observable()
-    }
+    };
 
-    this.ViewModel.unit = ko.observable(parameters.units)
-    this.ViewModel.unit_style = ko.observable()
-	this.ViewModel.widget_style = ko.observable()
-	this.ViewModel.main_style = ko.observable()
-	this.ViewModel.sub_style = ko.observable()
-   
-    ko.applyBindings(this.ViewModel, document.getElementById(widget_id))
-    
-	// Setup Override Styles
+    // Initialization
 
-	if ("widget_style" in parameters)
-	{
-		this.ViewModel.widget_style(parameters.widget_style)
-	}    
+    self.widget_id = widget_id;
 
-	if ("main_style" in parameters)
-	{
-		this.ViewModel.main_style(parameters.main_style)
-	}    
+    // Store on brightness or fallback to a default
 
-	if ("unit_style" in parameters)
-	{
-		this.ViewModel.unit_style(parameters.unit_style)
-	}    
+    // Parameters may come in useful later on
 
-	if ("sub_style" in parameters)
-	{
-		this.ViewModel.sub_style(parameters.sub_style)
-	}    
-    
-    // Get initial state
-    this.get_state(url, parameters.entity)
+    self.parameters = parameters;
 
+    var callbacks = [];
+
+    // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
+    // Initial will be called when the dashboard loads and state has been gathered for the entity
+    // Update will be called every time an update occurs for that entity
+
+    self.OnStateAvailable = OnStateAvailable;
+    self.OnStateUpdate = OnStateUpdate;
+
+    var monitored_entities =
+    [
+        {"entity": "sensor.dark_sky_temperature", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_humidity", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_precip_probability", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_precip_intensity", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_wind_speed", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_pressure", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_wind_bearing", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_apparent_temperature", "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+        {"entity": "sensor.dark_sky_icon", "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
+    ];
+
+    // Finally, call the parent constructor to get things moving
+
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
+
+    // Function Definitions
+
+    // The StateAvailable function will be called when
+    // self.state[<entity>] has valid information for the requested entity
+    // state is the initial state
     // Methods
 
-    function on_ha_data(data)
+    function OnStateUpdate(self, state)
     {
-        if (data.event_type == "state_changed")
+        set_view(self, state)
+    }
+
+    function OnStateAvailable(self, state)
+    {
+        if (state.entity_id == "sensor.dark_sky_temperature")
         {
-            var arrayLength = this.sensors.length;
-            for (var i = 0; i < arrayLength; i++) 
-            {
-                if (data.data.entity_id == "sensor." + this.sensors[i])
-                {
-                    if (this.sensors[i] == "dark_sky_icon")
-                    {
-                        state = this.icons[data.data.new_state.state]
-                    }
-                    else
-                    {
-                        state = data.data.new_state.state
-                    }
-                    this.ViewModel[this.sensors[i]](state)
-                }
-            }
+            self.set_field(self, "unit", state.attributes.unit_of_measurement)
+        }
+        set_view(self, state)
+    }
+
+    function set_view(self, state)
+    {
+        if (state.entity_id == "sensor.dark_sky_icon")
+        {
+            self.set_field(self, "dark_sky_icon", self.weather_icons[state.state])
+        }
+        else
+        {
+            var field = state.entity_id.split(".")[1];
+            self.set_field(self, field, state.state)
         }
     }
-        
-    function get_state(base_url)
-    {
-        var that = this;
-        url = base_url + "/state/" + "sensor.dark_sky_icon";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_icon(that.icons[data.state.state])
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_temperature";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_temperature(data.state.state)
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_humidity";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_humidity(data.state.state)
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_apparent_temperature";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_apparent_temperature(data.state.state)
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_precip_probability";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_precip_probability(data.state.state)
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_precip_intensity";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_precip_intensity(data.state.state)
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_wind_speed";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_wind_speed(data.state.state)
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_wind_bearing";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_wind_bearing(data.state.state)
-        }, "json");    
-
-        url = base_url + "/state/" + "sensor.dark_sky_pressure";
-        $.get(url, "", function(data)
-        {
-            that.ViewModel.dark_sky_pressure(data.state.state)
-        }, "json");    
-    };
 }

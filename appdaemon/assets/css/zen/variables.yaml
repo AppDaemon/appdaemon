@@ -170,8 +170,8 @@ lock_title2_style: $style_title2
 lock_widget_style: $background_style
 lock_state_text_style: "color: $red; font-weight: bold"
 
-cover_icon_on: fa-car
-cover_icon_off: fa-car
+cover_icon_on: fa-arrows-v
+cover_icon_off: fa-arrows-v
 cover_icon_style_active: $style_active_warn
 cover_icon_style_inactive: $style_inactive
 cover_title_style: $style_title
@@ -216,19 +216,24 @@ navigate_title_style: "color: white"
 navigate_title2_style: "color: white"
 navigate_widget_style: $background_style
 
-media_player_icon_on: fa-music
-media_player_icon_off: fa-music
+media_player_icon_play: fa-play
+media_player_icon_pause: fa-pause
+media_player_icon_stop: fa-stop
 media_player_icon_up: fa-plus
 media_player_icon_down: fa-minus
 media_player_title_style: $style_title
-media_player_title2_style: $style_title2
-media_player_icon_style_active: "color: red; font-size: 200%"
-media_player_icon_style_inactive: "color: white; font-size: 200%"
-media_player_state_text_style: "color: red; font-weight: bold"
-media_player_level_style: "color: $white"
+media_player_media_title_style: $style_title2
+media_player_album_style: $style_title2
+media_player_artist_style: $style_title2
+media_player_icon_style_active: $style_active
+media_player_icon_style_inactive: $style_inactive
+media_player_state_text_style: "color: $white"
+media_player_units_style: "color: $gray_light"
+media_player_level_style: "color: $gray_light"
 media_player_level_up_style: "color: $red"
 media_player_level_down_style: "color: $black"
 media_player_widget_style: $transparent_black1
+
 
 light_icon_on: fa-circle-o-notch fa-spin
 light_icon_off: fa-circle-thin
@@ -285,3 +290,15 @@ group_unit_style: "color: $gray_light"
 
 iframe_title_style: $style_title
 iframe_widget_style: $background_style
+
+alarm_title_style: $style_title
+alarm_widget_style: $background_style
+alarm_title2_style: $style_title2
+alarm_state_style: "color: $red;font-size: 100%"
+alarm_panel_state_style: "color: $red"
+alarm_panel_code_style: "color: $red"
+alarm_panel_background_style: $background_style
+alarm_panel_button_style: "color: $red;background-color: #ce9863"
+
+camera_widget_style: $background_style
+camera_title_style: $style_title

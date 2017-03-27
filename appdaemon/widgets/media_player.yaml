@@ -1,33 +1,45 @@
-widget_type: sliderswitch
-state_entity: {{entity}}
-state_active: playing
-state_inactive: paused
-inactive_level_valid: 1
-min_level: 0
-max_level: 1
-step: 0.1
-state_text_attribute: media_title
-post_service_active:
+widget_type: basemedia
+entity: {{entity}}
+post_service_play:
     service: media_player/media_play
     entity_id: {{entity}}
-post_service_inactive:
+post_service_pause:
     service: media_player/media_pause
+    entity_id: {{entity}}
+post_service_stop:
+    service: media_player/media_stop
     entity_id: {{entity}}
 post_service_level:
     service: media_player/volume_set
     entity_id: {{entity}}
-level_attribute: "volume_level"
-units: "%"
-icon_on: $media_player_icon_on
-icon_off: $media_player_icon_off
-icon_up: $media_player_icon_up
-icon_down: $media_player_icon_down
-title_style: $media_player_title_style
-title2_style: $media_player_title2_style
-icon_style_active: $media_player_icon_style_active
-icon_style_inactive: $media_player_icon_style_inactive
-state_text_style: $media_player_state_text_style
-level_style: $media_player_level_style
-level_up_style: $media_player_level_up_style
-level_down_style: $media_player_level_down_style
-widget_style: $media_player_widget_style
+fields:
+  title: {{title}}
+  artist: ""
+  media_title: ""
+  album: ""
+  play_icon_style: ""
+  pause_icon_style: ""
+  stop_icon_style: ""
+  state_text: ""
+  level: ""
+icons: []
+static_icons:
+  play_icon: $media_player_icon_play
+  pause_icon: $media_player_icon_pause
+  stop_icon: $media_player_icon_stop
+  icon_up: $media_player_icon_up
+  icon_down: $media_player_icon_down
+static_css:
+  title_style: $media_player_title_style
+  artist_style: $media_player_artist_style
+  album_style: $media_player_album_style
+  media_title_style: $media_player_media_title_style
+  state_text_style: $media_player_state_text_style
+  level_style: $media_player_level_style
+  level_up_style: $media_player_level_up_style
+  level_down_style: $media_player_level_down_style
+  widget_style: $media_player_widget_style
+  units_style: $media_player_units_style
+css:
+  icon_style_active: $media_player_icon_style_active
+  icon_style_inactive: $media_player_icon_style_inactive

@@ -16,7 +16,7 @@ function baseiframe(widget_id, url, skin, parameters)
 
     // Set the url
     
-    if ("url_list" in parameters || "img_list" in parameters)
+    if ("url_list" in parameters || "img_list" in parameters || "entity_picture" in parameters)
     {
         self.index = 0;
         refresh_frame(self)
@@ -27,13 +27,20 @@ function baseiframe(widget_id, url, skin, parameters)
         if ("url_list" in self.parameters)
         {
             self.set_field(self, "frame_src", self.parameters.url_list[self.index]);
+            self.set_field(self, "img_src", "/images/Blank.gif");
             size = self.parameters.url_list.length
         }
-        else
+        else if ("img_list" in self.parameters)
         {
             self.set_field(self, "img_src", self.parameters.img_list[self.index]);
             size = self.parameters.img_list.length
-
+        }
+        else if ("entity_picture" in self.parameters)
+        {
+            var url = self.parameters.entity_picture
+            url = url + "&time=" + Math.floor((new Date).getTime()/1000);
+            self.set_field(self, "img_src", url);
+            size = 1
         }
         
         if ("refresh" in self.parameters)
