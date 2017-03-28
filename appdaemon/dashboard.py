@@ -390,7 +390,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars, glo
         with open(dashfile, 'r') as yamlfd:
             defs = yamlfd.read()
     except:
-        log_error(dash, name, "Error while loading dashboard '{}'".format(dashfile))
+        log_error(dash, name, "Error opening dashboard file '{}'".format(dashfile))
         return dash, layout, occupied, includes
 
     try:

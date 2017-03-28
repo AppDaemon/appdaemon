@@ -81,11 +81,11 @@
 
 .widget-basemedia-{{id}} .secondary-icon.plus i {
 	padding-top: 10px;
-	padding-left: 30px;
+	padding-left: 10px;
 }
 
 .widget-basemedia-{{id}} .secondary-icon.minus {
-	left: 8px;
+	left: 28px;
 }
 
 .widget-basemedia-{{id}} .secondary-icon.minus i {

@@ -150,10 +150,35 @@ function basemedia(widget_id, url, skin, parameters)
             self.set_field(self, "stop_icon_style", self.css.icon_style_inactive)
         }
 
-        self.set_field(self, "artist", state.attributes.media_artist);
-        self.set_field(self, "album", state.attributes.media_album_name);
-        self.set_field(self, "media_title", state.attributes.media_content_id);
-        self.set_field(self, "level", state.attributes.volume_level * 100)
+        if ("media_artist" in state.attributes)
+        {
+            self.set_field(self, "artist", state.attributes.media_artist);
+        }
+
+        if ("media_album_name" in state.attributes)
+        {
+            self.set_field(self, "album", state.attributes.media_album_name)
+        }
+        if ("media_album_name" in state.attributes)
+        {
+            if ("truncate_name" in self.parameters)
+            {
+                name = state.attributes.media_title.substring(0, self.parameters.truncate_name);
+            }
+            else
+            {
+                name = state.attributes.media_title
+            }
+            self.set_field(self, "media_title", name);
+        }
+        if ("volume_level" in state.attributes)
+        {
+            self.set_field(self, "level", state.attributes.volume_level * 100)
+        }
+        else
+        {
+            self.set_field(self, "level", 0)
+        }
 
     }
 }
