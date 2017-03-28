@@ -31,27 +31,6 @@ function ha_status(stream, dash, widgets)
     }
 }
 
-function round(value, exp) 
-{
-
-  if (typeof exp === 'undefined' || +exp === 0)
-    return Math.round(value);
-
-  value = +value;
-  exp = +exp;
-
-  if (isNaN(value) || !(typeof exp === 'number' && exp % 1 === 0))
-    return NaN;
-
-  // Shift
-  value = value.toString().split('e');
-  value = Math.round(+(value[0] + 'e' + (value[1] ? (+value[1] + exp) : exp)));
-
-  // Shift back
-  value = value.toString().split('e');
-  return +(value[0] + 'e' + (value[1] ? (+value[1] - exp) : -exp));
-}
-
 var inheritsFrom = function (child, parent) {
     child.prototype = Object.create(parent.prototype);
 };
@@ -72,22 +51,29 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         if ("precision" in self.parameters)
         {
-            value = round(value, self.parameters.precision)
+            var precision = self.parameters.precision
         }
-        
+        else
+        {
+            var precision = 0
+        }
+        console.log(precision)
+        value = parseFloat(value)
+        value = value.toFixed(precision)
+
         if ("shorten" in self.parameters && self.parameters.shorten == 1)
         {
             if (value >= 1E9)
             {
-                value = round(value / 1E9, 1) + "B"
+                value = (value / 1E9).toFixed(1) + "B"
             }
             else if (value >= 1E6)
             {
-                value = round(value / 1E6, 1) + "M"
+                value = (value / 1E6).toFixed(1) + "M"
             }
             else if (value >= 1E3)
             {
-                value = round(value / 1E3, 1) + "K"
+                value = (value / 1E3).toFixed(1) + "K"
             }
         }
         if ("use_comma" in self.parameters && self.parameters.use_comma == 1)
