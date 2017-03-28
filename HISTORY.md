@@ -1,6 +1,19 @@
 History
 =======
 
+2.0.0beta4
+----------
+
+-
+
+**Fixes**
+
+-
+
+**Breaking Changes**
+
+-
+
 2.0.0beta3
 ----------
 
