@@ -973,7 +973,7 @@ A widget to monitor and contol a group of lights
 
 ### Mandatory Arguments
 
-- `entity` - the entity_id of the media player
+- `entity` - the entity_id of the group
 
 ### Optional Arguments:
 
