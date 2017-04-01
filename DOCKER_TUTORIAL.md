@@ -10,6 +10,7 @@ Containers are powerful, however they require abstractions that can sometimes be
 This guide assumes:
 * You already have Docker installed on the system you want to run Appdaemon on
 * If you are using Docker for Windows, that it is set to Linux containers mode
+* You have a functioning Home Assistant running anywhere on your network
 * You are comfortable with some tinkering. This is a pre-req for Appdaemon too :)
 
 ## Getting Started
