@@ -50,7 +50,7 @@ The 'dashboard' capability of Appdaemon has started.
 ```
 Now open up a web browser, and browse to http://docker_host_name:5050. You should see the "Welcome to HADashboard for Home Assistant" screen and see the Hello dashboard is available.
 
-If all of these checks work, congratulations! Docker and Appdaemon are a go on your system!
+If all of these checks work, congratulations! Docker and Appdaemon are a go on your system! Hit Control-C to cause Appdaemon to shutdown, and Docker will clean up and return to the command line. It's almost as if nothing happened... :)
 
 ## Permanent Configuration
 TODO
