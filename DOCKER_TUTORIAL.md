@@ -22,10 +22,10 @@ Before you start, you need to know the following:
 
 Now, on your Docker host, run the following command, substituting the values above in the quotes below. (Note, if you do not need an HA_KEY, you can omit the entire -e HA_KEY line)
 ```
-docker run --rm -it -p 5050:5050 `
-  -e HA_URL="<your HA_URL value>" `
-  -e HA_KEY="<your HA_KEY value>" `
-  -e DASH_URL="http://$HOSTNAME:5050" `
+docker run --rm -it -p 5050:5050 \
+  -e HA_URL="<your HA_URL value>" \
+  -e HA_KEY="<your HA_KEY value>" \
+  -e DASH_URL="http://$HOSTNAME:5050" \
   quadportnick/appdaemon:latest
 ```
 You should see some download activity the first time you run this as it downloads the latest Appdaemon image. After that is downloaded, Docker will create a container based on that image and run. It will automatically delete itself when it exits, since right now we are just testing.
