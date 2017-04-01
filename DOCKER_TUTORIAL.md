@@ -2,7 +2,7 @@
 A quick guide to Appdaemon with Docker
 
 ## About Docker
-Docker is a popular application container technology. Simply put, the technology allows an application to be built in a known-state and run in its own isolated world, totally independant of other applications. This allows you to run different applications that may have conflicting requirements on the same system, as well as making applications extremely portable and very easy to get up and running. It also allows you to run multiple versions or copies of the same application at the same time! 
+Docker is a popular application container technology. Simply put, the technology allows an application to be built in a known-state and run in its own isolated world, totally independant of other applications. This allows you to run different applications that may have conflicting requirements on the same system, as well as making applications extremely portable and very easy to get up and running. It also allows you to run multiple versions or copies of the same application at the same time! And no messy cleanups required.
 
 Containers are powerful, however they require abstractions that can sometimes be confusing. This guide will help you get Appdaemon running, understanding there's even fancier ways to do some of these steps that are best left for the Docker ninjas.
 
