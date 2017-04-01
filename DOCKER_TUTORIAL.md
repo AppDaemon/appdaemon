@@ -13,7 +13,7 @@ This guide assumes:
 * You have a functioning Home Assistant running anywhere on your network
 * You are comfortable with some tinkering. This is a pre-req for Appdaemon too :)
 
-## Getting Started
+## Testing your System
 Our first step will be to verify that we can get Appdaemon running on our machine, which tests that we can successfully "pull" (download) software from Docker Hub, execute it, and get output that Appdaemon is working. We will worry about our perminent configuration later.
 
 Before you start, you need to know the following:
@@ -53,4 +53,8 @@ Now open up a web browser, and browse to http://docker_host_name:5050. You shoul
 If all of these checks work, congratulations! Docker and Appdaemon are a go on your system!
 
 ## Permanent Configuration
+TODO
+
+## Upgrading
+TODO
 
