@@ -297,4 +297,4 @@ alarm_panel_background_style: "background-color: #FD5B6E"
 alarm_panel_button_style: "color: $yellow;background-color: #A60114"
 
 camera_widget_style: $background_style
-camera_title_style: $style_title
+camera_title_style: "background-color: rgba(0, 0, 0, 0.2)"

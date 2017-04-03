@@ -1,6 +1,6 @@
 .widget-baseiframe-{{id}} .title {
 	position: absolute;
-	top: 5px;
+	bottom: 0px;
 	width: 100%;
 }
 

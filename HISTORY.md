@@ -4,7 +4,10 @@ History
 2.0.0beta4
 ----------
 
--
+- Label now accepts HTML for the value
+- IFRAME widget now allows vimeo and youtube videos to go fullscreen when clicked
+- IFRAME widget now has optional title overlay
+- Widgets that display icons can now pick up icons defined in HASS
 
 **Fixes**
 

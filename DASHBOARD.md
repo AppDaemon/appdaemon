@@ -99,6 +99,7 @@ columns: 8
 global_parameters:
     use_comma: 0
     precision: 1
+    use_hass_icon: 1
 ```
 
 These are all fairly self explanatory:
@@ -479,6 +480,14 @@ Widgets that allow the specification of icons have access to both [Font Awesome]
 icon_on: fa-alert
 icon_off: mdi-cancel
 ```
+
+In addition, the widget can be configured to use whatever icon is defined for it in Home Assistant by setting the parameter:
+
+```yaml
+use_gass_icon: 1
+```
+
+This can also be set at the dashboard level as a global parameter.
 
 # Widget Reference
 

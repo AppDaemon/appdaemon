@@ -285,4 +285,4 @@ alarm_panel_background_style: "background-color: rgba(0,0,30,1)"
 alarm_panel_button_style: "color: $cyan; background-color: rgba(0,0,50,1)"
 
 camera_widget_style: $background_style
-camera_title_style: $style_title
+camera_title_style: "background-color: rgba(0, 0, 0, 0.2)"
