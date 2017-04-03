@@ -132,7 +132,6 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                         else
                         {
                             new_state = data.state;
-                            console.log(new_state)
                             if ("use_hass_icon" in child.parameters &&
                                 parameters.use_hass_icon == 1 &&
                                 "icon" in new_state.attributes)
