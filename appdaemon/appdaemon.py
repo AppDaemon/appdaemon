@@ -1345,6 +1345,18 @@ def appdaemon_loop():
     sys.exit(0)
 
 
+def find_path(name):
+    for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
+                 os.path.join(os.path.sep, "etc", "appdaemon")]:
+        _file = os.path.join(path, name)
+        if os.path.isfile(_file) or os.path.isdir(_file):
+            return _file
+    raise ValueError(
+        "{} not specified and not found in default locations".format(name)
+    )
+
+
+
 # noinspection PyBroadException
 def main():
     global config
