@@ -149,3 +149,12 @@ docker start appdaemon
 
 ## Home Assistant SSL
 If your Home Assistant is running with self-signed certificates, you will want to point to the location of the certificate files as part of the container creation process. Add `-v <your_cert_path>:/certs` to the `docker run` command line
+
+## Removing Appdaemon
+If you no longer want to use Appdaemon :(, use the following commands:
+```
+docker kill appdaemon
+docker rm appdaemon
+docker rmi quadportnick/appdaemon:latest
+```
+You can delete the `conf` folder if you wish at this time too. Appdaemon is now completely removed.
