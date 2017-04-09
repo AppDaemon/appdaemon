@@ -213,7 +213,7 @@ media_player_state_text_style: "color: $white"
 media_player_units_style: "color: $gray_light"
 media_player_level_style: "color: $gray_light"
 media_player_level_up_style: "color: $gray_light"
-media_player_level_down_style: "color: $black"
+media_player_level_down_style: "color: $gray_light"
 media_player_widget_style: $background_style
 
 light_icon_on: fa-circle
