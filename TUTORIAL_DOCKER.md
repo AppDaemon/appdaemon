@@ -2,13 +2,13 @@
 A quick tutorial to Appdaemon with Docker
 
 ## About Docker
-Docker is a popular application container technology. Simply put, the technology allows an application to be built in a known-state and run in its own isolated world, totally independant of other applications. This allows you to run different applications that may have conflicting requirements on the same system, as well as making applications extremely portable and very easy to get up and running. It also allows you to run multiple versions or copies of the same application at the same time! And no messy cleanups required. Containers are powerful, however they require abstractions that can sometimes be confusing. 
+Docker is a popular application container technology. Application containers allow an application to be built in a known-good state and run totally independant of other applications. This makes it easier to install complex software and removes concerns about application dependency conflicts. Containers are powerful, however they require abstractions that can sometimes be confusing. 
 
-This guide will help you get Appdaemon running under Docker and hopefully help you become more comfortable with using Docker. There are multiple and fancier ways of doing some of these steps which are removed for the sake of keeping it simple. As your needs change, just remember there's probably a way to do what you want :)
+This guide will help you get the Appdaemon Docker image running and hopefully help you become more comfortable with using Docker. There are multiple ways of doing some of these steps which are removed for the sake of keeping it simple. As your needs change, just remember there's probably a way to do what you want!
 
 ## Prereqs
 This guide assumes:
-* You already have Docker installed on the system you want to run Appdaemon on. If you still need to do this, follow the [Docker Installation documentation](https://docs.docker.com/engine/installation/)
+* You already have Docker installed. If you still need to do this, follow the [Docker Installation documentation](https://docs.docker.com/engine/installation/)
 * You have Home Assistant up and running
 * You are comfortable with some tinkering. This is a pre-req for Appdaemon too!
 
@@ -16,7 +16,7 @@ This guide assumes:
 Our first step will be to verify that we can get Appdaemon running on our machine, which tests that we can successfully "pull" (download) software from Docker Hub, execute it, and get output that Appdaemon is working. We will worry about our persistent (normal) configuration later.
 
 Before you start, you need to know the following:
-* HA_URL: The URL of your running Home Assistant, in the form of http://[name]:[port]. Port is probably 8123. 
+* HA_URL: The URL of your running Home Assistant, in the form of http://[name]:[port]. Port is usually 8123. 
 * HA_KEY: If your Home Assistant requires an API key, you'll need that
 
 Now, on your Docker host, run the following command, substituting the values above in the quotes below. (Note, if you do not need an HA_KEY, you can omit the entire -e HA_KEY line)
@@ -27,7 +27,7 @@ docker run --rm -it -p 5050:5050 \
   -e DASH_URL="http://$HOSTNAME:5050" \
   quadportnick/appdaemon:latest
 ```
-You should see some download activity the first time you run this as it downloads the latest Appdaemon image. After that is downloaded, Docker will create a container based on that image and run. It will automatically delete itself when it exits, since right now we are just testing.
+You should see some download activity the first time you run this as it downloads the latest Appdaemon image. After that is downloaded, Docker will create a container based on that image and run it. It will automatically delete itself when it exits, since right now we are just testing.
 
 You will see Appdaemon's output appear on your screen, and you should look for lines like these being output:
 
@@ -47,20 +47,20 @@ The 'dashboard' capability of Appdaemon has started.
 2017-04-01 14:26:48.348260 INFO HADashboard Started
 2017-04-01 14:26:48.349135 INFO Listening on ('0.0.0.0', 5050)
 ```
-Now open up a web browser, and browse to http://docker_host_name:5050. You should see the "Welcome to HADashboard for Home Assistant" screen and see the Hello dashboard is available.
+Now open up a web browser, and browse to http://<your_docker_host>:5050. You should see the "Welcome to HADashboard for Home Assistant" screen and see the Hello dashboard is available.
 
-If all of these checks work, congratulations! Docker and Appdaemon are working great on your system! Hit Control-C to exist the container, and Docker will clean up and return to the command line. It's almost as if nothing happened... :)
+If all of these checks work, congratulations! Docker and Appdaemon are working on your system! Hit Control-C to exit the container, and it will clean up and return to the command line. It's almost as if nothing happened... :)
 
 
 ## Persistent Configuration
-In Docker, containers (the running app) are considered ephimeral. Any state that you want to be able to preserve must be stored outside of the container so that the container can be disposed and recreated at any time. In the case of Appdaemon, this means you would be concerned about your `conf` folder.
+In Docker, containers (the running application) are considered ephimeral. Any state that you want to be able to preserve must be stored outside of the container so that the container can be disposed and recreated at any time. In the case of Appdaemon, this means you would be concerned about your `conf` folder.
 
 The first step is to create a location on your filesystem to store the `conf` folder. It does not matter where this is, some people like to store it in the same location as Home Assistant. I like to keep a folder structure under `/docker` on my systems, so we can simply do something like:
 ```
 mkdir -p /docker/appdaemon/conf
 ```
 
-Next, we will run a container again, omiting the `--rm -it` parameters and adding `-d` so that it stays background and doesn't disappear when it exits. We will also add `--restart=always` so that the container will auto-start and restart on failures, and lastly specify our `conf` folder location. Note that the folder path must be fully qualified and not relative.
+Next, we will run a container again, omiting the `--rm -it` parameters and adding `-d` so that it stays background and doesn't disappear when it exits. We will also add `--restart=always` so that the container will auto-start on system boot and restart on failures, and lastly specify our `conf` folder location. Note that the folder path must be fully qualified and not relative.
 
 ```
 docker run --name=appdaemon -d -p 5050:5050 \
@@ -72,11 +72,11 @@ docker run --name=appdaemon -d -p 5050:5050 \
   quadportnick/appdaemon:latest
 ```
 
-I would suggest documenting the command line above in your notes, so that you have it as a reference in the future for rebuilding and upgrading. If you back up your command line, as well as your `conf` folder, you can trivially restore Appdaemon on another machine or on a rebuild.
+I would suggest documenting the command line above in your notes, so that you have it as a reference in the future for rebuilding and upgrading. If you back up your command line, as well as your `conf` folder, you can trivially restore Appdaemon on another machine or on a rebuild!
 
 If your `conf` folder is brand new, the Appdaemon Docker will copy the default configuration files into this folder. If there are already configuration files, it will not overwrite them. Double check that the files are there now.
 
-Appdaemon is ready! You can edit the configuration files in this folder and Appdaemon will dynamically reload as appropriate :) The application will automatically start when your system reboots via Docker.
+You are now ready to start working on your Appdaemon configurations! At this point forward, you can edit configurations on your `conf` folder and Appdaemon will load them. Have fun!
 
 
 ## Viewing Appdaemon Log Output
@@ -91,7 +91,9 @@ docker logs -f --tail 20 appdaemon
 ```
 
 ## Upgrading Appdaemon
-Upgrading with Docker really doesn't exist in the same way as with non-containerized apps. Containers are considered ephimeral and are an instance of a base, known good application image. Therefore, the process of upgrading is simply disposing of the old version, grabbing a newer version of the application image and starting up a new container with the new version's image. Since the the persistent state (`conf`) was kept, it is effectively an upgrade.
+Upgrading with Docker really doesn't exist in the same way as with non-containerized apps. Containers are considered ephimeral and are an instance of a base, known-good application image. Therefore the process of upgrading is simply disposing of the old version, grabbing a newer version of the application image and starting up a new container with the new version's image. Since the the persistent state (`conf`) was kept, it is effectively an upgrade. 
+
+(It is possible to get into downgrades and multiple versions, however in this guide we are keeping it simple!)
 
 Run the following commands:
 ```
@@ -123,13 +125,13 @@ To start Appdaemon back up after stopping:
 docker start appdaemon
 ```
 
-To check the running state, run the following and look at this 'STATUS' column:
+To check the running state, run the following and look at the 'STATUS' column:
 ```
 docker ps -a
 ```
 
 ## Running with Appdaemon Debug
-If you need to run Appdaemon with Debug, it may be easiest to stop your normal appdaemon and run a temporary container with the debug flag. This presumes you already have a configured `conf` folder you are debugging, so we don't need to pass the HA/DASH variables into the container.
+If you need to run Appdaemon with Debug, it may be easiest to stop your normal appdaemon and run a temporary container with the debug flag set. This presumes you already have a configured `conf` folder you are debugging, so we don't need to pass the HA/DASH variables into the container.
 
 Run the following commands:
 ```
@@ -146,4 +148,4 @@ docker start appdaemon
 ```
 
 ## Home Assistant SSL
-If your Home Assistant is running with self-signed certificates, you will want to point to the location of the certificate files as part of the container creation process. Add `-v <your cert path>:/certs` to the `docker run` command line
+If your Home Assistant is running with self-signed certificates, you will want to point to the location of the certificate files as part of the container creation process. Add `-v <your_cert_path>:/certs` to the `docker run` command line
