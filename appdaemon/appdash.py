@@ -54,6 +54,10 @@ def list_dash(request):
 @asyncio.coroutine
 @aiohttp_jinja2.template('dashboard.jinja2')
 def load_dash(request):
+    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, _load_dash, request)])
+    return list(completed)[0].result()
+
+def _load_dash(request):
     # noinspection PyBroadException
     try:
         name = request.match_info.get('name', "Anonymous")
@@ -135,9 +139,10 @@ def get_state(request):
 @asyncio.coroutine
 def call_service(request):
     data = yield from request.post()
+    print(data)
     # Should be using aiohttp client here
     # Will fix when I fully convert to async
-    ha.call_service(**request.POST)
+    ha.call_service(**data)
     return web.Response(status=200)
 
 
@@ -250,17 +255,17 @@ def run_dash(loop):
         ha.log(conf.dash, "INFO", "HADashboard Started")
         ha.log(conf.dash, "INFO",
                "Listening on {}".format(srv.sockets[0].getsockname()))
-        try:
-            loop.run_forever()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            srv.close()
-            loop.run_until_complete(srv.wait_closed())
-            loop.run_until_complete(app.shutdown())
-            loop.run_until_complete(handler.shutdown(60.0))
-            loop.run_until_complete(app.cleanup())
-        loop.close()
+        #try:
+        #    loop.run_forever()
+        #except KeyboardInterrupt:
+        #    pass
+        #finally:
+        #   srv.close()
+        #    loop.run_until_complete(srv.wait_closed())
+        #    loop.run_until_complete(app.shutdown())
+        #    loop.run_until_complete(handler.shutdown(60.0))
+        #    loop.run_until_complete(app.cleanup())
+        #loop.close()
     except:
         ha.log(conf.dash, "WARNING", '-' * 60)
         ha.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")

@@ -17,6 +17,9 @@ elevation = None
 time_zone = None
 errorfile = None
 
+executor = None
+loop = None
+
 # Will require object based locking if implemented
 objects = {}
 
