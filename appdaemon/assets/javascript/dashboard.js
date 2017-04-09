@@ -57,9 +57,8 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         {
             var precision = 0
         }
-        console.log(precision)
-        value = parseFloat(value)
-        value = value.toFixed(precision)
+        value = parseFloat(value);
+        value = value.toFixed(precision);
 
         if ("shorten" in self.parameters && self.parameters.shorten == 1)
         {
@@ -133,6 +132,14 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                         else
                         {
                             new_state = data.state;
+                            if ("use_hass_icon" in child.parameters &&
+                                parameters.use_hass_icon == 1 &&
+                                "icon" in new_state.attributes)
+                            {
+                                icon = new_state.attributes.icon.replace(":", "-")
+                                child.icons.icon_on = icon
+                                child.icons.icon_off = icon
+                            }
                             if ("title_is_friendly_name" in child.parameters 
                             && child.parameters.title_is_friendly_name == 1
                             && "friendly_name" in new_state.attributes)

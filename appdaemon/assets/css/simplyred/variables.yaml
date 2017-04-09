@@ -284,7 +284,7 @@ group_level_down_style: "color: $gray_light"
 group_widget_style: $background_style
 group_unit_style: "color: $gray_light"
 
-iframe_title_style: $style_title
+iframe_title_style: "$style_title; background-color: rgba(0, 0, 0, 0.5)"
 iframe_widget_style: $background_style
 
 alarm_title_style: $style_title
@@ -297,4 +297,4 @@ alarm_panel_background_style: "background-color: #FD5B6E"
 alarm_panel_button_style: "color: $yellow;background-color: #A60114"
 
 camera_widget_style: $background_style
-camera_title_style: $style_title
+camera_title_style: "$style_title; background-color: rgba(0, 0, 0, 0.5)"

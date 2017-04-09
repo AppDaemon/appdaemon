@@ -213,7 +213,7 @@ media_player_state_text_style: "color: $white"
 media_player_units_style: "color: $gray_light"
 media_player_level_style: "color: $gray_light"
 media_player_level_up_style: "color: $gray_light"
-media_player_level_down_style: "color: $black"
+media_player_level_down_style: "color: $gray_light"
 media_player_widget_style: $background_style
 
 light_icon_on: fa-circle
@@ -269,7 +269,7 @@ group_level_down_style: "color: $gray_light"
 group_widget_style: $background_style
 group_unit_style: "color: $gray_light"
 
-iframe_title_style: $style_title
+iframe_title_style: "$style_title; background-color: rgba(0, 0, 0, 0.5)"
 iframe_widget_style: $background_style
 
 alarm_title_style: $style_title
@@ -282,4 +282,4 @@ alarm_panel_background_style: "background-color: #313133"
 alarm_panel_button_style: "$style_title;background-color: #454547"
 
 camera_widget_style: $background_style
-camera_title_style: $style_title
+camera_title_style: "$style_title; background-color: rgba(0, 0, 0, 0.5)"

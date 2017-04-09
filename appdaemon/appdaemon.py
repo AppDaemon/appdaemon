@@ -26,9 +26,11 @@ import platform
 import math
 import appdaemon.appdash as appdash
 import asyncio
+import concurrent
 from urllib.parse import urlparse
 
-__version__ = "2.0.0beta3"
+
+__version__ = "2.0.0beta3.5"
 
 # Windows does not have Daemonize package so disallow
 
@@ -146,8 +148,6 @@ def handle_sig(signum, frame):
     if signum == signal.SIGINT:
         ha.log(conf.logger, "INFO", "AppDaemon is shutting down")
         stopping = True
-        ws.close()
-
 
 def dump_sun():
     ha.log(conf.logger, "INFO", "--------------------------------------------------")
@@ -1091,9 +1091,13 @@ def run():
     global last_state
     global reading_messages
     global stopping
-    global ws
+    first_time = True
+
+    stopping = False
 
     ha.log(conf.logger, "DEBUG", "Entering run()")
+
+    conf.loop = asyncio.get_event_loop()
 
     # Save start time
 
@@ -1117,6 +1121,10 @@ def run():
             t.start()
 
             ha.log(conf.logger, "DEBUG", "Done")
+
+    conf.executor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=3,
+    )
 
     # Read apps and get HA State before we start the timer thread
     ha.log(conf.logger, "DEBUG", "Calling HA for initial state")
@@ -1160,19 +1168,25 @@ def run():
             t.daemon = True
             t.start()
 
-    # Start Dashboard Thread
+
+        reading_messages = True
+
+    # Initialize Dashboard
 
     if conf.dashboard is True:
         ha.log(conf.logger, "INFO", "Starting dashboard")
-        loop = asyncio.get_event_loop()
-        t = threading.Thread(target=appdash.run_dash, args=(loop,))
-        t.daemon = True
-        t.start()
+        appdash.run_dash(conf.loop)
 
-    # Enter main loop
+    asyncio.ensure_future(appdaemon_loop())
+    conf.loop.run_forever()
 
+@asyncio.coroutine
+def appdaemon_loop():
     first_time = True
-    reading_messages = True
+    global reading_messages
+    global stopping
+
+    stopping = False
 
     _id = 0
 
@@ -1188,14 +1202,12 @@ def run():
                 # Let the timer thread know we are in business,
                 # and give it time to tick at least once
                 reading_messages = True
-                if conf.apps is True:
-                    time.sleep(2)
+                time.sleep(2)
 
                 # Load apps
-                if conf.apps is True:
-                    read_apps(True)
+                read_apps(True)
 
-                    ha.log(conf.logger, "INFO", "App initialization complete")
+                ha.log(conf.logger, "INFO", "App initialization complete")
 
             #
             # Fire HA_STARTED and APPD_STARTED Events
@@ -1226,7 +1238,7 @@ def run():
                     )
                     ha.log(
                         conf.logger, "INFO",
-                        "Connected to Home Assistant"
+                        "Connected to Home Assistant".format(conf.timeout)
                     )
                 else:
                     messages = SSEClient(
@@ -1234,8 +1246,15 @@ def run():
                         verify=False, headers=headers, retry=3000,
                         timeout=int(conf.timeout)
                     )
-                    ha.log(conf.logger, "INFO", "Connected to Home Assistant with timeout = {}".format(conf.timeout))
-                for msg in messages:
+                    ha.log(
+                        conf.logger, "INFO",
+                        "Connected to Home Assistant with timeout = {}".format(
+                            conf.timeout
+                        )
+                    )
+                while True:
+                    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, messages.__next__)])
+                    msg = list(completed)[0].result()
                     if msg.data != "ping":
                         process_message(json.loads(msg.data))
             else:
@@ -1250,7 +1269,9 @@ def run():
 
                 ws = create_connection("{}/api/websocket".format(url))
                 result = json.loads(ws.recv())
-                ha.log(conf.logger, "INFO", "Connected to Home Assistant {}".format(result["ha_version"]))
+                ha.log(conf.logger, "INFO",
+                       "Connected to Home Assistant {}".format(
+                           result["ha_version"]))
                 #
                 # Check if auth required, if so send password
                 #
@@ -1275,8 +1296,11 @@ def run():
                 ws.send(sub)
                 result = json.loads(ws.recv())
                 if not (result["id"] == _id and result["type"] == "result" and
-                        result["success"] is True):
-                    ha.log(conf.logger, "WARNING", "Unable to subscribe to HA events, id = {}".format(_id))
+                                result["success"] is True):
+                    ha.log(
+                        conf.logger, "WARNING",
+                        "Unable to subscribe to HA events, id = {}".format(_id)
+                    )
                     ha.log(conf.logger, "WARNING", result)
                     raise ValueError("Error subscribing to HA Events")
 
@@ -1285,18 +1309,29 @@ def run():
                 #
 
                 while not stopping:
-                    result = json.loads(ws.recv())
+                    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, ws.recv)])
+                    result = json.loads(list(completed)[0].result())
+
                     if not (result["id"] == _id and result["type"] == "event"):
-                        ha.log(conf.logger, "WARNING", "Unexpected result from Home Assistant, id = {}".format(_id))
+                        ha.log(
+                            conf.logger, "WARNING",
+                            "Unexpected result from Home Assistant, "
+                            "id = {}".format(_id)
+                        )
                         ha.log(conf.logger, "WARNING", result)
-                        raise ValueError("Unexpected result from Home Assistant")
+                        raise ValueError(
+                            "Unexpected result from Home Assistant"
+                        )
 
                     process_message(result["event"])
 
         except:
             reading_messages = False
             if not stopping:
-                ha.log(conf.logger, "WARNING", "Disconnected from Home Assistant, retrying in 5 seconds")
+                ha.log(
+                    conf.logger, "WARNING",
+                    "Disconnected from Home Assistant, retrying in 5 seconds"
+                )
                 if conf.loglevel == "DEBUG":
                     ha.log(conf.logger, "WARNING", '-' * 60)
                     ha.log(conf.logger, "WARNING", "Unexpected error:")
@@ -1306,16 +1341,8 @@ def run():
                 time.sleep(5)
 
     ha.log(conf.logger, "INFO", "Disconnected from Home Assistant")
-
-
-def find_path(name):
-    for path in [os.path.join(os.path.expanduser("~"), ".appdaemon"),
-                 os.path.join(os.path.expanduser("~"), ".homeassistant"),
-                 os.path.join(os.path.sep, "etc", "appdaemon")]:
-        _file = os.path.join(path, name)
-        if os.path.isfile(_file) or os.path.isdir(_file):
-            return _file
-    raise ValueError("{} not found in default locations".format(name))
+    ha.log(conf.logger, "INFO", "Waiting for loop ...")
+    sys.exit(0)
 
 
 # noinspection PyBroadException
