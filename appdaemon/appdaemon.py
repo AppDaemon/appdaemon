@@ -1177,7 +1177,7 @@ def run():
         ha.log(conf.logger, "INFO", "Starting dashboard")
         appdash.run_dash(conf.loop)
 
-    asyncio.ensure_future(appdaemon_loop())
+    asyncio.async(appdaemon_loop())
     conf.loop.run_forever()
 
 @asyncio.coroutine
