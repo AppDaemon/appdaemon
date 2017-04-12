@@ -1469,6 +1469,9 @@ def main():
     else:
         conf.dash_compile_on_start = False
 
+    if config['AppDaemon'].getboolean("cert_verify", True) == False:
+        conf.certpath = False
+
     if conf.dash_url is not None:
         conf.dashboard = True
         url = urlparse(conf.dash_url)
