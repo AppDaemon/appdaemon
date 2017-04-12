@@ -68,6 +68,7 @@ function baseslider(widget_id, url, skin, parameters)
 
     function OnStateUpdate(self, state)
     {
+        self.level = state.state
         set_view(self, state)
     }
 

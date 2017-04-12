@@ -1,6 +1,20 @@
 History
 =======
 
+2.0.0beta4
+----------
+
+- Migrate timer thread to async
+
+**Fixes**
+
+- Slider now works correctly after changes outside of HADashboard
+- Climate now works correctly after changes outside of HADashboard
+
+**Breaking Changes**
+
+-
+
 2.0.0beta3.5
 ------------
 

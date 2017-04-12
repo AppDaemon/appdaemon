@@ -139,7 +139,6 @@ def get_state(request):
 @asyncio.coroutine
 def call_service(request):
     data = yield from request.post()
-    print(data)
     # Should be using aiohttp client here
     # Will fix when I fully convert to async
     ha.call_service(**data)
@@ -174,34 +173,31 @@ def wshandler(request):
             if msg.type == aiohttp.WSMsgType.TEXT:
                 ha.log(conf.dash, "INFO",
                        "New dashboard connected: {}".format(msg.data))
-                with conf.ws_lock:
-                    request.app['websockets'][ws]["dashboard"] = msg.data
+                request.app['websockets'][ws]["dashboard"] = msg.data
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 ha.log(conf.dash, "INFO",
                        "ws connection closed with exception {}".format(ws.exception()))
     except:
         ha.log(conf.dash, "INFO", "Dashboard disconnected")
     finally:
-        with conf.ws_lock:
-            request.app['websockets'].pop(ws, None)
+        request.app['websockets'].pop(ws, None)
 
     return ws
 
 
 def ws_update(data):
-    with conf.ws_lock:
-        ha.log(conf.dash,
-               "DEBUG",
-               "Sending data to {} dashes: {}".format(len(app['websockets']),
-                                                      data))
+    ha.log(conf.dash,
+           "DEBUG",
+           "Sending data to {} dashes: {}".format(len(app['websockets']),
+                                                  data))
 
-        for ws in app['websockets']:
+    for ws in app['websockets']:
 
-            if "dashboard" in app['websockets'][ws]:
-                ha.log(conf.dash,
-                       "DEBUG",
-                       "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
-                ws.send_str(json.dumps(data))
+        if "dashboard" in app['websockets'][ws]:
+            ha.log(conf.dash,
+                   "DEBUG",
+                   "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
+            ws.send_str(json.dumps(data))
 
 
 # Routes, Status and Templates
@@ -251,17 +247,17 @@ def run_dash(loop):
 
         handler = app.make_handler()
         f = loop.create_server(handler, conf.dash_host, int(conf.dash_port))
-        srv = loop.run_until_complete(f)
+        conf.srv = loop.run_until_complete(f)
         ha.log(conf.dash, "INFO", "HADashboard Started")
         ha.log(conf.dash, "INFO",
-               "Listening on {}".format(srv.sockets[0].getsockname()))
+               "Listening on {}".format(conf.srv.sockets[0].getsockname()))
         #try:
         #    loop.run_forever()
         #except KeyboardInterrupt:
         #    pass
         #finally:
-        #   srv.close()
-        #    loop.run_until_complete(srv.wait_closed())
+        #   conf.srv.close()
+        #    loop.run_until_complete(conf.srv.wait_closed())
         #    loop.run_until_complete(app.shutdown())
         #    loop.run_until_complete(handler.shutdown(60.0))
         #    loop.run_until_complete(app.cleanup())

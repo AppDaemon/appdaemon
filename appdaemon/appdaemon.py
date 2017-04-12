@@ -30,7 +30,7 @@ import concurrent
 from urllib.parse import urlparse
 
 
-__version__ = "2.0.0beta3.5"
+__version__ = "2.0.0beta4"
 
 # Windows does not have Daemonize package so disallow
 
@@ -115,20 +115,18 @@ def is_dst():
     return bool(time.localtime(ha.get_now_ts()).tm_isdst)
 
 
+@asyncio.coroutine
 def do_every(period, f):
-    def g_tick():
-        t_ = math.floor(time.time())
-        count = 0
-        while True:
-            count += 1
-            yield max(t_ + count * period - time.time(), 0)
-
-    g = g_tick()
+    global stopping
     t = math.floor(ha.get_now_ts())
-    while True:
-        time.sleep(next(g))
+    count = 0
+    t_ = math.floor(time.time())
+    while not stopping:
+        count += 1
+        delay = max(t_ + count * period - time.time(), 0)
+        yield from asyncio.sleep(delay)
         t += conf.interval
-        r = f(t)
+        r = yield from f(t)
         if r is not None and r != t:
             t = math.floor(r)
 
@@ -146,8 +144,9 @@ def handle_sig(signum, frame):
     if signum == signal.SIGHUP:
         read_apps(True)
     if signum == signal.SIGINT:
-        ha.log(conf.logger, "INFO", "AppDaemon is shutting down")
+        ha.log(conf.logger, "INFO", "Keyboard intterupt")
         stopping = True
+        ws.close()
 
 def dump_sun():
     ha.log(conf.logger, "INFO", "--------------------------------------------------")
@@ -425,7 +424,8 @@ def do_every_second(utc):
             )
             # dump_schedule()
             ha.log(conf.logger, "INFO", "-" * 40)
-            read_apps(True)
+            completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, read_apps, True)])
+            #read_apps(True)
             # dump_schedule()
         was_dst = now_dst
 
@@ -434,11 +434,13 @@ def do_every_second(utc):
         # Check to see if any apps have changed but only if we have valid state
 
         if last_state is not None:
-            read_apps()
+            completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, read_apps)])
+            #read_apps()
 
         # Check to see if config has changed
 
-        check_config()
+        completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, check_config)])
+        #check_config()
 
         # Call me suspicious, but lets update state form HA periodically
         # in case we miss events for whatever reason
@@ -446,7 +448,8 @@ def do_every_second(utc):
 
         if last_state is not None and now - last_state > datetime.timedelta(minutes=10):
             try:
-                get_ha_state()
+                completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, get_ha_state)])
+                #get_ha_state()
                 last_state = now
             except:
                 ha.log(conf.logger, "WARNING", "Unexpected error refreshing HA state - retrying in 10 minutes")
@@ -490,10 +493,6 @@ def do_every_second(utc):
                 conf.logger, "WARNING",
                 "Logged an error to {}".format(conf.errorfile)
             )
-
-
-def timer_thread():
-    do_every(conf.tick, do_every_second)
 
 
 # noinspection PyBroadException
@@ -1091,6 +1090,7 @@ def run():
     global last_state
     global reading_messages
     global stopping
+
     first_time = True
 
     stopping = False
@@ -1111,6 +1111,9 @@ def run():
 
     update_sun()
 
+    conf.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    tasks = []
+
     if conf.apps is True:
         ha.log(conf.logger, "DEBUG", "Creating worker threads ...")
 
@@ -1122,9 +1125,7 @@ def run():
 
             ha.log(conf.logger, "DEBUG", "Done")
 
-    conf.executor = concurrent.futures.ThreadPoolExecutor(
-        max_workers=3,
-    )
+
 
     # Read apps and get HA State before we start the timer thread
     ha.log(conf.logger, "DEBUG", "Calling HA for initial state")
@@ -1147,44 +1148,60 @@ def run():
             time.sleep(5)
 
     ha.log(conf.logger, "INFO", "Got initial state")
-    # Load apps
+
+    # Initialize appdaemon loop
+    tasks.append(asyncio.async(appdaemon_loop()))
 
     if conf.apps is True:
+        # Load apps
+
         ha.log(conf.logger, "DEBUG", "Reading Apps")
 
         read_apps(True)
 
         ha.log(conf.logger, "INFO", "App initialization complete")
 
-        # Create timer thread
+
+        # Create timer loop
 
         # First, update "now" for less chance of clock skew error
         if conf.realtime:
             conf.now = datetime.datetime.now().timestamp()
 
-            ha.log(conf.logger, "DEBUG", "Starting timer thread")
+            ha.log(conf.logger, "DEBUG", "Starting timer loop")
 
-            t = threading.Thread(target=timer_thread)
-            t.daemon = True
-            t.start()
-
+            tasks.append(asyncio.async(do_every(conf.tick, do_every_second)))
 
         reading_messages = True
+
+    else:
+        ha.log(conf.logger, "INFO", "Apps are disabled")
+
 
     # Initialize Dashboard
 
     if conf.dashboard is True:
         ha.log(conf.logger, "INFO", "Starting dashboard")
+        #tasks.append(appdash.run_dash(conf.loop))
         appdash.run_dash(conf.loop)
+    else:
+        ha.log(conf.logger, "INFO", "Dashboards are disabled")
 
-    asyncio.async(appdaemon_loop())
-    conf.loop.run_forever()
+    conf.loop.run_until_complete(asyncio.wait(tasks))
+
+    while not stopping:
+        asyncio.sleep(1)
+
+
+    ha.log(conf.logger, "INFO", "AppDeamon Exited")
+
 
 @asyncio.coroutine
 def appdaemon_loop():
     first_time = True
     global reading_messages
     global stopping
+    global ws
 
     stopping = False
 
@@ -1340,9 +1357,7 @@ def appdaemon_loop():
                     ha.log(conf.logger, "WARNING", '-' * 60)
                 time.sleep(5)
 
-    ha.log(conf.logger, "INFO", "Disconnected from Home Assistant")
-    ha.log(conf.logger, "INFO", "Waiting for loop ...")
-    sys.exit(0)
+    ha.log(conf.logger, "INFO", "Disconnecting from Home Assistant")
 
 
 def find_path(name):
@@ -1564,9 +1579,6 @@ def main():
     # Startup message
 
     ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
-
-    if not conf.apps:
-        ha.log(conf.logger, "INFO", "Apps are disabled")
 
     # Check with HA to get various info
 
