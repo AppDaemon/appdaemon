@@ -144,7 +144,7 @@ def handle_sig(signum, frame):
     if signum == signal.SIGHUP:
         read_apps(True)
     if signum == signal.SIGINT:
-        ha.log(conf.logger, "INFO", "Keyboard intterupt")
+        ha.log(conf.logger, "INFO", "Keyboard interrupt")
         stopping = True
         ws.close()
 
@@ -1483,6 +1483,9 @@ def main():
         conf.dash_compile_on_start = True
     else:
         conf.dash_compile_on_start = False
+
+    if config['AppDaemon'].getboolean("cert_verify", True) == False:
+        conf.certpath = False
 
     if conf.dash_url is not None:
         conf.dashboard = True

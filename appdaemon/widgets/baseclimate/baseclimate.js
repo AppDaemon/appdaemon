@@ -66,7 +66,6 @@ function baseclimate(widget_id, url, skin, parameters)
     function OnStateUpdate(self, state)
     {
         self.level = state.attributes.temperature
-        console.log(self.level)
         set_view(self, state)
     }
 

@@ -64,6 +64,7 @@ function basemedia(widget_id, url, skin, parameters)
 
     function OnStateUpdate(self, state)
     {
+        self.level = state.attributes.volume_level;
         set_view(self, state)
     }
 

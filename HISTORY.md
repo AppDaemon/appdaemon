@@ -5,11 +5,13 @@ History
 ----------
 
 - Migrate timer thread to async
+- Add option to turn of verification for self signed certs (contributed by [janwh](https://github.com/janwh)
 
 **Fixes**
 
 - Slider now works correctly after changes outside of HADashboard
 - Climate now works correctly after changes outside of HADashboard
+- Media player now works correctly after changes outside of HADashboard
 
 **Breaking Changes**
 

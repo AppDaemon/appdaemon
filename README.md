@@ -50,6 +50,7 @@ logfile = STDOUT
 errorfile = STDERR
 threads = 10
 cert_path = <path/to/root/CA/cert>
+cert_verify = True
 # Apps
 [hello_world]
 module = hello
@@ -62,6 +63,7 @@ class = HelloWorld
 - `errorfile` (optional) is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps. If `errorfile = STDERR` errors will be sent to stderr instead of a file, if not specified, output will be sent to STDERR.
 - `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization, leave this set to 10 unless you experience thread starvation
 - `cert_path` (optional) - path to root CA cert directory - use only if you are using self signed certs.
+- `cert_verify` (optional) - flag for cert verification - set to `False` to disable verification on self signed certs.
 
 Optionally, you can place your apps in a directory other than under the config directory using the `app_dir` directive.
 
