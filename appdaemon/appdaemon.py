@@ -147,7 +147,9 @@ def handle_sig(signum, frame):
     if signum == signal.SIGINT:
         ha.log(conf.logger, "INFO", "Keyboard interrupt")
         stopping = True
-        ws.close()
+        if ws is not None:
+            ws.close()
+        conf.appq.put_nowait({"event_type": "ha_stop", "data": None})
 
 def dump_sun():
     ha.log(conf.logger, "INFO", "--------------------------------------------------")
@@ -447,7 +449,7 @@ def do_every_second(utc):
         # in case we miss events for whatever reason
         # Every 10 minutes seems like a good place to start
 
-        if last_state is not None and now - last_state > datetime.timedelta(minutes=10):
+        if last_state is not None and now - last_state > datetime.timedelta(minutes=10) and conf.ha_url is not None:
             try:
                 completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, get_ha_state)])
                 #get_ha_state()
@@ -1116,6 +1118,8 @@ def run():
     global reading_messages
     global stopping
 
+    conf.appq = asyncio.Queue(maxsize=0)
+
     first_time = True
 
     stopping = False
@@ -1151,31 +1155,34 @@ def run():
             ha.log(conf.logger, "DEBUG", "Done")
 
 
+    if conf.ha_url is not None:
+        # Read apps and get HA State before we start the timer thread
+        ha.log(conf.logger, "DEBUG", "Calling HA for initial state")
 
-    # Read apps and get HA State before we start the timer thread
-    ha.log(conf.logger, "DEBUG", "Calling HA for initial state")
+        while last_state is None:
+            try:
+                get_ha_state()
+                last_state = ha.get_now()
+            except:
+                ha.log(
+                    conf.logger, "WARNING",
+                    "Disconnected from Home Assistant, retrying in 5 seconds"
+                )
+                if conf.loglevel == "DEBUG":
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                    ha.log(conf.logger, "WARNING", "Unexpected error:")
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                    ha.log(conf.logger, "WARNING", traceback.format_exc())
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                time.sleep(5)
 
-    while last_state is None:
-        try:
-            get_ha_state()
-            last_state = ha.get_now()
-        except:
-            ha.log(
-                conf.logger, "WARNING",
-                "Disconnected from Home Assistant, retrying in 5 seconds"
-            )
-            if conf.loglevel == "DEBUG":
-                ha.log(conf.logger, "WARNING", '-' * 60)
-                ha.log(conf.logger, "WARNING", "Unexpected error:")
-                ha.log(conf.logger, "WARNING", '-' * 60)
-                ha.log(conf.logger, "WARNING", traceback.format_exc())
-                ha.log(conf.logger, "WARNING", '-' * 60)
-            time.sleep(5)
+        ha.log(conf.logger, "INFO", "Got initial state")
 
-    ha.log(conf.logger, "INFO", "Got initial state")
+        # Initialize appdaemon loop
+        tasks.append(asyncio.async(appdaemon_loop()))
 
-    # Initialize appdaemon loop
-    tasks.append(asyncio.async(appdaemon_loop()))
+    else:
+       last_state = ha.get_now()
 
     if conf.apps is True:
         # Load apps
@@ -1196,6 +1203,7 @@ def run():
             ha.log(conf.logger, "DEBUG", "Starting timer loop")
 
             tasks.append(asyncio.async(do_every(conf.tick, do_every_second)))
+            tasks.append(asyncio.async(appstate_loop()))
 
         reading_messages = True
 
@@ -1219,6 +1227,14 @@ def run():
 
 
     ha.log(conf.logger, "INFO", "AppDeamon Exited")
+
+
+@asyncio.coroutine
+def appstate_loop():
+    while not stopping:
+        args = yield from conf.appq.get()
+        process_message(args)
+        conf.appq.task_done()
 
 
 @asyncio.coroutine
@@ -1257,7 +1273,8 @@ def appdaemon_loop():
             if first_time is True:
                 process_event({"event_type": "appd_started", "data": {}})
                 first_time = False
-            else:
+            elif conf.ha_url is not None:
+
                 process_event({"event_type": "ha_started", "data": {}})
 
             if conf.version < parse_version('0.34') or conf.commtype == "SSE":
@@ -1382,7 +1399,7 @@ def appdaemon_loop():
                     ha.log(conf.logger, "WARNING", '-' * 60)
                 time.sleep(5)
 
-    ha.log(conf.logger, "INFO", "Disconnecting from Home Assistant")
+        ha.log(conf.logger, "INFO", "Disconnecting from Home Assistant")
 
 
 def find_path(name):
@@ -1476,7 +1493,6 @@ def main():
             config_file_yaml = None
 
     config = None
-    config_deprecated = False
 
     if config_file_yaml is not None and args.convertcfg is False:
         config_file = config_file_yaml
@@ -1515,13 +1531,11 @@ def main():
             with open(yaml_file, "w") as outfile:
                 yaml.dump(new_config, outfile, default_flow_style=False)
             sys.exit()
-        else:
-            config_deprecated = True
 
 
     conf.config_dir = os.path.dirname(config_file)
     conf.config = config
-    conf.ha_url = config['AppDaemon']['ha_url']
+    conf.ha_url = config['AppDaemon'].get('ha_url')
     conf.ha_key = config['AppDaemon'].get('ha_key', "")
     conf.logfile = config['AppDaemon'].get("logfile")
     conf.errorfile = config['AppDaemon'].get("errorfile")
@@ -1531,6 +1545,10 @@ def main():
     conf.dash_url = config['AppDaemon'].get("dash_url")
     conf.app_dir = config['AppDaemon'].get("app_dir")
     conf.dashboard_dir = config['AppDaemon'].get("dash_dir")
+    conf.latitude = config['AppDaemon'].get("latitude")
+    conf.longitude = config['AppDaemon'].get("longitude")
+    conf.elevation = config['AppDaemon'].get("elevation")
+    conf.time_zone = config['AppDaemon'].get("time_zone")
     conf.timeout = config['AppDaemon'].get("timeout")
 
     if config['AppDaemon'].get("disable_apps") == "1":
@@ -1647,56 +1665,54 @@ def main():
 
     ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
 
-    if config_deprecated is True:
-        ha.log(conf.logger, "WARNING", "Use of cfg file is deprecated - please convert to YAML")
-
     # Check with HA to get various info
 
     ha_config = None
-    while ha_config is None:
-        try:
-            ha_config = ha.get_ha_config()
-        except:
-            ha.log(
-                conf.logger, "WARNING", "Unable to connect to Home Assistant, retrying in 5 seconds")
-            if conf.loglevel == "DEBUG":
-                ha.log(conf.logger, "WARNING", '-' * 60)
-                ha.log(conf.logger, "WARNING", "Unexpected error:")
-                ha.log(conf.logger, "WARNING", '-' * 60)
-                ha.log(conf.logger, "WARNING", traceback.format_exc())
-                ha.log(conf.logger, "WARNING", '-' * 60)
-        time.sleep(5)
+    if conf.ha_url is not None:
+        while ha_config is None:
+            try:
+                ha_config = ha.get_ha_config()
+            except:
+                ha.log(
+                    conf.logger, "WARNING", "Unable to connect to Home Assistant, retrying in 5 seconds")
+                if conf.loglevel == "DEBUG":
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                    ha.log(conf.logger, "WARNING", "Unexpected error:")
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                    ha.log(conf.logger, "WARNING", traceback.format_exc())
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+            time.sleep(5)
 
-    conf.version = parse_version(ha_config["version"])
+        conf.version = parse_version(ha_config["version"])
 
-    conf.ha_config = ha_config
+        conf.ha_config = ha_config
 
-    conf.latitude = ha_config["latitude"]
-    conf.longitude = ha_config["longitude"]
-    conf.time_zone = ha_config["time_zone"]
+        conf.latitude = ha_config["latitude"]
+        conf.longitude = ha_config["longitude"]
+        conf.time_zone = ha_config["time_zone"]
 
-    if "elevation" in ha_config:
-        conf.elevation = ha_config["elevation"]
-        if "elevation" in config['AppDaemon']:
-            ha.log(conf.logger, "WARNING",  "'elevation' directive is deprecated, please remove")
-    else:
-        conf.elevation = config['AppDaemon']["elevation"]
+        if "elevation" in ha_config:
+            conf.elevation = ha_config["elevation"]
+            if "elevation" in config['AppDaemon']:
+                ha.log(conf.logger, "WARNING",  "'elevation' directive is deprecated, please remove")
+        else:
+            conf.elevation = config['AppDaemon']["elevation"]
 
     # Use the supplied timezone
     os.environ['TZ'] = conf.time_zone
 
     # Now we have logging, warn about deprecated directives
-    if "latitude" in config['AppDaemon']:
-        ha.log(conf.logger, "WARNING", "'latitude' directive is deprecated, please remove")
+    #if "latitude" in config['AppDaemon']:
+    #    ha.log(conf.logger, "WARNING", "'latitude' directive is deprecated, please remove")
 
-    if "longitude" in config['AppDaemon']:
-        ha.log(conf.logger, "WARNING", "'longitude' directive is deprecated, please remove")
+    #if "longitude" in config['AppDaemon']:
+    #    ha.log(conf.logger, "WARNING", "'longitude' directive is deprecated, please remove")
 
-    if "timezone" in config['AppDaemon']:
-        ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please remove")
+    #if "timezone" in config['AppDaemon']:
+    #    ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please remove")
 
-    if "time_zone" in config['AppDaemon']:
-        ha.log(conf.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
+    #if "time_zone" in config['AppDaemon']:
+    #    ha.log(conf.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
 
     init_sun()
 

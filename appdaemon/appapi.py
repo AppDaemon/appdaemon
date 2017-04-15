@@ -167,6 +167,18 @@ class AppDaemon:
                     else:
                         return None
 
+    def set_app_state(self, entity_id, state):
+        ha.log(conf.logger, "DEBUG", "set_app_state: {}".format(entity_id))
+        if entity_id is not None and "." in entity_id:
+            with conf.ha_state_lock:
+                if entity_id in conf.ha_state:
+                    old_state = conf.ha_state[entity_id]
+                else:
+                    old_state = None
+                data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
+                args = {"event_type": "state_changed", "data": data}
+                conf.appq.put_nowait(args)
+
     def set_state(self, entity_id, **kwargs):
         with conf.ha_state_lock:
             self._check_entity(entity_id)
@@ -256,9 +268,9 @@ class AppDaemon:
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
-            #
-            # Event
-            #
+    #
+    # Event
+    #
 
     def fire_event(self, event, **kwargs):
         ha.log(conf.logger, "DEBUG",

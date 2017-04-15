@@ -10,6 +10,7 @@ History
 - Add option to turn of verification for self signed certs (contributed by [janwh](https://github.com/janwh)
 - AppDaemon configuration now uses YAML, among other things this allows arbitarily complex nested data structures in App parameters
 - Added ability to convert from old cfg file to YAML
+- AppDaemon Appd can now publish arbitary state to other Apps and the dashboard
 
 **Fixes**
 

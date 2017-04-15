@@ -658,6 +658,42 @@ The handle returned when the `listen_state()` call was made.
 entity, attribute, kwargs = self.info_listen_state(self.handle)
 ```
 
+## Publishing State from an App
+
+Using AppDaemon it is possible to explicitly publish state from an App. The published state can contain whatever you want, and is treated exactly like any other HA state, e.g. to the rest of AppDaemon, and the dashboard it looks like an entity. This means that you can listen for state changes in other apps and also publish arbitary state to the dashboard via use of specific entity IDs. To publish state, you will use `set_ha_state()`. State can be retrieved and listened for with the usual AppDaemon calls.
+
+### set_app_state()
+
+Publish state information to AppDaemon's internal state and push the statechanges out to listening Apps and Dashboards.
+
+#### Synopsis
+
+```python
+self.set_app_state(entity_id, state)
+```
+
+#### Returns
+
+None.
+
+#### Parameters
+
+##### entity_id
+
+A name for the new state. It must conform to the standard entity_id format, e.g. `<device_type>.<name>`. however device type and name can be whatever you like as long as you ensure it doden; conflict with any real devices. For clarity, I suggest the convention of using `appdaemon` as the device type. A single App can publish to as many entity ids as desired.
+
+##### state
+
+The state to be associated with the entity id. This is a dictionary and must contain the enirety of the state information, It will replace the old state information, and calls like listen state should work correctly with the old and the new state information as long as you keep the dictionary looking similar to HA status updates, e.g. thr main state in a state field, and any attibutes in an attributes sub-dictionary.
+
+#### Examples
+
+```python
+self.set_app_state("appdaemon.alerts", {"state": number, "attributes": {"unit_of_measurement": ""}})
+```
+
+This is an example of a state update that can be used with a sensor widget in HADashboard. "state" is the actual value, and the widget also expects an attribute called "unit_of_measurement" to work correctly.
+
 ## Scheduler
 
 AppDaemon contains a powerful scheduler that is able to run with 1 second resolution to fire off specific events at set times, or after set delays, or even relative to sunrise and sunset. In general, events should be fired less than a second after specified but under certain circumstances there may be short additional delays.
