@@ -28,6 +28,7 @@ import appdaemon.appdash as appdash
 import asyncio
 import concurrent
 from urllib.parse import urlparse
+import yaml
 
 
 __version__ = "2.0.0beta4"
@@ -793,13 +794,37 @@ def check_config():
     global config_file_modified
     global config
 
+    new_config = None
     try:
         modified = os.path.getmtime(config_file)
         if modified > config_file_modified:
             ha.log(conf.logger, "INFO", "{} modified".format(config_file))
             config_file_modified = modified
-            new_config = configparser.ConfigParser()
-            new_config.read_file(open(config_file))
+            root, ext = os.path.splitext(config_file)
+            if ext == ".yaml":
+                with open(config_file, 'r') as yamlfd:
+                    config_file_contents = yamlfd.read()
+                try:
+                    new_config = yaml.load(config_file_contents)
+                except yaml.YAMLError as exc:
+                    print(conf.dash, "WARNING", "Error loading configuration")
+                    if hasattr(exc, 'problem_mark'):
+                        if exc.context is not None:
+                            ha.log(conf.dash, "WARNING", "parser says")
+                            ha.log(conf.dash, "WARNING", str(exc.problem_mark))
+                            ha.log(conf.dash, "WARNING", str(exc.problem) + " " + str(exc.context))
+                        else:
+                            ha.log(conf.dash, "WARNING", "parser says")
+                            ha.log(conf.dash, "WARNING", str(exc.problem_mark))
+                            ha.log(conf.dash, "WARNING", str(exc.problem))
+            else:
+                new_config = configparser.ConfigParser()
+                new_config.read_file(open(config_file))
+
+            if new_config is None:
+                ha.log(conf.dash, "WARNING", "New config not applied")
+                return
+
 
             # Check for changes
 
@@ -1366,10 +1391,7 @@ def find_path(name):
         _file = os.path.join(path, name)
         if os.path.isfile(_file) or os.path.isdir(_file):
             return _file
-    raise ValueError(
-        "{} not specified and not found in default locations".format(name)
-    )
-
+    return None
 
 
 # noinspection PyBroadException
@@ -1408,6 +1430,7 @@ def main():
                             "WEBSOCKETS"
                         ])
     parser.add_argument('--profiledash', help=argparse.SUPPRESS, action='store_true')
+    parser.add_argument('--convertcfg', help="Convert existing .cfg file to yaml", action='store_true')
 
     # Windows does not have Daemonize package so disallow
     if platform.system() != "Windows":
@@ -1435,27 +1458,68 @@ def main():
 
     conf.commtype = args.commtype
 
-    if config_dir is None:
-        config_file = find_path("appdaemon.cfg")
-    else:
-        config_file = os.path.join(config_dir, "appdaemon.cfg")
-
     if platform.system() != "Windows":
         isdaemon = args.daemon
     else:
         isdaemon = False
 
-    # Read Config File
 
-    config = configparser.ConfigParser()
-    config.read_file(open(config_file))
+    if config_dir is None:
+        config_file_conf = find_path("appdaemon.cfg")
+        config_file_yaml = find_path("appdaemon.yaml")
+    else:
+        config_file_conf = os.path.join(config_dir, "appdaemon.cfg")
+        if not os.path.isfile(config_file_conf):
+            config_file_conf = None
+        config_file_yaml = os.path.join(config_dir, "appdaemon.yaml")
+        if not os.path.isfile(config_file_yaml):
+            config_file_yaml = None
+
+    config = None
+    config_deprecated = False
+
+    if config_file_yaml is not None and args.convertcfg is False:
+        config_file = config_file_yaml
+        with open(config_file_yaml, 'r') as yamlfd:
+            config_file_contents = yamlfd.read()
+        try:
+            config = yaml.load(config_file_contents)
+        except yaml.YAMLError as exc:
+            print("ERROR", "Error loading configuration")
+            if hasattr(exc, 'problem_mark'):
+                if exc.context is not None:
+                    print("ERROR", "parser says")
+                    print("ERROR", str(exc.problem_mark))
+                    print("ERROR", str(exc.problem) + " " + str(exc.context))
+                else:
+                    print("ERROR", "parser says")
+                    print("ERROR", str(exc.problem_mark))
+                    print("ERROR", str(exc.problem))
+            sys.exit()
+    else:
+
+        # Read Config File
+        config_file = config_file_conf
+        config = configparser.ConfigParser()
+        config.read_file(open(config_file_conf))
+
+        if args.convertcfg is True:
+            yaml_file = os.path.join(os.path.dirname(config_file_conf), "appdaemon.yaml")
+            print("Converting {} to {}".format(config_file_conf, yaml_file))
+            new_config = {}
+            for section in config:
+                if section != "DEFAULT":
+                    new_config[section] = {}
+                    for var in config[section]:
+                        new_config[section][var] = config[section][var]
+            with open(yaml_file, "w") as outfile:
+                yaml.dump(new_config, outfile, default_flow_style=False)
+            sys.exit()
+        else:
+            config_deprecated = True
+
 
     conf.config_dir = os.path.dirname(config_file)
-
-    assert "AppDaemon" in config, "[AppDaemon] section required in {}".format(
-        config_file
-    )
-
     conf.config = config
     conf.ha_url = config['AppDaemon']['ha_url']
     conf.ha_key = config['AppDaemon'].get('ha_key', "")
@@ -1484,7 +1548,7 @@ def main():
     else:
         conf.dash_compile_on_start = False
 
-    if config['AppDaemon'].getboolean("cert_verify", True) == False:
+    if config['AppDaemon'].get("cert_verify", True) == False:
         conf.certpath = False
 
     if conf.dash_url is not None:
@@ -1582,6 +1646,9 @@ def main():
     # Startup message
 
     ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
+
+    if config_deprecated is True:
+        ha.log(conf.logger, "WARNING", "Use of cfg file is deprecated - please convert to YAML")
 
     # Check with HA to get various info
 

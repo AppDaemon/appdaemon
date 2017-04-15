@@ -4,21 +4,28 @@ History
 2.0.0beta4
 ----------
 
+**Features**
+
 - Migrate timer thread to async
 - Add option to turn of verification for self signed certs (contributed by [janwh](https://github.com/janwh)
+- AppDaemon configuration now uses YAML, among other things this allows arbitarily complex nested data structures in App parameters
+- Added ability to convert from old cfg file to YAML
 
 **Fixes**
 
 - Slider now works correctly after changes outside of HADashboard
 - Climate now works correctly after changes outside of HADashboard
 - Media player now works correctly after changes outside of HADashboard
+- ha.log now correctly dumps data structures
 
 **Breaking Changes**
 
--
+- The cfg file style of configuration is now deprecated although it still works for now
 
 2.0.0beta3.5
 ------------
+
+**Features**
 
 - Label now accepts HTML for the value
 - IFRAME widget now allows vimeo and youtube videos to go fullscreen when clicked
@@ -36,6 +43,8 @@ History
 
 2.0.0beta3
 ----------
+
+**Features**
 
 - Added alarm widget
 - Added camera widget

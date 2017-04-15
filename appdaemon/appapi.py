@@ -6,6 +6,7 @@ import uuid
 import re
 import requests
 import inspect
+import json
 
 import appdaemon.homeassistant as ha
 
@@ -35,6 +36,9 @@ class AppDaemon:
                            self.name, entity))
 
     def _sub_stack(self, msg):
+        # If msg is a data structure of some type, the subs below will fail, so lets convert it to JSON
+        if type(msg) is not str:
+            msg = json.dumps(msg)
         stack = inspect.stack()
         if msg.find("__module__") != -1:
             msg = msg.replace("__module__", stack[2][1])
