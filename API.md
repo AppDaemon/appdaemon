@@ -680,11 +680,11 @@ None.
 
 ##### entity_id
 
-A name for the new state. It must conform to the standard entity_id format, e.g. `<device_type>.<name>`. however device type and name can be whatever you like as long as you ensure it doden; conflict with any real devices. For clarity, I suggest the convention of using `appdaemon` as the device type. A single App can publish to as many entity ids as desired.
+A name for the new state. It must conform to the standard entity_id format, e.g. `<device_type>.<name>`. however device type and name can be whatever you like as long as you ensure it doesn't conflict with any real devices. For clarity, I suggest the convention of using `appdaemon` as the device type. A single App can publish to as many entity ids as desired.
 
 ##### state
 
-The state to be associated with the entity id. This is a dictionary and must contain the enirety of the state information, It will replace the old state information, and calls like listen state should work correctly with the old and the new state information as long as you keep the dictionary looking similar to HA status updates, e.g. thr main state in a state field, and any attibutes in an attributes sub-dictionary.
+The state to be associated with the entity id. This is a dictionary and must contain the enirety of the state information, It will replace the old state information, and calls like `listen_state()` should work correctly reporting the old and the new state information as long as you keep the dictionary looking similar to HA status updates, e.g. the main state in a state field, and any attibutes in an attributes sub-dictionary.
 
 #### Examples
 
