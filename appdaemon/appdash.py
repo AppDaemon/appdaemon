@@ -6,6 +6,7 @@ import jinja2
 import json
 import os
 import traceback
+import re
 
 import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
@@ -15,7 +16,6 @@ import appdaemon.dashboard as dashboard
 
 app = web.Application()
 app['websockets'] = {}
-
 
 def set_paths():
     if not os.path.exists(conf.compile_dir):
@@ -45,7 +45,8 @@ def set_paths():
 @asyncio.coroutine
 @aiohttp_jinja2.template('dashboard.jinja2')
 def list_dash(request):
-    dash_list = dashboard.list_dashes()
+    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.list_dashes)])
+    dash_list = list(completed)[0].result()
     params = {"dash_list": dash_list, "stream_url": conf.stream_url}
     params["main"] = "1"
     return params
@@ -139,11 +140,33 @@ def get_state(request):
 @asyncio.coroutine
 def call_service(request):
     data = yield from request.post()
-    # Should be using aiohttp client here
-    # Will fix when I fully convert to async
-    ha.call_service(**data)
-    return web.Response(status=200)
+    print(data)
+    args = {}
+    service = data["service"]
+    for key in data:
+        if key == "service":
+            pass
+        elif key == "rgb_color":
+            m = re.search('\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', data[key])
+            if m:
+                r = m.group(1)
+                g = m.group(2)
+                b = m.group(3)
+                args["rgb_color"] = [r, g, b]
+        elif key == "xy_color":
+            m = re.search('\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)', data[key])
+            if m:
+                x = m.group(1)
+                y = m.group(2)
+                print(x,y)
+                args["xy_color"] = [x, y]
+        else:
+            args[key] = data[key]
 
+    #completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, ha.call_service, data)])
+    print(service, args)
+    ha.call_service(service, **args)
+    return web.Response(status=200)
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
@@ -185,11 +208,12 @@ def wshandler(request):
     return ws
 
 
-def ws_update(data):
+def ws_update(jdata):
     ha.log(conf.dash,
            "DEBUG",
-           "Sending data to {} dashes: {}".format(len(app['websockets']),
-                                                  data))
+           "Sending data to {} dashes: {}".format(len(app['websockets']), jdata))
+
+    data = json.dumps(jdata)
 
     for ws in app['websockets']:
 
@@ -197,7 +221,7 @@ def ws_update(data):
             ha.log(conf.dash,
                    "DEBUG",
                    "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
-            ws.send_str(json.dumps(data))
+            ws.send_str(data)
 
 
 # Routes, Status and Templates

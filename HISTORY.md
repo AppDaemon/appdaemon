@@ -18,6 +18,8 @@ History
 - Climate now works correctly after changes outside of HADashboard
 - Media player now works correctly after changes outside of HADashboard
 - ha.log now correctly dumps data structures
+- on_attributes for lights now correctly supports RGB and XY_COLOR
+- Fixed a bug in the scheduler to reduce clock skew messages
 
 **Breaking Changes**
 

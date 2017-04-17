@@ -861,6 +861,8 @@ A widget to monitor and contol a dimmable light
 - `title2` - a second line of title text 
 - `on_attributes` - a list of supported HA attributes to set as initial values for the light.
 
+Note that `rgb_color` and `xy_color` are not specified with list syntac as in Home Assistant scenes. See below for examples.
+
 e.g.
 
 ```yaml
@@ -871,6 +873,30 @@ testlight2:
     on_attributes:
         brightness: 100
         color_temp: 250
+```
+
+or:
+
+```yaml
+testlight2:
+    widget_type: light
+    entity: light.office_2
+    title: office_2
+    on_attributes:
+        brightness: 100
+        rgb_color: 128, 34, 56
+```
+
+or:
+
+```yaml
+testlight2:
+    widget_type: light
+    entity: light.office_2
+    title: office_2
+    on_attributes:
+        brightness: 100
+        xy_color: 0.4, 0.9
 ```
 
 ### Cosmetic Arguments

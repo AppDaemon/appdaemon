@@ -29,6 +29,7 @@ import asyncio
 import concurrent
 from urllib.parse import urlparse
 import yaml
+import random
 
 
 __version__ = "2.0.0beta4"
@@ -114,22 +115,6 @@ def update_sun():
 
 def is_dst():
     return bool(time.localtime(ha.get_now_ts()).tm_isdst)
-
-
-@asyncio.coroutine
-def do_every(period, f):
-    global stopping
-    t = math.floor(ha.get_now_ts())
-    count = 0
-    t_ = math.floor(time.time())
-    while not stopping:
-        count += 1
-        delay = max(t_ + count * period - time.time(), 0)
-        yield from asyncio.sleep(delay)
-        t += conf.interval
-        r = yield from f(t)
-        if r is not None and r != t:
-            t = math.floor(r)
 
 
 # noinspection PyUnusedLocal
@@ -382,6 +367,24 @@ def exec_schedule(name, entry, args):
 
         del conf.schedule[name][entry]
 
+@asyncio.coroutine
+def do_every(period, f):
+    global stopping
+    t = math.floor(ha.get_now_ts())
+    count = 0
+    #t_ = math.floor(time.time())
+    while not stopping:
+        count += 1
+        #delay = max(t_ + count * period - time.time(), 0)
+        delay = max(t + period - time.time(), 0)
+        #print(delay)
+        yield from asyncio.sleep(delay)
+        t += conf.interval
+        r = yield from f(t)
+        #print(t, r)
+        if r is not None and r != t:
+            t = math.floor(r)
+
 
 # noinspection PyBroadException,PyBroadException
 def do_every_second(utc):
@@ -393,8 +396,6 @@ def do_every_second(utc):
         return
     try:
 
-        # now = datetime.datetime.now()
-        # now = now.replace(microsecond=0)
         now = datetime.datetime.fromtimestamp(utc)
         conf.now = utc
 
@@ -415,6 +416,8 @@ def do_every_second(utc):
 
         update_sun()
 
+
+
         # Check if we have entered or exited DST - if so, reload apps
         # to ensure all time callbacks are recalculated
 
@@ -433,6 +436,10 @@ def do_every_second(utc):
         was_dst = now_dst
 
         # dump_schedule()
+
+        # test code for clock skew
+        #if random.randint(1, 10) == 5:
+        #    time.sleep(random.randint(1,20))
 
         # Check to see if any apps have changed but only if we have valid state
 
@@ -1260,7 +1267,6 @@ def appdaemon_loop():
                 # Let the timer thread know we are in business,
                 # and give it time to tick at least once
                 reading_messages = True
-                time.sleep(2)
 
                 # Load apps
                 read_apps(True)
@@ -1681,7 +1687,7 @@ def main():
                     ha.log(conf.logger, "WARNING", '-' * 60)
                     ha.log(conf.logger, "WARNING", traceback.format_exc())
                     ha.log(conf.logger, "WARNING", '-' * 60)
-            time.sleep(5)
+                time.sleep(5)
 
         conf.version = parse_version(ha_config["version"])
 
@@ -1738,7 +1744,7 @@ def main():
             else:
                 conf.dashboard_dir = os.path.join(config_dir, "dashboards")
 
-                #
+        #
         # Figure out where our data files are
         #
         conf.dash_dir = os.path.dirname(__file__)
