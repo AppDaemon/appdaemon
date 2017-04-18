@@ -1,0 +1,18 @@
+.widget-basegauge-{{id}} .graph {
+	position: absolute;
+	top: 20px;
+	bottom: 0px;
+	width: 100%;
+}
+
+.widget-basegauge-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-basegauge-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
