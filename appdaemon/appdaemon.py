@@ -47,6 +47,7 @@ config_file_modified = 0
 config_file = ""
 was_dst = None
 last_state = None
+read_files_delay = 0
 reading_messages = False
 inits = {}
 stopping = False
@@ -449,6 +450,7 @@ def exec_schedule(name, entry, args):
 def do_every_second(utc):
     global was_dst
     global last_state
+    global read_files_delay
 
     # Lets check if we are connected, if not give up.
     if not reading_messages:
@@ -501,8 +503,10 @@ def do_every_second(utc):
 
         # Check to see if any apps have changed but only if we have valid state
 
-        if last_state is not None:
-            read_apps()
+        read_files_delay = read_files_delay + 1
+        if read_files_delay % 5 is 0:
+            if last_state is not None:
+                read_apps()
 
         # Check to see if config has changed
 
