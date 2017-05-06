@@ -48,7 +48,7 @@ function baseclock(widget_id, url, skin, parameters)
 		s = today.getSeconds();
 		m = formatTime(m);
 		
-        self.set_field(self, "date", today.toLocaleDateString());
+        self.set_field(self, "date", today.toLocaleDateString(self.parameters.locale));
 		
 		if ("time_format" in self.parameters && self.parameters.time_format == "24hr")
 		{
