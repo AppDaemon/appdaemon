@@ -594,6 +594,8 @@ AppDaemon:
 - `target name` - the entity of the target RSS widget in the dashboard definition file
 - `feed_refresh_interval` - how often AppDaemon will refresh the RSS feeds
 
+There is no limit to the number of feeds you configure, and you will need to configure one RSS widget to display each feed.
+
 The RSS news feed cannot be configured if you are still using the legacy `.cfg` file type.
 
 ### Mandatory Arguments:
