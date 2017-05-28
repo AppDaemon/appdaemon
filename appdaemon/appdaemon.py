@@ -48,7 +48,6 @@ was_dst = None
 last_state = None
 reading_messages = False
 inits = {}
-stopping = False
 ws = None
 
 
@@ -119,7 +118,6 @@ def is_dst():
 
 # noinspection PyUnusedLocal
 def handle_sig(signum, frame):
-    global stopping
     global ws
     if signum == signal.SIGUSR1:
         dump_schedule()
@@ -131,7 +129,7 @@ def handle_sig(signum, frame):
         read_apps(True)
     if signum == signal.SIGINT:
         ha.log(conf.logger, "INFO", "Keyboard interrupt")
-        stopping = True
+        conf.stopping = True
         if ws is not None:
             ws.close()
         conf.appq.put_nowait({"event_type": "ha_stop", "data": None})
@@ -369,11 +367,10 @@ def exec_schedule(name, entry, args):
 
 @asyncio.coroutine
 def do_every(period, f):
-    global stopping
     t = math.floor(ha.get_now_ts())
     count = 0
     #t_ = math.floor(time.time())
-    while not stopping:
+    while not conf.stopping:
         count += 1
         #delay = max(t_ + count * period - time.time(), 0)
         delay = max(t + period - time.time(), 0)
@@ -415,8 +412,6 @@ def do_every_second(utc):
         # Update sunrise/sunset etc.
 
         update_sun()
-
-
 
         # Check if we have entered or exited DST - if so, reload apps
         # to ensure all time callbacks are recalculated
@@ -1123,13 +1118,12 @@ def run():
     global was_dst
     global last_state
     global reading_messages
-    global stopping
 
     conf.appq = asyncio.Queue(maxsize=0)
 
     first_time = True
 
-    stopping = False
+    conf.stopping = False
 
     ha.log(conf.logger, "DEBUG", "Entering run()")
 
@@ -1229,7 +1223,7 @@ def run():
 
     conf.loop.run_until_complete(asyncio.wait(tasks))
 
-    while not stopping:
+    while not conf.stopping:
         asyncio.sleep(1)
 
 
@@ -1238,7 +1232,7 @@ def run():
 
 @asyncio.coroutine
 def appstate_loop():
-    while not stopping:
+    while not conf.stopping:
         args = yield from conf.appq.get()
         process_message(args)
         conf.appq.task_done()
@@ -1248,14 +1242,13 @@ def appstate_loop():
 def appdaemon_loop():
     first_time = True
     global reading_messages
-    global stopping
     global ws
 
-    stopping = False
+    conf.stopping = False
 
     _id = 0
 
-    while not stopping:
+    while not conf.stopping:
         _id += 1
         try:
             if first_time is False:
@@ -1373,7 +1366,7 @@ def appdaemon_loop():
                 # Loop forever consuming events
                 #
 
-                while not stopping:
+                while not conf.stopping:
                     completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, ws.recv)])
                     result = json.loads(list(completed)[0].result())
 
@@ -1392,7 +1385,7 @@ def appdaemon_loop():
 
         except:
             reading_messages = False
-            if not stopping:
+            if not conf.stopping:
                 ha.log(
                     conf.logger, "WARNING",
                     "Disconnected from Home Assistant, retrying in 5 seconds"
@@ -1556,6 +1549,8 @@ def main():
     conf.elevation = config['AppDaemon'].get("elevation")
     conf.time_zone = config['AppDaemon'].get("time_zone")
     conf.timeout = config['AppDaemon'].get("timeout")
+    conf.rss_feeds = config['AppDaemon'].get("rss_feeds")
+    conf.rss_update = config['AppDaemon'].get("rss_update")
 
     if config['AppDaemon'].get("disable_apps") == "1":
         conf.apps = False

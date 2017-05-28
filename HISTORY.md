@@ -12,6 +12,7 @@ History
 - Added ability to convert from old cfg file to YAML
 - AppDaemon Appd can now publish arbitary state to other Apps and the dashboard
 - Added Gauge Widget
+- Added RSS Widget
 
 **Fixes**
 

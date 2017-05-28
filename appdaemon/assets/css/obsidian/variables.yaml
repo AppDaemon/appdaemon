@@ -286,3 +286,17 @@ alarm_panel_button_style: "color: $cyan; background-color: rgba(0,0,50,1)"
 
 camera_widget_style: $background_style
 camera_title_style: "$style_title; background-color: rgba(0, 0, 0, 0.5)"
+
+gauge_widget_style: $background_style
+gauge_title_style: $style_title
+gauge_title2_style: $style_title2
+gauge_low_value_color: "$cyan"
+gauge_med_value_color: "$cyan"
+gauge_high_value_color: "$cyan"
+gauge_value_bgcolor: "$gray_medium"
+gauge_text_color: "$cyan"
+
+rss_title_style: $style_title
+rss_title2_style: $style_title2
+rss_text_style: "color: $cyan"
+rss_widget_style: $background_style

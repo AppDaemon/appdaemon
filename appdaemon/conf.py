@@ -16,13 +16,18 @@ longitude = None
 elevation = None
 time_zone = None
 errorfile = None
-
+rss_feeds = None
+rss_update = None
+rss_last_update = None
+rss = None
 appq = None
 
 executor = None
 loop = None
 srv = None
 appd = None
+
+stopping = False
 
 # Will require object based locking if implemented
 objects = {}

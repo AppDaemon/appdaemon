@@ -7,6 +7,8 @@ import json
 import os
 import traceback
 import re
+import feedparser
+import time
 
 import appdaemon.homeassistant as ha
 import appdaemon.conf as conf
@@ -122,6 +124,29 @@ def _load_dash(request):
         ha.log(conf.dash, "WARNING", traceback.format_exc())
         ha.log(conf.dash, "WARNING", '-' * 60)
         return {"errors": ["An unrecoverable error occured fetching dashboard"]}
+
+@asyncio.coroutine
+def update_rss(loop):
+    # Grab RSS Feeds
+
+    if conf.rss_feeds is not None and conf.rss_update is not None:
+        while not conf.stopping:
+            if conf.rss_last_update == None or (conf.rss_last_update + conf.rss_update) <= time.time():
+                conf.rss_last_update = time.time()
+
+                for feed_data in conf.rss_feeds:
+                    completed, pending = yield from asyncio.wait(
+                        [conf.loop.run_in_executor(conf.executor, feedparser.parse, feed_data["feed"])])
+                    feed = list(completed)[0].result()
+
+                    new_state = {"feed": feed}
+                    with conf.ha_state_lock:
+                        conf.ha_state[feed_data["target"]] = new_state
+
+                    data = {"event_type": "state_changed", "data": {"entity_id": feed_data["target"], "new_state": new_state}}
+                    ws_update(data)
+
+            yield from asyncio.sleep(1)
 
 
 @asyncio.coroutine
@@ -272,6 +297,7 @@ def run_dash(loop):
         handler = app.make_handler()
         f = loop.create_server(handler, conf.dash_host, int(conf.dash_port))
         conf.srv = loop.run_until_complete(f)
+        conf.rss = loop.run_until_complete(update_rss(loop))
         ha.log(conf.dash, "INFO", "HADashboard Started")
         ha.log(conf.dash, "INFO",
                "Listening on {}".format(conf.srv.sockets[0].getsockname()))

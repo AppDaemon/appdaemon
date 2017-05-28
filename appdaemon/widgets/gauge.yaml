@@ -1,7 +1,10 @@
 widget_type: basegauge
 entity: {{entity}}
-color: $gauge_value_color
+low_color: $gauge_low_value_color
+med_color: $gauge_med_value_color
+high_color: $gauge_high_value_color
 bgcolor: $gauge_value_bgcolor
+color: $gauge_text_color
 fields:
   title: {{title}}
   title2: {{title2}}

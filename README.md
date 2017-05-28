@@ -96,7 +96,7 @@ module = hello
 class = HelloWorld
 ```
 
-Ifyou want to move from the legacy `ini` style of configuration to YAML, AppDaemon is able to do this for you. From the command line run:
+If you want to move from the legacy `ini` style of configuration to YAML, AppDaemon is able to do this for you. From the command line run:
 
 ```bash
 $ appdaemon --convertcfg

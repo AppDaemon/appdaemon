@@ -570,7 +570,78 @@ The widget will detect whether or not it is showing a numeric value, and if so, 
 - `text_style`
 - `unit_style`
 
-The sensor widget will detect if the data is numeric, in which case `value_style` and `unit_style` will be applied, otherwise `text_style` will be applied and no units will be shown.
+## rss
+
+A widget to display an RSS feed.
+
+Note that the actual feeds are configured in appdaemon.yaml as follows:
+
+```yaml
+AppDaemon:
+
+  rss_feeds:
+    - feed: <feed_url>
+      target: <target_name>
+    - feed: <feed url>
+      target: <target_name>
+
+      ...
+
+  rss_update: <feed_refresh_interval>
+```
+
+- `feed_url` - fully qualified path to rss feed, e.g. `http://rss.cnn.com/rss/cnn_topstories.rss`
+- `target name` - the entity of the target RSS widget in the dashboard definition file
+- `feed_refresh_interval` - how often AppDaemon will refresh the RSS feeds
+
+The RSS news feed cannot be configured if you are still using the legacy `.cfg` file type.
+
+### Mandatory Arguments:
+
+- `entity` - the name of the configured feed - this must match the `target_name` configured in the AppDaemon configuration
+- `interval` - the period between display of different items within the feed
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text
+- `recent` - the number of most recent stories that will be shown. If not specified, all stories in the feed will be shown.
+
+### Style Arguments:
+
+- `widget_style`
+- `title_style`
+- `title2_style`
+- `text_style`
+
+## gauge
+
+A widget to report on numeric values for sensors in Home Assistant in a gauge format.
+
+### Mandatory Arguments:
+
+- `entity` - the entity_id of the sensor to be monitored
+- `max` - maximum value to show
+- `min` - minimum value to show
+
+### Optional Arguments:
+
+- `title` - the title displayed on the tile
+- `title2` - a second line of title text
+- `units` - the unit symbol to be displayed, if not specified HAs unit will be used, specify "" for no units
+
+### Style Arguments:
+
+- `widget_style`
+- `title_style`
+- `title2_style`
+- `low_color`
+- `med_color`
+- `high_color`
+- `bgcolor`
+- `color`
+
+Note that unlike other widgets, the color settings require an actual color, rather than a CSS style.
 
 ## device_tracker
 
@@ -956,7 +1027,7 @@ A widget to monitor and contol a climate entity
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `step` - the size of step in brightness when fading the slider up or down
+- `step` - the size of step in temperature when fading the slider up or down
 - `units` - the unit symbol to be displayed
 
 ### Cosmetic Arguments

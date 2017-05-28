@@ -1,0 +1,14 @@
+widget_type: baserss
+entity: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  text: ""
+static_css:
+  title_style: $rss_title_style
+  title2_style: $rss_title2_style
+  text_style: $rss_text_style
+  widget_style: $rss_widget_style
+css: []
+icons: []
+static_icons: []

@@ -1,4 +1,4 @@
-function basegauge(widget_id, url, skin, parameters)
+function baserss(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
@@ -35,22 +35,6 @@ function basegauge(widget_id, url, skin, parameters)
     {
         var monitored_entities =  []
     }
-
-    self.gauge = new JustGage({
-    id: "graph",
-    value: 0,
-    nogradient: true,
-    levelColors: [self.parameters.low_color, self.parameters.med_color, self.parameters.high_color],
-    labelFontColor: self.parameters.color,
-    valueFontColor: self.parameters.color,
-    levelColorsGradient: false,
-    gaugeColor: self.parameters.bgcolor,
-    symbol: self.parameters.units,
-    min: self.parameters.min,
-    max: self.parameters.max,
-  });
-
-
     // Finally, call the parent constructor to get things moving
     
     WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
@@ -74,6 +58,20 @@ function basegauge(widget_id, url, skin, parameters)
 
     function set_value(self, state)
     {
-        self.gauge.refresh(state.state)
+        self.story = 0
+        clearTimeout(self.timer)
+        show_next_story(self)
+        self.timer = setInterval(show_next_story, self.parameters.interval * 1000, self);
+    }
+
+    function show_next_story(self)
+    {
+        var stories = self.entity_state[parameters.entity].feed.entries;
+        self.set_field(self, "text", stories[self.story].title)
+        self.story = self.story + 1;
+        if ((self.story >= stories.length) || ("recent" in parameters && self.story >= parameters.recent))
+        {
+            self.story = 0;
+        }
     }
 }

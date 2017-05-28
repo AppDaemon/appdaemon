@@ -10,3 +10,4 @@ jinja2
 aiohttp_jinja2
 websocket-client
 yaml
+feedparser
