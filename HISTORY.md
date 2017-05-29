@@ -13,6 +13,7 @@ History
 - AppDaemon Appd can now publish arbitary state to other Apps and the dashboard
 - Added Gauge Widget
 - Added RSS Widget
+- Add next and previous track to media player
 
 **Fixes**
 
@@ -25,7 +26,7 @@ History
 
 **Breaking Changes**
 
-- The cfg file style of configuration is now deprecated although it still works for now
+- The cfg file style of configuration is now deprecated although it still works for now for most features
 
 2.0.0beta3.5
 ------------

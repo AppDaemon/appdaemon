@@ -10,9 +10,9 @@ function basemedia(widget_id, url, skin, parameters)
 
     self.parameters = parameters;
 
-    self.OnStopButtonClick = OnStopButtonClick;
-    self.OnPauseButtonClick = OnPauseButtonClick;
     self.OnPlayButtonClick = OnPlayButtonClick;
+    self.OnPreviousButtonClick = OnPreviousButtonClick;
+    self.OnNextButtonClick = OnNextButtonClick;
     self.OnRaiseLevelClick = OnRaiseLevelClick;
     self.OnLowerLevelClick = OnLowerLevelClick;
 
@@ -22,11 +22,11 @@ function basemedia(widget_id, url, skin, parameters)
 
     var callbacks =
         [
-            {"selector": '#' + widget_id + ' #stop', "callback": self.OnStopButtonClick},
-            {"selector": '#' + widget_id + ' #pause', "callback": self.OnPauseButtonClick},
             {"selector": '#' + widget_id + ' #play', "callback": self.OnPlayButtonClick},
             {"selector": '#' + widget_id + ' #level-up', "callback": self.OnRaiseLevelClick},
             {"selector": '#' + widget_id + ' #level-down', "callback": self.OnLowerLevelClick},
+            {"selector": '#' + widget_id + ' #previous', "callback": self.OnPreviousButtonClick},
+            {"selector": '#' + widget_id + ' #next', "callback": self.OnNextButtonClick}
         ];
 
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
@@ -56,6 +56,10 @@ function basemedia(widget_id, url, skin, parameters)
         self.entity = state.entity_id;
         self.level = state.attributes.volume_level;
         set_view(self, state)
+        if ("dump_capabilities" in self.parameters && self.parameters["dump_capabilities"] == "1")
+        {
+            display_supported_functions(self)
+        }
     }
 
     // The OnStateUpdate function will be called when the specific entity
@@ -68,32 +72,73 @@ function basemedia(widget_id, url, skin, parameters)
         set_view(self, state)
     }
 
-    function OnStopButtonClick(self)
-    {
-        if (self.entity_state[self.entity].state !== "idle")
-        {
-            args = self.parameters.post_service_stop;
-            self.call_service(self, args)
-        }
-    }
-
-    function OnPauseButtonClick(self)
-    {
-        if (self.entity_state[self.entity].state !== "paused")
-        {
-            args = self.parameters.post_service_pause;
-            self.call_service(self, args)
-        }
-    }
-
     function OnPlayButtonClick(self)
     {
         if (self.entity_state[self.entity].state !== "playing")
         {
-            args = self.parameters.post_service_play;
-            self.call_service(self, args)
+            if (is_supported(self, "PLAY_MEDIA"))
+            {
+                args = self.parameters.post_service_play_pause;
+                self.call_service(self, args)
+            }
+            else
+            {
+                console.log("Play attribute not supported")
+            }
+        }
+        else
+        {
+            if (is_supported(self, "PAUSE"))
+            {
+                args = self.parameters.post_service_pause;
+                self.call_service(self, args)
+            }
+            else if (is_supported(self, "STOP"))
+            {
+                args = self.parameters.post_service_stop;
+                self.call_service(self, args)
+            }
+            else if (is_supported(self, "STOP"))
+            {
+                args = self.parameters.post_service_stop;
+                self.call_service(self, args)
+            }
+            else
+            {
+                // Try Play/Pause
+                args = self.parameters.post_service_play_pause;
+                self.call_service(self, args)
+            }
         }
     }
+
+    function OnPreviousButtonClick(self)
+    {
+        if (is_supported(self, "PREVIOUS_TRACK"))
+        {
+            args = self.parameters.post_service_previous;
+            self.call_service(self, args)
+        }
+        else
+        {
+            console.log("NEXT_TRACK attribute not supported")
+        }
+    }
+
+    function OnNextButtonClick(self)
+    {
+        if (is_supported(self, "NEXT_TRACK"))
+        {
+            args = self.parameters.post_service_next;
+            self.call_service(self, args)
+        }
+        else
+        {
+            console.log("NEXT_TRACK attribute not supported")
+        }
+    }
+
+
 
     function OnRaiseLevelClick(self)
     {
@@ -129,26 +174,12 @@ function basemedia(widget_id, url, skin, parameters)
         if (state.state === "playing")
         {
             self.set_field(self, "play_icon_style", self.css.icon_style_active)
+            self.set_icon(self, "play_icon", self.icons.play_icon)
         }
         else
         {
             self.set_field(self, "play_icon_style", self.css.icon_style_inactive)
-        }
-        if (state.state === "paused")
-        {
-            self.set_field(self, "pause_icon_style", self.css.icon_style_active)
-        }
-        else
-        {
-            self.set_field(self, "pause_icon_style", self.css.icon_style_inactive)
-        }
-        if (state.state === "idle")
-        {
-            self.set_field(self, "stop_icon_style", self.css.icon_style_active)
-        }
-        else
-        {
-            self.set_field(self, "stop_icon_style", self.css.icon_style_inactive)
+            self.set_icon(self, "play_icon", self.icons.pause_icon)
         }
 
         if ("media_artist" in state.attributes)
@@ -181,5 +212,68 @@ function basemedia(widget_id, url, skin, parameters)
             self.set_field(self, "level", 0)
         }
 
+    }
+
+    function is_supported(self, attr)
+    {
+        var support =
+            {
+                "PAUSE": 1,
+                "SEEK": 2,
+                "VOLUME_SET": 4,
+                "VOLUME_MUTE": 8,
+                "PREVIOUS_TRACK": 16,
+                "NEXT_TRACK": 32,
+                "TURN_ON": 128,
+                "TURN_OFF": 256,
+                "PLAY_MEDIA": 512,
+                "VOLUME_STEP": 1024,
+                "SELECT_SOURCE": 2048,
+                "STOP": 4096,
+                "CLEAR_PLAYLIST": 8192,
+                "PLAY": 16384,
+                "SHUFFLE_SET": 32768
+            };
+
+        var supported = self.entity_state[parameters.entity].attributes.supported_features;
+
+        if (attr in support)
+        {
+            var attr_value = support[attr];
+            if ((supported & attr_value) == attr_value)
+            {
+                return true
+            }
+            else
+            {
+                return false
+            }
+        }
+        else
+        {
+            console.log("Unknown media player attribute: " + attr)
+            return false
+        }
+    }
+
+    function display_supported_functions(self)
+    {
+        console.log(self.parameters.entity);
+        console.log("Supported Features: " + self.entity_state[parameters.entity].attributes.supported_features);
+        console.log("PAUSE: " + is_supported(self, "PAUSE"))
+        console.log("SEEK: " + is_supported(self, "SEEK"))
+        console.log("VOLUME_SET: " + is_supported(self, "VOLUME_SET"))
+        console.log("VOLUME_MUTE: " + is_supported(self, "VOLUME_MUTE"))
+        console.log("PREVIOUS_TRACK: " + is_supported(self, "PREVIOUS_TRACK"))
+        console.log("NEXT_TRACK: " + is_supported(self, "NEXT_TRACK"))
+        console.log("TURN_ON: " + is_supported(self, "TURN_ON"))
+        console.log("TURN_OFF: " + is_supported(self, "TURN_OFF"))
+        console.log("PLAY_MEDIA: " + is_supported(self, "PLAY_MEDIA"))
+        console.log("VOLUME_STEP: " + is_supported(self, "VOLUME_STEP"))
+        console.log("SELECT_SOURCE: " + is_supported(self, "SELECT_SOURCE"))
+        console.log("STOP: " + is_supported(self, "STOP"))
+        console.log("CLEAR_PLAYLIST: " + is_supported(self, "CLEAR_PLAYLIST"))
+        console.log("PLAY: " + is_supported(self, "PLAY"))
+        console.log("SHUFFLE_SET: " + is_supported(self, "SHUFFLE_SET"))
     }
 }

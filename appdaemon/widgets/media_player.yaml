@@ -1,7 +1,13 @@
 widget_type: basemedia
 entity: {{entity}}
-post_service_play:
-    service: media_player/media_play
+post_service_next:
+    service: media_player/media_next_track
+    entity_id: {{entity}}
+post_service_previous:
+    service: media_player/media_previous_track
+    entity_id: {{entity}}
+post_service_play_pause:
+    service: media_player/media_play_pause
     entity_id: {{entity}}
 post_service_pause:
     service: media_player/media_pause
@@ -19,17 +25,21 @@ fields:
   album: ""
   play_icon_style: ""
   pause_icon_style: ""
-  stop_icon_style: ""
+  previous_icon_style: ""
+  next_icon_style: ""
   state_text: ""
   level: ""
-icons: []
-static_icons:
+icons:
   play_icon: $media_player_icon_play
   pause_icon: $media_player_icon_pause
-  stop_icon: $media_player_icon_stop
+static_icons:
+  previous_icon: $media_player_icon_previous
+  next_icon: $media_player_icon_next
   icon_up: $media_player_icon_up
   icon_down: $media_player_icon_down
 static_css:
+  previous_icon_style: $media_player_icon_style_previous
+  next_icon_style: $media_player_icon_style_next
   title_style: $media_player_title_style
   artist_style: $media_player_artist_style
   album_style: $media_player_album_style

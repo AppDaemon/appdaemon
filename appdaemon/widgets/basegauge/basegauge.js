@@ -37,7 +37,8 @@ function basegauge(widget_id, url, skin, parameters)
     }
 
     self.gauge = new JustGage({
-    id: "graph",
+    parentNode: $('#' + widget_id + ' > div')[0],
+    //id: "graph",
     value: 0,
     nogradient: true,
     levelColors: [self.parameters.low_color, self.parameters.med_color, self.parameters.high_color],

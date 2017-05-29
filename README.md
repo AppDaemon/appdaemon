@@ -43,7 +43,7 @@ $ sudo pip3 install .
 When you have appdaemon installed by either method, copy the `conf/appdaemon.yaml.example` file to `conf/appdaemon.yaml`, then edit the `AppDaemon` section to reflect your environment:
 
 ```yaml
-AppDaemon
+AppDaemon:
   ha_url: <some_url>
   ha_key: <some key>
   logfile: STDOUT
@@ -104,14 +104,14 @@ Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
 $
 ```
 
-AppDaemon should correctly figure out where the file is to convert form your existing configuration. After conversion, the new YAML file will be used in preference to the old ini file, which can then be converted.
+AppDaemon should correctly figure out where the file is to convert form your existing configuration. After conversion, the new YAML file will be used in preference to the old ini file, which can then be removed if desired.
 
-Note: anylines in the ini file that are commented out, whether actual comments of lines that are not active, will not be converted.
+Note: any lines in the ini file that are commented out, whether actual comments of lines that are not active, will not be converted.
 Note 2: Docker users will unfortunately need to perform the conversion manually.
 
 ## Configuring the Dashboard
 
-Configuratiopn of the dashboard component (HADashboard) is described separately in the [Dashboard doc](DASHBOARD.md)
+Configuration of the dashboard component (HADashboard) is described separately in the [Dashboard doc](DASHBOARD.md)
 
 ## Docker
 
