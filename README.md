@@ -76,42 +76,6 @@ app_dir = /etc/appdaemon/apps
 
 The `#Apps` section is the configuration for the Hello World program and should be left in place for initial testing but can be removed later if desired, as other Apps are added, App configuration is described in the [API doc](API.md).
 
-# Legacy Configuration
-
-AppDaemon also currently supports a legacy `ini` style of configuration and it is shown here for backward compatibility. It is recommended that you move to the YAML format using the provided tool.
-
-
-```ini
-[AppDaemon]
-ha_url = <some_url>
-ha_key = <some key>
-logfile = STDOUT
-errorfile = STDERR
-threads = 10
-cert_path = <path/to/root/CA/cert>
-cert_verify = True
-# Apps
-[hello_world]
-module = hello
-class = HelloWorld
-```
-
-If you want to move from the legacy `ini` style of configuration to YAML, AppDaemon is able to do this for you. From the command line run:
-
-```bash
-$ appdaemon -c CONFIG --convertcfg
-Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
-$
-```
-
-AppDaemon should correctly figure out where the file is to convert form your existing configuration. After conversion, the new YAML file will be used in preference to the old ini file, which can then be removed if desired.
-
-Here, -c is the path to the configuration directory. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the directory is not specified and it is not found in either location, AppDaemon will raise an exception.
-
-
-Note: any lines in the ini file that are commented out, whether actual comments of lines that are not active, will not be converted.
-Note 2: Docker users will unfortunately need to perform the conversion manually.
-
 ## Configuring the Dashboard
 
 Configuration of the dashboard component (HADashboard) is described separately in the [Dashboard doc](DASHBOARD.md)
@@ -223,6 +187,39 @@ optional arguments:
 -D can be used to increase the debug level for internal AppDaemon operations as well as apps using the logging function.
 
 The -s, -i, -t and -s options are for the Time Travel feature and should only be used for testing. They are described in more detail in the API documentation. 
+
+# Legacy Configuration
+
+AppDaemon also currently supports a legacy `ini` style of configuration and it is shown here for backward compatibility. It is recommended that you move to the YAML format using the provided tool.
+
+
+```ini
+[AppDaemon]
+ha_url = <some_url>
+ha_key = <some key>
+logfile = STDOUT
+errorfile = STDERR
+threads = 10
+cert_path = <path/to/root/CA/cert>
+cert_verify = True
+# Apps
+[hello_world]
+module = hello
+class = HelloWorld
+```
+
+If you want to move from the legacy `ini` style of configuration to YAML, AppDaemon is able to do this for you. From the command line run:
+
+```bash
+$ appdaemon -c CONFIG --convertcfg
+Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
+$
+```
+
+AppDaemon should correctly figure out where the file is to convert form your existing configuration. After conversion, the new YAML file will be used in preference to the old ini file, which can then be removed if desired.
+
+Note: any lines in the ini file that are commented out, whether actual comments of lines that are not active, will not be converted.
+Note 2: Docker users will unfortunately need to perform the conversion manually.
 
 # Starting At Reboot
 To run `AppDaemon` at reboot, I have provided a sample init script in the `./scripts` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems. There is also a sample Systemd script.
