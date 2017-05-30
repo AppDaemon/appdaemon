@@ -24,6 +24,7 @@ REQUIREMENTS = [
     'aiohttp_jinja2',
     'pyyaml',
     'voluptuous',
+    'feedparser',
 ]
 
 setup(

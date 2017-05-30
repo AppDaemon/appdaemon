@@ -165,7 +165,6 @@ def get_state(request):
 @asyncio.coroutine
 def call_service(request):
     data = yield from request.post()
-    print(data)
     args = {}
     service = data["service"]
     for key in data:
@@ -183,13 +182,11 @@ def call_service(request):
             if m:
                 x = m.group(1)
                 y = m.group(2)
-                print(x,y)
                 args["xy_color"] = [x, y]
         else:
             args[key] = data[key]
 
     #completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, ha.call_service, data)])
-    print(service, args)
     ha.call_service(service, **args)
     return web.Response(status=200)
 

@@ -99,12 +99,15 @@ class = HelloWorld
 If you want to move from the legacy `ini` style of configuration to YAML, AppDaemon is able to do this for you. From the command line run:
 
 ```bash
-$ appdaemon --convertcfg
+$ appdaemon -c CONFIG --convertcfg
 Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
 $
 ```
 
 AppDaemon should correctly figure out where the file is to convert form your existing configuration. After conversion, the new YAML file will be used in preference to the old ini file, which can then be removed if desired.
+
+Here, -c is the path to the configuration directory. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the directory is not specified and it is not found in either location, AppDaemon will raise an exception.
+
 
 Note: any lines in the ini file that are commented out, whether actual comments of lines that are not active, will not be converted.
 Note 2: Docker users will unfortunately need to perform the conversion manually.
