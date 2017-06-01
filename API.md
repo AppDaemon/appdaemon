@@ -1008,7 +1008,7 @@ Run a callback at or around sunrise.
 #### Synopsis
 
 ```python
-self.handle = self.run_at_sunrise(callback, **kwargs)
+self.handle = self.run_at_sunrise(callback, offset, **kwargs)
 ```
 
 #### Returns
