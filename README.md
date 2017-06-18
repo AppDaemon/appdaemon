@@ -44,13 +44,14 @@ When you have appdaemon installed by either method, copy the `conf/appdaemon.yam
 
 ```yaml
 AppDaemon:
-  ha_url: <some_url>
-  ha_key: <some key>
   logfile: STDOUT
   errorfile: STDERR
   threads: 10
   cert_path: <path/to/root/CA/cert>
   cert_verify: True
+HASS:
+  ha_url: <some_url>
+  ha_key: <some key>
 
 # Apps
 hello_world:

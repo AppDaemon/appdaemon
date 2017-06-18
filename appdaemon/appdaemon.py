@@ -914,7 +914,7 @@ def read_app(file, reload=False):
         # Instantiate class and Run initialize() function
 
         for name in config:
-            if name == "DEFAULT" or name == "AppDaemon":
+            if name == "DEFAULT" or name == "AppDaemon" or name == "HASS" or name == "HADashboard":
                 continue
             if module_name == config[name]["module"]:
                 class_name = config[name]["class"]
@@ -1492,8 +1492,10 @@ def main():
             config_file_yaml = None
 
     config = None
+    config_from_yaml = False
 
     if config_file_yaml is not None and args.convertcfg is False:
+        config_from_yaml = True
         config_file = config_file_yaml
         with open(config_file_yaml, 'r') as yamlfd:
             config_file_contents = yamlfd.read()
@@ -1524,9 +1526,23 @@ def main():
             new_config = {}
             for section in config:
                 if section != "DEFAULT":
-                    new_config[section] = {}
-                    for var in config[section]:
-                        new_config[section][var] = config[section][var]
+                    if section == "AppDaemon":
+                        new_config["AppDaemon"] = {}
+                        new_config["HADashboard"] = {}
+                        new_config["HASS"] = {}
+                        new_section = ""
+                        for var in config[section]:
+                            if var in ("dash_compile_on_start", "dash_dir", "dash_force_compile", "dash_url"):
+                                new_section = "HADashboard"
+                            elif var in ("ha_key", "ha_url", "timeout"):
+                                new_section = "HASS"
+                            else:
+                                new_section = "AppDaemon"
+                            new_config[new_section][var] = config[section][var]
+                    else:
+                        new_config[section] = {}
+                        for var in config[section]:
+                            new_config[section][var] = config[section][var]
             with open(yaml_file, "w") as outfile:
                 yaml.dump(new_config, outfile, default_flow_style=False)
             sys.exit()
@@ -1534,38 +1550,58 @@ def main():
 
     conf.config_dir = os.path.dirname(config_file)
     conf.config = config
-    conf.ha_url = config['AppDaemon'].get('ha_url')
-    conf.ha_key = config['AppDaemon'].get('ha_key', "")
     conf.logfile = config['AppDaemon'].get("logfile")
     conf.errorfile = config['AppDaemon'].get("errorfile")
-    conf.app_dir = config['AppDaemon'].get("app_dir")
     conf.threads = int(config['AppDaemon'].get('threads'))
     conf.certpath = config['AppDaemon'].get("cert_path")
-    conf.dash_url = config['AppDaemon'].get("dash_url")
     conf.app_dir = config['AppDaemon'].get("app_dir")
-    conf.dashboard_dir = config['AppDaemon'].get("dash_dir")
     conf.latitude = config['AppDaemon'].get("latitude")
     conf.longitude = config['AppDaemon'].get("longitude")
     conf.elevation = config['AppDaemon'].get("elevation")
     conf.time_zone = config['AppDaemon'].get("time_zone")
-    conf.timeout = config['AppDaemon'].get("timeout")
     conf.rss_feeds = config['AppDaemon'].get("rss_feeds")
     conf.rss_update = config['AppDaemon'].get("rss_update")
+
+    if config_from_yaml is True:
+
+        conf.timeout = config['HASS'].get("timeout")
+        conf.ha_url = config['HASS'].get('ha_url')
+        conf.ha_key = config['HASS'].get('ha_key', "")
+        conf.dash_url = config['HADashboard'].get("dash_url")
+        conf.dashboard_dir = config['HADashboard'].get("dash_dir")
+
+        if config['HADashboard'].get("dash_force_compile") == "1":
+            conf.dash_force_compile = True
+        else:
+            conf.dash_force_compile = False
+
+        if config['HADashboard'].get("dash_compile_on_start") == "1":
+            conf.dash_compile_on_start = True
+        else:
+            conf.dash_compile_on_start = False
+    else:
+        conf.timeout = config['AppDaemon'].get("timeout")
+        conf.ha_url = config['AppDaemon'].get('ha_url')
+        conf.ha_key = config['AppDaemon'].get('ha_key', "")
+        conf.dash_url = config['AppDaemon'].get("dash_url")
+        conf.dashboard_dir = config['AppDaemon'].get("dash_dir")
+
+        if config['AppDaemon'].get("dash_force_compile") == "1":
+            conf.dash_force_compile = True
+        else:
+            conf.dash_force_compile = False
+
+        if config['AppDaemon'].get("dash_compile_on_start") == "1":
+            conf.dash_compile_on_start = True
+        else:
+            conf.dash_compile_on_start = False
+
+
 
     if config['AppDaemon'].get("disable_apps") == "1":
         conf.apps = False
     else:
         conf.apps = True
-
-    if config['AppDaemon'].get("dash_force_compile") == "1":
-        conf.dash_force_compile = True
-    else:
-        conf.dash_force_compile = False
-
-    if config['AppDaemon'].get("dash_compile_on_start") == "1":
-        conf.dash_compile_on_start = True
-    else:
-        conf.dash_compile_on_start = False
 
     if config['AppDaemon'].get("cert_verify", True) == False:
         conf.certpath = False
@@ -1665,6 +1701,7 @@ def main():
     # Startup message
 
     ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
+    ha.log(conf.logger, "INFO", "Configuration read from: {}".format(config_file))
 
     # Check with HA to get various info
 

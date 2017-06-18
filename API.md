@@ -1118,7 +1118,7 @@ Run a callback at or around sunset.
 #### Synopsis
 
 ```python
-self.handle = self.run_at_sunset(callback, offset, **kwargs)
+self.handle = self.run_at_sunset(callback, **kwargs)
 ```
 
 #### Returns
@@ -1145,9 +1145,9 @@ Arbitary keyword parameters to be provided to the callback function when it is i
 # Example using timedelta
 import datetime
 ...
-self.run_at_sunset(self.sun, datetime.timedelta(minutes = -45).total_seconds(), "Sunset -45 mins")
+self.run_at_sunset(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds(), "Sunset -45 mins")
 # or you can just do the math yourself
-self.run_at_sunset(self.sun, 30 * 60, "Sunset +30 mins")
+self.run_at_sunset(self.sun, offset = 30 * 60, "Sunset +30 mins")
 # Run at a random time +/- 60 minutes from sunset
 self.run_at_sunset(self.sun, random_start = -60*60, random_end = 60*60, "Sunset, random +/- 60 mins")
 # Run at a random time between 30 and 60 minutes before sunset

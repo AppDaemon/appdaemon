@@ -119,7 +119,7 @@ def _load_dash(request):
 
     except:
         ha.log(conf.dash, "WARNING", '-' * 60)
-        ha.log(conf.dash, "WARNING", "Unexpected error in CSS file")
+        ha.log(conf.dash, "WARNING", "Unexpected error during DASH creation")
         ha.log(conf.dash, "WARNING", '-' * 60)
         ha.log(conf.dash, "WARNING", traceback.format_exc())
         ha.log(conf.dash, "WARNING", '-' * 60)

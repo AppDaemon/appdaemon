@@ -1,9 +1,9 @@
 AppDaemon:
   accessfile: /etc/appdaemon/logs/access.log
-  dash_url: http://192.168.1.20:5151
+  dash_url:
   errorfile: /etc/appdaemon/logs/error.log
-  ha_key: i1tkpp'hass'0709
-  ha_url: http://127.0.0.1:8123
+  ha_key:
+  ha_url:
   logfile: /etc/appdaemon/logs/appdaemon.log
   threads: '10'
 Battery Check:
