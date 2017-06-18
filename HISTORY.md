@@ -27,6 +27,7 @@ History
 **Breaking Changes**
 
 - The cfg file style of configuration is now deprecated although it still works for now for most features
+- Argument names passed to Apps are now case sensitive
 
 2.0.0beta3.5
 ------------

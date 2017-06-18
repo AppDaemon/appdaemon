@@ -127,17 +127,17 @@ param2 = self.args["param2"]
 A use case for this might be an App that detects motion and turns on a light. If you have 3 places you want to run this, rather than hardcoding this into 3 separate Apps, you need only code a single app and instantiate it 3 times with different arguments. It might look something like this:
 
 ```yaml
-downstairs_motion_light
+downstairs_motion_light:
   module: motion_light
   class: MotionLight
   sensor: binary_sensor.downstairs_hall
   light: light.downstairs_hall
-upstairs_motion_light
+upstairs_motion_light:
   module: motion_light
   class: MotionLight
   sensor: binary_sensor.upstairs_hall
   light: light.upstairs_hall
-garage_motion_light
+garage_motion_light:
   module: motion_light
   class: MotionLight
   sensor: binary_sensor.garage
@@ -208,7 +208,7 @@ Consumer:
 It is also possible to have multiple dependencies, added as a comma separate list (no spaces)
 
 ```yaml
-Consumer
+Consumer:
   module: sound
   class: Sound
   dependencies: sound,global

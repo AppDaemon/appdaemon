@@ -191,7 +191,7 @@ The -s, -i, -t and -s options are for the Time Travel feature and should only be
 
 # Legacy Configuration
 
-AppDaemon also currently supports a legacy `ini` style of configuration and it is shown here for backward compatibility. It is recommended that you move to the YAML format using the provided tool.
+AppDaemon also currently supports a legacy `ini` style of configuration and it is shown here for backward compatibility. It is recommended that you move to the YAML format using the provided tool. When using the legacy configuration style, there are no `HASS` or `HADashboard` sections - the associated directives all go in the `AppDaemon` section.
 
 
 ```ini
