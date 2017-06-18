@@ -1567,18 +1567,20 @@ def main():
         conf.timeout = config['HASS'].get("timeout")
         conf.ha_url = config['HASS'].get('ha_url')
         conf.ha_key = config['HASS'].get('ha_key', "")
-        conf.dash_url = config['HADashboard'].get("dash_url")
-        conf.dashboard_dir = config['HADashboard'].get("dash_dir")
 
-        if config['HADashboard'].get("dash_force_compile") == "1":
-            conf.dash_force_compile = True
-        else:
-            conf.dash_force_compile = False
+        if 'HADashboard' in config:
+            conf.dash_url = config['HADashboard'].get("dash_url")
+            conf.dashboard_dir = config['HADashboard'].get("dash_dir")
 
-        if config['HADashboard'].get("dash_compile_on_start") == "1":
-            conf.dash_compile_on_start = True
-        else:
-            conf.dash_compile_on_start = False
+            if config['HADashboard'].get("dash_force_compile") == "1":
+                conf.dash_force_compile = True
+            else:
+                conf.dash_force_compile = False
+
+            if config['HADashboard'].get("dash_compile_on_start") == "1":
+                conf.dash_compile_on_start = True
+            else:
+                conf.dash_compile_on_start = False
     else:
         conf.timeout = config['AppDaemon'].get("timeout")
         conf.ha_url = config['AppDaemon'].get('ha_url')
