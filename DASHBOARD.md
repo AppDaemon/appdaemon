@@ -1234,7 +1234,7 @@ A widget to display a refreshing camera image on the dashboard
 
 - `entity_picture`
 
-This can be found using the developer tools, and will be one of the parameters associated with the camera you want to view. If you are using a password, you will need to append `&api_password=<your password>` to the end of the entity_picture. It will look seomthing like this:
+This can be found using the developer tools, and will be one of the parameters associated with the camera you want to view. If you are using a password, you will need to append `&api_password=<your password>` to the end of the entity_picture. It will look something like this:
 
 `http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>`
 
