@@ -1381,4 +1381,4 @@ To learn more about complete styles, take a look at the supplied styles to see h
 
 # Widget Development
 
-Widget Development is currently not supported in the Beta version of HADashboard. When the full release is available, there will be a fully developed Widget API and a description of how to add new widgets and contribute them back to the community. For nom although the widgets supplied are fully functional they are likely to change significantly in the future, and are not currently a good basis for widget development.
+Widget Development is currently not supported in the Beta version of HADashboard. When the full release is available, there will be a fully developed Widget API and a description of how to add new widgets and contribute them back to the community. For now, although the widgets supplied are fully functional, they are likely to change significantly in the future, and are not currently a good basis for widget development.
