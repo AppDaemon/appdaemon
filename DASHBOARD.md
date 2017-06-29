@@ -83,7 +83,7 @@ The dashboard URL supports a couple of extra parameters:
 For example, the following url will load a dasboard called main with the obsidian skin:
 
 ```
-http://<ip address>/<port>/Main?skin=obsidian
+http://<ip address>:<port>/Main?skin=obsidian
 ```
 
 # Dashboard Configuration
