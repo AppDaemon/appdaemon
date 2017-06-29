@@ -1125,7 +1125,7 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 ### Optional Arguments:
 
 - `url` - a url to navigate to. Use a full URL including the "http" part.
-- `dashbaord` - a dashboard to navigate to e.g. `MainPanel`
+- `dashboard` - a dashboard to navigate to e.g. `MainPanel`
 - `title` - the title displayed on the tile
 - `args` - a list of arguments.
 - `skin` - Skin to use with the new screen (for HADash URLs only)
