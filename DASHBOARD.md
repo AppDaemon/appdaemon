@@ -83,7 +83,7 @@ The dashboard URL supports a couple of extra parameters:
 For example, the following url will load a dasboard called main with the obsidian skin:
 
 ```
-http://<ip address>/<port>/Main?skin=obsidian
+http://<ip address>:<port>/Main?skin=obsidian
 ```
 
 # Dashboard Configuration
@@ -114,7 +114,7 @@ global_parameters:
 These are all fairly self explanatory:
 
 - `title` - the name that will end up in the title of the web page, defaults to "HADashboard".
-- `widget_dimensions` - the unit height and width of the individual widgets in pixels. Note tha the absolute size is not too important as on tablets at least the browser will scale the page to fit. What is more important is the aspect ratio of the widgets as this will affect whether or not the dashboard completely fills the tablets screen. The default is [120, 120] (width, height). This works well for a regular iPad.
+- `widget_dimensions` - the unit height and width of the individual widgets in pixels. Note that the absolute size is not too important as on tablets at least the browser will scale the page to fit. What is more important is the aspect ratio of the widgets as this will affect whether or not the dashboard completely fills the tablets screen. The default is [120, 120] (width, height). This works well for a regular iPad.
 - `widget_size` - the number of grid blocks each widget will be by default if not specified
 - `widget_margins` - the size of blank space between widgets.
 - `columns` - the number of columns the dasboard will have.
@@ -1125,7 +1125,7 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 ### Optional Arguments:
 
 - `url` - a url to navigate to. Use a full URL including the "http" part.
-- `dashbaord` - a dashboard to navigate to e.g. `MainPanel`
+- `dashboard` - a dashboard to navigate to e.g. `MainPanel`
 - `title` - the title displayed on the tile
 - `args` - a list of arguments.
 - `skin` - Skin to use with the new screen (for HADash URLs only)
@@ -1234,7 +1234,7 @@ A widget to display a refreshing camera image on the dashboard
 
 - `entity_picture`
 
-This can be found using the developer tools, and will be one of the parameters associated with the camera you want to view. If you are using a password, you will need to append `&api_password=<your password>` to the end of the entity_picture. It will look seomthing like this:
+This can be found using the developer tools, and will be one of the parameters associated with the camera you want to view. If you are using a password, you will need to append `&api_password=<your password>` to the end of the entity_picture. It will look something like this:
 
 `http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>`
 
@@ -1381,4 +1381,4 @@ To learn more about complete styles, take a look at the supplied styles to see h
 
 # Widget Development
 
-Widget Development is currently not supported in the Beta version of HADashboard. When the full release is available, there will be a fully developed Widget API and a description of how to add new widgets and contribute them back to the community. For nom although the widgets supplied are fully functional they are likely to change significantly in the future, and are not currently a good basis for widget development.
+Widget Development is currently not supported in the Beta version of HADashboard. When the full release is available, there will be a fully developed Widget API and a description of how to add new widgets and contribute them back to the community. For now, although the widgets supplied are fully functional, they are likely to change significantly in the future, and are not currently a good basis for widget development.
