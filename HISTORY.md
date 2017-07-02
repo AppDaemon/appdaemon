@@ -11,6 +11,7 @@ None
 **Fixes**
 
 - Version Change
+- Respect cert_path setting when connecting to WebSocket over SSL - contributed by [yawor](https://github.com/yawor)
 
 **Breaking Changes**
 
