@@ -159,6 +159,7 @@ $ appdaemon -c conf
 
 # AppDaemon arguments
 
+```
 usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TICK] [-s STARTTIME]
                  [-e ENDTIME] [-i INTERVAL]
                  [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v] [-d]
@@ -180,6 +181,7 @@ optional arguments:
                         debug level
   -v, --version         show program's version number and exit
   -d, --daemon          run as a background process
+```
 
 -c is the path to the configuration directory. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the directory is not specified and it is not found in either location, AppDaemon will raise an exception. In addition, AppDaemon expects to find a dir named `apps` immediately subordinate to the config directory.                    
                         
