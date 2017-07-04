@@ -21,7 +21,7 @@ AppDaemon:
   ha_url: <some_url>
   ...
 HADashboard:
-  dash_url = http://192.168.1.20:5050
+  dash_url: http://192.168.1.20:5050
 ```
 
 Note that at this time only http is supported.
