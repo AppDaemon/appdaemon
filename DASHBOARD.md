@@ -493,7 +493,7 @@ icon_off: mdi-cancel
 In addition, the widget can be configured to use whatever icon is defined for it in Home Assistant by setting the parameter:
 
 ```yaml
-use_gass_icon: 1
+use_hass_icon: 1
 ```
 
 This can also be set at the dashboard level as a global parameter.
