@@ -32,7 +32,7 @@ import yaml
 import random
 
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 # Windows does not have Daemonize package so disallow
 

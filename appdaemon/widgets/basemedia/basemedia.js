@@ -174,12 +174,12 @@ function basemedia(widget_id, url, skin, parameters)
         if (state.state === "playing")
         {
             self.set_field(self, "play_icon_style", self.css.icon_style_active)
-            self.set_icon(self, "play_icon", self.icons.play_icon)
+            self.set_icon(self, "play_icon", self.icons.pause_icon)
         }
         else
         {
             self.set_field(self, "play_icon_style", self.css.icon_style_inactive)
-            self.set_icon(self, "play_icon", self.icons.pause_icon)
+            self.set_icon(self, "play_icon", self.icons.play_icon)
         }
 
         if ("media_artist" in state.attributes)
