@@ -2,27 +2,11 @@ History
 =======
 
 2.0.1
-----------
+-----
 
 **Features**
 
-None
-
-**Fixes**
-
-- swapped play and pause icons on media player to make it more intuitive
-
-**Breaking Changes**
-
-None
-
-
-2.0.0
-----------
-
-**Features**
-
-None
+- Much Improved Docker support including tutorial - many thanks to [quadportnick](https://community.home-assistant.io/u/quadportnick/summary)
 
 **Fixes**
 
