@@ -295,20 +295,6 @@ def run_dash(loop):
         f = loop.create_server(handler, "0.0.0.0", int(conf.dash_port))
         conf.srv = loop.run_until_complete(f)
         conf.rss = loop.run_until_complete(update_rss(loop))
-        ha.log(conf.dash, "INFO", "HADashboard Started")
-        ha.log(conf.dash, "INFO",
-               "Listening on {}".format(conf.srv.sockets[0].getsockname()))
-        #try:
-        #    loop.run_forever()
-        #except KeyboardInterrupt:
-        #    pass
-        #finally:
-        #   conf.srv.close()
-        #    loop.run_until_complete(conf.srv.wait_closed())
-        #    loop.run_until_complete(app.shutdown())
-        #    loop.run_until_complete(handler.shutdown(60.0))
-        #    loop.run_until_complete(app.cleanup())
-        #loop.close()
     except:
         ha.log(conf.dash, "WARNING", '-' * 60)
         ha.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")
