@@ -1,4 +1,4 @@
-FROM resin/raspberrypi-python:3.4
+FROM resin/raspberry-pi-python:3.6
 
 VOLUME /conf
 VOLUME /certs
