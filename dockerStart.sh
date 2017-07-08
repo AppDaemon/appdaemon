@@ -33,7 +33,7 @@ if [ -n "$DASH_URL" ]; then
   if grep -q "^  dash_url" $CONF/appdaemon.yaml; then
     sed -i "s/^  dash_url:.*/  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
   else
-    sed -i "s/AppDaemon:/AppDaemon:\r\n  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+    sed -i "s/# Apps/HADashboard:\r\n  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')\r\n# Apps/" $CONF/appdaemon.yaml
   fi
 fi
 
