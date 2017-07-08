@@ -1,6 +1,19 @@
 History
 =======
 
+2.0.3
+-----
+
+**Features**
+
+**Fixes**
+
+- Fix issue with device trackers and `use_hass_icon`
+
+**Breaking Changes**
+
+None
+
 2.0.2
 -----
 
