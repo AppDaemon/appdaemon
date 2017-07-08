@@ -8,7 +8,7 @@ Installation is either by pip3 or Docker.
 
 # Install and Run using Docker
 
-Follow the instructions in [DOCKER.md](Docker.md)
+Follow the instructions in [DOCKER_TURORIAL.md](DOCKER_TUTORIAL.md)
 
 # Install by pip3
 
