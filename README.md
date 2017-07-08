@@ -20,15 +20,9 @@ Change your working directory to the repository root. Moving forward, we will be
 $ cd appdaemon
 ```
 
-## Install using Docker
+## Install and Run using Docker
 
-To build the Docker image run the following:
-
-``` bash
-$ docker build -t appdaemon .
-```
-
-(Note the period at the end of the above command)
+Follow the instructions in (DOCKER.md)[Docker.md]
 
 ## Install Using PIP3
 
