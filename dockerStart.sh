@@ -20,20 +20,20 @@ fi
 
 # if ENV HA_URL is set, change the value in appdaemon.yaml
 if [ -n "$HA_URL" ]; then
-  sed -i "s/^  ha_url:.*/ha_url: $(echo $HA_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+  sed -i "s/^  ha_url:.*/  ha_url: $(echo $HA_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
 # if ENV HA_KEY is set, change the value in appdaemon.yaml
 if [ -n "$HA_KEY" ]; then
-  sed -i "s/^  ha_key:.*/ha_key: $(echo $HA_KEY | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+  sed -i "s/^  ha_key:.*/  ha_key: $(echo $HA_KEY | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
 # if ENV DASH_URL is set, change the value in appdaemon.yaml
 if [ -n "$DASH_URL" ]; then
   if grep -q "^  dash_url" $CONF/appdaemon.yaml; then
-    sed -i "s/^  dash_url:.*/dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+    sed -i "s/^  dash_url:.*/  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
   else
-    sed -i "s/\[AppDaemon\]/\[AppDaemon\]\r\n  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+    sed -i "s/AppDaemon:/AppDaemon:\r\n  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
   fi
 fi
 
