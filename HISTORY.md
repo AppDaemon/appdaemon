@@ -6,7 +6,6 @@ History
 
 **Features**
 
-- Experimental Docker support for raspberry pi
 - Move docker image to python 3.6
 
 **Fixes**
