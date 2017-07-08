@@ -37,7 +37,5 @@ if [ -n "$DASH_URL" ]; then
   fi
 fi
 
-cat $CONF/appdaemon.yaml
-
 # Lets run it!
 appdaemon -c $CONF $EXTRA_CMD
