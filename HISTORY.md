@@ -1,6 +1,21 @@
 History
 =======
 
+2.0.2
+-----
+
+**Features**
+
+- Docker support for raspberry pi
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 2.0.1
 -----
 

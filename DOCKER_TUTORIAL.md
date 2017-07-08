@@ -6,6 +6,8 @@ Docker is a popular application container technology. Application containers all
 
 This guide will help you get the Appdaemon Docker image running and hopefully help you become more comfortable with using Docker. There are multiple ways of doing some of these steps which are removed for the sake of keeping it simple. As your needs change, just remember there's probably a way to do what you want!
 
+AppDaemon supports a Linux Docker image and also a Raspberry pi docker image - make sure to use the right version when following the instructions below.
+
 ## Prereqs
 This guide assumes:
 * You already have Docker installed. If you still need to do this, follow the [Docker Installation documentation](https://docs.docker.com/engine/installation/)
@@ -19,13 +21,22 @@ Before you start, you need to know the following:
 * HA_URL: The URL of your running Home Assistant, in the form of http://[name]:[port]. Port is usually 8123.
 * HA_KEY: If your Home Assistant requires an API key, you'll need that
 
-Now, on your Docker host, run the following command, substituting the values above in the quotes below. (Note, if you do not need an HA_KEY, you can omit the entire -e HA_KEY line)
+Now, on your Docker host, for linux users, run the following command, substituting the values above in the quotes below. (Note, if you do not need an HA_KEY, you can omit the entire -e HA_KEY line)
 ```
 docker run --rm -it -p 5050:5050 \
   -e HA_URL="<your HA_URL value>" \
   -e HA_KEY="<your HA_KEY value>" \
   -e DASH_URL="http://$HOSTNAME:5050" \
   acockburn/appdaemon:latest
+```
+
+Raspberry pi users should use the `latestpi` image, like this:
+```
+docker run --rm -it -p 5050:5050 \
+  -e HA_URL="<your HA_URL value>" \
+  -e HA_KEY="<your HA_KEY value>" \
+  -e DASH_URL="http://$HOSTNAME:5050" \
+  acockburn/appdaemon:latestpi
 ```
 You should see some download activity the first time you run this as it downloads the latest Appdaemon image. After that is downloaded, Docker will create a container based on that image and run it. It will automatically delete itself when it exits, since right now we are just testing.
 
@@ -72,6 +83,17 @@ docker run --name=appdaemon -d -p 5050:5050 \
   acockburn/appdaemon:latest
 ```
 
+For pi users:
+```
+docker run --name=appdaemon -d -p 5050:5050 \
+  --restart=always \
+  -e HA_URL="<your HA_URL value>" \
+  -e HA_KEY="<your HA_KEY value>" \
+  -e DASH_URL="http://$HOSTNAME:5050" \
+  -v <your_conf_folder>:/conf \
+  acockburn/appdaemon:latestpi
+```
+
 I would suggest documenting the command line above in your notes, so that you have it as a reference in the future for rebuilding and upgrading. If you back up your command line, as well as your `conf` folder, you can trivially restore Appdaemon on another machine or on a rebuild!
 
 If your `conf` folder is brand new, the Appdaemon Docker will copy the default configuration files into this folder. If there are already configuration files, it will not overwrite them. Double check that the files are there now.
@@ -109,6 +131,22 @@ docker run --name=appdaemon -d -p 5050:5050 \
   acockburn/appdaemon:latest
 ```
 
+and for pi users:
+
+```
+docker stop appdaemon
+docker rm appdaemon
+docker pull acockburn/appdaemon:latestpi
+docker run --name=appdaemon -d -p 5050:5050 \
+  --restart=always \
+  -e HA_URL="<your HA_URL value>" \
+  -e HA_KEY="<your HA_KEY value>" \
+  -e DASH_URL="http://$HOSTNAME:5050" \
+  -v <your_conf_folder>:/conf \
+  acockburn/appdaemon:latestpi
+```
+
+
 ## Controlling the Appdaemon Conter
 To restart Appdaemon:
 ```
@@ -142,6 +180,16 @@ docker run --rm -it -p 5050:5050 \
   acockburn/appdaemon:latest
 ```
 
+For pi users:
+```
+docker stop appdaemon
+docker run --rm -it -p 5050:5050 \
+  -v <your_conf_folder>:/conf \
+  -e EXTRA_CMD="-D DEBUG" \
+  acockburn/appdaemon:latestpi
+```
+
+
 Once you are done with the debug, start the non-debug container back up:
 ```
 docker start appdaemon
@@ -157,4 +205,11 @@ docker kill appdaemon
 docker rm appdaemon
 docker rmi acockburn/appdaemon:latest
 ```
+
+For pi users that last command should be replaced with:
+```
+docker rmi acockburn/appdaemon:latestpi
+```
+
+
 You can delete the `conf` folder if you wish at this time too. Appdaemon is now completely removed.

@@ -1,8 +1,5 @@
 FROM python:3.4
 
-#For Raspberry Pi use this instead
-#FROM resin/raspberrypi-python:3.4
-
 VOLUME /conf
 VOLUME /certs
 EXPOSE 5050
