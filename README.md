@@ -6,6 +6,12 @@ AppDaemon is a loosely coupled, multithreaded, sandboxed python execution enviro
 
 Installation is either by pip3 or Docker.
 
+# Install and Run using Docker
+
+Follow the instructions in (DOCKER.md)[Docker.md]
+
+# Install by pip3
+
 ## Clone the Repository
 
 For either method you will need to clone the **AppDaemon** repository to the current local directory on your machine.
@@ -19,10 +25,6 @@ Change your working directory to the repository root. Moving forward, we will be
 ``` bash
 $ cd appdaemon
 ```
-
-## Install and Run using Docker
-
-Follow the instructions in (DOCKER.md)[Docker.md]
 
 ## Install Using PIP3
 
