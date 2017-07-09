@@ -6,7 +6,7 @@ History
 
 **Features**
 
-- Add error display field fro weather widget
+- Add error display field to weather widget
 
 **Fixes**
 
