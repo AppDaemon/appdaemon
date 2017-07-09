@@ -1744,7 +1744,12 @@ def main():
             conf.elevation = config['AppDaemon']["elevation"]
 
     # Use the supplied timezone
-    os.environ['TZ'] = conf.time_zone
+    if "time_zone" in config['AppDaemon']:
+        os.environ['TZ'] = config['AppDaemon']['time_zone']
+    else:
+        os.environ['TZ'] = conf.time_zone
+
+
 
     # Now we have logging, warn about deprecated directives
     #if "latitude" in config['AppDaemon']:

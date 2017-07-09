@@ -7,6 +7,7 @@ import re
 import requests
 import inspect
 import json
+import copy
 
 import appdaemon.homeassistant as ha
 
@@ -84,12 +85,15 @@ class AppDaemon:
                     return entity_id
             return None
 
-        #
-        # Device Trackers
-        #
+    #
+    # Device Trackers
+    #
 
     def get_trackers(self):
         return (key for key, value in self.get_state("device_tracker").items())
+
+    def get_tracker_details(self):
+        return (self.get_state("device_tracker"))
 
     def get_tracker_state(self, entity_id):
         self._check_entity(entity_id)
@@ -566,3 +570,42 @@ class AppDaemon:
                    kwargs, name))
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
+
+    #
+    # Other
+    #
+
+    def get_scheduler_entries(self):
+        schedule = {}
+        for name in conf.schedule.keys():
+            schedule[name] = {}
+            for entry in sorted(
+                    conf.schedule[name].keys(),
+                    key=lambda uuid_: conf.schedule[name][uuid_]["timestamp"]
+            ):
+                schedule[name][entry] = {}
+                schedule[name][entry]["timestamp"] = conf.schedule[name][entry]["timestamp"]
+                schedule[name][entry]["type"] = conf.schedule[name][entry]["type"]
+                schedule[name][entry]["name"] = conf.schedule[name][entry]["name"]
+                schedule[name][entry]["basetime"] = conf.schedule[name][entry]["basetime"]
+                schedule[name][entry]["repeat"] = conf.schedule[name][entry]["basetime"]
+                schedule[name][entry]["offset"] = conf.schedule[name][entry]["basetime"]
+                schedule[name][entry]["interval"] = conf.schedule[name][entry]["basetime"]
+                schedule[name][entry]["kwargs"] = conf.schedule[name][entry]["basetime"]
+                schedule[name][entry]["callback"] = conf.schedule[name][entry]["callback"]
+        return (schedule)
+
+    def get_callback_entries(self):
+        callbacks = {}
+        for name in conf.callbacks.keys():
+            callbacks[name] = {}
+            ha.log(conf.logger, "INFO", "{}:".format(name))
+            for uuid_ in conf.callbacks[name]:
+                callbacks[name][uuid_] = {}
+                callbacks[name][uuid_]["entity"] = conf.callbacks[name][uuid_]["entity"]
+                callbacks[name][uuid_]["type"] = conf.callbacks[name][uuid_]["type"]
+                callbacks[name][uuid_]["kwargs"] = conf.callbacks[name][uuid_]["kwargs"]
+                callbacks[name][uuid_]["function"] = conf.callbacks[name][uuid_]["function"]
+                callbacks[name][uuid_]["name"] = conf.callbacks[name][uuid_]["name"]
+        return(callbacks)
+

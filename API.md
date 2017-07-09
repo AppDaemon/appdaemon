@@ -1685,7 +1685,7 @@ Presence in Home Assistant is tracked using Device Trackers. The state of all de
 
 ### get_trackers()
 
-Return a list of all device trackers. This is designed to be iterated over.
+Return a list of all device tracker names. This is designed to be iterated over.
 
 #### Synopsis
 
@@ -1700,6 +1700,27 @@ An iterable list of all device trackers.
 
 ```python
 trackers = self.get_trackers()
+for tracker in trackers:
+    do something
+```
+
+### get_tracker_details()
+
+Return a list of all device trackers and their associated state.
+
+#### Synopsis
+
+```python
+tracker_list = get_tracker_details()
+```
+#### Returns
+
+A list of all device trackers with their associated state.
+
+#### Examples
+
+```python
+trackers = self.get_tracker_details()
 for tracker in trackers:
     do something
 ```
@@ -2223,6 +2244,15 @@ $ appdaemon -s "2016-06-06 19:16:00"
 ```
 
 Note the timestamps in the log - AppDaemon believes it is now just before sunset and will process any callbacks appropriately.
+
+### Other Functions
+
+AppDaemon allows some introspection on its stored schedule and callbacks which may be useful for some applications. The functions:
+
+- get_scheduler_entries()
+- get_callback_entries()
+
+Return the internal data structures, but do not allow them to be modified directly. Their format may change.
 
 ### Speeding things up
 
