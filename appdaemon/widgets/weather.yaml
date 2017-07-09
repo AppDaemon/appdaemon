@@ -1,5 +1,6 @@
 widget_type: baseweather
 fields:
+  title: ""
   unit: ""
   dark_sky_temperature: ""
   dark_sky_humidity: ""
@@ -12,6 +13,7 @@ fields:
   dark_sky_icon: ""
 css: []
 static_css:
+  title_style: $weather_sub_style
   unit_style: $weather_unit_style
   main_style: $weather_main_style
   sub_style: $weather_sub_style
