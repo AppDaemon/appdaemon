@@ -14,7 +14,7 @@ Follow the instructions in [DOCKER_TURORIAL.md](DOCKER_TUTORIAL.md)
 
 ## Clone the Repository
 
-For either method you will need to clone the **AppDaemon** repository to the current local directory on your machine.
+For this method you will need to clone the **AppDaemon** repository to the current local directory on your machine.
 
 ``` bash
 $ git clone https://github.com/home-assistant/appdaemon.git

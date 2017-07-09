@@ -77,8 +77,7 @@ I would suggest documenting the command line above in your notes, so that you ha
 
 If your `conf` folder is brand new, the Appdaemon Docker will copy the default configuration files into this folder. If there are already configuration files, it will not overwrite them. Double check that the files are there now.
 
-You are now ready to start working on your Appdaemon configurations! At this point forward, you can edit configurations on your `conf` folder and Appdaemon will load them. Have fun!
-
+You are now ready to start working on your Appdaemon configurations! At this point forward, you can edit configurations on your `conf` folder and Appdaemon will load them see [README.md](README.md) for full instrctions on AppDaemon configuration. Have fun!
 
 ## Viewing Appdaemon Log Output
 You can view the output of your Appdaemon with this command:

@@ -6,6 +6,8 @@ History
 
 **Features**
 
+- Add error display field fro weather widget
+
 **Fixes**
 
 - Fix issue with device trackers and `use_hass_icon`
