@@ -29,7 +29,7 @@ REQUIREMENTS = [
 
 setup(
     name='appdaemon',
-    version='2.0.3',
+    version='2.0.4',
     description="Apps for the Home Assistant home automation package.",
     long_description=README + '\n\n' + HISTORY,
     author='Andrew I Cockburn',

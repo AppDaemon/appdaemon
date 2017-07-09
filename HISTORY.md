@@ -1,6 +1,22 @@
 History
 =======
 
+2.0.4
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
+
 2.0.3
 -----
 
