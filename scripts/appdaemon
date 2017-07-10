@@ -28,7 +28,7 @@ NAME=appdaemon
 APPDAEMON_DIR=/etc/appdaemon
 DAEMON=/usr/local/bin/appdaemon
 PIDFILE="$APPDAEMON_DIR/$NAME.pid"
-CFGFILE="$APPDAEMON_DIR/conf/$NAME.cfg"
+CFGFILE="$APPDAEMON_DIR/conf"
 DAEMON_OPTS="-d -p $PIDFILE -c $CFGFILE"
 
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games

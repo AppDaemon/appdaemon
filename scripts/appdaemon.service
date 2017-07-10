@@ -13,7 +13,7 @@ ExecStart=/usr/local/bin/appdaemon
 #
 # If you are not using a default path for the config file use this:
 #
-#ExecStart=/usr/local/bin/appdaemon -c <path to config file>
+#ExecStart=/usr/local/bin/appdaemon -c <path to config directory>
 #
 [Install]
 WantedBy=multi-user.target
