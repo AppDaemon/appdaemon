@@ -225,15 +225,13 @@ Note 2: Docker users will unfortunately need to perform the conversion manually.
 # Starting At Reboot
 To run `AppDaemon` at reboot, you can set it up to run as a systemd service as follows.
 
-In the example below, make sure you edit the example to point to the fully qualified path for your configuration dircetory.
-
 ## Add Systemd Service (appdaemon@appdaemon.service)
 
 First, create a new file using vi:
 
     $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
 
-Add the following. making sure to use the correct path for your config dircetory:
+Add the following, making sure to use the correct full path for your config directory:
 
 
 ```
