@@ -223,7 +223,41 @@ Note: any lines in the ini file that are commented out, whether actual comments 
 Note 2: Docker users will unfortunately need to perform the conversion manually.
 
 # Starting At Reboot
-To run `AppDaemon` at reboot, I have provided a sample init script in the `./scripts` directory. These have been tested on a Raspberry PI - your mileage may vary on other systems. There is also a sample Systemd script.
+To run `AppDaemon` at reboot, you can set it up to run as a systemd service as follows.
+
+In the example below, make sure you edit the example to point to the fully qualified path for your configuration dircetory.
+
+## Add Systemd Service (appdaemon@appdaemon.service)
+
+First, create a new file using vi:
+
+    $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
+
+Add the following. making sure to use the correct path for your config dircetory:
+
+
+```
+
+    [Unit]
+    Description=AppDaemon
+    After=home-assistant@hass.service
+    Requires=home-assistant@hass.service
+
+    [Service]
+    Type=simple
+    User=%i
+    ExecStart=/srv/appdaemon/bin/appdaemon -c "<full path to config directory>"
+
+    [Install]
+    WantedBy=multi-user.target
+```
+
+## Activate Systemd Service
+
+    $ sudo systemctl daemon-reload
+    $ sudo systemctl enable appdaemon@appdaemon.service --now
+
+Now AppDaemon should be up and running and good to go.
 
 # Operation
 
