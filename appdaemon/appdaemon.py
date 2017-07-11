@@ -115,10 +115,15 @@ def update_sun():
 def is_dst():
     return bool(time.localtime(ha.get_now_ts()).tm_isdst)
 
+def stopit():
+    global ws
+    conf.stopping = True
+    if ws is not None:
+        ws.close()
+    conf.appq.put_nowait({"event_type": "ha_stop", "data": None})
 
 # noinspection PyUnusedLocal
 def handle_sig(signum, frame):
-    global ws
     if signum == signal.SIGUSR1:
         dump_schedule()
         dump_callbacks()
@@ -129,10 +134,7 @@ def handle_sig(signum, frame):
         read_apps(True)
     if signum == signal.SIGINT:
         ha.log(conf.logger, "INFO", "Keyboard interrupt")
-        conf.stopping = True
-        if ws is not None:
-            ws.close()
-        conf.appq.put_nowait({"event_type": "ha_stop", "data": None})
+        stopit()
 
 def dump_sun():
     ha.log(conf.logger, "INFO", "--------------------------------------------------")
@@ -369,12 +371,10 @@ def exec_schedule(name, entry, args):
 def do_every(period, f):
     t = math.floor(ha.get_now_ts())
     count = 0
-    #t_ = math.floor(time.time())
+    t_ = math.floor(time.time())
     while not conf.stopping:
         count += 1
-        #delay = max(t_ + count * period - time.time(), 0)
-        delay = max(t + period - time.time(), 0)
-        #print(delay)
+        delay = max(t_ + count * period - time.time(), 0)
         yield from asyncio.sleep(delay)
         t += conf.interval
         r = yield from f(t)
@@ -400,7 +400,7 @@ def do_every_second(utc):
 
         if conf.endtime is not None and ha.get_now() >= conf.endtime:
             ha.log(conf.logger, "INFO", "End time reached, exiting")
-            sys.exit(0)
+            stopit()
 
         if conf.realtime:
             real_now = datetime.datetime.now().timestamp()
@@ -1203,9 +1203,9 @@ def run():
 
             ha.log(conf.logger, "DEBUG", "Starting timer loop")
 
-            tasks.append(asyncio.async(do_every(conf.tick, do_every_second)))
             tasks.append(asyncio.async(appstate_loop()))
 
+        tasks.append(asyncio.async(do_every(conf.tick, do_every_second)))
         reading_messages = True
 
     else:
