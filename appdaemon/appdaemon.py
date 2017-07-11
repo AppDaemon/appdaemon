@@ -378,8 +378,8 @@ def do_every(period, f):
         yield from asyncio.sleep(delay)
         t += conf.interval
         r = yield from f(t)
-        #print(t, r)
         if r is not None and r != t:
+            count += math.floor(r - t)
             t = math.floor(r)
 
 
