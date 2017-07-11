@@ -13,6 +13,7 @@ History
 **Fixes**
 
 - Fix startup example files to match new `-c` semantics
+- Fix Time Travel
 
 None
 
