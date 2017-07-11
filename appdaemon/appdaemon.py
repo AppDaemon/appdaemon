@@ -1009,6 +1009,9 @@ def file_in_modules(file, modules):
 # noinspection PyBroadException
 def read_apps(all_=False):
     global config
+    # Check if the apps are disabled in config
+    if not conf.apps:
+        return
     found_files = []
     modules = []
     for root, subdirs, files in os.walk(conf.app_dir):
