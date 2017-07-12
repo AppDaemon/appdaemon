@@ -2245,6 +2245,49 @@ $ appdaemon -s "2016-06-06 19:16:00"
 
 Note the timestamps in the log - AppDaemon believes it is now just before sunset and will process any callbacks appropriately.
 
+### Speeding things up
+
+Some Apps need to run for periods of a day or two for you to test all aspects.
+This can be time consuming, but Time Travel can also help here in two ways.
+The first is by speeding up time. To do this, simply use the `-t` option on the command line.
+This specifies the amount of time a second lasts while time travelling.
+The default of course is 1 second, but if you change it to `0.1` for instance, AppDaemon will work 10x faster.
+If you set it to `0`, AppDaemon will work as fast as possible and, depending in your hardware, may be able to get through an entire day in a matter of minutes.
+Bear in mind however, due to the threaded nature of AppDaemon, when you are running with `-t 0` you may see actual events firing a little later than expected as the rest of the system tries to keep up with the timer.
+To set the tick time, start AppDaemon as follows:
+
+```bash
+$ appdaemon -t 0.1
+```
+
+AppDaemon also has an interval flag - think of this as a second multiplier. If the flag is set to 3600 for instance, each tick of the scheduler will jump the time forward by an hour. This is good for covering vast amounts of time quickly but event firing accuracy will suffer as a result. For example:
+
+```bash
+$ appdaemon -i 3600
+```
+
+### Automatically stopping
+
+AppDaemon can be set to terminate automatically at a specific time. This can be useful if you want to repeatedly rerun a test, for example to test that random values are behaving as expected. Simply specify the end time with the `-e` flag as follows:
+
+```bash
+$ appdaemon -e "2016-06-06 10:10:00"
+2016-09-06 17:16:00 INFO AppDaemon Version 1.3.2 starting
+2016-09-06 17:16:00 INFO Got initial state
+2016-09-06 17:16:00 INFO Loading Module: /export/hass/appdaemon_test/conf/test_apps/sunset.py
+..,
+```
+
+The `-e` flag is most useful when used in conjuntion with the `-s` flag and optionally the `-t` flag. For example, to run from just before sunset, for an hour, as fast as possible:
+
+```bash
+$ appdaemon -s "2016-06-06 19:16:00" -e "2016-06-06 20:16:00" -t 0
+```
+
+
+### A Note On Times
+
+Some Apps you write may depend on checking times of events relative to the current time. If you are time travelling this will not work if you use standard python library calls to get the current time and date etc. For this reason, always use the AppDamon supplied `time()`, `date()` and `datetime()` calls, documented earlier. These calls will consult with AppDaemon's internal time rather than the actual time and give you the correct values.
 ### Other Functions
 
 AppDaemon allows some introspection on its stored schedule and callbacks which may be useful for some applications. The functions:
@@ -2254,38 +2297,3 @@ AppDaemon allows some introspection on its stored schedule and callbacks which m
 
 Return the internal data structures, but do not allow them to be modified directly. Their format may change.
 
-### Speeding things up
-
-Some Apps need to run for periods of a day or two for you to test all aspects. This can be time consuming, but Time Travel can also help here in two ways. The first is by speeding up time. To do this, simply use the `-t` option on the command line. This specifies the amount of time a second lasts while time travelling. The default of course is 1 second, but if you change it to `0.1` for instance,m AppDaemon will work 10x faster. If you set it to `0`, AppDaemon will work as fast as possible and, depending in your hardware, may be able to get through an entire day in a matter of minutes. Bear in mindo however, due to the threaded nature of AppDaemon, when you are running with `-t 0` you may see avctual events firing a little later than expected as the rest of the system tries to keep up with the timer. To set the tick time, start AppDaemon as follows:
-
-```bash
-$ appdaemon -t 0.1
-```
-
-AppDaemon also has an interval flag - think of this as a second multiplier. If the flag is set to 3600 for instance, each tick of the scheduler will jump the time forward by an hour. This is good for covering vast amounts of time quickly but event firing accuracy will suffer as a result. For example:
-
-```bash
-$ appdaemon -e 3600
-```
-
-### Automatically stopping
-
-AppDaemon can be set to terminate automatically at a specific time. This can be useful if you want to repeatedly rerun a test, for example to test that random values are behaving as expected. Simply specify the end time with the `-e` flag as follows:
-
-$ appdaemon -e "2016-06-06 10:10:00"
-2016-09-06 17:16:00 INFO AppDaemon Version 1.3.2 starting
-2016-09-06 17:16:00 INFO Got initial state
-2016-09-06 17:16:00 INFO Loading Module: /export/hass/appdaemon_test/conf/test_apps/sunset.py
-...
-```
-
-The `-e` flag is most useful when used in conjuntion with the -s flag and optionally the `-t` flag. For example, to run from just before sunset, for an hour, as fast as possible:
-
-```bash
-$ appdaemon -s "2016-06-06 19:16:00" -s "2016-06-06 20:16:00" -t 0
-```
-
-
-### A Note On Times
-
-Some Apps you write may depend on checking times of events relative to the current time. If you are time travelling this will not work if you use standard python library calls to get the current time and date etc. For this reason, always use the AppDamon supplied `time()`, `date()` and `datetime()` calls, documented earlier. These calls will consult with AppDaemon's internal time rather than the actual time and give you the correct values.
