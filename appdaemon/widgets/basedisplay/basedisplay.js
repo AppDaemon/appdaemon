@@ -95,9 +95,9 @@ function basedisplay(widget_id, url, skin, parameters)
 
     function set_sub_value(self, state)
     {
-        if ("sub_state_text" in self.parameters && self.parameters.sub_state_text == 1)
+        if ("sub_entity_map" in self.parameters)
         {
-            self.set_field(self, "state_text", self.parameters.sub_state_map[state.state])
+            self.set_field(self, "state_text", self.parameters.sub_entity_map[state.state])
         }
         else
         {

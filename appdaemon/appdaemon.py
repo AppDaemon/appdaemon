@@ -21,7 +21,6 @@ import signal
 import uuid
 import astral
 import pytz
-import appdaemon.homeassistant as ha
 import platform
 import math
 import appdaemon.appdash as appdash
@@ -30,6 +29,9 @@ import concurrent
 from urllib.parse import urlparse
 import yaml
 import random
+
+import appdaemon.homeassistant as ha
+import appdaemon.appapi as appapi
 
 
 __version__ = "2.0.4"
@@ -46,7 +48,7 @@ config_file_modified = 0
 config_file = ""
 was_dst = None
 last_state = None
-reading_messages = False
+appapi.reading_messages = False
 inits = {}
 ws = None
 
@@ -379,8 +381,9 @@ def do_every(period, f):
         t += conf.interval
         r = yield from f(t)
         if r is not None and r != t:
-            count += math.floor(r - t)
-            t = math.floor(r)
+            t = math.floor(ha.get_now_ts())
+            count = 0
+            t_ = math.floor(time.time())
 
 
 # noinspection PyBroadException,PyBroadException
@@ -388,9 +391,6 @@ def do_every_second(utc):
     global was_dst
     global last_state
 
-    # Lets check if we are connected, if not give up.
-    if not reading_messages:
-        return
     try:
 
         now = datetime.datetime.fromtimestamp(utc)
@@ -438,20 +438,21 @@ def do_every_second(utc):
 
         # Check to see if any apps have changed but only if we have valid state
 
-        if last_state is not None:
+        if last_state is not None and appapi.reading_messages:
             completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, read_apps)])
             #read_apps()
 
         # Check to see if config has changed
 
-        completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, check_config)])
+        if appapi.reading_messages:
+            completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, check_config)])
         #check_config()
 
         # Call me suspicious, but lets update state form HA periodically
         # in case we miss events for whatever reason
         # Every 10 minutes seems like a good place to start
 
-        if last_state is not None and now - last_state > datetime.timedelta(minutes=10) and conf.ha_url is not None:
+        if last_state is not None and appapi.reading_messages and now - last_state > datetime.timedelta(minutes=10) and conf.ha_url is not None:
             try:
                 completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, get_ha_state)])
                 #get_ha_state()
@@ -1120,7 +1121,6 @@ def get_ha_state():
 def run():
     global was_dst
     global last_state
-    global reading_messages
 
     conf.appq = asyncio.Queue(maxsize=0)
 
@@ -1209,7 +1209,7 @@ def run():
             tasks.append(asyncio.async(appstate_loop()))
 
         tasks.append(asyncio.async(do_every(conf.tick, do_every_second)))
-        reading_messages = True
+        appapi.reading_messages = True
 
     else:
         ha.log(conf.logger, "INFO", "Apps are disabled")
@@ -1244,7 +1244,7 @@ def appstate_loop():
 @asyncio.coroutine
 def appdaemon_loop():
     first_time = True
-    global reading_messages
+    disconnected_event = False
     global ws
 
     conf.stopping = False
@@ -1260,9 +1260,10 @@ def appdaemon_loop():
                 last_state = ha.get_now()
                 ha.log(conf.logger, "INFO", "Got initial state")
 
-                # Let the timer thread know we are in business,
-                # and give it time to tick at least once
-                reading_messages = True
+                disconnected_event = False
+
+                # Let other parts know we are in business,
+                appapi.reading_messages = True
 
                 # Load apps
                 read_apps(True)
@@ -1392,8 +1393,11 @@ def appdaemon_loop():
                     process_message(result["event"])
 
         except:
-            reading_messages = False
+            appapi.reading_messages = False
             if not conf.stopping:
+                if disconnected_event == False:
+                    process_event({"event_type": "ha_disconnected", "data": {}})
+                    disconnected_event = True
                 ha.log(
                     conf.logger, "WARNING",
                     "Disconnected from Home Assistant, retrying in 5 seconds"
@@ -1404,7 +1408,7 @@ def appdaemon_loop():
                     ha.log(conf.logger, "WARNING", '-' * 60)
                     ha.log(conf.logger, "WARNING", traceback.format_exc())
                     ha.log(conf.logger, "WARNING", '-' * 60)
-                time.sleep(5)
+                yield from asyncio.sleep(5)
 
         ha.log(conf.logger, "INFO", "Disconnecting from Home Assistant")
 

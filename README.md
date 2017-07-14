@@ -235,22 +235,19 @@ Add the following, making sure to use the correct full path for your config dire
 
 
 ```
-
-    [Unit]
-    Description=AppDaemon
-    After=home-assistant@hass.service
-    Requires=home-assistant@homeassistant.service
-
-    [Service]
-    Type=simple
-    User=%i
-    ExecStart=/usr/local/bin/appdaemon -c "<full path to config directory>"
-
-    [Install]
-    WantedBy=multi-user.target
+[Unit]
+Description=AppDaemon
+After=home-assistant@homeassistant.service
+Requires=home-assistant@homeassistant.service
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
+[Install]
+WantedBy=multi-user.target
 ```
 
- - The above should work for hasbian, but if your homeassistant service is named something different you may need to change the `Requires=` line to reflect the actual name
+ - The above should work for hasbian, but if your homeassistant service is named something different you may need to change the `Requires=` and `After=` lines to reflect the actual name.
 
 
 ## Activate Systemd Service

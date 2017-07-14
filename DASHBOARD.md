@@ -461,7 +461,6 @@ Some widgets allow you to display not only an icon showing the state but also te
 - lock
 - cover
 - input_boolean
-- sensor
 
 In order to enable this, just add:
 
@@ -569,6 +568,8 @@ The widget will detect whether or not it is showing a numeric value, and if so, 
 - `shorten` - if set to one, the widget will abbreviate the readout for high numbers, e.g. `1.1K` instead of `1100`
 - `use_comma` - if set to one`, a comma will be used as the decimal separator
 - `state_map`
+- `sub_entity` - second entity to be displayed in the state text area
+- `sub_entity_map` - state map for the sub_entity
 
 ### Style Arguments: 
 

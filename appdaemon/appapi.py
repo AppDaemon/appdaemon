@@ -11,6 +11,19 @@ import copy
 
 import appdaemon.homeassistant as ha
 
+reading_messages = False
+
+
+def hass_check(func):
+    def func_wrapper(*args, **kwargs):
+        if not reading_messages:
+            ha.log(conf.logger, "WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
+            return (lambda *args: None)
+        else:
+            return(func(*args, **kwargs))
+
+    return (func_wrapper)
+
 
 class AppDaemon:
     #
@@ -121,7 +134,7 @@ class AppDaemon:
                 return True
             else:
                 return False
-
+    @hass_check
     def get_state(self, entity_id=None, attribute=None):
         ha.log(conf.logger, "DEBUG",
                "get_state: {}.{}".format(entity_id, attribute))
@@ -183,6 +196,7 @@ class AppDaemon:
                 args = {"event_type": "state_changed", "data": data}
                 conf.appq.put_nowait(args)
 
+    @hass_check
     def set_state(self, entity_id, **kwargs):
         with conf.ha_state_lock:
             self._check_entity(entity_id)
@@ -276,6 +290,7 @@ class AppDaemon:
     # Event
     #
 
+    @hass_check
     def fire_event(self, event, **kwargs):
         ha.log(conf.logger, "DEBUG",
                "fire_event: {}, {}".format(event, kwargs))
@@ -334,9 +349,11 @@ class AppDaemon:
             # Service
             #
 
+    @hass_check
     def call_service(self, service, **kwargs):
         return ha.call_service(service, **kwargs)
 
+    @hass_check
     def turn_on(self, entity_id, **kwargs):
         self._check_entity(entity_id)
         if kwargs == {}:
@@ -346,6 +363,7 @@ class AppDaemon:
             rargs["entity_id"] = entity_id
         self.call_service("homeassistant/turn_on", **rargs)
 
+    @hass_check
     def turn_off(self, entity_id, **kwargs):
         self._check_entity(entity_id)
         if kwargs == {}:
@@ -360,20 +378,24 @@ class AppDaemon:
         else:
             self.call_service("homeassistant/turn_off", **rargs)
 
+    @hass_check
     def toggle(self, entity_id):
         self._check_entity(entity_id)
         self.call_service("homeassistant/toggle", entity_id=entity_id)
 
+    @hass_check
     def select_value(self, entity_id, value):
         self._check_entity(entity_id)
         rargs = {"entity_id": entity_id, "value": value}
         self.call_service("input_slider/select_value", **rargs)
 
+    @hass_check
     def select_option(self, entity_id, option):
         self._check_entity(entity_id)
         rargs = {"entity_id": entity_id, "option": option}
         self.call_service("input_select/select_option", **rargs)
 
+    @hass_check
     def notify(self, message, **kwargs):
         args = {"message": message}
         if "title" in kwargs:
@@ -385,6 +407,7 @@ class AppDaemon:
 
         self.call_service(service, **args)
 
+    @hass_check
     def persistent_notification(self, message, title=None, id=None):
         args = {"message": message}
         if title is not None:

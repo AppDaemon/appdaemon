@@ -9,6 +9,8 @@ History
 - Allow time_zone directive in appdaemon.cfg to override hass supplied time zone
 - Add API calls to return info on schedule table and callbacks (get_scheduler_entries(), get_callback_entries())
 - Add `get_tracker_details()`
+- Add sub entity to sensor
+- Add `hass_disconnected` event and allow Apps to run while HASS is disconnected
 
 **Fixes**
 

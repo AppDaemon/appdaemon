@@ -1476,6 +1476,7 @@ In addition to the Home Assistant supplied events, AppDaemon adds 2 more events.
 
 - `appd_started` - fired once when AppDaemon is first started and after Apps are initialized
 - `ha_started` - fired every time AppDaemon detects a Home Assistant restart
+- `ha_disconnectd` - fired once every time AppDaemon loses its connection with HASS
 
 ### About Event Callbacks
 
@@ -2288,6 +2289,7 @@ $ appdaemon -s "2016-06-06 19:16:00" -e "2016-06-06 20:16:00" -t 0
 ### A Note On Times
 
 Some Apps you write may depend on checking times of events relative to the current time. If you are time travelling this will not work if you use standard python library calls to get the current time and date etc. For this reason, always use the AppDamon supplied `time()`, `date()` and `datetime()` calls, documented earlier. These calls will consult with AppDaemon's internal time rather than the actual time and give you the correct values.
+
 ### Other Functions
 
 AppDaemon allows some introspection on its stored schedule and callbacks which may be useful for some applications. The functions:
@@ -2297,3 +2299,14 @@ AppDaemon allows some introspection on its stored schedule and callbacks which m
 
 Return the internal data structures, but do not allow them to be modified directly. Their format may change.
 
+### About HASS Disconections
+
+When AppDaemon is unable to connect initially with Home Assistant, it will hold all Apps in statsis until it initially connects, nothing else will happen and no initialization routines will be called. If AppDaemon has been running connected to Home Assitant for a while and the connectionm is unexpectedly lost, the following will occur:
+
+- When HASS first goes down or becomes disconnected, an event called `ha_disconnected` will fire
+- While disconnected from HASS, Apps will continue to run
+- Schedules will continue to be honored
+- Any operation reading locally cached state will succeed
+- Any operation requiring a call to HASS will log a warning and return without attempting to contact hass
+
+When a connection to HASS is reestablished, all Apps will be restarted and their initialize() routines will be called.
