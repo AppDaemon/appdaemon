@@ -23,18 +23,21 @@ function basedisplay(widget_id, url, skin, parameters)
      
     self.OnStateAvailable = OnStateAvailable
     self.OnStateUpdate = OnStateUpdate
-    
+    self.OnSubStateAvailable = OnSubStateAvailable
+    self.OnSubStateUpdate = OnSubStateUpdate
+
+    var monitored_entities =  []
+
     if ("entity" in parameters)
     {
-        var monitored_entities = 
-            [
-                {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
-            ]
+        monitored_entities.push({"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate})
     }
-    else
+    if ("sub_entity" in parameters && parameters.sub_entity != "")
     {
-        var monitored_entities =  []
+        monitored_entities.push({"entity": parameters.sub_entity, "initial": self.OnSubStateAvailable, "update": self.OnSubStateUpdate})
     }
+
+
     // Finally, call the parent constructor to get things moving
     
     WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
@@ -56,6 +59,16 @@ function basedisplay(widget_id, url, skin, parameters)
         set_value(self, state)
     }
 
+    function OnSubStateAvailable(self, state)
+    {
+        set_sub_value(self, state)
+    }
+
+    function OnSubStateUpdate(self, state)
+    {
+        set_sub_value(self, state)
+    }
+
     function set_value(self, state)
     {
         value = self.map_state(self, state.state)
@@ -75,8 +88,20 @@ function basedisplay(widget_id, url, skin, parameters)
             }
             else
             {
-                self.set_field(self, "unit", state.attributes["unit_of_measurement"])    
+                self.set_field(self, "unit", state.attributes["unit_of_measurement"])
             }
-        }    
+        }
+    }
+
+    function set_sub_value(self, state)
+    {
+        if ("sub_state_text" in self.parameters && self.parameters.sub_state_text == 1)
+        {
+            self.set_field(self, "state_text", self.parameters.sub_state_map[state.state])
+        }
+        else
+        {
+            self.set_field(self, "state_text", state.state)
+        }
     }
 }

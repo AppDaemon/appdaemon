@@ -29,3 +29,10 @@
 	top: 23px;
 	width: 100%;
 }
+
+.widget-basedisplay-{{id}} .state_text {
+	position: absolute;
+	bottom: -3px;
+	width: 100%;
+}
+

@@ -46,7 +46,7 @@ function baseswitch(widget_id, url, skin, parameters)
     
     var monitored_entities = 
         [
-            {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
+            {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
         ]
     
     // Finally, call the parent constructor to get things moving

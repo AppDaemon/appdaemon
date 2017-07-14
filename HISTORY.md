@@ -15,6 +15,7 @@ History
 - Fix startup example files to match new `-c` semantics
 - Fix Time Travel
 - Fix for crashes on HASS restart if apps weren't in use - contributed by [shprota](https://github.com/shprota)
+- Attempted a fix for `NaN` showing for Nest & Ecobee thermostats when in auto mode
 
 None
 
