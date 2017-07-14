@@ -96,7 +96,7 @@ function baseclimate(widget_id, url, skin, parameters)
 	function set_view(self, state)
     {
         self.set_field(self, "level", self.format_number(self, state.attributes.current_temperature))
-        console.log(state.attributes.temperature)
+        console.log(state.attributes)
         if ("temperature" in state.attributes && state.attributes.temperature != null)
         {
             self.set_field(self, "level2", self.format_number(self, state.attributes.temperature))
