@@ -1,290 +1,400 @@
-# Description
+Description
+===========
 
-AppDaemon is a loosely coupled, multithreaded, sandboxed python execution environment for writing automation apps for [Home Assistant](https://home-assistant.io/) home automation software. As of release 2,0,0 it also provides a configurable dashboard (HADashboard) suitable for wall mounted tablets.
+AppDaemon is a loosely coupled, multithreaded, sandboxed python
+execution environment for writing automation apps for `Home
+Assistant <https://home-assistant.io/>`__ home automation software. As
+of release 2,0,0 it also provides a configurable dashboard (HADashboard)
+suitable for wall mounted tablets.
 
-# Installation
+Installation
+============
 
 Installation is either by pip3 or Docker.
 
-# Install and Run using Docker
+Install and Run using Docker
+============================
 
-Follow the instructions in [DOCKER_TURORIAL.md](DOCKER_TUTORIAL.md)
+Follow the instructions in `DOCKER\_TURORIAL.md <DOCKER_TUTORIAL.md>`__
 
-# Install by pip3
+Install by pip3
+===============
 
-## Clone the Repository
+Clone the Repository
+--------------------
 
-For this method you will need to clone the **AppDaemon** repository to the current local directory on your machine.
+For this method you will need to clone the **AppDaemon** repository to
+the current local directory on your machine.
 
-``` bash
-$ git clone https://github.com/home-assistant/appdaemon.git
-```
+.. code:: bash
 
-Change your working directory to the repository root. Moving forward, we will be working from this directory.
+    $ git clone https://github.com/home-assistant/appdaemon.git
 
-``` bash
-$ cd appdaemon
-```
+Change your working directory to the repository root. Moving forward, we
+will be working from this directory.
 
-## Install Using PIP3
+.. code:: bash
 
-Before running `AppDaemon` you will need to install the package:
+    $ cd appdaemon
 
-```bash
-$ sudo pip3 install .
-```
+Install Using PIP3
+------------------
 
-# Configuration
+Before running ``AppDaemon`` you will need to install the package:
 
-When you have appdaemon installed by either method, copy the `conf/appdaemon.yaml.example` file to `conf/appdaemon.yaml`, then edit the `AppDaemon` section to reflect your environment:
+.. code:: bash
 
-```yaml
-AppDaemon:
-  logfile: STDOUT
-  errorfile: STDERR
-  threads: 10
-  cert_path: <path/to/root/CA/cert>
-  cert_verify: True
-  time_zone: <time zone>
-HASS:
-  ha_url: <some_url>
-  ha_key: <some key>
+    $ sudo pip3 install .
 
-# Apps
-hello_world:
-  module: hello
-  class: HelloWorld
-```
+Configuration
+=============
 
-- `ha_url` is a reference to your home assistant installation and must include the correct port number and scheme (`http://` or `https://` as appropriate)
-- `ha_key` should be set to your key if you have one, otherwise it can be removed.
-- `logfile` (optional) is the path to where you want `AppDaemon` to keep its main log. When run from the command line this is not used - log messages come out on the terminal. When running as a daemon this is where the log information will go. In the example above I created a directory specifically for AppDaemon to run from, although there is no reason you can't keep it in the `appdaemon` directory of the cloned repository. If `logfile = STDOUT`, output will be sent to stdout instead of stderr when running in the foreground, if not specified, output will be sent to STDOUT.
-- `errorfile` (optional) is the name of the logfile for errors - this will usually be errors during compilation and execution of the apps. If `errorfile = STDERR` errors will be sent to stderr instead of a file, if not specified, output will be sent to STDERR.
-- `threads` - the number of dedicated worker threads to create for running the apps. Note, this will bear no resembelance to the number of apps you have, the threads are re-used and only active for as long as required to tun a particular callback or initialization, leave this set to 10 unless you experience thread starvation
-- `cert_path` (optional) - path to root CA cert directory - use only if you are using self signed certs.
-- `cert_verify` (optional) - flag for cert verification - set to `False` to disable verification on self signed certs.
-- `time_zone` (optional) - timezone for AppDaemon to use. If not specified, AppDaemon will query the timezone from Home Assistant
+When you have appdaemon installed by either method, copy the
+``conf/appdaemon.yaml.example`` file to ``conf/appdaemon.yaml``, then
+edit the ``AppDaemon`` section to reflect your environment:
 
-Optionally, you can place your apps in a directory other than under the config directory using the `app_dir` directive.
+.. code:: yaml
+
+
+    AppDaemon:
+      logfile: STDOUT
+      errorfile: STDERR
+      threads: 10
+      cert_path: <path/to/root/CA/cert>
+      cert_verify: True
+      time_zone: <time zone>
+    HASS:
+      ha_url: <some_url>
+      ha_key: <some key>
+
+    # Apps
+    hello_world:
+      module: hello
+      class: HelloWorld
+
+-  ``ha_url`` is a reference to your home assistant installation and
+   must include the correct port number and scheme (``http://`` or
+   ``https://`` as appropriate)
+-  ``ha_key`` should be set to your key if you have one, otherwise it
+   can be removed.
+-  ``logfile`` (optional) is the path to where you want ``AppDaemon`` to
+   keep its main log. When run from the command line this is not used -
+   log messages come out on the terminal. When running as a daemon this
+   is where the log information will go. In the example above I created
+   a directory specifically for AppDaemon to run from, although there is
+   no reason you can't keep it in the ``appdaemon`` directory of the
+   cloned repository. If ``logfile = STDOUT``, output will be sent to
+   stdout instead of stderr when running in the foreground, if not
+   specified, output will be sent to STDOUT.
+-  ``errorfile`` (optional) is the name of the logfile for errors - this
+   will usually be errors during compilation and execution of the apps.
+   If ``errorfile = STDERR`` errors will be sent to stderr instead of a
+   file, if not specified, output will be sent to STDERR.
+-  ``threads`` - the number of dedicated worker threads to create for
+   running the apps. Note, this will bear no resembelance to the number
+   of apps you have, the threads are re-used and only active for as long
+   as required to tun a particular callback or initialization, leave
+   this set to 10 unless you experience thread starvation
+-  ``cert_path`` (optional) - path to root CA cert directory - use only
+   if you are using self signed certs.
+-  ``cert_verify`` (optional) - flag for cert verification - set to
+   ``False`` to disable verification on self signed certs.
+-  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
+   specified, AppDaemon will query the timezone from Home Assistant
+
+Optionally, you can place your apps in a directory other than under the
+config directory using the ``app_dir`` directive.
 
 e.g.:
 
-```ini
-app_dir = /etc/appdaemon/apps
-```
+.. code:: ini
 
-The `#Apps` section is the configuration for the Hello World program and should be left in place for initial testing but can be removed later if desired, as other Apps are added, App configuration is described in the [API doc](API.md).
+    app_dir = /etc/appdaemon/apps
 
-## Configuring the Dashboard
+The ``#Apps`` section is the configuration for the Hello World program
+and should be left in place for initial testing but can be removed later
+if desired, as other Apps are added, App configuration is described in
+the `API doc <API.md>`__.
 
-Configuration of the dashboard component (HADashboard) is described separately in the [Dashboard doc](DASHBOARD.md)
+Configuring the Dashboard
+-------------------------
 
-## Docker
+Configuration of the dashboard component (HADashboard) is described
+separately in the `Dashboard doc <DASHBOARD.md>`__
 
-For Docker Configuration you need to take a couple of extra things into consideration.
+Docker
+------
 
-Our Docker image is designed to load your configuration and apps from a volume at `/conf` so that you can manage them in your own git repository, or place them anywhere else on the system and map them using the Docker command line.
+For Docker Configuration you need to take a couple of extra things into
+consideration.
 
-For example, if you have a local repository in `/Users/foo/ha-config` containing the following files:
+Our Docker image is designed to load your configuration and apps from a
+volume at ``/conf`` so that you can manage them in your own git
+repository, or place them anywhere else on the system and map them using
+the Docker command line.
 
-```bash
-$ git ls-files
-configuration.yaml
-customize.yaml
-known_devices.yaml
-appdaemon.yaml
-apps
-apps/magic.py
-```
+For example, if you have a local repository in ``/Users/foo/ha-config``
+containing the following files:
+
+.. code:: bash
+
+    $ git ls-files
+    configuration.yaml
+    customize.yaml
+    known_devices.yaml
+    appdaemon.yaml
+    apps
+    apps/magic.py
 
 You can run Docker and point the conf volume to that directory.
 
-# Example Apps
+Example Apps
+============
 
-There are a number of example apps under conf/examples, and the `conf/examples.yaml` file gives sample parameters for them.
+There are a number of example apps under conf/examples, and the
+``conf/examples.yaml`` file gives sample parameters for them.
 
-# Running
+Running
+=======
 
-As configured, AppDaemon comes with a single HelloWorld App that will send a greeting to the logfile to show that everything is working correctly.
+As configured, AppDaemon comes with a single HelloWorld App that will
+send a greeting to the logfile to show that everything is working
+correctly.
 
-## Docker
+Docker
+------
 
-Assuming you have set the config up as described above for Docker, you can run it with the command:
+Assuming you have set the config up as described above for Docker, you
+can run it with the command:
 
-```bash
-$ docker run -d -v <Path to Config>/conf:/conf --name appdaemon appdaemon:latest
-```
+.. code:: bash
+
+    $ docker run -d -v <Path to Config>/conf:/conf --name appdaemon appdaemon:latest
 
 In the example above you would use:
 
-```bash
-$ docker run -d -v /Users/foo/ha-config:/conf --name appdaemon appdaemon:latest
-```
+.. code:: bash
 
-Where you place the `conf` and `conf/apps` directory is up to you - it can be in downloaded repostory, or anywhere else on the host, as long as you use the correct mapping in the `docker run` command.
+    $ docker run -d -v /Users/foo/ha-config:/conf --name appdaemon appdaemon:latest
+
+Where you place the ``conf`` and ``conf/apps`` directory is up to you -
+it can be in downloaded repostory, or anywhere else on the host, as long
+as you use the correct mapping in the ``docker run`` command.
 
 You can inspect the logs as follows:
 
-```bash
-$ docker logs appdaemon
-2016-08-22 10:08:16,575 INFO Got initial state
-2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
-2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
-2016-08-22 10:08:16,580 INFO Hello from AppDaemon
-2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
-```
+.. code:: bash
+
+    $ docker logs appdaemon
+    2016-08-22 10:08:16,575 INFO Got initial state
+    2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
+    2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
+    2016-08-22 10:08:16,580 INFO Hello from AppDaemon
+    2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
 
 Note that for Docker, the error and regular logs are combined.
 
-## PIP3
+PIP3
+----
 
 You can then run AppDaemon from the command line as follows:
 
-```bash
-$ appdaemon -c conf
-```
+.. code:: bash
+
+    $ appdaemon -c conf
 
 If all is well, you should see something like the following:
 
-```
-$ appdaemon -c conf
-2016-08-22 10:08:16,575 INFO Got initial state
-2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
-2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
-2016-08-22 10:08:16,580 INFO Hello from AppDaemon
-2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
-```
+::
 
-# AppDaemon arguments
+    $ appdaemon -c conf
+    2016-08-22 10:08:16,575 INFO Got initial state
+    2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
+    2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
+    2016-08-22 10:08:16,580 INFO Hello from AppDaemon
+    2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
 
-```
-usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TICK] [-s STARTTIME]
-                 [-e ENDTIME] [-i INTERVAL]
-                 [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v] [-d]
+AppDaemon arguments
+===================
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        full path to config diectory
-  -p PIDFILE, --pidfile PIDFILE
-                        full path to PID File
-  -t TICK, --tick TICK  time in seconds that a tick in the schedular lasts
-  -s STARTTIME, --starttime STARTTIME
-                        start time for scheduler <YYYY-MM-DD HH:MM:SS>
-  -e ENDTIME, --endtime ENDTIME
-                        end time for scheduler <YYYY-MM-DD HH:MM:SS>
-  -i INTERVAL, --interval INTERVAL
-                        multiplier for scheduler tick
-  -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                        debug level
-  -v, --version         show program's version number and exit
-  -d, --daemon          run as a background process
-```
+::
 
--c is the path to the configuration directory. If not specified, AppDaemon will look for a file named `appdaemon.cfg` first in `~/.homeassistant` then in `/etc/appdaemon`. If the directory is not specified and it is not found in either location, AppDaemon will raise an exception. In addition, AppDaemon expects to find a dir named `apps` immediately subordinate to the config directory.                    
-                        
--d and -p are used by the init file to start the process as a daemon and are not required if running from the command line. 
+    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TICK] [-s STARTTIME]
+                     [-e ENDTIME] [-i INTERVAL]
+                     [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v] [-d]
 
--D can be used to increase the debug level for internal AppDaemon operations as well as apps using the logging function.
+    optional arguments:
+      -h, --help            show this help message and exit
+      -c CONFIG, --config CONFIG
+                            full path to config diectory
+      -p PIDFILE, --pidfile PIDFILE
+                            full path to PID File
+      -t TICK, --tick TICK  time in seconds that a tick in the schedular lasts
+      -s STARTTIME, --starttime STARTTIME
+                            start time for scheduler <YYYY-MM-DD HH:MM:SS>
+      -e ENDTIME, --endtime ENDTIME
+                            end time for scheduler <YYYY-MM-DD HH:MM:SS>
+      -i INTERVAL, --interval INTERVAL
+                            multiplier for scheduler tick
+      -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                            debug level
+      -v, --version         show program's version number and exit
+      -d, --daemon          run as a background process
 
-The -s, -i, -t and -s options are for the Time Travel feature and should only be used for testing. They are described in more detail in the API documentation. 
+-c is the path to the configuration directory. If not specified,
+AppDaemon will look for a file named ``appdaemon.cfg`` first in
+``~/.homeassistant`` then in ``/etc/appdaemon``. If the directory is not
+specified and it is not found in either location, AppDaemon will raise
+an exception. In addition, AppDaemon expects to find a dir named
+``apps`` immediately subordinate to the config directory.
 
-# Legacy Configuration
+-d and -p are used by the init file to start the process as a daemon and
+are not required if running from the command line.
 
-AppDaemon also currently supports a legacy `ini` style of configuration and it is shown here for backward compatibility. It is recommended that you move to the YAML format using the provided tool. When using the legacy configuration style, there are no `HASS` or `HADashboard` sections - the associated directives all go in the `AppDaemon` section.
+-D can be used to increase the debug level for internal AppDaemon
+operations as well as apps using the logging function.
 
+The -s, -i, -t and -s options are for the Time Travel feature and should
+only be used for testing. They are described in more detail in the API
+documentation.
 
-```ini
-[AppDaemon]
-ha_url = <some_url>
-ha_key = <some key>
-logfile = STDOUT
-errorfile = STDERR
-threads = 10
-cert_path = <path/to/root/CA/cert>
-cert_verify = True
-# Apps
-[hello_world]
-module = hello
-class = HelloWorld
-```
+Legacy Configuration
+====================
 
-If you want to move from the legacy `ini` style of configuration to YAML, AppDaemon is able to do this for you. From the command line run:
+AppDaemon also currently supports a legacy ``ini`` style of
+configuration and it is shown here for backward compatibility. It is
+recommended that you move to the YAML format using the provided tool.
+When using the legacy configuration style, there are no ``HASS`` or
+``HADashboard`` sections - the associated directives all go in the
+``AppDaemon`` section.
 
-```bash
-$ appdaemon -c CONFIG --convertcfg
-Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
-$
-```
+.. code:: ini
 
-AppDaemon should correctly figure out where the file is to convert form your existing configuration. After conversion, the new YAML file will be used in preference to the old ini file, which can then be removed if desired.
+    [AppDaemon]
+    ha_url = <some_url>
+    ha_key = <some key>
+    logfile = STDOUT
+    errorfile = STDERR
+    threads = 10
+    cert_path = <path/to/root/CA/cert>
+    cert_verify = True
+    # Apps
+    [hello_world]
+    module = hello
+    class = HelloWorld
 
-Note: any lines in the ini file that are commented out, whether actual comments of lines that are not active, will not be converted.
-Note 2: Docker users will unfortunately need to perform the conversion manually.
+If you want to move from the legacy ``ini`` style of configuration to
+YAML, AppDaemon is able to do this for you. From the command line run:
 
-# Starting At Reboot
-To run `AppDaemon` at reboot, you can set it up to run as a systemd service as follows.
+.. code:: bash
 
-## Add Systemd Service (appdaemon@appdaemon.service)
+    $ appdaemon -c CONFIG --convertcfg
+    Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
+    $
+
+AppDaemon should correctly figure out where the file is to convert form
+your existing configuration. After conversion, the new YAML file will be
+used in preference to the old ini file, which can then be removed if
+desired.
+
+Note: any lines in the ini file that are commented out, whether actual
+comments of lines that are not active, will not be converted. Note 2:
+Docker users will unfortunately need to perform the conversion manually.
+
+Starting At Reboot
+==================
+
+To run ``AppDaemon`` at reboot, you can set it up to run as a systemd
+service as follows.
+
+Add Systemd Service (appdaemon@appdaemon.service)
+-------------------------------------------------
 
 First, create a new file using vi:
 
+::
+
     $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
 
-Add the following, making sure to use the correct full path for your config directory. Also make sure you edit the `User` to a valid user to run AppDaemon, usually the same user as you are running Home Assistant with is a good choice.
+Add the following, making sure to use the correct full path for your
+config directory. Also make sure you edit the ``User`` to a valid user
+to run AppDaemon, usually the same user as you are running Home
+Assistant with is a good choice.
 
+::
 
-```
-[Unit]
-Description=AppDaemon
-After=home-assistant@homeassistant.service
-[Service]
-Type=simple
-User=hass
-ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
-[Install]
-WantedBy=multi-user.target
-```
+    [Unit]
+    Description=AppDaemon
+    After=home-assistant@homeassistant.service
+    [Service]
+    Type=simple
+    User=hass
+    ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
+    [Install]
+    WantedBy=multi-user.target
 
- - The above should work for hasbian, but if your homeassistant service is named something different you may need to change the `After=` lines to reflect the actual name.
+-  The above should work for hasbian, but if your homeassistant service
+   is named something different you may need to change the ``After=``
+   lines to reflect the actual name.
 
+Activate Systemd Service
+------------------------
 
-## Activate Systemd Service
+::
 
     $ sudo systemctl daemon-reload
     $ sudo systemctl enable appdaemon@appdaemon.service --now
 
 Now AppDaemon should be up and running and good to go.
 
-# Operation
+Operation
+=========
 
-Since AppDaemon under the covers uses the exact same APIs as the frontend UI, you typically see it react at about the same time to a given event. Calling back to Home Assistant is also pretty fast especially if they are running on the same machine. In action, observed latency above the built in automation component is usually sub-second.
+Since AppDaemon under the covers uses the exact same APIs as the
+frontend UI, you typically see it react at about the same time to a
+given event. Calling back to Home Assistant is also pretty fast
+especially if they are running on the same machine. In action, observed
+latency above the built in automation component is usually sub-second.
 
-# Updating AppDaemon
-To update AppDaemon after I have released new code, just run the following command to update your copy:
+Updating AppDaemon
+==================
 
-```bash
-$ git pull origin
-```
+To update AppDaemon after new code has been released, just run the
+following command to update your copy:
+
+.. code:: bash
+
+    $ git pull origin
 
 If you are using pip3 for the install do this:
 
-```bash
-$ sudo pip3 uninstall appdaemon
-$ sudo pip3 install .
-```
+.. code:: bash
+
+    $ sudo pip3 uninstall appdaemon
+    $ sudo pip3 install .
 
 If you are using docker, rerun the steps to create a new docker image.
 
-# Windows Support
+Windows Support
+===============
 
-AppDaemon runs under windows and has been tested with the official 3.5.2 release. There are a couple of caveats however:
+AppDaemon runs under windows and has been tested with the official 3.5.2
+release. There are a couple of caveats however:
 
-- The `-d` or `--daemonize` option is not supported owing to limitations in the Windows implementation of Python.
-- Some internal diagnostics are disabled. This is not user visible but may hamper troubleshooting of internal issues if any crop up
+-  The ``-d`` or ``--daemonize`` option is not supported owing to
+   limitations in the Windows implementation of Python.
+-  Some internal diagnostics are disabled. This is not user visible but
+   may hamper troubleshooting of internal issues if any crop up
 
-AppDaemon can be installed exactlky as per the instructions for every other version using pip3.
+AppDaemon can be installed exactlky as per the instructions for every
+other version using pip3.
 
-# Windows Under the Linux Subsystem
+Windows Under the Linux Subsystem
+=================================
 
-Windows 10 now supports a full Linux bash environment that is capable of running Python. This is essentially an Ubuntu distribution and works extremely well. It is possible to run AppDaemon in exactly the same way as for Linux distributions, and none of the above Windows Caveats apply to this version. This is the reccomended way to run AppDaemon in a Windows 10 and later environment.
+Windows 10 now supports a full Linux bash environment that is capable of
+running Python. This is essentially an Ubuntu distribution and works
+extremely well. It is possible to run AppDaemon in exactly the same way
+as for Linux distributions, and none of the above Windows Caveats apply
+to this version. This is the reccomended way to run AppDaemon in a
+Windows 10 and later environment.
