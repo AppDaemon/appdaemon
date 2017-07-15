@@ -107,7 +107,7 @@ To add an initial test app to match the configuration above, we need to first cr
     import appdaemon.appapi as appapi
 
     #
-    # Hellow World App
+    # Hello World App
     #
     # Args:
     #

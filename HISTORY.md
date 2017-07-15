@@ -6,6 +6,7 @@ History
 
 **Features**
 
+- AppDaemon is now on PyPi - no more need to use git for installs
 - Allow time_zone directive in appdaemon.cfg to override hass supplied time zone
 - Add API calls to return info on schedule table and callbacks (get_scheduler_entries(), get_callback_entries())
 - Add `get_tracker_details()`
@@ -14,12 +15,10 @@ History
 
 **Fixes**
 
-- Fix startup example files to match new `-c` semantics
+- Fix startup examples to match new `-c` semantics and add in docs
 - Fix Time Travel
 - Fix for crashes on HASS restart if apps weren't in use - contributed by [shprota](https://github.com/shprota)
 - Attempted a fix for `NaN` showing for Nest & Ecobee thermostats when in auto mode
-
-None
 
 **Breaking Changes**
 

@@ -1411,7 +1411,7 @@ def appdaemon_loop():
                     ha.log(conf.logger, "WARNING", '-' * 60)
                 yield from asyncio.sleep(5)
 
-        ha.log(conf.logger, "INFO", "Disconnecting from Home Assistant")
+    ha.log(conf.logger, "INFO", "Disconnecting from Home Assistant")
 
 
 def find_path(name):
