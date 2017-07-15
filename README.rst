@@ -17,41 +17,22 @@ Install and Run using Docker
 
 Follow the instructions in `DOCKER\_TURORIAL.md <DOCKER_TUTORIAL.md>`__
 
-Install by pip3
-===============
+Install Using pip3
+==================
 
-Clone the Repository
---------------------
-
-For this method you will need to clone the **AppDaemon** repository to
-the current local directory on your machine.
-
-.. code:: bash
-
-    $ git clone https://github.com/home-assistant/appdaemon.git
-
-Change your working directory to the repository root. Moving forward, we
-will be working from this directory.
-
-.. code:: bash
-
-    $ cd appdaemon
-
-Install Using PIP3
-------------------
 
 Before running ``AppDaemon`` you will need to install the package:
 
 .. code:: bash
 
-    $ sudo pip3 install .
+    $ sudo pip3 install appdaemon
 
 Configuration
 =============
 
-When you have appdaemon installed by either method, copy the
-``conf/appdaemon.yaml.example`` file to ``conf/appdaemon.yaml``, then
-edit the ``AppDaemon`` section to reflect your environment:
+When you have appdaemon installed by either method you are ready to start working on the appdaemon.yaml file. For docker users, you will already have a skeleton to work with. For pip users, you need to create a configuration directory somewhere (e.g. `/home/homeassistant/conf`) and create a file in there called `appdaemon.yaml`.
+
+Your initial file should look something like this:
 
 .. code:: yaml
 
@@ -111,10 +92,33 @@ e.g.:
 
     app_dir = /etc/appdaemon/apps
 
+Configuring a Test App
+----------------------
+
 The ``#Apps`` section is the configuration for the Hello World program
 and should be left in place for initial testing but can be removed later
-if desired, as other Apps are added, App configuration is described in
+if desired, as other Apps are added, App configuration is fully described in
 the `API doc <API.md>`__.
+
+To add an initial test app to match the configuration above, we need to first create an `apps` subdirectory under the conf directory. Then create a file in the `apps` dircetory called `hello.py`, and paste the followinginto it using your favorite text editor:
+
+.. code:: python
+
+    import appdaemon.appapi as appapi
+
+    #
+    # Hellow World App
+    #
+    # Args:
+    #
+
+    class HelloWorld(appapi.AppDaemon):
+
+      def initialize(self):
+         self.log("Hello from AppDaemon")
+         self.log("You are now ready to run Apps!")
+
+With this app in place we will be able to test the App part of AppDaemon when we first run it.
 
 Configuring the Dashboard
 -------------------------
@@ -122,66 +126,20 @@ Configuring the Dashboard
 Configuration of the dashboard component (HADashboard) is described
 separately in the `Dashboard doc <DASHBOARD.md>`__
 
-Docker
-------
-
-For Docker Configuration you need to take a couple of extra things into
-consideration.
-
-Our Docker image is designed to load your configuration and apps from a
-volume at ``/conf`` so that you can manage them in your own git
-repository, or place them anywhere else on the system and map them using
-the Docker command line.
-
-For example, if you have a local repository in ``/Users/foo/ha-config``
-containing the following files:
-
-.. code:: bash
-
-    $ git ls-files
-    configuration.yaml
-    customize.yaml
-    known_devices.yaml
-    appdaemon.yaml
-    apps
-    apps/magic.py
-
-You can run Docker and point the conf volume to that directory.
 
 Example Apps
 ============
 
-There are a number of example apps under conf/examples, and the
+There are a number of example apps under ``conf/examples`` in the git repository, and the
 ``conf/examples.yaml`` file gives sample parameters for them.
 
 Running
 =======
 
-As configured, AppDaemon comes with a single HelloWorld App that will
-send a greeting to the logfile to show that everything is working
-correctly.
-
 Docker
 ------
 
-Assuming you have set the config up as described above for Docker, you
-can run it with the command:
-
-.. code:: bash
-
-    $ docker run -d -v <Path to Config>/conf:/conf --name appdaemon appdaemon:latest
-
-In the example above you would use:
-
-.. code:: bash
-
-    $ docker run -d -v /Users/foo/ha-config:/conf --name appdaemon appdaemon:latest
-
-Where you place the ``conf`` and ``conf/apps`` directory is up to you -
-it can be in downloaded repostory, or anywhere else on the host, as long
-as you use the correct mapping in the ``docker run`` command.
-
-You can inspect the logs as follows:
+Assuming you have set the config up as described in the tutotial for Docker, you should see the logs output as follows:
 
 .. code:: bash
 
@@ -197,19 +155,19 @@ Note that for Docker, the error and regular logs are combined.
 PIP3
 ----
 
-You can then run AppDaemon from the command line as follows:
+You can run AppDaemon from the command line as follows:
 
 .. code:: bash
 
-    $ appdaemon -c conf
+    $ appdaemon -c /home/homeassistant/conf
 
 If all is well, you should see something like the following:
 
 ::
 
-    $ appdaemon -c conf
+    $ appdaemon -c /home/homeassistant/conf
     2016-08-22 10:08:16,575 INFO Got initial state
-    2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
+    2016-08-22 10:08:16,576 INFO Loading Module: /home/homeassistant/conf/apps/hello.py
     2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
     2016-08-22 10:08:16,580 INFO Hello from AppDaemon
     2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
@@ -364,16 +322,9 @@ following command to update your copy:
 
 .. code:: bash
 
-    $ git pull origin
+    $ sudo pip install --upgrade appdaemon
 
-If you are using pip3 for the install do this:
-
-.. code:: bash
-
-    $ sudo pip3 uninstall appdaemon
-    $ sudo pip3 install .
-
-If you are using docker, rerun the steps to create a new docker image.
+If you are using docker, refer to the steps in the tutorial.
 
 Windows Support
 ===============
@@ -386,7 +337,7 @@ release. There are a couple of caveats however:
 -  Some internal diagnostics are disabled. This is not user visible but
    may hamper troubleshooting of internal issues if any crop up
 
-AppDaemon can be installed exactlky as per the instructions for every
+AppDaemon can be installed exactly as per the instructions for every
 other version using pip3.
 
 Windows Under the Linux Subsystem
