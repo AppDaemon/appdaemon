@@ -228,6 +228,8 @@ def load_widget(dash, includes, name, css_vars, global_parameters):
         #
         # Variable substitutions
         #
+        if "entity" in instantiated_widget:
+            instantiated_widget["short_entity"] = ".".join(instantiated_widget["entity"].split(".")[1:])
         yaml_file, templates = do_subs(yaml_path, instantiated_widget, '""')
 
         try:
@@ -336,6 +338,8 @@ def add_layout(value, layout, occupied, dash, page, includes, css_vars, global_p
                 widget["size"] = [xsize, ysize]
                 widget["parameters"] = load_widget(dash, includes, name, css_vars, global_parameters)
                 dash["widgets"].append(widget)
+        if "gridless" in widget["parameters"] and widget["parameters"]["gridless"]==1:
+            continue
 
         for x in range(column, column + int(xsize)):
             for y in range(layout, layout + int(ysize)):

@@ -123,6 +123,9 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                             {
                                 child.ViewModel.title("entity not found: " + entity.entity);
                                 new_state = null
+                                if (entity.initial_with_null) {
+                                    entity.initial_with_null(child, new_state)
+                                }
                             }
                             else
                             {
@@ -198,15 +201,19 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     clen = callbacks.length;
     for (i=0;i < clen;i++)
     {
-        $(callbacks[i].selector).click((
-            function(callback, ch, params)
+        var func = function(callback, ch, params)
+        {
+            return function()
             {
-                return function()
-                {
-                    callback(ch, params)
-                };
-            }(callbacks[i].callback, child,callbacks[i].parameters))
-        );
+                callback(ch, params)
+            };
+        }(callbacks[i].callback, child, callbacks[i].parameters);
+
+        if (callbacks[i].live) {
+            $(callbacks[i].selector[0]).on('click', callbacks[i].selector[1], func);
+        } else {
+            $(callbacks[i].selector).click(func);
+        }
     }
     
     // Create and initialize bindings
