@@ -3,6 +3,8 @@
 
 from setuptools import setup, find_packages
 
+from appdaemon.conf import (__version__)
+
 with open('README.md') as readme_file:
     README = readme_file.read()
 
@@ -11,7 +13,7 @@ with open('HISTORY.md') as history_file:
 
 #sudo apt-get install python3-aiohttp-dbg
 
-REQUIREMENTS = [
+REQUIRES = [
     'daemonize',
     'configparser',
     'astral',
@@ -29,7 +31,7 @@ REQUIREMENTS = [
 
 setup(
     name='appdaemon',
-    version='2.0.4',
+    version=__version__,
     description="Apps for the Home Assistant home automation package.",
     long_description=README + '\n\n' + HISTORY,
     author='Andrew I Cockburn',

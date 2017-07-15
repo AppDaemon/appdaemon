@@ -2308,5 +2308,6 @@ When AppDaemon is unable to connect initially with Home Assistant, it will hold 
 - Schedules will continue to be honored
 - Any operation reading locally cached state will succeed
 - Any operation requiring a call to HASS will log a warning and return without attempting to contact hass
+- Changes to Apps will not force a reload until HASS is reconnectec
 
 When a connection to HASS is reestablished, all Apps will be restarted and their initialize() routines will be called.

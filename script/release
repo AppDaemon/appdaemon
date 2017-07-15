@@ -1,0 +1,12 @@
+#!/bin/sh
+# Pushes a new version to PyPi.
+
+CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD`
+
+if [ "$CURRENT_BRANCH" != "master" ]
+then
+  echo "You have to be on the master branch to release."
+  exit 1
+fi
+
+python3 setup.py sdist bdist_wheel upload

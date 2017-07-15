@@ -231,23 +231,22 @@ First, create a new file using vi:
 
     $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
 
-Add the following, making sure to use the correct full path for your config directory:
+Add the following, making sure to use the correct full path for your config directory. Also make sure you edit the `User` to a valid user to run AppDaemon, usually the same user as you are running Home Assistant with is a good choice.
 
 
 ```
 [Unit]
 Description=AppDaemon
 After=home-assistant@homeassistant.service
-Requires=home-assistant@homeassistant.service
 [Service]
 Type=simple
-User=root
+User=hass
 ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
 [Install]
 WantedBy=multi-user.target
 ```
 
- - The above should work for hasbian, but if your homeassistant service is named something different you may need to change the `Requires=` and `After=` lines to reflect the actual name.
+ - The above should work for hasbian, but if your homeassistant service is named something different you may need to change the `After=` lines to reflect the actual name.
 
 
 ## Activate Systemd Service

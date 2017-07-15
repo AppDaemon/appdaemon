@@ -1,6 +1,10 @@
 import logging
 import threading
 
+
+__version__ = "2.0.4beta1"
+
+
 ha_url = ""
 ha_key = ""
 threads = 0

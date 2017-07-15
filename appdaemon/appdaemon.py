@@ -34,8 +34,6 @@ import appdaemon.homeassistant as ha
 import appdaemon.appapi as appapi
 
 
-__version__ = "2.0.4"
-
 # Windows does not have Daemonize package so disallow
 
 if platform.system() != "Windows":
@@ -1191,6 +1189,9 @@ def run():
     if conf.apps is True:
         # Load apps
 
+        # Let other parts know we are in business,
+        appapi.reading_messages = True
+
         ha.log(conf.logger, "DEBUG", "Reading Apps")
 
         read_apps(True)
@@ -1451,7 +1452,7 @@ def main():
                         [
                             "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
                         ])
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + conf.__version__)
     parser.add_argument('--commtype', help="Communication Library to use", default="WEBSOCKETS", choices=
                         [
                             "SSE",
@@ -1714,7 +1715,7 @@ def main():
 
     # Startup message
 
-    ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(__version__))
+    ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(conf.__version__))
     ha.log(conf.logger, "INFO", "Configuration read from: {}".format(config_file))
 
     # Check with HA to get various info
