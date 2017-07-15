@@ -95,13 +95,16 @@ function basenotification(widget_id, url, skin, parameters)
         if (state!=null) {
             self.audio = new Audio("/sounds/tos-redalert.mp3");
             self.audio.addEventListener('ended', function() {
-                this.currentTime = 0;
-                this.play();
+                if (self.audio) {
+                    self.audio.currentTime = 0;
+                    self.audio.play();
+                }
             });
             self.audio.play();
         } else {
             if (self.audio) {
                 self.audio.pause();
+                self.audio = null;
             }
         }
 
