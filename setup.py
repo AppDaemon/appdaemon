@@ -27,6 +27,7 @@ setup(
     name='appdaemon',
     version=__version__,
     description="Apps for the Home Assistant home automation package.",
+    long_description="AppDaemon is a loosely coupled, multithreaded, sandboxed python execution environment for writing automation apps for Home Assistant home automation software. As of release 2.0.0 it also provides a configurable dashboard (HADashboard) suitable for wall mounted tablets.",
     author='Andrew I Cockburn',
     author_email='appdaemon@acockburn.com',
     url='https://github.com/home-assistant/appdaemon.git',

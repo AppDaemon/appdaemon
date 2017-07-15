@@ -30,7 +30,7 @@ Before running ``AppDaemon`` you will need to install the package:
 Configuration
 =============
 
-When you have appdaemon installed by either method you are ready to start working on the appdaemon.yaml file. For docker users, you will already have a skeleton to work with. For pip users, you need to create a configuration directory somewhere (e.g. `/home/homeassistant/conf`) and create a file in there called `appdaemon.yaml`.
+When you have appdaemon installed by either method you are ready to start working on the appdaemon.yaml file. For docker users, you will already have a skeleton to work with. For pip users, you need to create a configuration directory somewhere (e.g. ``/home/homeassistant/conf``) and create a file in there called ``appdaemon.yaml``.
 
 Your initial file should look something like this:
 
@@ -100,7 +100,7 @@ and should be left in place for initial testing but can be removed later
 if desired, as other Apps are added, App configuration is fully described in
 the `API doc <API.md>`__.
 
-To add an initial test app to match the configuration above, we need to first create an `apps` subdirectory under the conf directory. Then create a file in the `apps` dircetory called `hello.py`, and paste the followinginto it using your favorite text editor:
+To add an initial test app to match the configuration above, we need to first create an ``apps`` subdirectory under the conf directory. Then create a file in the `apps` directory called ``hello.py``, and paste the followinginto it using your favorite text editor:
 
 .. code:: python
 
