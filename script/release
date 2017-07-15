@@ -7,8 +7,13 @@ CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD`
 
 if [ "$CURRENT_BRANCH" != "master" ]
 then
-  echo "You have to be on the master branch to release."
-  exit 1
+  echo "Warning: Current branch is $CURRENT_BRANCH - continue?"
+  read -p "Warning: Current branch is $CURRENT_BRANCH - continue (y/n)? " -n 1 -r
+  echo    # (optional) move to a new line
+  if [[ ! $REPLY =~ ^[Yy]$ ]]
+  then
+    exit 1
+  fi
 fi
 
 rm -rf build
