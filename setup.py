@@ -39,7 +39,7 @@ setup(
     url='https://github.com/home-assistant/appdaemon.git',
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     include_package_data=True,
-    install_requires=REQUIREMENTS,
+    install_requires=REQUIRES,
     license='Apache License 2.0',
     zip_safe=False,
     keywords=['appdaemon', 'home', 'automation'],
