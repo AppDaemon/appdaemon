@@ -379,9 +379,7 @@ def do_every(period, f):
         t += conf.interval
         r = yield from f(t)
         if r is not None and r != t:
-            t = math.floor(ha.get_now_ts())
-            count = 0
-            t_ = math.floor(time.time())
+            t = r
 
 
 # noinspection PyBroadException,PyBroadException
