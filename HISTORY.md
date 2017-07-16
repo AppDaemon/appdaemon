@@ -1,6 +1,22 @@
 History
 =======
 
+2.0.5
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+- Change `convert_utc()` to use iso8601 library
+
+**Breaking Changes**
+
+None
+
+
 2.0.4
 -----
 
