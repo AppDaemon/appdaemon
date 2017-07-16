@@ -11,3 +11,4 @@ websocket-client
 yaml
 feedparser
 voluptuous
+iso8601

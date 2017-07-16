@@ -21,6 +21,7 @@ REQUIRES = [
     'pyyaml',
     'voluptuous',
     'feedparser',
+    'iso8601',
 ]
 
 setup(

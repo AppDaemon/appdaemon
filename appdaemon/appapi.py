@@ -8,6 +8,7 @@ import requests
 import inspect
 import json
 import copy
+import iso8601
 
 import appdaemon.homeassistant as ha
 
@@ -421,9 +422,7 @@ class AppDaemon:
     #
 
     def convert_utc(self, utc):
-        return datetime.datetime(
-            *map(int, re.split('[^\d]', utc)[:-1])
-        ) + datetime.timedelta(minutes=ha.get_tz_offset())
+        return iso8601.parse_date(utc)
 
     def sun_up(self):
         return conf.sun["next_rising"] > conf.sun["next_setting"]
