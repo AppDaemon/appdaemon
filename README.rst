@@ -322,7 +322,7 @@ following command to update your copy:
 
 .. code:: bash
 
-    $ sudo pip install --upgrade appdaemon
+    $ sudo pip3 install --upgrade appdaemon
 
 If you are using docker, refer to the steps in the tutorial.
 
