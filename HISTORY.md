@@ -8,7 +8,7 @@ History
 
 None
 
-**Fixes**
+- Fix a bug preventing an apps `terminate()` to not be called
 
 None
 
