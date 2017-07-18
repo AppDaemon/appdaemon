@@ -453,7 +453,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars, glo
 
 
 def latest_file(path):
-    late_file = datetime.datetime.fromtimestamp(0)
+    late_file = datetime.datetime.fromtimestamp(86400)
     for root, subdirs, files in os.walk(path):
         for file in files:
             mtime = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root, file)))
@@ -487,7 +487,7 @@ def compile_dash(name, skin, skindir, params):
             try:
                 mtime = os.path.getmtime(file)
             except OSError:
-                mtime = 0
+                mtime = 86400
             last_modified_date = datetime.datetime.fromtimestamp(mtime)
             if last_modified_date < last_compiled:
                 last_compiled = last_modified_date
