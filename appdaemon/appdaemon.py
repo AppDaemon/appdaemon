@@ -569,7 +569,7 @@ def clear_object(object_):
 
 
 def term_object(name):
-    if hasattr(conf.objects[name]["object"], "terminate"):
+    if name in conf.objects and hasattr(conf.objects[name]["object"], "terminate"):
         ha.log(conf.logger, "INFO", "Terminating Object {}".format(name))
         # Call terminate directly rather than via worker thread
         # so we know terminate has completed before we move on
