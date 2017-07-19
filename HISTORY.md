@@ -1,6 +1,21 @@
 History
 =======
 
+2.0.7
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 2.0.6
 -----
 
@@ -8,9 +23,10 @@ History
 
 None
 
-- Fix a bug preventing an apps `terminate()` to not be called
+**Fixes**
 
-None
+- Fix a bug causing an apps `terminate()` to not be called
+- Fixed a bug in label and text_sensor widgets
 
 **Breaking Changes**
 
