@@ -8,7 +8,8 @@ HADashboard is a dashboard for [Home Assistant](https://home-assistant.io/) that
 
 HADashboard is dependent upon AppDaemon. As a first step please refer to the [AppDaemon Documentation](README.md).
 
-When you have AppDaemon installed and running, configuration of the Dashboard is pretty simple. You just need to add a directive to the config file - `dash_url`.
+When you have AppDaemon installed and running, configuration of the Dashboard is pretty simple.
+You just need to add a directive to the config file - `dash_url`.
 
 This and the optional `dash_dir` directive should be in the top of the file under a new `HADashboard:` section.
 
@@ -26,7 +27,8 @@ HADashboard:
 
 Note that at this time only http is supported.
 
-By default, dashboards are searched for under the config directory in a sub directory called `dashboards`. Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
+By default, dashboards are searched for under the config directory in a sub directory called `dashboards`.
+Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
 
 e.g.:
 
@@ -35,7 +37,29 @@ HADashboard:
 dash_dir: /etc/appdaemon/dashboards
 ```
 
-When you have added those lines, restart AppDaemon and you will be ready to go. If you navigate to the top level, e.g. ```http://192.168.1.20:5050``` in the case above, you will see a welcome page with a list of configured dashboards. If you haven't yet configured any the list will be empty.
+Next, you will need to create the `dashboards` directive either under the conf directory, or wherever you specify with `dash_dir`.
+Once that is done, for testing purposes, create a file in the dashboards directory called `Hello.dash` and paste in the following:
+
+```yaml
+#
+# Main arguments, all optional
+#
+title: Hello Panel
+widget_dimensions: [120, 120]
+widget_margins: [5, 5]
+columns: 8
+
+label:
+    widget_type: label
+    text: Hello World
+
+layout:
+    - label(2x2)
+```
+
+When you have added the lines to the config and created the dashboards directory and test dashbboard, restart AppDaemon and you will be ready to go.
+If you navigate to the top level, e.g. ```http://192.168.1.20:5050``` in the case above, you will see a welcome page with a list of configured dashboards.
+If you haven't yet configured any the list will be empty.
 
 When you have created a dashboard you can navigate to it by going to ```http://192.168.1.20:5050/<Dashboard Name>```
 

@@ -11,6 +11,7 @@ None
 **Fixes**
 
 - Add quotes to times in examples.yaml - contributed by [Cecron](https://github.com/Cecron)
+- Fix python 3.6 issue with datetime.datetime.fromtimestamp() - contributed by [motir](https://github.com/motir)
 
 **Breaking Changes**
 
