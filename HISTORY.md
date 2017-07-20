@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-None
+- Fixed a bug in label and text_sensor widgets
 
 **Breaking Changes**
 
@@ -26,7 +26,6 @@ None
 **Fixes**
 
 - Fix a bug causing an apps `terminate()` to not be called
-- Fixed a bug in label and text_sensor widgets
 
 **Breaking Changes**
 
