@@ -25,7 +25,7 @@ Dark Day:
   start_time: sunrise
 Downstairs Night Light:
   class: MotionLights
-  constrain_end_time: 04:29:59
+  constrain_end_time: '04:29:59'
   constrain_input_select: input_select.house_mode,Night
   constrain_presence: anyone
   constrain_start_time: '20:00:00'
@@ -65,7 +65,7 @@ Grandfather:
   module: grandfather
   mute_if_home: device_tracker.dedb5e711a24415baaae5cf8e880d852
   player: media_player.living_room
-  start_time: 07:59:00
+  start_time: '07:59:00'
   volume: '0.5'
  Hardware Check:
   class: HWCheck
@@ -104,8 +104,8 @@ Occupancy Simulator:
   log: '1'
   module: occusim
   random_office_end: Night
-  random_office_maxduration: 00:30:00
-  random_office_minduration: 00:03:00
+  random_office_maxduration: '00:30:00'
+  random_office_minduration: '00:03:00'
   random_office_name: Evening Office
   random_office_number: '3'
   random_office_off_1: scene.office_off
@@ -113,25 +113,25 @@ Occupancy Simulator:
   random_office_start: Evening
   step_evening_name: Evening
   step_evening_start: sunset - 00:45:00
-  step_lightsout_end_offset: 01:00:00
+  step_lightsout_end_offset: '01:00:00'
   step_lightsout_name: Lights Out
   step_lightsout_off_1: scene.bedroom_off
   step_lightsout_relative: Night
-  step_lightsout_start_offset: 00:05:00
+  step_lightsout_start_offset: '00:05:00'
   step_morning_days: mon,tue,wed,thu,fri
-  step_morning_end: 06:00:00
+  step_morning_end: '06:00:00'
   step_morning_name: Morning
   step_morning_on_1: event.MODE_CHANGE,mode
-  step_morning_start: 05:30:00
+  step_morning_start: '05:30:00'
   step_night_end: '22:30:00'
   step_night_name: Night
   step_night_on_1: event.MODE_CHANGE,mode
   step_night_start: '21:30:00'
   step_upstairs_hall_off_1: scene.upstairs_hall_off
-  step_upstairs_hall_off_end_offset: 00:05:00
+  step_upstairs_hall_off_end_offset: '00:05:00'
   step_upstairs_hall_off_name: Upstairs Hall Off
   step_upstairs_hall_off_relative: Night
-  step_upstairs_hall_off_start_offset: 00:01:00
+  step_upstairs_hall_off_start_offset: '00:01:00'
   test: '0'
 Outside Lights:
   class: OutsideLights
@@ -169,8 +169,8 @@ Smart Heat:
   evening_on: '17:00:00'
   input_select: input_select.house_mode,Morning,Day,Evening
   module: smart_heat
-  morning_on_week: 05:30:00
-  morning_on_weekend: 06:30:00
+  morning_on_week: '05:30:00'
+  morning_on_weekend: '06:30:00'
   off_temp: '60'
   on_temp: '70'
   switch: input_boolean.heating
