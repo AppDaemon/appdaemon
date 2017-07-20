@@ -1,6 +1,22 @@
 History
 =======
 
+2.0.8
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+- Add quotes to times in examples.yaml - contributed by [Cecron](https://github.com/Cecron)
+
+**Breaking Changes**
+
+None
+
+
 2.0.7
 -----
 
