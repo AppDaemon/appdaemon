@@ -515,7 +515,6 @@ def compile_dash(name, skin, skindir, params):
         return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
 
     params = dash
-    params["stream_url"] = conf.stream_url
     params["base_url"] = conf.base_url
     params["name"] = name.lower()
     params["skin"] = skin

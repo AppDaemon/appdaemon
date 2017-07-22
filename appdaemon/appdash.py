@@ -38,7 +38,6 @@ def set_paths():
     conf.fonts_dir = os.path.join(conf.dash_dir, "assets", "fonts")
     conf.images_dir = os.path.join(conf.dash_dir, "assets", "images")
     conf.base_url = ""
-    conf.stream_url = "ws://{}:{}/stream".format(conf.dash_host, conf.dash_port)
 
 
 # Views
@@ -49,7 +48,7 @@ def set_paths():
 def list_dash(request):
     completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.list_dashes)])
     dash_list = list(completed)[0].result()
-    params = {"dash_list": dash_list, "stream_url": conf.stream_url}
+    params = {"dash_list": dash_list}
     params["main"] = "1"
     return params
 
