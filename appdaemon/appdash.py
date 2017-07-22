@@ -37,7 +37,7 @@ def set_paths():
     conf.compiled_css_dir = os.path.join(conf.compile_dir, "css")
     conf.fonts_dir = os.path.join(conf.dash_dir, "assets", "fonts")
     conf.images_dir = os.path.join(conf.dash_dir, "assets", "images")
-    conf.base_url = "http://{}:{}".format(conf.dash_host, conf.dash_port)
+    conf.base_url = ""
     conf.stream_url = "ws://{}:{}/stream".format(conf.dash_host, conf.dash_port)
 
 
