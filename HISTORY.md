@@ -6,7 +6,7 @@ History
 
 **Features**
 
-None
+- Add step parameter to media player
 
 **Fixes**
 

@@ -18,7 +18,15 @@ function basemedia(widget_id, url, skin, parameters)
 
     self.min_level = 0;
     self.max_level = 1;
-    self.step = 0.1;
+
+    if ("step" in self.parameters)
+    {
+        self.step = self.parameters.step / 100;
+    }
+    else
+    {
+        self.step = 0.1;
+    }
 
     var callbacks =
         [
@@ -142,7 +150,7 @@ function basemedia(widget_id, url, skin, parameters)
 
     function OnRaiseLevelClick(self)
     {
-        self.level = self.level + self.step;
+        self.level = Math.round((self.level + self.step) * 100) / 100;
         if (self.level > self.max_level)
         {
             self.level = self.max_level
@@ -156,7 +164,7 @@ function basemedia(widget_id, url, skin, parameters)
 
     function OnLowerLevelClick(self)
     {
-        self.level = self.level - self.step;
+        self.level = Math.round((self.level - self.step) * 100) / 100;
         if (self.level < self.min_level)
         {
             self.level = self.min_level
@@ -205,7 +213,7 @@ function basemedia(widget_id, url, skin, parameters)
         }
         if ("volume_level" in state.attributes)
         {
-            self.set_field(self, "level", state.attributes.volume_level * 100)
+            self.set_field(self, "level", Math.round(state.attributes.volume_level * 100))
         }
         else
         {

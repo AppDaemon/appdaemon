@@ -1091,7 +1091,8 @@ A widget to monitor and contol a media player
 
 - `title` - the title displayed on the tile
 - `title2` - a second line of title text 
-- `truncate_name` - if specified, the name of the media will be truncated to this length. 
+- `truncate_name` - if specified, the name of the media will be truncated to this length.
+- `step` - the step (in percent) that the volume buttons will use. (default, 10%)
 
 ### Cosmetic Arguments
    
