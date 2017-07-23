@@ -141,6 +141,7 @@ These are all fairly self explanatory:
 - `widget_dimensions` - the unit height and width of the individual widgets in pixels. Note that the absolute size is not too important as on tablets at least the browser will scale the page to fit. What is more important is the aspect ratio of the widgets as this will affect whether or not the dashboard completely fills the tablets screen. The default is [120, 120] (width, height). This works well for a regular iPad.
 - `widget_size` - the number of grid blocks each widget will be by default if not specified
 - `widget_margins` - the size of blank space between widgets.
+- `rows` - the total number of rows in the dashboard. This will help with spacing, but is optional for dashboards with fewer than 15 rows
 - `columns` - the number of columns the dasboard will have.
 - `global_parameters` - a list of parameters that will be applied to every widget. If the widget does not accept that parameter it will be ignored. Global parameters can be overriden at the widget definition if desired. This is useful for instance if you want to use commas as decimals for all of your widgets. This will also apply to widgets defined with just their entity ids so they will not require a formal widget definition just to change the decimal separator.
 
@@ -520,6 +521,44 @@ use_hass_icon: 1
 ```
 
 This can also be set at the dashboard level as a global parameter.
+
+# External Commands
+
+The dashboard can accept command from external systems to prompt actions, such as navigation to different pages. These can be achieved through a variety of means:
+
+- AppDaemon API Calls
+- HASS Automations/Scripts
+- Alexa Intents
+
+The mechanism use for this is HASS custom events. AppDaemon has it's own API calls to handle these events, for further details see [API.md](API.md). The custom event name is `hadashboard` and the dashboard will respond to various commands with associated data.
+
+To create a suitable custom event within a HASS automation, script or Alexa Intent, simply define the event and associated data as follows (this is a script example):
+
+```yaml
+alias: Navigate
+sequence:
+- event: hadashboard
+  event_data:
+    command: navigate
+    timeout: 10
+    target: SensorPanel
+```
+
+The current list of commands supported and associated arguments are as follows:
+
+## navigate
+
+Force any connected dashboards to navigate to a new page
+
+### Arguments
+
+`target` - Name of the new Dashboard to navigate to, e.g. `SensorPanel` - this is not a URL.
+`timeout` - length of time to stay on the new dashboard before returning to the original. This argument is optional and if not specified, the navigation will be permanent.
+
+Note that if there is a click or touch on the new panel before the timeout expires, the timeout will be cancelled.
+
+`timeout` - length of time to stay on the new dashboard
+`return` - dashboard to return to after the timeout has elapsed.
 
 # Widget Reference
 
@@ -1156,6 +1195,13 @@ A widget to navgigate to a new URL, intended to be used for switching between da
 - `args` - a list of arguments.
 - `skin` - Skin to use with the new screen (for HADash URLs only)
 
+For an arbitary URL, Args can be anything. When specifying a dashboard parameter, args have the following meaning:
+
+`timeout` - length of time to stay on the new dashboard
+`return` - dashboard to return to after the timeout has elapsed.
+
+Both `timeout` and `return` must be specified.
+
 If adding arguments use the args variable do not append them to the URL or you may break skinning. Add arguments like this:
 
 ```yaml
@@ -1167,6 +1213,20 @@ some_widget:
       arg1: fred
       arg2: jim
 ```
+
+or:
+
+```yaml
+some_widget:
+    widget_type: navigate
+    title: Sensors
+    dashboard: Sensors
+    args:
+      timeout: 10
+      return: Main
+```
+
+
 
 ### Cosmetic Arguments
    

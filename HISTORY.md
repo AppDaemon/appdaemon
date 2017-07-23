@@ -7,6 +7,9 @@ History
 **Features**
 
 - Add step parameter to media player
+- Add `row` parameter to dashboard
+- Add ability to set timeout and return on dash navigation
+- Add ability to force dashboard page changes from Apps, Alexa and HASS Automations
 
 **Fixes**
 

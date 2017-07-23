@@ -63,13 +63,13 @@ function javascript(widget_id, url, skin, parameters)
         {
             url = "/" + parameters.dashboard
         }
-        i = 0
+        var i = 0;
+
         if ("args" in parameters)
         {
             
             url = url + "?"
             
-            i = 0
             for (var key in parameters.args)
             {
                 if (i != 0)

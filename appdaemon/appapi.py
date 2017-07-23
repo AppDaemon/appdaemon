@@ -597,6 +597,12 @@ class AppDaemon:
     # Other
     #
 
+    def dash_navigate(self, target, timeout = -1):
+        if timeout == -1:
+            self.fire_event("hadashboard", command = "navigate", target = target)
+        else:
+            self.fire_event("hadashboard", command = "navigate", target = target, timeout = timeout)
+
     def get_scheduler_entries(self):
         schedule = {}
         for name in conf.schedule.keys():

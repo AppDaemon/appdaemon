@@ -1,5 +1,10 @@
 $(function(){ //DOM Ready
 
+    function navigate(url)
+    {
+        window.location.href = url;
+    }
+
     $(document).attr("title", "{{title}}");
     content_width = ({{widget_dimensions[0]}} + {{widget_margins[0]}}) * {{columns}} + {{widget_margins[0]}}
     $('.gridster').width(content_width)
@@ -7,6 +12,7 @@ $(function(){ //DOM Ready
         widget_margins: [{{ widget_margins[0] }}, {{ widget_margins[1] }}],
         widget_base_dimensions: [{{ widget_dimensions[0] }}, {{ widget_dimensions[1] }}],
         avoid_overlapped_widgets: true,
+        max_rows: {% if rows is defined %}{{ rows }}{% else %}15{% endif %},
         max_size_x: {{columns}},
         shift_widgets_up: false
     }).data('gridster').disable();
@@ -24,7 +30,50 @@ $(function(){ //DOM Ready
     {% for widget in widgets%}
         widgets["{{widget.id}}"] = new {{widget.parameters.widget_type}}("{{widget.id}}", "{{ base_url }}", "{{skin}}", {{widget.parameters}})
     {% endfor %}
-    
+
+    // Setup click handler to cancel timeout navigations
+
+    $( ".gridster" ).click(function(){
+        clearTimeout(myTimeout);
+    });
+
+    // Set up timeout
+
+    var myTimeout
+
+    if (location.search != "")
+    {
+        var query = location.search.substr(1);
+        var result = {};
+        query.split("&").forEach(function(part) {
+        var item = part.split("=");
+        result[item[0]] = decodeURIComponent(item[1]);
+        });
+
+        if ("timeout" in result && "return" in result)
+        {
+            url = result.return
+            argcount = 0
+            for (arg in result)
+            {
+                if (arg != "timeout" && arg != "return")
+                {
+                    if (argcount == 0)
+                    {
+                        url += "?";
+                    }
+                    else
+                    {
+                        url += "?";
+                    }
+                    argcount ++;
+                    url += arg + "=" + result[arg]
+                }
+            }
+            myTimeout = setTimeout(function() { navigate(url); }, result.timeout * 1000);
+        }
+    }
+
     // Start listening for HA Events
     if (location.protocol == 'https:')
     {

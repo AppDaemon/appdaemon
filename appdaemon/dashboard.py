@@ -376,7 +376,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars, glo
 
     dash["widgets"] = []
     dash["errors"] = []
-    valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size"]
+    valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size", "rows"]
     layouts = []
 
     if level > conf.max_include_depth:

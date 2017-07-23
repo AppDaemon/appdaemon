@@ -10,11 +10,34 @@ function ha_status(stream, dash, widgets)
 
     webSocket.onmessage = function (event) 
     {
+        var data = JSON.parse(event.data)
+        if (data.event_type == "hadashboard")
+        {
+            if (data.data.command == "navigate")
+            {
+                var timeout_params = "";
+                if ("timeout" in data.data)
+                {
+                    var timeout = data.data.timeout
+                    if (location.search == "")
+                    {
+                        timeout_params = "?";
+                    }
+                    else
+                    {
+                        timeout_params = "&";
+                    }
+                    timeout_params += "timeout=" + timeout + "&return=" + location.pathname;
+                }
+                console.log(timeout_params)
+                window.location.href = data.data.target + location.search + timeout_params;
+            }
+        }
         Object.keys(widgets).forEach(function (key)
         {
             if ("on_ha_data" in widgets[key])
             {
-                widgets[key].on_ha_data(JSON.parse(event.data));
+                widgets[key].on_ha_data(data);
             }
         })
     };
@@ -168,7 +191,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         elen = monitored_entities.length;
         if (data.event_type == "state_changed")
         {
-            for (i=0;i < elen;i++)
+            for (i = 0; i < elen; i++)
             {
                 if (monitored_entities[i].entity == entity)
                 {

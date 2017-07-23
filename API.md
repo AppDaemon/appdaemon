@@ -1680,6 +1680,42 @@ This can be triggered with a call to AppDaemon's fire_event() as follows:
 self.fire_event("MODE_CHANGE", mode = "Day")
 ```
 
+### Use of Events for Interacting with HADasboard
+
+HADashboard listens for certain events. An event type of "hadashboard" will trigger certain actions such as page navigation. For more information see [DASHBOARD.md](DASHBOARD.md)
+
+AppDaemon provides convenience funtions to assist with this.
+
+### dash_navigate()
+
+Fire an event on the HomeAssistant bus, for other components to hear.
+
+#### Synopsis
+
+```python
+dash_navigate(self, target, timeout)
+```
+
+#### Returns
+
+None.
+
+#### Parameters
+
+##### target
+
+Name of the dashboard to navigate to - must be just the name, not a URL, e.g. `MainPanel`
+
+##### timeout
+
+Amount of time that the dash will show the target before returning to the previous screen. If left out, the target will remain displayed.
+
+#### Examples
+
+```python
+self.dash_navigate("Security", 10)
+```
+
 ## Presence
 
 Presence in Home Assistant is tracked using Device Trackers. The state of all device trackers can be found using the `get_state()` call, however AppDaemon provides several convenience functions to make this easier.
