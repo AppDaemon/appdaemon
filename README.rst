@@ -242,11 +242,11 @@ When using the legacy configuration style, there are no ``HASS`` or
     class = HelloWorld
 
 If you want to move from the legacy ``ini`` style of configuration to
-YAML, AppDaemon is able to do this for you. From the command line run:
+YAML, AppDaemon is able to do this for you. Just run AppDaemon providing the configuration directory using the `-c` option as usual and specify the `--convertcfg` flag. From the command line run:
 
 .. code:: bash
 
-    $ appdaemon -c CONFIG --convertcfg
+    $ appdaemon -c YOUR_CONFIG_DIR --convertcfg
     Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
     $
 

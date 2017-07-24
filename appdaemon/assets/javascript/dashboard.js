@@ -195,6 +195,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
             {
                 if (monitored_entities[i].entity == entity)
                 {
+                    state = data.data.new_state.state;
                     this.entity_state[entity] = data.data.new_state;
                     monitored_entities[i].update(this, data.data.new_state)
                 }
