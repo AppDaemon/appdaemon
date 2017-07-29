@@ -376,7 +376,7 @@ The value `all` for attribute has special significance and will return the entir
 
 ```python
 # Return state for the entire system
-state: self.get_state()
+state = self.get_state()
 
 # Return state for all switches in the system
 state = self.get_state("switch")
