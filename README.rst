@@ -7,8 +7,8 @@ Assistant <https://home-assistant.io/>`__ home automation software. As
 of release 2,0,0 it also provides a configurable dashboard (HADashboard)
 suitable for wall mounted tablets.
 
-[Changelog](./CHANGELOG.md)
 
+ `Changelog <CHANGELOG.md>`__
 
 Installation
 ============
