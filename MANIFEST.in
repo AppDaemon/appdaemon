@@ -1,4 +1,4 @@
-include HISTORY.md
+include CHANGELOG.md
 include LICENSE.md
 include README.md
 include TUTORIAL.md
