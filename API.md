@@ -156,7 +156,7 @@ entities:
 Which can be accessed as a list in python with:
 
 ```python
-for entity in self.args.entities:
+for entity in self.args['entities']:
   do some stuff
 ```
 
