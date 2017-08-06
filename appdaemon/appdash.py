@@ -38,6 +38,7 @@ def set_paths():
     conf.compiled_css_dir = os.path.join(conf.compile_dir, "css")
     conf.fonts_dir = os.path.join(conf.dash_dir, "assets", "fonts")
     conf.images_dir = os.path.join(conf.dash_dir, "assets", "images")
+    conf.sounds_dir = os.path.join(conf.dash_dir, "assets", "sounds")
     conf.base_url = "http://{}:{}".format(conf.dash_host, conf.dash_port)
     conf.stream_url = "ws://{}:{}/stream".format(conf.dash_host, conf.dash_port)
 
@@ -305,6 +306,8 @@ def setup_routes():
 
     # Add static path for images
     app.router.add_static('/images', conf.images_dir)
+
+    app.router.add_static('/sounds', conf.sounds_dir)
 
 
 # Setup

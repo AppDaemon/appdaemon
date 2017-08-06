@@ -1,0 +1,30 @@
+.widget-basenotification-{{id}} {
+	position: fixed;
+	width: 90%;
+	height: 90%;
+	top: 5%;
+	left: 5%;
+	z-index: 4200;
+	background-color: #f00;
+	border: 1px solid white;
+	animation: pulse-basenotification-{{id}} 2s infinite;
+}
+
+@keyframes pulse-basenotification-{{id}} {
+	0% {
+		background-color: #f00;
+	}
+	50% {
+		background-color: #800;
+	}
+}
+
+.widget-basenotification-{{id}} .dismiss {
+	border: 2px solid white;
+	border-radius: 5px;
+	padding: 20px;
+	display: inline-block;
+	margin-top: 40px;
+	cursor: pointer;
+	font-size: 200%;
+}
