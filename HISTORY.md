@@ -6,7 +6,10 @@ History
 
 **Features**
 
-None
+- Add a reference to official `vkorn` repository for hass.io
+- Add the ability to access hass state as App attributes
+- Add RESTFul API Support for Apps
+- Add Alexa Helper functions
 
 **Fixes**
 

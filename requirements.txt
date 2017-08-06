@@ -4,7 +4,7 @@ sseclient>=0.0.12
 configparser>=3.5.0
 astral>=1.2
 requests>=2.6.0
-aiohttp
+aiohttp>=2.2.3
 jinja2
 aiohttp_jinja2
 websocket-client

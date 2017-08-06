@@ -14,6 +14,43 @@ import appdaemon.homeassistant as ha
 
 reading_messages = False
 
+class AttrDict(dict):
+    """ Dictionary subclass whose entries can be accessed by attributes
+        (as well as normally).
+    """
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    @staticmethod
+    def from_nested_dict(data):
+        """ Construct nested AttrDicts from nested dictionaries. """
+        if not isinstance(data, dict):
+            return data
+        else:
+            return AttrDict({key: AttrDict.from_nested_dict(data[key])
+                                for key in data})
+
+
+class StateAttrs(dict):
+
+    def __init__(self, dict):
+        device_dict = {}
+        devices = set()
+        for entity in dict:
+            if "." in entity:
+                device, name = entity.split(".")
+                devices.add(device)
+        for device in devices:
+            entity_dict = {}
+            for entity in dict:
+                if "." in entity:
+                    thisdevice, name = entity.split(".")
+                    if device == thisdevice:
+                        entity_dict[name] = dict[entity]
+            device_dict[device] = AttrDict.from_nested_dict(entity_dict)
+
+        self.__dict__ = device_dict
 
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
@@ -25,11 +62,19 @@ def hass_check(func):
 
     return (func_wrapper)
 
+class entities:
+
+    def __get__(self, instance, owner):
+        with conf.ha_state_lock:
+            state = StateAttrs(conf.ha_state)
+        return state
 
 class AppDaemon:
     #
     # Internal
     #
+
+    entities = entities()
 
     def __init__(self, name, logger, error, args, global_vars):
         self.name = name
@@ -39,6 +84,10 @@ class AppDaemon:
         self.global_vars = global_vars
         self.config = conf.config
         self.ha_config = conf.ha_config
+
+    #
+    # Define an entities class as a descriptor to enable read only access of HASS state
+    #
 
     def _check_entity(self, entity):
         if "." not in entity:
@@ -98,6 +147,53 @@ class AppDaemon:
                 else:
                     return entity_id
             return None
+
+    #
+    # Alexa
+    #
+
+    def get_alexa_intent(self, data):
+        if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
+            return(data["request"]["intent"]["name"])
+        else:
+            return None
+
+    def get_alexa_error(self, data):
+        if "request" in data and "error" in data["request"] and "message" in data["request"]["error"]:
+            return(data["request"]["error"]["message"])
+        else:
+            return None
+
+    def format_alexa_response(self, speech = None, card = None, title = None):
+
+        response = \
+           {
+                    "shouldEndSession": True
+           }
+
+        if speech is not None:
+           response["outputSpeech"] = \
+           {
+                "type": "PlainText",
+                "text": speech
+                   }
+
+        if card is not None:
+            response["card"] = \
+            {
+                "type": "Simple",
+                "title": title,
+                "content": card
+            }
+
+        speech = \
+        {
+            "version": "1.0",
+            "response": response,
+            "sessionAttributes": {}
+        }
+
+        return speech
 
     #
     # Device Trackers

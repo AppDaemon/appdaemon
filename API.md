@@ -342,6 +342,20 @@ Also bear in mind that some attributes such as brightness for a light, will not 
 
 In most cases, the attribute `state` has the most important value in it, e.g. for a light or switch this will be `on` or `off`, for a sensor it will be the value of that sensor. Many of the AppDaemon API calls and callbacks will implicitly return the value of state unless told to do otherwise.
 
+Although the use of `get_state()` (below) is still supported, as of AppDaemon 2.0.9 it is easier to access HASS state directly as an attribute of the App itself, under the `entities` attribute.
+
+For instance, to access the state of a binary sensor, you could use:
+
+```python
+sensor_state = self.entities.binary_sensor.downstairs_sensor.state
+```
+
+Similarly, accessing any of the entity attributes is also possible:
+
+```python
+name = self.entities.binary_sensor.downstairs_sensor.attributes.friendly_name
+```
+
 ### get_state()
 
 #### Synopsis

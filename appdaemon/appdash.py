@@ -1,18 +1,19 @@
 import asyncio
-from aiohttp import web
-import aiohttp
-import aiohttp_jinja2
-import jinja2
 import json
 import os
-import traceback
 import re
-import feedparser
 import time
+import traceback
 
-import appdaemon.homeassistant as ha
+import aiohttp
+import aiohttp_jinja2
+import feedparser
+import jinja2
+from aiohttp import web
+
 import appdaemon.conf as conf
 import appdaemon.dashboard as dashboard
+import appdaemon.homeassistant as ha
 
 # Setup WS handler
 
@@ -160,6 +161,28 @@ def get_state(request):
 
     return web.json_response({"state": state})
 
+@asyncio.coroutine
+def call_api(request):
+    args = yield from request.json()
+    app = request.match_info.get('app')
+
+    try:
+        ret = yield from ha.dispatch_app_by_name(app, args)
+    except:
+        if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
+            # When explicitly logging to stdout and stderr, suppress
+            # log messages about writing an error (since they show up anyway)
+            ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
+        ha.log(conf.error, "WARNING", '-' * 60)
+        ha.log(conf.error, "WARNING", "Unexpected error during API call")
+        ha.log(conf.error, "WARNING", '-' * 60)
+        ha.log(conf.error, "WARNING", traceback.format_exc())
+        ha.log(conf.error, "WARNING", '-' * 60)
+
+    if ret == None:
+        return web.Response(status=404)
+    else:
+        return web.json_response(ret)
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
@@ -254,6 +277,7 @@ def setup_routes():
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)
+    app.router.add_post('/api/appdaemon/{app}', call_api)
     app.router.add_get('/', list_dash)
     app.router.add_get('/{name}', load_dash)
 

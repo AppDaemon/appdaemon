@@ -10,7 +10,7 @@ suitable for wall mounted tablets.
 Installation
 ============
 
-Installation is either by pip3 or Docker.
+Installation is either by pip3 or Docker. There is also an official `hass.io` build.
 
 Install and Run using Docker
 ============================
@@ -26,6 +26,11 @@ Before running ``AppDaemon`` you will need to install the package:
 .. code:: bash
 
     $ sudo pip3 install appdaemon
+
+Install Using hass.io
+=====================
+
+There is an official hass.io addon for AppDaemon maintained by [vkorn](https://community.home-assistant.io/u/vkorn/summary). The repository is [here](https://github.com/vkorn/hassio-addons/tree/master/appdaemon).
 
 Configuration
 =============

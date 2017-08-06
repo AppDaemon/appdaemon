@@ -50,7 +50,6 @@ appapi.reading_messages = False
 inits = {}
 ws = None
 
-
 def init_sun():
     latitude = conf.latitude
     longitude = conf.longitude
@@ -379,7 +378,7 @@ def do_every(period, f):
         t += conf.interval
         r = yield from f(t)
         if r is not None and r != t:
-            print("r: {}, t: {}".format(r,t))
+            #print("r: {}, t: {}".format(r,t))
             t = r
             t_ = r
             count = 0
