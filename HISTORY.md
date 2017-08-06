@@ -1,7 +1,7 @@
 History
 =======
 
-2.0.9
+2.1.0
 -----
 
 **Features**
@@ -10,10 +10,12 @@ History
 - Add the ability to access hass state as App attributes
 - Add RESTFul API Support for Apps
 - Add Alexa Helper functions
+- Update Material Design Icons to 1.9.32 - contributed by [minchick](https://github.com/minchik)
 
 **Fixes**
 
-None
+- Toggle area fixes submitted by [azeroth12](https://github.com/azeroth12) and [minchick](https://github.com/minchik)
+- Typo fixes submitted by
 
 **Breaking Changes**
 
