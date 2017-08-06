@@ -15,7 +15,7 @@ History
 **Fixes**
 
 - Toggle area fixes submitted by [azeroth12](https://github.com/azeroth12) and [minchick](https://github.com/minchik)
-- Typo fixes submitted by
+- Typo fixes submitted by [Aaron Linville](https://github.com/linville), [vrs01](https://github.com/vrs01), [Gabor SZOLLOSI](https://github.com/szogi), [Ken Davidson](https://github.com/kwdavidson),
 
 **Breaking Changes**
 
