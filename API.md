@@ -2361,3 +2361,276 @@ When AppDaemon is unable to connect initially with Home Assistant, it will hold 
 - Changes to Apps will not force a reload until HASS is reconnectec
 
 When a connection to HASS is reestablished, all Apps will be restarted and their initialize() routines will be called.
+
+## RESTFul API Support
+
+AppDaemon supports a simple RESTFul API to enable arbitary HTTP connections to pass data to Apps and trigger actions.
+API Calls must use a content type of `application/json`, and the response will be JSON encoded. At this time, to use the API, you must have HADashboard conifgured as they use a common codebase. To call into a specific App, construct a URL, use the regular HADashboard URL, and append `/api/appdaemon`, then add the name of the app (as configured in `appdaemon.yaml`) on the end, for example:
+
+```
+http://192.168.1.20:5050/api/appdaemon/api
+```
+
+This URL will call into an App named `api`, with a config like the one below:
+
+```yaml
+api:
+  class: API
+  module: api
+```
+
+Within the App, AppDaemon is expecting to find a methon in the class called `api_call()` - this method will be invoked by a succesful API call into AppDaemon, and the request data will be passed into the function. Note that for a pure API App, there is no need to do anything in the `initialize()` funciton, although it must exist. Here is an example of a simple hello world API App:
+
+```python
+import appdaemon.appapi as appapi
+
+class API(appapi.AppDaemon):
+
+    def initialize(self):
+        pass
+
+    def api_call(self, data):
+
+        self.log(data)
+
+        response = {"message": "Hello World"}
+
+        return response, 200
+```
+
+The response must be a pythoin structure that can be mapped to JSON, or can be blank, in which case specify `""` for the response. You should also return an HTML status code, that will be reported back to the caller, `200` should be used for an OK response.
+
+As well as any user specified code, the API can return the following codes:
+
+- 400 - JSON Decode Error
+- 404 - App not found
+
+Below is an example of using curl to call into the App shown above:
+
+```bash
+hass@Pegasus:~$ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World Test"}'
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Length: 26
+Date: Sun, 06 Aug 2017 16:38:14 GMT
+Server: Python/3.5 aiohttp/2.2.3
+
+{"message": "Hello World"}hass@Pegasus:~$
+```
+
+## Alexa Support
+
+AppDaemon is able to use the API support to accept calls from Alexa. Amazon Alexa calls can be directed to AppDaemon and arrive as JSON encoded requests. AppDaemon provides several helper functions to assist in understanding the request and responding appropriately.
+Since Alexa only allows one URL per skill, the mapping will be 1:1 between skills and Apps.
+
+When configuring Alexa support for AppDaemon some care is needed. If as most people are, you are using SSL to access Home Assistant, there is contention for use of the SSL port (443) since Alexa does not allow you to change this. This means that if you want to use AppDaemon with SSL, you will not be able to use Home Assistant remotely over SSL. The way around this is to use NGINX to remap the specific AppDamon API URL to a different port, by adding something like this to the config:
+
+```
+        location /api/appdaemon/ {
+        allow all;
+        proxy_pass http://localhost:5151;
+        proxy_set_header Host $host;
+        proxy_redirect http:// http://;
+      }
+```
+
+Here we see the default port being remapped to port 5151 which is where AppDamon is listening in my setup.
+
+Since each individual Skill has it's own URL it is possible to have different skills for Home Assitant and AppDaemon.
+
+## Alexa Helper Functions
+
+The Alexa helper functions
+
+### get_alexa_intent()
+
+Takes an Alexa request and extracts the Intent.
+
+#### Synopsis
+
+```python
+intent = get_alexa_intent(data)
+```
+
+#### Returns
+
+A text representation of the Intent, or `None` if the data doesn not contain an intent.
+
+#### Parameters
+
+##### data
+
+The incoming request from Alexa
+
+#### Examples
+
+```python
+intent = get_alexa_intent(data)
+```
+
+### get_alexa_error()
+
+Takes an Alexa request and extracts the error if any.
+
+#### Synopsis
+
+```python
+error = self.get_alexa_error(data)
+```
+
+#### Returns
+
+A text representation of the error, or `None` if the data doesn not contain an error.
+
+#### Parameters
+
+##### data
+
+The incoming request from Alexa
+
+#### Examples
+
+```python
+error = self.get_alexa_error(data)
+```
+
+### format_alexa_response()
+
+Takes input data from the App and formats it as a response that Alexa will understand.
+
+#### Synopsis
+
+```python
+self.format_alexa_response(speech = speech, card = card, title = title)
+```
+
+#### Returns
+
+A python structure suitable to be returned back as the result of the Alexa API call.
+
+#### Parameters
+
+##### speech
+
+The desirted spoken response from Alexa
+
+##### card
+
+The text of the card to be shown by the Alexa phone or tablet App (as distinct from the AppDaemon Alexa App)
+
+##### title
+
+The title of the card
+
+#### Examples
+
+```python
+response = self.format_alexa_response(speech = "Hellow World", card = "This is a card", title = "Card Title)
+```
+
+## Putting it together in an App
+
+The Alexa App is basically just a standard API App that uses Alexa helper functions to understand the incoming request and format a response to be sent back to Amazon, to describe the spoken resonse and card for Alexa.
+
+Here is a sample Alexa App that can be extended for whatever intents you want to configure.
+
+```python
+import appdaemon.appapi as appapi
+import random
+
+class Alexa(appapi.AppDaemon):
+
+    def initialize(self):
+        pass
+
+    def api_call(self, data):
+        intent = self.get_alexa_intent(data)
+
+        if intent is None:
+            self.log("Alexa error encountered: {}".format(self.get_alexa_error(data)))
+            return
+
+        intents = {
+            "StatusIntent": self.StatusIntent,
+            "LocateAndrewIntent": self.LocateAndrewIntent,
+            "LocateWendyIntent": self.LocateWendyIntent,
+            "LocateJackIntent": self.LocateJackIntent,
+        }
+
+        if intent in intents:
+            speech, card, title = intents[intent](data)
+            response = self.format_alexa_response(speech = speech, card = card, title = title)
+        else:
+            response = self.format_alexa_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
+
+        self.log("Recieved Alexa request: {}, answering: {}".format(intent, speech))
+
+        return response
+
+    def StatusIntent(self, data):
+
+        response = self.HouseStatus()
+
+        return response, response, "House Status"
+
+    def LocateAndrewIntent(self, data):
+        response = self.Andrew()
+        return response, response, "Where is Andrew?"
+
+    def LocateWendyIntent(self, data):
+        response = self.Wendy()
+        return response, response, "Where is Wendy?"
+
+    def LocateJackIntent(self, data):
+        response = self.Jack()
+        return response, response, "Where is Jack?"
+
+    def HouseStatus(self):
+
+        status = self.Heat()
+        status += "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
+        status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
+        status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
+        status += self.Garage()
+        status += self.Wendy()
+        status += self.Andrew()
+        status += self.Jack()
+
+        return status
+
+    def Wendy(self):
+        if self.entities.sensor.wendy_tracker.state == "home":
+            status = "Wendy is home,"
+        else:
+            status = "Wendy is away,"
+
+        return status
+
+    def Andrew(self):
+        if self.entities.sensor.andrew_tracker.state == "home":
+            status = "Andrew is home,"
+        else:
+            status = "Andrew is away,"
+
+        return status
+
+    def Jack(self):
+        responses = [
+            "Jack is asleep on his chair",
+            "Jack just went out bowling with his kitty friends",
+            "Jack is in the hall cupboard",
+            "Jack is on the back of the den sofa",
+            "Jack is on the bed",
+            "Jack just stole a spot on daddy's chair",
+            "Jack is in the kitchen looking out of the window",
+            "Jack is looking out of the front door",
+            "Jack is on the windowsill behind the bed",
+            "Jack is out checking on his clown suit",
+            "Jack is eating his treats",
+            "Jack just went out for a walk in the neigbourhood",
+            "Jack is by his bowl waiting for treats"
+        ]
+
+        return random.choice(responses)
+
+```

@@ -10,6 +10,7 @@ import aiohttp_jinja2
 import feedparser
 import jinja2
 from aiohttp import web
+import ssl
 
 import appdaemon.conf as conf
 import appdaemon.dashboard as dashboard
@@ -160,13 +161,33 @@ def get_state(request):
 
     return web.json_response({"state": state})
 
+def get_response(code, error):
+    res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
+    return res
+
 @asyncio.coroutine
 def call_api(request):
-    args = yield from request.json()
     app = request.match_info.get('app')
 
+    if conf.ad_key is not None:
+        if ("x-ad-access" not in request.headers) or (request.headers["x-ad-access"] != conf.ad_key):
+            code = 401
+            response = "Unauthorized"
+            res = get_response(code, response)
+            ha.log(conf.logger, "INFO", "API Call to {}: status: {} {}".format(app, code, response))
+            return web.Response(body=res, status=code)
+
     try:
-        ret = yield from ha.dispatch_app_by_name(app, args)
+        args = yield from request.json()
+    except json.decoder.JSONDecodeError:
+        code = 400
+        response = "JSON Decode Error"
+        res = get_response(code, response)
+        ha.log(conf.logger, "INFO", "API Call to {}: status: {} {}".format(app, code, response))
+        return web.Response(body = res, status = code)
+
+    try:
+        ret, code = yield from ha.dispatch_app_by_name(app, args)
     except:
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
             # When explicitly logging to stdout and stderr, suppress
@@ -178,10 +199,17 @@ def call_api(request):
         ha.log(conf.error, "WARNING", traceback.format_exc())
         ha.log(conf.error, "WARNING", '-' * 60)
 
-    if ret == None:
-        return web.Response(status=404)
-    else:
-        return web.json_response(ret)
+    if code == 404:
+        response = "App Not Found"
+        res = get_response(code, response)
+        ha.log(conf.logger, "INFO", "API Call to {}: status: {} {}".format(app, code, response))
+        return web.Response(body = res, status = code)
+
+    response = "OK"
+    res = get_response(code, response)
+    ha.log(conf.logger, "INFO", "API Call to {}: status: {} {}".format(app, code, response))
+
+    return web.json_response(ret, status = code)
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine

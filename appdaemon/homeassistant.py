@@ -23,12 +23,14 @@ def dispatch_app_by_name(app, args):
 
     obj = None
 
+    #print(conf.objects)
+
     if app in conf.objects:
         obj =  conf.objects[app]["object"]
         completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, obj.api_call, args)])
         return list(completed)[0].result()
     else:
-        return None
+        return '', 404
 
 def sanitize_state_kwargs(kwargs):
     kwargs_copy = kwargs.copy()

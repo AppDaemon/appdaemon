@@ -1573,6 +1573,7 @@ def main():
     conf.time_zone = config['AppDaemon'].get("time_zone")
     conf.rss_feeds = config['AppDaemon'].get("rss_feeds")
     conf.rss_update = config['AppDaemon'].get("rss_update")
+    conf.ad_key = config['AppDaemon'].get("ad_key")
 
     if config_from_yaml is True:
 

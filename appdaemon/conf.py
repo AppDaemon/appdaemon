@@ -7,6 +7,7 @@ __version__ = "2.1.0"
 
 ha_url = ""
 ha_key = ""
+ad_key = None
 threads = 0
 monitored_files = {}
 modules = {}
