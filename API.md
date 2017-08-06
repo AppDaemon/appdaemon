@@ -14,13 +14,13 @@ import appdaemon.appapi as appapi
 class MotionLights(appapi.AppDaemon):
 ```
 
-When configured as an app in the config file (more on that later) the lifecycle of the App begins. It will be instantiated as an object by AppDaemon, and immediately, it will have a call made to it's `initialize()` function - this function must appear as part of every app:
+When configured as an app in the config file (more on that later) the lifecycle of the App begins. It will be instantiated as an object by AppDaemon, and immediately, it will have a call made to its `initialize()` function - this function must appear as part of every app:
 
 ```python
   def initialize(self):
   ```
 
-The initialize function allows the app to register any callbacks it might need for responding to state changes, and also any setup activities. When the `initialize()` function returns, the App will be dormant until any of it's callbacks are activated.
+The initialize function allows the app to register any callbacks it might need for responding to state changes, and also any setup activities. When the `initialize()` function returns, the App will be dormant until any of its callbacks are activated.
 
 There are several circumstances under which `initialize()` might be called:
 
@@ -28,12 +28,12 @@ There are several circumstances under which `initialize()` might be called:
 - Following a change to the Class code
 - Following a change to the module parameters
 - Following initial configuration of an app
-- Following a change in the status of Daylight Savings Time
+- Following a change in the status of Daylight Saving Time
 - Following a restart of Home Assistant
 
-In every case, the App is responsible for recreating any state it might need as if it were the first time it was ever started. If `initialize()` is called, the app can safely assume that it is either being loaded for the first time, or that all callbacks and timers have been cancelled. In either case, the APP will need to recreate them. Depending upon the application it may be desirable for the App to establish state such as whether or not a particular light is on, within the `initialize()` function to ensure that everything is as expected or to make immediate remedial action (e.g. turn off a light that might have been left on by mistake when the app was restarted).
+In every case, the App is responsible for recreating any state it might need as if it were the first time it was ever started. If `initialize()` is called, the app can safely assume that it is either being loaded for the first time, or that all callbacks and timers have been cancelled. In either case, the App will need to recreate them. Depending upon the application, it may be desirable for the App to establish a state, such as whether or not a particular light is on, within the `initialize()` function to ensure that everything is as expected or to make immediate remedial action (e.g., turn off a light that might have been left on by mistake when the app was restarted).
 
-After the `initialize()` function is in place, the rest of the app consists of functions that are called by the various callback mechanisms, and any additional functions the user wants to add as part of the program logic. Apps are able to subscribe to 2 main classes of events:
+After the `initialize()` function is in place, the rest of the app consists of functions that are called by the various callback mechanisms, and any additional functions the user wants to add as part of the program logic. Apps are able to subscribe to two main classes of events:
 
 - Scheduled Events
 - State Change Events
@@ -42,7 +42,7 @@ These, along with their various subscription calls and helper functions, will be
 
 Optionally, a class can add a `terminate()` function. This function will be called ahead of the reload to allow the class to perform any tidy up that is necessary. 
 
-WARNING: Unlike other types of callback, calls to `initialize() and `terminate()` are synchronous to AppDaemon's management code to ensure that initialization or cleanup is completed before the App is loaded or reloaded. This means that any significant delays in the `terminate()` code could have the effect of hanging AppDaemon for the duration of that code - this should be avoided.
+WARNING: Unlike other types of callback, calls to `initialize()` and `terminate()` are synchronous to AppDaemon's management code to ensure that initialization or cleanup is completed before the App is loaded or reloaded. This means that any significant delays in the `terminate()` code could have the effect of hanging AppDaemon for the duration of that code - this should be avoided.
 
 To wrap up this section, here is a complete functioning App (with comments):
 
@@ -65,7 +65,7 @@ class NightLight(appapi.AppDaemon):
     self.turn_on("light.porch")
 ```
 
-To summarize - an App's lifecycle consists of being initialized, which allows it to set one or more state and/or schedule callbacks. When those callbacks are activated, the App will typically use one of the Service Calling calls to effect some change to the devices of the system and then wait for the next relevant state change. Finally, if the App is reloaded, there is a call to its `terminate()` function if it exists. That's all there is to it!
+To summarize - an App's lifecycle consists of being initialized, which allows it to set one or more states and/or schedule callbacks. When those callbacks are activated, the App will typically use one of the Service Calling calls to effect some change to the devices of the system and then wait for the next relevant state change. Finally, if the App is reloaded, there is a call to its `terminate()` function if it exists. That's all there is to it!
 
 ## About the API
 
@@ -390,7 +390,7 @@ The value `all` for attribute has special significance and will return the entir
 
 ```python
 # Return state for the entire system
-state: self.get_state()
+state = self.get_state()
 
 # Return state for all switches in the system
 state = self.get_state("switch")
