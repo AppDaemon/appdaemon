@@ -87,6 +87,7 @@ Your initial file should look something like this:
    ``False`` to disable verification on self signed certs.
 -  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
    specified, AppDaemon will query the timezone from Home Assistant
+- ``ad_key`` (optional) - adds the requirement for AppDaemon API calls to provide a key in the header of a request
 
 Optionally, you can place your apps in a directory other than under the
 config directory using the ``app_dir`` directive.

@@ -2398,7 +2398,7 @@ class API(appapi.AppDaemon):
         return response, 200
 ```
 
-The response must be a pythoin structure that can be mapped to JSON, or can be blank, in which case specify `""` for the response. You should also return an HTML status code, that will be reported back to the caller, `200` should be used for an OK response.
+The response must be a python structure that can be mapped to JSON, or can be blank, in which case specify `""` for the response. You should also return an HTML status code, that will be reported back to the caller, `200` should be used for an OK response.
 
 As well as any user specified code, the API can return the following codes:
 
@@ -2418,10 +2418,47 @@ Server: Python/3.5 aiohttp/2.2.3
 {"message": "Hello World"}hass@Pegasus:~$
 ```
 
+## API Security
+
+If you have added a key to the AppDaemon config, AppDaemon will expect to find a header called "x-ad-access" in the request with a valkue equal to the configured key. If these conditions are not met, the call will fail with a return code of `401 Not Authorized`. Here is a succesful curl example:
+
+```bash
+hass@Pegasus:~$ curl -i -X POST -H "x-ad-access: fred" -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World
+ Test"}'
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Length: 26
+Date: Sun, 06 Aug 2017 17:30:50 GMT
+Server: Python/3.5 aiohttp/2.2.3
+
+{"message": "Hello World"}hass@Pegasus:~$
+```
+
+And an example of an incorrect key:
+
+```bash
+hass@Pegasus:~$ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api Test"}'ype": "Hello World
+HTTP/1.1 401 Unauthorized
+Content-Length: 112
+Content-Type: text/plain; charset=utf-8
+Date: Sun, 06 Aug 2017 17:30:43 GMT
+Server: Python/3.5 aiohttp/2.2.3
+
+<html><head><title>401 Unauthorized</title></head><body><h1>401 Unauthorized</h1>Error in API Call</body></html>hass@Pegasus:~$
+```
+
 ## Alexa Support
 
 AppDaemon is able to use the API support to accept calls from Alexa. Amazon Alexa calls can be directed to AppDaemon and arrive as JSON encoded requests. AppDaemon provides several helper functions to assist in understanding the request and responding appropriately.
-Since Alexa only allows one URL per skill, the mapping will be 1:1 between skills and Apps.
+Since Alexa only allows one URL per skill, the mapping will be 1:1 between skills and Apps. When constructing the URL in the Alexa Intent, make sure it points to the correct endpoint for the App you are using for Alexa.
+
+In addition, if you are using API security keys (recommended) you will need to append it to the end of the url as follows:
+
+```
+http://<some.host.com>/api/appdaemon/alexa?api_password=<password>
+```
+
+For more information about configuring Alexa Intents, see the [Home Assistant Alexa Documentation](https://home-assistant.io/components/alexa/)
 
 When configuring Alexa support for AppDaemon some care is needed. If as most people are, you are using SSL to access Home Assistant, there is contention for use of the SSL port (443) since Alexa does not allow you to change this. This means that if you want to use AppDaemon with SSL, you will not be able to use Home Assistant remotely over SSL. The way around this is to use NGINX to remap the specific AppDamon API URL to a different port, by adding something like this to the config:
 

@@ -831,7 +831,7 @@ def check_config():
             # Check for changes
 
             for name in config:
-                if name == "DEFAULT" or name == "AppDaemon":
+                if name == "DEFAULT" or name == "AppDaemon" or name == "HADashboard":
                     continue
                 if name in new_config:
                     if config[name] != new_config[name]:
@@ -1584,6 +1584,8 @@ def main():
         if 'HADashboard' in config:
             conf.dash_url = config['HADashboard'].get("dash_url")
             conf.dashboard_dir = config['HADashboard'].get("dash_dir")
+            conf.dash_ssl_certificate = config['HADashboard'].get("dash_ssl_certificate")
+            conf.dash_ssl_key = config['HADashboard'].get("dash_ssl_key")
 
             if config['HADashboard'].get("dash_force_compile") == "1":
                 conf.dash_force_compile = True

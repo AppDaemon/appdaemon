@@ -170,7 +170,8 @@ def call_api(request):
     app = request.match_info.get('app')
 
     if conf.ad_key is not None:
-        if ("x-ad-access" not in request.headers) or (request.headers["x-ad-access"] != conf.ad_key):
+        if (("x-ad-access" not in request.headers) or (request.headers["x-ad-access"] != conf.ad_key))\
+            and (("api_password" not in request.query) or (request.query["api_password"] != conf.ad_key)):
             code = 401
             response = "Unauthorized"
             res = get_response(code, response)
@@ -342,8 +343,15 @@ def run_dash(loop):
         set_paths()
         setup_routes()
 
+        if conf.dash_ssl_certificate is not None and conf.dash_ssl_key is not None:
+            context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+            context.load_cert_chain(conf.dash_ssl_certificate, conf.dash_ssl_key)
+        else:
+            context = None
+
         handler = app.make_handler()
-        f = loop.create_server(handler, "0.0.0.0", int(conf.dash_port))
+
+        f = loop.create_server(handler, "0.0.0.0", int(conf.dash_port), ssl = context)
         conf.srv = loop.run_until_complete(f)
         conf.rss = loop.run_until_complete(update_rss(loop))
     except:

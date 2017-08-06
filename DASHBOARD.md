@@ -25,7 +25,12 @@ HADashboard:
   dash_url: http://192.168.1.20:5050
 ```
 
-Note that at this time only http is supported.
+To enable https support for HADashboard, add the following directives pointing to your certificate and keyfile:
+
+```
+  dash_ssl_certificate: /etc/letsencrypt/live/somehost/fullchain.pem
+  dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
+```
 
 By default, dashboards are searched for under the config directory in a sub directory called `dashboards`.
 Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
