@@ -32,6 +32,13 @@ To enable https support for HADashboard, add the following directives pointing t
   dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
 ```
 
+
+To password protect HADashboard use the `dash_password` directive:
+
+```yaml
+  dash_password: some_password
+```
+
 By default, dashboards are searched for under the config directory in a sub directory called `dashboards`.
 Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
 

@@ -12,3 +12,4 @@ yaml
 feedparser
 voluptuous
 iso8601
+bcrypt

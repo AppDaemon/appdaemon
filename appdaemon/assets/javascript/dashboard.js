@@ -1,3 +1,4 @@
+
 function ha_status(stream, dash, widgets)
 {
 

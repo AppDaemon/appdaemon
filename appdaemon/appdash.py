@@ -11,6 +11,7 @@ import feedparser
 import jinja2
 from aiohttp import web
 import ssl
+import bcrypt
 
 import appdaemon.conf as conf
 import appdaemon.dashboard as dashboard
@@ -20,6 +21,77 @@ import appdaemon.homeassistant as ha
 
 app = web.Application()
 app['websockets'] = {}
+
+def check_password(password, hash):
+    return bcrypt.checkpw, str.encode(password), str.encode(hash)
+
+def securedata(myfunc):
+
+    """
+    Take care of streams and service calls
+    """
+
+    def wrapper(request):
+
+        if conf.dash_password == None:
+            return myfunc(request)
+        else:
+            if "adcreds" in request.cookies:
+                #completed, pending = yield from asyncio.wait(
+                #    [conf.loop.run_in_executor(conf.executor, check_password, conf.dash_password, request.cookies["adcreds"])])
+                #match = list(completed)[0].result()
+                match = bcrypt.checkpw, str.encode(conf.dash_password), str.encode(request.cookies["adcreds"])
+                if match:
+                    return myfunc(request)
+                else:
+                    return error(request)
+            else:
+                return error(request)
+
+    return wrapper
+
+def secure(myfunc):
+
+    """
+    Take care of screen based security
+    """
+
+    def wrapper(request):
+
+        if conf.dash_password == None:
+            return myfunc(request)
+        else:
+            if "adcreds" in request.cookies and bcrypt.checkpw(str.encode(conf.dash_password), str.encode(request.cookies["adcreds"])):
+                return myfunc(request)
+            else:
+                return forcelogon(request)
+
+    return wrapper
+
+def forcelogon(request):
+    return {"logon": 1}
+
+@asyncio.coroutine
+def logon(request):
+    data = yield from request.post()
+    success = False
+    password = data["password"]
+
+    if password == conf.dash_password:
+        ha.log(conf.dash, "INFO", "Succesful logon from {}".format(request.host))
+
+        hashed = bcrypt.hashpw(str.encode(conf.dash_password), bcrypt.gensalt())
+
+        #ha.log(conf.dash, "INFO", hashed)
+
+        response = yield from list_dash_no_secure(request)
+        response.set_cookie("adcreds", hashed.decode("utf-8"))
+
+    else:
+        ha.log(conf.dash, "WARNING", "Unsuccesful logon from {}".format(request.host))
+        response = yield from list_dash(request)
+
+    return response
 
 def set_paths():
     if not os.path.exists(conf.compile_dir):
@@ -47,7 +119,17 @@ def set_paths():
 # noinspection PyUnusedLocal
 @asyncio.coroutine
 @aiohttp_jinja2.template('dashboard.jinja2')
+@secure
 def list_dash(request):
+    return (_list_dash(request))
+
+
+@asyncio.coroutine
+@aiohttp_jinja2.template('dashboard.jinja2')
+def list_dash_no_secure(request):
+    return (_list_dash(request))
+
+def _list_dash(request):
     completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.list_dashes)])
     dash_list = list(completed)[0].result()
     params = {"dash_list": dash_list}
@@ -57,6 +139,7 @@ def list_dash(request):
 
 @asyncio.coroutine
 @aiohttp_jinja2.template('dashboard.jinja2')
+@secure
 def load_dash(request):
     completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, _load_dash, request)])
     return list(completed)[0].result()
@@ -151,6 +234,7 @@ def update_rss(loop):
 
 
 @asyncio.coroutine
+@securedata
 def get_state(request):
     entity = request.match_info.get('entity')
 
@@ -214,6 +298,7 @@ def call_api(request):
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
+@securedata
 def call_service(request):
     data = yield from request.post()
     args = {}
@@ -246,6 +331,11 @@ def call_service(request):
 def not_found(request):
     return web.Response(status=404)
 
+# noinspection PyUnusedLocal
+@asyncio.coroutine
+def error(request):
+    return web.Response(status=401)
+
 
 # Websockets Handler
 
@@ -256,6 +346,7 @@ def on_shutdown(application):
                             message='Server shutdown')
 
 
+@securedata
 @asyncio.coroutine
 def wshandler(request):
     ws = web.WebSocketResponse()
@@ -302,6 +393,7 @@ def ws_update(jdata):
 def setup_routes():
     app.router.add_get('/favicon.ico', not_found)
     app.router.add_get('/{gfx}.png', not_found)
+    app.router.add_post('/logon', logon)
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)

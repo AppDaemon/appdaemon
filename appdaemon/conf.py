@@ -96,3 +96,4 @@ compiled_html_dir = None
 compiled_css_dir = None
 dash_ssl_certificate = None
 dash_ssl_key = None
+dash_password = None

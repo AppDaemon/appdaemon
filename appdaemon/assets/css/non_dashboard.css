@@ -51,3 +51,12 @@ a {
    bottom: 0;
    left: 20;
 }
+
+input[type="submit"] {
+   border: 0;
+   background: none;
+   background-color: #EAEAEA;
+   color: #03A9F4;
+   box-shadow:none;
+   border-radius: 0px;
+}

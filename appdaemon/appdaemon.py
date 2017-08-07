@@ -1586,6 +1586,7 @@ def main():
             conf.dashboard_dir = config['HADashboard'].get("dash_dir")
             conf.dash_ssl_certificate = config['HADashboard'].get("dash_ssl_certificate")
             conf.dash_ssl_key = config['HADashboard'].get("dash_ssl_key")
+            conf.dash_password = config['HADashboard'].get("dash_password")
 
             if config['HADashboard'].get("dash_force_compile") == "1":
                 conf.dash_force_compile = True

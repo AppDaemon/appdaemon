@@ -13,8 +13,11 @@
     {% if main is defined %}
 		<title>Welcome to HADashboard</title>
 		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
-	{% elif dash_list is defined %}
+	{% elif dash_list is defined%}
 		<title>Dashboard Not Found</title>
+		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
+    {% elif logon is defined %}
+		<title>Logon to HADashboard</title>
 		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
 	{% elif errors %}
 		<title>Dashboard Has Errors</title>
@@ -68,6 +71,15 @@
             {% for item in dash_list %}
                 <li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
             {% endfor %}
+            <script type="text/javascript">
+            function logout()
+{
+    document.cookie = "adcreds" + '=;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    window.location.href = "/";
+};
+            </script>
+            <input type="submit" value="Logout" onclick="javascript:logout()">
+
         {% else %}
             <br>No dashboards were found</br>
         {%endif%}
@@ -82,6 +94,20 @@
         </div>
         </div>
         <div class="iconattrib">Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    {% elif logon is defined %}
+        <div id="backgroundImage">
+        <div class="main">
+        <h1><img src="/images/favicon-32x32.png">&nbsp;HADashboard</h1>
+        <br>Welcome to HADashboard for Home Assistant.</br>
+        <br/>
+        <section class="loginform cf">
+        <form name="login" action="/logon" method="post" accept-charset="utf-8">
+            <label for="password">Dashboard Password</label>
+            <input type="password" name="password" placeholder="password" required>
+            <br/>
+            <input type="submit" value="Login">
+        </form>
+        </section>
     {% else %}
             <div class="dasboard-main" id="container">
             <div class="gridster">

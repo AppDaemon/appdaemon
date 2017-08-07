@@ -22,6 +22,7 @@ REQUIRES = [
     'voluptuous',
     'feedparser',
     'iso8601',
+    'bcrypt'
 ]
 
 setup(

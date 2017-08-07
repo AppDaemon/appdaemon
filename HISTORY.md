@@ -11,6 +11,9 @@ History
 - Add RESTFul API Support for Apps
 - Add Alexa Helper functions
 - Update Material Design Icons to 1.9.32 - contributed by [minchick](https://github.com/minchik)
+- Use relative URLs for better remote behavior - contributed by [Daniel Trnka](https://github.com/trnila)
+- Add SSL Support
+- Add Password security for screens and HASS proxying functions
 
 **Fixes**
 
