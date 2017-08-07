@@ -49,6 +49,14 @@ HADashboard:
 dash_dir: /etc/appdaemon/dashboards
 ```
 
+When using the AppDaemon API feature, it is necessary to minimally configure HADashboard to provide the HTTP access, however, if you don't need the functionality of HADAshboard and just want the API, you can tell AppDaemon to diable all dashboard access with the `disable_dash` directive. e.g. :
+
+```yaml
+  disable_dash: 1
+```
+
+This will ensure that AppDaemon will not serve up any dashboards.
+
 Next, you will need to create the `dashboards` directive either under the conf directory, or wherever you specify with `dash_dir`.
 Once that is done, for testing purposes, create a file in the dashboards directory called `Hello.dash` and paste in the following:
 

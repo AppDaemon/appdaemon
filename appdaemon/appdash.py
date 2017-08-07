@@ -390,14 +390,17 @@ def ws_update(jdata):
 
 # Routes, Status and Templates
 
+def setup_api():
+    app.router.add_post('/api/appdaemon/{app}', call_api)
+
 def setup_routes():
+
     app.router.add_get('/favicon.ico', not_found)
     app.router.add_get('/{gfx}.png', not_found)
     app.router.add_post('/logon', logon)
     app.router.add_get('/stream', wshandler)
     app.router.add_post('/call_service', call_service)
     app.router.add_get('/state/{entity}', get_state)
-    app.router.add_post('/api/appdaemon/{app}', call_api)
     app.router.add_get('/', list_dash)
     app.router.add_get('/{name}', load_dash)
 
@@ -432,8 +435,12 @@ def setup_routes():
 def run_dash(loop):
     # noinspection PyBroadException
     try:
-        set_paths()
-        setup_routes()
+        if conf.dashboard is True:
+
+            set_paths()
+            setup_routes()
+
+        setup_api()
 
         if conf.dash_ssl_certificate is not None and conf.dash_ssl_key is not None:
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)

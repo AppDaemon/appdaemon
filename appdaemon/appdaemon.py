@@ -1215,14 +1215,15 @@ def run():
         ha.log(conf.logger, "INFO", "Apps are disabled")
 
 
-    # Initialize Dashboard
+    # Initialize Dashboard/API
 
     if conf.dashboard is True:
         ha.log(conf.logger, "INFO", "Starting dashboard")
-        #tasks.append(appdash.run_dash(conf.loop))
-        appdash.run_dash(conf.loop)
     else:
         ha.log(conf.logger, "INFO", "Dashboards are disabled")
+
+    appdash.run_dash(conf.loop)
+
 
     conf.loop.run_until_complete(asyncio.wait(tasks))
 
@@ -1421,16 +1422,6 @@ def find_path(name):
             return _file
     return None
 
-def _secret_yaml(loader, node):
-
-    if conf.secrets is None:
-        raise ValueError("!secret used but no secrets file found")
-
-    if node.value not in conf.secrets:
-        raise ValueError("{} not found in secrets file".format(node.value))
-
-    return conf.secrets[node.value]
-
 # noinspection PyBroadException
 def main():
     global config
@@ -1529,7 +1520,7 @@ def main():
 
                 conf.secrets = yaml.load(secrets_file_contents)
 
-            yaml.add_constructor('!secret', _secret_yaml)
+            yaml.add_constructor('!secret', ha._secret_yaml)
 
             config_from_yaml = True
             config_file = config_file_yaml
@@ -1570,7 +1561,7 @@ def main():
                         new_config["HASS"] = {}
                         new_section = ""
                         for var in config[section]:
-                            if var in ("dash_compile_on_start", "dash_dir", "dash_force_compile", "dash_url"):
+                            if var in ("dash_compile_on_start", "dash_dir", "dash_force_compile", "dash_url", "disable_dash", "dash_password", "dash_ssl_key", "dash_ssl_certificate"):
                                 new_section = "HADashboard"
                             elif var in ("ha_key", "ha_url", "timeout"):
                                 new_section = "HASS"
@@ -1623,6 +1614,13 @@ def main():
                 conf.dash_compile_on_start = True
             else:
                 conf.dash_compile_on_start = False
+
+            if "disable_dash" in config['HADashboard'] and config['HADashboard']["disable_dash"] == 1:
+                conf.dashboard = False
+            else:
+                conf.dashboard = True
+
+
     else:
         conf.timeout = config['AppDaemon'].get("timeout")
         conf.ha_url = config['AppDaemon'].get('ha_url')
@@ -1650,8 +1648,10 @@ def main():
     if config['AppDaemon'].get("cert_verify", True) == False:
         conf.certpath = False
 
+
+
+
     if conf.dash_url is not None:
-        conf.dashboard = True
         url = urlparse(conf.dash_url)
 
         if url.scheme != "http":

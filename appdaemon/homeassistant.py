@@ -15,6 +15,17 @@ constraints = (
     "constrain_start_time", "constrain_end_time"
 )
 
+
+def _secret_yaml(loader, node):
+
+    if conf.secrets is None:
+        raise ValueError("!secret used but no secrets file found")
+
+    if node.value not in conf.secrets:
+        raise ValueError("{} not found in secrets file".format(node.value))
+
+    return conf.secrets[node.value]
+
 @asyncio.coroutine
 def dispatch_app_by_name(app, args):
 

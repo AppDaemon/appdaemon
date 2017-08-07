@@ -2365,7 +2365,12 @@ When a connection to HASS is reestablished, all Apps will be restarted and their
 ## RESTFul API Support
 
 AppDaemon supports a simple RESTFul API to enable arbitary HTTP connections to pass data to Apps and trigger actions.
-API Calls must use a content type of `application/json`, and the response will be JSON encoded. At this time, to use the API, you must have HADashboard conifgured as they use a common codebase. To call into a specific App, construct a URL, use the regular HADashboard URL, and append `/api/appdaemon`, then add the name of the app (as configured in `appdaemon.yaml`) on the end, for example:
+API Calls must use a content type of `application/json`, and the response will be JSON encoded.
+When using the AppDaemon API feature, it is necessary to minimally configure HADashboard to provide the HTTP access,
+you will need to provide the `dash_url` as well as the certificates if you wish to use SSL.
+It is possible to disable the actual dashboard functionality if required -
+see [DASHBOARD.md](DASHBOARD.md) for further details.
+To call into a specific App, construct a URL, use the regular HADashboard URL, and append `/api/appdaemon`, then add the name of the app (as configured in `appdaemon.yaml`) on the end, for example:
 
 ```
 http://192.168.1.20:5050/api/appdaemon/api
@@ -2379,7 +2384,7 @@ api:
   module: api
 ```
 
-Within the App, AppDaemon is expecting to find a methon in the class called `api_call()` - this method will be invoked by a succesful API call into AppDaemon, and the request data will be passed into the function. Note that for a pure API App, there is no need to do anything in the `initialize()` funciton, although it must exist. Here is an example of a simple hello world API App:
+Within the App, AppDaemon is expecting to find a methon in the class called `api_call()` - this method will be invoked by a succesful API call into AppDaemon, and the request data will be passed into the function. Note that for a pure API App, there is no need to do anything in the `initialize()` function, although it must exist. Here is an example of a simple hello world API App:
 
 ```python
 import appdaemon.appapi as appapi
@@ -2403,6 +2408,7 @@ The response must be a python structure that can be mapped to JSON, or can be bl
 As well as any user specified code, the API can return the following codes:
 
 - 400 - JSON Decode Error
+- 401 - Unauthorized
 - 404 - App not found
 
 Below is an example of using curl to call into the App shown above:

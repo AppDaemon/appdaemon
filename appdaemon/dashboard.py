@@ -57,6 +57,7 @@ def load_css_params(skin, skindir):
         with open(yaml_path, 'r') as yamlfd:
             css_text = yamlfd.read()
         try:
+            yaml.add_constructor('!secret', ha._secret_yaml)
             css = yaml.load(css_text)
         except yaml.YAMLError as exc:
             ha.log(conf.dash, "WARNING", "Error loading CSS variables")
@@ -179,6 +180,7 @@ def load_widget(dash, includes, name, css_vars, global_parameters):
             with open(yaml_path, 'r') as yamlfd:
                 widget = yamlfd.read()
             try:
+                yaml.add_constructor('!secret', ha._secret_yaml)
                 instantiated_widget = yaml.load(widget)
             except yaml.YAMLError as exc:
                 log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
@@ -234,6 +236,7 @@ def load_widget(dash, includes, name, css_vars, global_parameters):
             #
             # Parse the substituted YAML file - this is a derived widget definition
             #
+            yaml.add_constructor('!secret', ha._secret_yaml)
             final_widget = yaml.load(yaml_file)
         except yaml.YAMLError as exc:
             log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
@@ -394,7 +397,8 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars, glo
         return dash, layout, occupied, includes
 
     try:
-        dash_params = yaml.load(defs, yaml.SafeLoader)
+        yaml.add_constructor('!secret', ha._secret_yaml)
+        dash_params = yaml.load(defs)
     except yaml.YAMLError as exc:
         log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
         if hasattr(exc, 'problem_mark'):

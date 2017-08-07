@@ -9,12 +9,14 @@ History
 - Add a reference to official `vkorn` repository for hass.io
 - Add the ability to access hass state as App attributes
 - Add RESTFul API Support for Apps
+- Add `disable_dash` directive to enable API access without Dashboards
 - Add Alexa Helper functions
 - Update Material Design Icons to 1.9.32 - contributed by [minchick](https://github.com/minchik)
 - Use relative URLs for better remote behavior - contributed by [Daniel Trnka](https://github.com/trnila)
 - Add SSL Support
 - Add Password security for screens and HASS proxying functions
 - Add support for secrets in the AppDaemon configuration file
+- Add support for secrets in HADashboard configuration files
 
 **Fixes**
 
