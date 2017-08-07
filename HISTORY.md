@@ -25,7 +25,7 @@ History
 
 **Breaking Changes**
 
-None
+- Compiled dashboards may need to be deleted after this upgrade
 
 
 2.0.8
