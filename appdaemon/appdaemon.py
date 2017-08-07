@@ -1520,8 +1520,9 @@ def main():
         #
         # First locate secrets file
         #
-        secrets_file = os.path.join(config_dir, "secrets.yaml")
         try:
+
+            secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
             if os.path.isfile(secrets_file):
                 with open(secrets_file, 'r') as yamlfd:
                     secrets_file_contents = yamlfd.read()
