@@ -1421,6 +1421,15 @@ def find_path(name):
             return _file
     return None
 
+def _secret_yaml(loader, node):
+
+    if conf.secrets is None:
+        raise ValueError("!secret used but no secrets file found")
+
+    if node.value not in conf.secrets:
+        raise ValueError("{} not found in secrets file".format(node.value))
+
+    return conf.secrets[node.value]
 
 # noinspection PyBroadException
 def main():
@@ -1507,12 +1516,27 @@ def main():
     config_from_yaml = False
 
     if config_file_yaml is not None and args.convertcfg is False:
-        config_from_yaml = True
-        config_file = config_file_yaml
-        with open(config_file_yaml, 'r') as yamlfd:
-            config_file_contents = yamlfd.read()
+
+        #
+        # First locate secrets file
+        #
+        secrets_file = os.path.join(config_dir, "secrets.yaml")
         try:
+            if os.path.isfile(secrets_file):
+                with open(secrets_file, 'r') as yamlfd:
+                    secrets_file_contents = yamlfd.read()
+
+                conf.secrets = yaml.load(secrets_file_contents)
+
+            yaml.add_constructor('!secret', _secret_yaml)
+
+            config_from_yaml = True
+            config_file = config_file_yaml
+            with open(config_file_yaml, 'r') as yamlfd:
+                config_file_contents = yamlfd.read()
+
             config = yaml.load(config_file_contents)
+
         except yaml.YAMLError as exc:
             print("ERROR", "Error loading configuration")
             if hasattr(exc, 'problem_mark'):
@@ -1525,6 +1549,7 @@ def main():
                     print("ERROR", str(exc.problem_mark))
                     print("ERROR", str(exc.problem))
             sys.exit()
+
     else:
 
         # Read Config File

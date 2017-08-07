@@ -61,6 +61,7 @@ timeout = 10
 endtime = None
 interval = 1
 certpath = None
+secrets = None
 
 loglevel = "INFO"
 ha_config = None

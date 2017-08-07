@@ -14,6 +14,7 @@ History
 - Use relative URLs for better remote behavior - contributed by [Daniel Trnka](https://github.com/trnila)
 - Add SSL Support
 - Add Password security for screens and HASS proxying functions
+- Add support for secrets in the AppDaemon configuration file
 
 **Fixes**
 
