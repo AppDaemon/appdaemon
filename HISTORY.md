@@ -4,7 +4,7 @@ History
 2.1.1
 -----
 
-**Features**
+- Add `get_alexa_slot_value()
 
 None
 
