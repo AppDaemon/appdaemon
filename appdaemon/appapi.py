@@ -164,6 +164,16 @@ class AppDaemon:
         else:
             return None
 
+    def get_alexa_slot_value(self, data, slot):
+        if "request" in data and \
+                        "intent" in data["request"] and \
+                        "slots" in data["request"]["intent"] and \
+                        slot in data["request"]["intent"]["slots"] and \
+                        "value" in data["request"]["intent"]["slots"][slot]:
+            return(data["request"]["intent"]["slots"][slot]["value"])
+        else:
+            return None
+
     def format_alexa_response(self, speech = None, card = None, title = None):
 
         response = \
