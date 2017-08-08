@@ -30,7 +30,7 @@ Before running ``AppDaemon`` you will need to install the package:
 Install Using hass.io
 =====================
 
-There is an official hass.io addon for AppDaemon maintained by [vkorn](https://community.home-assistant.io/u/vkorn/summary). The repository is [here](https://github.com/vkorn/hassio-addons).
+There is an official hass.io addon for AppDaemon maintained by [vkorn](https://community.home-assistant.io/u/vkorn/summary). Instructions to install AppDaemon this way can be found [here](https://community.home-assistant.io/t/repository-few-addons/20659).
 
 Configuration
 =============
