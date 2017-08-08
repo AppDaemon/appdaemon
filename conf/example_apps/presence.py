@@ -1,4 +1,5 @@
 import appdaemon.appapi as appapi
+import globals
 
 #
 # App to track presence changes
@@ -31,10 +32,26 @@ class Presence(appapi.AppDaemon):
     self.listen_state(self.presence_change, "device_tracker")
     self.listen_state(self.everyone_left, "group.all_devices", old = "home", new = "not_home")
     self.listen_state(self.someone_home, "group.all_devices", old = "not_home", new = "home")
+    self.listen_event(self.presence_event, "PRESENCE_CHANGE")
+    self.set_state("sensor.andrew_tracker", state = "away")
+    self.set_state("sensor.wendy_tracker", state = "away")
 
+  def presence_event(self, event_name, data, kwargs):
+    # Listen for a PRESENCE_CHANGE custom event
+    event_tracker = data["tracker"]
+    event_type = data["type"]
+    tracker = "Unknown"
+    if event_tracker == "Andrew":
+        tracker = globals.andrew_tracker_id
+    elif event_tracker == "Wendy":
+        tracker = globals.wendy_tracker_id
+    self.call_service("device_tracker/see", dev_id = tracker, location_name = event_type)
+    
   def presence_change(self, entity, attribute, old, new, kwargs):
+    person = self.friendly_name(entity)
+    tracker_entity = "sensor.{}_tracker".format(person.lower())
+    self.set_state(tracker_entity, state = new)
     if old != new: 
-      person = self.friendly_name(entity)
       if new == "not_home":
         place = "is away"
         if "announce" in self.args and self.args["announce"].find(person) != -1:
@@ -50,7 +67,7 @@ class Presence(appapi.AppDaemon):
       message = "{} {}".format(person, place)
       self.log(message)
       if "notify" in self.args:
-        self.notify(message, name="ios")
+        self.notify(message, name=globals.notify)
     
   def everyone_left(self, entity, attribute, old, new, kwargs):
     self.log("Everyone left")

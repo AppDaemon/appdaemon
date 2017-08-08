@@ -1702,12 +1702,12 @@ AppDaemon provides convenience funtions to assist with this.
 
 ### dash_navigate()
 
-Fire an event on the HomeAssistant bus, for other components to hear.
+Fire an event on the HomeAssistant bus, to force HADashboard to navigate to a new page.
 
 #### Synopsis
 
 ```python
-dash_navigate(self, target, timeout)
+dash_navigate(self, target, timeout = -1, ret = None)
 ```
 
 #### Returns
@@ -1723,6 +1723,10 @@ Name of the dashboard to navigate to - must be just the name, not a URL, e.g. `M
 ##### timeout
 
 Amount of time that the dash will show the target before returning to the previous screen. If left out, the target will remain displayed.
+
+##### ret
+
+Screen that the browser will return to after the timeout, e.g. `/MainPanel`. If left out, the browser will return to the page it was on when it recieved the `dash_navigate()` instruction
 
 #### Examples
 

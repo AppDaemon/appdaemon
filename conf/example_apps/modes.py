@@ -1,6 +1,8 @@
 import appdaemon.appapi as appapi
 import datetime
 import appdaemon
+import globals
+
 #
 # App to manage house modes
 #
@@ -27,14 +29,14 @@ class Modes(appapi.AppDaemon):
     self.mode = self.get_state("input_select.house_mode")
     # Create some callbacks
     self.listen_event(self.mode_event, "MODE_CHANGE")
-    self.listen_state(self.light_event, "sensor.side_multisensor_luminance_25_3")
-    self.listen_state(self.motion_event, "binary_sensor.downstairs_sensor_26_0")
+    self.listen_state(self.light_event, "sensor.side_multisensor_luminance")
+    self.listen_state(self.motion_event, "binary_sensor.downstairs_sensor")
     self.listen_state(self.presence_change, "device_tracker")
     time = datetime.datetime.fromtimestamp(appdaemon.conf.now)
     
   def presence_change(self, entity, attribute, old, new, kwargs):
     if old != new: 
-      if entity == "device_tracker.dedb5e711a24415baaae5cf8e880d852" and new != "home" and self.mode == "Morning":
+      if entity == globals.wendy_tracker and new != "home" and self.mode == "Morning":
         self.log("Wendy left - changing lighting")
         self.turn_on("scene.downstairs_on")
     
@@ -76,9 +78,10 @@ class Modes(appapi.AppDaemon):
     #Set the house up for morning
     self.mode = "Morning"
     self.log("Switching mode to Morning")
+    self.cancel_timers()
     self.select_option("input_select.house_mode", "Morning")
     self.turn_on("scene.wendys_lamp")
-    self.notify("Switching mode to Morning", name="ios")
+    self.notify("Switching mode to Morning", name=globals.notify)
     
   def day(self):
     # Set the house up for daytime
@@ -87,12 +90,12 @@ class Modes(appapi.AppDaemon):
     self.select_option("input_select.house_mode", "Day")
     self.turn_on("scene.downstairs_off")
     self.turn_on("scene.upstairs_off")
-    self.notify("Switching mode to Day", name="ios")
+    self.notify("Switching mode to Day", name=globals.notify)
 
   def evening(self):
     #Set the house up for evening
-    wendy = self.get_state("device_tracker.dedb5e711a24415baaae5cf8e880d852")
-    andrew = self.get_state("device_tracker.andrews_iphone")
+    wendy = self.get_state(globals.wendy_tracker)
+    andrew = self.get_state(globals.andrew_tracker)
     self.mode = "Evening"
     self.log("Switching mode to Evening")
     self.select_option("input_select.house_mode", "Evening")
@@ -103,10 +106,10 @@ class Modes(appapi.AppDaemon):
     
     if andrew == "home":
       self.turn_on("scene.office_on")
-    
-    self.notify("Switching mode to Evening", name="ios")
 
-  def night(self, quiet = False):
+    self.notify("Switching mode to Evening", name=globals.notify)
+
+  def night(self, quiet = False, alexa = False):
     #
     #Set the house up for night
     #
@@ -122,8 +125,8 @@ class Modes(appapi.AppDaemon):
     else:
       self.turn_on("scene.upstairs_hall_off")
 
-    wendy = self.get_state("device_tracker.dedb5e711a24415baaae5cf8e880d852")
-    andrew = self.get_state("device_tracker.andrews_iphone")
+    wendy = self.get_state(globals.wendy_tracker)
+    andrew = self.get_state(globals.andrew_tracker)
     
     # Switch on correct bedside lights according to presence
     if not quiet:
@@ -133,14 +136,45 @@ class Modes(appapi.AppDaemon):
         self.turn_on("scene.bedroom_on_wendy")
       elif andrew == "home":
         self.turn_on("scene.bedroom_on_andrew")
-              
-    self.notify("Switching mode to Night", name="ios")
+
+    #self.fire_event("SECURE", type = "query", secure_message = "Goodnight", insecure_message = "No problem but you might want to check the following items: ")
+    security = self.get_app("Security")
+    if not quiet:
+        secmess = [
+                        "Goodnight",
+                        "Night night - don't let the bed bugs bite",
+                        "Night night - lets see if you can beat jack up to bed",
+                        "OK, turning the lights off for you",
+                        "OK, but no Snoring!",
+                    ]
+    else:
+        secmess = "Good night - try not to wake Wendy up"
+    secargs = {"type" : "secure",
+                    "secure_message": secmess,
+                    "not_secure_message": "The house is not secure",
+                    "insecure_message": "The following items are not secure: ",
+                    "securing_message": "I have secured the following items: ",
+                    "failed_message: ": "The following items failed to secure: ",
+                    "secure": 1}
+
+    if alexa:
+        secargs["caller"] = "alexa"
+
+    secure, response = security.query_house(secargs)
+
+    self.notify("Switching mode to Night", name=globals.notify)
     
     # We turned the upstairs lights on, wait 5 seconds before turning off the downstairs lights
     self.run_in(self.downstairs_off, 5)
+    return response
       
   def downstairs_off(self, kwargs):
     # Timed callback
     self.turn_on("scene.downstairs_off")
       
-    
+  def cancel_timers(self):
+    if "timers" in self.args:
+      apps = self.args["timers"].split(",")
+      for app in apps:
+        App = self.get_app(app)
+        App.cancel()

@@ -1,0 +1,11 @@
+#
+# Main arguments, all optional
+#
+title: Weather
+widget_dimensions: [122, 120]
+widget_margins: [5, 5]
+columns: 8
+
+layout:
+    - include: weather_panel
+    - include: bottom_panel

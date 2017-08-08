@@ -1,23 +1,20 @@
 downstairs_thermometer:
-    widget_type: sensor
+    widget_type: climate
     title: Downstairs
     units: "&deg;F"
-    precision: 0
-    entity: sensor.downstairs_thermometer
+    entity: climate.downstairs_thermostat_heating_1
 
 upstairs_thermometer:
-    widget_type: sensor
+    widget_type: climate
     title: Upstairs
     units: "&deg;F"
-    precision: 0
-    entity: sensor.upstairs_thermometer
+    entity: climate.upstairs_thermostat_heating_1
 
 basement_thermometer:
-    widget_type: sensor
+    widget_type: climate
     title: Basement
     units: "&deg;F"
-    precision: 0
-    entity: sensor.basement_thermometer
+    entity: climate.basement_thermostat_heating_1
 
 themostat_setpoint:
     widget_type: sensor
@@ -26,7 +23,22 @@ themostat_setpoint:
     precision: 0
     entity: sensor.thermostat_set
     
- 
+garage:
+    widget_type: switch
+    title: Garage
+    entity: switch.garage_door
+    icon_on: fa-car
+    icon_off: fa-car
+    icon_style_active: $style_active_warn
+
+light_level:
+    widget_type: sensor
+    title: Light Level
+    units: "lux"
+    precision: 0
+    shorten: 1
+    entity: sensor.side_multisensor_luminance
+    
 layout:
-    - scene.upstairs_on, scene.upstairs_off, scene.upstairs_hall_dim, scene.upstairs_bright, upstairs_thermometer, downstairs_thermometer, basement_thermometer, themostat_setpoint
+    - scene.upstairs_on, scene.upstairs_off, scene.upstairs_hall_dim, scene.upstairs_bright, upstairs_thermometer, downstairs_thermometer, basement_thermometer, light_level
     - scene.office_on, scene.office_off, scene.office_dim, scene.office_bright, input_boolean.night_outside_motion, input_boolean.guest, input_boolean.cooling, input_boolean.heating

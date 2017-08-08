@@ -1,0 +1,58 @@
+#
+# Main arguments, all optional
+#
+title: Security Panel
+widget_dimensions: [27, 29]
+widget_margins: [5, 5]
+columns: 32
+rows: 25
+widget_size: [4, 4]
+global_parameters:
+    #use_comma: 1
+    #precision: 2
+    #use_hass_icon: 1
+
+downstairs_perimeter:
+    widget_type: label
+    title: Downstairs Perimeter
+
+motion:
+    widget_type: label
+    title: Motion
+
+upstairs_perimeter:
+    widget_type: label
+    title: Upstairs Perimeter
+
+basement_perimeter:
+    widget_type: label
+    title: Basement Perimeter
+
+garage_perimeter:
+    widget_type: label
+    title: Garage Perimeter
+
+garage:
+  widget_type: cover
+  title: Garage
+  entity: cover.garage_door
+  icon_on: fa-car
+  icon_off: fa-car
+
+load_main_panel:
+    widget_type: navigate
+    title: Main Panel
+    icon_inactive: fa-home
+    dashboard: MainPanel
+
+layout:
+  - motion(32x1)
+  - binary_sensor.upstairs_sensor, binary_sensor.basement_sensor, binary_sensor.garage_sensor, binary_sensor.downstairs_sensor, binary_sensor.drive_sensor, binary_sensor.porch_multisensor_sensor, binary_sensor.side_multisensor_sensor
+  - empty: 3
+  - downstairs_perimeter(32x1)
+  - lock.front_door_lock_locked
+  - empty: 3
+  - garage_perimeter(8x1), upstairs_perimeter(16x1), basement_perimeter(8x1)
+  - garage, spacer(20x1), binary_sensor.basement_door_sensor
+  - empty: 7
+  - spacer(28x1), load_main_panel

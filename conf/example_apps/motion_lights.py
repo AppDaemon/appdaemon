@@ -1,4 +1,5 @@
 import appdaemon.appapi as appapi
+import globals
 
 #
 # App to turn lights on when motion detected then off again after a delay
@@ -13,6 +14,9 @@ import appdaemon.appapi as appapi
 # delay: amount of time after turning on to turn off again. If not specified defaults to 60 seconds.
 #
 # Release Notes
+#
+# Version 1.1:
+#   Add ability for other apps to cancel the timer
 #
 # Version 1.0:
 #   Initial Version
@@ -45,13 +49,10 @@ class MotionLights(appapi.AppDaemon):
   
   def light_off(self, kwargs):
     if "entity_off" in self.args:
-      # If it's a scene we need to turn it on not off
-      device, entity = self.split_entity(self.args["entity_off"])
-      if device == "scene":
-        self.log("Activating {}".format(self.args["entity_off"]))
-        self.turn_on(self.args["entity_off"])
-      else:
         self.log("Turning {} off".format(self.args["entity_off"]))
         self.turn_off(self.args["entity_off"])
+        
+  def cancel(self):
+    self.cancel_timer(self.handle)
       
 

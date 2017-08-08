@@ -1,6 +1,7 @@
 import appdaemon.appapi as appapi
 import shelve
 import time
+import globals
 
 #
 # App to reset input_boolean, input_select, input_slider, device_tracker to previous values after HA restart
@@ -59,4 +60,4 @@ class SwitchReset(appapi.AppDaemon):
     if "log" in self.args:
       self.log(message)
     if "notify" in self.args:
-      self.notify(message, "ios", name="ios")
+      self.notify(message, globals.notify, name=globals.notify)

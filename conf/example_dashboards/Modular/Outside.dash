@@ -10,6 +10,6 @@ columns: 8
 # Includes (Optional)
 #
 layout:
-    - include: top_panel
     - include: outside_middle_panel
+    - include: rooms_panel
     - include: bottom_panel

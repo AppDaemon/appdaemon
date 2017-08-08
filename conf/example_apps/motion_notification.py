@@ -1,4 +1,5 @@
 import appdaemon.appapi as appapi
+import globals
 
 #
 # App to send notification when motion detected
@@ -24,4 +25,4 @@ class MotionNotification(appapi.AppDaemon):
   def motion(self, entity, attribute, old, new, kwargs):
     if ("state" in new and new["state"] == "on" and old["state"] == "off") or new == "on": 
       self.log("Motion detected: {}".format(self.friendly_name(entity)))
-      self.notify("Motion detected: {}".format(self.friendly_name(entity)), name="ios")
+      self.notify("Motion detected: {}".format(self.friendly_name(entity)), name=globals.notify)

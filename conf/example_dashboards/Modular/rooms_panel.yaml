@@ -1,0 +1,53 @@
+load_upstairs:
+    widget_type: navigate
+    title: Upstairs
+    icon_inactive: fa-bed
+    dashboard: Upstairs
+
+load_garage:
+    widget_type: navigate
+    title: Garage
+    icon_inactive: fa-car
+    dashboard: Garage
+
+load_basement:
+    widget_type: navigate
+    title: Basement
+    icon_inactive: mdi-radioactive
+    dashboard: Basement
+    
+load_downstairs:
+    widget_type: navigate
+    title: Downstairs
+    icon_inactive: fa-tv
+    dashboard: Downstairs
+
+load_outside:
+    widget_type: navigate
+    title: Outside
+    icon_inactive: fa-twitter
+    dashboard: Outside
+
+load_doors:
+    widget_type: navigate
+    title: Doors and Locks
+    icon_inactive: fa-lock
+    dashboard: Secure
+    #args:
+    #  timeout: 3
+    #  return: MainPanel
+    
+load_system:
+    widget_type: navigate
+    title: System
+    icon_inactive: mdi-server
+    dashboard: System
+    
+load_cameras:
+    widget_type: navigate
+    title: Cameras
+    icon_inactive: mdi-camera
+    dashboard: Cameras
+    
+layout:
+  - load_outside, load_upstairs, load_downstairs, load_garage, load_basement, load_doors, load_system, load_cameras

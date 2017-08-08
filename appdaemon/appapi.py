@@ -693,11 +693,14 @@ class AppDaemon:
     # Other
     #
 
-    def dash_navigate(self, target, timeout = -1):
-        if timeout == -1:
-            self.fire_event("hadashboard", command = "navigate", target = target)
-        else:
-            self.fire_event("hadashboard", command = "navigate", target = target, timeout = timeout)
+    def dash_navigate(self, target, timeout = -1, ret = None):
+        kwargs = {"command": "navigate", "target": target}
+
+        if timeout != -1:
+            kwargs["timeout"] = timeout
+        if ret != None:
+            kwargs["return"] = ret
+        self.fire_event("hadashboard", **kwargs)
 
     def get_scheduler_entries(self):
         schedule = {}

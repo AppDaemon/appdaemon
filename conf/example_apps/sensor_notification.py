@@ -1,4 +1,5 @@
 import appdaemon.appapi as appapi
+import globals
 
 #
 # App to send notification when a sensor changes state
@@ -21,15 +22,17 @@ class SensorNotification(appapi.AppDaemon):
         self.listen_state(self.state_change, sensor)
     
   def state_change(self, entity, attribute, old, new, kwargs):
-    if "input_select" in self.args:
-      valid_modes = self.split_device_list(self.args["input_select"])
-      select = valid_modes.pop(0)
-      is_state = self.get_state(select)
-    else:
-      is_state = None
-      valid_modes = ()
-      
-    self.log("{} is in state {}".format(self.friendly_name(entity), new))
-    self.notify("{} is in state {}".format(self.friendly_name(entity), new), name = "ios")
-    if new != self.args["idle_state"] and "turn_on" in self.args and is_state in valid_modes:
-      self.turn_on(self.args["turn_on"])
+    if new != "":
+      if "input_select" in self.args:
+        valid_modes = self.split_device_list(self.args["input_select"])
+        select = valid_modes.pop(0)
+        is_state = self.get_state(select)
+      else:
+        is_state = None
+        valid_modes = ()
+
+      self.log("{} changed to {}".format(self.friendly_name(entity), new))
+      self.notify("{} changed to {}".format(self.friendly_name(entity), new), name = globals.notify)
+      if "idle_state" in self.args:
+        if new != self.args["idle_state"] and "turn_on" in self.args and is_state in valid_modes:
+          self.turn_on(self.args["turn_on"])

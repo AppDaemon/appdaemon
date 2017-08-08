@@ -1,4 +1,5 @@
 import appdaemon.appapi as appapi
+import globals
 
 #
 # App to respond to buttons on an Aeotec Minimote
@@ -39,13 +40,8 @@ class MiniMote(appapi.AppDaemon):
       self.turn_on(self.args[on])
 
     if off in self.args:
-      type, id = self.args[off].split(".")
-      if type == "scene":
-        self.log("Turning {} on".format(self.args[off]))
-        self.turn_on(self.args[off])
-      else:
-        self.log("Turning {} off".format(self.args[off]))
-        self.turn_off(self.args[off])
+      self.log("Turning {} off".format(self.args[off]))
+      self.turn_off(self.args[off])
 
     if toggle in self.args:
       self.log("Toggling {}".format(self.args[toggle]))

@@ -1,5 +1,6 @@
 import appdaemon.appapi as appapi
 import datetime
+import globals
 
 #
 # App to manage heating:

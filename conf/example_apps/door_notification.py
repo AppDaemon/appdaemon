@@ -1,4 +1,5 @@
 import appdaemon.appapi as appapi
+import globals
 
 #
 # App to send notification when door opened or closed
@@ -27,4 +28,4 @@ class DoorNotification(appapi.AppDaemon):
     else:
       state = "closed"
     self.log("{} is {}".format(self.friendly_name(entity), state))
-    self.notify("{} is {}".format(self.friendly_name(entity), state), name="ios")
+    self.notify("{} is {}".format(self.friendly_name(entity), state), name=globals.notify)

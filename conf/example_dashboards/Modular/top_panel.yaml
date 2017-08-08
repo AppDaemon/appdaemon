@@ -5,18 +5,23 @@ side_temperature:
     precision: 0
     entity: sensor.side_temp_corrected
 
+weather:
+    widget_type: weather
+    units: "&deg;F"
 
 side_humidity:
-    widget_type: sensor
+    widget_type: gauge
     title: Humidity
+    max: 100
+    min: 0
     units: "%"
-    precision: 0
     entity: sensor.side_humidity_corrected
 
 andrew_presence:
     widget_type: device_tracker
     title: Andrew
-    device: andrews_iphone
+    device: 24dcbba223194e62b7965aa9012b1ad0
+    enable: 1
 #    icon_on: fa-male
 #    icon_off: fa-male
 #    icon_style_active: "color: #4bcdea"
@@ -24,39 +29,54 @@ andrew_presence:
 wendy_presence:
     widget_type: device_tracker
     title: Wendy
+    enable: 1
 #    icon_style_active: "color: #ea4b82"
 #    icon_on: fa-female
 #    icon_off: fa-female
     device: dedb5e711a24415baaae5cf8e880d852
 
 mode:
-    widget_type: text_sensor
-    title: House Mode
-    text_style: "text-transform: uppercase;"
-    entity: input_select.house_mode
-
-
-light_level:
     widget_type: sensor
-    title: Light Level
-    units: "lux"
-    precision: 0
-    shorten: 1
-    entity: sensor.side_multisensor_luminance_25_3
+    title: House Mode
+    text_style: "text-transform: uppercase;font-size: 300%"
+    entity: input_select.house_mode
+    sub_entity: sensor.dark_day
+    sub_entity_map:
+      0: ""
+      1: "dark"
         
 porch_motion:
     widget_type: binary_sensor
     title: Porch
-    entity: binary_sensor.porch_multisensor_sensor_27_0
+    entity: binary_sensor.porch_multisensor_sensor
 
 garage:
-    widget_type: switch
+    widget_type: cover
     title: Garage
-    entity: switch.garage_door
+    entity: cover.garage_door
     icon_on: fa-car
     icon_off: fa-car
     icon_style_active: $style_active_warn
 
+alarm:
+    widget_type: alarm
+    entity: alarm_control_panel.ha_alarm
+    title: Alarm
+    state_style: "font-size: 250%;"
+    title_style: "color: white"
+
+wendy_home_to_work:
+  widget_type: sensor
+  entity: sensor.wendy_home_to_work
+  title: Wendy
+  title2: Home to Work
+
+wendy_work_to_home:
+  widget_type: sensor
+  entity: sensor.wendy_work_to_home
+  title: Wendy
+  title2: Work to Home
+
 layout:
-    - clock.clock(2x1), weather.weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
-    - mode(2x1), light_level(2x1), binary_sensor.porch_multisensor_sensor_27_0, garage
+    - clock.clock(2x1), weather(2x2), wendy_home_to_work, wendy_work_to_home, andrew_presence, wendy_presence
+    - mode(2x1), alarm(2x1), lock.front_door_lock_locked, garage

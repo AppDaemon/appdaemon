@@ -1,0 +1,14 @@
+living_room:
+    widget_type: camera
+    title: Living Room
+    refresh: 1
+    frame_style: ""
+    entity_picture: !secret cam_url
+
+layout:
+  - living_room(4x4)
+  -
+  -
+  -
+  
+  

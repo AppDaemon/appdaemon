@@ -3,6 +3,8 @@ from queue import Queue
 from threading import Thread
 from threading import Event
 import time
+import globals
+
 #
 # App to manage announcements via TTS and stream sound files to Sonos
 #
@@ -72,7 +74,7 @@ class Sound(appapi.AppDaemon):
           self.call_service("media_player/volume_set", entity_id = self.args["player"], volume_level = data["volume"])
           if data["type"] == "tts":
             # Call TTS service
-            self.call_service("tts/google_say", entity_id = self.args["player"], message = data["text"])
+            self.call_service("tts/amazon_polly_say", entity_id = self.args["player"], message = data["text"])
           if data["type"] == "play":
             netpath = netpath = 'http://{}:{}/local/{}/{}'.format(self.args["ip"], self.args["port"], self.args["base"], data["path"])
             self.call_service("media_player/play_media", entity_id = self.args["player"], media_content_id = netpath, media_content_type = data["content"])

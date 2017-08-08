@@ -1,11 +1,27 @@
 AppDaemon:
   accessfile: /etc/appdaemon/logs/access.log
-  dash_url:
   errorfile: /etc/appdaemon/logs/error.log
-  ha_key:
-  ha_url:
   logfile: /etc/appdaemon/logs/appdaemon.log
   threads: '10'
+  ad_key: !secret ad_key
+HASS:
+  ha_key: !secret ha_key
+  ha_url: http://192.168.1.20:8123
+HADashboard:
+  dash_url: http://192.168.1.20:5151
+  #dash_password: !secret dash_password
+  #dash_ssl_certificate: !secret dash_ssl_certificate
+  #dash_ssl_key: !secret dash_ssl_key
+Commute:
+  module: commute
+  class: Commute
+  limit: 30
+  sensor: sensor.wendy_work_to_home
+  time: "16:30:00"
+  notify:
+    - andrew_mail
+    - wendy_mail
+  constrain_days: mon,tue,wed,thu,fri
 Battery Check:
   always_send: '0'
   class: Battery
@@ -21,11 +37,11 @@ Dark Day:
   entity_off: scene.downstairs_off
   entity_on: scene.downstairs_on
   module: dark_day
-  sensor: sensor.side_multisensor_luminance_25_3
+  sensor: sensor.side_multisensor_luminance
   start_time: sunrise
 Downstairs Night Light:
   class: MotionLights
-  constrain_end_time: '04:29:59'
+  constrain_end_time: 04:29:59
   constrain_input_select: input_select.house_mode,Night
   constrain_presence: anyone
   constrain_start_time: '20:00:00'
@@ -34,7 +50,7 @@ Downstairs Night Light:
   entity_off: scene.downstairs_off
   entity_on: scene.downstairs_dim
   module: motion_lights
-  sensor: binary_sensor.downstairs_sensor_26_0
+  sensor: binary_sensor.downstairs_sensor
 Drive Motion Lights:
   class: MotionLights
   constrain_end_time: sunrise
@@ -45,18 +61,18 @@ Drive Motion Lights:
   entity_off: scene.drive_off
   entity_on: scene.drive_bright
   module: motion_lights
-  sensor: binary_sensor.drive_sensor_39_0
-Garage Door:
+  sensor: binary_sensor.drive_sensor
+Doors:
   class: DoorNotification
   dependencies: globals
   module: door_notification
-  sensor: switch.garage_door
+  sensor: cover.garage_door,binary_sensor.basement_door_sensor
 Garage Momentary:
   class: MomentarySwitch
   delay: '3'
   dependencies: globals
   module: momentary_switch
-  switch: switch.garage_door_switch_44_0
+  switch: switch.garage_door_switch
 Grandfather:
   class: Grandfather
   dependencies: globals,sound
@@ -65,9 +81,9 @@ Grandfather:
   module: grandfather
   mute_if_home: device_tracker.dedb5e711a24415baaae5cf8e880d852
   player: media_player.living_room
-  start_time: '07:59:00'
+  start_time: 07:59:00
   volume: '0.5'
- Hardware Check:
+Hardware Check:
   class: HWCheck
   delay: '180'
   dependencies: globals
@@ -75,7 +91,7 @@ Grandfather:
   log: '1'
   module: hwcheck
   notify: '1'
-  zwave: switch.front_path_switch_42_0
+  zwave: switch.front_path_switch
 Minimote:
   class: MiniMote
   dependencies: globals
@@ -86,7 +102,7 @@ Minimote:
   scene_3_off: scene.upstairs_off
 Modes:
   class: Modes
-  dependencies: globals,motion_lights
+  dependencies: globals,motion_lights,secure
   module: modes
   timers: Downstairs Night Light
 Motion Notification:
@@ -95,17 +111,16 @@ Motion Notification:
   constrain_presence: noone
   dependencies: globals
   module: motion_notification
-  sensor: binary_sensor.basement_sensor_35_0,binary_sensor.downstairs_sensor_26_0,binary_sensor.drive_sensor_39_0,binary_sensor.garage_sensor_36_0,binary_sensor.porch_multi
-sensor_sensor_27_0,binary_sensor.upstairs_sensor_28_0
+  sensor: binary_sensor.basement_sensor,binary_sensor.downstairs_sensor,binary_sensor.drive_sensor,binary_sensor.garage_sensor,binary_sensor.porch_multisensor_sensor,binary_sensor.upstairs_sensor
 Occupancy Simulator:
   class: OccuSim
+  module: occusim
   dependencies: globals
   enable: input_boolean.vacation,on
   log: '1'
-  module: occusim
   random_office_end: Night
-  random_office_maxduration: '00:30:00'
-  random_office_minduration: '00:03:00'
+  random_office_maxduration: 00:30:00
+  random_office_minduration: 00:03:00
   random_office_name: Evening Office
   random_office_number: '3'
   random_office_off_1: scene.office_off
@@ -113,25 +128,25 @@ Occupancy Simulator:
   random_office_start: Evening
   step_evening_name: Evening
   step_evening_start: sunset - 00:45:00
-  step_lightsout_end_offset: '01:00:00'
+  step_lightsout_end_offset: 01:00:00
   step_lightsout_name: Lights Out
   step_lightsout_off_1: scene.bedroom_off
   step_lightsout_relative: Night
-  step_lightsout_start_offset: '00:05:00'
+  step_lightsout_start_offset: 00:05:00
   step_morning_days: mon,tue,wed,thu,fri
-  step_morning_end: '06:00:00'
+  step_morning_end: 06:00:00
   step_morning_name: Morning
   step_morning_on_1: event.MODE_CHANGE,mode
-  step_morning_start: '05:30:00'
+  step_morning_start: 05:30:00
   step_night_end: '22:30:00'
   step_night_name: Night
   step_night_on_1: event.MODE_CHANGE,mode
   step_night_start: '21:30:00'
   step_upstairs_hall_off_1: scene.upstairs_hall_off
-  step_upstairs_hall_off_end_offset: '00:05:00'
+  step_upstairs_hall_off_end_offset: 00:05:00
   step_upstairs_hall_off_name: Upstairs Hall Off
   step_upstairs_hall_off_relative: Night
-  step_upstairs_hall_off_start_offset: '00:01:00'
+  step_upstairs_hall_off_start_offset: 00:01:00
   test: '0'
 Outside Lights:
   class: OutsideLights
@@ -149,7 +164,7 @@ Porch Motion Lights:
   entity_off: scene.porch_on
   entity_on: scene.porch_bright
   module: motion_lights
-  sensor: binary_sensor.porch_multisensor_sensor_27_0
+  sensor: binary_sensor.porch_multisensor_sensor
 Presence:
   announce: Wendy
   class: Presence
@@ -169,12 +184,12 @@ Smart Heat:
   evening_on: '17:00:00'
   input_select: input_select.house_mode,Morning,Day,Evening
   module: smart_heat
-  morning_on_week: '05:30:00'
-  morning_on_weekend: '06:30:00'
+  morning_on_week: 05:30:00
+  morning_on_weekend: 06:30:00
   off_temp: '60'
   on_temp: '70'
   switch: input_boolean.heating
-  thermostats: climate.upstairs_thermostat_heating_1_14_1,climate.downstairs_thermostat_heating_1_51_1
+  thermostats: climate.upstairs_thermostat_heating_1,climate.downstairs_thermostat_heating_1
 Smoke Alarm:
   class: SensorNotification
   dependencies: globals
@@ -183,6 +198,12 @@ Smoke Alarm:
   module: sensor_notification
   sensor: sensor.basement_smoke,sensor.downstairs_smoke,sensor.upstairs_smoke
   turn_on: scene.house_bright
+Lock:
+  class: SensorNotification
+  dependencies: globals
+  idle_state: Idle
+  module: sensor_notification
+  sensor: sensor.front_door_action
 Sound:
   base: media
   class: Sound
@@ -208,4 +229,72 @@ Visitor Night Light:
   entity_off: scene.upstairs_hall_off
   entity_on: scene.upstairs_hall_dim
   module: motion_lights
-  sensor: binary_sensor.upstairs_sensor_28_0
+  sensor: binary_sensor.upstairs_sensor
+alexa:
+  class: Alexa
+  module: alexa
+  dependencies: secure,modes
+  apps:
+    secure: Security
+    modes: Modes
+Security:
+  class: Secure
+  module: secure
+  dependencies: sound
+  announcement_volume: 0.5
+  alarm_volume: 0.5
+  secure_panel: /Secure
+  secure_panel_timeout: 20
+  initial_message: ["working", "ok, checking", "give me a sec"]
+  secure_message: ["The house is now secure", "All good", "Yup, secure"]
+  not_secure_message: "The house is not secure"
+  insecure_message: "The following items are insecure :"
+  securing_message: "I have secured the following items: "
+  failed_message: "The following items failed to secure: "
+  alarm_cancel_message: ["Alarm has been cancelled", "uh oh, canceling alarm", "oh noes!"]
+  alarm_arm_message: "Alarm is armed"
+  alarm_disarm_message: "Alarm is disarmed"
+  alarm_entity: alarm_control_panel.ha_alarm
+  alarm_code: 8161
+  alarm_notify:
+    tts:
+      message: "Alert. Alert. Alert. Alarm has been activated. Police have been notified. Please leave the premises immediately."
+  query_zones:  ["Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter"]
+  secure_zones: ["Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter"]
+  armed_home_zones: ["Basement Motion", "Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter"]
+  armed_away_zones: ["Basement Motion", "Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter", "Downstairs Motion", "Upstairs Motion"]
+  zones:
+    Basement Motion:
+      binary_sensor.basement_sensor:
+        desired_state: "off"
+    Basement Perimeter:
+      binary_sensor.basement_door_sensor:
+        desired_state: "off"
+        state_map:
+          "on": "open"
+          "off": "closed"
+    Downstairs Perimeter:
+      lock.front_door_lock_locked:
+        desired_state: "locked"
+        service: lock/lock
+        timeout: 5
+        no_pending_check: 1
+    Downstairs Motion:
+      binary_sensor.downstairs_sensor:
+        desired_state: "off"
+    Garage Perimeter:
+      cover.garage_door:
+        desired_state: "closed"
+        service: cover/close_cover
+        timeout: 20
+        #state_map:
+        #  locked: "bannana"
+        #  unlocked: "fruitbat"
+    Garage Motion:
+      binary_sensor.garage_sensor:
+        desired_state: "off"
+        #service: lock/lock
+        #timeout: 20
+    Upstairs Motion:
+      binary_sensor.upstairs_sensor:
+        desired_state: "off"

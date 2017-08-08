@@ -28,9 +28,16 @@ function ha_status(stream, dash, widgets)
                     {
                         timeout_params = "&";
                     }
-                    timeout_params += "timeout=" + timeout + "&return=" + location.pathname;
+                    if ("return" in data.data)
+                    {
+                        ret = data.data.return
+                    }
+                    else
+                    {
+                        ret = location.pathname
+                    }
+                    timeout_params += "timeout=" + timeout + "&return=" + ret;
                 }
-                console.log(timeout_params)
                 window.location.href = data.data.target + location.search + timeout_params;
             }
         }

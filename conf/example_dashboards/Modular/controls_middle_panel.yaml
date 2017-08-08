@@ -33,7 +33,19 @@ obsidian:
   dashboard: Controls
   skin: obsidian
 
+hass:
+  widget_type: navigate
+  title: Home Assistant
+  icon_inactive: mdi-select-all
+  dashboard: Hass
+
+alarm:
+    widget_type: alarm
+    entity: alarm_control_panel.ha_alarm
+    title: Alarm
+
 layout:
   - input_boolean.heating, input_boolean.vacation, input_boolean.motion_notifications
+  - alarm
   -
-  - default, obsidian, zen, simplyred, glassic
+  - default, obsidian, zen, simplyred, glassic, spacer(1x1), hass

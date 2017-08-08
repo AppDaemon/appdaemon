@@ -1,9 +1,9 @@
 import appdaemon.appapi as appapi
+import globals
 
 class HWCheck(appapi.AppDaemon):
 
   def initialize(self):
-    
     self.listen_event(self.ha_event, "ha_started")
     self.listen_event(self.appd_event, "appd_started")
     
@@ -24,5 +24,7 @@ class HWCheck(appapi.AppDaemon):
       
   def log_notify(self, msg, level):
     self.log(msg, level)
-    self.notify(msg, name="ios")
+    self.notify(msg, name=globals.notify)
   
+  def terminate(self):
+    self.log("Terminating!", "INFO")

@@ -1,4 +1,5 @@
 import appdaemon.appapi as appapi
+import globals
 
 #
 # App to make a regular switch act as a momentary switch
@@ -30,4 +31,4 @@ class MomentarySwitch(appapi.AppDaemon):
     if "log" in self.args:
       self.log(message)
     if "notify" in self.args:
-      self.notify(message, name="ios")
+      self.notify(message, name=globals.notify)

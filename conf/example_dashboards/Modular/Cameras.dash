@@ -1,0 +1,15 @@
+#
+# Main arguments, all optional
+#
+title: Garage & Basement
+widget_dimensions: [122, 120]
+widget_margins: [5, 5]
+columns: 8
+#skin = green
+#
+# Includes (Optional)
+#
+layout:
+    - include: camera_panel
+    - include: rooms_panel
+    - include: bottom_panel

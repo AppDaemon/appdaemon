@@ -17,6 +17,7 @@ History
 - Add Password security for screens and HASS proxying functions
 - Add support for secrets in the AppDaemon configuration file
 - Add support for secrets in HADashboard configuration files
+- `dash_navigate()` now takes an optional screen to return to
 
 **Fixes**
 
