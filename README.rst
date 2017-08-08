@@ -108,21 +108,22 @@ The secrets can be referred to using a `!secret` value in the configuration file
 
 An example `secrets.yaml` might look like this:
 
-```yaml
-home_assistant_key_key: password123
-appdaemon_key: password456
-```
+.. code:: yaml
+
+    home_assistant_key_key: password123
+    appdaemon_key: password456
+
 
 The secrets can then be referred to as follows:
 
-```yaml
-AppDaemon:
-  ad_key: !secret appdaemon_key
-  threads: '10'
-HASS:
-  ha_key: !secret home_assistant_key
-  ha_url: http://192.168.1.20:8123
-```
+.. code:: yaml
+
+    AppDaemon:
+      ad_key: !secret appdaemon_key
+      threads: '10'
+    HASS:
+      ha_key: !secret home_assistant_key
+      ha_url: http://192.168.1.20:8123
 
 Configuring a Test App
 ----------------------
