@@ -255,7 +255,7 @@ Security:
   alarm_arm_message: "Alarm is armed"
   alarm_disarm_message: "Alarm is disarmed"
   alarm_entity: alarm_control_panel.ha_alarm
-  alarm_code: 8161
+  alarm_code: !secret alarm_code
   alarm_notify:
     tts:
       message: "Alert. Alert. Alert. Alarm has been activated. Police have been notified. Please leave the premises immediately."
