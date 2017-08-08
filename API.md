@@ -2,6 +2,12 @@
 
 AppDaemon is a loosely coupled, sandboxed, multi-threaded Python execution environment for writing automation apps for [Home Assistant](https://home-assistant.io/) home automation software. It is intended to complement the Automation and Script components that Home Assistant currently offers.
 
+## Examples
+
+Example apps that showcase most of these functions are available in the AppDaemon repository:
+
+[Apps](https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps)
+
 ## Anatomy of an App
 
 Automations in AppDaemon are performed by creating a piece of code (essentially a Python Class) and then instantiating it as an Object one or more times by configuring it as an App in the configuration file. The App is given a chance to register itself for whatever events it wants to subscribe to, and AppDaemon will then make calls back into the Object's code when those events occur, allowing the App to respond to the event with some kind of action.
