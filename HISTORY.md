@@ -22,7 +22,7 @@ History
 **Fixes**
 
 - Toggle area fixes submitted by [azeroth12](https://github.com/azeroth12) and [minchick](https://github.com/minchik)
-- Typo fixes submitted by [Aaron Linville](https://github.com/linville), [vrs01](https://github.com/vrs01), [Gabor SZOLLOSI](https://github.com/szogi), [Ken Davidson](https://github.com/kwdavidson), [Christian Lasaczyk](https://github.com/ChrisLasar), [Klaus](https://github.com/k-laus)
+- Typo fixes submitted by [Aaron Linville](https://github.com/linville), [vrs01](https://github.com/vrs01), [Gabor SZOLLOSI](https://github.com/szogi), [Ken Davidson](https://github.com/kwdavidson), [Christian Lasaczyk](https://github.com/ChrisLasar), [Klaus](https://github.com/k-laus), [Johan Haals](https://github.com/jhaals)
 - Fixed missing skin variables for media player and sensor widgets
 
 **Breaking Changes**
