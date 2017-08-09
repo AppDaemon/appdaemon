@@ -4,7 +4,7 @@ pages:
   - Introduction: 'index.md'
   - Installation: 'INSTALL.md'
   - Tutorial: 'TUTORIAL.md'
-  - API: 'API.md'
+  - API Reference: 'API.md'
   - HADashboard: 'DASHBOARD.md'
   - Docker: 'DOCKER_TUTORIAL.md'
   - Changelog: 'HISTORY.md'
