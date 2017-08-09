@@ -48,7 +48,7 @@ These, along with their various subscription calls and helper functions, will be
 
 Optionally, a class can add a `terminate()` function. This function will be called ahead of the reload to allow the class to perform any tidy up that is necessary. 
 
-WARNING: Unlike other types of callback, calls to `initialize()` and `terminate()` are synchronous to AppDaemon's management code to ensure that initialization or cleanup is completed before the App is loaded or reloaded. This means that any significant delays in the `terminate()` code could have the effect of hanging AppDaemon for the duration of that code - this should be avoided.
+WARNING: Unlike other types of callback, calls to `initialize()` and `terminate()` are synchronous to AppDaemon\'s management code to ensure that initialization or cleanup is completed before the App is loaded or reloaded. This means that any significant delays in the `terminate()` code could have the effect of hanging AppDaemon for the duration of that code - this should be avoided.
 
 To wrap up this section, here is a complete functioning App (with comments):
 
@@ -2361,16 +2361,19 @@ Return the internal data structures, but do not allow them to be modified direct
 
 ### About HASS Disconections
 
-When AppDaemon is unable to connect initially with Home Assistant, it will hold all Apps in statsis until it initially connects, nothing else will happen and no initialization routines will be called. If AppDaemon has been running connected to Home Assitant for a while and the connectionm is unexpectedly lost, the following will occur:
+When AppDaemon is unable to connect initially with Home Assistant, it will hold all Apps in statsis until it initially
+connects, nothing else will happen and no initialization routines will be called.
+If AppDaemon has been running connected to Home Assitant for a while and the connection
+ is unexpectedly lost, the following will occur:
 
 - When HASS first goes down or becomes disconnected, an event called `ha_disconnected` will fire
 - While disconnected from HASS, Apps will continue to run
 - Schedules will continue to be honored
 - Any operation reading locally cached state will succeed
 - Any operation requiring a call to HASS will log a warning and return without attempting to contact hass
-- Changes to Apps will not force a reload until HASS is reconnectec
+- Changes to Apps will not force a reload until HASS is reconnected
 
-When a connection to HASS is reestablished, all Apps will be restarted and their initialize() routines will be called.
+When a connection to HASS is reestablished, all Apps will be restarted and their `initialize()` routines will be called.
 
 ## RESTFul API Support
 
