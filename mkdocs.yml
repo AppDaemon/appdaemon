@@ -2,6 +2,7 @@ site_name: AppDaemon
 docs_dir: docs
 pages:
   - Introduction: 'index.md'
+  - Installation: 'INSTALL.md'
   - Tutorial: 'TUTORIAL.md'
   - API: 'API.md'
   - HADashboard: 'DASHBOARD.md'
