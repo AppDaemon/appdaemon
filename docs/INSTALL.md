@@ -7,7 +7,7 @@ hass.io build.
 Install and Run using Docker
 ============================
 
-Follow the instructions in [DOCKER\_TURORIAL.md](docs/DOCKER_TUTORIAL.md)
+Follow the instructions in the [Docker Tutorial](DOCKER_TUTORIAL.md)
 
 Install Using pip3
 ==================
@@ -136,7 +136,7 @@ Configuring a Test App
 The `#Apps` section is the configuration for the Hello World program and
 should be left in place for initial testing but can be removed later if
 desired, as other Apps are added, App configuration is fully described
-in the [API doc](docs/API.md).
+in the [API doc](API.md).
 
 To add an initial test app to match the configuration above, we need to
 first create an `apps` subdirectory under the conf directory. Then
@@ -166,7 +166,7 @@ Configuring the Dashboard
 -------------------------
 
 Configuration of the dashboard component (HADashboard) is described
-separately in the [Dashboard doc](docs/DASHBOARD.md)
+separately in the [Dashboard doc](DASHBOARD.md)
 
 Example Apps
 ============
