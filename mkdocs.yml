@@ -1,6 +1,6 @@
 site_name: AppDaemon
 pages:
-  #- 'README': 'README.rst'
+  - 'README': 'README.md'
   - 'TUTORIAL': 'TUTORIAL.md'
   - 'API': 'API.md'
   - 'DASHBOARD': 'DASHBOARD.md'
