@@ -5,6 +5,7 @@ History
 -----
 
 - Add `get_alexa_slot_value()
+- Add `log_size` and `log_generations` config parameters
 
 None
 
