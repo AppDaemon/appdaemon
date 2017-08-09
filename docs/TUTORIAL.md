@@ -110,7 +110,7 @@ Of course if I wanted to make this App or its predecessor reusable I would have 
 
 In addition, Apps can write to `AppDaemon`'s logfiles, and there is a system of constraints that allows yout to control when and under what circumstances Apps and callbacks are active to keep the logic clean and simple.
 
-I have spent the last few weeks moving all of my (fairly complex) automations over to `APPDaemon` and so far it is working very reliably.
+I have spent the last few weeks moving all of my (fairly complex) automations over to `AppDaemon` and so far it is working very reliably.
 
 Some people will maybe look at all of this and say "what use is this, I can already do all of this", and that is fine, as I said this is an alternative not a replacement, but I am hopeful that for some users this will seem a more natural, powerful and nimble way of building potentially very complex automations.
 
