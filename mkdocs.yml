@@ -1,9 +1,9 @@
 site_name: AppDaemon
 docs_dir: docs
-pages:
-  - Introduction: 'index.md'
-  - Tutorial: 'TUTORIAL.md'
-  - API: 'API.md'
-  - HADashboard: 'DASHBOARD.md'
-  - Docker: 'DOCKER_TUTORIAL.md'
-  - Changelog: 'HISTORY.md'
+#pages:
+#  - Introduction: 'index.md'
+#  - Tutorial: 'TUTORIAL.md'
+#  - API: 'API.md'
+#  - HADashboard: 'DASHBOARD.md'
+#  - Docker: 'DOCKER_TUTORIAL.md'
+#  - Changelog: 'HISTORY.md'
