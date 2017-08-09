@@ -1,7 +1,7 @@
 History
 =======
 
-2.1.1
+2.1.2
 -----
 
 - Add `get_alexa_slot_value()
