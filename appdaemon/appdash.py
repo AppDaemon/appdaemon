@@ -373,9 +373,11 @@ def wshandler(request):
 
 
 def ws_update(jdata):
-    ha.log(conf.dash,
-           "DEBUG",
-           "Sending data to {} dashes: {}".format(len(app['websockets']), jdata))
+
+    if len(app['websockets']) > 0:
+        ha.log(conf.dash,
+               "DEBUG",
+               "Sending data to {} dashes: {}".format(len(app['websockets']), jdata))
 
     data = json.dumps(jdata)
 

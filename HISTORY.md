@@ -6,6 +6,7 @@ History
 
 - Add `get_alexa_slot_value()
 - Add `log_size` and `log_generations` config parameters
+- Add additional debugging to help Docker users
 
 None
 
