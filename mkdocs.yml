@@ -1,8 +1,7 @@
-site_name: AppDaemon
 pages:
-- 'README': 'README.md'
-- 'TUTORIAL': 'TUTORIAL.md'
-- 'API': 'API.md'
-- 'DASHBOARD': 'DASHBOARD.md'
-- 'DOCKER TUTORIAL': 'DOCKER_TUTORIAL.md'
-- 'CHANGE LOG': 'HISTORY.md'
+- 'README.md'
+- 'TUTORIAL.md'
+- 'API.md'
+- 'DASHBOARD.md'
+- 'DOCKER_TUTORIAL.md'
+- 'HISTORY.md'
