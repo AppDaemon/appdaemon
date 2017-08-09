@@ -1153,12 +1153,12 @@ def run():
             t.daemon = True
             t.start()
 
-            ha.log(conf.logger, "DEBUG", "Done")
+        ha.log(conf.logger, "DEBUG", "Done")
 
 
     if conf.ha_url is not None:
         # Read apps and get HA State before we start the timer thread
-        ha.log(conf.logger, "DEBUG", "Calling HA for initial state")
+        ha.log(conf.logger, "DEBUG", "Calling HA for initial state with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
 
         while last_state is None:
             try:
@@ -1746,11 +1746,18 @@ def main():
 
     ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(conf.__version__))
     ha.log(conf.logger, "INFO", "Configuration read from: {}".format(config_file))
+    ha.log(conf.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
+    ha.log(conf.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
+    ha.log(conf.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
 
     # Check with HA to get various info
 
     ha_config = None
     if conf.ha_url is not None:
+
+        ha.log(conf.logger, "DEBUG", "Calling HA for config with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
+
+
         while ha_config is None:
             try:
                 ha_config = ha.get_ha_config()
@@ -1764,6 +1771,9 @@ def main():
                     ha.log(conf.logger, "WARNING", traceback.format_exc())
                     ha.log(conf.logger, "WARNING", '-' * 60)
                 time.sleep(5)
+
+        ha.log(conf.logger, "DEBUG", "Success")
+        ha.log(conf.logger, "DEBUG", ha_config)
 
         conf.version = parse_version(ha_config["version"])
 
