@@ -2,7 +2,7 @@ import logging
 import threading
 
 
-__version__ = "2.1.3b1"
+__version__ = "2.1.3"
 
 
 ha_url = ""
