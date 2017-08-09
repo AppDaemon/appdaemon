@@ -6,7 +6,7 @@ HADashboard is a dashboard for [Home Assistant](https://home-assistant.io/) that
 
 # Installation and Configuration
 
-HADashboard is dependent upon AppDaemon. As a first step please refer to the [AppDaemon Documentation](README.rst).
+HADashboard is dependent upon AppDaemon. As a first step please refer to the [AppDaemon Installation Documentation](docs/INSTALL.md).
 
 When you have AppDaemon installed and running, configuration of the Dashboard is pretty simple.
 You just need to add a directive to the config file - `dash_url`.
