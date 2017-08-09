@@ -14,7 +14,7 @@ Install Using pip3
 
 Before running `AppDaemon` you will need to install the package:
 
-``` {.sourceCode .bash}
+```bash
 $ sudo pip3 install appdaemon
 ```
 
@@ -37,7 +37,7 @@ and create a file in there called `appdaemon.yaml`.
 
 Your initial file should look something like this:
 
-``` {.sourceCode .yaml}
+```yaml
 AppDaemon:
   logfile: STDOUT
   errorfile: STDERR
@@ -98,8 +98,8 @@ config directory using the `app_dir` directive.
 
 e.g.:
 
-``` {.sourceCode .ini}
-app_dir = /etc/appdaemon/apps
+```yaml
+app_dir: /etc/appdaemon/apps
 ```
 
 Secrets
@@ -114,14 +114,14 @@ configuration file.
 
 An example secrets.yaml might look like this:
 
-``` {.sourceCode .yaml}
+```yaml
 home_assistant_key_key: password123
 appdaemon_key: password456
 ```
 
 The secrets can then be referred to as follows:
 
-``` {.sourceCode .yaml}
+```yaml
 AppDaemon:
   ad_key: !secret appdaemon_key
   threads: '10'
@@ -143,7 +143,7 @@ first create an `apps` subdirectory under the conf directory. Then
 create a file in the apps directory called `hello.py`, and paste the
 followinginto it using your favorite text editor:
 
-``` {.sourceCode .python}
+```python
 import appdaemon.appapi as appapi
 
 #
@@ -184,7 +184,7 @@ Docker
 Assuming you have set the config up as described in the tutotial for
 Docker, you should see the logs output as follows:
 
-``` {.sourceCode .bash}
+```bash
 $ docker logs appdaemon
 2016-08-22 10:08:16,575 INFO Got initial state
 2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
@@ -200,7 +200,7 @@ PIP3
 
 You can run AppDaemon from the command line as follows:
 
-``` {.sourceCode .bash}
+```bash
 $ appdaemon -c /home/homeassistant/conf
 ```
 
@@ -264,7 +264,7 @@ you move to the YAML format using the provided tool. When using the
 legacy configuration style, there are no `HASS` or `HADashboard`
 sections - the associated directives all go in the `AppDaemon` section.
 
-``` {.sourceCode .ini}
+```ini
 [AppDaemon]
 ha_url = <some_url>
 ha_key = <some key>
@@ -284,7 +284,7 @@ YAML, AppDaemon is able to do this for you. Just run AppDaemon providing
 the configuration directory using the -c option as usual and specify the
 --convertcfg flag. From the command line run:
 
-``` {.sourceCode .bash}
+```bash
 $ appdaemon -c YOUR_CONFIG_DIR --convertcfg
 Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
 $
@@ -310,32 +310,36 @@ Add Systemd Service (<appdaemon@appdaemon.service>)
 
 First, create a new file using vi:
 
-    $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
+```bash
+$ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
+```
 
 Add the following, making sure to use the correct full path for your
 config directory. Also make sure you edit the `User` to a valid user to
 run AppDaemon, usually the same user as you are running Home Assistant
 with is a good choice.
 
-    [Unit]
-    Description=AppDaemon
-    After=home-assistant@homeassistant.service
-    [Service]
-    Type=simple
-    User=hass
-    ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
-    [Install]
-    WantedBy=multi-user.target
+```
+[Unit]
+Description=AppDaemon
+After=home-assistant@homeassistant.service
+[Service]
+Type=simple
+User=hass
+ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
+[Install]
+WantedBy=multi-user.target
+```
 
--   The above should work for hasbian, but if your homeassistant service
-    is named something different you may need to change the `After=`
-    lines to reflect the actual name.
+The above should work for hasbian, but if your homeassistant service is named something different you may need to change the `After=` lines to reflect the actual name.
 
 Activate Systemd Service
 ------------------------
 
-    $ sudo systemctl daemon-reload
-    $ sudo systemctl enable appdaemon@appdaemon.service --now
+```bash
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable appdaemon@appdaemon.service --now
+```
 
 Now AppDaemon should be up and running and good to go.
 
@@ -354,7 +358,7 @@ Updating AppDaemon
 To update AppDaemon after new code has been released, just run the
 following command to update your copy:
 
-``` {.sourceCode .bash}
+```bash
 $ sudo pip3 install --upgrade appdaemon
 ```
 
