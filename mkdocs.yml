@@ -1,4 +1,5 @@
 site_name: AppDaemon
+docs_dir: docs
 pages:
   - Introduction: 'index.md'
   - Tutorial: 'TUTORIAL.md'
