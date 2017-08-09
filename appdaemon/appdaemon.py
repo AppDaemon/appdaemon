@@ -1648,14 +1648,11 @@ def main():
     if config['AppDaemon'].get("cert_verify", True) == False:
         conf.certpath = False
 
-
-
-
     if conf.dash_url is not None:
         url = urlparse(conf.dash_url)
 
-        if url.scheme != "http":
-            raise ValueError("Invalid scheme for 'dash_url' - only HTTP is supported")
+        #if url.scheme != "http":
+        #    raise ValueError("Invalid scheme for 'dash_url' - only HTTP is supported")
 
         dash_net = url.netloc.split(":")
         conf.dash_host = dash_net[0]
@@ -1676,6 +1673,9 @@ def main():
     if conf.errorfile is None:
         conf.errorfile = "STDERR"
 
+    log_size = config['AppDaemon'].get("log_size", 1000000)
+    log_generations = config['AppDaemon'].get("log_generations", 3)
+
     if isdaemon and (
                         conf.logfile == "STDOUT" or conf.errorfile == "STDERR"
                         or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"
@@ -1694,7 +1694,7 @@ def main():
 
     fh = None
     if conf.logfile != "STDOUT":
-        fh = RotatingFileHandler(conf.logfile, maxBytes=1000000, backupCount=3)
+        fh = RotatingFileHandler(conf.logfile, maxBytes=log_size, backupCount=log_generations)
         fh.setLevel(numeric_level)
         # fh.setFormatter(formatter)
         conf.logger.addHandler(fh)
@@ -1715,7 +1715,7 @@ def main():
 
     if conf.errorfile != "STDERR":
         efh = RotatingFileHandler(
-            conf.errorfile, maxBytes=1000000, backupCount=3
+            conf.errorfile, maxBytes=log_size, backupCount=log_generations
         )
     else:
         efh = logging.StreamHandler()
@@ -1733,7 +1733,7 @@ def main():
         conf.dash.propagate = False
         # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         efh = RotatingFileHandler(
-            config['AppDaemon'].get("accessfile"), maxBytes=1000000, backupCount=3
+            config['AppDaemon'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
         )
 
         efh.setLevel(numeric_level)
