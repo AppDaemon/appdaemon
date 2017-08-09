@@ -1,8 +1,25 @@
 History
 =======
 
+2.1.4
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 2.1.3
 -----
+
+**Features**
 
 - Restructure docs for readthedocs.io
 
