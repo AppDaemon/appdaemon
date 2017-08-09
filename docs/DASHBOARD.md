@@ -39,6 +39,12 @@ To password protect HADashboard use the `dash_password` directive:
   dash_password: some_password
 ```
 
+Or you can use the secret function and place the actual password in your secrets.yaml file:
+
+```yaml
+  dash_password: !secret dash_password
+```
+
 By default, dashboards are searched for under the config directory in a sub directory called `dashboards`.
 Optionally, you can place your dashboards in a directory other than under the config directory using the `dash_dir` directive.
 
