@@ -1,8 +1,8 @@
 site_name: AppDaemon
 pages:
-- 'README.md'
-- 'TUTORIAL.md'
-- 'API.md'
-- 'DASHBOARD.md'
-- 'DOCKER_TUTORIAL.md'
-- 'HISTORY.md'
+- Readme: 'README.md'
+- Tutorial: 'TUTORIAL.md'
+- API: 'API.md'
+- HADashboard: 'DASHBOARD.md'
+- Docker Tutorial: 'DOCKER_TUTORIAL.md'
+- Changelog: 'HISTORY.md'
