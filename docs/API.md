@@ -1,4 +1,4 @@
- AppDaemon API Documentation
+# AppDaemon API
 
 AppDaemon is a loosely coupled, sandboxed, multi-threaded Python execution environment for writing automation apps for [Home Assistant](https://home-assistant.io/) home automation software. It is intended to complement the Automation and Script components that Home Assistant currently offers.
 
@@ -2623,6 +2623,7 @@ Here is a sample Alexa App that can be extended for whatever intents you want to
 ```python
 import appdaemon.appapi as appapi
 import random
+import globals
 
 class Alexa(appapi.AppDaemon):
 
@@ -2634,50 +2635,50 @@ class Alexa(appapi.AppDaemon):
 
         if intent is None:
             self.log("Alexa error encountered: {}".format(self.get_alexa_error(data)))
-            return
+            return "", 201
 
         intents = {
             "StatusIntent": self.StatusIntent,
-            "LocateAndrewIntent": self.LocateAndrewIntent,
-            "LocateWendyIntent": self.LocateWendyIntent,
-            "LocateJackIntent": self.LocateJackIntent,
+            "LocateIntent": self.LocateIntent,
         }
 
         if intent in intents:
             speech, card, title = intents[intent](data)
             response = self.format_alexa_response(speech = speech, card = card, title = title)
+            self.log("Recieved Alexa request: {}, answering: {}".format(intent, speech))
         else:
             response = self.format_alexa_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
 
-        self.log("Recieved Alexa request: {}, answering: {}".format(intent, speech))
-
-        return response
+        return response, 200
 
     def StatusIntent(self, data):
-
         response = self.HouseStatus()
-
         return response, response, "House Status"
 
-    def LocateAndrewIntent(self, data):
-        response = self.Andrew()
-        return response, response, "Where is Andrew?"
+    def LocateIntent(self, data):
+        user = self.get_alexa_slot_value(data, "User")
 
-    def LocateWendyIntent(self, data):
-        response = self.Wendy()
-        return response, response, "Where is Wendy?"
+        if user is not None:
+            if user.lower() == "jack":
+                response = self.Jack()
+            elif user.lower() == "andrew":
+                response = self.Andrew()
+            elif user.lower() == "wendy":
+                response = self.Wendy()
+            elif user.lower() == "brett":
+                response = "I have no idea where Brett is, he never tells me anything"
+            else:
+                response = "I'm sorry, I don't know who {} is".format(user)
+        else:
+            response = "I'm sorry, I don't know who that is"
 
-    def LocateJackIntent(self, data):
-        response = self.Jack()
-        return response, response, "Where is Jack?"
+        return response, response, "Where is {}?".format(user)
 
     def HouseStatus(self):
 
-        status = self.Heat()
-        status += "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
+        status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
         status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
         status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
-        status += self.Garage()
         status += self.Wendy()
         status += self.Andrew()
         status += self.Jack()
@@ -2685,7 +2686,8 @@ class Alexa(appapi.AppDaemon):
         return status
 
     def Wendy(self):
-        if self.entities.sensor.wendy_tracker.state == "home":
+        location = self.get_state(globals.wendy_tracker)
+        if location == "home":
             status = "Wendy is home,"
         else:
             status = "Wendy is away,"
@@ -2693,7 +2695,8 @@ class Alexa(appapi.AppDaemon):
         return status
 
     def Andrew(self):
-        if self.entities.sensor.andrew_tracker.state == "home":
+        location = self.get_state(globals.andrew_tracker)
+        if location == "home":
             status = "Andrew is home,"
         else:
             status = "Andrew is away,"
