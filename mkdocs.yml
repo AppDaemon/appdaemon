@@ -4,5 +4,5 @@ pages:
 - Tutorial: 'TUTORIAL.md'
 - API: 'API.md'
 - HADashboard: 'DASHBOARD.md'
-- Docker Tutorial: 'DOCKER_TUTORIAL.md'
+- Docker: 'DOCKER_TUTORIAL.md'
 - Changelog: 'HISTORY.md'
