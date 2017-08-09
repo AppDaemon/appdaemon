@@ -1,6 +1,22 @@
 History
 =======
 
+2.1.1
+-----
+
+- Add `get_alexa_slot_value()
+- Add `log_size` and `log_generations` config parameters
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 2.1.0
 -----
 

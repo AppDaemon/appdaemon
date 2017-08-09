@@ -2507,7 +2507,7 @@ intent = get_alexa_intent(data)
 
 #### Returns
 
-A text representation of the Intent, or `None` if the data doesn not contain an intent.
+A text representation of the Intent, or `None` if the data doesn't not contain an intent.
 
 #### Parameters
 
@@ -2519,6 +2519,36 @@ The incoming request from Alexa
 
 ```python
 intent = get_alexa_intent(data)
+```
+
+### get_alexa_slot_value()
+
+Takes an Alexa request and extracts the the value of the slot variable
+
+#### Synopsis
+
+```python
+intent = get_alexa_slot_value(data, slot)
+```
+
+#### Returns
+
+A text representation of the slot variable, or `None` if the data doesn't not contain an slot value.
+
+#### Parameters
+
+##### data
+
+The incoming request from Alexa
+
+##### slot
+
+Name of the slot
+
+#### Examples
+
+```python
+intent = get_alexa_slot_value(data, "User")
 ```
 
 ### get_alexa_error()
