@@ -1,6 +1,6 @@
 site_name: AppDaemon
 #pages:
-#- Introduction: 'INTRO.md'
+#- Introduction: 'index.md'
 #- Tutorial: 'TUTORIAL.md'
 #- API: 'API.md'
 #- HADashboard: 'DASHBOARD.md'
