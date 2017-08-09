@@ -79,7 +79,7 @@ Your initial file should look something like this:
 -  ``log_size`` (optional) is the maximum size a logfile will get to before it is rotated
    if not specified, this will default to 1000000 bytes.
 -  ``log_generations`` (optional) is the number of rotated logfiles that will be retained before they are overwritten
-   if not specified, this will default to 1000000 bytes.
+   if not specified, this will default to 3 files.
 -  ``threads`` - the number of dedicated worker threads to create for
    running the apps. Note, this will bear no resembelance to the number
    of apps you have, the threads are re-used and only active for as long
