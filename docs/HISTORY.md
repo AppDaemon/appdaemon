@@ -4,7 +4,7 @@ History
 2.1.3
 -----
 
-**Features**
+- Restructure docs for readthedocs.io
 
 None
 
