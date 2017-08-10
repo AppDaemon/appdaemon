@@ -8,9 +8,9 @@ History
 
 None
 
-- .cfg file fixes
+**Fixes**
 
-None
+- .cfg file fixes
 
 **Breaking Changes**
 
