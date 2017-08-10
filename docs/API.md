@@ -2442,7 +2442,10 @@ Server: Python/3.5 aiohttp/2.2.3
 
 # API Security
 
-If you have added a key to the AppDaemon config, AppDaemon will expect to find a header called "x-ad-access" in the request with a value equal to the configured key. If these conditions are not met, the call will fail with a return code of `401 Not Authorized`. Here is a succesful curl example:
+If you have added a key to the AppDaemon config, AppDaemon will expect to find a header called "x-ad-access"
+in the request with a value equal to the configured key. A security key is added for the API with the `ad_key` directive described in the [Installation Documentation](INSTALL.md)
+
+If these conditions are not met, the call will fail with a return code of `401 Not Authorized`. Here is a succesful curl example:
 
 ```bash
 hass@Pegasus:~$ curl -i -X POST -H "x-ad-access: fred" -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World
@@ -2456,7 +2459,7 @@ Server: Python/3.5 aiohttp/2.2.3
 {"message": "Hello World"}hass@Pegasus:~$
 ```
 
-And an example of an incorrect key:
+And an example of a missing key:
 
 ```bash
 hass@Pegasus:~$ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api Test"}'ype": "Hello World
