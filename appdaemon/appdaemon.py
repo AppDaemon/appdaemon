@@ -1620,13 +1620,15 @@ def main():
             else:
                 conf.dashboard = True
 
-
     else:
         conf.timeout = config['AppDaemon'].get("timeout")
         conf.ha_url = config['AppDaemon'].get('ha_url')
         conf.ha_key = config['AppDaemon'].get('ha_key', "")
         conf.dash_url = config['AppDaemon'].get("dash_url")
         conf.dashboard_dir = config['AppDaemon'].get("dash_dir")
+        conf.dash_ssl_certificate = config['AppDaemon'].get("dash_ssl_certificate")
+        conf.dash_ssl_key = config['AppDaemon'].get("dash_ssl_key")
+        conf.dash_password = config['AppDaemon'].get("dash_password")
 
         if config['AppDaemon'].get("dash_force_compile") == "1":
             conf.dash_force_compile = True
@@ -1637,6 +1639,11 @@ def main():
             conf.dash_compile_on_start = True
         else:
             conf.dash_compile_on_start = False
+
+        if "disable_dash" in config['AppDaemon'] and config['AppDaemon']["disable_dash"] == 1:
+            conf.dashboard = False
+        else:
+            conf.dashboard = True
 
 
 
@@ -1746,9 +1753,10 @@ def main():
 
     ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(conf.__version__))
     ha.log(conf.logger, "INFO", "Configuration read from: {}".format(config_file))
-    ha.log(conf.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
-    ha.log(conf.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
-    ha.log(conf.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
+    if config_from_yaml is True:
+        ha.log(conf.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
+        ha.log(conf.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
+        ha.log(conf.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
 
     # Check with HA to get various info
 
