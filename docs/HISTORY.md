@@ -1,7 +1,7 @@
 History
 =======
 
-2.1.4
+2.1.5
 -----
 
 **Features**
@@ -11,6 +11,21 @@ None
 - .cfg file fixes
 
 None
+
+**Breaking Changes**
+
+None
+
+2.1.4
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+- .cfg file fixes
 
 **Breaking Changes**
 
