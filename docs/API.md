@@ -12,7 +12,7 @@ Example apps that showcase most of these functions are available in the AppDaemo
 
 Automations in AppDaemon are performed by creating a piece of code (essentially a Python Class) and then instantiating it as an Object one or more times by configuring it as an App in the configuration file. The App is given a chance to register itself for whatever events it wants to subscribe to, and AppDaemon will then make calls back into the Object's code when those events occur, allowing the App to respond to the event with some kind of action.
 
-The first step is to create a unique file within the apps directory (as defined in the `[AppDaemon]` section of configuration file - see [README](README.md) for further information on the configuration of AppDaemon itself). This file is in fact a Python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `appdaemon.appapi` module. The start of an app might look like this:
+The first step is to create a unique file within the apps directory (as defined in the `AppDaemon` section of configuration file - see [The Installation Page](INSTALL.md) for further information on the configuration of AppDaemon itself). This file is in fact a Python module, and is expected to contain one or more classes derived from the supplied `AppDaemon` class, imported from the supplied `appdaemon.appapi` module. The start of an app might look like this:
 
 ```python
 import appdaemon.appapi as appapi
@@ -24,7 +24,7 @@ When configured as an app in the config file (more on that later) the lifecycle 
 
 ```python
   def initialize(self):
-  ```
+```
 
 The initialize function allows the app to register any callbacks it might need for responding to state changes, and also any setup activities. When the `initialize()` function returns, the App will be dormant until any of its callbacks are activated.
 
@@ -78,7 +78,9 @@ To summarize - an App's lifecycle consists of being initialized, which allows it
 The implementation of the API is located in the AppDaemon class that Apps are derived from. The code for the functions is therefore available to the App simply by invoking the name of the function from the object namespace using the `self` keyword, as in the above examples. `self.turn_on()` for example is just a method defined in the parent class and made available to the child. This design decision was made to simplify some of the implementation and hide passing of unnecessary variables during the API invocation.
 
 # Configuration of Apps
-Apps are configured by specifying new sections in the configuration file. `[AppDaemon]` is a reserved section, described in the [README](README.md) for configuration of AppDaemon itself. The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
+Apps are configured by specifying new sections in the configuration file.
+`AppDaemon` is a reserved section, described in the [Installation Pages](INSTALL.md) for configuration of AppDaemon itself.
+The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
 
 To configure a new App you need a minimum of two directives:
 
@@ -684,7 +686,7 @@ Using AppDaemon it is possible to explicitly publish state from an App. The publ
 
 ## set_app_state()
 
-Publish state information to AppDaemon's internal state and push the statechanges out to listening Apps and Dashboards.
+Publish state information to AppDaemon's internal state and push the state changes out to listening Apps and Dashboards.
 
 ### Synopsis
 
@@ -1090,7 +1092,7 @@ AppDaemon has a number of features to allow easy tracking of sunrise and sunset 
 
 ## run_at_sunrise()
 
-Run a callback at or around sunrise.
+Run a callback every day at or around sunrise.
 
 ### Synopsis
 
@@ -1133,7 +1135,7 @@ self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60, "Sunris
 
 ## run_at_sunset()
 
-Run a callback at or around sunset.
+Run a callback every day at or around sunset.
 
 ### Synopsis
 
@@ -2206,7 +2208,8 @@ The log level of the message - takes a string representing the standard logger l
 ```python
 self.log("Log Test: Parameter is {}".format(some_variable))
 self.log("Log Test: Parameter is {}".format(some_variable), level = "ERROR")
-self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")```
+self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")
+```
 
 ## error()
 
@@ -2439,7 +2442,7 @@ Server: Python/3.5 aiohttp/2.2.3
 
 # API Security
 
-If you have added a key to the AppDaemon config, AppDaemon will expect to find a header called "x-ad-access" in the request with a valkue equal to the configured key. If these conditions are not met, the call will fail with a return code of `401 Not Authorized`. Here is a succesful curl example:
+If you have added a key to the AppDaemon config, AppDaemon will expect to find a header called "x-ad-access" in the request with a value equal to the configured key. If these conditions are not met, the call will fail with a return code of `401 Not Authorized`. Here is a succesful curl example:
 
 ```bash
 hass@Pegasus:~$ curl -i -X POST -H "x-ad-access: fred" -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World

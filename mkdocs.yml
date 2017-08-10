@@ -1,5 +1,6 @@
 site_name: AppDaemon
 docs_dir: docs
+theme: readthedocs
 pages:
   - Introduction: 'index.md'
   - Installation: 'INSTALL.md'
