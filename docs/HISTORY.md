@@ -8,7 +8,7 @@ History
 
 None
 
-**Fixes**
+- .cfg file fixes
 
 None
 
