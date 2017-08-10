@@ -387,3 +387,13 @@ extremely well. It is possible to run AppDaemon in exactly the same way
 as for Linux distributions, and none of the above Windows Caveats apply
 to this version. This is the reccomended way to run AppDaemon in a
 Windows 10 and later environment.
+
+Raspbian
+========
+
+Some users have reported a requirement to install a couple of packages prior to installing AppDaemon with the pip3 method:
+
+```bash
+$ sudo apt-get install python dev
+$ sudo apt-get install libffi-dev
+```
