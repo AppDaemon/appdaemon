@@ -2381,11 +2381,9 @@ When a connection to HASS is reestablished, all Apps will be restarted and their
 # RESTFul API Support
 
 AppDaemon supports a simple RESTFul API to enable arbitary HTTP connections to pass data to Apps and trigger actions.
-API Calls must use a content type of `application/json`, and the response will be JSON encoded.
-When using the AppDaemon API feature, it is necessary to minimally configure HADashboard to provide the HTTP access,
-you will need to provide the `dash_url` as well as the certificates if you wish to use SSL.
-It is possible to disable the actual dashboard functionality if required -
-see [DASHBOARD.md](DASHBOARD.md) for further details.
+API Calls must use a content type of `application/json`, and the response will be JSON encoded. The RESTFul API is disabled by default,
+but is enabled by adding an `ad_port` directive to the AppDaemon section of the configuration file. The API can run http or https if desired, separately from the dashboard.
+
 To call into a specific App, construct a URL, use the regular HADashboard URL, and append `/api/appdaemon`, then add the name of the app (as configured in `appdaemon.yaml`) on the end, for example:
 
 ```
@@ -2443,7 +2441,7 @@ Server: Python/3.5 aiohttp/2.2.3
 # API Security
 
 If you have added a key to the AppDaemon config, AppDaemon will expect to find a header called "x-ad-access"
-in the request with a value equal to the configured key. A security key is added for the API with the `ad_key` directive described in the [Installation Documentation](INSTALL.md)
+in the request with a value equal to the configured key. A security key is added for the API with the `api_key` directive described in the [Installation Documentation](INSTALL.md)
 
 If these conditions are not met, the call will fail with a return code of `401 Not Authorized`. Here is a succesful curl example:
 
