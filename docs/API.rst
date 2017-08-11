@@ -8,7 +8,7 @@ is intended to complement the Automation and Script components that Home
 Assistant currently offers.
 
 Examples
-========
+--------
 
 Example apps that showcase most of these functions are available in the
 AppDaemon repository:
@@ -16,7 +16,7 @@ AppDaemon repository:
 `Apps <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__
 
 Anatomy of an App
-=================
+-----------------
 
 Automations in AppDaemon are performed by creating a piece of code
 (essentially a Python Class) and then instantiating it as an Object one
@@ -130,7 +130,7 @@ reloaded, there is a call to its ``terminate()`` function if it exists.
 That's all there is to it!
 
 About the API
-=============
+-------------
 
 The implementation of the API is located in the AppDaemon class that
 Apps are derived from. The code for the functions is therefore available
@@ -142,7 +142,7 @@ simplify some of the implementation and hide passing of unnecessary
 variables during the API invocation.
 
 Configuration of Apps
-=====================
+---------------------
 
 Apps are configured by specifying new sections in the configuration
 file. ``AppDaemon`` is a reserved section, described in the
@@ -186,7 +186,7 @@ some other problem. If that is the case, details will be output to the
 error log allowing the user to remedy the problem and reload.
 
 Steps to writing an App
-=======================
+-----------------------
 
 1. Create the code in a new or shared module by deriving a class from
    AppDaemon, add required callbacks and code
@@ -194,7 +194,7 @@ Steps to writing an App
 3. There is no number 3
 
 Reloading Modules and Classes
-=============================
+-----------------------------
 
 Reloading of modules is automatic. When the system spots a change in a
 module, it will automatically reload and recompile the module. It will
@@ -217,7 +217,7 @@ continuously monitor the error file (using ``tail -f`` on Linux for
 instance) to ensure that errors are seen and can be remedied.
 
 Passing Arguments to Apps
-=========================
+-------------------------
 
 There wouldn't be much point in being able to run multiple versions of
 an App if there wasn't some way to instruct them to do something
@@ -299,7 +299,7 @@ required:
         units: %
 
 Module Dependencies
-===================
+-------------------
 
 It is possible for modules to be dependant upon other modules. Some
 examples where this might be the case are:
@@ -356,7 +356,7 @@ AppDaemon will write errors to the log if a dependency is missing and it
 should also detect circular dependencies.
 
 Callback Constraints
-====================
+--------------------
 
 Callback constraints are a feature of AppDaemon that removes the need
 for repetition of some common coding checks. Many Apps will wish to
@@ -402,7 +402,7 @@ the next callback that would otherwise have been called will be blocked.
 They are described individually below.
 
 input\_boolean
---------------
+~~~~~~~~~~~~~~
 
 By default, the input\_boolean constraint prevents callbacks unless the
 specified input\_boolean is set to "on". This is useful to allow certain
@@ -427,7 +427,7 @@ the input\_boolean is off, use the optional state parameter by appending
       constrain_input_boolean: input_boolean.enable_motion_detection,off
 
 input\_select
--------------
+~~~~~~~~~~~~~
 
 The input\_select constraint prevents callbacks unless the specified
 input\_select is set to one or more of the nominated (comma separated)
@@ -442,7 +442,7 @@ according to some flag, e.g. a house mode flag.
     constrain_input_select: input_select.house_mode,Day,Evening,Night
 
 presence
---------
+~~~~~~~~
 
 The presence constraint will constrain based on presence of device
 trackers. It takes 3 possible values: - ``noone`` - only allow callback
@@ -459,7 +459,7 @@ callback execution when everyone is home
     constrain_presence: noone
 
 time
-----
+~~~~
 
 The time constraint consists of 2 variables, ``constrain_start_time``
 and ``constrain_end_time``. Callbacks will only be executed if the
@@ -490,7 +490,7 @@ times that span midnight.
     constrain_end_time: sunrise + 00:45:00
 
 days
-----
+~~~~
 
 The day constraint consists of as list of days for which the callbacks
 will fire, e.g.
@@ -503,7 +503,7 @@ Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
 A Note on Threading
-===================
+-------------------
 
 AppDaemon is multithreaded. This means that any time code within an App
 is executed, it is executed by one of many threads. This is generally
@@ -535,10 +535,10 @@ thread for the period of the sleep. Instead use the scheduler's
 threads.
 
 State Operations
-================
+----------------
 
 A note on Home Assistant State
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 State within Home Assistant is stored as a collection of dictionaries,
 one for each entity. Each entity's dictionary will have some common
@@ -582,10 +582,10 @@ Similarly, accessing any of the entity attributes is also possible:
     name = self.entities.binary_sensor.downstairs_sensor.attributes.friendly_name
 
 get\_state()
-------------
+~~~~~~~~~~~~
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -597,14 +597,14 @@ locally and does not require AppDaemon to call back to Home Assistant
 and as such is very efficient.
 
 Returns
-~~~~~~~
+^^^^^^^
 
 ``get_state()`` returns a ``dictionary`` or single value, the structure
 of which varies according to the parameters used. If an entity or
 attribute does not exist, ``get_state()`` will return ``None``.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 All parameters are optional, and if ``get_state()`` is called with no
 parameters it will return the entire state of Home Assistant at that
@@ -612,7 +612,7 @@ given time. This will consist of a dictionary with a key for each
 entity. Under that key will be the standard entity state information.
 
 entity
-^^^^^^
+''''''
 
 This is the name of an entity or device type. If just a device type is
 provided, e.g. ``light`` or ``binary_sensor``, ``get_state()`` will
@@ -624,7 +624,7 @@ return the state attribute for that entity, e.g. ``on`` or ``off`` for a
 light.
 
 attribute
-^^^^^^^^^
+'''''''''
 
 Name of an attribute within the entity state object. If this parameter
 is specified in addition to a fully qualified ``entity_id``, a single
@@ -636,7 +636,7 @@ the entire state dictionary for the specified entity rather than an
 individual attribute value.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -656,7 +656,7 @@ Examples
     state = self.get_state("light.office_1", "all")
 
 set\_state()
-------------
+~~~~~~~~~~~~
 
 ``set_state()`` will make a call back to Home Assistant and make changes
 to the internal state of Home Assistant. This is not something that you
@@ -680,28 +680,28 @@ whether or not the entity exists, so it is possible to add entirely new
 entries to Home Assistant's state with this call.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     set_state(entity_id, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 ``set_state()`` returns a dictionary representing the state of the
 device after the call has completed.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 Entity id for which the state is to be set, e.g. ``light.office_1``.
 
 values
-^^^^^^
+''''''
 
 A list of keyword values to be changed or added to the entities state.
 e.g. ``state = "off"``. Note that any optional attributes such as colors
@@ -709,14 +709,14 @@ for bulbs etc, need to reside in a dictionary called ``attributes``; see
 the example.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     status = self.set_state("light.office_1", state = "on", attributes = {"color_name": "red"})
 
 About Callbacks
----------------
+~~~~~~~~~~~~~~~
 
 A large proportion of home automation revolves around waiting for
 something to happen and then reacting to it; a light level drops, the
@@ -747,7 +747,7 @@ for greater flexibility, these additional arguments are handed to the
 callback as a standard Python dictionary,
 
 About Registering Callbacks
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Each of the various types of callback have their own function or
 functions for registering the callback:
@@ -761,7 +761,7 @@ Each type of callback shares a number of common mechanisms that increase
 flexibility.
 
 Callback Level Constraints
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When registering a callback, you can add constraints identical to the
 Application level constraints described earlier. The difference is that
@@ -783,7 +783,7 @@ For example:
 ``self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")``
 
 User Arguments
-~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^
 
 Any callback has the ability to allow the App creator to pass through
 arbitrary keyword arguments that will be presented to the callback when
@@ -804,7 +804,7 @@ dictionary and you could use it as follows:
         self.log("Arg1 is {}".format(kwargs["arg1"]))
 
 State Callbacks
----------------
+~~~~~~~~~~~~~~~
 
 AppDaemons's state callbacks allow an App to listen to a wide variety of
 events, from every state change in the system, right down to a change of
@@ -814,7 +814,7 @@ to allow it to do all of the above. Apps can register as many or as few
 callbacks as they want.
 
 About State Callback Functions
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When calling back into the App, the App must provide a class function
 with a known signature for AppDaemon to call. The callback will provide
@@ -834,27 +834,27 @@ functions as you need.
 The parameters have the following meanings:
 
 self
-~~~~
+^^^^
 
 A standard Python object reference.
 
 entity
-~~~~~~
+^^^^^^
 
 Name of the entity the callback was requested for or ``None``.
 
 attribute
-~~~~~~~~~
+^^^^^^^^^
 
 Name of the attribute the callback was requested for or ``None``.
 
 old
-~~~
+^^^
 
 The value of the state before the state change.
 
 new
-~~~
+^^^
 
 The value of the state after the state change.
 
@@ -862,26 +862,26 @@ The value of the state after the state change.
 callback.
 
 \*\*kwargs
-~~~~~~~~~~
+^^^^^^^^^^
 
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
 
 listen\_state()
----------------
+~~~~~~~~~~~~~~~
 
 ``listen_state()`` allows the user to register a callback for a wide
 variety of state changes.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     handle = listen_state(callback, entity = None, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A unique identifier that can be used to cancel the callback if required.
 Since variables created within object methods are local to the function
@@ -890,20 +890,20 @@ invoked later in a different function, it is recommended that handles
 are stored in the object namespace, e.g. ``self.handle``.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 All parameters except ``callback`` are optional, and if
 ``listen_state()`` is called with no additional parameters it will
 subscribe to any state change within Home Assistant.
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard State Callback format documented above.
 
 entity
-^^^^^^
+''''''
 
 This is the name of an entity or device type. If just a device type is
 provided, e.g. ``light`` or ``binary_sensor``, ``listen_state()`` will
@@ -916,7 +916,7 @@ new, with the state attribute for that entity, e.g. ``on`` or ``off``
 for a light.
 
 attribute (optional)
-^^^^^^^^^^^^^^^^^^^^
+''''''''''''''''''''
 
 Name of an attribute within the entity state object. If this parameter
 is specified in addition to a fully qualified ``entity_id``,
@@ -931,14 +931,14 @@ callback functions with the entire state dictionary for the specified
 entity rather than an individual attribute value.
 
 new =  (optional)
-^^^^^^^^^^^^^^^^
+''''''''''''''''
 
 If ``new`` is supplied as a parameter, callbacks will only be made if
 the state of the selected attribute (usually ``state``) in the new state
 match the value of ``new``.
 
 old =  (optional)
-^^^^^^^^^^^^^^^^
+''''''''''''''''
 
 If ``old`` is supplied as a parameter, callbacks will only be made if
 the state of the selected attribute (usually ``state``) in the old state
@@ -947,7 +947,7 @@ match the value of ``old``.
 Note: ``old`` and ``new`` can be used singly or together.
 
 duration =  (optional)
-^^^^^^^^^^^^^^^^^^^^^
+'''''''''''''''''''''
 
 If duration is supplied as a parameter, the callback will not fire
 unless the state listened for is maintained for that number of seconds.
@@ -966,13 +966,13 @@ that none of them have changed in the intervening period.
 (Scheduler callbacks are documented in detail later in this document)
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Zero or more keyword arguments that will be supplied to the callback
 when it is called.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1001,74 +1001,74 @@ Examples
     self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60)
 
 cancel\_listen\_state()
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Cancel a ``listen_state()`` callback. This will mean that the App will
 no longer be notified for the specific state change that has been
 cancelled. Other state changes will continue to be monitored.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     cancel_listen_state(handle)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 Nothing
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 handle
-^^^^^^
+''''''
 
 The handle returned when the ``listen_state()`` call was made.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.cancel_listen_state(self.office_light_handle)
 
 info\_listen\_state()
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 Get information on state a callback from it's handle.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     entity, attribute, kwargs = self.info_listen_state(self.handle)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 entity, attribute, kwargs - the values supplied when the callback was
 initially created.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 handle
-^^^^^^
+''''''
 
 The handle returned when the ``listen_state()`` call was made.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     entity, attribute, kwargs = self.info_listen_state(self.handle)
 
 Publishing State from an App
-============================
+----------------------------
 
 Using AppDaemon it is possible to explicitly publish state from an App.
 The published state can contain whatever you want, and is treated
@@ -1080,28 +1080,28 @@ dashboard via use of specific entity IDs. To publish state, you will use
 usual AppDaemon calls.
 
 set\_app\_state()
------------------
+~~~~~~~~~~~~~~~~~
 
 Publish state information to AppDaemon's internal state and push the
 state changes out to listening Apps and Dashboards.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.set_app_state(entity_id, state)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 A name for the new state. It must conform to the standard entity\_id
 format, e.g. ``<device_type>.<name>``. however device type and name can
@@ -1111,7 +1111,7 @@ real devices. For clarity, I suggest the convention of using
 entity ids as desired.
 
 state
-^^^^^
+'''''
 
 The state to be associated with the entity id. This is a dictionary and
 must contain the enirety of the state information, It will replace the
@@ -1122,7 +1122,7 @@ state in a state field, and any attibutes in an attributes
 sub-dictionary.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1133,7 +1133,7 @@ widget in HADashboard. "state" is the actual value, and the widget also
 expects an attribute called "unit\_of\_measurement" to work correctly.
 
 Scheduler
-=========
+---------
 
 AppDaemon contains a powerful scheduler that is able to run with 1
 second resolution to fire off specific events at set times, or after set
@@ -1142,7 +1142,7 @@ should be fired less than a second after specified but under certain
 circumstances there may be short additional delays.
 
 About Schedule Callbacks
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 As with State Change callbacks, Scheduler Callbacks expect to call into
 functions with a known and specific signature and a class defined
@@ -1160,24 +1160,24 @@ need.
 The parameters have the following meanings:
 
 self
-~~~~
+^^^^
 
 A standard Python object reference
 
 \*\*kwargs
-~~~~~~~~~~
+^^^^^^^^^^
 
 A dictionary containing Zero or more keyword arguments to be supplied to
 the callback.
 
 Creation of Scheduler Callbacks
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Scheduler callbacks are created through use of a number of convenience
 functions which can be used to suit the situation.
 
 run\_in()
-~~~~~~~~~
+^^^^^^^^^
 
 Run the callback in a defined number of seconds. This is used to add a
 delay, for instance a 60 second delay before a light is turned off after
@@ -1185,39 +1185,39 @@ it has been triggered by a motion detector. This callback should always
 be used instead of ``time.sleep()`` as discussed previously.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_in(callback, delay, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 delay
-^^^^^
+'''''
 
 Delay, in seconds before the callback is invoked.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1225,47 +1225,47 @@ Examples
     self.handle = self.run_in(self.run_in_c, title = "run_in5")
 
 run\_once()
-~~~~~~~~~~~
+^^^^^^^^^^^
 
 Run the callback once, at the specified time of day. If the time of day
 is in the past, the callback will occur on the next day.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_once(callback, time, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 time
-^^^^
+''''
 
 A Python ``time`` object that specifies when the callback will occur. If
 the time specified is in the past, the callback will occur the next day
 at the specified time.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1276,46 +1276,46 @@ Examples
     handle = self.run_once(self.run_once_c, runtime)
 
 run\_at()
-~~~~~~~~~
+^^^^^^^^^
 
 Run the callback once, at the specified date and time.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_at(callback, datetime, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer. ``run_at()`` will raise
 an exception if the specified time is in the past.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 datetime
-^^^^^^^^
+''''''''
 
 A Python ``datetime`` object that specifies when the callback will
 occur.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1328,48 +1328,48 @@ Examples
     handle = self.run_once(self.run_once_c, event)
 
 run\_daily()
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 Execute a callback at the same time every day. If the time has already
 passed, the function will not be invoked until the following day at the
 specified time.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_daily(callback, start, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 start
-^^^^^
+'''''
 
 A Python ``time`` object that specifies when the callback will occur. If
 the time specified is in the past, the callback will occur the next day
 at the specified time.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1380,35 +1380,35 @@ Examples
     self.run_daily(self.run_daily_c, runtime)
 
 run\_hourly()
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 Execute a callback at the same time every hour. If the time has already
 passed, the function will not be invoked until the following hour at the
 specified time.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_hourly(callback, start, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 start
-^^^^^
+'''''
 
 A Python ``time`` object that specifies when the callback will occur,
 the hour component of the time object is ignored. If the time specified
@@ -1417,13 +1417,13 @@ time. If time is not supplied, the callback will start an hour from the
 time that ``run_hourly()`` was executed.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1434,35 +1434,35 @@ Examples
     self.run_hourly(self.run_hourly_c, runtime)
 
 run\_minutely()
-~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
 
 Execute a callback at the same time every minute. If the time has
 already passed, the function will not be invoked until the following
 minute at the specified time.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_minutely(callback, start, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 start
-^^^^^
+'''''
 
 A Python ``time`` object that specifies when the callback will occur,
 the hour and minute components of the time object are ignored. If the
@@ -1471,13 +1471,13 @@ the specified time. If time is not supplied, the callback will start a
 minute from the time that ``run_minutely()`` was executed.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1488,52 +1488,52 @@ Examples
     self.run_minutely(self.run_minutely_c, time)
 
 run\_every()
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 Execute a repeating callback with a configurable delay starting at a
 specific time.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_every(callback, time, repeat, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 time
-^^^^
+''''
 
 A Python ``datetime`` object that specifies when the initial callback
 will occur.
 
 repeat
-^^^^^^
+''''''
 
 After the initial callback has occurred, another will occur every
 ``repeat`` seconds.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1543,51 +1543,51 @@ Examples
     self.run_every(self.run_every_c, time, 17 * 60)
 
 cancel\_timer()
-~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
 
 Cancel a previously created timer
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.cancel_timer(handle)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 handle
-^^^^^^
+''''''
 
 A handle value returned from the original call to create the timer.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.cancel_timer(handle)
 
 info\_timer()
--------------
+~~~~~~~~~~~~~
 
 Get information on a scheduler event from it's handle.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     time, interval, kwargs = self.info_timer(handle)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 time - datetime object representing the next time the callback will be
 fired
@@ -1597,22 +1597,22 @@ interval - repeat interval if applicable, ``0`` otherwise.
 kwargs - the values supplied when the callback was initially created.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 handle
-^^^^^^
+''''''
 
 The handle returned when the scheduler call was made.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     time, interval, kwargs = self.info_timer(handle)
 
 Scheduler Randomization
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 All of the scheduler calls above support 2 additional optional
 arguments, ``random_start`` and ``random_end``. Using these arguments it
@@ -1641,7 +1641,7 @@ For example:
     self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60, **kwargs)
 
 Sunrise and Sunset
-==================
+------------------
 
 AppDaemon has a number of features to allow easy tracking of sunrise and
 sunset as well as a couple of scheduler functions. Note that the
@@ -1650,33 +1650,33 @@ above, but they cannot be used in conjunction with the ``offset``
 parameter\`.
 
 run\_at\_sunrise()
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Run a callback every day at or around sunrise.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_at_sunrise(callback, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 offset = 
-^^^^^^^^^
+'''''''''
 
 The time in seconds that the callback should be delayed after sunrise. A
 negative value will result in the callback occurring before sunrise.
@@ -1684,13 +1684,13 @@ This parameter cannot be combined with ``random_start`` or
 ``random_end``
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1706,33 +1706,33 @@ Examples
     self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60, "Sunrise, random - 30 - 60 mins")
 
 run\_at\_sunset()
------------------
+~~~~~~~~~~~~~~~~~
 
 Run a callback every day at or around sunset.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.handle = self.run_at_sunset(callback, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the timer.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 callback
-^^^^^^^^
+''''''''
 
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented above.
 
 offset = 
-^^^^^^^^^
+'''''''''
 
 The time in seconds that the callback should be delayed after sunrise. A
 negative value will result in the callback occurring before sunrise.
@@ -1740,13 +1740,13 @@ This parameter cannot be combined with ``random_start`` or
 ``random_end``
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Arbitary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1762,72 +1762,72 @@ Examples
     self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60, "Sunset, random - 30 - 60 mins")
 
 sunrise()
----------
+~~~~~~~~~
 
 Return the time that the next Sunrise will occur.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.sunrise()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A Python datetime that represents the next time Sunrise will occur.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     rise_time = self.sunrise()
 
 sunset()
---------
+~~~~~~~~
 
 Return the time that the next Sunset will occur.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.sunset()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A Python datetime that represents the next time Sunset will occur.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     set_time = self.sunset()
 
 sun\_up()
----------
+~~~~~~~~~
 
 A function that allows you to determine if the sun is currently up.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     result = self.sun_up()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 ``True`` if the sun is up, False otherwise.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1835,24 +1835,24 @@ Examples
         do something
 
 sun\_down()
------------
+~~~~~~~~~~~
 
 A function that allows you to determine if the sun is currently down.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     result = self.sun_down()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 ``True`` if the sun is down, False otherwise.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1860,10 +1860,10 @@ Examples
         do something
 
 Calling Services
-================
+----------------
 
 About Services
---------------
+~~~~~~~~~~~~~~
 
 Services within Home Assistant are how changes are made to the system
 and its devices. Services can be used to turn lights on and off, set
@@ -1875,7 +1875,7 @@ convenience functions for some of the more common services making
 calling them a little easier.
 
 call\_service()
----------------
+~~~~~~~~~~~~~~~
 
 Call service is the basic way of calling a service within AppDaemon. It
 can call any service and provide any required parameters. Available
@@ -1885,27 +1885,27 @@ after is the service name. For instance, ``light.turn_on`` has a domain
 of ``light`` and a service name of ``turn_on``.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.call_service(self, service, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 service
-^^^^^^^
+'''''''
 
 The service name, e.g. ``light.turn_on``.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Each service has different parameter requirements. This argument allows
 you to specify a comma separated list of keyword value pairs, e.g.
@@ -1915,7 +1915,7 @@ not all service calls require an ``entity_id`` however, so use of the
 above example is very common with this call.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1923,7 +1923,7 @@ Examples
     self.call_service("notify/notify", title = "Hello", message = "Hello World")
 
 turn\_on()
-----------
+~~~~~~~~~~
 
 This is a convenience function for the ``homassistant.turn_on``
 function. It is able to turn on pretty much anything in Home Assistant
@@ -1937,34 +1937,34 @@ that can be turned on or run:
 And many more.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.turn_on(entity_id, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 Fully qualified entity\_id of the thing to be turned on, e.g.
 ``light.office_lamp`` or ``scene.downstairs_on``
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 A comma separated list of key value pairs to allow specification of
 parameters over and above ``entity_id``.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -1973,35 +1973,35 @@ Examples
     self.turn_on("light.office_1", color_name = "green")
 
 turn\_off()
------------
+~~~~~~~~~~~
 
 This is a convenience function for the ``homassistant.turn_off``
 function. Like ``homeassistant.turn_on``, it is able to turn off pretty
 much anything in Home Assistant that can be turned off.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.turn_off(entity_id)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 Fully qualified entity\_id of the thing to be turned off, e.g.
 ``light.office_lamp`` or ``scene.downstairs_on``.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2009,35 +2009,35 @@ Examples
     self.turn_off("light.office_1")
 
 toggle()
---------
+~~~~~~~~
 
 This is a convenience function for the ``homassistant.toggle`` function.
 It is able to flip the state of pretty much anything in Home Assistant
 that can be turned on or off.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.toggle(entity_id)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 Fully qualified entity\_id of the thing to be toggled, e.g.
 ``light.office_lamp`` or ``scene.downstairs_on``.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2045,124 +2045,124 @@ Examples
     self.toggle("light.office_1", color_name = "green")
 
 select\_value()
----------------
+~~~~~~~~~~~~~~~
 
 This is a convenience function for the ``input_slider.select_value``
 function. It is able to set the value of an input\_slider in Home
 Assistant.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.select_value(entity_id, value)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 Fully qualified entity\_id of the input\_slider to be changed, e.g.
 ``input_slider.alarm_hour``.
 
 value
-^^^^^
+'''''
 
 The new value to set the input slider to.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.select_value("input_slider.alarm_hour", 6)
 
 select\_option()
-----------------
+~~~~~~~~~~~~~~~~
 
 This is a convenience function for the ``input_select.select_option``
 function. It is able to set the value of an input\_select in Home
 Assistant.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.select_option(entity_id, option)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 Fully qualified entity\_id of the input\_select to be changed, e.g.
 ``input_select.mode``.
 
 value
-^^^^^
+'''''
 
 The new value to set the input slider to.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.select_option("input_select.mode", "Day")
 
 notify()
---------
+~~~~~~~~
 
 This is a convenience function for the ``notify.notify`` service. It
 will send a notification to a named notification service. If the name is
 not specified it will default to ``notify/notify``.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     notify(message, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 message
-^^^^^^^
+'''''''
 
 Message to be sent to the notification service.
 
 title =
-^^^^^^^
+'''''''
 
 Title of the notification - optional.
 
 name =
-^^^^^^
+''''''
 
 Name of the notification service - optional.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2170,10 +2170,10 @@ Examples
     self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
 
 Events
-======
+------
 
 About Events
-------------
+~~~~~~~~~~~~
 
 Events are a fundamental part of how Home Assistant works under the
 covers. HA has an event bus that all components can read and write to,
@@ -2207,7 +2207,7 @@ Assistant bus:
    connection with HASS
 
 About Event Callbacks
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 As with State Change and Scheduler callbacks, Event Callbacks expect to
 call into functions with a known and specific signature and a class
@@ -2225,53 +2225,53 @@ need.
 The parameters have the following meanings:
 
 self
-~~~~
+^^^^
 
 A standard Python object reference.
 
 event\_name
-~~~~~~~~~~~
+^^^^^^^^^^^
 
 Name of the event that was called, e.g. ``call_service``.
 
 data
-~~~~
+^^^^
 
 Any data that the system supplied with the event as a dict.
 
 kwargs
-~~~~~~
+^^^^^^
 
 A dictionary containing Zero or more user keyword arguments to be
 supplied to the callback.
 
 listen\_event()
----------------
+~~~~~~~~~~~~~~~
 
 Listen event sets up a callback for a specific event, or any event.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     handle = listen_event(function, event = None, **kwargs):
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A handle that can be used to cancel the callback.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 function
-^^^^^^^^
+''''''''
 
 The function to be called when the event is fired.
 
 event
-^^^^^
+'''''
 
 Name of the event to subscribe to. Can be a standard Home Assistant
 event such as ``service_registered`` or an arbitrary custom event such
@@ -2279,7 +2279,7 @@ as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
 subscribe to all events.
 
 \*\*kwargs (optional)
-^^^^^^^^^^^^^^^^^^^^^
+'''''''''''''''''''''
 
 One or more keyword value pairs representing App specific parameters to
 supply to the callback. If the keywords match values within the event
@@ -2300,7 +2300,7 @@ can be filtered on. This can be achieved by examining Home Assistant's
 logfiles when the event fires.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2311,112 +2311,112 @@ Examples
     self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
 
 cancel\_listen\_event()
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Cancels callbacks for a specific event.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     cancel_listen_event(handle)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 handle
-^^^^^^
+''''''
 
 A handle returned from a previous call to ``listen_event()``.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.cancel_listen_event(handle)
 
 info\_listen\_event()
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 Get information on an event callback from it's handle.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     service, kwargs = self.info_listen_event(handle)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 service, kwargs - the values supplied when the callback was initially
 created.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 handle
-^^^^^^
+''''''
 
 The handle returned when the ``listen_event()`` call was made.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     service, kwargs = self.info_listen_event(handle)
 
 fire\_event()
--------------
+~~~~~~~~~~~~~
 
 Fire an event on the HomeAssistant bus, for other components to hear.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     fire_event(event, **kwargs)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 event
-^^^^^
+'''''
 
 Name of the event. Can be a standard Home Assistant event such as
 ``service_registered`` or an arbitrary custom event such as
 ``"MODE_CHANGE"``.
 
 \*\*kwargs
-^^^^^^^^^^
+''''''''''
 
 Zero or more keyword arguments that will be supplied as part of the
 event.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.fire_event("MY_CUSTOM_EVENT", jam="true")
 
 Event Callback Function Signature
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Functions called as an event callback will be supplied with 2 arguments:
 
@@ -2425,19 +2425,19 @@ Functions called as an event callback will be supplied with 2 arguments:
     def service(self, event_name, data):
 
 event\_name
-~~~~~~~~~~~
+^^^^^^^^^^^
 
 The name of the event that caused the callback, e.g. ``"MODE_CHANGE"``
 or ``call_service``.
 
 data
-~~~~
+^^^^
 
 A dictionary containing any additional information associated with the
 event.
 
 Use of Events for Signalling between Home Assistant and AppDaemon
------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Home Assistant allows for the creation of custom events and existing
 components can send and receive them. This provides a useful mechanism
@@ -2484,7 +2484,7 @@ follows:
     self.fire_event("MODE_CHANGE", mode = "Day")
 
 Use of Events for Interacting with HADasboard
----------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 HADashboard listens for certain events. An event type of "hadashboard"
 will trigger certain actions such as page navigation. For more
@@ -2493,54 +2493,54 @@ information see `DASHBOARD.md <DASHBOARD.md>`__
 AppDaemon provides convenience funtions to assist with this.
 
 dash\_navigate()
-----------------
+~~~~~~~~~~~~~~~~
 
 Fire an event on the HomeAssistant bus, to force HADashboard to navigate
 to a new page.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     dash_navigate(self, target, timeout = -1, ret = None)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 None.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 target
-^^^^^^
+''''''
 
 Name of the dashboard to navigate to - must be just the name, not a URL,
 e.g. ``MainPanel``
 
 timeout
-^^^^^^^
+'''''''
 
 Amount of time that the dash will show the target before returning to
 the previous screen. If left out, the target will remain displayed.
 
 ret
-^^^
+'''
 
 Screen that the browser will return to after the timeout, e.g.
 ``/MainPanel``. If left out, the browser will return to the page it was
 on when it recieved the ``dash_navigate()`` instruction
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.dash_navigate("Security", 10)
 
 Presence
-========
+--------
 
 Presence in Home Assistant is tracked using Device Trackers. The state
 of all device trackers can be found using the ``get_state()`` call,
@@ -2548,25 +2548,25 @@ however AppDaemon provides several convenience functions to make this
 easier.
 
 get\_trackers()
----------------
+~~~~~~~~~~~~~~~
 
 Return a list of all device tracker names. This is designed to be
 iterated over.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     tracker_list = get_trackers()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 An iterable list of all device trackers.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2575,24 +2575,24 @@ Examples
         do something
 
 get\_tracker\_details()
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Return a list of all device trackers and their associated state.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     tracker_list = get_tracker_details()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A list of all device trackers with their associated state.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2601,7 +2601,7 @@ Examples
         do something
 
 get\_tracker\_state()
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 Get the state of a tracker. The values returned depend in part on the
 configuration and type of device trackers in the system. Simpler tracker
@@ -2615,28 +2615,28 @@ that have been configured as Geofences, in which case the name of that
 location can be returned.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     location = self.get_tracker_state(tracker_id)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A string representing the location of the tracker.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 tracker\_id
-^^^^^^^^^^^
+'''''''''''
 
 Fully qualified entity\_id of the device tracker to query, e.g.
 ``device_tracker.andrew``.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2645,26 +2645,26 @@ Examples
       self.log("{} is {}".format(tracker, self.get_tracker_state(tracker)))
 
 everyone\_home()
-----------------
+~~~~~~~~~~~~~~~~
 
 A convenience function to determine if everyone is home. Use this in
 preference to getting the state of ``group.all_devices()`` as it avoids
 a race condition when using state change callbacks for device trackers.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     result = self.everyone_home()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 Returns ``True`` if everyone is at home, ``False`` otherwise.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2672,7 +2672,7 @@ Examples
         do something
 
 anyone\_home()
---------------
+~~~~~~~~~~~~~~
 
 A convenience function to determine if one or more person is home. Use
 this in preference to getting the state of ``group.all_devices()`` as it
@@ -2680,19 +2680,19 @@ avoids a race condition when using state change callbacks for device
 trackers.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     result = self.anyone_home()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 Returns ``True`` if anyone is at home, ``False`` otherwise.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2700,26 +2700,26 @@ Examples
         do something
 
 noone\_home()
--------------
+~~~~~~~~~~~~~
 
 A convenience function to determine if no people are at home. Use this
 in preference to getting the state of group.all\_devices() as it avoids
 a race condition when using state change callbacks for device trackers.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     result = self.noone_home()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 Returns ``True`` if no one is home, ``False`` otherwise.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -2727,72 +2727,72 @@ Examples
         do something
 
 Miscellaneous Helper Functions
-==============================
+------------------------------
 
 time()
-------
+~~~~~~
 
 Returns a python ``time`` object representing the current time. Use this
 in preference to the standard Python ways to discover the current time,
 especially when using the "Time Travel" feature for testing.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     time()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A localised Python time object representing the current AppDaemon time.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 None
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
     now = self.time()
 
 date()
-------
+~~~~~~
 
 Returns a python ``date`` object representing the current date. Use this
 in preference to the standard Python ways to discover the current date,
 especially when using the "Time Travel" feature for testing.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     date()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A localised Python time object representing the current AppDaemon date.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 None
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
     today = self.date()
 
 datetime()
-----------
+~~~~~~~~~~
 
 Returns a python ``datetime`` object representing the current date and
 time. Use this in preference to the standard Python ways to discover the
@@ -2800,32 +2800,32 @@ current time, especially when using the "Time Travel" feature for
 testing.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     datetime()
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A localised Python datetime object representing the current AppDaemon
 date and time.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 None
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
     now = self.datetime()
 
 convert\_utc()
---------------
+~~~~~~~~~~~~~~
 
 Home Assistant provides timestamps of several different sorts that may
 be used to gain additional insight into state changes. These timestamps
@@ -2834,54 +2834,54 @@ are in UTC and are coded as ISO 8601 Combined date and time strings.
 localised Python datetime object representing the timestamp
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     convert_utc(utc_string)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 ``convert_utc(utc_string)`` returns a localised Python datetime object
 representing the timestamp.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 utc\_string
-^^^^^^^^^^^
+'''''''''''
 
 An ISO 8601 encoded date and time string in the following format:
 ``2016-07-13T14:24:02.040658-04:00``
 
 Example
-~~~~~~~
+^^^^^^^
 
 parse\_time()
--------------
+~~~~~~~~~~~~~
 
 Takes a string representation of a time, or sunrise or sunset offset and
 converts it to a ``datetime.time`` object.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     parse_time(time_string)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A ``datetime.time`` object, representing the time given in the
 ``time_string`` argument.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 time\_string
-^^^^^^^^^^^^
+''''''''''''
 
 A representation of the time in a string format with one of the
 following formats:
@@ -2892,7 +2892,7 @@ following formats:
    seconds
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
@@ -2902,30 +2902,30 @@ Example
     time = self.parse_time("sunrise + 01:00:00")
 
 now\_is\_between()
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Takes two string representations of a time, or sunrise or sunset offset
 and returns true if the current time is between those 2 times.
 ``now_is_between()`` can correctly handle transitions across midnight.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     now_is_between(start_time_string, end_time_string)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 ``True`` if the current time is within the specified start and end
 times, ``False`` otherwise.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 start\_time\_string, end\_time\_string
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+''''''''''''''''''''''''''''''''''''''
 
 A representation of the start and end time respectively in a string
 format with one of the following formats:
@@ -2936,7 +2936,7 @@ format with one of the following formats:
    Minutes and seconds
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
@@ -2946,25 +2946,25 @@ Example
         do something
 
 friendly\_name()
-----------------
+~~~~~~~~~~~~~~~~
 
 ``frindly_name()`` will return the Friendly Name of an entity if it has
 one.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     Name = self.friendly_name(entity_id)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 The friendly name of the entity if it exists or the entity id if not.
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
@@ -2972,34 +2972,34 @@ Example
     self.log("{}  ({}) is {}".format(tracker, self.friendly_name(tracker), self.get_tracker_state(tracker)))
 
 split\_entity()
----------------
+~~~~~~~~~~~~~~~
 
 ``split_entity()`` will take a fully qualified entity id of the form
 ``light.hall_light`` and split it into 2 values, the device and the
 entity, e.g. ``light`` and ``hall_light``.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     device, entity = self.split_entity(entity_id)
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity\_id
-^^^^^^^^^^
+''''''''''
 
 Fully qualified entity id to be split.
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A list with 2 entries, the device and entity respectively.
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
@@ -3008,10 +3008,10 @@ Example
         do something specific to scenes
 
 entity\_exists()
-----------------
+~~~~~~~~~~~~~~~~
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -3021,22 +3021,22 @@ Synopsis
 Assistant or not.
 
 Returns
-~~~~~~~
+^^^^^^^
 
 ``entity_exists()`` returns ``True`` if the entity exists, ``False``
 otherwise.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 entity
-^^^^^^
+''''''
 
 The fully qualified name of the entity to check for (including the
 device type)
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -3046,7 +3046,7 @@ Examples
       ...
 
 get\_app()
-----------
+~~~~~~~~~~
 
 ``get_app()`` will return the instantiated object of another app running
 within the system. This is useful for calling functions or accessing
@@ -3054,28 +3054,28 @@ variables that reside in different apps without requiring duplication of
 code.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     get_app(self, name)
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 name
-^^^^
+''''
 
 Name of the app required. This is the name specified in header section
 of the config file, not the module or class.
 
 Returns
-~~~~~~~
+^^^^^^^
 
 An object reference to the class.
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
@@ -3083,7 +3083,7 @@ Example
     MyApp.turn_light_on()
 
 split\_device\_list()
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 ``split_device_list()`` will take a comma separated list of device types
 (or anything else for that matter) and return them as an iterable list.
@@ -3093,19 +3093,19 @@ one entry is provided, an iterable list will still be returned to avoid
 the need for special processing.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     devices = split_device_list(list)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A list of split devices with 1 or more entries.
 
 Example
-~~~~~~~
+^^^^^^^
 
 .. code:: python
 
@@ -3113,7 +3113,7 @@ Example
         do something for each sensor, e.g. make a state subscription
 
 Writing to Logfiles
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 AppDaemon uses 2 separate logs - the general log and the error log. An
 AppDaemon App can write to either of these using the supplied
@@ -3137,36 +3137,36 @@ They will automatically be expanded to the appropriate values in the log
 message.
 
 log()
------
+~~~~~
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     log(message, level = "INFO")
 
 Returns
-~~~~~~~
+^^^^^^^
 
 Nothing
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 Message
-^^^^^^^
+'''''''
 
 The message to log.
 
 level
-^^^^^
+'''''
 
 The log level of the message - takes a string representing the standard
 logger levels.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -3175,36 +3175,36 @@ Examples
     self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")
 
 error()
--------
+~~~~~~~
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     error(message, level = "WARNING")
 
 Returns
-~~~~~~~
+^^^^^^^
 
 Nothing
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 Message
-^^^^^^^
+'''''''
 
 The message to log.
 
 level
-^^^^^
+'''''
 
 The log level of the message - takes a string representing the standard
 logger levels.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -3212,7 +3212,7 @@ Examples
     self.error("Some Critical string", level = "CRITICAL")
 
 Getting Information in Apps and Sharing information between Apps
-================================================================
+----------------------------------------------------------------
 
 Sharing information between different Apps is very simple if required.
 Each app gets access to a global dictionary stored in a class attribute
@@ -3267,7 +3267,7 @@ Then access it as follows:
     my_global_var = conf.config["AppDaemon"]["global_var"]
 
 Development Workflow
-====================
+--------------------
 
 Developing Apps is intended to be fairly simple but is an exercise in
 programming like any other kind of Python programming. As such, it is
@@ -3293,7 +3293,7 @@ correct it. When an error occurs, there will also be a warning message
 in ``appdaemon.log`` to tell you to check the error log.
 
 Time Travel
-===========
+-----------
 
 OK, time travel sadly isn't really possible but it can be very useful
 when testing Apps. For instance, imagine you have an App that turns a
@@ -3302,7 +3302,7 @@ waiting for Sunset - and with AppDaemon's "Time Travel" features you
 can.
 
 Choosing a Start Time
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 Internally, AppDaemon keeps track of it's own time relative to when it
 was started. This make is possible to start AppDaemon with a different
@@ -3323,7 +3323,7 @@ Note the timestamps in the log - AppDaemon believes it is now just
 before sunset and will process any callbacks appropriately.
 
 Speeding things up
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Some Apps need to run for periods of a day or two for you to test all
 aspects. This can be time consuming, but Time Travel can also help here
@@ -3354,7 +3354,7 @@ suffer as a result. For example:
     $ appdaemon -i 3600
 
 Automatically stopping
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 AppDaemon can be set to terminate automatically at a specific time. This
 can be useful if you want to repeatedly rerun a test, for example to
@@ -3378,7 +3378,7 @@ before sunset, for an hour, as fast as possible:
     $ appdaemon -s "2016-06-06 19:16:00" -e "2016-06-06 20:16:00" -t 0
 
 A Note On Times
----------------
+~~~~~~~~~~~~~~~
 
 Some Apps you write may depend on checking times of events relative to
 the current time. If you are time travelling this will not work if you
@@ -3389,7 +3389,7 @@ with AppDaemon's internal time rather than the actual time and give you
 the correct values.
 
 Other Functions
----------------
+~~~~~~~~~~~~~~~
 
 AppDaemon allows some introspection on its stored schedule and callbacks
 which may be useful for some applications. The functions:
@@ -3401,7 +3401,7 @@ Return the internal data structures, but do not allow them to be
 modified directly. Their format may change.
 
 About HASS Disconections
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 When AppDaemon is unable to connect initially with Home Assistant, it
 will hold all Apps in statsis until it initially connects, nothing else
@@ -3422,7 +3422,7 @@ When a connection to HASS is reestablished, all Apps will be restarted
 and their ``initialize()`` routines will be called.
 
 RESTFul API Support
-===================
+-------------------
 
 AppDaemon supports a simple RESTFul API to enable arbitary HTTP
 connections to pass data to Apps and trigger actions. API Calls must use
@@ -3499,7 +3499,7 @@ Below is an example of using curl to call into the App shown above:
     {"message": "Hello World"}hass@Pegasus:~$
 
 API Security
-============
+------------
 
 If you have added a key to the AppDaemon config, AppDaemon will expect
 to find a header called "x-ad-access" in the request with a value equal
@@ -3536,7 +3536,7 @@ And an example of a missing key:
     <html><head><title>401 Unauthorized</title></head><body><h1>401 Unauthorized</h1>Error in API Call</body></html>hass@Pegasus:~$
 
 Alexa Support
-=============
+-------------
 
 AppDaemon is able to use the API support to accept calls from Alexa.
 Amazon Alexa calls can be directed to AppDaemon and arrive as JSON
@@ -3581,78 +3581,78 @@ Since each individual Skill has it's own URL it is possible to have
 different skills for Home Assitant and AppDaemon.
 
 Alexa Helper Functions
-======================
+----------------------
 
 The Alexa helper functions
 
 get\_alexa\_intent()
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 Takes an Alexa request and extracts the Intent.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     intent = get_alexa_intent(data)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A text representation of the Intent, or ``None`` if the data doesn't not
 contain an intent.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 data
-^^^^
+''''
 
 The incoming request from Alexa
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     intent = get_alexa_intent(data)
 
 get\_alexa\_slot\_value()
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Takes an Alexa request and extracts the the value of the slot variable
 or variables
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     intent = get_alexa_slot_value(data, slot = None)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A text representation of the slot variable, a list of slot variables, or
 ``None`` if the data doesn't not contain a slot value.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 data
-^^^^
+''''
 
 The incoming request from Alexa
 
 slot
-^^^^
+''''
 
 Name of the slot. If not specified, the function will return a list of
 all slots in the request.
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
@@ -3660,85 +3660,85 @@ Examples
     intent = get_alexa_slot_value(data, slot = "User")
 
 get\_alexa\_error()
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 Takes an Alexa request and extracts the error if any.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     error = self.get_alexa_error(data)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A text representation of the error, or ``None`` if the data doesn not
 contain an error.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 data
-^^^^
+''''
 
 The incoming request from Alexa
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     error = self.get_alexa_error(data)
 
 format\_alexa\_response()
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Takes input data from the App and formats it as a response that Alexa
 will understand.
 
 Synopsis
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     self.format_alexa_response(speech = speech, card = card, title = title)
 
 Returns
-~~~~~~~
+^^^^^^^
 
 A python structure suitable to be returned back as the result of the
 Alexa API call.
 
 Parameters
-~~~~~~~~~~
+^^^^^^^^^^
 
 speech
-^^^^^^
+''''''
 
 The desirted spoken response from Alexa
 
 card
-^^^^
+''''
 
 The text of the card to be shown by the Alexa phone or tablet App (as
 distinct from the AppDaemon Alexa App)
 
 title
-^^^^^
+'''''
 
 The title of the card
 
 Examples
-~~~~~~~~
+^^^^^^^^
 
 .. code:: python
 
     response = self.format_alexa_response(speech = "Hellow World", card = "This is a card", title = "Card Title)
 
 Putting it together in an App
-=============================
+-----------------------------
 
 The Alexa App is basically just a standard API App that uses Alexa
 helper functions to understand the incoming request and format a
@@ -3850,4 +3850,3 @@ want to configure.
             ]
 
             return random.choice(responses)
-

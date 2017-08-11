@@ -1,5 +1,5 @@
-Description
-===========
+Dashboard Configuration
+=======================
 
 HADashboard is a dashboard for `Home
 Assistant <https://home-assistant.io/>`__ that is intended to be wall
@@ -9,8 +9,9 @@ mounted, and is optimized for distance viewing.
    :alt: UI
 
    UI
+
 Installation and Configuration
-==============================
+------------------------------
 
 HADashboard is dependent upon AppDaemon. As a first step please refer to
 the `AppDaemon Installation Documentation <INSTALL.md>`__.
@@ -74,9 +75,9 @@ called ``Hello.dash`` and paste in the following:
 
 .. code:: yaml
 
-    #
-    # Main arguments, all optional
-    #
+    ##
+    ## Main arguments, all optional
+    ##
     title: Hello Panel
     widget_dimensions: [120, 120]
     widget_margins: [5, 5]
@@ -145,7 +146,7 @@ This should not be necessary but may on occasion be required after an
 upgrade to pickup changes.
 
 Dashboard parameters
-====================
+--------------------
 
 The dashboard URL supports a couple of extra parameters:
 
@@ -161,7 +162,7 @@ obsidian skin:
     http://<ip address>:<port>/Main?skin=obsidian
 
 Dashboard Configuration
-=======================
+-----------------------
 
 Dashboard configuration is simple yet very powerful. Dashboards can be
 created in single files or made modular for reuse of blocks of widgets.
@@ -172,7 +173,7 @@ with a ``.dash`` extension in the ``dashboards`` directory, and pull it
 up in your favorite editor.
 
 Main Settings
--------------
+~~~~~~~~~~~~~
 
 A top level dashboard will usually have one of a number of initial
 directives to configure aspects of the dashboard, although they are all
@@ -180,9 +181,9 @@ optional. An example is as follows:
 
 .. code:: yaml
 
-    #
-    # Main arguments, all optional
-    #
+    ##
+    ## Main arguments, all optional
+    ##
     title: Main Panel
     widget_dimensions: [120, 120]
     widget_size: [1, 1]
@@ -288,7 +289,7 @@ This would leave the 2nd and 3rd rows empty.
 And that is all there to it, for a simple one file dashboard.
 
 Detailed Widget Definition
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The approach above is ok for simple widgets like lights, but HADashboard
 has a huge range of customization options. To access these, you need to
@@ -407,7 +408,7 @@ standalone yaml file.
 And that is all there to it, for a simple one file dashboard.
 
 Advanced Dashboard Definition
-=============================
+-----------------------------
 
 When you get to the point where you have multiple dashboards, you may
 want to take a more modular approach, as you will find that in many
@@ -602,7 +603,7 @@ itself, and include the header in the layout:
         - include: header
 
 Widget Customization
-====================
+--------------------
 
 Widgets allow customization using arbitary CSS styles for the individual
 elements that make up the widget. Every widget has a
@@ -646,7 +647,7 @@ widget styles may be specified in the widget's CSS, in which case that
 style will override ``widget_style`` but not the more specific styles.
 
 State and state text
-====================
+--------------------
 
 Some widgets allow you to display not only an icon showing the state but
 also text of the state itself. The following widgets allow this:
@@ -686,7 +687,7 @@ interpreting things like ``on`` and ``off`` as booleans so the quotes
 are needed to prevent this.
 
 Icons
-=====
+-----
 
 Widgets that allow the specification of icons have access to both `Font
 Awesome <http://fontawesome.io/cheatsheet/>`__ and `Material
@@ -709,7 +710,7 @@ defined for it in Home Assistant by setting the parameter:
 This can also be set at the dashboard level as a global parameter.
 
 External Commands
-=================
+-----------------
 
 The dashboard can accept command from external systems to prompt
 actions, such as navigation to different pages. These can be achieved
@@ -742,12 +743,12 @@ The current list of commands supported and associated arguments are as
 follows:
 
 navigate
---------
+~~~~~~~~
 
 Force any connected dashboards to navigate to a new page
 
 Arguments
-~~~~~~~~~
+^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
 ``SensorPanel`` - this is not a URL. ``timeout`` - length of time to
@@ -762,38 +763,38 @@ timeout expires, the timeout will be cancelled.
 dashboard to return to after the timeout has elapsed.
 
 Widget Reference
-================
+----------------
 
 Here is the current list of widgets and their description and supported
 parameters:
 
 clock
------
+~~~~~
 
 A simple 12 hour clock with the date. Not currently very customizable
 but it will be improved upon.
 
 Mandatory arguments:
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 None
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``time_format`` - set to "24hr" if you want military time/24 hour
    clock
 -  ``show_seconds`` - set to 1 if you want to see seconds on the display
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``time_style``
 -  ``date_style``
 
 weather
--------
+~~~~~~~
 
 Up to date weather reports. Requires dark sky to be configured in Home
 Assistant with at minimum the following sensors:
@@ -809,17 +810,17 @@ Assistant with at minimum the following sensors:
 -  icon
 
 Mandatory arguments:
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 None
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 None
 
 Cosmetic Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``main_style``
@@ -827,7 +828,7 @@ Cosmetic Arguments:
 -  ``sub_style``
 
 sensor
-------
+~~~~~~
 
 A widget to report on values for any sensor in Home Assistant
 
@@ -836,12 +837,12 @@ if so, it will use the numeric style. If it is showing text it will use
 the text style, which among other things makes the text size smaller.
 
 Mandatory Arguments:
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -857,7 +858,7 @@ Optional Arguments:
 -  ``sub_entity_map`` - state map for the sub\_entity
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
@@ -867,7 +868,7 @@ Style Arguments:
 -  ``unit_style``
 
 rss
----
+~~~
 
 A widget to display an RSS feed.
 
@@ -901,7 +902,7 @@ The RSS news feed cannot be configured if you are still using the legacy
 ``.cfg`` file type.
 
 Mandatory Arguments:
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the name of the configured feed - this must match the
    ``target_name`` configured in the AppDaemon configuration
@@ -909,7 +910,7 @@ Mandatory Arguments:
    the feed
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -917,7 +918,7 @@ Optional Arguments:
    not specified, all stories in the feed will be shown.
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
@@ -925,20 +926,20 @@ Style Arguments:
 -  ``text_style``
 
 gauge
------
+~~~~~
 
 A widget to report on numeric values for sensors in Home Assistant in a
 gauge format.
 
 Mandatory Arguments:
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
 -  ``max`` - maximum value to show
 -  ``min`` - minimum value to show
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -946,7 +947,7 @@ Optional Arguments:
    unit will be used, specify "" for no units
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
@@ -961,19 +962,19 @@ Note that unlike other widgets, the color settings require an actual
 color, rather than a CSS style.
 
 device\_tracker
----------------
+~~~~~~~~~~~~~~~
 
 A Widget that reports on device tracker status. It can also be
 optionally be used to toggle the status between "home" and "not\_home".
 
 Mandatory Arguments:
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``device`` - name of the device from ``known_devices.yaml``, *not*
    the entity\_id.
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1007,7 +1008,7 @@ In the absence of an active map, only the state ``home`` will be
 regarded as active.
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1019,24 +1020,24 @@ Style Arguments:
 -  ``state_text_style``
 
 label
------
+~~~~~
 
 A widget to show a simple static text string
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 None
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 -  ``text`` - the text displayed on the tile
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
@@ -1044,17 +1045,17 @@ Cosmetic Arguments
 -  ``text_style``
 
 scene
------
+~~~~~
 
 A widget to activate a scene
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the scene
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1062,7 +1063,7 @@ Optional Arguments:
 -  ``state_map``
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1073,17 +1074,17 @@ Style Arguments:
 -  ``title2_style``
 
 script
-------
+~~~~~~
 
 A widget to run a script
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the script
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1091,7 +1092,7 @@ Optional Arguments:
 -  ``state_map``
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1102,14 +1103,14 @@ Style Arguments:
 -  ``title2_style``
 
 mode
-----
+~~~~
 
 A widget to track the state of an ``input_select`` by showing active
 when it is set to a specific value. Also allows scripts to be run when
 activated.
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the ``input_select``
 -  ``mode`` - value of the input select to show as active
@@ -1118,13 +1119,13 @@ Mandatory Arguments
 -  ``state_map``
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1135,17 +1136,17 @@ Style Arguments:
 -  ``title2_style``
 
 switch
-------
+~~~~~~
 
 A widget to monitor and activate a switch
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the switch
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1153,7 +1154,7 @@ Optional Arguments:
 -  ``state_map``
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1164,7 +1165,7 @@ Cosmetic Arguments
 -  ``title2_style``
 
 lock
-----
+~~~~
 
 A widget to monitor and activate a lock
 
@@ -1177,12 +1178,12 @@ easily change this behavior by setting active and inactive styles if you
 prefer.
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the lock
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1190,7 +1191,7 @@ Optional Arguments:
 -  ``state_map``
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1201,18 +1202,18 @@ Cosmetic Arguments
 -  ``title2_style``
 
 cover
------
+~~~~~
 
 A widget to monitor and activate a cover. At this time only the open and
 close actions are supported.
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the cover
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1220,7 +1221,7 @@ Optional Arguments:
 -  ``state_map``
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1231,17 +1232,17 @@ Cosmetic Arguments
 -  ``title2_style``
 
 input\_boolean
---------------
+~~~~~~~~~~~~~~
 
 A widget to monitor and activate an input\_boolean
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_boolean
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1249,7 +1250,7 @@ Optional Arguments:
 -  ``state_map``
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1260,17 +1261,17 @@ Cosmetic Arguments
 -  ``title2_style``
 
 binary\_sensor
---------------
+~~~~~~~~~~~~~~
 
 A widget to monitor a binary\_sensor
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1278,7 +1279,7 @@ Optional Arguments:
 -  ``state_map``
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1289,17 +1290,17 @@ Cosmetic Arguments
 -  ``title2_style``
 
 light
------
+~~~~~
 
 A widget to monitor and contol a dimmable light
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the light
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
 -  ``icon_off``
@@ -1348,7 +1349,7 @@ or:
             xy_color: 0.4, 0.9
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``icon_on``
@@ -1365,17 +1366,17 @@ Cosmetic Arguments
 -  ``level_down_style``
 
 input\_slider
--------------
+~~~~~~~~~~~~~
 
 A widget to monitor and contol an input slider
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_slider
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1386,7 +1387,7 @@ Optional Arguments:
    separator
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``icon_up``
@@ -1399,17 +1400,17 @@ Cosmetic Arguments
 -  ``level_down_style``
 
 climate
--------
+~~~~~~~
 
 A widget to monitor and contol a climate entity
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the climate entity
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1418,7 +1419,7 @@ Optional Arguments:
 -  ``units`` - the unit symbol to be displayed
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``icon_up``
@@ -1431,17 +1432,17 @@ Cosmetic Arguments
 -  ``level_down_style``
 
 media\_player
--------------
+~~~~~~~~~~~~~
 
 A widget to monitor and contol a media player
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the media player
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1451,7 +1452,7 @@ Optional Arguments:
    (default, 10%)
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``icon_on``
@@ -1468,17 +1469,17 @@ Cosmetic Arguments
 -  ``level_down_style``
 
 group
------
+~~~~~
 
 A widget to monitor and contol a group of lights
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the group
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
@@ -1492,7 +1493,7 @@ group, however if there are, it should be set to the entity\_id of one
 of the dimmable group members.
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``icon_on``
@@ -1509,16 +1510,16 @@ Cosmetic Arguments
 -  ``level_down_style``
 
 navigate
---------
+~~~~~~~~
 
 A widget to navgigate to a new URL, intended to be used for switching
 between dashboards
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``url`` - a url to navigate to. Use a full URL including the "http"
    part.
@@ -1561,7 +1562,7 @@ or:
           return: Main
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
 -  ``icon_inactive``
@@ -1571,23 +1572,23 @@ Cosmetic Arguments
 -  ``icon_style``
 
 reload
-------
+~~~~~~
 
 A widget to reload the current dashboard.
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 None.
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
 -  ``icon_inactive``
@@ -1598,18 +1599,18 @@ Cosmetic Arguments
 -  ``icon_inactive_style``
 
 iframe
-------
+~~~~~~
 
 A widget to display other content within the dashboard
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``url_list`` - a list of 1 or more URLs to cycle though. or
 -  ``img_list`` - a list of 1 or more Image URLs to cycle through.
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``refresh`` - (seconds) if set, the iframe widget will progress down
@@ -1654,18 +1655,18 @@ the one offered by
           - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
 
 camera
-------
+~~~~~~
 
 A widget to display a refreshing camera image on the dashboard
 
 Mandatory Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``entity_picture``
 
@@ -1680,35 +1681,35 @@ If you are using SSL, remeber to use the full DNS name and not the IP
 address.
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``refresh`` - (seconds) if set, the camera image will refresh every
    interval.
 
 Cosmetic Arguments
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
 
 alarm
------
+~~~~~
 
 A widget to report on the state of an alarm and allow code entry
 
 Mandatory Arguments:
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the alarm to be monitored
 
 Optional Arguments:
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
 Style Arguments:
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
@@ -1720,7 +1721,7 @@ Style Arguments:
 -  ``panel_button_style``
 
 Skins
-=====
+-----
 
 HADashboard fully supports skinning and ships with a number of skins. To
 access a specific skin, append the parameter ``skin=<skin name>`` to the
@@ -1737,7 +1738,7 @@ HADasboard currently has the following skins available:
 -  glassic, contributed by ``@rpitera``
 
 Skin development
-================
+----------------
 
 HADashboard fully supports customization through skinning. It ships with
 a number of skins courtesy of @rpitera, and we encourage users to create
@@ -1771,9 +1772,9 @@ Here is an example of a piece of a variables.yaml file:
 
 .. code:: yaml
 
-    #
-    # Styles
-    #
+    ##
+    ## Styles
+    ##
 
     white: "#fff"
     red: "#ff0055"
@@ -1787,11 +1788,11 @@ Here is an example of a piece of a variables.yaml file:
     gray_medium: "#666"
     gray_light: "#888"
 
-    #Page and widget defaults
+    ##Page and widget defaults
     background_style: ""
     text_style: ""
 
-    #These are used for icons and indicators
+    ##These are used for icons and indicators
     style_inactive: "color: $gray_light"
     style_active: "color: gold"
     style_active_warn: "color: gold"
@@ -1857,7 +1858,7 @@ and ``variables.yaml`` from an exisitng file and edit to suit your
 needs.
 
 Widget Development
-==================
+------------------
 
 Widget Development is currently not supported in the Beta version of
 HADashboard. When the full release is available, there will be a fully
@@ -1868,7 +1869,7 @@ in the future, and are not currently a good basis for widget
 development.
 
 Example Dashboards
-==================
+------------------
 
 Some example dashboards are available in the AppDaemon repository:
 

@@ -1,4 +1,4 @@
-We Have Apps Now!
+AppDaemon Tutorial
 =================
 
 I have been working on a new subsystem to complement Home Assistant's
@@ -11,7 +11,7 @@ services. The API provides a rich environment suited to home automation
 tasks that can also leverage all the power of Python.
 
 Another Take on Automation
-==========================
+--------------------------
 
 If you haven't yet read Paulus' excellent Blog entry on `Perfect Home
 Automation <https://home-assistant.io/blog/2016/01/19/perfect-home-automation/>`__
@@ -103,13 +103,13 @@ adding additonal functions to make things that were already possible
 easier.
 
 How it Works
-============
+------------
 
 The best way to show what AppDaemon does is through a few simple
 examples.
 
 Sunrise/Sunset Lighting
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Lets start with a simple App to turn a light on every night fifteen
 minutes (900 seconds) before sunset and off every morning at sunrise.
@@ -149,7 +149,7 @@ This is also fairly easy to achieve with Home Assistant automations, but
 we are just getting started.
 
 Motion Light
-------------
+~~~~~~~~~~~~
 
 Our next example is to turn on a light when motion is detected and it is
 dark, and turn it off after a period of time. This time, the
@@ -233,6 +233,9 @@ system of constraints that allows yout to control when and under what
 circumstances Apps and callbacks are active to keep the logic clean and
 simple.
 
+Final Thoughts
+--------------
+
 I have spent the last few weeks moving all of my (fairly complex)
 automations over to ``AppDaemon`` and so far it is working very
 reliably.
@@ -244,7 +247,7 @@ will seem a more natural, powerful and nimble way of building
 potentially very complex automations.
 
 If this has whet your appetite, feel free to give it a try. You can find
-installation instructions, `here <INSTALL.md>`__, including full
+installation instructions, `here <INSTALL.rst>`__, including full
 installation instructions, an API reference, and a number of fully
 fleshed out examples.
 
