@@ -28,7 +28,7 @@ with some kind of action.
 
 The first step is to create a unique file within the apps directory (as
 defined in the ``AppDaemon`` section of configuration file - see `The
-Installation Page <INSTALL.md>`__ for further information on the
+Installation Page <INSTALL.html>`__ for further information on the
 configuration of AppDaemon itself). This file is in fact a Python
 module, and is expected to contain one or more classes derived from the
 supplied ``AppDaemon`` class, imported from the supplied
@@ -146,7 +146,7 @@ Configuration of Apps
 
 Apps are configured by specifying new sections in the configuration
 file. ``AppDaemon`` is a reserved section, described in the
-`Installation Pages <INSTALL.md>`__ for configuration of AppDaemon
+`Installation Pages <INSTALL.html>`__ for configuration of AppDaemon
 itself. The name of the section is the name the App is referred to
 within the system in log files etc. and must be unique.
 
@@ -2483,12 +2483,12 @@ follows:
 
     self.fire_event("MODE_CHANGE", mode = "Day")
 
-Use of Events for Interacting with HADasboard
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use of Events for Interacting with HADashboard
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 HADashboard listens for certain events. An event type of "hadashboard"
 will trigger certain actions such as page navigation. For more
-information see `DASHBOARD.md <DASHBOARD.md>`__
+information see the ` Dashboard configuration pages <DASHBOARD.html>`__
 
 AppDaemon provides convenience funtions to assist with this.
 
@@ -3505,7 +3505,7 @@ If you have added a key to the AppDaemon config, AppDaemon will expect
 to find a header called "x-ad-access" in the request with a value equal
 to the configured key. A security key is added for the API with the
 ``api_key`` directive described in the `Installation
-Documentation <INSTALL.md>`__
+Documentation <INSTALL.html>`__
 
 If these conditions are not met, the call will fail with a return code
 of ``401 Not Authorized``. Here is a succesful curl example:

@@ -14,7 +14,7 @@ Installation and Configuration
 ------------------------------
 
 HADashboard is dependent upon AppDaemon. As a first step please refer to
-the `AppDaemon Installation Documentation <INSTALL.md>`__.
+the `AppDaemon Installation Documentation <INSTALL.html>`__.
 
 When you have AppDaemon installed and running, configuration of the
 Dashboard is pretty simple. You just need to add a directive to the
@@ -145,8 +145,8 @@ To force dashboard recompilation of all dashboards after a restart, use:
 This should not be necessary but may on occasion be required after an
 upgrade to pickup changes.
 
-Dashboard parameters
---------------------
+Dashboard URL Parameters
+------------------------
 
 The dashboard URL supports a couple of extra parameters:
 
@@ -161,7 +161,7 @@ obsidian skin:
 
     http://<ip address>:<port>/Main?skin=obsidian
 
-Dashboard Configuration
+Dashboard Creation
 -----------------------
 
 Dashboard configuration is simple yet very powerful. Dashboards can be
@@ -720,9 +720,9 @@ through a variety of means:
 -  HASS Automations/Scripts
 -  Alexa Intents
 
-The mechanism use for this is HASS custom events. AppDaemon has it's own
-API calls to handle these events, for further details see
-`API.md <API.md>`__. The custom event name is ``hadashboard`` and the
+The mechanism used for this is HASS custom events. AppDaemon has it's own
+API calls to handle these events, for further details see the
+`AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
 dashboard will respond to various commands with associated data.
 
 To create a suitable custom event within a HASS automation, script or

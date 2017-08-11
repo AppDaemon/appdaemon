@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- converted docs to rst for better readthedocs support
 
 **Fixes**
 
