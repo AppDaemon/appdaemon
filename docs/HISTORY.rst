@@ -1,5 +1,5 @@
-History
-=======
+Change Log
+==========
 
 2.1.7
 -----
@@ -16,8 +16,8 @@ None
 
 None
 
-2.1.6
------
+2.1.6 (2017-08-11)
+------------------
 
 **Features**
 
@@ -35,8 +35,8 @@ None
    ``api_ssl_key to be set``
 -  ``ad_key`` has been renamed to ``api_key``
 
-2.1.5
------
+2.1.5 (2017-08-10)
+------------------
 
 **Features**
 
@@ -51,8 +51,8 @@ None
 -  ``get_alexa_slot_value()`` now requires a keyword argument for
    slotname
 
-2.1.4
------
+2.1.4 (2017-08-10)
+------------------
 
 **Features**
 
@@ -66,8 +66,8 @@ None
 
 None
 
-2.1.3
------
+2.1.3 (2017-08-11)
+------------------
 
 **Features**
 
@@ -83,7 +83,7 @@ None
 
 None
 
-2.1.2
+2.1.2 (2017-08-11)
 -----
 
 **Features**
@@ -100,8 +100,8 @@ None
 
 None
 
-2.1.0
------
+2.1.0 (2017-08-11)
+------------------
 
 **Features**
 
@@ -140,8 +140,8 @@ None
 
 -  Compiled dashboards may need to be deleted after this upgrade
 
-2.0.8
------
+2.0.8 (2017-07-23)
+------------------
 
 **Features**
 
@@ -162,8 +162,8 @@ None
 
 None
 
-2.0.7
------
+2.0.7 (2017-07-20)
+------------------
 
 **Features**
 
@@ -177,8 +177,8 @@ None
 
 None
 
-2.0.6
------
+2.0.6 (2017-07-20)
+------------------
 
 **Features**
 
@@ -192,8 +192,8 @@ None
 
 None
 
-2.0.5
------
+2.0.5 (2017-07-16)
+------------------
 
 **Features**
 
@@ -207,8 +207,8 @@ None
 
 None
 
-2.0.4
------
+2.0.4 (2017-07-16)
+------------------
 
 **Features**
 
@@ -235,8 +235,8 @@ None
 
 None
 
-2.0.3
------
+2.0.3 (2017-07-09)
+------------------
 
 **Features**
 
@@ -250,8 +250,8 @@ None
 
 None
 
-2.0.2
------
+2.0.2 (2017-07-08)
+------------------
 
 **Features**
 
@@ -265,8 +265,8 @@ None
 
 None
 
-2.0.1
------
+2.0.1 (2017-07-08)
+------------------
 
 **Features**
 
@@ -283,8 +283,8 @@ None
 
 None
 
-2.0.0beta4
-----------
+2.0.0beta4 (2017-06-18)
+-----------------------
 
 **Features**
 
@@ -315,8 +315,8 @@ None
    still works for now for most features
 -  Argument names passed to Apps are now case sensitive
 
-2.0.0beta3.5
-------------
+2.0.0beta3.5 (2017-04-09)
+-------------------------
 
 **Features**
 
@@ -335,8 +335,8 @@ None
 
 -  
 
-2.0.0beta3
-----------
+2.0.0beta3 (2017-03-27)
+-----------------------
 
 **Features**
 
@@ -361,8 +361,8 @@ None
 
 -  Media Widget now needs to be 2 cells high
 
-2.0.0beta2
-----------
+2.0.0beta2 (2017-03-12)
+-----------------------
 
 **Features**
 
@@ -407,8 +407,8 @@ None
 -  ``text_sensor`` is deprecated and will be removed at some stage. It
    is now an alias for ``sensor``
 
-2.0.0beta1
-----------
+2.0.0beta1 (2017-03-04)
+-----------------------
 
 **Features**
 
