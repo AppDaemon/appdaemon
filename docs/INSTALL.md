@@ -47,7 +47,7 @@ AppDaemon:
   cert_path: <path/to/root/CA/cert>
   cert_verify: True
   time_zone: <time zone>
-  ad_port: 5000
+  api_port: 5000
   api_key: !secret api_key
   api_ssl_certificate: <path/to/root/CA/cert>
   api_ssl_key: <path/to/root/CA/key>
@@ -96,7 +96,7 @@ hello_world:
     `False` to disable verification on self signed certs.
 -   `time_zone` (optional) - timezone for AppDaemon to use. If not
     specified, AppDaemon will query the timezone from Home Assistant
--   ad_port(optional) - Port the AppDaemon RESTFul API will liten on. If not specified, the RESTFul API will be turned off
+-   `api_port` (optional) - Port the AppDaemon RESTFul API will liten on. If not specified, the RESTFul API will be turned off
 -   `api_key` (optional) - adds the requirement for AppDaemon API calls
     to provide a key in the header of a request
 -   `api_ssl_certificate` (optional) - certificate to use when running the API over SSL
