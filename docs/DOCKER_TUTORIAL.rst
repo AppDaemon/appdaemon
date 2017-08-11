@@ -22,11 +22,11 @@ probably a way to do what you want!
 Prereqs
 -------
 
-This guide assumes: \* You already have Docker installed. If you still
-need to do this, follow the `Docker Installation
-documentation <https://docs.docker.com/engine/installation/>`__ \* You
-have Home Assistant up and running \* You are comfortable with some
-tinkering. This is a pre-req for Appdaemon too!
+This guide assumes:
+
+* You already have Docker installed. If you still need to do this, follow the `Docker Installation documentation <https://docs.docker.com/engine/installation/>`__
+* You have Home Assistant up and running
+* You are comfortable with some tinkering. This is a pre-req for Appdaemon too!
 
 Testing your System
 -------------------
@@ -37,10 +37,10 @@ software from Docker Hub, execute it, and get output that Appdaemon is
 working. We will worry about our persistent (normal) configuration
 later.
 
-Before you start, you need to know the following: \* HA\_URL: The URL of
-your running Home Assistant, in the form of http://[name]:[port]. Port
-is usually 8123. \* HA\_KEY: If your Home Assistant requires an API key,
-you'll need that
+Before you start, you need to know the following:
+
+* HA\_URL: The URL of your running Home Assistant, in the form of ``http://[name]:[port]``. Port is usually 8123.
+* HA\_KEY: If your Home Assistant requires an API key, you'll need that
 
 Now, on your Docker host, for linux users, run the following command,
 substituting the values above in the quotes below. (Note, if you do not
