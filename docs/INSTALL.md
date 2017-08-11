@@ -368,7 +368,7 @@ Windows Support
 ===============
 
 AppDaemon runs under windows and has been tested with the official 3.5.2
-release. There are a couple of caveats however:
+release of python. There are a couple of caveats however:
 
 -   The `-d` or `--daemonize` option is not supported owing to
     limitations in the Windows implementation of Python.

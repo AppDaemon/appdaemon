@@ -2400,7 +2400,7 @@ api:
   module: api
 ```
 
-Within the App, AppDaemon is expecting to find a methon in the class called `api_call()` - this method will be invoked by a succesful API call into AppDaemon, and the request data will be passed into the function. Note that for a pure API App, there is no need to do anything in the `initialize()` function, although it must exist. Here is an example of a simple hello world API App:
+Within the App, AppDaemon is expecting to find a method in the class called `api_call()` - this method will be invoked by a succesful API call into AppDaemon, and the request data will be passed into the function. Note that for a pure API App, there is no need to do anything in the `initialize()` function, although it must exist. Here is an example of a simple hello world API App:
 
 ```python
 import appdaemon.appapi as appapi
@@ -2532,17 +2532,17 @@ intent = get_alexa_intent(data)
 
 ## get_alexa_slot_value()
 
-Takes an Alexa request and extracts the the value of the slot variable
+Takes an Alexa request and extracts the the value of the slot variable or variables
 
 ### Synopsis
 
 ```python
-intent = get_alexa_slot_value(data, slot)
+intent = get_alexa_slot_value(data, slot = None)
 ```
 
 ### Returns
 
-A text representation of the slot variable, or `None` if the data doesn't not contain an slot value.
+A text representation of the slot variable, a list of slot variables, or `None` if the data doesn't not contain a slot value.
 
 ### Parameters
 
@@ -2552,12 +2552,13 @@ The incoming request from Alexa
 
 #### slot
 
-Name of the slot
+Name of the slot. If not specified, the function will return a list of all slots in the request.
 
 ### Examples
 
 ```python
-intent = get_alexa_slot_value(data, "User")
+intent = get_alexa_slot_value(data)
+intent = get_alexa_slot_value(data, slot = "User")
 ```
 
 ## get_alexa_error()

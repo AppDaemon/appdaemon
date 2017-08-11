@@ -14,7 +14,7 @@ None
 
 **Breaking Changes**
 
-None
+- `get_alexa_slot_value()` now requires a keyword argument for slotname
 
 2.1.4
 -----
