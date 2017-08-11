@@ -5,12 +5,12 @@ Installation is either by pip3 or Docker. There is also an official
 hass.io build.
 
 Install and Run using Docker
-============================
+----------------------------
 
 Follow the instructions in the `Docker Tutorial <DOCKER_TUTORIAL.md>`__
 
 Install Using pip3
-==================
+------------------
 
 Before running ``AppDaemon`` you will need to install the package:
 
@@ -19,7 +19,7 @@ Before running ``AppDaemon`` you will need to install the package:
     $ sudo pip3 install appdaemon
 
 Install Using hass.io
-=====================
+---------------------
 
 There is an official hass.io addon for AppDaemon maintained by
 `vkorn <https://community.home-assistant.io/u/vkorn/summary>`__.
@@ -27,7 +27,7 @@ Instructions to install AppDaemon this way can be found
 `here <https://community.home-assistant.io/t/repository-few-addons/20659>`__
 
 Configuration
-=============
+-------------
 
 When you have appdaemon installed by either method you are ready to
 start working on the appdaemon.yaml file. For docker users, you will
@@ -114,7 +114,7 @@ e.g.:
     app_dir: /etc/appdaemon/apps
 
 Secrets
--------
+~~~~~~~
 
 AppDaemon supports the use of secrets in the configuration file (YAML
 only), to allow separate storage of sensitive information such as
@@ -142,7 +142,7 @@ The secrets can then be referred to as follows:
       ha_url: http://192.168.1.20:8123
 
 Configuring a Test App
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 The ``#Apps`` section is the configuration for the Hello World program
 and should be left in place for initial testing but can be removed later
@@ -174,23 +174,23 @@ With this app in place we will be able to test the App part of AppDaemon
 when we first run it.
 
 Configuring the Dashboard
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configuration of the dashboard component (HADashboard) is described
 separately in the `Dashboard doc <DASHBOARD.md>`__
 
 Example Apps
-============
+------------
 
 There are a number of example apps under ``conf/examples`` in the git
 repository, and the ``conf/examples.yaml`` file gives sample parameters
 for them.
 
 Running
-=======
+-------
 
 Docker
-------
+~~~~~~
 
 Assuming you have set the config up as described in the tutotial for
 Docker, you should see the logs output as follows:
@@ -207,7 +207,7 @@ Docker, you should see the logs output as follows:
 Note that for Docker, the error and regular logs are combined.
 
 PIP3
-----
+~~~~
 
 You can run AppDaemon from the command line as follows:
 
@@ -227,7 +227,7 @@ If all is well, you should see something like the following:
     2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
 
 AppDaemon arguments
-===================
+-------------------
 
 ::
 
@@ -271,7 +271,7 @@ only be used for testing. They are described in more detail in the API
 documentation.
 
 Legacy Configuration
-====================
+--------------------
 
 AppDaemon also currently supports a legacy ``ini`` style of
 configuration and it is shown here for backward compatibility. It is
@@ -316,13 +316,13 @@ comments of lines that are not active, will not be converted. Note 2:
 Docker users will unfortunately need to perform the conversion manually.
 
 Starting At Reboot
-==================
+------------------
 
 To run ``AppDaemon`` at reboot, you can set it up to run as a systemd
 service as follows.
 
 Add Systemd Service (appdaemon@appdaemon.service)
--------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, create a new file using vi:
 
@@ -352,7 +352,7 @@ named something different you may need to change the ``After=`` lines to
 reflect the actual name.
 
 Activate Systemd Service
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: bash
 
@@ -362,7 +362,7 @@ Activate Systemd Service
 Now AppDaemon should be up and running and good to go.
 
 Operation
-=========
+---------
 
 Since AppDaemon under the covers uses the exact same APIs as the
 frontend UI, you typically see it react at about the same time to a
@@ -371,7 +371,7 @@ especially if they are running on the same machine. In action, observed
 latency above the built in automation component is usually sub-second.
 
 Updating AppDaemon
-==================
+------------------
 
 To update AppDaemon after new code has been released, just run the
 following command to update your copy:
@@ -383,7 +383,7 @@ following command to update your copy:
 If you are using docker, refer to the steps in the tutorial.
 
 Windows Support
-===============
+---------------
 
 AppDaemon runs under windows and has been tested with the official 3.5.2
 release of python. There are a couple of caveats however:
@@ -397,7 +397,7 @@ AppDaemon can be installed exactly as per the instructions for every
 other version using pip3.
 
 Windows Under the Linux Subsystem
-=================================
+---------------------------------
 
 Windows 10 now supports a full Linux bash environment that is capable of
 running Python. This is essentially an Ubuntu distribution and works
@@ -407,7 +407,7 @@ to this version. This is the reccomended way to run AppDaemon in a
 Windows 10 and later environment.
 
 Raspbian
-========
+--------
 
 Some users have reported a requirement to install a couple of packages
 prior to installing AppDaemon with the pip3 method:
