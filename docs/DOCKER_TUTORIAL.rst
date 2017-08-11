@@ -144,7 +144,7 @@ You are now ready to start working on your Appdaemon configurations!
 
 At this point forward, you can edit configurations on your ``conf``
 folder and Appdaemon will load them see the `AppDaemon Installation
-page <INSTALL.md>`__ for full instrctions on AppDaemon configuration.
+page <INSTALL.html>`__ for full instrctions on AppDaemon configuration.
 Have fun!
 
 Viewing Appdaemon Log Output
