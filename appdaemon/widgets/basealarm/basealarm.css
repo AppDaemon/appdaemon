@@ -1,26 +1,31 @@
 
-.widget-basealarm-{{id}} .state {
-	basealarm: inline-block;
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .state {
+	display: inline-block;
 	vertical-align: middle;
 }
 
-.widget-basealarm-{{id}} .title {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .title {
 	position: absolute;
 	top: 5px;
 	width: 100%;
 }
 
-.widget-basealarm-{{id}} .title2 {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .title2 {
 	position: absolute;
 	top: 23px;
 	width: 100%;
 }
 
-.widget-basealarm-{{id}} .code {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .code {
 	width: 100%;
 }
 
-.widget-basealarm-{{id}} .toggle-area {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .toggle-area {
 	z-index: 10;
 	position: absolute;
 	top: 0;
@@ -29,30 +34,36 @@
 	height: 100%;
 }
 
-.widget-basealarm-{{id}} .container {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .container {
     width: 275px;
     display: inline-block;
 }
 
-.widget-basealarm-{{id}} panel-state {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .panel-state {
     font-size: 100%;
 }
-.widget-basealarm-{{id}} .block {
+
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .block {
     display: inline-block;
     width: 75px;
     height: 75px;
     margin: 5px;
-    float: center;
+    float: top;
     font-size: 175%;
     text-align: center;
     vertical-align: middle;
     line-height: 75px; 
 }
 
-.widget-basealarm-{{id}} .block2 {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .block2 {
     width: 165px;
 }
 
-.widget-basealarm-{{id}} .block3 {
+/*noinspection ALL*/
+.widget-basealarm-{{id}}  .block3 {
     width: 255px;
 }
