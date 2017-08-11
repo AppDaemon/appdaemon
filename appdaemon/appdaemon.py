@@ -32,6 +32,7 @@ import random
 
 import appdaemon.homeassistant as ha
 import appdaemon.appapi as appapi
+import appdaemon.api as api
 
 
 # Windows does not have Daemonize package so disallow
@@ -1219,11 +1220,15 @@ def run():
 
     if conf.dashboard is True:
         ha.log(conf.logger, "INFO", "Starting dashboard")
+        appdash.run_dash(conf.loop, tasks)
     else:
         ha.log(conf.logger, "INFO", "Dashboards are disabled")
 
-    appdash.run_dash(conf.loop)
-
+    if conf.api_port is not None:
+        ha.log(conf.logger, "INFO", "Starting API")
+        api.run_api(conf.loop, tasks)
+    else:
+        ha.log(conf.logger, "INFO", "API is disabled")
 
     conf.loop.run_until_complete(asyncio.wait(tasks))
 
@@ -1590,7 +1595,10 @@ def main():
     conf.time_zone = config['AppDaemon'].get("time_zone")
     conf.rss_feeds = config['AppDaemon'].get("rss_feeds")
     conf.rss_update = config['AppDaemon'].get("rss_update")
-    conf.ad_key = config['AppDaemon'].get("ad_key")
+    conf.api_key = config['AppDaemon'].get("api_key")
+    conf.api_port = config['AppDaemon'].get("api_port")
+    conf.api_ssl_certificate = config['AppDaemon'].get("api_ssl_certificate")
+    conf.api_ssl_key = config['AppDaemon'].get("api_ssl_key")
 
     if config_from_yaml is True:
 

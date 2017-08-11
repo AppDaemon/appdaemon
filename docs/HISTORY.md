@@ -1,6 +1,23 @@
 History
 =======
 
+2.1.6
+-----
+
+**Features**
+
+- API now runs on a separate port to the dashboard
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+- API requires the `api_port` configuration value to be set and now runs on a different port from the dashboard
+- SSL Setup for API now requires `api_ssl_certificate` and `api_ssl_key to be set`
+- `ad_key` has been renamed to `api_key`
+
 2.1.5
 -----
 

@@ -41,10 +41,16 @@ Your initial file should look something like this:
 AppDaemon:
   logfile: STDOUT
   errorfile: STDERR
+  logsize: 100000
+  log_generations: 3
   threads: 10
   cert_path: <path/to/root/CA/cert>
   cert_verify: True
   time_zone: <time zone>
+  ad_port: 5000
+  api_key: !secret api_key
+  api_ssl_certificate: <path/to/root/CA/cert>
+  api_ssl_key: <path/to/root/CA/key>
 HASS:
   ha_url: <some_url>
   ha_key: <some key>
@@ -84,14 +90,17 @@ hello_world:
     of apps you have, the threads are re-used and only active for as
     long as required to tun a particular callback or initialization,
     leave this set to 10 unless you experience thread starvation
--   `cert_path` (optional) - path to root CA cert directory - use only
+-   `cert_path` (optional) - path to root CA cert directory for HASS - use only
     if you are using self signed certs.
--   `cert_verify` (optional) - flag for cert verification - set to
+-   `cert_verify` (optional) - flag for cert verification for HASS - set to
     `False` to disable verification on self signed certs.
 -   `time_zone` (optional) - timezone for AppDaemon to use. If not
     specified, AppDaemon will query the timezone from Home Assistant
--   `ad_key` (optional) - adds the requirement for AppDaemon API calls
+-   ad_port(optional) - Port the AppDaemon RESTFul API will liten on. If not specified, the RESTFul API will be turned off
+-   `api_key` (optional) - adds the requirement for AppDaemon API calls
     to provide a key in the header of a request
+-   `api_ssl_certificate` (optional) - certificate to use when running the API over SSL
+-   `api_ssl_key` (optional) - key to use when running the API over SSL
 
 Optionally, you can place your apps in a directory other than under the
 config directory using the `app_dir` directive.
@@ -123,7 +132,7 @@ The secrets can then be referred to as follows:
 
 ```yaml
 AppDaemon:
-  ad_key: !secret appdaemon_key
+  api_key: !secret appdaemon_key
   threads: '10'
 HASS:
   ha_key: !secret home_assistant_key

@@ -2,12 +2,12 @@ import logging
 import threading
 
 
-__version__ = "2.1.5"
+__version__ = "2.1.6"
 
 
 ha_url = ""
 ha_key = ""
-ad_key = None
+api_key = None
 threads = 0
 monitored_files = {}
 modules = {}
@@ -70,6 +70,8 @@ commtype = None
 
 config_dir = None
 
+api_port = None
+
 # Dashboard
 
 dash_host = None
@@ -98,3 +100,6 @@ compiled_css_dir = None
 dash_ssl_certificate = None
 dash_ssl_key = None
 dash_password = None
+
+api_ssl_key = None
+api_ssl_certificate = None
