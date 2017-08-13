@@ -6,7 +6,8 @@ Change Log
 
 **Features**
 
-- converted docs to rst for better readthedocs support
+- Converted docs to rst for better readthedocs support
+- Added custom widget development
 
 **Fixes**
 
