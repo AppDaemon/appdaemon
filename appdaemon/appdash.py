@@ -149,32 +149,11 @@ def _load_dash(request):
     try:
         name = request.match_info.get('name', "Anonymous")
 
-        # Set correct skin
-
-        if "skin" in request.rel_url.query:
-            skin = request.rel_url.query["skin"]
-        else:
-            skin = "default"
-
-        #
-        # Check skin exists
-        #
-        skindir = os.path.join(conf.config_dir, "custom_css", skin)
-        if os.path.isdir(skindir):
-            ha.log(conf.dash, "INFO", "Loading custom skin '{}'".format(skin))
-        else:
-            # Not a custom skin, try product skins
-            skindir = os.path.join(conf.css_dir, skin)
-            if not os.path.isdir(skindir):
-                ha.log(conf.dash, "WARNING", "Skin '{}' does not exist".format(skin))
-                skin = "default"
-                skindir = os.path.join(conf.css_dir, "default")
-
         #
         # Conditionally compile Dashboard
         #
 
-        dash = dashboard.compile_dash(name, skin, skindir, request.rel_url.query)
+        dash, skin = dashboard.compile_dash(name, request.rel_url.query)
 
         if dash is None:
             errors = []

@@ -219,13 +219,24 @@ def load_widget(dash, includes, name, css_vars, global_parameters):
         if widget_type == "text_sensor":
             ha.log(conf.dash, "WARNING",
                    "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '{}'".format(name))
+
+        # Check for custom base widgets first
+        if os.path.isdir(os.path.join(conf.config_dir, "custom_widgets", widget_type)):
+            # This is a custom base widget so return it in full
+            return expand_vars(instantiated_widget, css_vars)
+
+        # Now regular base widgets
         if os.path.isdir(os.path.join(conf.dash_dir, "widgets", widget_type)):
             # This is a base widget so return it in full
             return expand_vars(instantiated_widget, css_vars)
 
         # We are working with a derived widget so we need to do some merges and substitutions
 
-        yaml_path = os.path.join(conf.dash_dir, "widgets", "{}.yaml".format(widget_type))
+        # first check for custom widget
+
+        yaml_path = os.path.join(conf.config_dir, "custom_widgets", "{}.yaml".format(widget_type))
+        if not os.path.isfile(yaml_path):
+            yaml_path = os.path.join(conf.dash_dir, "widgets", "{}.yaml".format(widget_type))
 
         #
         # Variable substitutions
@@ -468,7 +479,28 @@ def latest_file(path):
 
 @profile_this
 @timeit
-def compile_dash(name, skin, skindir, params):
+def compile_dash(name, params):
+    # Set correct skin
+
+    if "skin" in params:
+        skin = params["skin"]
+    else:
+        skin = "default"
+
+    #
+    # Check skin exists
+    #
+    skindir = os.path.join(conf.config_dir, "custom_css", skin)
+    if os.path.isdir(skindir):
+        ha.log(conf.dash, "INFO", "Loading custom skin '{}'".format(skin))
+    else:
+        # Not a custom skin, try product skins
+        skindir = os.path.join(conf.css_dir, skin)
+        if not os.path.isdir(skindir):
+            ha.log(conf.dash, "WARNING", "Skin '{}' does not exist".format(skin))
+            skin = "default"
+            skindir = os.path.join(conf.css_dir, "default")
+
     if conf.dash_force_compile is False:
         do_compile = False
 
@@ -497,10 +529,11 @@ def compile_dash(name, skin, skindir, params):
                 last_compiled = last_modified_date
 
         widget_mod = latest_file(os.path.join(conf.dash_dir, "widgets"))
+        custom_widget_mod = latest_file(os.path.join(conf.config_dir, "custom_widgets"))
         skin_mod = latest_file(skindir)
         dash_mod = latest_file(conf.dashboard_dir)
 
-        if widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
+        if custom_widget_mod > last_compiled or widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
             do_compile = True
 
         # Force compilation at startup
@@ -509,14 +542,14 @@ def compile_dash(name, skin, skindir, params):
             do_compile = True
 
         if do_compile is False:
-            return {"errors": []}
+            return {"errors": []}, skin
 
     ha.log(conf.dash, "INFO", "Compiling dashboard '{}'".format(name))
 
     dash = get_dash(name, skin, skindir)
     if dash is None:
         dash_list = list_dashes()
-        return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
+        return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}, skin
 
     params = dash
     params["base_url"] = conf.base_url
@@ -551,7 +584,7 @@ def compile_dash(name, skin, skindir, params):
 
 
 
-    return dash
+    return dash, skin
 
 
 # noinspection PyBroadException
@@ -683,19 +716,21 @@ def list_dashes():
 
 
 def get_widgets():
-    widget_dir = os.path.join(conf.dash_dir, "widgets")
-    widget_dirs = os.listdir(path=widget_dir)
     widgets = {}
-    for widget in widget_dirs:
-        if os.path.isdir(os.path.join(widget_dir, widget)):
-            jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
-            csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
-            htmlpath = os.path.join(widget_dir, widget, "{}.html".format(widget))
-            with open(jspath, 'r') as fd:
-                js = fd.read()
-            with open(csspath, 'r') as fd:
-                css = fd.read()
-            with open(htmlpath, 'r') as fd:
-                html = fd.read()
-            widgets[widget] = {"js": js, "css": css, "html": html}
+    for widget_dir in [os.path.join(conf.dash_dir, "widgets"), os.path.join(conf.config_dir, "custom_widgets")]:
+        #widget_dir = os.path.join(conf.dash_dir, "widgets")
+        if os.path.isdir(widget_dir):
+            widget_dirs = os.listdir(path=widget_dir)
+            for widget in widget_dirs:
+                if os.path.isdir(os.path.join(widget_dir, widget)):
+                    jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
+                    csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
+                    htmlpath = os.path.join(widget_dir, widget, "{}.html".format(widget))
+                    with open(jspath, 'r') as fd:
+                        js = fd.read()
+                    with open(csspath, 'r') as fd:
+                        css = fd.read()
+                    with open(htmlpath, 'r') as fd:
+                        html = fd.read()
+                    widgets[widget] = {"js": js, "css": css, "html": html}
     return widgets
