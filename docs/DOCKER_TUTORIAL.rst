@@ -244,6 +244,16 @@ Once you are done with the debug, start the non-debug container back up:
 
     docker start appdaemon
 
+Timezones
+---------
+
+Some users have reported issues with the Docker container running in different timezones to the host OS - this is obviously problematic for any of the scheduler functions.
+Adding the following to the Docker command line has helped for some users:
+
+::
+
+     -v /etc/localtime:/etc/localtime:ro
+
 Home Assistant SSL
 ------------------
 
