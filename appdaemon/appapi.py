@@ -194,6 +194,54 @@ class AppDaemon:
             return None
 
     #
+    # Apiai
+    #
+
+    def get_apiai_intent(self, data):
+        if "result" in data and "action" in data["result"]:
+            return(data["result"]["action"])
+        else:
+            return None
+
+    '''def get_alexa_error(self, data):
+        if "request" in data and "error" in data["request"] and "message" in data["request"]["error"]:
+            return(data["request"]["error"]["message"])
+        else:
+            return None
+    '''
+    def get_apiai_slot_value(self, data, slot = None):
+        if "result" in data and \
+                        "contexts" in data["result"]:
+            req = data.get('result')
+            contexts = req.get('contexts', [{}])
+            if contexts:
+                parameters = contexts[0].get('parameters')
+            else:
+                parameters = req.get('parameters')
+            if slot == None:
+                return(parameters)
+            else:
+                if slot in parameters:
+                    return(parameters[slot])
+                else:
+                    return None
+        else:
+            return None
+
+        return response
+
+    def format_apiai_response(self, speech = None):
+        speech = \
+        {
+            "speech": speech,
+            "version": "Appdaemon",
+            "displayText": speech
+        }
+
+        return speech
+
+
+    #
     # Alexa
     #
 
