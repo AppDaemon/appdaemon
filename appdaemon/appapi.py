@@ -203,12 +203,6 @@ class AppDaemon:
         else:
             return None
 
-    '''def get_alexa_error(self, data):
-        if "request" in data and "error" in data["request"] and "message" in data["request"]["error"]:
-            return(data["request"]["error"]["message"])
-        else:
-            return None
-    '''
     def get_apiai_slot_value(self, data, slot = None):
         if "result" in data and \
                         "contexts" in data["result"]:
@@ -234,7 +228,7 @@ class AppDaemon:
         speech = \
         {
             "speech": speech,
-            "version": "Appdaemon",
+            "source": "Appdaemon",
             "displayText": speech
         }
 
