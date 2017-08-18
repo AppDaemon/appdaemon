@@ -488,7 +488,7 @@ class AppDaemon:
         # In the case of a quick_start parameter,
         # start the clock immediately if the device is already in the new state
         #
-        if "quick_start" in kwargs and kwargs["quick_start"] is True:
+        if "immediate" in kwargs and kwargs["immediate"] is True:
             if entity is not None and "new" in kwargs and "duration" in kwargs:
                 if conf.ha_state[entity]["state"] == kwargs["new"]:
                     exec_time = ha.get_now_ts() + int(kwargs["duration"])

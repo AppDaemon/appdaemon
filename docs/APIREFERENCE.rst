@@ -229,18 +229,18 @@ with the values of ``entity``, ``attr``, ``old`` and ``new`` that were
 current at the time the actual event occured, since the assumption is
 that none of them have changed in the intervening period.
 
-quick_check = (optional)
-''''''''''''''''''''''''
+immediate = (optional)
+''''''''''''''''''''''
 
 True or False
 
-Quick check enables the countdown for a delayt parameter to start at the time
+Quick check enables the countdown for a ``delay`` parameter to start at the time
 the callback is registered, rather than requiring one or more state changes. This can be useful if
 for instance you want the duration to be triggered immediately if a light is already on.
 
-If ``quick_check`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check if the entity
+If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check if the entity
 is already set to the new state and if so it will start the clock immediately. In this case, old will be ignored
-and whern the timer triggers, it's state will be set to None. If new or entity are not set, ``quick_check`` will be ignored.
+and when the timer triggers, it's state will be set to None. If new or entity are not set, ``immediate`` will be ignored.
 
 \*\*kwargs
 ''''''''''
@@ -279,7 +279,7 @@ Examples
 
     # Listen for a state change involving light.office1 changing to state on and remaining on for a minute
     # Trigger immediately if the light is already on
-    self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, quick_check = True)
+    self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, immediate = True)
 
 cancel\_listen\_state()
 ~~~~~~~~~~~~~~~~~~~~~~~
