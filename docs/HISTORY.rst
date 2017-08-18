@@ -10,6 +10,7 @@ Change Log
 - Added custom widget development
 - Enhanced API support to handle multiple endpoints per App
 - Added helper functions for Google Home's APi.IA - contributed by `engrbm87 <https://github.com/engrbm87>`__
+- Added ``immediate`` parameter to listen state to trigger immediate evaluation of the ``delay`` parameter
 
 **Fixes**
 
@@ -599,7 +600,7 @@ None
 **Features**
 
 -  Add Minimote Example
--  Add evice trackers to switch\_reset example
+-  Add device trackers to switch\_reset example
 
 **Fixes**
 
@@ -620,7 +621,7 @@ None
 
 **Fixes**
 
--  Fix a several a race condition in App Initialization
+-  Fix a race condition in App Initialization
 -  Fix a bug that overwrote state attributes
 -  Fix to smart heat example app
 -  Fix day constraints while using time travel

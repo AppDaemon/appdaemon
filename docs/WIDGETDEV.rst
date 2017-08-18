@@ -264,7 +264,7 @@ Base Widgets
 
 Base Widgets are where all the work actually gets done. To build a Base Widget you will need an
 understanding of HTML and CSS as well as proficiency in JavaScript programming. Base Widgets are really just small
-collections of HTML code, with associated CSS to control their appearance, and JavaScript to react to touches, and
+snippets of HTML code, with associated CSS to control their appearance, and JavaScript to react to touches, and
 update values based on state changes.
 
 To build a new Base Widget, first create a directory in the appropriate place, named for the widget.
@@ -293,10 +293,29 @@ For the pusposes of this document we will provide examples from the ``baselight`
 Widget HTML Files
 ~~~~~~~~~~~~~~~~~
 
+The HTML files exist to provide a basic layout for the widget and insert the styles. They are usually fairly simple.
 
+By convention, the variaous tag types have styling suitable for some common elements although that can be overriden in
+the css file or the skin:
 
+- <h1> is styled for small text such as titles or state text
+- <h2> is styled for large icons or text values
+- <p> is styled for small unit labels, e.g. ``%``
 
-`Knockout <http://knockoutjs.com/index.html>`__
+To assist with programatically changing values and styles in the HTML, HADashboard uses `Knockout <http://knockoutjs.com/index.html>`__
+From their web page:
+
+    Knockout is a JavaScript library that helps you to create rich, responsive display and editor user interfaces with a clean underlying data model. Any time you have sections of UI that update dynamically (e.g., changing depending on the user’s actions or when an external data source changes), KO can help you implement it more simply and maintainably.
+
+Knockout bindings are used to set various attributes and the binding types in use are as follows:
+
+- data bind - used for setting text values
+- attr, type style - used for setting styles
+- attr, type class - used for displaying icons
+
+It is suggested that you familiarize yourself with the bindings in use.
+
+Here is an example of an HTML file.
 
 .. code:: html
 
@@ -312,11 +331,25 @@ Widget HTML Files
     <p class="secondary-icon minus"><i data-bind="attr: {class: icon_down, style: level_down_style}" id="level-down"></i></p>
     <p class="secondary-icon plus"><i data-bind="attr: {class: icon_up, style: level_up_style}" id="level-up"></i></p>
 
-
+- The first 2 ``<h1>`` tags set up ``title1`` and ``title2`` using a data bind for the values and style attributes to allow the
+  styles to be set. These styles map back to the various ``css`` and ``static_css`` supplied as arguments to the widget and
+  their names must match
+- The ``<h2>`` tag introduces a large icon, presumably of a lightbulb or something similar. Here, because of the way that icons work,
+  we are using a class attribute in Knockout to directly set the class of the element which has the effect of forcing an icon to be displayed
+- The ``<span>`` is set up to allow the user to toggle the widget on and off and is reffered to later in the JavaScript
+- The ``<div>`` here is used for grouping the level and unit labels for the light, along with the included ``<p>`` tags which introduce the actual elements
+- The last 2 ``<p>`` elements are for the up and down icons.
 
 Widget CSS Files
 ~~~~~~~~~~~~~~~~
 
+CSS files in widgets are used primarily for positioning of elements since most of the styling occurs in the skins.
+Since each widget must have a unique id, the ``{id}}` piece of each selector name will be substituted with a unique
+id ewnsuring that even if there are multiple instances of the same widget they will all behave correctly.
+
+Other than that, this is standard CSS used for laying out the various HTML elements appropriately.
+
+Here is an example that works with the HTML above.
 
 .. code:: css
 
@@ -405,6 +438,374 @@ Widget CSS Files
 Widget JavaScript Files
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+The JavaScript file is responsible fore glueing all the pieces together:
+
+- Registering callbacks for events
+- Registering callbacks for touches
+- Updating the fields, icons, styles as necessary
+
+Lets take a look at a typical JavaScript Widget - the Baselight Widget.
+
+.. code:: javascript
+
+    function baselight(widget_id, url, skin, parameters)
+    {
+
+All widgets are declared with an initial function named for the widget functions within the .js file
+although they are technically objects.
+
+This fucntion is in fact the constructor and is initially called when the widget is first loaded.
+It is handed a number of parameters:
+
+- widget_id - Unique identifier of the widget
+- url - the url used to invoke the widget
+- the name of the skin in use
+- the parameters supplied by the dashboard for this particular widget
+
+Next we need to set up our ``self`` variable:
+
+.. code:: javascript
+
+        // Will be using "self" throughout for the various flavors of "this"
+        // so for consistency ...
+
+        self = this
+
+For the uninitiated, JavaScript has a somewhat confused notion of scopes when using objects, as scopes can be inherited
+from different places depebding on the mechanism for calling intto the code. In Widgets, various tricks have been used
+to present a consistent view to the user which requires an initial declaration of the self variable. From then on,
+all calls pass this variable between calls to ensure consistency. It is recomended that the convention of
+declaring ``self = this`` at the top of the function then rigidly sticking to the use of ``self`` is adhered to,
+to avoid confusion.
+
+.. code:: javascript
+
+        // Initialization
+
+        self.widget_id = widget_id
+
+        // Parameters may come in useful later on
+
+        self.parameters = parameters
+
+Here we are storing the parameters in case we need them later.
+
+.. code:: javascript
+
+
+        // Parameter handling
+
+        if ("monitored_entity" in self.parameters)
+        {
+            entity = self.parameters.monitored_entity
+        }
+        else
+        {
+            entity = self.parameters.entity
+        }
+
+        if ("on_brightness" in self.parameters)
+        {
+            self.on_brightness = self.parameters.on_brightness
+        }
+        else
+        {
+            self.on_brightness = 127
+        }
+
+Here we process the parameters and set up any variables we may need to refer to later on.
+
+The next step is to set up the widget to respond to various events such as button clicks and state changes.
+
+.. code:: javascript
+
+        // Define callbacks for on click events
+        // They are defined as functions below and can be any name as long as the
+        // 'self'variables match the callbacks array below
+        // We need to add them into the object for later reference
+
+        self.OnButtonClick = OnButtonClick
+        self.OnRaiseLevelClick = OnRaiseLevelClick
+        self.OnLowerLevelClick = OnLowerLevelClick
+
+        var callbacks =
+            [
+                {"selector": '#' + widget_id + ' > span', "callback": self.OnButtonClick},
+                {"selector": '#' + widget_id + ' #level-up', "callback": self.OnRaiseLevelClick},
+                {"selector": '#' + widget_id + ' #level-down', "callback": self.OnLowerLevelClick},
+            ]
+
+Each widget has the opportunity to register itself for button clicks or touches. This is done by filling out the
+callbacks array (which is later used to initialize them). Here we are registering 3 callbacks.
+
+Looking at ``OnButtonClick`` as an example:
+
+- OnButtonClick is the name of a function we will be declaring later
+- self.OnButtonClick is being used to add it to the object
+- In Callbacks, we have an entry that connects a jQuery selector to that particular callback, such that
+  when the element identified by the selector is clicked, the callback in the list will be called.
+
+Once the widget is running, the OnButtonClick function will be called whenever the span in the HTML file is touched.
+You may have noticed that in the CSS file we placed the span on top of everything else and made it cover the entire
+widget.
+
+Note that there is nothing special about the naming of ``OnButtonClick`` - it can be called anything as long as
+the correct references are present in the ``callbacks`` list.
+
+Next we will setup the state callbacks:
+
+.. code:: javascript
+
+
+        // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
+        // Initial will be called when the dashboard loads and state has been gathered for the entity
+        // Update will be called every time an update occurs for that entity
+
+        self.OnStateAvailable = OnStateAvailable
+        self.OnStateUpdate = OnStateUpdate
+
+        var monitored_entities =
+            [
+                {"entity": entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
+            ]
+
+This is a similar concept to tracking state changes and displaying them. For the purposes of a widget,
+we care about 2 separate things:
+
+#. Getting an initial value for the state when the widget is first loaded
+#. Tracking changes to the state over time
+
+The first is accomplished by a callback when the widget is first loaded. We add a callback for the entity we are
+interested in and identify which routine will be called initially whrn the widget is loaded, and which callback will be
+called whenever we see a state update. These functions will be responsible for updating the fields necessary to show
+initial state and changes over time. How that happens is a function of the widget design, but for instance a
+change to a sensor will usually result in that value being displayed in one of the HTML fields.
+
+Here we are tracking just one entity, but it is possible to register callbacks on as many entities as you need for your
+widget.
+
+When that is in place we finalize the initialization:
+
+.. code:: javascript
+
+        // Finally, call the parent constructor to get things moving
+
+        WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)
+
+After all the setup is complete, we need to make a call to the object's parent constructor to start processing, passing in
+various parameters, some of which we got from the function call itself, and other like the callbacks that we
+set up ourselves. The callback parameters must exist but can be empty, e.g. ``callbacks = []`` -
+not every widget needs to respond to touches, not every widget needs to respond to state changes.
+
+After this call completes, the initializer is complete and from now on, activity in the widget is governed by
+callbacks either from initial state, state changes or button clicks,
+
+Next we will define our state callbacks:
+
+.. code:: javascript
+
+        // Function Definitions
+
+        // The StateAvailable function will be called when
+        // self.state[<entity>] has valid information for the requested entity
+        // state is the initial state
+
+        function OnStateAvailable(self, state)
+        {
+            self.state = state.state;
+            if ("brightness" in state.attributes)
+            {
+                self.level = state.attributes.brightness
+            }
+            else
+            {
+                self.level = 0
+            }
+            set_view(self, self.state, self.level)
+        }
+
+This function was one of the ones that we referred to earlier in the ``monitored_entities`` list. Since we identified
+this as the ``initial`` callback, it will be called with an initial value for the entities state when the widget is
+first loaded, but after the constructor function has completed. It is handed a self reference, and the state for the
+entity it subscribed to. What happens when this code is called is up to the widget. In the case of Base Light it will
+set the icon type depending on whether the light is on or off, and also update the level.
+Since this is done elsewhere in the widget, I added a function called ``set_view`` to set these things up.
+There is also some logic here to account for the fact that in Home Assistant a light has no brightness level if it is
+off, so ``0`` is assumed. Here, we also make a note of the current state for later reference - ``self.state = state.state``
+
+- ``self.state`` is an object attribute
+- ``state.state`` is the actual state of the entity. Like othe Home Assistant state descriptions it can also have
+  a set of sub-attributes under ``state.attributes`` for values like brightness or color etc.
+
+``OnStateUpdate`` at least for this widget is very similar to ``OnStateAvailable``,
+in fact it could probably be a single function for both ``initial`` and ``update`` but I separated it out for clarity.
+
+.. code:: javascript
+
+        // The OnStateUpdate function will be called when the specific entity
+        // receives a state update - it's new values will be available
+        // in self.state[<entity>] and returned in the state parameter
+
+        function OnStateUpdate(self, state)
+        {
+            self.state = state.state;
+            if ("brightness" in state.attributes)
+            {
+                self.level = state.attributes.brightness
+            }
+            else
+            {
+                self.level = 0
+            }
+
+            set_view(self, self.state, self.level)
+        }
+
+
+Next we define the functions that we referenced in the ``callback`` list for the various click actions. First,
+``OnButtonClick`` is responding to someone touching the widget to toggle the state from off to on or vice-versa.
+
+.. code:: javascript
+
+        function OnButtonClick(self)
+        {
+            if (self.state == "off")
+            {
+                args = self.parameters.post_service_active
+                if ("on_attributes" in self.parameters)
+                {
+                    for (var attr in self.parameters.on_attributes)
+                    {
+                        args[attr] = self.parameters.on_attributes[attr]
+                    }
+                }
+            }
+            else
+            {
+                args = self.parameters.post_service_inactive
+            }
+            self.call_service(self, args)
+            toggle(self)
+        }
+
+This is less complicated than it looks. What is happening here is that based on the current state of the entity,
+we are selecting which service to call to change that state. We are looking it up in our parameters that we saved earlier.
+
+So, if the light is ``off`` we consult our parameters for ``post_service_active`` whcih should be set to a service that
+will turn ther light on (e.g. ``light/turn_on``). Similarly if it is on, we look for ``post_service_inactive`` to
+find out how to turn it off. Once we have made that choice we make the service call to effect
+the change: ``self.call_service()``
+
+The additional logic and loop when state is off is to construct the necessary dictionary of additional parameters in
+the format the ``turn_on`` service expects to set brightness, color etc, that may be passed in to the widget.
+
+Raise level is fairly explanatory - this is clicked to make the light brighter:
+
+.. code:: javascript
+
+        function OnRaiseLevelClick(self)
+        {
+            self.level = self.level + 255/10;
+            self.level = parseInt(self.level)
+            if (self.level > 255)
+            {
+                self.level = 255
+            }
+            args = self.parameters.post_service_active
+            args["brightness"] = self.level
+            self.call_service(self, args)
+        }
+
+Here we are using ``post_service_active`` and setting the brightness attribute. Each click will jump 10 units.
+Lower level is very similar:
+
+ .. code:: javascript
+
+       function OnLowerLevelClick(self)
+        {
+            self.level = self.level - 255/10;
+            if (self.level < 0)
+            {
+                self.level = 0;
+            }
+            self.level = parseInt(self.level)
+            if (self.level == 0)
+            {
+                args = self.parameters.post_service_inactive
+            }
+            else
+            {
+                args = self.parameters.post_service_active
+                args["brightness"] = self.level
+            }
+            self.call_service(self, args)
+        }
+
+It is slightly more complex in that rather than setting the level to ``0``, when it gets there it turns the light off.
+
+Finally, the toggle function is called by both of the above functions to change the stored state of the entity and
+update the display (using ``set_view()`` again)
+
+.. code:: javascript
+
+        function toggle(self)
+        {
+            if (self.state == "on")
+            {
+                self.state = "off";
+                self.level = 0
+            }
+            else
+            {
+                self.state = "on";
+            }
+            set_view(self, self.state, self.level)
+        }
+
+Set_view() is where we attend to updating the widgets actual display based on the current state that may have just
+changed.
+
+.. code:: javascript
+
+
+        // Set view is a helper function to set all aspects of the widget to its
+        // current state - it is called by widget code when an update occurs
+        // or some other event that requires a an update of the view
+
+        function set_view(self, state, level)
+        {
+
+            if (state == "on")
+            {
+                // Set Icon will set the style correctly for an icon
+                self.set_icon(self, "icon", self.icons.icon_on)
+                // Set view will set the view for the appropriate field
+                self.set_field(self, "icon_style", self.css.icon_style_active)
+            }
+            else
+            {
+                self.set_icon(self, "icon", self.icons.icon_off)
+                self.set_field(self, "icon_style", self.css.icon_style_inactive)
+            }
+            if (typeof level == 'undefined')
+            {
+                self.set_field(self, "level", 0)
+            }
+            else
+            {
+                self.set_field(self, "level", Math.ceil((level*100/255) / 10) * 10)
+            }
+        }
+    }
+
+The most important concept here are the 2 calls to update fields:
+
+- set_icon() - update an icon to a different one, usually used to switch from an on representation to an off
+  representation and vice-versa
+- set_field() - update a field to show a new value. In this case the brightness field is being update
+  to show the latest value
+
+That is the anatomy of a typical widget - here it is in full:
 
 .. code:: javascript
 
