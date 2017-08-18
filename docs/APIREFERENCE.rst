@@ -223,18 +223,24 @@ duration =  (optional)
 If duration is supplied as a parameter, the callback will not fire
 unless the state listened for is maintained for that number of seconds.
 This makes the most sense if a specific attribute is specified (or the
-default os ``state`` is used), an in conjunction with the ``old`` or
+default of ``state`` is used), an in conjunction with the ``old`` or
 ``new`` parameters, or both. When the callback is called, it is supplied
 with the values of ``entity``, ``attr``, ``old`` and ``new`` that were
 current at the time the actual event occured, since the assumption is
 that none of them have changed in the intervening period.
 
-.. code:: python
+quick_check = (optional)
+''''''''''''''''''''''''
 
-      def my_callback(self, kwargs):
-        <do some useful work here>
+True or False
 
-(Scheduler callbacks are documented in detail later in this document)
+Quick check enables the countdown for a delayt parameter to start at the time
+the callback is registered, rather than requiring one or more state changes. This can be useful if
+for instance you want the duration to be triggered immediately if a light is already on.
+
+If ``quick_check`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check if the entity
+is already set to the new state and if so it will start the clock immediately. In this case, old will be ignored
+and whern the timer triggers, it's state will be set to None. If new or entity are not set, ``quick_check`` will be ignored.
 
 \*\*kwargs
 ''''''''''
@@ -247,29 +253,33 @@ Examples
 
 .. code:: python
 
-     Listen for any state change and return the state attribute
+    # Listen for any state change and return the state attribute
     self.handle = self.listen_state(self.my_callback)
 
-     Listen for any state change involving a light and return the state attribute
+    # Listen for any state change involving a light and return the state attribute
     self.handle = self.listen_state(self.my_callback, "light")
 
-     Listen for a state change involving light.office1 and return the state attribute
+    # Listen for a state change involving light.office1 and return the state attribute
     self.handle = self.listen_state(self.my_callback, "light.office_1")
 
-     Listen for a state change involving light.office1 and return the entire state as a dict
+    # Listen for a state change involving light.office1 and return the entire state as a dict
     self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "all")
 
-     Listen for a state change involving the brightness attribute of light.office1
+    # Listen for a state change involving the brightness attribute of light.office1
     self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "brightness")
 
-     Listen for a state change involving light.office1 turning on and return the state attribute
+    # Listen for a state change involving light.office1 turning on and return the state attribute
     self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on")
 
-     Listen for a state change involving light.office1 changing from brightness 100 to 200 and return the state attribute
+    # Listen for a state change involving light.office1 changing from brightness 100 to 200 and return the state attribute
     self.handle = self.listen_state(self.my_callback, "light.office_1", old = "100", new = "200")
 
-     Listen for a state change involving light.office1 changing to state on and remaining on for a minute
+    # Listen for a state change involving light.office1 changing to state on and remaining on for a minute
     self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60)
+
+    # Listen for a state change involving light.office1 changing to state on and remaining on for a minute
+    # Trigger immediately if the light is already on
+    self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, quick_check = True)
 
 cancel\_listen\_state()
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -2159,3 +2169,84 @@ Examples
     self.error("Some Warning string")
     self.error("Some Critical string", level = "CRITICAL")
 
+API
+---
+
+register_endpoint()
+~~~~~~~~~~~~~~~~~~~
+
+Register an endpoint for API calls into an App.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    register_endpoint(callback, name = None)
+
+Returns
+^^^^^^^
+
+handle - a handle that can be used to remove the registration
+
+Parameters
+^^^^^^^^^^
+
+callback
+''''''''
+
+The function to be called when a request is made to the named endpoint
+
+name
+''''
+
+The name of the endpoint to be used for the call. If ``None`` the name of the App will be used.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.register_endpoint(my_callback)
+    self.register_callback(alexa_cb, "alexa")
+
+unregister_endpoint()
+~~~~~~~~~~~~~~~~~~~
+
+Remove a previously registered endpoint.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    unregister_endpoint(handle)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+handle
+''''''
+
+A handle returned by a previous call to ``register_endpoint``
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.unregister_endpoint(handle)
+
+
+Alexa Helper Functions
+----------------------
+
+
+
+Google Home Helper Functions
+----------------------------

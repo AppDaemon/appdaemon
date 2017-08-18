@@ -27,18 +27,22 @@ def _secret_yaml(loader, node):
     return conf.secrets[node.value]
 
 @asyncio.coroutine
-def dispatch_app_by_name(app, args):
+def dispatch_app_by_name(name, args):
 
-    #print(app)
+    #print(name)
     #print(args)
 
     obj = None
 
-    #print(conf.objects)
-
-    if app in conf.objects:
-        obj =  conf.objects[app]["object"]
-        completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, obj.api_call, args)])
+    with conf.endpoints_lock:
+        callback = None
+        print(conf.endpoints)
+        for app in conf.endpoints:
+            for handle in conf.endpoints[app]:
+                if conf.endpoints[app][handle]["name"] == name:
+                    callback = conf.endpoints[app][handle]["callback"]
+    if callback is not None:
+        completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, callback, args)])
         return list(completed)[0].result()
     else:
         return '', 404

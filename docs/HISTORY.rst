@@ -8,6 +8,8 @@ Change Log
 
 - Converted docs to rst for better readthedocs support
 - Added custom widget development
+- Enhanced API support to handle multiple endpoints per App
+- Added helper functions for Google Home's APi.IA - contributed by `engrbm87 <https://github.com/engrbm87>`__
 
 **Fixes**
 
@@ -15,7 +17,7 @@ None
 
 **Breaking Changes**
 
-None
+- Existing API Apps need to register their endpoint with `register_endpoint()`
 
 2.1.6 (2017-08-11)
 ------------------

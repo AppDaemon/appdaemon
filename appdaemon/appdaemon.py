@@ -569,6 +569,9 @@ def clear_object(object_):
     with conf.schedule_lock:
         if object_ in conf.schedule:
             del conf.schedule[object_]
+    with conf.endpoints_lock:
+        if object_ in conf.endpoints:
+            del conf.endpoints[object_]
 
 
 def term_object(name):
@@ -1808,6 +1811,7 @@ def main():
 
     # Use the supplied timezone
     if "time_zone" in config['AppDaemon']:
+        conf.ad_time_zone = config['AppDaemon']['time_zone']
         os.environ['TZ'] = config['AppDaemon']['time_zone']
     else:
         os.environ['TZ'] = conf.time_zone

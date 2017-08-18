@@ -300,6 +300,32 @@ class AppDaemon:
         return speech
 
     #
+    # API
+    #
+
+    def register_endpoint(self, cb, name = None):
+
+        if name is None:
+            ep = self.name
+        else:
+            ep = name
+
+        handle = uuid.uuid4()
+
+        with conf.endpoints_lock:
+            if self.name not in conf.endpoints:
+                conf.endpoints[self.name] = {}
+            conf.endpoints[self.name][handle] = {"callback": cb, "name": ep}
+
+        return handle
+
+    def unregister_endpoint(self, handle):
+        with conf.endpoints_lock:
+            if self.name in conf.endpoints and handle in conf.endpoints[self.name]:
+                del conf.endpoints[self.name][handle]
+
+
+    #
     # Device Trackers
     #
 
@@ -457,6 +483,23 @@ class AppDaemon:
                 "entity": entity,
                 "kwargs": kwargs
             }
+
+        #
+        # In the case of a quick_start parameter,
+        # start the clock immediately if the device is already in the new state
+        #
+        if "quick_start" in kwargs and kwargs["quick_start"] is True:
+            if entity is not None and "new" in kwargs and "duration" in kwargs:
+                if conf.ha_state[entity]["state"] == kwargs["new"]:
+                    exec_time = ha.get_now_ts() + int(kwargs["duration"])
+                    kwargs["handle"] = ha.insert_schedule(
+                        name, exec_time, function, False, None,
+                        entity=entity,
+                        attribute=None,
+                        old_state=None,
+                        new_state=kwargs["new"], **kwargs
+                )
+
         return handle
 
     def cancel_listen_state(self, handle):
@@ -833,7 +876,10 @@ class AppDaemon:
             ha.log(conf.logger, "INFO", "{}:".format(name))
             for uuid_ in conf.callbacks[name]:
                 callbacks[name][uuid_] = {}
-                callbacks[name][uuid_]["entity"] = conf.callbacks[name][uuid_]["entity"]
+                if "entity" in callbacks[name][uuid_]:
+                    callbacks[name][uuid_]["entity"] = conf.callbacks[name][uuid_]["entity"]
+                else:
+                    callbacks[name][uuid_]["entity"] = None
                 callbacks[name][uuid_]["type"] = conf.callbacks[name][uuid_]["type"]
                 callbacks[name][uuid_]["kwargs"] = conf.callbacks[name][uuid_]["kwargs"]
                 callbacks[name][uuid_]["function"] = conf.callbacks[name][uuid_]["function"]

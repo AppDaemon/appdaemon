@@ -1294,27 +1294,27 @@ from the dashboard.
 
 To call into a specific App, construct a URL, use the regular
 HADashboard URL, and append ``/api/appdaemon``, then add the name of the
-app (as configured in ``appdaemon.yaml``) on the end, for example:
+endpoint as registered by the app on the end, for example:
 
 ::
 
-    http://192.168.1.20:5050/api/appdaemon/api
+    http://192.168.1.20:5050/api/appdaemon/hello_endpoint
 
-This URL will call into an App named ``api``, with a config like the one
-below:
+This URL will call into an App that registered an endpoint named ``hello_endpoint``.
 
-.. code:: yaml
+Within the app, a call must be made to ``register_endpoint()`` to tell AppDaemon that
+the app is expecting calls on that endpoint. When registering an endpoint, the App
+supplies a function to be called when a request comes in to that endpoint and an optional
+name for the endpoint. If not specified, the name will default to the name of the App
+as specified in the configuration file.
 
-    api:
-      class: API
-      module: api
+Apps can have as many endpoints as required, however the names must be unique across
+all of the Apps in an AppDaemon instance.
 
-Within the App, AppDaemon is expecting to find a method in the class
-called ``api_call()`` - this method will be invoked by a succesful API
-call into AppDaemon, and the request data will be passed into the
-function. Note that for a pure API App, there is no need to do anything
-in the ``initialize()`` function, although it must exist. Here is an
-example of a simple hello world API App:
+It is also possible to remove endpoints with the ``unregister_endpoint()`` call, making the
+endpoints truly dynamic and under the control of the App.
+
+Here is an example of an App using the API:
 
 .. code:: python
 
@@ -1323,9 +1323,9 @@ example of a simple hello world API App:
     class API(appapi.AppDaemon):
 
         def initialize(self):
-            pass
+            self.register_endpoint(my_callback, test_endpoint)
 
-        def api_call(self, data):
+        def my_callback(self, data):
 
             self.log(data)
 
@@ -1349,7 +1349,7 @@ Below is an example of using curl to call into the App shown above:
 
 .. code:: bash
 
-    hass@Pegasus:~$ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World Test"}'
+    hass@Pegasus:~$ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/test_endpoint -d '{"type": "Hello World Test"}'
     HTTP/1.1 200 OK
     Content-Type: application/json; charset=utf-8
     Content-Length: 26
