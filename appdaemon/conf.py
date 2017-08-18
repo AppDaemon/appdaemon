@@ -46,6 +46,9 @@ callbacks_lock = threading.RLock()
 ha_state = {}
 ha_state_lock = threading.RLock()
 
+endpoints = {}
+endpoints_lock = threading.RLock()
+
 # No locking yet
 global_vars = {}
 
@@ -53,6 +56,7 @@ sun = {}
 config = None
 location = None
 tz = None
+ad_time_zone = None
 logger = logging.getLogger(__name__)
 now = 0
 tick = 1
