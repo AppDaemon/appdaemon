@@ -278,7 +278,7 @@ Examples
     self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60)
 
     # Listen for a state change involving light.office1 changing to state on and remaining on for a minute
-    # Trigger immediately if the light is already on
+    # Trigger the delay immediately if the light is already on
     self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, immediate = True)
 
 cancel\_listen\_state()

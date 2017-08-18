@@ -104,6 +104,5 @@ compiled_css_dir = None
 dash_ssl_certificate = None
 dash_ssl_key = None
 dash_password = None
-
 api_ssl_key = None
 api_ssl_certificate = None
