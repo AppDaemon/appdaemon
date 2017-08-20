@@ -54,6 +54,8 @@ global_vars = {}
 
 sun = {}
 config = None
+config_file = None
+config_file_modified = 0
 location = None
 tz = None
 ad_time_zone = None
