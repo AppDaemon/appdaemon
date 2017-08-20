@@ -1429,12 +1429,12 @@ different port, by adding something like this to the config:
 
             location /api/appdaemon/ {
             allow all;
-            proxy_pass http://localhost:5151;
+            proxy_pass http://localhost:5000;
             proxy_set_header Host $host;
             proxy_redirect http:// http://;
           }
 
-Here we see the default port being remapped to port 5151 which is where
+Here we see the default port being remapped to port 5000 which is where
 AppDamon is listening in my setup.
 
 Since each individual Skill has it's own URL it is possible to have
@@ -1556,6 +1556,8 @@ want to configure.
 
 Google APP.AI
 -------------
+
+Similarly, Google's APP.AI for Google home is supported - here is the Google version of the same App.
 
 import appdaemon.appapi as appapi
 import random
