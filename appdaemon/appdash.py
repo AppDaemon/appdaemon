@@ -6,7 +6,6 @@ import time
 import traceback
 
 import aiohttp
-import aiohttp_jinja2
 import feedparser
 import jinja2
 from aiohttp import web
@@ -118,75 +117,39 @@ def set_paths():
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
-@aiohttp_jinja2.template('dashboard.jinja2')
 @secure
 def list_dash(request):
     return (_list_dash(request))
 
-
 @asyncio.coroutine
-@aiohttp_jinja2.template('dashboard.jinja2')
 def list_dash_no_secure(request):
     return (_list_dash(request))
 
 def _list_dash(request):
-    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.list_dashes)])
-    dash_list = list(completed)[0].result()
-    params = {"dash_list": dash_list}
-    params["main"] = "1"
-    return params
-
+    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.get_dashboard_list)])
+    response = list(completed)[0].result()
+    return web.Response(text=response, content_type="text/html")
 
 @asyncio.coroutine
-@aiohttp_jinja2.template('dashboard.jinja2')
 @secure
 def load_dash(request):
-    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, _load_dash, request)])
-    return list(completed)[0].result()
+    name = request.match_info.get('name', "Anonymous")
+    params = request.query
 
-def _load_dash(request):
-    # noinspection PyBroadException
-    try:
-        name = request.match_info.get('name', "Anonymous")
+    if "skin" in params:
+        skin = params["skin"]
+    else:
+        skin = "default"
 
-        #
-        # Conditionally compile Dashboard
-        #
+    if "recompile" in params:
+        recompile = True
+    else:
+        recompile = False
 
-        dash, skin = dashboard.compile_dash(name, request.rel_url.query)
+    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.get_dashboard, name, skin, recompile)])
+    response = list(completed)[0].result()
 
-        if dash is None:
-            errors = []
-            head_includes = []
-            body_includes = []
-        else:
-            errors = dash["errors"]
-
-        if "widgets" in dash:
-            widgets = dash["widgets"]
-        else:
-            widgets = {}
-
-        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
-        with open(include_path, "r") as include_file:
-            head_includes = include_file.read()
-        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
-        with open(include_path, "r") as include_file:
-            body_includes = include_file.read()
-
-        #
-        # return params
-        #
-        return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
-                "head_includes": head_includes, "body_includes": body_includes}
-
-    except:
-        ha.log(conf.dash, "WARNING", '-' * 60)
-        ha.log(conf.dash, "WARNING", "Unexpected error during DASH creation")
-        ha.log(conf.dash, "WARNING", '-' * 60)
-        ha.log(conf.dash, "WARNING", traceback.format_exc())
-        ha.log(conf.dash, "WARNING", '-' * 60)
-        return {"errors": ["An unrecoverable error occured fetching dashboard"]}
+    return web.Response(text=response, content_type="text/html")
 
 @asyncio.coroutine
 def update_rss():
@@ -336,8 +299,6 @@ def setup_routes():
     app.router.add_get('/{name}', load_dash)
 
     # Setup Templates
-    aiohttp_jinja2.setup(app,
-                         loader=jinja2.FileSystemLoader(conf.template_dir))
 
     # Add static path for JavaScript
 
