@@ -1,15 +1,15 @@
 Change Log
 ==========
 
-2.1.7
------
+2.1.7 (2017-08-20)
+------------------
 
 **Features**
 
 - Converted docs to rst for better readthedocs support
 - Added custom widget development
 - Enhanced API support to handle multiple endpoints per App
-- Added helper functions for Google Home's APi.IA - contributed by `engrbm87 <https://github.com/engrbm87>`__
+- Added helper functions for Google Home's APP.AI - contributed by `engrbm87 <https://github.com/engrbm87>`__
 - Added ``immediate`` parameter to listen state to trigger immediate evaluation of the ``delay`` parameter
 
 **Fixes**
