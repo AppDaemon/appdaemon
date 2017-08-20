@@ -2211,7 +2211,7 @@ Examples
     self.register_callback(alexa_cb, "alexa")
 
 unregister_endpoint()
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 Remove a previously registered endpoint.
 
@@ -2246,7 +2246,237 @@ Examples
 Alexa Helper Functions
 ----------------------
 
+get_alexa_intent()
+~~~~~~~~~~~~~~~~~~
 
+Register an endpoint for API calls into an App.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_alexa_intent(data)
+
+Returns
+^^^^^^^
+
+A string representing the Intent from the interaction model that was requested
+
+Parameters
+^^^^^^^^^^
+
+data
+''''
+
+The request data received from Alexa.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    intent = self.get_alexa_intent(data)
+
+get_alexa_slot_value()
+~~~~~~~~~~~~~~~~~~~~~~
+
+Return values for slots form the interaction model.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_alexa_slot_value(data, name = None)
+
+Returns
+^^^^^^^
+
+A string representing the value of the slot from the interaction model, or a hash of slots.
+
+Parameters
+^^^^^^^^^^
+
+data
+''''
+
+The request data received from Alexa.
+
+name
+''''
+
+Name of the slot. If a name is not specified, all slots will be returned as a dictionary.
+If a name is spedicied but is not found, ``None`` will be returned.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    beer_type = self.get_alexa_intent(data, "beer_type")
+    all_slots = self.get_alexa_intent(data)
+
+
+self.format_alexa_response(speech = speech, card = card, title = title)
+
+format_alexa_response()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Format a response to be returned to Alex including speech and a card.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.format_alexa_response(speech = speech, card = card, title = title)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+speech =
+''''''''
+
+The text for Alexa to say
+
+card =
+''''''
+
+Text for the card
+
+title =
+''''''''
+
+Title for the card
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    format_alexa_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
 
 Google Home Helper Functions
 ----------------------------
+
+get_appapi_intent()
+~~~~~~~~~~~~~~~~~~
+
+Register an endpoint for API calls into an App.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_appapi_intent(data)
+
+Returns
+^^^^^^^
+
+A string representing the Intent from the interaction model that was requested
+
+Parameters
+^^^^^^^^^^
+
+data
+''''
+
+The request data received from Google Home.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    intent = self.get_appapi_intent(data)
+
+get_appapi_slot_value()
+~~~~~~~~~~~~~~~~~~~~~~
+
+Return values for slots form the interaction model.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_appapi_slot_value(data, name = None)
+
+Returns
+^^^^^^^
+
+A string representing the value of the slot from the interaction model, or a hash of slots.
+
+Parameters
+^^^^^^^^^^
+
+data
+''''
+
+The request data received from Google Home.
+
+name
+''''
+
+Name of the slot. If a name is not specified, all slots will be returned as a dictionary.
+If a name is spedicied but is not found, ``None`` will be returned.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    beer_type = self.get_appapi_intent(data, "beer_type")
+    all_slots = self.get_appapi_intent(data)
+
+
+self.format_appapi_response(speech = speech, card = card, title = title)
+
+format_appapi_response()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Format a response to be returned to Alex including speech and a card.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.format_appapi_response(speech = speech, card = card, title = title)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+speech =
+''''''''
+
+The text for Google Home to say
+
+card =
+''''''
+
+Text for the card
+
+title =
+''''''''
+
+Title for the card
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    format_appapi_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
