@@ -370,9 +370,8 @@ def merge_dashes(dash1, dash2):
 
     return dash1
 
-
-def load_dash(name, css_vars):
-    dash, layout, occupied, includes = _load_dash(name, "dash", 0, {}, [], 1, css_vars, None)
+def create_dash(name, css_vars):
+    dash, layout, occupied, includes = _create_dash(name, "dash", 0, {}, [], 1, css_vars, None)
     return dash
 
 
@@ -382,7 +381,7 @@ def log_error(dash, name, error):
 
 
 # noinspection PyBroadException
-def _load_dash(name, extension, layout, occupied, includes, level, css_vars, global_parameters):
+def _create_dash(name, extension, layout, occupied, includes, level, css_vars, global_parameters):
     if extension == "dash":
         dash = {"title": "HADashboard", "widget_dimensions": [120, 120], "widget_margins": [5, 5], "columns": 8}
     else:
@@ -451,7 +450,7 @@ def _load_dash(name, extension, layout, occupied, includes, level, css_vars, glo
         for lay in layouts:
             if isinstance(lay, dict):
                 if "include" in lay:
-                    new_dash, layout, occupied, includes = _load_dash(
+                    new_dash, layout, occupied, includes = _create_dash(
                         os.path.join(conf.dashboard_dir, lay["include"]),
                         "yaml", layout, occupied, includes, level + 1, css_vars, global_parameters)
                     if new_dash is not None:
@@ -477,116 +476,6 @@ def latest_file(path):
     return late_file
 
 
-@profile_this
-@timeit
-def compile_dash(name, params):
-    # Set correct skin
-
-    if "skin" in params:
-        skin = params["skin"]
-    else:
-        skin = "default"
-
-    #
-    # Check skin exists
-    #
-    skindir = os.path.join(conf.config_dir, "custom_css", skin)
-    if os.path.isdir(skindir):
-        ha.log(conf.dash, "INFO", "Loading custom skin '{}'".format(skin))
-    else:
-        # Not a custom skin, try product skins
-        skindir = os.path.join(conf.css_dir, skin)
-        if not os.path.isdir(skindir):
-            ha.log(conf.dash, "WARNING", "Skin '{}' does not exist".format(skin))
-            skin = "default"
-            skindir = os.path.join(conf.css_dir, "default")
-
-    if conf.dash_force_compile is False:
-        do_compile = False
-
-        if "recompile" in params:
-            do_compile = True
-        #
-        # Check if compiled versions even exist and get their timestamps.
-        #
-        last_compiled = datetime.datetime.now()
-        for file in [
-            os.path.join(conf.compiled_css_dir, skin, "{}_application.css".format(name.lower())),
-            os.path.join(conf.compiled_javascript_dir, "application.js"),
-            os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower())),
-            os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower())),
-            os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower())),
-        ]:
-            if not os.path.isfile(file):
-                do_compile = True
-
-            try:
-                mtime = os.path.getmtime(file)
-            except OSError:
-                mtime = 86400
-            last_modified_date = datetime.datetime.fromtimestamp(mtime)
-            if last_modified_date < last_compiled:
-                last_compiled = last_modified_date
-
-        widget_mod = latest_file(os.path.join(conf.dash_dir, "widgets"))
-        custom_widget_mod = latest_file(os.path.join(conf.config_dir, "custom_widgets"))
-        skin_mod = latest_file(skindir)
-        dash_mod = latest_file(conf.dashboard_dir)
-
-        if custom_widget_mod > last_compiled or widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
-            do_compile = True
-
-        # Force compilation at startup
-
-        if conf.start_time > last_compiled and conf.dash_compile_on_start is True:
-            do_compile = True
-
-        if do_compile is False:
-            return {"errors": []}, skin
-
-    ha.log(conf.dash, "INFO", "Compiling dashboard '{}'".format(name))
-
-    dash = get_dash(name, skin, skindir)
-    if dash is None:
-        dash_list = list_dashes()
-        return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}, skin
-
-    params = dash
-    params["base_url"] = conf.base_url
-    params["name"] = name.lower()
-    params["skin"] = skin
-
-    #
-    # Build dash specific code
-    #
-    env = Environment(
-        loader=FileSystemLoader(conf.template_dir),
-        autoescape=select_autoescape(['html', 'xml'])
-    )
-
-    template = env.get_template("dashinit.jinja2")
-    rendered_template = template.render(params)
-    js_path = os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower()))
-    with open(js_path, "w") as js_file:
-        js_file.write(rendered_template)
-
-    template = env.get_template("head_include.jinja2")
-    rendered_template = template.render(params)
-    js_path = os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
-    with open(js_path, "w") as js_file:
-        js_file.write(rendered_template)
-
-    template = env.get_template("body_include.jinja2")
-    rendered_template = template.render(params)
-    js_path = os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
-    with open(js_path, "w") as js_file:
-        js_file.write(rendered_template)
-
-
-
-    return dash, skin
-
-
 # noinspection PyBroadException
 def get_dash(name, skin, skindir):
     pydashfile = os.path.join(conf.dashboard_dir, "{}.pydash".format(name))
@@ -602,7 +491,7 @@ def get_dash(name, skin, skindir):
         with open(pydashfile, 'r') as dashfd:
             dash = ast.literal_eval(dashfd.read())
     elif os.path.isfile(dashfile):
-        dash = load_dash(name, css_vars)
+        dash = create_dash(name, css_vars)
         if dash is None:
             return None
     else:
@@ -698,23 +587,6 @@ def get_dash(name, skin, skindir):
 
     return dash
 
-
-def list_dashes():
-    if not os.path.isdir(conf.dashboard_dir):
-        return {}
-
-    files = os.listdir(conf.dashboard_dir)
-    dash_list = {}
-    for file in files:
-        if file.endswith('.pydash'):
-            name = file.replace('.pydash', '')
-            dash_list[name] = "{}/{}".format(conf.base_url, name)
-        elif file.endswith('.dash'):
-            name = file.replace('.dash', '')
-            dash_list[name] = "{}/{}".format(conf.base_url, name)
-    return dash_list
-
-
 def get_widgets():
     widgets = {}
     for widget_dir in [os.path.join(conf.dash_dir, "widgets"), os.path.join(conf.config_dir, "custom_widgets")]:
@@ -734,3 +606,239 @@ def get_widgets():
                         html = fd.read()
                     widgets[widget] = {"js": js, "css": css, "html": html}
     return widgets
+
+def list_dashes():
+    if not os.path.isdir(conf.dashboard_dir):
+        return {}
+
+    files = os.listdir(conf.dashboard_dir)
+    dash_list = {}
+    for file in files:
+        if file.endswith('.pydash'):
+            name = file.replace('.pydash', '')
+            dash_list[name] = "{}/{}".format(conf.base_url, name)
+        elif file.endswith('.dash'):
+            name = file.replace('.dash', '')
+            dash_list[name] = "{}/{}".format(conf.base_url, name)
+
+    params = {"dash_list": dash_list}
+    params["main"] = "1"
+
+    return params
+
+def conditional_compile(name, skin, recompile):
+
+    #
+    # Check skin exists
+    #
+    skindir = os.path.join(conf.config_dir, "custom_css", skin)
+    if os.path.isdir(skindir):
+        ha.log(conf.dash, "INFO", "Loading custom skin '{}'".format(skin))
+    else:
+        # Not a custom skin, try product skins
+        skindir = os.path.join(conf.css_dir, skin)
+        if not os.path.isdir(skindir):
+            ha.log(conf.dash, "WARNING", "Skin '{}' does not exist".format(skin))
+            skin = "default"
+            skindir = os.path.join(conf.css_dir, "default")
+
+    if conf.dash_force_compile is False:
+        do_compile = False
+
+        if recompile is True:
+            do_compile = True
+        #
+        # Check if compiled versions even exist and get their timestamps.
+        #
+        last_compiled = datetime.datetime.now()
+        for file in [
+            os.path.join(conf.compiled_css_dir, skin, "{}_application.css".format(name.lower())),
+            os.path.join(conf.compiled_javascript_dir, "application.js"),
+            os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower())),
+            os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower())),
+            os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower())),
+        ]:
+            if not os.path.isfile(file):
+                do_compile = True
+
+            try:
+                mtime = os.path.getmtime(file)
+            except OSError:
+                mtime = 86400
+            last_modified_date = datetime.datetime.fromtimestamp(mtime)
+            if last_modified_date < last_compiled:
+                last_compiled = last_modified_date
+
+        widget_mod = latest_file(os.path.join(conf.dash_dir, "widgets"))
+        custom_widget_mod = latest_file(os.path.join(conf.config_dir, "custom_widgets"))
+        skin_mod = latest_file(skindir)
+        dash_mod = latest_file(conf.dashboard_dir)
+
+        if custom_widget_mod > last_compiled or widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
+            do_compile = True
+
+        # Force compilation at startup
+
+        if conf.start_time > last_compiled and conf.dash_compile_on_start is True:
+            do_compile = True
+
+        if do_compile is False:
+            return {"errors": []}
+
+    ha.log(conf.dash, "INFO", "Compiling dashboard '{}'".format(name))
+
+    dash = get_dash(name, skin, skindir)
+    if dash is None:
+        dash_list = list_dashes()
+        return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
+
+    params = dash
+    params["base_url"] = conf.base_url
+    params["name"] = name.lower()
+    params["skin"] = skin
+
+    #
+    # Build dash specific code
+    #
+    env = Environment(
+        loader=FileSystemLoader(conf.template_dir),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
+
+    template = env.get_template("dashinit.jinja2")
+    rendered_template = template.render(params)
+    js_path = os.path.join(conf.compiled_javascript_dir, skin, "{}_init.js".format(name.lower()))
+    with open(js_path, "w") as js_file:
+        js_file.write(rendered_template)
+
+    template = env.get_template("head_include.jinja2")
+    rendered_template = template.render(params)
+    js_path = os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
+    with open(js_path, "w") as js_file:
+        js_file.write(rendered_template)
+
+    template = env.get_template("body_include.jinja2")
+    rendered_template = template.render(params)
+    js_path = os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
+    with open(js_path, "w") as js_file:
+        js_file.write(rendered_template)
+
+    return dash
+
+
+#
+# Methods
+#
+
+
+
+def load_dash(name):
+    # noinspection PyBroadException
+    try:
+        name = request.match_info.get('name', "Anonymous")
+
+        #
+        # Conditionally compile Dashboard
+        #
+
+        dash, skin = compile_dash(name, request.rel_url.query)
+
+        if dash is None:
+            errors = []
+            head_includes = []
+            body_includes = []
+        else:
+            errors = dash["errors"]
+
+        if "widgets" in dash:
+            widgets = dash["widgets"]
+        else:
+            widgets = {}
+
+        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
+        with open(include_path, "r") as include_file:
+            head_includes = include_file.read()
+        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
+        with open(include_path, "r") as include_file:
+            body_includes = include_file.read()
+
+        #
+        # return params
+        #
+        return {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
+                "head_includes": head_includes, "body_includes": body_includes}
+
+    except:
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error during DASH creation")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        return {"errors": ["An unrecoverable error occured fetching dashboard"]}
+
+
+@profile_this
+@timeit
+def get_dashboard(name, skin, recompile):
+
+    try:
+        dash = conditional_compile(name, skin, recompile)
+
+        if dash is None:
+            errors = []
+            head_includes = []
+            body_includes = []
+        else:
+            errors = dash["errors"]
+
+        if "widgets" in dash:
+            widgets = dash["widgets"]
+        else:
+            widgets = {}
+
+        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
+        with open(include_path, "r") as include_file:
+            head_includes = include_file.read()
+        include_path = os.path.join(conf.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
+        with open(include_path, "r") as include_file:
+            body_includes = include_file.read()
+
+        #
+        # return params
+        #
+        params = {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
+                "head_includes": head_includes, "body_includes": body_includes}
+
+        env = Environment(
+            loader=FileSystemLoader(conf.template_dir),
+            autoescape=select_autoescape(['html', 'xml'])
+        )
+
+        template = env.get_template("dashboard.jinja2")
+        rendered_template = template.render(params)
+
+        return(rendered_template)
+
+    except:
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", "Unexpected error during DASH creation")
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        ha.log(conf.dash, "WARNING", traceback.format_exc())
+        ha.log(conf.dash, "WARNING", '-' * 60)
+        return {"errors": ["An unrecoverable error occured fetching dashboard"]}
+
+
+def get_dashboard_list():
+
+    dash = list_dashes()
+
+    env = Environment(
+        loader=FileSystemLoader(conf.template_dir),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
+
+    template = env.get_template("dashboard.jinja2")
+    rendered_template = template.render(dash)
+
+    return(rendered_template)
+
