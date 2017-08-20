@@ -36,7 +36,6 @@ def dispatch_app_by_name(name, args):
 
     with conf.endpoints_lock:
         callback = None
-        print(conf.endpoints)
         for app in conf.endpoints:
             for handle in conf.endpoints[app]:
                 if conf.endpoints[app][handle]["name"] == name:
