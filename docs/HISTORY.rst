@@ -633,7 +633,7 @@ None
 
 **Features**
 
--  Add Moementary Switch example
+-  Add Momentary Switch example
 -  Add Switch Reset Example
 
 **Fixes**
@@ -658,7 +658,7 @@ None
 
 **Fixes**
 
--  Fix a several potential race conditions in the scheduler
+-  Fix several potential race conditions in the scheduler
 
 **Breaking Changes**
 

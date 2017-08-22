@@ -41,27 +41,27 @@ class Dashboard:
         #
         # Process any overrides
         #
-        self.__process_arg("profile_dashboard", kwargs)
-        self.__process_arg("dashboard_dir", kwargs)
-        self.__process_arg("compile_dir", kwargs)
-        self.__process_arg("javascript_dir", kwargs)
-        self.__process_arg("compiled_javascript_dir", kwargs)
-        self.__process_arg("compiled_html_dir", kwargs)
-        self.__process_arg("template_dir", kwargs)
-        self.__process_arg("css_dir", kwargs)
-        self.__process_arg("compiled_css_dir", kwargs)
-        self.__process_arg("fonts_dir", kwargs)
-        self.__process_arg("images_dir", kwargs)
-        self.__process_arg("base_url", kwargs)
-        self.__process_arg("dash_force_compile", kwargs)
-        self.__process_arg("dash_compile_on_start", kwargs)
-        self.__process_arg("max_include_depth", kwargs)
+        self._process_arg("profile_dashboard", kwargs)
+        self._process_arg("dashboard_dir", kwargs)
+        self._process_arg("compile_dir", kwargs)
+        self._process_arg("javascript_dir", kwargs)
+        self._process_arg("compiled_javascript_dir", kwargs)
+        self._process_arg("compiled_html_dir", kwargs)
+        self._process_arg("template_dir", kwargs)
+        self._process_arg("css_dir", kwargs)
+        self._process_arg("compiled_css_dir", kwargs)
+        self._process_arg("fonts_dir", kwargs)
+        self._process_arg("images_dir", kwargs)
+        self._process_arg("base_url", kwargs)
+        self._process_arg("dash_force_compile", kwargs)
+        self._process_arg("dash_compile_on_start", kwargs)
+        self._process_arg("max_include_depth", kwargs)
         #
         # Set a start time
         #
         self.start_time = datetime.datetime.now()
 
-    def __timeit(func):
+    def _timeit(func):
         @functools.wraps(func)
         def newfunc(self, *args, **kwargs):
             start_time = time.time()
@@ -73,7 +73,7 @@ class Dashboard:
 
         return newfunc
 
-    def __profile_this(fn):
+    def _profile_this(fn):
         def profiled_fn(self, *args, **kwargs):
             pr = None
             if self.profile_dashboard:
@@ -93,13 +93,13 @@ class Dashboard:
 
         return profiled_fn
 
-    def __process_arg(self, arg, kwargs):
+    def _process_arg(self, arg, kwargs):
         if kwargs:
             if arg in kwargs:
                 setattr(self, arg, kwargs[arg])
 
     # noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
-    def __load_css_params(self, skin, skindir):
+    def _load_css_params(self, skin, skindir):
         yaml_path = os.path.join(skindir, "variables.yaml")
         if os.path.isfile(yaml_path):
             with open(yaml_path, 'r') as yamlfd:
@@ -122,12 +122,12 @@ class Dashboard:
             if css is None:
                 return {}
             else:
-                return self.__resolve_css_params(css, css)
+                return self._resolve_css_params(css, css)
         else:
             ha.log(self.logger, "WARNING", "Error loading variables.yaml for skin '{}'".format(skin))
             return None
 
-    def __resolve_css_params(self, fields, subs):
+    def _resolve_css_params(self, fields, subs):
         done = False
         variable = re.compile("\$(\w+)")
         index = 0
@@ -136,7 +136,7 @@ class Dashboard:
             done = True
             for varline in fields:
                 if isinstance(fields[varline], dict):
-                    fields[varline] = self.__resolve_css_params(fields[varline], subs)
+                    fields[varline] = self._resolve_css_params(fields[varline], subs)
                 elif fields[varline] is not None and type(fields[varline]) == str:
                     _vars = variable.finditer(fields[varline])
                     for var in _vars:
@@ -154,7 +154,7 @@ class Dashboard:
 
         return fields
 
-    def __get_styles(self, style_str, name, field):
+    def _get_styles(self, style_str, name, field):
         #
         # Parse styles in order from a string and allow later entries to override earlier ones
         #
@@ -172,22 +172,22 @@ class Dashboard:
 
         return result
 
-    def __merge_styles(self, widget, name):
+    def _merge_styles(self, widget, name):
         result = {}
         for key in widget:
             if key == "css" or key == "static_css":
-                result[key] = self.__merge_styles(widget[key], name)
+                result[key] = self._merge_styles(widget[key], name)
             elif key.find("style") == -1:
                 result[key] = widget[key]
             else:
                 line = ""
-                styles = self.__get_styles(widget[key], name, key)
+                styles = self._get_styles(widget[key], name, key)
                 for style in styles:
                     line = line + style + ":" + styles[style] + ";"
                 result[key] = line
         return result
 
-    def __do_subs(self, file, _vars, blank):
+    def _do_subs(self, file, _vars, blank):
         sub = re.compile("\{\{(.+)\}\}")
         templates = {}
         result = ""
@@ -205,7 +205,7 @@ class Dashboard:
         return result, templates
 
     # noinspection PyUnresolvedReferences
-    def __load_widget(self, dash, includes, name, css_vars, global_parameters):
+    def _load_widget(self, dash, includes, name, css_vars, global_parameters):
         instantiated_widget = None
         #
         # Check if we have already encountered a definition
@@ -226,16 +226,16 @@ class Dashboard:
                     yaml.add_constructor('!secret', ha._secret_yaml)
                     instantiated_widget = yaml.load(widget)
                 except yaml.YAMLError as exc:
-                    __log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
+                    _log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
                     if hasattr(exc, 'problem_mark'):
                         if exc.context is not None:
-                            __log_error(dash, name, "parser says")
-                            __log_error(dash, name, str(exc.problem_mark))
-                            __log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                            _log_error(dash, name, "parser says")
+                            _log_error(dash, name, str(exc.problem_mark))
+                            _log_error(dash, name, str(exc.problem) + " " + str(exc.context))
                         else:
-                            __log_error(dash, name, "parser says")
-                            __log_error(dash, name, str(exc.problem_mark))
-                            __log_error(dash, name, str(exc.problem))
+                            _log_error(dash, name, "parser says")
+                            _log_error(dash, name, str(exc.problem_mark))
+                            _log_error(dash, name, str(exc.problem))
                     return {"widget_type": "text", "title": "Error loading widget"}
 
             elif name.find(".") != -1:
@@ -266,12 +266,12 @@ class Dashboard:
             # Check for custom base widgets first
             if os.path.isdir(os.path.join(self.config_dir, "custom_widgets", widget_type)):
                 # This is a custom base widget so return it in full
-                return __resolve_css_params(instantiated_widget, css_vars)
+                return _resolve_css_params(instantiated_widget, css_vars)
 
             # Now regular base widgets
             if os.path.isdir(os.path.join(self.dash_install_dir, "widgets", widget_type)):
                 # This is a base widget so return it in full
-                return __resolve_css_params(instantiated_widget, css_vars)
+                return _resolve_css_params(instantiated_widget, css_vars)
 
             # We are working with a derived widget so we need to do some merges and substitutions
 
@@ -284,7 +284,7 @@ class Dashboard:
             #
             # Variable substitutions
             #
-            yaml_file, templates = self.__do_subs(yaml_path, instantiated_widget, '""')
+            yaml_file, templates = self._do_subs(yaml_path, instantiated_widget, '""')
 
             try:
                 #
@@ -293,16 +293,16 @@ class Dashboard:
                 yaml.add_constructor('!secret', ha._secret_yaml)
                 final_widget = yaml.load(yaml_file)
             except yaml.YAMLError as exc:
-                __log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
+                _log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
                 if hasattr(exc, 'problem_mark'):
                     if exc.context is not None:
-                        __log_error(dash, name, "parser says")
-                        __log_error(dash, name, str(exc.problem_mark))
-                        __log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                        _log_error(dash, name, "parser says")
+                        _log_error(dash, name, str(exc.problem_mark))
+                        _log_error(dash, name, str(exc.problem) + " " + str(exc.context))
                     else:
-                        __log_error(dash, name, "parser says")
-                        __log_error(dash, name, str(exc.problem_mark))
-                        __log_error(dash, name, str(exc.problem))
+                        _log_error(dash, name, "parser says")
+                        _log_error(dash, name, str(exc.problem_mark))
+                        _log_error(dash, name, str(exc.problem))
                 return {"widget_type": "text", "title": "Error loading widget definition"}
 
             #
@@ -335,11 +335,11 @@ class Dashboard:
             #
             # Process variables from skin
             #
-            final_widget = self.__resolve_css_params(final_widget, css_vars)
+            final_widget = self._resolve_css_params(final_widget, css_vars)
             #
             # Merge styles
             #
-            final_widget = self.__merge_styles(final_widget, name)
+            final_widget = self._merge_styles(final_widget, name)
 
             return final_widget
         except FileNotFoundError:
@@ -347,13 +347,13 @@ class Dashboard:
             # Return some valid data so the browser will render a blank widget
             return {"widget_type": "text", "title": "Widget type not found"}
 
-    def __widget_exists(self, widgets, _id):
+    def _widget_exists(self, widgets, _id):
         for widge in widgets:
             if widge["id"] == _id:
                 return True
         return False
 
-    def __add_layout(self, value, layout, occupied, dash, page, includes, css_vars, global_parameters):
+    def _add_layout(self, value, layout, occupied, dash, page, includes, css_vars, global_parameters):
         if value is None:
             return
         widgetdimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
@@ -384,12 +384,12 @@ class Dashboard:
                 widget = {}
                 widget["id"] = "{}-{}".format(page, sanitized_name)
 
-                if self.__widget_exists(dash["widgets"], widget["id"]):
+                if self._widget_exists(dash["widgets"], widget["id"]):
                     ha.log(self.logger, "WARNING", "Duplicate widget name '{}' - ignored".format(name))
                 else:
                     widget["position"] = [column, layout]
                     widget["size"] = [xsize, ysize]
-                    widget["parameters"] = self.__load_widget(dash, includes, name, css_vars, global_parameters)
+                    widget["parameters"] = self._load_widget(dash, includes, name, css_vars, global_parameters)
                     dash["widgets"].append(widget)
 
             for x in range(column, column + int(xsize)):
@@ -397,7 +397,7 @@ class Dashboard:
                     occupied["{}x{}".format(x, y)] = 1
             column += int(xsize)
 
-    def __merge_dashes(self, dash1, dash2):
+    def _merge_dashes(self, dash1, dash2):
         for key in dash2:
             if key == "widgets":
                 for widget in dash2["widgets"]:
@@ -410,16 +410,16 @@ class Dashboard:
 
         return dash1
 
-    def __log_error(self, dash, name, error):
+    def _log_error(self, dash, name, error):
         dash["errors"].append("{}: {}".format(os.path.basename(name), error))
         ha.log(self.logger, "WARNING", error)
 
-    def __create_dash(self, name, css_vars):
-        dash, layout, occupied, includes = self.__create_sub_dash(name, "dash", 0, {}, [], 1, css_vars, None)
+    def _create_dash(self, name, css_vars):
+        dash, layout, occupied, includes = self._create_sub_dash(name, "dash", 0, {}, [], 1, css_vars, None)
         return dash
 
     # noinspection PyBroadException
-    def __create_sub_dash(self, name, extension, layout, occupied, includes, level, css_vars, global_parameters):
+    def _create_sub_dash(self, name, extension, layout, occupied, includes, level, css_vars, global_parameters):
         if extension == "dash":
             dash = {"title": "HADashboard", "widget_dimensions": [120, 120], "widget_margins": [5, 5], "columns": 8}
         else:
@@ -431,7 +431,7 @@ class Dashboard:
         layouts = []
 
         if level > self.max_include_depth:
-            self.__log_error(dash, name, "Maximum include level reached ({})".format(self.max_include_depth))
+            self._log_error(dash, name, "Maximum include level reached ({})".format(self.max_include_depth))
             return dash, layout, occupied, includes
 
         dashfile = os.path.join(self.dashboard_dir, "{}.{}".format(name, extension))
@@ -441,25 +441,25 @@ class Dashboard:
             with open(dashfile, 'r') as yamlfd:
                 defs = yamlfd.read()
         except:
-            self.__log_error(dash, name, "Error opening dashboard file '{}'".format(dashfile))
+            self._log_error(dash, name, "Error opening dashboard file '{}'".format(dashfile))
             return dash, layout, occupied, includes
 
         try:
             yaml.add_constructor('!secret', ha._secret_yaml)
             dash_params = yaml.load(defs)
         except yaml.YAMLError as exc:
-            self.__log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
+            self._log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
             if hasattr(exc, 'problem_mark'):
                 if exc.context is not None:
-                    self.__log_error(dash, name, "parser says")
-                    self.__log_error(dash, name, str(exc.problem_mark))
-                    self.__log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                    self._log_error(dash, name, "parser says")
+                    self._log_error(dash, name, str(exc.problem_mark))
+                    self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
                 else:
-                    self.__log_error(dash, name, "parser says")
-                    self.__log_error(dash, name, str(exc.problem_mark))
-                    self.__log_error(dash, name, str(exc.problem))
+                    self._log_error(dash, name, "parser says")
+                    self._log_error(dash, name, str(exc.problem_mark))
+                    self._log_error(dash, name, str(exc.problem))
             else:
-                self.__log_error(dash, name, "Something went wrong while parsing dashboard file")
+                self._log_error(dash, name, "Something went wrong while parsing dashboard file")
 
             return dash, layout, occupied, includes
         if dash_params is not None:
@@ -488,22 +488,22 @@ class Dashboard:
             for lay in layouts:
                 if isinstance(lay, dict):
                     if "include" in lay:
-                        new_dash, layout, occupied, includes = self.__create_sub_dash(
+                        new_dash, layout, occupied, includes = self._create_sub_dash(
                             os.path.join(self.dashboard_dir, lay["include"]),
                             "yaml", layout, occupied, includes, level + 1, css_vars, global_parameters)
                         if new_dash is not None:
-                            self.__merge_dashes(dash, new_dash)
+                            self._merge_dashes(dash, new_dash)
                     elif "empty" in lay:
                         layout += lay["empty"]
                     else:
-                        self.__log_error(dash, name, "Incorrect directive, should be 'include or empty': {}".format(lay))
+                        self._log_error(dash, name, "Incorrect directive, should be 'include or empty': {}".format(lay))
                 else:
                     layout += 1
-                    self.__add_layout(lay, layout, occupied, dash, page, includes, css_vars, global_parameters)
+                    self._add_layout(lay, layout, occupied, dash, page, includes, css_vars, global_parameters)
 
         return dash, layout, occupied, includes
 
-    def __latest_file(self, path):
+    def _latest_file(self, path):
         late_file = datetime.datetime.fromtimestamp(86400)
         for root, subdirs, files in os.walk(path):
             for file in files:
@@ -513,21 +513,21 @@ class Dashboard:
         return late_file
 
     # noinspection PyBroadException
-    def __get_dash(self, name, skin, skindir):
+    def _get_dash(self, name, skin, skindir):
         pydashfile = os.path.join(self.dashboard_dir, "{}.pydash".format(name))
         dashfile = os.path.join(self.dashboard_dir, "{}.dash".format(name))
 
         #
         # Grab CSS Variables
         #
-        css_vars = self.__load_css_params(skin, skindir)
+        css_vars = self._load_css_params(skin, skindir)
         if css_vars is None:
             return None
         if os.path.isfile(pydashfile):
             with open(pydashfile, 'r') as dashfd:
                 dash = ast.literal_eval(dashfd.read())
         elif os.path.isfile(dashfile):
-            dash = self.__create_dash(name, css_vars)
+            dash = self._create_dash(name, css_vars)
             if dash is None:
                 return None
         else:
@@ -545,7 +545,7 @@ class Dashboard:
         #
         # Load Widgets
         #
-        widgets = self.__get_widgets()
+        widgets = self._get_widgets()
 
         css = ""
         js = ""
@@ -560,7 +560,7 @@ class Dashboard:
                 ha.log(self.logger, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
             else:
                 template = os.path.join(skindir, "dashboard.css")
-                rendered_css, subs = self.__do_subs(template, css_vars, "")
+                rendered_css, subs = self._do_subs(template, css_vars, "")
 
                 css = css + rendered_css + "\n"
 
@@ -622,7 +622,7 @@ class Dashboard:
 
         return dash
 
-    def __get_widgets(self):
+    def _get_widgets(self):
         widgets = {}
         for widget_dir in [os.path.join(self.dash_install_dir, "widgets"), os.path.join(self.config_dir, "custom_widgets")]:
             #widget_dir = os.path.join(self.dash_install_dir, "widgets")
@@ -642,7 +642,7 @@ class Dashboard:
                         widgets[widget] = {"js": js, "css": css, "html": html}
         return widgets
 
-    def __list_dashes(self):
+    def _list_dashes(self):
         if not os.path.isdir(self.dashboard_dir):
             return {}
 
@@ -661,7 +661,7 @@ class Dashboard:
 
         return params
 
-    def __conditional_compile(self, name, skin, recompile):
+    def _conditional_compile(self, name, skin, recompile):
 
         #
         # Check skin exists
@@ -704,10 +704,10 @@ class Dashboard:
                 if last_modified_date < last_compiled:
                     last_compiled = last_modified_date
 
-            widget_mod = self.__latest_file(os.path.join(self.dash_install_dir, "widgets"))
-            custom_widget_mod = self.__latest_file(os.path.join(self.config_dir, "custom_widgets"))
-            skin_mod = self.__latest_file(skindir)
-            dash_mod = self.__latest_file(self.dashboard_dir)
+            widget_mod = self._latest_file(os.path.join(self.dash_install_dir, "widgets"))
+            custom_widget_mod = self._latest_file(os.path.join(self.config_dir, "custom_widgets"))
+            skin_mod = self._latest_file(skindir)
+            dash_mod = self._latest_file(self.dashboard_dir)
 
             if custom_widget_mod > last_compiled or widget_mod > last_compiled or skin_mod > last_compiled or dash_mod > last_compiled:
                 do_compile = True
@@ -722,9 +722,9 @@ class Dashboard:
 
         ha.log(self.logger, "INFO", "Compiling dashboard '{}'".format(name))
 
-        dash = self.__get_dash(name, skin, skindir)
+        dash = self._get_dash(name, skin, skindir)
         if dash is None:
-            dash_list = self.__list_dashes()
+            dash_list = self._list_dashes()
             return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
 
         params = dash
@@ -764,8 +764,8 @@ class Dashboard:
     # Methods
     #
 
-    @__profile_this
-    @__timeit
+    @_profile_this
+    @_timeit
     def get_dashboard(self, name, skin, recompile):
 
         try:
@@ -779,7 +779,7 @@ class Dashboard:
             if not os.path.exists(os.path.join(self.compile_dir, "css")):
                 os.makedirs(os.path.join(self.compile_dir, "css"))
 
-            dash = self.__conditional_compile(name, skin, recompile)
+            dash = self._conditional_compile(name, skin, recompile)
 
             if dash is None:
                 errors = []
@@ -827,7 +827,7 @@ class Dashboard:
 
     def get_dashboard_list(self):
 
-        dash = self.__list_dashes()
+        dash = self._list_dashes()
 
         env = Environment(
             loader=FileSystemLoader(self.template_dir),
