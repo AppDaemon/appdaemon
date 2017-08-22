@@ -60,7 +60,6 @@ class Dashboard:
         # Set a start time
         #
         self.start_time = datetime.datetime.now()
-        print(self.dashboard_dir)
 
     def __timeit(func):
         @functools.wraps(func)
