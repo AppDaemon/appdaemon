@@ -17,7 +17,6 @@ import appdaemon.homeassistant as ha
 class Dashboard:
 
     def __init__(self, config_dir, logger, **kwargs):
-        print(kwargs)
         #
         # Set Defaults
         #
