@@ -6,7 +6,8 @@ Change Log
 
 **Features**
 
-None
+- Refactor of dashboard code in preparation for HASS integration
+- Addition of check to highlight excessive time in scheduler loop
 
 **Fixes**
 

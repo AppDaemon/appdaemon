@@ -371,7 +371,7 @@ def do_every(period, f):
 def do_every_second(utc):
 
     try:
-
+        start_time = datetime.datetime.now().timestamp()
         now = datetime.datetime.fromtimestamp(utc)
         conf.now = utc
 
@@ -462,6 +462,14 @@ def do_every_second(utc):
             for k, v in list(conf.schedule.items()):
                 if v == {}:
                     del conf.schedule[k]
+
+        end_time = datetime.datetime.now().timestamp()
+
+        loop_duration = (int((end_time - start_time)*1000) / 1000) * 1000
+        ha.log(conf.logger, "DEBUG", "Main loop compute time: {}ms".format(loop_duration))
+
+        if loop_duration > 900:
+            ha.log(conf.logger, "WARNING", "Excessive time spent in scheduler loop: {}ms".format(loop_duration))
 
         return utc
 
