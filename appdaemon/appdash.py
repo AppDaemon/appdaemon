@@ -113,7 +113,7 @@ def list_dash_no_secure(request):
 
 def _list_dash(request):
     completed, pending = yield from asyncio.wait(
-        [conf.loop.run_in_executor(conf.executor, conf.dashboard.get_dashboard_list)])
+        [conf.loop.run_in_executor(conf.executor, conf.dashboard_obj.get_dashboard_list)])
     response = list(completed)[0].result()
     return web.Response(text=response, content_type="text/html")
 
@@ -135,7 +135,7 @@ def load_dash(request):
         recompile = False
 
     completed, pending = yield from asyncio.wait(
-        [conf.loop.run_in_executor(conf.executor, conf.dashboard.get_dashboard, name, skin, recompile)])
+        [conf.loop.run_in_executor(conf.executor, conf.dashboard_obj.get_dashboard, name, skin, recompile)])
     response = list(completed)[0].result()
 
     return web.Response(text=response, content_type="text/html")
@@ -324,13 +324,13 @@ def run_dash(loop, tasks):
     # noinspection PyBroadException
     try:
         if conf.dashboard is True:
-            conf.dashboard = dashboard.Dashboard(conf.config_dir, conf.dash,
+            conf.dashboard_obj = dashboard.Dashboard(conf.config_dir, conf.dash,
                                                  dash_compile_on_start=conf.dash_compile_on_start,
                                                  dash_force_compile=conf.dash_force_compile,
                                                  profile_dashboard=conf.profile_dashboard,
                                                  dashboard_dir = conf.dashboard_dir,
                                                  )
-            setup_routes(conf.dashboard)
+            setup_routes(conf.dashboard_obj)
 
         if conf.dash_ssl_certificate is not None and conf.dash_ssl_key is not None:
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
