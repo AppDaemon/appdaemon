@@ -7,7 +7,6 @@ import traceback
 
 import aiohttp
 import feedparser
-import jinja2
 from aiohttp import web
 import ssl
 import bcrypt
@@ -21,11 +20,12 @@ import appdaemon.homeassistant as ha
 app = web.Application()
 app['websockets'] = {}
 
+
 def check_password(password, hash):
     return bcrypt.checkpw, str.encode(password), str.encode(hash)
 
-def securedata(myfunc):
 
+def securedata(myfunc):
     """
     Take care of streams and service calls
     """
@@ -36,9 +36,9 @@ def securedata(myfunc):
             return myfunc(request)
         else:
             if "adcreds" in request.cookies:
-                #completed, pending = yield from asyncio.wait(
+                # completed, pending = yield from asyncio.wait(
                 #    [conf.loop.run_in_executor(conf.executor, check_password, conf.dash_password, request.cookies["adcreds"])])
-                #match = list(completed)[0].result()
+                # match = list(completed)[0].result()
                 match = bcrypt.checkpw, str.encode(conf.dash_password), str.encode(request.cookies["adcreds"])
                 if match:
                     return myfunc(request)
@@ -49,8 +49,8 @@ def securedata(myfunc):
 
     return wrapper
 
-def secure(myfunc):
 
+def secure(myfunc):
     """
     Take care of screen based security
     """
@@ -60,15 +60,18 @@ def secure(myfunc):
         if conf.dash_password == None:
             return myfunc(request)
         else:
-            if "adcreds" in request.cookies and bcrypt.checkpw(str.encode(conf.dash_password), str.encode(request.cookies["adcreds"])):
+            if "adcreds" in request.cookies and bcrypt.checkpw(str.encode(conf.dash_password),
+                                                               str.encode(request.cookies["adcreds"])):
                 return myfunc(request)
             else:
                 return forcelogon(request)
 
     return wrapper
 
+
 def forcelogon(request):
     return {"logon": 1}
+
 
 @asyncio.coroutine
 def logon(request):
@@ -81,7 +84,7 @@ def logon(request):
 
         hashed = bcrypt.hashpw(str.encode(conf.dash_password), bcrypt.gensalt())
 
-        #ha.log(conf.dash, "INFO", hashed)
+        # ha.log(conf.dash, "INFO", hashed)
 
         response = yield from list_dash_no_secure(request)
         response.set_cookie("adcreds", hashed.decode("utf-8"))
@@ -92,28 +95,9 @@ def logon(request):
 
     return response
 
-def set_paths():
-    if not os.path.exists(conf.compile_dir):
-        os.makedirs(conf.compile_dir)
-
-    if not os.path.exists(os.path.join(conf.compile_dir, "javascript")):
-        os.makedirs(os.path.join(conf.compile_dir, "javascript"))
-
-    if not os.path.exists(os.path.join(conf.compile_dir, "css")):
-        os.makedirs(os.path.join(conf.compile_dir, "css"))
-
-    conf.javascript_dir = os.path.join(conf.dash_dir, "assets", "javascript")
-    conf.compiled_javascript_dir = os.path.join(conf.compile_dir, "javascript")
-    conf.compiled_html_dir = os.path.join(conf.compile_dir, "html")
-    conf.template_dir = os.path.join(conf.dash_dir, "assets", "templates")
-    conf.css_dir = os.path.join(conf.dash_dir, "assets", "css")
-    conf.compiled_css_dir = os.path.join(conf.compile_dir, "css")
-    conf.fonts_dir = os.path.join(conf.dash_dir, "assets", "fonts")
-    conf.images_dir = os.path.join(conf.dash_dir, "assets", "images")
-    conf.base_url = ""
-
 
 # Views
+
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
@@ -121,14 +105,18 @@ def set_paths():
 def list_dash(request):
     return (_list_dash(request))
 
+
 @asyncio.coroutine
 def list_dash_no_secure(request):
     return (_list_dash(request))
 
+
 def _list_dash(request):
-    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.get_dashboard_list)])
+    completed, pending = yield from asyncio.wait(
+        [conf.loop.run_in_executor(conf.executor, conf.dashboard.get_dashboard_list)])
     response = list(completed)[0].result()
     return web.Response(text=response, content_type="text/html")
+
 
 @asyncio.coroutine
 @secure
@@ -146,10 +134,12 @@ def load_dash(request):
     else:
         recompile = False
 
-    completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, dashboard.get_dashboard, name, skin, recompile)])
+    completed, pending = yield from asyncio.wait(
+        [conf.loop.run_in_executor(conf.executor, conf.dashboard.get_dashboard, name, skin, recompile)])
     response = list(completed)[0].result()
 
     return web.Response(text=response, content_type="text/html")
+
 
 @asyncio.coroutine
 def update_rss():
@@ -169,7 +159,8 @@ def update_rss():
                     with conf.ha_state_lock:
                         conf.ha_state[feed_data["target"]] = new_state
 
-                    data = {"event_type": "state_changed", "data": {"entity_id": feed_data["target"], "new_state": new_state}}
+                    data = {"event_type": "state_changed",
+                            "data": {"entity_id": feed_data["target"], "new_state": new_state}}
                     ws_update(data)
 
             yield from asyncio.sleep(1)
@@ -187,9 +178,14 @@ def get_state(request):
 
     return web.json_response({"state": state})
 
+
 def get_response(code, error):
-    res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
+    res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code,
+                                                                                                              error,
+                                                                                                              code,
+                                                                                                              error)
     return res
+
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
@@ -217,14 +213,16 @@ def call_service(request):
         else:
             args[key] = data[key]
 
-    #completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, ha.call_service, data)])
+    # completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, ha.call_service, data)])
     ha.call_service(service, **args)
     return web.Response(status=200)
+
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
 def not_found(request):
     return web.Response(status=404)
+
 
 # noinspection PyUnusedLocal
 @asyncio.coroutine
@@ -268,7 +266,6 @@ def wshandler(request):
 
 
 def ws_update(jdata):
-
     if len(app['websockets']) > 0:
         ha.log(conf.dash,
                "DEBUG",
@@ -287,8 +284,7 @@ def ws_update(jdata):
 
 # Routes, Status and Templates
 
-def setup_routes():
-
+def setup_routes(dashboard):
     app.router.add_get('/favicon.ico', not_found)
     app.router.add_get('/{gfx}.png', not_found)
     app.router.add_post('/logon', logon)
@@ -302,24 +298,24 @@ def setup_routes():
 
     # Add static path for JavaScript
 
-    app.router.add_static('/javascript', conf.javascript_dir)
-    app.router.add_static('/compiled_javascript', conf.compiled_javascript_dir)
+    app.router.add_static('/javascript', dashboard.javascript_dir)
+    app.router.add_static('/compiled_javascript', dashboard.compiled_javascript_dir)
 
     # Add static path for css
-    app.router.add_static('/css', conf.css_dir)
-    app.router.add_static('/compiled_css', conf.compiled_css_dir)
+    app.router.add_static('/css', dashboard.css_dir)
+    app.router.add_static('/compiled_css', dashboard.compiled_css_dir)
 
     # Add path for custom_css if it exists
 
-    custom_css = os.path.join(conf.config_dir, "custom_css")
+    custom_css = os.path.join(dashboard.config_dir, "custom_css")
     if os.path.isdir(custom_css):
         app.router.add_static('/custom_css', custom_css)
 
         # Add static path for fonts
-    app.router.add_static('/fonts', conf.fonts_dir)
+    app.router.add_static('/fonts', dashboard.fonts_dir)
 
     # Add static path for images
-    app.router.add_static('/images', conf.images_dir)
+    app.router.add_static('/images', dashboard.images_dir)
 
 
 # Setup
@@ -328,9 +324,13 @@ def run_dash(loop, tasks):
     # noinspection PyBroadException
     try:
         if conf.dashboard is True:
-
-            set_paths()
-            setup_routes()
+            conf.dashboard = dashboard.Dashboard(conf.config_dir, conf.dash,
+                                                 dash_compile_on_start=conf.dash_compile_on_start,
+                                                 dash_force_compile=conf.dash_force_compile,
+                                                 profile_dashboard=conf.profile_dashboard,
+                                                 dashboard_dir = conf.dashboard_dir,
+                                                 )
+            setup_routes(conf.dashboard)
 
         if conf.dash_ssl_certificate is not None and conf.dash_ssl_key is not None:
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
@@ -340,7 +340,8 @@ def run_dash(loop, tasks):
 
         handler = app.make_handler()
 
-        f = loop.create_server(handler, "0.0.0.0", int(conf.dash_port), ssl = context)
+        f = loop.create_server(handler, "0.0.0.0", int(conf.dash_port), ssl=context)
+
         tasks.append(asyncio.async(f))
         tasks.append(asyncio.async(update_rss()))
         return f

@@ -10,7 +10,6 @@ import os.path
 from websocket import create_connection
 from queue import Queue
 from sseclient import SSEClient
-import threading
 import appdaemon.conf as conf
 import time
 import datetime
@@ -18,21 +17,18 @@ import signal
 import uuid
 import astral
 import pytz
-import platform
 import math
 import appdaemon.appdash as appdash
 import asyncio
-import concurrent
 import yaml
 
 import appdaemon.homeassistant as ha
 import appdaemon.appapi as appapi
-import appdaemon.api as api
 
 q = Queue(maxsize=0)
 
-was_dst = None
-last_state = None
+conf.was_dst = None
+conf.last_state = None
 appapi.reading_messages = False
 inits = {}
 ws = None
@@ -373,8 +369,6 @@ def do_every(period, f):
 
 # noinspection PyBroadException,PyBroadException
 def do_every_second(utc):
-    global was_dst
-    global last_state
 
     try:
 
@@ -402,18 +396,18 @@ def do_every_second(utc):
         # to ensure all time callbacks are recalculated
 
         now_dst = is_dst()
-        if now_dst != was_dst:
+        if now_dst != conf.was_dst:
             ha.log(
                 conf.logger, "INFO",
                 "Detected change in DST from {} to {} -"
-                " reloading all modules".format(was_dst, now_dst)
+                " reloading all modules".format(conf.was_dst, now_dst)
             )
             # dump_schedule()
             ha.log(conf.logger, "INFO", "-" * 40)
             completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, read_apps, True)])
             #read_apps(True)
             # dump_schedule()
-        was_dst = now_dst
+        conf.was_dst = now_dst
 
         # dump_schedule()
 
@@ -423,7 +417,7 @@ def do_every_second(utc):
 
         # Check to see if any apps have changed but only if we have valid state
 
-        if last_state is not None and appapi.reading_messages:
+        if conf.last_state is not None and appapi.reading_messages:
             completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, read_apps)])
             #read_apps()
 
@@ -437,11 +431,11 @@ def do_every_second(utc):
         # in case we miss events for whatever reason
         # Every 10 minutes seems like a good place to start
 
-        if last_state is not None and appapi.reading_messages and now - last_state > datetime.timedelta(minutes=10) and conf.ha_url is not None:
+        if conf.last_state is not None and appapi.reading_messages and now - conf.last_state > datetime.timedelta(minutes=10) and conf.ha_url is not None:
             try:
                 completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, get_ha_state)])
                 #get_ha_state()
-                last_state = now
+                conf.last_state = now
             except:
                 ha.log(conf.logger, "WARNING", "Unexpected error refreshing HA state - retrying in 10 minutes")
 
@@ -795,22 +789,22 @@ def check_config():
                 try:
                     new_config = yaml.load(config_file_contents)
                 except yaml.YAMLError as exc:
-                    print(conf.dash, "WARNING", "Error loading configuration")
+                    ha.log(conf.logger, "WARNING", "Error loading configuration")
                     if hasattr(exc, 'problem_mark'):
                         if exc.context is not None:
-                            ha.log(conf.dash, "WARNING", "parser says")
-                            ha.log(conf.dash, "WARNING", str(exc.problem_mark))
-                            ha.log(conf.dash, "WARNING", str(exc.problem) + " " + str(exc.context))
+                            ha.log(conf.error, "WARNING", "parser says")
+                            ha.log(conf.error, "WARNING", str(exc.problem_mark))
+                            ha.log(conf.error, "WARNING", str(exc.problem) + " " + str(exc.context))
                         else:
-                            ha.log(conf.dash, "WARNING", "parser says")
-                            ha.log(conf.dash, "WARNING", str(exc.problem_mark))
-                            ha.log(conf.dash, "WARNING", str(exc.problem))
+                            ha.log(conf.error, "WARNING", "parser says")
+                            ha.log(conf.error, "WARNING", str(exc.problem_mark))
+                            ha.log(conf.error, "WARNING", str(exc.problem))
             else:
                 new_config = configparser.ConfigParser()
                 new_config.read_file(open(conf.config_file))
 
             if new_config is None:
-                ha.log(conf.dash, "WARNING", "New config not applied")
+                ha.log(conf.error, "WARNING", "New config not applied")
                 return
 
 
@@ -1096,130 +1090,6 @@ def get_ha_state():
             conf.ha_state[state["entity_id"]] = state
 
 
-# noinspection PyBroadException,PyBroadException
-def run():
-    global was_dst
-    global last_state
-
-    conf.appq = asyncio.Queue(maxsize=0)
-
-    first_time = True
-
-    conf.stopping = False
-
-    ha.log(conf.logger, "DEBUG", "Entering run()")
-
-    conf.loop = asyncio.get_event_loop()
-
-    # Save start time
-
-    conf.start_time = datetime.datetime.now()
-
-    # Take a note of DST
-
-    was_dst = is_dst()
-
-    # Setup sun
-
-    update_sun()
-
-    conf.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
-    tasks = []
-
-    if conf.apps is True:
-        ha.log(conf.logger, "DEBUG", "Creating worker threads ...")
-
-        # Create Worker Threads
-        for i in range(conf.threads):
-            t = threading.Thread(target=worker)
-            t.daemon = True
-            t.start()
-
-        ha.log(conf.logger, "DEBUG", "Done")
-
-
-    if conf.ha_url is not None:
-        # Read apps and get HA State before we start the timer thread
-        ha.log(conf.logger, "DEBUG", "Calling HA for initial state with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
-
-        while last_state is None:
-            try:
-                get_ha_state()
-                last_state = ha.get_now()
-            except:
-                ha.log(
-                    conf.logger, "WARNING",
-                    "Disconnected from Home Assistant, retrying in 5 seconds"
-                )
-                if conf.loglevel == "DEBUG":
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                    ha.log(conf.logger, "WARNING", "Unexpected error:")
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                    ha.log(conf.logger, "WARNING", traceback.format_exc())
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                time.sleep(5)
-
-        ha.log(conf.logger, "INFO", "Got initial state")
-
-        # Initialize appdaemon loop
-        tasks.append(asyncio.async(appdaemon_loop()))
-
-    else:
-       last_state = ha.get_now()
-
-    if conf.apps is True:
-        # Load apps
-
-        # Let other parts know we are in business,
-        appapi.reading_messages = True
-
-        ha.log(conf.logger, "DEBUG", "Reading Apps")
-
-        read_apps(True)
-
-        ha.log(conf.logger, "INFO", "App initialization complete")
-
-
-        # Create timer loop
-
-        # First, update "now" for less chance of clock skew error
-        if conf.realtime:
-            conf.now = datetime.datetime.now().timestamp()
-
-            ha.log(conf.logger, "DEBUG", "Starting timer loop")
-
-            tasks.append(asyncio.async(appstate_loop()))
-
-        tasks.append(asyncio.async(do_every(conf.tick, do_every_second)))
-        appapi.reading_messages = True
-
-    else:
-        ha.log(conf.logger, "INFO", "Apps are disabled")
-
-
-    # Initialize Dashboard/API
-
-    if conf.dashboard is True:
-        ha.log(conf.logger, "INFO", "Starting dashboard")
-        appdash.run_dash(conf.loop, tasks)
-    else:
-        ha.log(conf.logger, "INFO", "Dashboards are disabled")
-
-    if conf.api_port is not None:
-        ha.log(conf.logger, "INFO", "Starting API")
-        api.run_api(conf.loop, tasks)
-    else:
-        ha.log(conf.logger, "INFO", "API is disabled")
-
-    conf.loop.run_until_complete(asyncio.wait(tasks))
-
-    while not conf.stopping:
-        asyncio.sleep(1)
-
-
-    ha.log(conf.logger, "INFO", "AppDeamon Exited")
-
-
 @asyncio.coroutine
 def appstate_loop():
     while not conf.stopping:
@@ -1244,7 +1114,7 @@ def appdaemon_loop():
             if first_time is False:
                 # Get initial state
                 get_ha_state()
-                last_state = ha.get_now()
+                conf.last_state = ha.get_now()
                 ha.log(conf.logger, "INFO", "Got initial state")
 
                 disconnected_event = False

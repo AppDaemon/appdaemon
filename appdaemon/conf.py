@@ -78,33 +78,20 @@ config_dir = None
 
 api_port = None
 
-# Dashboard
+dashboard = None
 
-dash_host = None
-dash_dir = None
-dash_port = None
-dashboard = False
-compile_dir = None
-dash_url = None
+last_state = None
+was_dst = False
+
+#
+# Dashboard
+#
+dash = None
+dash_ssl_key = None
+dash_ssl_certificate = None
+dash_port = 0
+dash_password = ""
+dash_compile_on_start = False
+dash_force_compile = False
 profile_dashboard = False
 dashboard_dir = None
-javascript_dir = None
-template_dir = None
-css_dir = None
-fonts_dir = None
-images_dir = None
-base_url = None
-state_url = None
-max_include_depth = 10
-dash_force_compile = False
-custom_css_dir = None
-dash = None
-dash_compile_on_start = None
-compiled_javascript_dir = None
-compiled_html_dir = None
-compiled_css_dir = None
-dash_ssl_certificate = None
-dash_ssl_key = None
-dash_password = None
-api_ssl_key = None
-api_ssl_certificate = None
