@@ -629,6 +629,8 @@ class Dashboard:
             if os.path.isdir(widget_dir):
                 widget_dirs = os.listdir(path=widget_dir)
                 for widget in widget_dirs:
+                    if widget_dir == os.path.join(self.config_dir, "custom_widgets"):
+                        ha.log(self.logger, "INFO", "Loading custom widget '{}'".format(widget))
                     if os.path.isdir(os.path.join(widget_dir, widget)):
                         jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
                         csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
