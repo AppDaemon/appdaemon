@@ -11,7 +11,7 @@ Change Log
 
 **Fixes**
 
-None
+- Fixed a bug that gave a spurious "text widget not found" error
 
 **Breaking Changes**
 

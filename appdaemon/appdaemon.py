@@ -18,7 +18,7 @@ import uuid
 import astral
 import pytz
 import math
-import appdaemon.appdash as appdash
+import appdaemon.rundash as appdash
 import asyncio
 import yaml
 import concurrent
@@ -1239,6 +1239,7 @@ def appdaemon_loop():
 
                 while not conf.stopping:
                     ret = yield from utils.run_in_executor(conf.loop, conf.executor, ws.recv)
+                    result = json.loads(ret)
                     result = json.loads(ret)
 
                     if not (result["id"] == _id and result["type"] == "event"):

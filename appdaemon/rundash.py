@@ -36,9 +36,7 @@ def securedata(myfunc):
             return myfunc(request)
         else:
             if "adcreds" in request.cookies:
-                # completed, pending = yield from asyncio.wait(
-                #    [conf.loop.run_in_executor(conf.executor, check_password, conf.dash_password, request.cookies["adcreds"])])
-                # match = list(completed)[0].result()
+                # TODO - run this in an executor thread
                 match = bcrypt.checkpw, str.encode(conf.dash_password), str.encode(request.cookies["adcreds"])
                 if match:
                     return myfunc(request)
@@ -121,16 +119,10 @@ def _list_dash(request):
 def load_dash(request):
     name = request.match_info.get('name', "Anonymous")
     params = request.query
-
-    if "skin" in params:
-        skin = params["skin"]
-    else:
-        skin = "default"
-
-    if "recompile" in params:
+    skin = params.get("skin", "default")
+    recompile = params.get("recompile", False)
+    if recompile == '1':
         recompile = True
-    else:
-        recompile = False
 
     response = yield from utils.run_in_executor(conf.loop, conf.executor, conf.dashboard_obj.get_dashboard, name, skin, recompile)
 

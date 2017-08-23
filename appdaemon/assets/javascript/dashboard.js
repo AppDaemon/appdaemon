@@ -251,45 +251,59 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     });
 
     child.css = {};
-    Object.keys(parameters.css).forEach(function(key,index) 
+    if ("css" in parameters)
     {
-        child.css[key] = parameters.css[key];
-        child.ViewModel[key] = ko.observable()
-    });
+        Object.keys(parameters.css).forEach(function (key, index) {
+            child.css[key] = parameters.css[key];
+            child.ViewModel[key] = ko.observable()
+        });
+    }
     
-    Object.keys(parameters.static_css).forEach(function(key,index) 
+    if ("static_css" in parameters)
     {
-        child.ViewModel[key] = ko.observable()
-    });
+        Object.keys(parameters.static_css).forEach(function (key, index) {
+            child.ViewModel[key] = ko.observable()
+        });
+    }
     
     child.icons = {};
-    Object.keys(parameters.icons).forEach(function(key,index) 
+    if ("icons" in parameters)
     {
-        child.icons[key] = parameters.icons[key];
-        child.ViewModel[key] = ko.observable()
-    });
+        Object.keys(parameters.icons).forEach(function (key, index) {
+            child.icons[key] = parameters.icons[key];
+            child.ViewModel[key] = ko.observable()
+        });
+    }
     
-    Object.keys(parameters.static_icons).forEach(function(key,index) 
+    if ("static_icons" in parameters)
     {
-        child.ViewModel[key] = ko.observable()
-    });
+        Object.keys(parameters.static_icons).forEach(function (key, index) {
+            child.ViewModel[key] = ko.observable()
+        });
+    }
     
     ko.applyBindings(child.ViewModel, document.getElementById(widget_id));
     
     // Set any static values
-    
-    Object.keys(parameters.fields).forEach(function(key,index)
-    {
-        child.ViewModel[key](parameters.fields[key])
-    });
 
-    Object.keys(parameters.static_css).forEach(function(key,index) 
+    if ("fields" in parameters)
     {
-        child.ViewModel[key](parameters.static_css[key])
-    });
+        Object.keys(parameters.fields).forEach(function (key, index) {
+            child.ViewModel[key](parameters.fields[key])
+        });
+    }
 
-    Object.keys(parameters.static_icons).forEach(function(key,index) 
+    if ("static_css" in parameters)
     {
-        child.ViewModel[key](parameters.static_icons[key].split("-")[0] + ' ' + parameters.static_icons[key])
-    });
+        Object.keys(parameters.static_css).forEach(function (key, index) {
+            child.ViewModel[key](parameters.static_css[key])
+        });
+    }
+
+    if ("static_icons" in parameters)
+    {
+        Object.keys(parameters.static_icons).forEach(function (key, index) {
+            child.ViewModel[key](parameters.static_icons[key].split("-")[0] + ' ' + parameters.static_icons[key])
+        });
+    }
 };
