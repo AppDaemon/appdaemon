@@ -1,18 +1,15 @@
 import appdaemon.conf as conf
 import datetime
-from datetime import timezone
-import time
 import uuid
-import re
 import requests
 import inspect
 import json
-import copy
 import iso8601
 
 import appdaemon.utils as utils
 
 reading_messages = False
+
 
 class Formatter(object):
     def __init__(self):
