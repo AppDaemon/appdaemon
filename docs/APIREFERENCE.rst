@@ -2365,7 +2365,7 @@ Examples
 Google Home Helper Functions
 ----------------------------
 
-get_appapi_intent()
+get_apiai_intent()
 ~~~~~~~~~~~~~~~~~~
 
 Register an endpoint for API calls into an App.
@@ -2375,7 +2375,7 @@ Synopsis
 
 .. code:: python
 
-    self.get_appapi_intent(data)
+    self.get_apiai_intent(data)
 
 Returns
 ^^^^^^^
@@ -2395,9 +2395,9 @@ Examples
 
 .. code:: python
 
-    intent = self.get_appapi_intent(data)
+    intent = self.get_apiai_intent(data)
 
-get_appapi_slot_value()
+get_apiai_slot_value()
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Return values for slots form the interaction model.
@@ -2407,7 +2407,7 @@ Synopsis
 
 .. code:: python
 
-    self.get_appapi_slot_value(data, name = None)
+    self.get_apiai_slot_value(data, name = None)
 
 Returns
 ^^^^^^^
@@ -2433,23 +2433,23 @@ Examples
 
 .. code:: python
 
-    beer_type = self.get_appapi_intent(data, "beer_type")
-    all_slots = self.get_appapi_intent(data)
+    beer_type = self.get_apiai_intent(data, "beer_type")
+    all_slots = self.get_apiai_intent(data)
 
 
-self.format_appapi_response(speech = speech, card = card, title = title)
+self.format_apiai_response(speech = speech)
 
 format_appapi_response()
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Format a response to be returned to Alex including speech and a card.
+Format a response to be returned to Google Home including speech.
 
 Synopsis
 ^^^^^^^^
 
 .. code:: python
 
-    self.format_appapi_response(speech = speech, card = card, title = title)
+    self.format_apiai_response(speech = speech)
 
 Returns
 ^^^^^^^
@@ -2464,19 +2464,9 @@ speech =
 
 The text for Google Home to say
 
-card =
-''''''
-
-Text for the card
-
-title =
-''''''''
-
-Title for the card
-
 Examples
 ^^^^^^^^
 
 .. code:: python
 
-    format_appapi_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
+    format_apiai_response(speech = "Hello World")
