@@ -13,7 +13,7 @@ import bcrypt
 
 import appdaemon.conf as conf
 import appdaemon.dashboard as dashboard
-import appdaemon.homeassistant as ha
+import appdaemon.utils as ha
 
 # Setup WS handler
 

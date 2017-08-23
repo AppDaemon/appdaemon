@@ -10,7 +10,7 @@ import json
 import copy
 import iso8601
 
-import appdaemon.homeassistant as ha
+import appdaemon.utils as ha
 
 reading_messages = False
 
