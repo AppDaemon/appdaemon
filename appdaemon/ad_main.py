@@ -16,12 +16,9 @@ import platform
 from urllib.parse import urlparse
 import yaml
 import asyncio
-import concurrent
-import threading
 
-import appdaemon.homeassistant as ha
+import appdaemon.utils as ha
 import appdaemon.appdaemon as ad
-import appdaemon.appapi as appapi
 import appdaemon.api as api
 import appdaemon.appdash as appdash
 
@@ -42,117 +39,33 @@ def find_path(name):
 # noinspection PyBroadException,PyBroadException
 def run():
 
-    conf.appq = asyncio.Queue(maxsize=0)
-
-    first_time = True
-
-    conf.stopping = False
-
-    ha.log(conf.logger, "DEBUG", "Entering run()")
-
-    conf.loop = asyncio.get_event_loop()
-
-    # Save start time
-
-    conf.start_time = datetime.datetime.now()
-
-    # Take a note of DST
-
-    conf.was_dst = ad.is_dst()
-
-    # Setup sun
-
-    ad.update_sun()
-
-    conf.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
     tasks = []
 
-    if conf.apps is True:
-        ha.log(conf.logger, "DEBUG", "Creating worker threads ...")
+    loop = asyncio.get_event_loop()
 
-        # Create Worker Threads
-        for i in range(conf.threads):
-            t = threading.Thread(target=ad.worker)
-            t.daemon = True
-            t.start()
-
-        ha.log(conf.logger, "DEBUG", "Done")
-
-
-    if conf.ha_url is not None:
-        # Read apps and get HA State before we start the timer thread
-        ha.log(conf.logger, "DEBUG", "Calling HA for initial state with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
-
-        while conf.last_state is None:
-            try:
-                ad.get_ha_state()
-                conf.last_state = ha.get_now()
-            except:
-                ha.log(
-                    conf.logger, "WARNING",
-                    "Disconnected from Home Assistant, retrying in 5 seconds"
-                )
-                if conf.loglevel == "DEBUG":
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                    ha.log(conf.logger, "WARNING", "Unexpected error:")
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                    ha.log(conf.logger, "WARNING", traceback.format_exc())
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                time.sleep(5)
-
-        ha.log(conf.logger, "INFO", "Got initial state")
-
-        # Initialize appdaemon loop
-        tasks.append(asyncio.async(ad.appdaemon_loop()))
-
-    else:
-       conf.last_state = ha.get_now()
+    # Initialize AppDaemon
 
     if conf.apps is True:
-        # Load apps
-
-        # Let other parts know we are in business,
-        appapi.reading_messages = True
-
-        ha.log(conf.logger, "DEBUG", "Reading Apps")
-
-        ad.read_apps(True)
-
-        ha.log(conf.logger, "INFO", "App initialization complete")
-
-
-        # Create timer loop
-
-        # First, update "now" for less chance of clock skew error
-        if conf.realtime:
-            conf.now = datetime.datetime.now().timestamp()
-
-            ha.log(conf.logger, "DEBUG", "Starting timer loop")
-
-            tasks.append(asyncio.async(ad.appstate_loop()))
-
-        tasks.append(asyncio.async(ad.do_every(conf.tick, ad.do_every_second)))
-        appapi.reading_messages = True
-
+        ha.log(conf.logger, "INFO", "Starting Apps")
+        ad.run_ad(loop, tasks)
     else:
         ha.log(conf.logger, "INFO", "Apps are disabled")
-
 
     # Initialize Dashboard/API
 
     if conf.dashboard is True:
         ha.log(conf.logger, "INFO", "Starting dashboard")
-        appdash.run_dash(conf.loop, tasks)
+        appdash.run_dash(loop, tasks)
     else:
         ha.log(conf.logger, "INFO", "Dashboards are disabled")
 
     if conf.api_port is not None:
         ha.log(conf.logger, "INFO", "Starting API")
-        api.run_api(conf.loop, tasks)
+        api.run_api(loop, tasks)
     else:
         ha.log(conf.logger, "INFO", "API is disabled")
 
-    conf.loop.run_until_complete(asyncio.wait(tasks))
+    loop.run_until_complete(asyncio.wait(tasks))
 
     while not conf.stopping:
         asyncio.sleep(1)

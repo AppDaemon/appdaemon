@@ -21,8 +21,10 @@ import math
 import appdaemon.appdash as appdash
 import asyncio
 import yaml
+import concurrent
+import threading
 
-import appdaemon.homeassistant as ha
+import appdaemon.utils as ha
 import appdaemon.appapi as appapi
 
 q = Queue(maxsize=0)
@@ -1276,3 +1278,93 @@ def appdaemon_loop():
                 yield from asyncio.sleep(5)
 
     ha.log(conf.logger, "INFO", "Disconnecting from Home Assistant")
+
+def run_ad(loop, tasks):
+    conf.appq = asyncio.Queue(maxsize=0)
+
+    conf.loop = loop
+
+    first_time = True
+
+    conf.stopping = False
+
+    ha.log(conf.logger, "DEBUG", "Entering run()")
+
+    # Save start time
+
+    conf.start_time = datetime.datetime.now()
+
+    # Take a note of DST
+
+    conf.was_dst = is_dst()
+
+    # Setup sun
+
+    update_sun()
+
+    conf.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
+    ha.log(conf.logger, "DEBUG", "Creating worker threads ...")
+
+    # Create Worker Threads
+    for i in range(conf.threads):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+
+    ha.log(conf.logger, "DEBUG", "Done")
+
+
+    if conf.ha_url is not None:
+        # Read apps and get HA State before we start the timer thread
+        ha.log(conf.logger, "DEBUG", "Calling HA for initial state with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
+
+        while conf.last_state is None:
+            try:
+                get_ha_state()
+                conf.last_state = ha.get_now()
+            except:
+                ha.log(
+                    conf.logger, "WARNING",
+                    "Disconnected from Home Assistant, retrying in 5 seconds"
+                )
+                if conf.loglevel == "DEBUG":
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                    ha.log(conf.logger, "WARNING", "Unexpected error:")
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                    ha.log(conf.logger, "WARNING", traceback.format_exc())
+                    ha.log(conf.logger, "WARNING", '-' * 60)
+                time.sleep(5)
+
+        ha.log(conf.logger, "INFO", "Got initial state")
+
+        # Initialize appdaemon loop
+        tasks.append(asyncio.async(appdaemon_loop()))
+
+    else:
+       conf.last_state = ha.get_now()
+
+    # Load apps
+
+    # Let other parts know we are in business,
+    appapi.reading_messages = True
+
+    ha.log(conf.logger, "DEBUG", "Reading Apps")
+
+    read_apps(True)
+
+    ha.log(conf.logger, "INFO", "App initialization complete")
+
+
+    # Create timer loop
+
+    # First, update "now" for less chance of clock skew error
+    if conf.realtime:
+        conf.now = datetime.datetime.now().timestamp()
+
+        ha.log(conf.logger, "DEBUG", "Starting timer loop")
+
+        tasks.append(asyncio.async(appstate_loop()))
+
+    tasks.append(asyncio.async(do_every(conf.tick, do_every_second)))
+    appapi.reading_messages = True

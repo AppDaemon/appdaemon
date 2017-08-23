@@ -11,7 +11,7 @@ import io
 import pstats
 import datetime
 
-import appdaemon.homeassistant as ha
+import appdaemon.utils as ha
 
 
 class Dashboard:
