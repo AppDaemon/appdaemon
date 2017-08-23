@@ -13,7 +13,7 @@ import bcrypt
 
 import appdaemon.conf as conf
 import appdaemon.dashboard as dashboard
-import appdaemon.utils as ha
+import appdaemon.utils as utils
 
 # Setup WS handler
 
@@ -80,17 +80,17 @@ def logon(request):
     password = data["password"]
 
     if password == conf.dash_password:
-        ha.log(conf.dash, "INFO", "Succesful logon from {}".format(request.host))
+        utils.log(conf.dash, "INFO", "Succesful logon from {}".format(request.host))
 
         hashed = bcrypt.hashpw(str.encode(conf.dash_password), bcrypt.gensalt())
 
-        # ha.log(conf.dash, "INFO", hashed)
+        # utils.log(conf.dash, "INFO", hashed)
 
         response = yield from list_dash_no_secure(request)
         response.set_cookie("adcreds", hashed.decode("utf-8"))
 
     else:
-        ha.log(conf.dash, "WARNING", "Unsuccesful logon from {}".format(request.host))
+        utils.log(conf.dash, "WARNING", "Unsuccesful logon from {}".format(request.host))
         response = yield from list_dash(request)
 
     return response
@@ -112,9 +112,7 @@ def list_dash_no_secure(request):
 
 
 def _list_dash(request):
-    completed, pending = yield from asyncio.wait(
-        [conf.loop.run_in_executor(conf.executor, conf.dashboard_obj.get_dashboard_list)])
-    response = list(completed)[0].result()
+    response = yield from utils.run_in_executor(conf.loop, conf.executor, conf.dashboard_obj.get_dashboard_list)
     return web.Response(text=response, content_type="text/html")
 
 
@@ -134,9 +132,7 @@ def load_dash(request):
     else:
         recompile = False
 
-    completed, pending = yield from asyncio.wait(
-        [conf.loop.run_in_executor(conf.executor, conf.dashboard_obj.get_dashboard, name, skin, recompile)])
-    response = list(completed)[0].result()
+    response = yield from utils.run_in_executor(conf.loop, conf.executor, conf.dashboard_obj.get_dashboard, name, skin, recompile)
 
     return web.Response(text=response, content_type="text/html")
 
@@ -151,9 +147,7 @@ def update_rss():
                 conf.rss_last_update = time.time()
 
                 for feed_data in conf.rss_feeds:
-                    completed, pending = yield from asyncio.wait(
-                        [conf.loop.run_in_executor(conf.executor, feedparser.parse, feed_data["feed"])])
-                    feed = list(completed)[0].result()
+                    feed = yield from utils.run_in_executor(conf.loop, conf.executor, feedparser.parse, feed_data["feed"])
 
                     new_state = {"feed": feed}
                     with conf.ha_state_lock:
@@ -213,8 +207,8 @@ def call_service(request):
         else:
             args[key] = data[key]
 
-    # completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, ha.call_service, data)])
-    ha.call_service(service, **args)
+    # completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, utils.call_service, data)])
+    utils.call_service(service, **args)
     return web.Response(status=200)
 
 
@@ -251,14 +245,14 @@ def wshandler(request):
         while True:
             msg = yield from ws.receive()
             if msg.type == aiohttp.WSMsgType.TEXT:
-                ha.log(conf.dash, "INFO",
+                utils.log(conf.dash, "INFO",
                        "New dashboard connected: {}".format(msg.data))
                 request.app['websockets'][ws]["dashboard"] = msg.data
             elif msg.type == aiohttp.WSMsgType.ERROR:
-                ha.log(conf.dash, "INFO",
+                utils.log(conf.dash, "INFO",
                        "ws connection closed with exception {}".format(ws.exception()))
     except:
-        ha.log(conf.dash, "INFO", "Dashboard disconnected")
+        utils.log(conf.dash, "INFO", "Dashboard disconnected")
     finally:
         request.app['websockets'].pop(ws, None)
 
@@ -267,7 +261,7 @@ def wshandler(request):
 
 def ws_update(jdata):
     if len(app['websockets']) > 0:
-        ha.log(conf.dash,
+        utils.log(conf.dash,
                "DEBUG",
                "Sending data to {} dashes: {}".format(len(app['websockets']), jdata))
 
@@ -276,7 +270,7 @@ def ws_update(jdata):
     for ws in app['websockets']:
 
         if "dashboard" in app['websockets'][ws]:
-            ha.log(conf.dash,
+            utils.log(conf.dash,
                    "DEBUG",
                    "Found dashboard type {}".format(app['websockets'][ws]["dashboard"]))
             ws.send_str(data)
@@ -346,8 +340,8 @@ def run_dash(loop, tasks):
         tasks.append(asyncio.async(update_rss()))
         return f
     except:
-        ha.log(conf.dash, "WARNING", '-' * 60)
-        ha.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")
-        ha.log(conf.dash, "WARNING", '-' * 60)
-        ha.log(conf.dash, "WARNING", traceback.format_exc())
-        ha.log(conf.dash, "WARNING", '-' * 60)
+        utils.log(conf.dash, "WARNING", '-' * 60)
+        utils.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")
+        utils.log(conf.dash, "WARNING", '-' * 60)
+        utils.log(conf.dash, "WARNING", traceback.format_exc())
+        utils.log(conf.dash, "WARNING", '-' * 60)

@@ -10,7 +10,7 @@ import json
 import copy
 import iso8601
 
-import appdaemon.utils as ha
+import appdaemon.utils as utils
 
 reading_messages = False
 
@@ -100,7 +100,7 @@ class StateAttrs(dict):
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
         if not reading_messages:
-            ha.log(conf.logger, "WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
+            utils.log(conf.logger, "WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
             return (lambda *args: None)
         else:
             return(func(*args, **kwargs))
@@ -140,7 +140,7 @@ class AppDaemon:
                 "{}: Invalid entity ID: {}".format(self.name, entity))
         with conf.ha_state_lock:
             if entity not in conf.ha_state:
-                ha.log(conf.logger, "WARNING",
+                utils.log(conf.logger, "WARNING",
                        "{}: Entity {} not found in Home Assistant".format(
                            self.name, entity))
 
@@ -170,11 +170,11 @@ class AppDaemon:
 
     def log(self, msg, level="INFO"):
         msg = self._sub_stack(msg)
-        ha.log(self._logger, level, msg, self.name)
+        utils.log(self._logger, level, msg, self.name)
 
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
-        ha.log(self._error, level, msg, self.name)
+        utils.log(self._error, level, msg, self.name)
 
     def get_app(self, name):
         if name in conf.objects:
@@ -340,13 +340,13 @@ class AppDaemon:
         return self.get_state(entity_id)
 
     def anyone_home(self):
-        return ha.anyone_home()
+        return utils.anyone_home()
 
     def everyone_home(self):
-        return ha.everyone_home()
+        return utils.everyone_home()
 
     def noone_home(self):
-        return ha.noone_home()
+        return utils.noone_home()
 
     #
     # State
@@ -363,7 +363,7 @@ class AppDaemon:
                 return False
     @hass_check
     def get_state(self, entity_id=None, attribute=None):
-        ha.log(conf.logger, "DEBUG",
+        utils.log(conf.logger, "DEBUG",
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
         entity = None
@@ -412,7 +412,7 @@ class AppDaemon:
                         return None
 
     def set_app_state(self, entity_id, state):
-        ha.log(conf.logger, "DEBUG", "set_app_state: {}".format(entity_id))
+        utils.log(conf.logger, "DEBUG", "set_app_state: {}".format(entity_id))
         if entity_id is not None and "." in entity_id:
             with conf.ha_state_lock:
                 if entity_id in conf.ha_state:
@@ -427,7 +427,7 @@ class AppDaemon:
     def set_state(self, entity_id, **kwargs):
         with conf.ha_state_lock:
             self._check_entity(entity_id)
-            ha.log(
+            utils.log(
                 conf.logger, "DEBUG",
                 "set_state: {}, {}".format(entity_id, kwargs)
             )
@@ -491,8 +491,8 @@ class AppDaemon:
         if "immediate" in kwargs and kwargs["immediate"] is True:
             if entity is not None and "new" in kwargs and "duration" in kwargs:
                 if conf.ha_state[entity]["state"] == kwargs["new"]:
-                    exec_time = ha.get_now_ts() + int(kwargs["duration"])
-                    kwargs["handle"] = ha.insert_schedule(
+                    exec_time = utils.get_now_ts() + int(kwargs["duration"])
+                    kwargs["handle"] = utils.insert_schedule(
                         name, exec_time, function, False, None,
                         entity=entity,
                         attribute=None,
@@ -504,7 +504,7 @@ class AppDaemon:
 
     def cancel_listen_state(self, handle):
         name = self.name
-        ha.log(
+        utils.log(
             conf.logger, "DEBUG",
             "Canceling listen_state for {}".format(name)
         )
@@ -516,7 +516,7 @@ class AppDaemon:
 
     def info_listen_state(self, handle):
         name = self.name
-        ha.log(
+        utils.log(
             conf.logger, "DEBUG",
             "Calling info_listen_state for {}".format(name)
         )
@@ -526,7 +526,7 @@ class AppDaemon:
                 return (
                     callback["entity"],
                     callback["kwargs"].get("attribute", None),
-                    ha.sanitize_state_kwargs(callback["kwargs"])
+                    utils.sanitize_state_kwargs(callback["kwargs"])
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
@@ -536,7 +536,7 @@ class AppDaemon:
 
     @hass_check
     def fire_event(self, event, **kwargs):
-        ha.log(conf.logger, "DEBUG",
+        utils.log(conf.logger, "DEBUG",
                "fire_event: {}, {}".format(event, kwargs))
         if conf.ha_key != "":
             headers = {'x-ha-access': conf.ha_key}
@@ -567,7 +567,7 @@ class AppDaemon:
 
     def cancel_listen_event(self, handle):
         name = self.name
-        ha.log(
+        utils.log(
             conf.logger, "DEBUG",
             "Canceling listen_event for {}".format(name)
         )
@@ -579,7 +579,7 @@ class AppDaemon:
 
     def info_listen_event(self, handle):
         name = self.name
-        ha.log(
+        utils.log(
             conf.logger, "DEBUG",
             "Calling info_listen_event for {}".format(name)
         )
@@ -595,7 +595,7 @@ class AppDaemon:
 
     @hass_check
     def call_service(self, service, **kwargs):
-        return ha.call_service(service, **kwargs)
+        return utils.call_service(service, **kwargs)
 
     @hass_check
     def turn_on(self, entity_id, **kwargs):
@@ -674,16 +674,16 @@ class AppDaemon:
         return conf.sun["next_rising"] < conf.sun["next_setting"]
 
     def sunrise(self):
-        return ha.sunrise()
+        return utils.sunrise()
 
     def sunset(self):
-        return ha.sunset()
+        return utils.sunset()
 
     def parse_time(self, time_str):
-        return ha.parse_time(time_str)
+        return utils.parse_time(time_str)
 
     def now_is_between(self, start_time_str, end_time_str):
-        return ha.now_is_between(start_time_str, end_time_str, self.name)
+        return utils.now_is_between(start_time_str, end_time_str, self.name)
 
     def time(self):
         return datetime.datetime.fromtimestamp(conf.now).time()
@@ -700,67 +700,67 @@ class AppDaemon:
 
     def cancel_timer(self, handle):
         name = self.name
-        ha.cancel_timer(name, handle)
+        utils.cancel_timer(name, handle)
 
     def info_timer(self, handle):
         name = self.name
-        ha.log(conf.logger, "DEBUG", "Calling info_timer for {}".format(name))
+        utils.log(conf.logger, "DEBUG", "Calling info_timer for {}".format(name))
         with conf.schedule_lock:
             if name in conf.schedule and handle in conf.schedule[name]:
                 callback = conf.schedule[name][handle]
                 return (
                     datetime.datetime.fromtimestamp(callback["timestamp"]),
                     callback["interval"],
-                    ha.sanitize_timer_kwargs(callback["kwargs"])
+                    utils.sanitize_timer_kwargs(callback["kwargs"])
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
 
     def run_in(self, callback, seconds, **kwargs):
         name = self.name
-        ha.log(
+        utils.log(
             conf.logger, "DEBUG",
             "Registering run_in in {} seconds for {}".format(seconds, name)
         )
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
-        exec_time = ha.get_now_ts() + int(seconds)
-        handle = ha.insert_schedule(
+        exec_time = utils.get_now_ts() + int(seconds)
+        handle = utils.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
 
     def run_once(self, callback, start, **kwargs):
         name = self.name
-        now = ha.get_now()
+        now = utils.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, start)
         if event < now:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
         exec_time = event.timestamp()
-        handle = ha.insert_schedule(
+        handle = utils.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
 
     def run_at(self, callback, start, **kwargs):
         name = self.name
-        now = ha.get_now()
+        now = utils.get_now()
         if start < now:
             raise ValueError(
                 "{}: run_at() Start time must be "
                 "in the future".format(self.name)
             )
         exec_time = start.timestamp()
-        handle = ha.insert_schedule(
+        handle = utils.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
 
     def run_daily(self, callback, start, **kwargs):
         name = self.name
-        now = ha.get_now()
+        now = utils.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, start)
         if event < now:
@@ -770,7 +770,7 @@ class AppDaemon:
 
     def run_hourly(self, callback, start, **kwargs):
         name = self.name
-        now = ha.get_now()
+        now = utils.get_now()
         if start is None:
             event = now + datetime.timedelta(hours=1)
         else:
@@ -783,7 +783,7 @@ class AppDaemon:
 
     def run_minutely(self, callback, start, **kwargs):
         name = self.name
-        now = ha.get_now()
+        now = utils.get_now()
         if start is None:
             event = now + datetime.timedelta(minutes=1)
         else:
@@ -796,30 +796,30 @@ class AppDaemon:
 
     def run_every(self, callback, start, interval, **kwargs):
         name = self.name
-        now = ha.get_now()
+        now = utils.get_now()
         if start < now:
             raise ValueError("start cannot be in the past")
-        ha.log(
+        utils.log(
             conf.logger, "DEBUG",
             "Registering run_every starting {} in {}s intervals for {}".format(
                  start, interval, name
             )
         )
         exec_time = start.timestamp()
-        handle = ha.insert_schedule(name, exec_time, callback, True, None,
+        handle = utils.insert_schedule(name, exec_time, callback, True, None,
                                     interval=interval, **kwargs)
         return handle
 
     def _schedule_sun(self, name, type_, callback, **kwargs):
-        event = ha.calc_sun(type_)
-        handle = ha.insert_schedule(
+        event = utils.calc_sun(type_)
+        handle = utils.insert_schedule(
             name, event, callback, True, type_, **kwargs
         )
         return handle
 
     def run_at_sunset(self, callback, **kwargs):
         name = self.name
-        ha.log(
+        utils.log(
             conf.logger, "DEBUG",
             "Registering run_at_sunset with kwargs = {} for {}".format(
                 kwargs, name
@@ -830,7 +830,7 @@ class AppDaemon:
 
     def run_at_sunrise(self, callback, **kwargs):
         name = self.name
-        ha.log(conf.logger, "DEBUG",
+        utils.log(conf.logger, "DEBUG",
                "Registering run_at_sunrise with kwargs = {} for {}".format(
                    kwargs, name))
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
@@ -873,7 +873,7 @@ class AppDaemon:
         callbacks = {}
         for name in conf.callbacks.keys():
             callbacks[name] = {}
-            ha.log(conf.logger, "INFO", "{}:".format(name))
+            utils.log(conf.logger, "INFO", "{}:".format(name))
             for uuid_ in conf.callbacks[name]:
                 callbacks[name][uuid_] = {}
                 if "entity" in callbacks[name][uuid_]:

@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 import yaml
 import asyncio
 
-import appdaemon.utils as ha
+import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.api as api
 import appdaemon.appdash as appdash
@@ -46,24 +46,24 @@ def run():
     # Initialize AppDaemon
 
     if conf.apps is True:
-        ha.log(conf.logger, "INFO", "Starting Apps")
+        utils.log(conf.logger, "INFO", "Starting Apps")
         ad.run_ad(loop, tasks)
     else:
-        ha.log(conf.logger, "INFO", "Apps are disabled")
+        utils.log(conf.logger, "INFO", "Apps are disabled")
 
     # Initialize Dashboard/API
 
     if conf.dashboard is True:
-        ha.log(conf.logger, "INFO", "Starting dashboard")
+        utils.log(conf.logger, "INFO", "Starting dashboard")
         appdash.run_dash(loop, tasks)
     else:
-        ha.log(conf.logger, "INFO", "Dashboards are disabled")
+        utils.log(conf.logger, "INFO", "Dashboards are disabled")
 
     if conf.api_port is not None:
-        ha.log(conf.logger, "INFO", "Starting API")
+        utils.log(conf.logger, "INFO", "Starting API")
         api.run_api(loop, tasks)
     else:
-        ha.log(conf.logger, "INFO", "API is disabled")
+        utils.log(conf.logger, "INFO", "API is disabled")
 
     loop.run_until_complete(asyncio.wait(tasks))
 
@@ -71,7 +71,7 @@ def run():
         asyncio.sleep(1)
 
 
-    ha.log(conf.logger, "INFO", "AppDeamon Exited")
+    utils.log(conf.logger, "INFO", "AppDeamon Exited")
 
 
 
@@ -170,7 +170,7 @@ def main():
 
                 conf.secrets = yaml.load(secrets_file_contents)
 
-            yaml.add_constructor('!secret', ha._secret_yaml)
+            yaml.add_constructor('!secret', utils._secret_yaml)
 
             config_from_yaml = True
             conf.config_file = config_file_yaml
@@ -404,37 +404,37 @@ def main():
 
     # Startup message
 
-    ha.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(conf.__version__))
-    ha.log(conf.logger, "INFO", "Configuration read from: {}".format(conf.config_file))
+    utils.log(conf.logger, "INFO", "AppDaemon Version {} starting".format(conf.__version__))
+    utils.log(conf.logger, "INFO", "Configuration read from: {}".format(conf.config_file))
     if config_from_yaml is True:
-        ha.log(conf.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
-        ha.log(conf.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
-        ha.log(conf.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
+        utils.log(conf.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
+        utils.log(conf.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
+        utils.log(conf.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
 
     # Check with HA to get various info
 
     ha_config = None
     if conf.ha_url is not None:
 
-        ha.log(conf.logger, "DEBUG", "Calling HA for config with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
+        utils.log(conf.logger, "DEBUG", "Calling HA for config with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
 
 
         while ha_config is None:
             try:
-                ha_config = ha.get_ha_config()
+                ha_config = utils.get_ha_config()
             except:
-                ha.log(
+                utils.log(
                     conf.logger, "WARNING", "Unable to connect to Home Assistant, retrying in 5 seconds")
                 if conf.loglevel == "DEBUG":
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                    ha.log(conf.logger, "WARNING", "Unexpected error:")
-                    ha.log(conf.logger, "WARNING", '-' * 60)
-                    ha.log(conf.logger, "WARNING", traceback.format_exc())
-                    ha.log(conf.logger, "WARNING", '-' * 60)
+                    utils.log(conf.logger, "WARNING", '-' * 60)
+                    utils.log(conf.logger, "WARNING", "Unexpected error:")
+                    utils.log(conf.logger, "WARNING", '-' * 60)
+                    utils.log(conf.logger, "WARNING", traceback.format_exc())
+                    utils.log(conf.logger, "WARNING", '-' * 60)
                 time.sleep(5)
 
-        ha.log(conf.logger, "DEBUG", "Success")
-        ha.log(conf.logger, "DEBUG", ha_config)
+        utils.log(conf.logger, "DEBUG", "Success")
+        utils.log(conf.logger, "DEBUG", ha_config)
 
         conf.version = parse_version(ha_config["version"])
 
@@ -447,7 +447,7 @@ def main():
         if "elevation" in ha_config:
             conf.elevation = ha_config["elevation"]
             if "elevation" in config['AppDaemon']:
-                ha.log(conf.logger, "WARNING",  "'elevation' directive is deprecated, please remove")
+                utils.log(conf.logger, "WARNING",  "'elevation' directive is deprecated, please remove")
         else:
             conf.elevation = config['AppDaemon']["elevation"]
 
@@ -462,16 +462,16 @@ def main():
 
     # Now we have logging, warn about deprecated directives
     #if "latitude" in config['AppDaemon']:
-    #    ha.log(conf.logger, "WARNING", "'latitude' directive is deprecated, please remove")
+    #    utils.log(conf.logger, "WARNING", "'latitude' directive is deprecated, please remove")
 
     #if "longitude" in config['AppDaemon']:
-    #    ha.log(conf.logger, "WARNING", "'longitude' directive is deprecated, please remove")
+    #    utils.log(conf.logger, "WARNING", "'longitude' directive is deprecated, please remove")
 
     #if "timezone" in config['AppDaemon']:
-    #    ha.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please remove")
+    #    utils.log(conf.logger, "WARNING", "'timezone' directive is deprecated, please remove")
 
     #if "time_zone" in config['AppDaemon']:
-    #    ha.log(conf.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
+    #    utils.log(conf.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
 
     ad.init_sun()
 
