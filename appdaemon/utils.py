@@ -37,8 +37,7 @@ def dispatch_app_by_name(name, args):
                 if conf.endpoints[app][handle]["name"] == name:
                     callback = conf.endpoints[app][handle]["callback"]
     if callback is not None:
-        completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, callback, args)])
-        return list(completed)[0].result()
+        return run_in_executor(conf.loop, conf.executor, callback, args)
     else:
         return '', 404
 
@@ -340,3 +339,10 @@ def call_service(service, **kwargs):
     )
     r.raise_for_status()
     return r.json()
+
+
+@asyncio.coroutine
+def run_in_executor(loop, executor, fn, *args, **kwargs):
+    completed, pending = yield from asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
+    response = list(completed)[0].result()
+    return response
