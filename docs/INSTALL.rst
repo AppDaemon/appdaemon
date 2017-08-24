@@ -4,6 +4,8 @@ Installation
 Installation is either by pip3 or Docker. There is also an official
 hass.io build.
 
+Note: Windows and Raspbian users should check the environment specific section at the end of this doc for additional information.
+
 Install and Run using Docker
 ----------------------------
 

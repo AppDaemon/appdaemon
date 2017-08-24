@@ -142,16 +142,16 @@ class AppDaemon:
                            self.name, entity))
 
     def _sub_stack(self, msg):
-        # If msg is a data structure of some type, the subs below will fail, so lets convert it to JSON
+        # If msg is a data structure of some type, don't sub
         if type(msg) is not str:
             msg = json.dumps(msg)
-        stack = inspect.stack()
-        if msg.find("__module__") != -1:
-            msg = msg.replace("__module__", stack[2][1])
-        if msg.find("__line__") != -1:
-            msg = msg.replace("__line__", str(stack[2][2]))
-        if msg.find("__function__") != -1:
-            msg = msg.replace("__function__", stack[2][3])
+            stack = inspect.stack()
+            if msg.find("__module__") != -1:
+                msg = msg.replace("__module__", stack[2][1])
+            if msg.find("__line__") != -1:
+                msg = msg.replace("__line__", str(stack[2][2]))
+            if msg.find("__function__") != -1:
+                msg = msg.replace("__function__", stack[2][3])
         return msg
 
     #
