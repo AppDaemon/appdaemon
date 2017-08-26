@@ -111,6 +111,7 @@ class entities:
             state = StateAttrs(conf.ha_state)
         return state
 
+
 class AppDaemon:
     #
     # Internal
@@ -143,8 +144,7 @@ class AppDaemon:
 
     def _sub_stack(self, msg):
         # If msg is a data structure of some type, don't sub
-        if type(msg) is not str:
-            msg = json.dumps(msg)
+        if type(msg) is str:
             stack = inspect.stack()
             if msg.find("__module__") != -1:
                 msg = msg.replace("__module__", stack[2][1])
