@@ -67,10 +67,6 @@ def run():
 
     loop.run_until_complete(asyncio.wait(tasks))
 
-    while not conf.stopping:
-        asyncio.sleep(1)
-
-
     utils.log(conf.logger, "INFO", "AppDeamon Exited")
 
 

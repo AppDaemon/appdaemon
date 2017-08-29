@@ -309,14 +309,13 @@ def setup_routes(dashboard):
 def run_dash(loop, tasks):
     # noinspection PyBroadException
     try:
-        if conf.dashboard is True:
-            conf.dashboard_obj = dashboard.Dashboard(conf.config_dir, conf.dash,
-                                                 dash_compile_on_start=conf.dash_compile_on_start,
-                                                 dash_force_compile=conf.dash_force_compile,
-                                                 profile_dashboard=conf.profile_dashboard,
-                                                 dashboard_dir = conf.dashboard_dir,
-                                                 )
-            setup_routes(conf.dashboard_obj)
+        conf.dashboard_obj = dashboard.Dashboard(conf.config_dir, conf.dash,
+                                             dash_compile_on_start=conf.dash_compile_on_start,
+                                             dash_force_compile=conf.dash_force_compile,
+                                             profile_dashboard=conf.profile_dashboard,
+                                             dashboard_dir = conf.dashboard_dir,
+                                             )
+        setup_routes(conf.dashboard_obj)
 
         if conf.dash_ssl_certificate is not None and conf.dash_ssl_key is not None:
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
