@@ -8,6 +8,7 @@ Change Log
 
 - Refactor of dashboard code in preparation for HASS integration
 - Addition of check to highlight excessive time in scheduler loop
+- Split app configuration out into a separate file in preparation for HASS integration
 
 **Fixes**
 

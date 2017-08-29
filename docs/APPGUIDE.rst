@@ -144,10 +144,8 @@ variables during the API invocation.
 Configuration of Apps
 ---------------------
 
-Apps are configured by specifying new sections in the configuration
-file. ``AppDaemon`` is a reserved section, described in the
-`Installation Pages <INSTALL.html>`__ for configuration of AppDaemon
-itself. The name of the section is the name the App is referred to
+Apps are configured by specifying new sections in the app configuration
+file - ``apps.yaml``. The name of the section is the name the App is referred to
 within the system in log files etc. and must be unique.
 
 To configure a new App you need a minimum of two directives:
@@ -190,7 +188,7 @@ Steps to writing an App
 
 1. Create the code in a new or shared module by deriving a class from
    AppDaemon, add required callbacks and code
-2. Add the App to the configuration file
+2. Add the App to the app configuration file
 3. There is no number 3
 
 Reloading Modules and Classes

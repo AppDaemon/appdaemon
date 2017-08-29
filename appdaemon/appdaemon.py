@@ -236,10 +236,10 @@ def dispatch_worker(name, args):
     #
     # Argument Constraints
     #
-    for arg in conf.config[name].keys():
-        if not check_constraint(arg, conf.config[name][arg]):
+    for arg in conf.app_config[name].keys():
+        if not check_constraint(arg, conf.app_config[name][arg]):
             unconstrained = False
-    if not check_time_constraint(conf.config[name], name):
+    if not check_time_constraint(conf.app_config[name], name):
         unconstrained = False
     #
     # Callback level constraints
@@ -532,14 +532,14 @@ def worker():
 
 
 def term_file(name):
-    for key in conf.config:
-        if "module" in conf.config[key] and conf.config[key]["module"] == name:
+    for key in conf.app_config:
+        if "module" in conf.app_config[key] and conf.app_config[key]["module"] == name:
             term_object(key)
 
 
 def clear_file(name):
-    for key in conf.config:
-        if "module" in conf.config[key] and conf.config[key]["module"] == name:
+    for key in conf.app_config:
+        if "module" in conf.app_config[key] and conf.app_config[key]["module"] == name:
             clear_object(key)
             if key in conf.objects:
                 del conf.objects[key]
@@ -779,35 +779,40 @@ def process_message(data):
             utils.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
 
 
+def read_config():
+    root, ext = os.path.splitext(conf.app_config_file)
+    if ext == ".yaml":
+        with open(conf.app_config_file, 'r') as yamlfd:
+            config_file_contents = yamlfd.read()
+        try:
+            new_config = yaml.load(config_file_contents)
+        except yaml.YAMLError as exc:
+            utils.log(conf.logger, "WARNING", "Error loading configuration")
+            if hasattr(exc, 'problem_mark'):
+                if exc.context is not None:
+                    utils.log(conf.error, "WARNING", "parser says")
+                    utils.log(conf.error, "WARNING", str(exc.problem_mark))
+                    utils.log(conf.error, "WARNING", str(exc.problem) + " " + str(exc.context))
+                else:
+                    utils.log(conf.error, "WARNING", "parser says")
+                    utils.log(conf.error, "WARNING", str(exc.problem_mark))
+                    utils.log(conf.error, "WARNING", str(exc.problem))
+    else:
+        new_config = configparser.ConfigParser()
+        new_config.read_file(open(conf.app_config_file))
+
+    return new_config
+
 # noinspection PyBroadException
 def check_config():
 
     new_config = None
     try:
-        modified = os.path.getmtime(conf.config_file)
-        if modified > conf.config_file_modified:
-            utils.log(conf.logger, "INFO", "{} modified".format(conf.config_file))
-            conf.config_file_modified = modified
-            root, ext = os.path.splitext(conf.config_file)
-            if ext == ".yaml":
-                with open(conf.config_file, 'r') as yamlfd:
-                    config_file_contents = yamlfd.read()
-                try:
-                    new_config = yaml.load(config_file_contents)
-                except yaml.YAMLError as exc:
-                    utils.log(conf.logger, "WARNING", "Error loading configuration")
-                    if hasattr(exc, 'problem_mark'):
-                        if exc.context is not None:
-                            utils.log(conf.error, "WARNING", "parser says")
-                            utils.log(conf.error, "WARNING", str(exc.problem_mark))
-                            utils.log(conf.error, "WARNING", str(exc.problem) + " " + str(exc.context))
-                        else:
-                            utils.log(conf.error, "WARNING", "parser says")
-                            utils.log(conf.error, "WARNING", str(exc.problem_mark))
-                            utils.log(conf.error, "WARNING", str(exc.problem))
-            else:
-                new_config = configparser.ConfigParser()
-                new_config.read_file(open(conf.config_file))
+        modified = os.path.getmtime(conf.app_config_file)
+        if modified > conf.app_config_file_modified:
+            utils.log(conf.logger, "INFO", "{} modified".format(conf.app_config_file))
+            conf.app_config_file_modified = modified
+            new_config = read_config()
 
             if new_config is None:
                 utils.log(conf.error, "WARNING", "New config not applied")
@@ -816,11 +821,11 @@ def check_config():
 
             # Check for changes
 
-            for name in conf.config:
+            for name in conf.app_config:
                 if name == "DEFAULT" or name == "AppDaemon" or name == "HADashboard":
                     continue
                 if name in new_config:
-                    if conf.config[name] != new_config[name]:
+                    if conf.app_config[name] != new_config[name]:
                         # Something changed, clear and reload
 
                         utils.log(conf.logger, "INFO", "App '{}' changed - reloading".format(name))
@@ -840,7 +845,7 @@ def check_config():
             for name in new_config:
                 if name == "DEFAULT" or name == "AppDaemon":
                     continue
-                if name not in conf.config:
+                if name not in conf.app_config:
                     #
                     # New section added!
                     #
@@ -850,7 +855,7 @@ def check_config():
                         new_config[name]["module"], new_config[name]
                     )
 
-            conf.config = new_config
+            conf.app_config = new_config
     except:
         utils.log(conf.error, "WARNING", '-' * 60)
         utils.log(conf.error, "WARNING", "Unexpected error:")
@@ -896,13 +901,13 @@ def read_app(file, reload=False):
 
         # Instantiate class and Run initialize() function
 
-        for name in conf.config:
+        for name in conf.app_config:
             if name == "DEFAULT" or name == "AppDaemon" or name == "HASS" or name == "HADashboard":
                 continue
-            if module_name == conf.config[name]["module"]:
-                class_name = conf.config[name]["class"]
+            if module_name == conf.app_config[name]["module"]:
+                class_name = conf.app_config[name]["class"]
 
-                init_object(name, class_name, module_name, conf.config[name])
+                init_object(name, class_name, module_name, conf.app_config[name])
 
     except:
         utils.log(conf.error, "WARNING", '-' * 60)
@@ -916,10 +921,10 @@ def read_app(file, reload=False):
 
 def get_module_dependencies(file):
     module_name = get_module_from_path(file)
-    for key in conf.config:
-        if "module" in conf.config[key] and conf.config[key]["module"] == module_name:
-            if "dependencies" in conf.config[key]:
-                return conf.config[key]["dependencies"].split(",")
+    for key in conf.app_config:
+        if "module" in conf.app_config[key] and conf.app_config[key]["module"] == module_name:
+            if "dependencies" in conf.app_config[key]:
+                return conf.app_config[key]["dependencies"].split(",")
             else:
                 return None
 
@@ -963,11 +968,11 @@ def get_module_from_path(path):
 def find_dependent_modules(module):
     module_name = get_module_from_path(module["name"])
     dependents = []
-    for mod in conf.config:
-        if "dependencies" in conf.config[mod]:
-            for dep in conf.config[mod]["dependencies"].split(","):
+    for mod in conf.app_config:
+        if "dependencies" in conf.app_config[mod]:
+            for dep in conf.app_config[mod]["dependencies"].split(","):
                 if dep == module_name:
-                    dependents.append(conf.config[mod]["module"])
+                    dependents.append(conf.app_config[mod]["module"])
     return dependents
 
 
@@ -992,6 +997,7 @@ def read_apps(all_=False):
     # Check if the apps are disabled in config
     if not conf.apps:
         return
+
     found_files = []
     modules = []
     for root, subdirs, files in os.walk(conf.app_dir):
@@ -1285,6 +1291,10 @@ def run_ad(loop, tasks):
     conf.stopping = False
 
     utils.log(conf.logger, "DEBUG", "Entering run()")
+
+    # Load App Config
+
+    conf.app_config = read_config()
 
     # Save start time
 
