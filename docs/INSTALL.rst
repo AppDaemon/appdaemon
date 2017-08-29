@@ -58,11 +58,6 @@ Your initial file should look something like this:
       ha_url: <some_url>
       ha_key: <some key>
 
-    # Apps
-    hello_world:
-      module: hello
-      class: HelloWorld
-
 -  ``ha_url`` is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or
    ``https://`` as appropriate)
@@ -146,10 +141,16 @@ The secrets can then be referred to as follows:
 Configuring a Test App
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The ``#Apps`` section is the configuration for the Hello World program
-and should be left in place for initial testing but can be removed later
-if desired, as other Apps are added, App configuration is fully
-described in the `API doc <API.md>`__.
+To start configureing Apps, we need to create a new `apps.yaml` file in the same directory as appdaemon.yaml.
+To start, we can add an entry for the Hello World App like this:
+
+.. code:: yaml
+
+    hello_world:
+      module: hello
+      class: HelloWorld
+
+App configuration is fully described in the `API doc <API.md>`__.
 
 To add an initial test app to match the configuration above, we need to
 first create an ``apps`` subdirectory under the conf directory. Then

@@ -66,6 +66,9 @@ config_dir = None
 api_port = None
 was_dst = False
 config = None
+app_config_file = None
+app_config_file_modified = 0
+app_config = None
 
 # HomeAssistant plugin
 

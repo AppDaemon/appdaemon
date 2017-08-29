@@ -137,7 +137,6 @@ def main():
     else:
         isdaemon = False
 
-
     if config_dir is None:
         config_file_conf = find_path("appdaemon.cfg")
         config_file_yaml = find_path("appdaemon.yaml")
@@ -170,6 +169,7 @@ def main():
 
             config_from_yaml = True
             conf.config_file = config_file_yaml
+            conf.app_config_file = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
             with open(config_file_yaml, 'r') as yamlfd:
                 config_file_contents = yamlfd.read()
 
@@ -471,7 +471,7 @@ def main():
 
     ad.init_sun()
 
-    conf.config_file_modified = os.path.getmtime(conf.config_file)
+    conf.app_config_file_modified = os.path.getmtime(conf.app_config_file)
 
     # Add appdir  and subdirs to path
     if conf.apps:
