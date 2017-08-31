@@ -1,7 +1,31 @@
+StudioOn:
+  module: sequence
+  class: Sequence
+  input: input_boolean.studio
+  state: "on"
+  sequence:
+    - entity: switch.basement_desk_switch
+      service: switch/turn_on
+      delay: 0
+    - entity: switch.basement_speakers_switch
+      service: switch/turn_on
+      delay: 5
+StudioOff:
+  module: sequence
+  class: Sequence
+  input: input_boolean.studio
+  state: "off"
+  sequence:
+    - entity: switch.basement_speakers_switch
+      service: switch/turn_off
+      delay: 0
+    - entity: switch.basement_desk_switch
+      service: switch/turn_off
+      delay: 5
 Commute:
   module: commute
   class: Commute
-  limit: 30
+  limit: 40
   sensor: sensor.wendy_work_to_home
   time: "16:30:00"
   notify:
@@ -14,6 +38,7 @@ Battery Check:
   dependencies: globals
   module: battery
   threshold: '25'
+  inactive_mins: 1440
 Dark Day:
   class: DarkDay
   constrain_input_select: input_select.house_mode,Day
@@ -245,8 +270,8 @@ Security:
   alarm_notify:
     tts:
       message: "Alert. Alert. Alert. Alarm has been activated. Police have been notified. Please leave the premises immediately."
-  query_zones:  ["Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter"]
-  secure_zones: ["Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter"]
+  query_zones:  ["Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter", "Studio"]
+  secure_zones: ["Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter", "Studio"]
   armed_home_zones: ["Basement Motion", "Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter"]
   armed_away_zones: ["Basement Motion", "Basement Perimeter", "Garage Perimeter", "Garage Motion", "Downstairs Perimeter", "Downstairs Motion", "Upstairs Motion"]
   zones:
@@ -259,6 +284,11 @@ Security:
         state_map:
           "on": "open"
           "off": "closed"
+    Studio:
+      input_boolean.studio:
+        desired_state: "off"
+        service: homeassistant/turn_off
+        timeout: 5
     Downstairs Perimeter:
       lock.front_door_lock_locked:
         desired_state: "locked"
