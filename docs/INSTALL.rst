@@ -9,7 +9,7 @@ Note: Windows and Raspbian users should check the environment specific section a
 Install and Run using Docker
 ----------------------------
 
-Follow the instructions in the `Docker Tutorial <DOCKER_TUTORIAL.md>`__
+Follow the instructions in the `Docker Tutorial <DOCKER_TUTORIAL.html>`__
 
 Install Using pip3
 ------------------
@@ -141,7 +141,7 @@ The secrets can then be referred to as follows:
 Configuring a Test App
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To start configureing Apps, we need to create a new `apps.yaml` file in the same directory as appdaemon.yaml.
+To start configuring Apps, we need to create a new `apps.yaml` file in the same directory as appdaemon.yaml.
 To start, we can add an entry for the Hello World App like this:
 
 .. code:: yaml
@@ -155,7 +155,7 @@ App configuration is fully described in the `API doc <API.md>`__.
 To add an initial test app to match the configuration above, we need to
 first create an ``apps`` subdirectory under the conf directory. Then
 create a file in the apps directory called ``hello.py``, and paste the
-followinginto it using your favorite text editor:
+following into it using your favorite text editor:
 
 .. code:: python
 
@@ -180,7 +180,7 @@ Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configuration of the dashboard component (HADashboard) is described
-separately in the `Dashboard doc <DASHBOARD.md>`__
+separately in the `Dashboard doc <DASHBOARD_INSTALL.html>`__
 
 Example Apps
 ------------
