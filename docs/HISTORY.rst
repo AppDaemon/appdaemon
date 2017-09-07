@@ -9,6 +9,7 @@ Change Log
 - Refactor of dashboard code in preparation for HASS integration
 - Addition of check to highlight excessive time in scheduler loop
 - Split app configuration out into a separate file in preparation for HASS integration
+- Enhance widget API to handle all event types instead of just click
 
 **Fixes**
 
@@ -17,6 +18,7 @@ Change Log
 **Breaking Changes**
 
 - App configuration is now separate from AppDaemon, HASS and HADashboard configuration
+- The Widget API has changed to accomodate different enevt types and now needs an ``action`` parameter to specify what the event type to be listened for is
 
 
 2.1.7 (2017-08-20)
