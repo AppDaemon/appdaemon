@@ -16,7 +16,7 @@ Change Log
 
 **Breaking Changes**
 
-None
+- App configuration is now separate from AppDaemon, HASS and HADashboard configuration
 
 
 2.1.7 (2017-08-20)
