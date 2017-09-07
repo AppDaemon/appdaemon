@@ -230,7 +230,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     clen = callbacks.length;
     for (i=0;i < clen;i++)
     {
-        $(callbacks[i].selector).click((
+        $(callbacks[i].selector).on(callbacks[i].action, (
             function(callback, ch, params)
             {
                 return function()

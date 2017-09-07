@@ -19,8 +19,8 @@ function baseclimate(widget_id, url, skin, parameters)
 
     var callbacks =
         [
-            {"selector": '#' + widget_id + ' #level-up', "callback": self.OnRaiseLevelClick},
-            {"selector": '#' + widget_id + ' #level-down', "callback": self.OnLowerLevelClick},
+            {"selector": '#' + widget_id + ' #level-up', "action": "click", "callback": self.OnRaiseLevelClick},
+            {"selector": '#' + widget_id + ' #level-down', "action": "click", "callback": self.OnLowerLevelClick},
         ]
 
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
