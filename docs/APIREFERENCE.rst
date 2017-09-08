@@ -348,59 +348,6 @@ Examples
 
     entity, attribute, kwargs = self.info_listen_state(self.handle)
 
-set\_app\_state()
-~~~~~~~~~~~~~~~~~
-
-Publish state information to AppDaemon's internal state and push the
-state changes out to listening Apps and Dashboards.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.set_app_state(entity_id, state)
-
-Returns
-^^^^^^^
-
-None.
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-A name for the new state. It must conform to the standard entity\_id
-format, e.g. ``<device_type>.<name>``. however device type and name can
-be whatever you like as long as you ensure it doesn't conflict with any
-real devices. For clarity, I suggest the convention of using
-``appdaemon`` as the device type. A single App can publish to as many
-entity ids as desired.
-
-state
-'''''
-
-The state to be associated with the entity id. This is a dictionary and
-must contain the enirety of the state information, It will replace the
-old state information, and calls like ``listen_state()`` should work
-correctly reporting the old and the new state information as long as you
-keep the dictionary looking similar to HA status updates, e.g. the main
-state in a state field, and any attibutes in an attributes
-sub-dictionary.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.set_app_state("appdaemon.alerts", {"state": number, "attributes": {"unit_of_measurement": ""}})
-
-This is an example of a state update that can be used with a sensor
-widget in HADashboard. "state" is the actual value, and the widget also
-expects an attribute called "unit\_of\_measurement" to work correctly.
-
 Scheduler Calls
 ---------------
 
@@ -2470,3 +2417,102 @@ Examples
 .. code:: python
 
     format_apiai_response(speech = "Hello World")
+
+Dashboard Functions
+-------------------
+
+set\_app\_state()
+~~~~~~~~~~~~~~~~~
+
+Publish state information to AppDaemon's internal state and push the
+state changes out to listening Apps and Dashboards.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.set_app_state(entity_id, state)
+
+Returns
+^^^^^^^
+
+None.
+
+Parameters
+^^^^^^^^^^
+
+entity\_id
+''''''''''
+
+A name for the new state. It must conform to the standard entity\_id
+format, e.g. ``<device_type>.<name>``. however device type and name can
+be whatever you like as long as you ensure it doesn't conflict with any
+real devices. For clarity, I suggest the convention of using
+``appdaemon`` as the device type. A single App can publish to as many
+entity ids as desired.
+
+state
+'''''
+
+The state to be associated with the entity id. This is a dictionary and
+must contain the enirety of the state information, It will replace the
+old state information, and calls like ``listen_state()`` should work
+correctly reporting the old and the new state information as long as you
+keep the dictionary looking similar to HA status updates, e.g. the main
+state in a state field, and any attibutes in an attributes
+sub-dictionary.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.set_app_state("appdaemon.alerts", {"state": number, "attributes": {"unit_of_measurement": ""}})
+
+This is an example of a state update that can be used with a sensor
+widget in HADashboard. "state" is the actual value, and the widget also
+expects an attribute called "unit\_of\_measurement" to work correctly.
+
+dash\_navigate()
+~~~~~~~~~~~~~~~~
+
+Force all connected Dashboards to navigate to a new URL
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    dash_navigate(self, target, timeout = -1, ret = None)
+
+Returns
+^^^^^^^
+
+None.
+
+Parameters
+^^^^^^^^^^
+
+target
+''''''
+
+A URL for the dashboard to navigate to e.g. ``/MainDash``
+
+ret
+'''
+
+Time to wait before the optional second change. If not specified the first change will be permanent.
+
+timeout
+'''''''
+
+URL to navigate back to after ``timeout``. If not specified, the dashboard will navigate back to the original panel.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.dash_navigate("/AlarmStatus", timeout=10)        # Switch to AlarmStatus Panel then return to current panel after 10 seconds
+    self.dash_navigate("/Locks", timeout=10, ret="/Main") # Switch to Locks Panel then return to Main panel after 10 seconds
