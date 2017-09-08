@@ -10,6 +10,7 @@ Change Log
 - Addition of check to highlight excessive time in scheduler loop
 - Split app configuration out into a separate file in preparation for HASS integration
 - Enhance widget API to handle all event types instead of just click
+- Add example HADashboard focussed Apps for Oslo City Bikes, Caching of local AppDaemon events, Monitoring events and logging, Google Calendar Feed, Oslo Public Transport, YR Weather - contributed by `Torkild Retvedt <https://github.com/torkildr>`__
 
 **Fixes**
 
