@@ -1,0 +1,8 @@
+
+.widget-baseerror-{{id}} .error {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+

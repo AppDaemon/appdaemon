@@ -11,7 +11,7 @@ import io
 import pstats
 import datetime
 
-import appdaemon.homeassistant as ha
+import appdaemon.utils as ha
 
 
 class Dashboard:
@@ -236,7 +236,7 @@ class Dashboard:
                             _log_error(dash, name, "parser says")
                             _log_error(dash, name, str(exc.problem_mark))
                             _log_error(dash, name, str(exc.problem))
-                    return {"widget_type": "text", "title": "Error loading widget"}
+                    return self.error_widget("Error loading widget")
 
             elif name.find(".") != -1:
                 #
@@ -247,12 +247,12 @@ class Dashboard:
             else:
                 ha.log(self.logger, "WARNING", "Unable to find widget definition for '{}'".format(name))
                 # Return some valid data so the browser will render a blank widget
-                return {"widget_type": "text", "title": "Widget definition not found"}
+                return self.error_widget("Widget definition not found")
 
         widget_type = None
         try:
             if "widget_type" not in instantiated_widget:
-                return {"widget_type": "text", "title": "Widget type not specified"}
+                return self.error_widget("Widget type not specified")
 
             #
             # One way or another we now have the widget definition
@@ -303,7 +303,7 @@ class Dashboard:
                         _log_error(dash, name, "parser says")
                         _log_error(dash, name, str(exc.problem_mark))
                         _log_error(dash, name, str(exc.problem))
-                return {"widget_type": "text", "title": "Error loading widget definition"}
+                return self.error_widget("Error loading widget definition")
 
             #
             # Add in global params
@@ -340,12 +340,16 @@ class Dashboard:
             # Merge styles
             #
             final_widget = self._merge_styles(final_widget, name)
-
             return final_widget
+
         except FileNotFoundError:
             ha.log(self.logger, "WARNING", "Unable to find widget type '{}'".format(widget_type))
+            ha.log(self.logger, "WARNING", traceback.format_exc())
             # Return some valid data so the browser will render a blank widget
-            return {"widget_type": "text", "title": "Widget type not found"}
+            return self.error_widget("Unable to find widget type '{}'".format(widget_type))
+
+    def error_widget(self, error):
+        return {"widget_type": "baseerror", "fields": {"error": error}, "static_css":{"widget_style": ""}}
 
     def _widget_exists(self, widgets, _id):
         for widge in widgets:
@@ -629,6 +633,8 @@ class Dashboard:
             if os.path.isdir(widget_dir):
                 widget_dirs = os.listdir(path=widget_dir)
                 for widget in widget_dirs:
+                    if widget_dir == os.path.join(self.config_dir, "custom_widgets"):
+                        ha.log(self.logger, "INFO", "Loading custom widget '{}'".format(widget))
                     if os.path.isdir(os.path.join(widget_dir, widget)):
                         jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
                         csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))

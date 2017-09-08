@@ -6,7 +6,7 @@ import ssl
 import traceback
 
 import appdaemon.conf as conf
-import appdaemon.homeassistant as ha
+import appdaemon.utils as ha
 
 app = web.Application()
 

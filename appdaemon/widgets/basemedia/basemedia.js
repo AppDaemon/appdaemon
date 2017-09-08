@@ -30,11 +30,11 @@ function basemedia(widget_id, url, skin, parameters)
 
     var callbacks =
         [
-            {"selector": '#' + widget_id + ' #play', "callback": self.OnPlayButtonClick},
-            {"selector": '#' + widget_id + ' #level-up', "callback": self.OnRaiseLevelClick},
-            {"selector": '#' + widget_id + ' #level-down', "callback": self.OnLowerLevelClick},
-            {"selector": '#' + widget_id + ' #previous', "callback": self.OnPreviousButtonClick},
-            {"selector": '#' + widget_id + ' #next', "callback": self.OnNextButtonClick}
+            {"selector": '#' + widget_id + ' #play', "action": "click", "callback": self.OnPlayButtonClick},
+            {"selector": '#' + widget_id + ' #level-up', "action": "click", "callback": self.OnRaiseLevelClick},
+            {"selector": '#' + widget_id + ' #level-down', "action": "click", "callback": self.OnLowerLevelClick},
+            {"selector": '#' + widget_id + ' #previous', "action": "click", "callback": self.OnPreviousButtonClick},
+            {"selector": '#' + widget_id + ' #next', "action": "click", "callback": self.OnNextButtonClick}
         ];
 
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed

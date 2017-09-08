@@ -530,13 +530,14 @@ The next step is to set up the widget to respond to various events such as butto
 
         var callbacks =
             [
-                {"selector": '#' + widget_id + ' > span', "callback": self.OnButtonClick},
-                {"selector": '#' + widget_id + ' #level-up', "callback": self.OnRaiseLevelClick},
-                {"selector": '#' + widget_id + ' #level-down', "callback": self.OnLowerLevelClick},
+                {"selector": '#' + widget_id + ' > span', "action": "click", "callback": self.OnButtonClick},
+                {"selector": '#' + widget_id + ' #level-up', "action": "click", "callback": self.OnRaiseLevelClick},
+                {"selector": '#' + widget_id + ' #level-down', "action": "click", "callback": self.OnLowerLevelClick},
             ]
 
-Each widget has the opportunity to register itself for button clicks or touches. This is done by filling out the
-callbacks array (which is later used to initialize them). Here we are registering 3 callbacks.
+Each widget has the opportunity to register itself for button clicks or touches, or any other event type such as ``change``.
+This is done by filling out the callbacks array (which is later used to initialize them).
+Here we are registering 3 callbacks.
 
 Looking at ``OnButtonClick`` as an example:
 
@@ -544,6 +545,7 @@ Looking at ``OnButtonClick`` as an example:
 - self.OnButtonClick is being used to add it to the object
 - In Callbacks, we have an entry that connects a jQuery selector to that particular callback, such that
   when the element identified by the selector is clicked, the callback in the list will be called.
+- ``action`` defines the jQuery action type the callback will respond to, e.g. ``click`` or ``change``
 
 Once the widget is running, the OnButtonClick function will be called whenever the span in the HTML file is touched.
 You may have noticed that in the CSS file we placed the span on top of everything else and made it cover the entire
