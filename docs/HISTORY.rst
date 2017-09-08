@@ -18,7 +18,7 @@ Change Log
 **Breaking Changes**
 
 - App configuration is now separate from AppDaemon, HASS and HADashboard configuration
-- The Widget API has changed to accomodate different enevt types and now needs an ``action`` parameter to specify what the event type to be listened for is
+- The Widget API has changed to accommodate different event types and now needs an ``action`` parameter to specify what the event type to be listened for is
 
 
 2.1.7 (2017-08-20)
