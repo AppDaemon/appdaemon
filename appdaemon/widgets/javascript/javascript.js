@@ -29,7 +29,7 @@ function javascript(widget_id, url, skin, parameters)
 
     var callbacks =
         [
-            {"selector": '#' + widget_id + ' > span', "callback": self.OnButtonClick},
+            {"selector": '#' + widget_id + ' > span', "action": "click","callback": self.OnButtonClick},
         ]
        
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
