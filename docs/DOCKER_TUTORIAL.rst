@@ -97,7 +97,7 @@ Persistent Configuration
 ------------------------
 
 In Docker, containers (the running application) are considered
-ephimeral. Any state that you want to be able to preserve must be stored
+ephemeral. Any state that you want to be able to preserve must be stored
 outside of the container so that the container can be disposed and
 recreated at any time. In the case of Appdaemon, this means you would be
 concerned about your ``conf`` folder.
@@ -166,7 +166,7 @@ Upgrading Appdaemon
 -------------------
 
 Upgrading with Docker really doesn't exist in the same way as with
-non-containerized apps. Containers are considered ephimeral and are an
+non-containerized apps. Containers are considered ephemeral and are an
 instance of a base, known-good application image. Therefore the process
 of upgrading is simply disposing of the old version, grabbing a newer
 version of the application image and starting up a new container with
