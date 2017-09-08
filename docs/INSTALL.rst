@@ -85,7 +85,7 @@ Your initial file should look something like this:
 -  ``threads`` - the number of dedicated worker threads to create for
    running the apps. Note, this will bear no resembelance to the number
    of apps you have, the threads are re-used and only active for as long
-   as required to tun a particular callback or initialization, leave
+   as required to run a particular callback or initialization, leave
    this set to 10 unless you experience thread starvation
 -  ``cert_path`` (optional) - path to root CA cert directory for HASS -
    use only if you are using self signed certs.
