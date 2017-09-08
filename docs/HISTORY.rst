@@ -1,8 +1,8 @@
 Change Log
 ==========
 
-2.1.9
------
+2.1.9 (2017-09-08)
+------------------
 
 **Features**
 
@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-None
+- broken `disable_apps` temporary workaround
 
 **Breaking Changes**
 
