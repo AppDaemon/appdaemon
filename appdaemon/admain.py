@@ -65,7 +65,9 @@ def run():
     else:
         utils.log(conf.logger, "INFO", "API is disabled")
 
+    utils.log(conf.logger, "DEBUG", "Start Loop")
     loop.run_until_complete(asyncio.wait(tasks))
+    utils.log(conf.logger, "DEBUG", "End Loop")
 
     utils.log(conf.logger, "INFO", "AppDeamon Exited")
 
@@ -471,10 +473,9 @@ def main():
 
     ad.init_sun()
 
-    conf.app_config_file_modified = os.path.getmtime(conf.app_config_file)
-
     # Add appdir  and subdirs to path
-    if conf.apps:
+    if conf.apps is True:
+        conf.app_config_file_modified = os.path.getmtime(conf.app_config_file)
         if conf.app_dir is None:
             if config_dir is None:
                 conf.app_dir = find_path("apps")
@@ -483,6 +484,8 @@ def main():
         for root, subdirs, files in os.walk(conf.app_dir):
             if root[-11:] != "__pycache__":
                 sys.path.insert(0, root)
+    else:
+        conf.app_config_file_modified = 0
 
     # find dashboard dir
 

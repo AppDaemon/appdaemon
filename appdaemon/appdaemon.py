@@ -901,13 +901,14 @@ def read_app(file, reload=False):
 
         # Instantiate class and Run initialize() function
 
-        for name in conf.app_config:
-            if name == "DEFAULT" or name == "AppDaemon" or name == "HASS" or name == "HADashboard":
-                continue
-            if module_name == conf.app_config[name]["module"]:
-                class_name = conf.app_config[name]["class"]
+        if conf.app_config is not None:
+            for name in conf.app_config:
+                if name == "DEFAULT" or name == "AppDaemon" or name == "HASS" or name == "HADashboard":
+                    continue
+                if module_name == conf.app_config[name]["module"]:
+                    class_name = conf.app_config[name]["class"]
 
-                init_object(name, class_name, module_name, conf.app_config[name])
+                    init_object(name, class_name, module_name, conf.app_config[name])
 
     except:
         utils.log(conf.error, "WARNING", '-' * 60)
@@ -921,12 +922,13 @@ def read_app(file, reload=False):
 
 def get_module_dependencies(file):
     module_name = get_module_from_path(file)
-    for key in conf.app_config:
-        if "module" in conf.app_config[key] and conf.app_config[key]["module"] == module_name:
-            if "dependencies" in conf.app_config[key]:
-                return conf.app_config[key]["dependencies"].split(",")
-            else:
-                return None
+    if conf.app_config is not None:
+        for key in conf.app_config:
+            if "module" in conf.app_config[key] and conf.app_config[key]["module"] == module_name:
+                if "dependencies" in conf.app_config[key]:
+                    return conf.app_config[key]["dependencies"].split(",")
+                else:
+                    return None
 
     return None
 
@@ -968,11 +970,12 @@ def get_module_from_path(path):
 def find_dependent_modules(module):
     module_name = get_module_from_path(module["name"])
     dependents = []
-    for mod in conf.app_config:
-        if "dependencies" in conf.app_config[mod]:
-            for dep in conf.app_config[mod]["dependencies"].split(","):
-                if dep == module_name:
-                    dependents.append(conf.app_config[mod]["module"])
+    if conf.app_config is not None:
+        for mod in conf.app_config:
+            if "dependencies" in conf.app_config[mod]:
+                for dep in conf.app_config[mod]["dependencies"].split(","):
+                    if dep == module_name:
+                        dependents.append(conf.app_config[mod]["module"])
     return dependents
 
 
@@ -1360,7 +1363,6 @@ def run_ad(loop, tasks):
     read_apps(True)
 
     utils.log(conf.logger, "INFO", "App initialization complete")
-
 
     # Create timer loop
 
