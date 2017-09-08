@@ -1552,10 +1552,10 @@ want to configure.
 
             return random.choice(responses)
 
-Google APP.AI
+Google API.AI
 -------------
 
-Similarly, Google's APP.AI for Google home is supported - here is the Google version of the same App.
+Similarly, Google's API.AI for Google home is supported - here is the Google version of the same App.To set up Api.ai with your google home refer to the apiai component in home-assistant. Once it is setup you can use the appdaemon API as the webhook.
 
 import appdaemon.appapi as appapi
 import random
