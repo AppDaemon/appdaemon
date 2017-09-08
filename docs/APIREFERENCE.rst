@@ -223,7 +223,7 @@ duration =  (optional)
 If duration is supplied as a parameter, the callback will not fire
 unless the state listened for is maintained for that number of seconds.
 This makes the most sense if a specific attribute is specified (or the
-default of ``state`` is used), an in conjunction with the ``old`` or
+default of ``state`` is used), and in conjunction with the ``old`` or
 ``new`` parameters, or both. When the callback is called, it is supplied
 with the values of ``entity``, ``attr``, ``old`` and ``new`` that were
 current at the time the actual event occured, since the assumption is

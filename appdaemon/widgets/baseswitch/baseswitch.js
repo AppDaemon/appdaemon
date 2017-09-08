@@ -30,7 +30,7 @@ function baseswitch(widget_id, url, skin, parameters)
     {
         var callbacks =
             [
-                {"selector": '#' + widget_id + ' > span', "callback": self.OnButtonClick},
+                {"selector": '#' + widget_id + ' > span', "action": "click", "callback": self.OnButtonClick},
             ]
     }            
     else

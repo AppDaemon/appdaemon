@@ -1,21 +1,24 @@
 Change Log
 ==========
 
-2.1.8
------
+2.1.8 (2017-09-08)
+------------------
 
 **Features**
 
 - Refactor of dashboard code in preparation for HASS integration
 - Addition of check to highlight excessive time in scheduler loop
+- Split app configuration out into a separate file in preparation for HASS integration
+- Enhance widget API to handle all event types instead of just click
 
 **Fixes**
 
-None
+- Fixed a bug that gave a spurious "text widget not found" error
 
 **Breaking Changes**
 
-None
+- App configuration is now separate from AppDaemon, HASS and HADashboard configuration
+- The Widget API has changed to accommodate different event types and now needs an ``action`` parameter to specify what the event type to be listened for is
 
 
 2.1.7 (2017-08-20)
