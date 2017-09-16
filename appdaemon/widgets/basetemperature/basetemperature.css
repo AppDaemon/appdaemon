@@ -1,0 +1,10 @@
+.widget-basetemperature-{{id}} {
+	position: relative;
+}
+
+.widget-basetemperature-{{id}} .canvasclass {
+	position: relative;
+	vertical-align: middle;
+	horizontal-align: middle;
+}
+
