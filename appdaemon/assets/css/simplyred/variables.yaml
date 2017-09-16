@@ -29,6 +29,8 @@
 #
 
 head_includes: 
+  - <script src="/custom_css/gauge/gauge.min.js"></script>
+  - <link rel="stylesheet" href="/custom_css/gauge/fonts/fonts.css">
   - <meta http-equiv="refresh" content="3600">
   - <script type="text/javascript" src="/css/simplyred/js/timer.js"></script>
  
