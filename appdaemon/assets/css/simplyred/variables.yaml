@@ -331,6 +331,7 @@ new_input_slider_minvalue_style: $style_title
 new_input_slider_maxvalue_style: $style_title
 new_input_slider_value_style: $style_title
 new_input_slider_slider_style: "-webkit-appearance: none"
+new_input_slider_container_style: ""
 new_input_slider_widget_style: $background_style
 
 vertical_input_slider_title_style: $style_title
@@ -339,6 +340,7 @@ vertical_input_slider_minvalue_style: $style_title
 vertical_input_slider_maxvalue_style: $style_title
 vertical_input_slider_value_style: $style_title
 vertical_input_slider_slider_style: ""
+vertical_input_slider_container_style: ""
 vertical_input_slider_widget_style: $background_style
 
 light_with_brightness_icon_on: mdi-lightbulb
