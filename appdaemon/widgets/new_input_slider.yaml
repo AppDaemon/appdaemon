@@ -23,4 +23,5 @@ static_css:
   maxvalue_style: $new_input_slider_maxvalue_style
   value_style: $new_input_slider_value_style
   slider_style: $new_input_slider_slider_style
+  slidercontainer_style: $new_input_slider_container_style
   widget_style: $new_input_slider_widget_style
