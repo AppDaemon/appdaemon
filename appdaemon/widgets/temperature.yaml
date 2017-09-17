@@ -1,0 +1,8 @@
+widget_type: basetemperature
+entity: {{entity}}
+fields: []
+static_css:
+  widget_style: $thermo_widget_style
+css: []
+icons: []
+static_icons: []

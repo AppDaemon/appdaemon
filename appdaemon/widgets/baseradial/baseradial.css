@@ -1,0 +1,14 @@
+.widget-baseradial-{{id}} {
+	position: relative;
+        border-bottom-left-radius: 50%;
+        border-bottom-right-radius: 50%;
+        border-top-left-radius: 50%;
+        border-top-right-radius: 50%
+}
+
+.widget-baseradial-{{id}} .canvasclass {
+	position: relative;
+	vertical-align: middle;
+	horizontal-align: middle;
+}
+
