@@ -1,0 +1,26 @@
+widget_type: base_light_with_colorpicker
+entity: {{entity}}
+post_service_active:
+    service: homeassistant/turn_on
+    entity_id: {{entity}}
+post_service_inactive:
+    service: homeassistant/turn_off
+    entity_id: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  hex_color: "#000000"
+  icon: ""
+  icon_style: ""
+icons:
+  icon_on: $light_with_colorpicker_icon_on
+  icon_off: $light_with_colorpicker_icon_off
+static_icons: []
+static_css:
+  title_style: $light_with_colorpicker_title_style
+  title2_style: $light_with_colorpicker_title2_style
+  button_style: $light_with_colorpicker_button_style
+  widget_style: $light_with_colorpicker_widget_style
+css:
+  icon_style_active: $light_with_colorpicker_icon_style_active
+  icon_style_inactive: $light_with_colorpicker_icon_style_inactive

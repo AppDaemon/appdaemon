@@ -1,0 +1,8 @@
+widget_type: baseradial
+entity: {{entity}}
+fields: []
+static_css:
+  widget_style: $radial_widget_style
+css: []
+icons: []
+static_icons: []

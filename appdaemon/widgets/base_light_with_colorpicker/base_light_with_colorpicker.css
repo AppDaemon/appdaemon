@@ -1,0 +1,44 @@
+.widget-base_light_with_colorpicker-{{id}} {
+	position: relative;
+}
+.widget-base_light_with_colorpicker-{{id}} .title {
+    position: absolute;
+    top: 5px;
+    width: 100%;
+}
+.widget-base_light_with_colorpicker-{{id}} .title2 {
+    position: absolute;
+    top: 23px;
+    width: 100%;
+}
+.widget-base_light_with_colorpicker-{{id}} .iconcontainer {
+	position: absolute;
+	bottom: 25%;
+	width: 100%;
+}
+
+.widget-base_light_with_colorpicker-{{id}} .toggle-area {
+	z-index: 10;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 75%;
+}
+
+.widget-base_light_with_colorpicker-{{id}} .buttoncontainer {
+   position: absolute;
+   bottom: 5px;
+   height: 25%;
+   overflow: hidden;
+   width: 100%;
+   horizontal-align: center;
+   margin:auto;
+}
+
+.widget-base_light_with_colorpicker-{{id}} input[type=color] {
+  -webkit-appearance: slider-horizontal;
+  border: 1px solid white;
+  height: 90%;
+  width: 90%;
+}

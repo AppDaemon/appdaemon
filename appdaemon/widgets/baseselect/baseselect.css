@@ -1,0 +1,41 @@
+.widget-baseselect-{{id}} {
+    position: relative;
+}
+.widget-baseselect-{{id}} .title {
+    position: absolute;
+    top: 5px;
+    width: 100%;
+}
+.widget-baseselect-{{id}} .title2 {
+    position: absolute;
+    top: 23px;
+    width: 100%;
+}
+
+.widget-baseselect-{{id}} .styled-select {
+   position: absolute;
+   top: 45px;
+   height: 29px;
+   overflow: hidden;
+   width: 100%;
+   horizontal-align: center;
+   margin:auto;
+}
+
+.widget-baseselect-{{id}} .styled-select>select {
+   background-color: #333;
+   border: none;
+   outline: none;
+   font-size: 16px;
+   height: 29px;
+   padding: 5px;
+   width: 90%;
+   color: white;
+   -webkit-border-radius: 5px;
+   -moz-border-radius: 5px;
+   border-radius: 5px;
+}
+
+
+
+
