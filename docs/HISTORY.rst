@@ -10,7 +10,8 @@ None
 
 **Fixes**
 
-None
+- Fixed a bug in album titles in the media player - contributed by `Andreas Wrede <https://github.com/awrede>`__
+- Label `text_style` now works as documented
 
 **Breaking Changes**
 

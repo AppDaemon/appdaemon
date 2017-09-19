@@ -218,29 +218,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     };
 
     // Initialization
-    
-    // Grab current status for entities
-    
-    elen = monitored_entities.length;
-    for (i=0;i < elen;i++)
-    {
-        this.get_state(child, url, monitored_entities[i])
-    }
 
-    clen = callbacks.length;
-    for (i=0;i < clen;i++)
-    {
-        $(callbacks[i].selector).on(callbacks[i].action, (
-            function(callback, ch, params)
-            {
-                return function()
-                {
-                    callback(ch, params)
-                };
-            }(callbacks[i].callback, child,callbacks[i].parameters))
-        );
-    }
-    
     // Create and initialize bindings
     
     child.ViewModel = {};
@@ -305,5 +283,40 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         Object.keys(parameters.static_icons).forEach(function (key, index) {
             child.ViewModel[key](parameters.static_icons[key].split("-")[0] + ' ' + parameters.static_icons[key])
         });
+    }
+
+    // Setup callbacks
+
+    clen = callbacks.length;
+    for (i=0;i < clen;i++)
+    {
+        if ("selector" in callbacks[i])
+        {
+            $(callbacks[i].selector).on(callbacks[i].action, (
+                function (callback, ch, params) {
+                    return function () {
+                        callback(ch, params)
+                    };
+                }(callbacks[i].callback, child, callbacks[i].parameters))
+            );
+        }
+        else if ("observable" in callbacks[i])
+        {
+            this.ViewModel[callbacks[i].observable].subscribe(
+                (function(callback, ch)
+              {
+                  return function(newValue) {
+                      callback(ch, newValue);
+                  }
+              }(callbacks[i].callback, child)), null, callbacks[i].action);
+        }
+    }
+
+    // Grab current status for entities
+
+    elen = monitored_entities.length;
+    for (i=0;i < elen;i++)
+    {
+        this.get_state(child, url, monitored_entities[i])
     }
 };
