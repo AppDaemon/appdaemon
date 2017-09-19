@@ -131,7 +131,7 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import homeassistant.appapi as appapi
+    import appdaemon.appapi as appapi
 
     class OutsideLights(appapi.AppDaemon):
 
@@ -169,7 +169,7 @@ terms:
 
 .. code:: python
 
-    import homeassistant.appapi as appapi
+    import appdaemon.appapi as appapi
 
     class FlashyMotionLights(appapi.AppDaemon):
 
@@ -200,7 +200,7 @@ activated and bales out after 10 iterations.
 
 .. code:: python
 
-    import homeassistant.appapi as appapi
+    import appdaemon.appapi as appapi
 
     class MotionLights(appapi.AppDaemon):
 
