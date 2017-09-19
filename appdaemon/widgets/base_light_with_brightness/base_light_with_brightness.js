@@ -39,7 +39,7 @@ function base_light_with_brightness(widget_id, url, skin, parameters)
 
     var callbacks = [
             {"selector": '#' + widget_id + ' > span', "action": "click", "callback": self.OnButtonClick},
-            {"selector": '#' + widget_id + ' > div > input', "action": "change", "callback": self.onChange},
+            {"observable": "Brightness", "action": "change", "callback": self.onChange},
                     ]
 
 
@@ -122,14 +122,12 @@ function base_light_with_brightness(widget_id, url, skin, parameters)
         {
             args = self.parameters.post_service_inactive
         }
-        console.log(args)
         self.call_service(self, args)
         toggle(self)
     }
 
     function onChange(self, state)
     {
-        setTimeout(function(){
         if (self.brightness != self.ViewModel.Brightness())
         {
             self.brightness = self.ViewModel.Brightness()
@@ -144,7 +142,6 @@ function base_light_with_brightness(widget_id, url, skin, parameters)
             }
 	    self.call_service(self, args)
         }
-        },500)
     }
 
     function toggle(self)

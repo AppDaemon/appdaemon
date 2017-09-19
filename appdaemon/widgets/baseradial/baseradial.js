@@ -61,26 +61,23 @@ function baseradial(widget_id, url, skin, parameters)
         self.gauge.value = state.state
        // self.gauge.update()
     }
+
     function activateChart(self, state) {
         self.gauge = new RadialGauge({
-        renderTo: document.getElementById(self.widget_id).getElementsByClassName('gaugeclass')[0],
-        type: 'radial-gauge',
-        width: '120',
-        height: '120',
-        valueInt: 2,
-        valueDec: 1,
-        colorTitle: '#333',
-        minValue: 17,
-        maxValue: 25,
-        majorTicks: [0,5,10,15,20,25,30,35],
-        minorTicks: 2,
-        strokeTicks: true,
-        }).draw()
-        setTimeout(function()
-        {
-           self.gauge.value = state.state
-           self.gauge.update(self.parameters.settings)
-        },500)
-
+            renderTo: document.getElementById(self.widget_id).getElementsByClassName('gaugeclass')[0],
+            type: 'radial-gauge',
+            width: '120',
+            height: '120',
+            //valueInt: 2,
+            //valueDec: 1,
+            colorTitle: '#333',
+            //minValue: 17,
+            //maxValue: 25,
+            //minorTicks: 2,
+            //strokeTicks: true,
+        })
+        self.gauge.value = state.state
+        self.gauge.update(self.parameters.settings)
+        //self.gauge.draw()
     }
 }

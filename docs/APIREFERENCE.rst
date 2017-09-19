@@ -352,7 +352,7 @@ Scheduler Calls
 ---------------
 
 run\_in()
-^^^^^^^^^
+~~~~~~~~~
 
 Run the callback in a defined number of seconds. This is used to add a
 delay, for instance a 60 second delay before a light is turned off after
@@ -400,7 +400,7 @@ Examples
     self.handle = self.run_in(self.run_in_c, title = "run_in5")
 
 run\_once()
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 Run the callback once, at the specified time of day. If the time of day
 is in the past, the callback will occur on the next day.
@@ -451,7 +451,7 @@ Examples
     handle = self.run_once(self.run_once_c, runtime)
 
 run\_at()
-^^^^^^^^^
+~~~~~~~~~
 
 Run the callback once, at the specified date and time.
 
@@ -503,7 +503,7 @@ Examples
     handle = self.run_once(self.run_once_c, event)
 
 run\_daily()
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 Execute a callback at the same time every day. If the time has already
 passed, the function will not be invoked until the following day at the
@@ -555,7 +555,7 @@ Examples
     self.run_daily(self.run_daily_c, runtime)
 
 run\_hourly()
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 Execute a callback at the same time every hour. If the time has already
 passed, the function will not be invoked until the following hour at the
@@ -609,7 +609,7 @@ Examples
     self.run_hourly(self.run_hourly_c, runtime)
 
 run\_minutely()
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 Execute a callback at the same time every minute. If the time has
 already passed, the function will not be invoked until the following
@@ -663,7 +663,7 @@ Examples
     self.run_minutely(self.run_minutely_c, time)
 
 run\_every()
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 Execute a repeating callback with a configurable delay starting at a
 specific time.
@@ -718,7 +718,7 @@ Examples
     self.run_every(self.run_every_c, time, 17 * 60)
 
 cancel\_timer()
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 Cancel a previously created timer
 

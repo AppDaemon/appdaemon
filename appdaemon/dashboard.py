@@ -266,12 +266,12 @@ class Dashboard:
             # Check for custom base widgets first
             if os.path.isdir(os.path.join(self.config_dir, "custom_widgets", widget_type)):
                 # This is a custom base widget so return it in full
-                return _resolve_css_params(instantiated_widget, css_vars)
+                return self._resolve_css_params(instantiated_widget, css_vars)
 
             # Now regular base widgets
             if os.path.isdir(os.path.join(self.dash_install_dir, "widgets", widget_type)):
                 # This is a base widget so return it in full
-                return _resolve_css_params(instantiated_widget, css_vars)
+                return self._resolve_css_params(instantiated_widget, css_vars)
 
             # We are working with a derived widget so we need to do some merges and substitutions
 
