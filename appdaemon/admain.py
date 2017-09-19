@@ -19,7 +19,7 @@ import asyncio
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
-import appdaemon.api as api
+import appdaemon.adapi as api
 import appdaemon.rundash as appdash
 
 # Windows does not have Daemonize package so disallow

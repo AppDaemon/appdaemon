@@ -131,7 +131,7 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import homeassistant.appapi as appapi
+    import appdaemon.appapi as appapi
 
     class OutsideLights(appapi.AppDaemon):
 
