@@ -93,7 +93,7 @@ Your initial file should look something like this:
    set to ``False`` to disable verification on self signed certs.
 -  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
    specified, AppDaemon will query the timezone from Home Assistant
--  ``api_port`` (optional) - Port the AppDaemon RESTFul API will liten
+-  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off
 -  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
    to provide a key in the header of a request
