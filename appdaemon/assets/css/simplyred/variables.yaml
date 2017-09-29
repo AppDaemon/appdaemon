@@ -189,12 +189,11 @@ label_title2_style: $style_title2
 label_text_style: "color: $white"
 label_widget_style: $background_style
 
+sensor_state_text_style: "color: $white; font-size: 100%"
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
-sensor_value_style: $style_info
-sensor_text_style: "color: $white; font-size: 100%"
-sensor_state_text_style: "color: $white; font-size: 100%"
 sensor_unit_style: "color: gold; font-size: 95%"
+sensor_value_style: $style_info
 sensor_widget_style: $background_style
 
 reload_icon_active: fa-spinner fa-spin
