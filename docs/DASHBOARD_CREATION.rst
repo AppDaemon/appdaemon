@@ -705,12 +705,12 @@ Optional Arguments:
 Style Arguments:
 ^^^^^^^^^^^^^^^^
 
--  ``widget_style``
+-  ``state_text_style``
 -  ``title_style``
 -  ``title2_style``
--  ``value_style``
--  ``text_style``
 -  ``unit_style``
+-  ``value_style``
+-  ``widget_style``
 
 rss
 ~~~

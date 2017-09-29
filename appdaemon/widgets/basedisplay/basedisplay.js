@@ -74,7 +74,7 @@ function basedisplay(widget_id, url, skin, parameters)
         value = self.map_state(self, state.state)
         if (isNaN(value))
         {
-            self.set_field(self, "value_style", self.parameters.css.text_style)
+            self.set_field(self, "value_style", self.parameters.css.value_style)
             self.set_field(self, "value", self.map_state(self, value))
         }
         else
@@ -95,7 +95,7 @@ function basedisplay(widget_id, url, skin, parameters)
 
     function set_sub_value(self, state)
     {
-        if ("sub_entity_map" in self.parameters)
+        if ("sub_entity_map" in self.parameters && state.state in self.parameters.sub_entity_map)
         {
             self.set_field(self, "state_text", self.parameters.sub_entity_map[state.state])
         }
