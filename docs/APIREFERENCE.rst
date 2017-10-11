@@ -1175,8 +1175,8 @@ Examples
 select\_value()
 ~~~~~~~~~~~~~~~
 
-This is a convenience function for the ``input_slider.select_value``
-function. It is able to set the value of an input\_slider in Home
+This is a convenience function for the ``input_number.set_value``
+function. It is able to set the value of an input\_number in Home
 Assistant.
 
 Synopsis

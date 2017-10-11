@@ -1,22 +1,21 @@
 Change Log
 ==========
 
-2.1.10
-------
+2.1.10 (2017-10-11)
+------------------
 
 **Features**
 
-None
+- Renamed the HADashboard input_slider to input_number to support HASS' change
+- Fixed ``select_value()`` to work with input_number entities
 
 **Fixes**
 
-- Fixed a bug in album titles in the media player - contributed by `Andreas Wrede <https://github.com/awrede>`__
-- Label `text_style` now works as documented
-- Fixed Scheduler docs
+None
 
 **Breaking Changes**
 
-None
+The ``input_select`` widget has been renamed to ``input_number`` to support the change in HASS
 
 2.1.9 (2017-09-08)
 ------------------
