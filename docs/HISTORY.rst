@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+2.1.10 (2017-10-11)
+------------------
+
+**Features**
+
+- Renamed the HADashboard input_slider to input_number to support HASS' change
+- Fixed `select_value()` to work with input_number entities
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 2.1.9 (2017-09-08)
 ------------------
 
