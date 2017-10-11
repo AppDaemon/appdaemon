@@ -2,7 +2,7 @@ import logging
 import threading
 
 
-__version__ = "2.1.9"
+__version__ = "2.1.10"
 
 
 threads = 0
