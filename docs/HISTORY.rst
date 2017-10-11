@@ -7,7 +7,7 @@ Change Log
 **Features**
 
 - Renamed the HADashboard input_slider to input_number to support HASS' change
-- Fixed `select_value()` to work with input_number entities
+- Fixed ``select_value()`` to work with input_number entities
 
 **Fixes**
 
@@ -15,7 +15,7 @@ None
 
 **Breaking Changes**
 
-None
+The ``input_select`` widget has been renamed to ``input_number`` to support the change in HASS
 
 2.1.9 (2017-09-08)
 ------------------
