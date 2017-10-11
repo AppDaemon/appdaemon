@@ -6,6 +6,8 @@ import random
 import uuid
 import asyncio
 
+__version__ = "2.1.10"
+
 class Formatter(object):
     def __init__(self):
         self.types = {}
@@ -100,7 +102,6 @@ class StateAttrs(dict):
         self.__dict__ = device_dict
 
 
-
 def _secret_yaml(loader, node):
 
     if conf.secrets is None:
@@ -161,22 +162,13 @@ def log(logger, level, msg, name=""):
     if name != "":
         name = " {}:".format(name)
 
-    if conf.realtime:
-        timestamp = datetime.datetime.now()
-    else:
-        timestamp = get_now()
-
+    #if conf.realtime:
+    timestamp = datetime.datetime.now()
+    #else:
+    #    timestamp = get_now()
+    #TODO: fix timestamps for timetravel
     logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
 
-
-def get_now():
-    return datetime.datetime.fromtimestamp(conf.now)
-
-
-def get_now_ts():
-    return conf.now
-
-  
 def day_of_week(day):
     nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
     days = {day: idx for idx, day in enumerate(nums)}
