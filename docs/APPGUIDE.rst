@@ -1258,7 +1258,7 @@ which may be useful for some applications. The functions:
 Return the internal data structures, but do not allow them to be
 modified directly. Their format may change.
 
-About HASS Disconections
+About HASS Disconnections
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 When AppDaemon is unable to connect initially with Home Assistant, it
