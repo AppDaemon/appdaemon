@@ -27,3 +27,5 @@ static_css:
   title2_style: $cover_title2_style
   state_text_style: $cover_state_text_style
   widget_style: $cover_widget_style
+  widget_style_active: $cover_widget_style_active
+  widget_style_inactive: $cover_widget_style_inactive

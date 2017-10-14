@@ -150,11 +150,13 @@ function base_light_with_colorpicker(widget_id, url, skin, parameters)
             self.set_icon(self, "icon", self.icons.icon_on)
             // Set view will set the view for the appropriate field
             self.set_field(self, "icon_style", self.css.icon_style_active)
+            self.set_field(self, "widget_style", self.css.widget_style_active)
         }
         else
         {
             self.set_icon(self, "icon", self.icons.icon_off)
             self.set_field(self, "icon_style", self.css.icon_style_inactive)
+            self.set_field(self, "widget_style", self.css.widget_style_inactive)
         }
         if (typeof  rgb_color != 'undefined')
         {

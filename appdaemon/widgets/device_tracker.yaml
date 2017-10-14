@@ -30,6 +30,8 @@ static_css:
   title2_style: $device_tracker_title2_style
   state_text_style: $device_tracker_state_text_style
   widget_style: $device_tracker_widget_style
+  widget_style_active: $device_tracker_widget_style_active
+  widget_style_inactive: $device_tracker_widget_style_inactive
 state_map:
     home: HOME
     not_home: AWAY

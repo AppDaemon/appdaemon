@@ -24,3 +24,5 @@ static_css:
 css:
   icon_style_active: $light_with_colorpicker_icon_style_active
   icon_style_inactive: $light_with_colorpicker_icon_style_inactive
+  widget_style_active: $light_with_colorpicker_widget_style_active
+  widget_style_inactive: $light_with_colorpicker_widget_style_inactive

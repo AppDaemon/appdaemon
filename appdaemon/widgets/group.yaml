@@ -32,3 +32,5 @@ static_css:
 css:
   icon_style_active: $group_icon_style_active
   icon_style_inactive: $group_icon_style_inactive
+  widget_style_active: $group_widget_style_active
+  widget_style_inactive: $group_widget_style_inactive

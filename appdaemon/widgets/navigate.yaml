@@ -14,4 +14,6 @@ static_css:
 css:
   icon_active_style: $navigate_icon_active_style
   icon_inactive_style: $navigate_icon_inactive_style
+  widget_style_active: $navigate_widget_style_active
+  widget_style_inactive: $navigate_widget_style_inactive
 static_icons: []

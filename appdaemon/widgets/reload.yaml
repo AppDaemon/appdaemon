@@ -15,4 +15,6 @@ static_css:
 css:
   icon_active_style: $reload_icon_active_style
   icon_inactive_style: $reload_icon_inactive_style
+  widget_style_active: $reload_widget_style_active
+  widget_style_inactive: $reload_widget_style_inactive
 static_icons: []

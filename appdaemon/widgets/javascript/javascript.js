@@ -101,6 +101,7 @@ function javascript(widget_id, url, skin, parameters)
     
     self.set_icon(self, "icon", self.icons.icon_inactive)
     self.set_field(self, "icon_style", self.css.icon_inactive_style)
+    self.set_field(self, "widget_style", self.css.widget_style_inactive)
     
     self.command = command
     
@@ -108,6 +109,7 @@ function javascript(widget_id, url, skin, parameters)
     {
         self.set_icon(self, "icon", self.icons.icon_active)
         self.set_field(self, "icon_style", self.css.icon_active_style)
+        self.set_field(self, "widget_style", self.css.widget_style_active)
         eval(self.command);
     }
 }

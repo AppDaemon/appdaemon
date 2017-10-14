@@ -21,4 +21,6 @@ static_css:
   title2_style: $binary_sensor_title2_style
   state_text_style: $binary_sensor_state_text_style
   widget_style: $binary_sensor_widget_style
+  widget_style_active: $binary_sensor_widget_style_active
+  widget_style_inactive: $binary_sensor_widget_style_inactive
 

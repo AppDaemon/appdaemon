@@ -863,6 +863,8 @@ Style Arguments:
 -  ``title_style``
 -  ``title2_style``
 -  ``state_text_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 label
 ~~~~~
@@ -917,6 +919,8 @@ Style Arguments:
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 script
 ~~~~~~
@@ -946,6 +950,8 @@ Style Arguments:
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 mode
 ~~~~
@@ -979,6 +985,8 @@ Style Arguments:
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 switch
 ~~~~~~
@@ -1008,6 +1016,8 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 lock
 ~~~~
@@ -1045,6 +1055,8 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 cover
 ~~~~~
@@ -1075,6 +1087,8 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 input\_boolean
 ~~~~~~~~~~~~~~
@@ -1104,6 +1118,8 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 binary\_sensor
 ~~~~~~~~~~~~~~
@@ -1133,6 +1149,8 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 light
 ~~~~~
@@ -1209,6 +1227,8 @@ Cosmetic Arguments
 -  ``level_style``
 -  ``level_up_style``
 -  ``level_down_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 input\_slider
 ~~~~~~~~~~~~~
@@ -1312,6 +1332,8 @@ Cosmetic Arguments
 -  ``level_style``
 -  ``level_up_style``
 -  ``level_down_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 group
 ~~~~~
@@ -1353,6 +1375,8 @@ Cosmetic Arguments
 -  ``level_style``
 -  ``level_up_style``
 -  ``level_down_style``
+-  ``widget_style_active``
+-  ``widget_style_inactive``
 
 navigate
 ~~~~~~~~
@@ -1666,6 +1690,8 @@ All entries are required but can be left blank by using double quotes.
     light_level_up_style: "color: $gray_light"
     light_level_down_style: "color: $gray_light"
     light_widget_style: ""
+    light_widget_style_active: ""
+    light_widget_style_inactive: ""
 
 Images can be included - create a sub directory in your skin directory,
 call it ``img`` or whatever you like, then refer to it in the css as:
