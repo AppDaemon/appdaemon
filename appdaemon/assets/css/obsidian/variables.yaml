@@ -91,6 +91,8 @@ scene_icon_style_inactive: $style_inactive
 scene_title_style: $style_title
 scene_title2_style: $style_title2
 scene_widget_style: $background_style
+scene_widget_style_active: $background_style
+scene_widget_style_inactive: $background_style
 scene_state_text_style: $style_info
 
 mode_icon_on: fa-arrows-alt
@@ -100,6 +102,8 @@ mode_icon_style_inactive: $style_inactive
 mode_title_style: $style_title
 mode_title2_style: $style_title2
 mode_widget_style: $background_style
+mode_widget_style_active: $background_style
+mode_widget_style_inactive: $background_style
 mode_state_text_style: $style_info
 
 script_icon_on: fa-th-large
@@ -109,6 +113,8 @@ script_icon_style_inactive: $style_inactive
 script_title_style: $style_title
 script_title2_style: $style_title2
 script_widget_style: $background_style
+script_widget_style_active: $background_style
+script_widget_style_inactive: $background_style
 script_state_text_style: $style_info
 
 binary_sensor_icon_on: fa-bullseye fa-spin
@@ -118,6 +124,8 @@ binary_sensor_icon_style_inactive: $style_inactive
 binary_sensor_title_style: $style_title
 binary_sensor_title2_style: $style_title2
 binary_sensor_widget_style: $background_style
+binary_sensor_widget_style_active: $background_style
+binary_sensor_widget_style_inactive: $background_style
 binary_sensor_state_text_style: $style_info
 
 device_tracker_icon_on: fa-user
@@ -127,6 +135,8 @@ device_tracker_icon_style_inactive: $style_inactive
 device_tracker_title_style: $style_title
 device_tracker_title2_style: $style_title2
 device_tracker_widget_style: $background_style
+device_tracker_widget_style_active: $background_style
+device_tracker_widget_style_inactive: $background_style
 device_tracker_state_text_style: $style_info
 
 input_boolean_icon_on: fa-sliders
@@ -136,6 +146,8 @@ input_boolean_icon_style_inactive: $style_inactive
 input_boolean_title_style: $style_title
 input_boolean_title2_style: $style_title2
 input_boolean_widget_style: $background_style
+input_boolean_widget_style_active: $background_style
+input_boolean_widget_style_inactive: $background_style
 input_boolean_state_text_style: $style_info
 
 switch_icon_on: fa-circle
@@ -145,6 +157,8 @@ switch_icon_style_inactive: $style_inactive
 switch_title_style: $style_title
 switch_title2_style: $style_title2
 switch_widget_style: $background_style
+switch_widget_style_active: $background_style
+switch_widget_style_inactive: $background_style
 switch_state_text_style: $style_info
 
 lock_icon_on: fa-unlock-alt
@@ -154,6 +168,8 @@ lock_icon_style_inactive: $style_inactive
 lock_title_style: $style_title
 lock_title2_style: $style_title2
 lock_widget_style: $background_style
+lock_widget_style_active: $background_style
+lock_widget_style_inactive: $background_style
 lock_state_text_style: $style_info
 
 cover_icon_on: fa-arrows-v
@@ -163,6 +179,8 @@ cover_icon_style_inactive: $style_inactive
 cover_title_style: $style_title
 cover_title2_style: $style_title2
 cover_widget_style: $background_style
+cover_widget_style_active: $background_style
+cover_widget_style_inactive: $background_style
 cover_state_text_style: $style_info
 
 clock_date_style: "color: $white; font-size: 150%"
@@ -194,6 +212,8 @@ reload_icon_inactive_style: "color: $white"
 reload_title_style: "color: $white"
 reload_title2_style: $style_title2
 reload_widget_style: $background_style
+reload_widget_style_active: $background_style
+reload_widget_style_inactive: $background_style
 
 navigate_icon_active: fa-spinner fa-spin
 navigate_icon_inactive: fa-gear
@@ -202,6 +222,8 @@ navigate_icon_inactive_style: $style_active
 navigate_title_style: $style_title
 navigate_title2_style: $style_title2
 navigate_widget_style: $no_texture
+navigate_widget_style_active: $background_style
+navigate_widget_style_inactive: $background_style
 
 media_player_icon_play: fa-play
 media_player_icon_pause: fa-pause
@@ -220,6 +242,8 @@ media_player_level_style: "color: $white"
 media_player_level_up_style: "color: $gray_light"
 media_player_level_down_style: "color: $gray_light"
 media_player_widget_style: $background_style
+media_player_widget_style_active: $background_style
+media_player_widget_style_inactive: $background_style
 media_player_icon_previous: fa-step-backward
 media_player_icon_next: fa-step-forward
 media_player_icon_style_previous: "color: $gray_light"
@@ -278,6 +302,8 @@ group_level_style: "$style_inactive"
 group_level_up_style: "$style_inactive"
 group_level_down_style: "$style_inactive"
 group_widget_style: $background_style
+group_widget_style_active: $background_style
+group_widget_style_inactive: $background_style
 group_unit_style: "$style_inactive"
 
 iframe_title_style: "$style_title; background-color: rgba(0, 0, 0, 0.5)"
@@ -339,6 +365,8 @@ light_with_brightness_title_style: $style_title
 light_with_brightness_title2_style: $style_title2
 light_with_brightness_slider_style: ""
 light_with_brightness_widget_style: $background_style
+light_with_brightness_widget_style_active: $background_style
+light_with_brightness_widget_style_inactive: $background_style
 light_with_brightness_icon_style_active: $style_active
 light_with_brightness_icon_style_inactive: $style_inactive
 
@@ -348,6 +376,8 @@ light_with_colorpicker_title_style: $style_title
 light_with_colorpicker_title2_style: $style_title2
 light_with_colorpicker_button_style: ""
 light_with_colorpicker_widget_style: $background_style
+light_with_colorpicker_widget_style_active: $background_style
+light_with_colorpicker_widget_style_inactive: $background_style
 light_with_colorpicker_icon_style_active: $style_active
 light_with_colorpicker_icon_style_inactive: $style_inactive
 
@@ -361,5 +391,7 @@ heater_title_style: $style_title
 heater_title2_style: $style_title2
 heater_slider_style: ""
 heater_widget_style: $background_style
+heater_widget_style_active: $background_style
+heater_widget_style_inactive: $background_style
 heater_icon_style_active: $style_active
 heater_icon_style_inactive: $style_inactive
