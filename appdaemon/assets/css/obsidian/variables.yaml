@@ -238,6 +238,8 @@ light_level_style: $style_inactive
 light_level_up_style: $style_inactive
 light_level_down_style: $style_inactive
 light_widget_style: $background_style
+light_widget_style_active: $background_style
+light_widget_style_inactive: $background_style
 light_unit_style:  $style_inactive
 
 input_slider_icon_up: fa-plus

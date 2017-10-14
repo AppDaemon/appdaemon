@@ -238,6 +238,8 @@ light_unit_style:  "color: $white"
 light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
 light_widget_style: $background_style
+light_widget_style_active: $background_style
+light_widget_style_inactive: $background_style
 
 input_slider_icon_up: fa-plus
 input_slider_icon_down: fa-minus
