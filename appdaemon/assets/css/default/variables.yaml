@@ -168,7 +168,7 @@ weather_sub_style: "color: $blue"
 weather_widget_style: $background_style
 
 weather_summary_title_style: $style_title
-weather_summary_value_style: "color: $blue; font-size: 250%"
+weather_summary_icon_style: ""
 weather_summary_state_text_style: "color: $white"
 weather_summary_widget_style: $background_style
 

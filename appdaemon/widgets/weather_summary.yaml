@@ -7,10 +7,9 @@ fields:
   icon: ""
 static_css:
   title_style: $weather_summary_title_style
-  value_style: ""
+  icon_style: $weather_summary_icon_style
   state_text_style: $weather_summary_state_text_style
   widget_style: $weather_summary_widget_style
-css:
-  value_style: $weather_summary_value_style
+css: []
 icons: []
 static_icons: []

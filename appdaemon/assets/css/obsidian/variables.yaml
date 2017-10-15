@@ -174,6 +174,11 @@ weather_unit_style: "color: $cyan; font-size: 200%"
 weather_sub_style: "color: $white; font-size: 130%"
 weather_widget_style: $stripped
 
+weather_summary_title_style: $style_title
+weather_summary_icon_style: ""
+weather_summary_state_text_style: "color: $white"
+weather_summary_widget_style: $background_style
+
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: $style_info
