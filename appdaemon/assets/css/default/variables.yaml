@@ -167,6 +167,11 @@ weather_unit_style: "color: $orange"
 weather_sub_style: "color: $blue"
 weather_widget_style: $background_style
 
+weather_summary_title_style: $style_title
+weather_summary_value_style: "color: $blue; font-size: 250%"
+weather_summary_state_text_style: "color: $white"
+weather_summary_widget_style: $background_style
+
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $white"

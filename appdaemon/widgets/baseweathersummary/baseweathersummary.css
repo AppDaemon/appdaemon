@@ -1,0 +1,21 @@
+.widget-baseweathersummary-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-baseweathersummary-{{id}} .icon {
+	font-family: "Climacons-Font";
+	font-size: 70px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+}
+
+.widget-baseweathersummary-{{id}} .state_text {
+	position: absolute;
+	margin-top: 5px;
+	bottom: 10px;
+	width: 100%;
+}
