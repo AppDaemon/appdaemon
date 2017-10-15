@@ -672,6 +672,35 @@ Cosmetic Arguments:
 -  ``unit_style``
 -  ``sub_style``
 
+weather_summary
+~~~~~~~
+
+An icon and summary reflecting the weather forcast. Requires dark sky to be 
+configured in Home Assistant and expects to be used with one of the 
+following sensors:
+
+-  sensor.dark_sky_daily_summary
+-  sensor.dark_sky_hourly_summary
+-  sensor.dark_sky_summary
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the sensor to be monitored
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``icon_style``
+-  ``title_style``
+-  ``state_text_style``
+-  ``widget_style``
+
 sensor
 ~~~~~~
 
