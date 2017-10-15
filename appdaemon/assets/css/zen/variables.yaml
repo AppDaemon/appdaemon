@@ -190,6 +190,11 @@ weather_unit_style: "$3d_white; font-weight: bold; font-size: 95%"
 weather_sub_style: "color: white; text-shadow: 0px 4px 5px #222"
 weather_widget_style: "background-image: url(css/zen/img/zen_weatherbg.jpg); background-size: 180%; $inset_silver"
 
+weather_summary_title_style: $style_title
+weather_summary_icon_style: ""
+weather_summary_state_text_style: "color: $white"
+weather_summary_widget_style: $background_style
+
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $red"
