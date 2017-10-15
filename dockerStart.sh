@@ -1,7 +1,13 @@
-#!/bin/sh
+#!/bin/bash
 
-CONF=/conf
+echo "staring dockerstar.sh"
+CONF=/config/hadaemon
 CONF_SRC=/usr/src/app/conf
+pwd
+ls -l
+ls -l /conf
+ls -l $CONF
+ls -l $CONF_SRC
 
 # if configuration file doesn't exist, copy the default
 if [ ! -f $CONF/appdaemon.yaml ]; then
@@ -43,4 +49,7 @@ if [ -n "$DASH_URL" ]; then
 fi
 
 # Lets run it!
+echo "inside dockerStart.sh"
+echo "Conf: " $CONF
+echo "Extra CMD: " $EXTRA_CMD
 appdaemon -c $CONF $EXTRA_CMD
