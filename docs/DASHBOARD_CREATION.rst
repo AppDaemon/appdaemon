@@ -686,7 +686,10 @@ following sensors:
 Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
--  ``entity`` - the entity\_id of the sensor to be monitored
+-  ``entity`` - the entity attribute of the sensor to be monitored 
+	(eg. sensor.dark_sky_summary.entity_picture)
+-  ``entity`` - the entity\_id of the sensor to be monitored 
+	(eg. sensor.dark_sky_summary)
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -696,9 +699,9 @@ None
 Cosmetic Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``icon_style``
--  ``title_style``
 -  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
 -  ``widget_style``
 
 sensor
