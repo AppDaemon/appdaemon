@@ -1,15 +1,30 @@
-widget_type: baseweathersummary
+widget_type: basedisplay
 entity: {{entity}}
+sub_entity: {{sub_entity}}
+state_map: 
+  "/static/images/darksky/weather-pouring.svg": "&#xe009"
+  "/static/images/darksky/weather-snowy.svg": "&#xe036"
+  "/static/images/darksky/weather-hail.svg": "&#xe003"
+  "/static/images/darksky/weather-windy.svg": "&#xe021"
+  "/static/images/darksky/weather-fog.svg": "&#xe01b"
+  "/static/images/darksky/weather-cloudy.svg": "&#xe000"
+  "/static/images/darksky/weather-sunny.svg": "&#xe028"
+  "/static/images/darksky/weather-night.svg": "&#xe02d"
+  "/static/images/darksky/weather-partlycloudy.svg": "&#xe001"
 fields:
   title: {{title}}
+  title2: {{title2}}
   value: ""
+  unit: ""
   state_text: ""
-  icon: ""
 static_css:
   title_style: $weather_summary_title_style
-  icon_style: $weather_summary_icon_style
+  title2_style: $weather_summary_title2_style
+  unit_style: ""
+  value_style: ""
   state_text_style: $weather_summary_state_text_style
   widget_style: $weather_summary_widget_style
-css: []
+css:
+  text_style: $weather_summary_text_style
 icons: []
 static_icons: []

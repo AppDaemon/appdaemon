@@ -90,7 +90,7 @@ function basedisplay(widget_id, url, skin, parameters)
 	}
 	else
 	{
-        	value = self.map_state(self, state.state)
+        	value = state.state
 	}
         if (isNaN(value))
         {
@@ -120,11 +120,11 @@ function basedisplay(widget_id, url, skin, parameters)
 	}
 	else
 	{
-        	value = self.map_state(self, state.state)
+        	value = state.state
 	}
         if ("sub_entity_map" in self.parameters)
         {
-            self.set_field(self, "state_text", self.parameters.sub_entity_map[value])
+            self.set_field(self, "state_text", self.parameters.sub_entity_state_map[value])
         }
         else
         {
