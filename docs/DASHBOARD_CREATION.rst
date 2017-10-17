@@ -709,6 +709,10 @@ A widget to report on values for any sensor in Home Assistant
 The widget will detect whether or not it is showing a numeric value, and
 if so, it will use the numeric style. If it is showing text it will use
 the text style, which among other things makes the text size smaller.
+To display an attribute of a sensor rather than the state itself add 
+the attreibute to the end of the sensore name. For example, to display the
+description of the sensor.dark_sky_summary sensor you would use the 
+following entity definition: "sensor.dark_sky_summary.Description".
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
