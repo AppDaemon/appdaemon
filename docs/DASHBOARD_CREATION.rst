@@ -683,17 +683,69 @@ following sensors:
 -  sensor.dark_sky_hourly_summary
 -  sensor.dark_sky_summary
 
-Note that you do not define an entity, only a sub_entity
-
 Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
--  ``sub_entity`` - the entity to be monitored 
+-  ``entity`` - the entity to be monitored 
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
-None
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
+london_underground
+~~~~~~~
+
+A widget to report on the status of a London Underground line and
+provide the reason for delays if there are any. Requires the London
+Underground sensor to be configured in Home Assistant.
+
+It is recommended to update the background style to reflect the color
+of the underground line. An example would be as follows:
+
+.. code:: yaml
+
+  widget_style: "background-color: #0098D4"
+
+The colors of the various lines are:
+- Bakerloo: #B36305
+- Central: #E32017
+- Circle: #FFD300
+- District: #00782A
+- DLR: #00A4A7
+- Hammersmith & City: #F3A9BB
+- Jubilee: #A0A5A9
+- London Overground: #EE7C0E
+- Metropolitan: #9B0056
+- Northern: #000000
+- Piccadilly: #003688
+- Victoria: #0098D4
+- Waterloo & City: #95CDBA
+
+For smaller dashboards the Description text can be too long to fit in
+the widget properly. In that case hide the text as follows:
+
+.. code:: yaml
+
+  state_text_style: "display: none"
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored 
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
 
 Cosmetic Arguments:
 ^^^^^^^^^^^^^^^^^^^
