@@ -28,7 +28,7 @@ function basedisplay(widget_id, url, skin, parameters)
 
     var monitored_entities =  []
 
-    if ("entity" in parameters)
+    if ("entity" in parameters && parameters.entity != "")
     {
 	// Make sure that we monitor the entity, not an attribute of it
 	split_entity = parameters.entity.split(".")
@@ -37,9 +37,16 @@ function basedisplay(widget_id, url, skin, parameters)
 	{
 		self.entity_attribute = split_entity[2]
 	}
-        monitored_entities.push({"entity": self.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate})
+	// Check if the sub_entity should be created by monitoring an attribute of the entity
+	if ("entity_to_sub_entity_attribute" in parameters)
+	{
+		self.sub_entity = self.entity
+		self.sub_entity_attribute = parameters.entity_to_sub_entity_attribute
+	}
     }
-    if ("sub_entity" in parameters && parameters.sub_entity != "")
+
+    // Only set up the sub_entity if it was not created already with the entity + attribute
+    if ("sub_entity" in parameters && parameters.sub_entity != "" && !("sub_entity" in self))
     {
 	// Make sure that we monitor the sub_entity, not an attribute of it
 	split_sub_entity = parameters.sub_entity.split(".")
@@ -48,10 +55,25 @@ function basedisplay(widget_id, url, skin, parameters)
 	{
 		self.sub_entity_attribute = split_sub_entity[2]
 	}
-        monitored_entities.push({"entity": self.sub_entity, "initial": self.OnSubStateAvailable, "update": self.OnSubStateUpdate})
+	// Check if the entity should be created by monitoring an attribute of the sub_entity
+	if ("sub_entity_to_entity_attribute" in parameters && !("entity" in self))
+	{
+		self.entity = self.sub_entity
+		self.entity_attribute = parameters.sub_entity_to_entity_attribute
+	} else {
+		console.log(self.entity)
+	}
     }
 
-
+    if ("entity" in self) 
+    {
+        monitored_entities.push({"entity": self.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate})
+    }
+    if ("sub_entity" in self) 
+    {
+        monitored_entities.push({"entity": self.sub_entity, "initial": self.OnSubStateAvailable, "update": self.OnSubStateUpdate})
+    }
+    
     // Finally, call the parent constructor to get things moving
     
     WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  

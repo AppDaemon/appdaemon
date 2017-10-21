@@ -683,13 +683,12 @@ following sensors:
 -  sensor.dark_sky_hourly_summary
 -  sensor.dark_sky_summary
 
+Note that you do not define an entity, only a sub_entity
+
 Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
--  ``entity`` - the entity attribute of the sensor to be monitored 
-	(eg. sensor.dark_sky_summary.entity_picture)
--  ``entity`` - the entity\_id of the sensor to be monitored 
-	(eg. sensor.dark_sky_summary)
+-  ``sub_entity`` - the entity to be monitored 
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -713,14 +712,20 @@ The widget will detect whether or not it is showing a numeric value, and
 if so, it will use the numeric style. If it is showing text it will use
 the text style, which among other things makes the text size smaller.
 To display an attribute of a sensor rather than the state itself add 
-the attreibute to the end of the sensore name. For example, to display the
+the attribute to the end of the sensor name. For example, to display the
 description of the sensor.dark_sky_summary sensor you would use the 
 following entity definition: "sensor.dark_sky_summary.Description".
+
+Note that you can define a sub_entity to be an attribute of the entity
+using the entity_to_sub_entity_attribute argument, or an entity as an 
+attribute of the sub_entity using the sub_entity_to_entity_attribute.
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
+OR
+-  ``sub_entity`` - the entity\_id of the sensor to be monitored
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -737,6 +742,10 @@ Optional Arguments:
 -  ``state_map``
 -  ``sub_entity`` - second entity to be displayed in the state text area
 -  ``sub_entity_map`` - state map for the sub\_entity
+-  ``entity_to_sub_entity_attribute`` - the attribute of the entity to use
+   as the sub_entity
+-  ``sub_entity_to_entity_attribute`` - the attribute of the sub_entity to
+   use as the entity
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
