@@ -175,10 +175,14 @@ weather_sub_style: "color: $white; font-size: 130%"
 weather_widget_style: $stripped
 
 weather_summary_title_style: $style_title
-weather_summary_title2_style: $style_title
 weather_summary_text_style: "font-family: Climacons-Font; font-size: 100px"
 weather_summary_state_text_style: "color: $white"
 weather_summary_widget_style: $background_style
+
+london_underground_title_style: "color: $white; font-size: 150%"
+london_underground_text_style: "color: $white; font-size: 200%"
+london_underground_state_text_style: "color: $white; font-size: 150%"
+london_underground_widget_style: $background_style
 
 label_title_style: $style_title
 label_title2_style: $style_title2
