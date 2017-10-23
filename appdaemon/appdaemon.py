@@ -12,18 +12,17 @@ import uuid
 import astral
 import pytz
 import math
-import appdaemon.rundash as appdash
 import asyncio
 import yaml
 import concurrent
 import threading
+import random
+import re
 
 import appdaemon.utils as utils
-import appdaemon.appapi as appapi
 
 
 class AppDaemon:
-
     def __init__(self, logger, error, **kwargs):
 
         self.logger = logger
@@ -34,9 +33,9 @@ class AppDaemon:
         self.was_dst = False
 
         self.last_state = None
-        #appapi.reading_messages = False
+        # appapi.reading_messages = False
         self.inits = {}
-        #ws = None
+        # ws = None
 
         self.monitored_files = {}
         self.modules = {}
@@ -92,6 +91,9 @@ class AppDaemon:
 
         self.start_time = None
         self._process_arg("start_time", kwargs)
+
+        self.now = None
+        self._process_arg("now", kwargs)
 
         self.logfile = None
         self._process_arg("logfile", kwargs)
@@ -199,14 +201,76 @@ class AppDaemon:
             self.process_sun("next_setting")
             # dump_schedule()
 
+    @staticmethod
+    def get_offset(kwargs):
+        if "offset" in kwargs["kwargs"]:
+            if "random_start" in kwargs["kwargs"] \
+                    or "random_end" in kwargs["kwargs"]:
+                raise ValueError(
+                    "Can't specify offset as well as 'random_start' or "
+                    "'random_end' in 'run_at_sunrise()' or 'run_at_sunset()'"
+                )
+            else:
+                offset = kwargs["kwargs"]["offset"]
+        else:
+            rbefore = kwargs["kwargs"].get("random_start", 0)
+            rafter = kwargs["kwargs"].get("random_end", 0)
+            offset = random.randint(rbefore, rafter)
+        # log(conf.logger, "INFO", "sun: offset = {}".format(offset))
+        return offset
+
+    def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
+        with self.schedule_lock:
+            if name not in self.schedule:
+                self.schedule[name] = {}
+            handle = uuid.uuid4()
+            utc = int(utc)
+            c_offset = self.get_offset({"kwargs": kwargs})
+            ts = utc + c_offset
+            interval = kwargs.get("interval", 0)
+
+            self.schedule[name][handle] = {
+                "name": name,
+                "id": self.objects[name]["id"],
+                "callback": callback,
+                "timestamp": ts,
+                "interval": interval,
+                "basetime": utc,
+                "repeat": repeat,
+                "offset": c_offset,
+                "type": type_,
+                "kwargs": kwargs
+            }
+            # log(conf.logger, "INFO", conf.schedule[name][handle])
+        return handle
+
+    def get_scheduler_entries(self):
+        schedule = {}
+        for name in self.schedule.keys():
+            schedule[name] = {}
+            for entry in sorted(
+                    self.schedule[name].keys(),
+                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+            ):
+                schedule[name][entry] = {}
+                schedule[name][entry]["timestamp"] = self.schedule[name][entry]["timestamp"]
+                schedule[name][entry]["type"] = self.schedule[name][entry]["type"]
+                schedule[name][entry]["name"] = self.schedule[name][entry]["name"]
+                schedule[name][entry]["basetime"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["repeat"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["offset"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["interval"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["callback"] = self.schedule[name][entry]["callback"]
+        return schedule
+
     def is_dst(self):
         return bool(time.localtime(self.get_now_ts()).tm_isdst)
 
-    def stopit(self):
-        global ws
+    def stop(self):
         self.stopping = True
-        if ws is not None:
-            ws.close()
+        # if ws is not None:
+        #    ws.close()
         self.appq.put_nowait({"event_type": "ha_stop", "data": None})
 
     def get_now(self):
@@ -214,6 +278,82 @@ class AppDaemon:
 
     def get_now_ts(self):
         return self.now
+
+    def now_is_between(self, start_time_str, end_time_str, name=None):
+        start_time = self.parse_time(start_time_str, name)
+        end_time = self.parse_time(end_time_str, name)
+        now = self.get_now()
+        start_date = now.replace(
+            hour=start_time.hour, minute=start_time.minute,
+            second=start_time.second
+        )
+        end_date = now.replace(
+            hour=end_time.hour, minute=end_time.minute, second=end_time.second
+        )
+        if end_date < start_date:
+            # Spans midnight
+            if now < start_date and now < end_date:
+                now = now + datetime.timedelta(days=1)
+            end_date = end_date + datetime.timedelta(days=1)
+        return start_date <= now <= end_date
+
+    def sunset(self):
+        return datetime.datetime.fromtimestamp(self.calc_sun("next_setting"))
+
+    def sunrise(self):
+        return datetime.datetime.fromtimestamp(self.calc_sun("next_rising"))
+
+    def parse_time(self, time_str, name=None):
+        parsed_time = None
+        parts = re.search('^(\d+):(\d+):(\d+)', time_str)
+        if parts:
+            parsed_time = datetime.time(
+                int(parts.group(1)), int(parts.group(2)), int(parts.group(3))
+            )
+        else:
+            if time_str == "sunrise":
+                parsed_time = self.sunrise().time()
+            elif time_str == "sunset":
+                parsed_time = self.sunset().time()
+            else:
+                parts = re.search(
+                    '^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
+                )
+                if parts:
+                    if parts.group(1) == "+":
+                        parsed_time = (self.sunrise() + datetime.timedelta(
+                            hours=int(parts.group(2)), minutes=int(parts.group(3)),
+                            seconds=int(parts.group(4))
+                        )).time()
+                    else:
+                        parsed_time = (self.sunrise() - datetime.timedelta(
+                            hours=int(parts.group(2)), minutes=int(parts.group(3)),
+                            seconds=int(parts.group(4))
+                        )).time()
+                else:
+                    parts = re.search(
+                        '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
+                    )
+                    if parts:
+                        if parts.group(1) == "+":
+                            parsed_time = (self.sunset() + datetime.timedelta(
+                                hours=int(parts.group(2)),
+                                minutes=int(parts.group(3)),
+                                seconds=int(parts.group(4))
+                            )).time()
+                        else:
+                            parsed_time = (self.sunset() - datetime.timedelta(
+                                hours=int(parts.group(2)),
+                                minutes=int(parts.group(3)),
+                                seconds=int(parts.group(4))
+                            )).time()
+        if parsed_time is None:
+            if name is not None:
+                raise ValueError(
+                    "{}: invalid time string: {}".format(name, time_str))
+            else:
+                raise ValueError("invalid time string: {}".format(time_str))
+        return parsed_time
 
     def dump_sun(self):
         utils.log(self.logger, "INFO", "--------------------------------------------------")
@@ -246,7 +386,6 @@ class AppDaemon:
                     )
             utils.log(self.logger, "INFO", "--------------------------------------------------")
 
-
     def dump_callbacks(self):
         if self.callbacks == {}:
             utils.log(self.logger, "INFO", "No callbacks")
@@ -260,7 +399,6 @@ class AppDaemon:
                     utils.log(self.logger, "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
             utils.log(self.logger, "INFO", "--------------------------------------------------")
 
-
     def dump_objects(self):
         utils.log(self.logger, "INFO", "--------------------------------------------------")
         utils.log(self.logger, "INFO", "Objects")
@@ -269,14 +407,12 @@ class AppDaemon:
             utils.log(self.logger, "INFO", "{}: {}".format(object_, self.objects[object_]))
         utils.log(self.logger, "INFO", "--------------------------------------------------")
 
-
     def dump_queue(self):
         utils.log(self.logger, "INFO", "--------------------------------------------------")
         utils.log(self.logger, "INFO", "Current Queue Size is {}".format(self.q.qsize()))
         utils.log(self.logger, "INFO", "--------------------------------------------------")
 
-
-    #TODO: Pull this into the API
+    # TODO: Pull this into the API
     def check_constraint(self, key, value):
         unconstrained = True
         with self.ha_state_lock:
@@ -319,11 +455,10 @@ class AppDaemon:
                 end_time = "23:59:59"
             else:
                 end_time = args["constrain_end_time"]
-            if not utils.now_is_between(start_time, end_time, name):
+            if not self.now_is_between(start_time, end_time, name):
                 unconstrained = False
 
         return unconstrained
-
 
     def dispatch_worker(self, name, args):
         unconstrained = True
@@ -349,19 +484,18 @@ class AppDaemon:
             self.q.put_nowait(args)
 
     def today_is_constrained(self, days):
-        day = utils.get_now().weekday()
+        day = self.get_now().weekday()
         daylist = [utils.day_of_week(day) for day in days.split(",")]
         if day in daylist:
             return False
         return True
 
-
     def process_sun(self, action):
         utils.log(
-                self.logger, "DEBUG",
-                "Process sun: {}, next sunrise: {}, next sunset: {}".format(
-                    action, self.sun["next_rising"], self.sun["next_setting"]
-                )
+            self.logger, "DEBUG",
+            "Process sun: {}, next sunrise: {}, next sunset: {}".format(
+                action, self.sun["next_rising"], self.sun["next_setting"]
+            )
         )
         with self.schedule_lock:
             for name in self.schedule.keys():
@@ -372,10 +506,49 @@ class AppDaemon:
                     schedule = self.schedule[name][entry]
                     if schedule["type"] == action and "inactive" in schedule:
                         del schedule["inactive"]
-                        c_offset = utils.get_offset(schedule)
-                        schedule["timestamp"] = utils.calc_sun(action) + c_offset
+                        c_offset = self.get_offset(schedule)
+                        schedule["timestamp"] = self.calc_sun(action) + c_offset
                         schedule["offset"] = c_offset
 
+    def calc_sun(self, type_):
+        # convert to a localized timestamp
+        return self.sun[type_].timestamp()
+
+    def info_timer(self, handle, name):
+        with self.schedule_lock:
+            if name in self.schedule and handle in self.schedule[name]:
+                callback = self.schedule[name][handle]
+                return (
+                    datetime.datetime.fromtimestamp(callback["timestamp"]),
+                    callback["interval"],
+                    utils.sanitize_timer_kwargs(callback["kwargs"])
+                )
+            else:
+                raise ValueError("Invalid handle: {}".format(handle))
+
+    def get_callback_entries(self):
+        callbacks = {}
+        for name in self.callbacks.keys():
+            callbacks[name] = {}
+            for uuid_ in self.callbacks[name]:
+                callbacks[name][uuid_] = {}
+                if "entity" in callbacks[name][uuid_]:
+                    callbacks[name][uuid_]["entity"] = self.callbacks[name][uuid_]["entity"]
+                else:
+                    callbacks[name][uuid_]["entity"] = None
+                callbacks[name][uuid_]["type"] = self.callbacks[name][uuid_]["type"]
+                callbacks[name][uuid_]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
+                callbacks[name][uuid_]["function"] = self.callbacks[name][uuid_]["function"]
+                callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
+        return callbacks
+
+    def cancel_timer(self, name, handle):
+        utils.log(self.logger, "DEBUG", "Canceling timer for {}".format(name))
+        with self.schedule_lock:
+            if name in self.schedule and handle in self.schedule[name]:
+                del self.schedule[name][handle]
+            if name in self.schedule and self.schedule[name] == {}:
+                del self.schedule[name]
 
     # noinspection PyBroadException
     def exec_schedule(self, name, entry, args):
@@ -414,14 +587,14 @@ class AppDaemon:
                         args["inactive"] = 1
                     else:
                         # We have a valid time for the next sunrise/set so use it
-                        c_offset = utils.get_offset(args)
-                        args["timestamp"] = utils.calc_sun(args["type"]) + c_offset
+                        c_offset = self.get_offset(args)
+                        args["timestamp"] = self.calc_sun(args["type"]) + c_offset
                         args["offset"] = c_offset
                 else:
                     # Not sunrise or sunset so just increment
                     # the timestamp with the repeat interval
                     args["basetime"] += args["interval"]
-                    args["timestamp"] = args["basetime"] + utils.get_offset(args)
+                    args["timestamp"] = args["basetime"] + self.get_offset(args)
             else:  # Otherwise just delete
                 del self.schedule[name][entry]
 
@@ -446,7 +619,7 @@ class AppDaemon:
 
     @asyncio.coroutine
     def do_every(self, period, f):
-        t = math.floor(utils.get_now_ts())
+        t = math.floor(self.get_now_ts())
         count = 0
         t_ = math.floor(time.time())
         while not self.stopping:
@@ -456,31 +629,31 @@ class AppDaemon:
             t += self.interval
             r = yield from f(t)
             if r is not None and r != t:
-                #print("r: {}, t: {}".format(r,t))
+                # print("r: {}, t: {}".format(r,t))
                 t = r
                 t_ = r
                 count = 0
 
-
     # noinspection PyBroadException,PyBroadException
+    @asyncio.coroutine
     def do_every_second(self, utc):
 
         try:
             start_time = datetime.datetime.now().timestamp()
-            now = datetime.datetime.fromtimestamp(utc)
             self.now = utc
 
             # If we have reached endtime bail out
 
-            if self.endtime is not None and utils.get_now() >= self.endtime:
+            if self.endtime is not None and self.get_now() >= self.endtime:
                 utils.log(self.logger, "INFO", "End time reached, exiting")
-                self.stopit()
+                self.stop()
 
             if self.realtime:
                 real_now = datetime.datetime.now().timestamp()
                 delta = abs(utc - real_now)
                 if delta > 1:
-                    utils.log(self.logger, "WARNING", "Scheduler clock skew detected - delta = {} - resetting".format(delta))
+                    utils.log(self.logger, "WARNING",
+                              "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                     return real_now
 
             # Update sunrise/sunset etc.
@@ -506,31 +679,16 @@ class AppDaemon:
             # dump_schedule()
 
             # test code for clock skew
-            #if random.randint(1, 10) == 5:
+            # if random.randint(1, 10) == 5:
             #    time.sleep(random.randint(1,20))
 
             # Check to see if any apps have changed but only if we have valid state
 
-            if self.last_state is not None and appapi.reading_messages:
-                yield from utils.run_in_executor(self.loop, self.executor, self.read_apps)
+            yield from utils.run_in_executor(self.loop, self.executor, self.read_apps)
 
             # Check to see if config has changed
 
-            if appapi.reading_messages:
-                yield from utils.run_in_executor(self.loop, self.executor, self.check_config)
-
-            # Call me suspicious, but lets update state form HA periodically
-            # in case we miss events for whatever reason
-            # Every 10 minutes seems like a good place to start
-
-            #if self.last_state is not None and appapi.reading_messages and now - self.last_state > datetime.timedelta(minutes=10) and self.ha_url is not None:
-            #    try:
-            #        yield from utils.run_in_executor(self.loop, self.executor, get_ha_state)
-            #        self.last_state = now
-            #    except:
-            #        utils.log(self.logger, "WARNING", "Unexpected error refreshing HA state - retrying in 10 minutes")
-
-            # Check on Queue size
+            yield from utils.run_in_executor(self.loop, self.executor, self.check_config)
 
             qsize = self.q.qsize()
             if qsize > 0 and qsize % 10 == 0:
@@ -556,7 +714,7 @@ class AppDaemon:
 
             end_time = datetime.datetime.now().timestamp()
 
-            loop_duration = (int((end_time - start_time)*1000) / 1000) * 1000
+            loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
             utils.log(self.logger, "DEBUG", "Main loop compute time: {}ms".format(loop_duration))
 
             if loop_duration > 900:
@@ -583,27 +741,27 @@ class AppDaemon:
         while True:
             args = self.q.get()
             _type = args["type"]
-            function = args["function"]
+            funcref = args["function"]
             _id = args["id"]
             name = args["name"]
             if name in self.objects and self.objects[name]["id"] == _id:
                 try:
                     if _type == "initialize":
                         utils.log(self.logger, "DEBUG", "Calling initialize() for {}".format(name))
-                        function()
+                        funcref()
                         utils.log(self.logger, "DEBUG", "{} initialize() done".format(name))
                     elif _type == "timer":
-                        function(utils.sanitize_timer_kwargs(args["kwargs"]))
+                        funcref(utils.sanitize_timer_kwargs(args["kwargs"]))
                     elif _type == "attr":
                         entity = args["entity"]
                         attr = args["attribute"]
                         old_state = args["old_state"]
                         new_state = args["new_state"]
-                        function(entity, attr, old_state, new_state,
-                                 utils.sanitize_state_kwargs(args["kwargs"]))
+                        funcref(entity, attr, old_state, new_state,
+                                utils.sanitize_state_kwargs(args["kwargs"]))
                     elif _type == "event":
                         data = args["data"]
-                        function(args["event"], data, args["kwargs"])
+                        funcref(args["event"], data, args["kwargs"])
 
                 except:
                     utils.log(self.error, "WARNING", '-' * 60)
@@ -622,12 +780,44 @@ class AppDaemon:
 
             self.q.task_done()
 
+    def register_endpoint(self, cb, name):
+
+        handle = uuid.uuid4()
+
+        with self.endpoints_lock:
+            if name not in self.endpoints:
+                self.endpoints[name] = {}
+            self.endpoints[name][handle] = {"callback": cb, "name": name}
+
+        return handle
+
+    def unregister_endpoint(self, handle, name):
+        with self.endpoints_lock:
+            if name in self.endpoints and handle in self.endpoints[name]:
+                del self.endpoints[name][handle]
+
+    def set_app_state(self, entity_id, state):
+        utils.log(self.logger, "DEBUG", "set_app_state: {}".format(entity_id))
+        if entity_id is not None and "." in entity_id:
+            with self.ha_state_lock:
+                if entity_id in self.ha_state:
+                    old_state = self.ha_state[entity_id]
+                else:
+                    old_state = None
+                data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
+                args = {"event_type": "state_changed", "data": data}
+                self.appq.put_nowait(args)
+
+    def get_app(self, name):
+        if name in self.objects:
+            return self.objects[name]["object"]
+        else:
+            return None
 
     def term_file(self, name):
         for key in self.app_config:
             if "module" in self.app_config[key] and self.app_config[key]["module"] == name:
                 self.term_object(key)
-
 
     def clear_file(self, name):
         for key in self.app_config:
@@ -635,7 +825,6 @@ class AppDaemon:
                 self.clear_object(key)
                 if key in self.objects:
                     del self.objects[key]
-
 
     def clear_object(self, object_):
         utils.log(self.logger, "DEBUG", "Clearing callbacks for {}".format(object_))
@@ -649,7 +838,6 @@ class AppDaemon:
             if object_ in self.endpoints:
                 del self.endpoints[object_]
 
-
     def term_object(self, name):
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
             utils.log(self.logger, "INFO", "Terminating Object {}".format(name))
@@ -657,14 +845,14 @@ class AppDaemon:
             # so we know terminate has completed before we move on
             self.objects[name]["object"].terminate()
 
-
     def init_object(self, name, class_name, module_name, args):
-        utils.log(self.logger, "INFO", "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
-        module = __import__(module_name)
-        app_class = getattr(module, class_name)
+        utils.log(self.logger, "INFO",
+                  "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
+        modname = __import__(module_name)
+        app_class = getattr(modname, class_name)
         self.objects[name] = {
             "object": app_class(
-                name, self.logger, self.error, args, self.global_vars
+                self, name, self.logger, self.error, args, self.global_vars
             ),
             "id": uuid.uuid4()
         }
@@ -683,15 +871,14 @@ class AppDaemon:
         #         "function": self.objects[name]["object"].initialize
         #     })
 
-
-    def check_and_disapatch(self, name, function, entity, attribute, new_state,
+    def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
                             old_state, cold, cnew, kwargs):
         if attribute == "all":
             self.dispatch_worker(name, {
                 "name": name,
                 "id": self.objects[name]["id"],
                 "type": "attr",
-                "function": function,
+                "function": funcref,
                 "attribute": attribute,
                 "entity": entity,
                 "new_state": new_state,
@@ -721,9 +908,9 @@ class AppDaemon:
             if (cold is None or cold == old) and (cnew is None or cnew == new):
                 if "duration" in kwargs:
                     # Set a timer
-                    exec_time = utils.get_now_ts() + int(kwargs["duration"])
-                    kwargs["handle"] = utils.insert_schedule(
-                        name, exec_time, function, False, None,
+                    exec_time = self.get_now_ts() + int(kwargs["duration"])
+                    kwargs["handle"] = self.insert_schedule(
+                        name, exec_time, funcref, False, None,
                         entity=entity,
                         attribute=attribute,
                         old_state=old,
@@ -735,7 +922,7 @@ class AppDaemon:
                         "name": name,
                         "id": self.objects[name]["id"],
                         "type": "attr",
-                        "function": function,
+                        "function": funcref,
                         "attribute": attribute,
                         "entity": entity,
                         "new_state": new,
@@ -745,7 +932,7 @@ class AppDaemon:
             else:
                 if "handle" in kwargs:
                     # cancel timer
-                    utils.cancel_timer(name, kwargs["handle"])
+                    self.cancel_timer(name, kwargs["handle"])
 
     def process_state_change(self, data):
         entity_id = data['data']['entity_id']
@@ -804,7 +991,7 @@ class AppDaemon:
                                 callback["kwargs"]
                             )
 
-    def process_event(self,data):
+    def process_event(self, data):
         with self.callbacks_lock:
             for name in self.callbacks.keys():
                 for uuid_ in self.callbacks[name]:
@@ -829,7 +1016,6 @@ class AppDaemon:
                                 "kwargs": callback["kwargs"]
                             })
 
-
     # noinspection PyBroadException
     def process_message(self, data):
         try:
@@ -851,13 +1037,12 @@ class AppDaemon:
                 if data['event_type'] == "state_changed":
                     self.process_state_change(data)
 
-                # Process non-state callbacks
+                    # Process non-state callbacks
                     self.process_event(data)
 
-            # Update dashboards
-
-            if self.dashboard is True:
-                appdash.ws_update(data)
+#            # Update dashboards
+#            if self.dashboard is True:
+#                appdash.ws_update(data)
 
         except:
             utils.log(self.error, "WARNING", '-' * 60)
@@ -869,6 +1054,7 @@ class AppDaemon:
                 utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
 
     def read_config(self):
+        new_config = None
         root, ext = os.path.splitext(self.app_config_file)
         if ext == ".yaml":
             with open(self.app_config_file, 'r') as yamlfd:
@@ -892,10 +1078,9 @@ class AppDaemon:
 
         return new_config
 
-# noinspection PyBroadException
+    # noinspection PyBroadException
     def check_config(self):
 
-        new_config = None
         try:
             modified = os.path.getmtime(self.app_config_file)
             if modified > self.app_config_file_modified:
@@ -907,12 +1092,11 @@ class AppDaemon:
                     utils.log(self.error, "WARNING", "New config not applied")
                     return
 
-
                 # Check for changes
 
                 for name in self.app_config:
-                    if name == "DEFAULT" or name == "AppDaemon" or name == "HADashboard":
-                        continue
+                    # if name == "DEFAULT" or name == "AppDaemon" or name == "HADashboard":
+                    #    continue
                     if name in new_config:
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
@@ -953,7 +1137,6 @@ class AppDaemon:
             utils.log(self.error, "WARNING", '-' * 60)
             if self.errorfile != "STDERR" and self.logfile != "STDOUT":
                 utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
-
 
     # noinspection PyBroadException
     def read_app(self, file, reload=False):
@@ -1024,8 +1207,8 @@ class AppDaemon:
         for dependency in dependencies:
             dependency_found = False
             for batch in load_order:
-                for module in batch:
-                    module_name = self.get_module_from_path(module["name"])
+                for mod in batch:
+                    module_name = self.get_module_from_path(mod["name"])
                     # print(dependency, module_name)
                     if dependency == module_name:
                         # print("found {}".format(module_name))
@@ -1046,15 +1229,14 @@ class AppDaemon:
 
         return False
 
-
-    def get_module_from_path(self, path):
+    @staticmethod
+    def get_module_from_path(path):
         name = os.path.basename(path)
         module_name = os.path.splitext(name)[0]
         return module_name
 
-
-    def find_dependent_modules(self, module):
-        module_name = self.get_module_from_path(module["name"])
+    def find_dependent_modules(self, mod):
+        module_name = self.get_module_from_path(mod["name"])
         dependents = []
         if self.app_config is not None:
             for mod in self.app_config:
@@ -1064,21 +1246,20 @@ class AppDaemon:
                             dependents.append(self.app_config[mod]["module"])
         return dependents
 
-
-    def get_file_from_module(self, module):
+    def get_file_from_module(self, mod):
         for file in self.monitored_files:
             module_name = self.get_module_from_path(file)
-            if module_name == module:
+            if module_name == mod:
                 return file
 
         return None
 
-    def file_in_modules(self, file, modules):
+    @staticmethod
+    def file_in_modules(file, modules):
         for mod in modules:
             if mod["name"] == file:
                 return True
         return False
-
 
     # noinspection PyBroadException
     def read_apps(self, all_=False):
@@ -1102,8 +1283,8 @@ class AppDaemon:
             if file in self.monitored_files:
                 if self.monitored_files[file] < modified or all_:
                     # read_app(file, True)
-                    module = {"name": file, "reload": True, "load": True}
-                    modules.append(module)
+                    thismod = {"name": file, "reload": True, "load": True}
+                    modules.append(thismod)
                     self.monitored_files[file] = modified
             else:
                 # read_app(file)
@@ -1116,18 +1297,19 @@ class AppDaemon:
             more_modules = True
             while more_modules:
                 module_list = modules.copy()
-                for module in module_list:
-                    dependent_modules = self.find_dependent_modules(module)
+                for mod in module_list:
+                    dependent_modules = self.find_dependent_modules(mod)
                     if not dependent_modules:
                         more_modules = False
                     else:
-                        for mod in dependent_modules:
-                            file = self.get_file_from_module(mod)
+                        for thismod in dependent_modules:
+                            file = self.get_file_from_module(thismod)
 
                             if file is None:
-                                utils.log(self.logger, "ERROR", "Unable to resolve dependencies due to incorrect references")
+                                utils.log(self.logger, "ERROR",
+                                          "Unable to resolve dependencies due to incorrect references")
                                 utils.log(self.logger, "ERROR", "The following modules have unresolved dependencies:")
-                                utils.log(self.logger, "ERROR",  self.get_module_from_path(module["file"]))
+                                utils.log(self.logger, "ERROR", self.get_module_from_path(mod["file"]))
                                 raise ValueError("Unresolved dependencies")
 
                             mod_def = {"name": file, "reload": True, "load": True}
@@ -1152,17 +1334,18 @@ class AppDaemon:
         while modules:
             batch = []
             module_list = modules.copy()
-            for module in module_list:
+            for mod in module_list:
                 # print(module)
-                if self.dependencies_are_satisfied(module["name"], load_order):
-                    batch.append(module)
-                    modules.remove(module)
+                if self.dependencies_are_satisfied(mod["name"], load_order):
+                    batch.append(mod)
+                    modules.remove(mod)
 
             if not batch:
-                utils.log(self.logger, "ERROR",  "Unable to resolve dependencies due to incorrect or circular references")
-                utils.log(self.logger, "ERROR",  "The following modules have unresolved dependencies:")
-                for module in modules:
-                    module_name = self.get_module_from_path(module["name"])
+                utils.log(self.logger, "ERROR",
+                          "Unable to resolve dependencies due to incorrect or circular references")
+                utils.log(self.logger, "ERROR", "The following modules have unresolved dependencies:")
+                for mod in modules:
+                    module_name = self.get_module_from_path(mod["name"])
                     utils.log(self.logger, "ERROR", module_name)
                 raise ValueError("Unresolved dependencies")
 
@@ -1170,9 +1353,9 @@ class AppDaemon:
 
         try:
             for batch in load_order:
-                for module in batch:
-                    if module["load"]:
-                        self.read_app(module["name"], module["reload"])
+                for mod in batch:
+                    if mod["load"]:
+                        self.read_app(mod["name"], mod["reload"])
 
         except:
             utils.log(self.logger, "WARNING", '-' * 60)
@@ -1182,11 +1365,10 @@ class AppDaemon:
             utils.log(self.logger, "WARNING", '-' * 60)
 
     def run_ad(self, loop, tasks):
+
         self.appq = asyncio.Queue(maxsize=0)
 
         self.loop = loop
-
-        first_time = True
 
         self.stopping = False
 
@@ -1197,10 +1379,6 @@ class AppDaemon:
         # Load App Config
 
         self.app_config = self.read_config()
-
-        # Save start time
-
-        self.start_time = datetime.datetime.now()
 
         # Take a note of DST
 
@@ -1222,58 +1400,17 @@ class AppDaemon:
 
         utils.log(self.logger, "DEBUG", "Done")
 
-
-        """
-        if self.ha_url is not None:
-            # Read apps and get HA State before we start the timer thread
-            utils.log(self.logger, "DEBUG", "Calling HA for initial state with key: {} and url: {}".format(self.ha_key, self.ha_url))
-    
-            while self.last_state is None:
-                try:
-                    get_ha_state()
-                    self.last_state = utils.get_now()
-                except:
-                    utils.log(
-                        self.logger, "WARNING",
-                        "Disconnected from Home Assistant, retrying in 5 seconds"
-                    )
-                    if self.loglevel == "DEBUG":
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                        utils.log(self.logger, "WARNING", "Unexpected error:")
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                        utils.log(self.logger, "WARNING", traceback.format_exc())
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                    time.sleep(5)
-    
-            utils.log(self.logger, "INFO", "Got initial state")
-    
-            # Initialize appdaemon loop
-            tasks.append(asyncio.async(appdaemon_loop()))
-    
-        else:
-           self.last_state = utils.get_now()
-    
-        # Load apps
-    
-        # Let other parts know we are in business,
-        appapi.reading_messages = True
-    
-        """
-
         utils.log(self.logger, "DEBUG", "Reading Apps")
 
         self.read_apps(True)
+        self.app_config_file_modified = self.now
 
         utils.log(self.logger, "INFO", "App initialization complete")
 
         # Create timer loop
 
-        # First, update "now" for less chance of clock skew error
-        if self.realtime:
-            self.now = datetime.datetime.now().timestamp()
-
         utils.log(self.logger, "DEBUG", "Starting timer loop")
 
-            #tasks.append(asyncio.async(self.appstate_loop()))
+        # tasks.append(asyncio.async(self.appstate_loop()))
 
         tasks.append(asyncio.async(self.do_every(self.tick, self.do_every_second)))
