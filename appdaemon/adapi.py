@@ -67,7 +67,7 @@ def call_api(request):
 def setup_api():
     app.router.add_post('/api/appdaemon/{app}', call_api)
 
-def run_api(loop, tasks):
+def run_api(loop, tasks, conf):
     # noinspection PyBroadException
     try:
         setup_api()

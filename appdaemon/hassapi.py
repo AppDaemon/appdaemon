@@ -22,6 +22,10 @@ def hass_check(func):
     return (func_wrapper)
 
 
+#
+# Define an entities class as a descriptor to enable read only access of HASS state
+#
+
 class Entities:
 
     def __get__(self, instance, owner):
@@ -46,9 +50,6 @@ class AppDaemon:
         self.config = conf.config
         self.ha_config = conf.ha_config
 
-    #
-    # Define an entities class as a descriptor to enable read only access of HASS state
-    #
 
     def _check_entity(self, entity):
         if "." not in entity:

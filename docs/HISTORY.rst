@@ -1,6 +1,23 @@
 Change Log
 ==========
 
+2.1.11
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a bug in album titles in the media player - contributed by `Andreas Wrede <https://github.com/awrede>`__
+- Label `text_style` now works as documented
+- Fixed Scheduler docs
+
+**Breaking Changes**
+
+None
+
 2.1.10 (2017-10-11)
 ------------------
 

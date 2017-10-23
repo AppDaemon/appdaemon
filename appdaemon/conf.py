@@ -23,18 +23,3 @@ api_key = None
 
 secrets = None
 
-
-#
-# Dashboard
-#
-dash = None
-dash_url = None
-dash_ssl_key = None
-dash_ssl_certificate = None
-dash_port = 0
-dash_password = ""
-dash_compile_on_start = False
-dash_force_compile = False
-profile_dashboard = False
-dashboard_dir = None
-dashboard = None

@@ -20,10 +20,13 @@ import appdaemon.conf as confmodule
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.adapi as api
-import appdaemon.rundash as appdash
+import appdaemon.rundash as rundash
 
 # Windows does not have Daemonize package so disallow
 
+#
+# Empty class to store attributes
+#
 class Config():
     pass
 
@@ -45,7 +48,7 @@ class ADMain():
             self.AD.read_apps(True)
         if signum == signal.SIGINT:
             utils.log(self.logger, "INFO", "Keyboard interrupt")
-            self.AD.stopit()
+            self.AD.stop()
 
     def find_path(self, name):
         for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
@@ -76,18 +79,20 @@ class ADMain():
 
         if conf.dashboard is True:
             utils.log(self.logger, "INFO", "Starting dashboard")
-            appdash.run_dash(loop, tasks)
+            self.rundash = rundash.RunDash()
+            self.rundash.run_dash(loop, tasks, conf)
         else:
             utils.log(self.logger, "INFO", "Dashboards are disabled")
 
         if conf.api_port is not None:
             utils.log(self.logger, "INFO", "Starting API")
-            api.run_api(loop, tasks)
+            api.run_api(loop, tasks, conf)
         else:
             utils.log(self.logger, "INFO", "API is disabled")
 
         utils.log(self.logger, "DEBUG", "Start Loop")
         loop.run_until_complete(asyncio.wait(tasks))
+        loop.close()
         utils.log(self.logger, "DEBUG", "End Loop")
 
         utils.log(self.logger, "INFO", "AppDeamon Exited")
