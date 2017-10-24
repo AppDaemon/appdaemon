@@ -167,7 +167,7 @@ class AppDaemon:
         while True:
             try:
                 next_rising_dt = self.location.sunrise(
-                    now + datetime.timedelta(days=mod), local=False
+                    (now + datetime.timedelta(days=mod)).date(), local=False
                 )
                 if next_rising_dt > now:
                     break
@@ -179,7 +179,7 @@ class AppDaemon:
         while True:
             try:
                 next_setting_dt = self.location.sunset(
-                    now + datetime.timedelta(days=mod), local=False
+                    (now + datetime.timedelta(days=mod)).date(), local=False
                 )
                 if next_setting_dt > now:
                     break
