@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+2.1.11
+------
+
+**Features**
+
+None
+
+**Fixes**
+
+Fixed an issue with ``run_at_sunset()`` firing multiple times
+
+**Breaking Changes**
+
+None
+
 2.1.10 (2017-10-11)
 ------------------
 
