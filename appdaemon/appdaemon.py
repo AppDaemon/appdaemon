@@ -61,7 +61,7 @@ def update_sun():
     while True:
         try:
             next_rising_dt = conf.location.sunrise(
-                now + datetime.timedelta(days=mod), local=False
+                (now + datetime.timedelta(days=mod)).date(), local=False
             )
             if next_rising_dt > now:
                 break
@@ -73,7 +73,7 @@ def update_sun():
     while True:
         try:
             next_setting_dt = conf.location.sunset(
-                now + datetime.timedelta(days=mod), local=False
+                (now + datetime.timedelta(days=mod)).date(), local=False
             )
             if next_setting_dt > now:
                 break
@@ -87,13 +87,14 @@ def update_sun():
     conf.sun["next_setting"] = next_setting_dt
 
     if old_next_rising_dt is not None and old_next_rising_dt != conf.sun["next_rising"]:
-        # dump_schedule()
+        #dump_schedule()
         process_sun("next_rising")
-        # dump_schedule()
+        #dump_schedule()
     if old_next_setting_dt is not None and old_next_setting_dt != conf.sun["next_setting"]:
-        # dump_schedule()
+        #utils.log(conf.logger, "INFO", "Old next setting: {} New next setting: {}".format(old_next_setting_dt, conf.sun["next_setting"]))
+        #dump_schedule()
         process_sun("next_setting")
-        # dump_schedule()
+        #dump_schedule()
 
 
 def is_dst():
