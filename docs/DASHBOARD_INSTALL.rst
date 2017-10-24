@@ -29,7 +29,7 @@ For instance:
 
 .. code:: yaml
 
-    AppDaemon:
+    HASS:
       ha_url: <some_url>
       ...
     HADashboard:

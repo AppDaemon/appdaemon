@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-2.1.10
+2.1.11
 ------
 
 **Features**
@@ -10,13 +10,27 @@ None
 
 **Fixes**
 
-- Fixed a bug in album titles in the media player - contributed by `Andreas Wrede <https://github.com/awrede>`__
-- Label `text_style` now works as documented
-- Fixed Scheduler docs
+Fixed an issue with ``run_at_sunset()`` firing multiple times
 
 **Breaking Changes**
 
 None
+
+2.1.10 (2017-10-11)
+------------------
+
+**Features**
+
+- Renamed the HADashboard input_slider to input_number to support HASS' change
+- Fixed ``select_value()`` to work with input_number entities
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+The ``input_select`` widget has been renamed to ``input_number`` to support the change in HASS
 
 2.1.9 (2017-09-08)
 ------------------
