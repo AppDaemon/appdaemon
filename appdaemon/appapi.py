@@ -546,7 +546,7 @@ class AppDaemon:
     def select_value(self, entity_id, value):
         self._check_entity(entity_id)
         rargs = {"entity_id": entity_id, "value": value}
-        self.call_service("input_slider/select_value", **rargs)
+        self.call_service("input_number/set_value", **rargs)
 
     @hass_check
     def select_option(self, entity_id, option):
