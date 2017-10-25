@@ -417,6 +417,6 @@ prior to installing AppDaemon with the pip3 method:
 
 .. code:: bash
 
-    $ sudo apt-get install python dev
+    $ sudo apt-get install python-dev
     $ sudo apt-get install libffi-dev
 
