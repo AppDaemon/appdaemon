@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-2.1.11
+2.1.12 (2017-11-07)
 ------
 
 **Features**
@@ -10,7 +10,22 @@ None
 
 **Fixes**
 
-Fixed an issue with ``run_at_sunset()`` firing multiple times
+- Fixed passwords causing 500 error on HADashboard - contributed by `wchan.ranelagh <https://community.home-assistant.io/u/wchan.ranelagh/summary>`__
+
+**Breaking Changes**
+
+None
+
+2.1.11 (2017-10-25)
+------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an issue with ``run_at_sunset()`` firing multiple times
 
 **Breaking Changes**
 

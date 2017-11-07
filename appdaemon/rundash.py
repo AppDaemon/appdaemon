@@ -68,7 +68,8 @@ def secure(myfunc):
 
 
 def forcelogon(request):
-    return {"logon": 1}
+    response = yield from utils.run_in_executor(conf.loop, conf.executor, conf.dashboard_obj.get_dashboard_list, {"logon": 1})
+    return web.Response(text=response, content_type="text/html")
 
 
 @asyncio.coroutine
