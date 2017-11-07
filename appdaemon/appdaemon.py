@@ -2,7 +2,6 @@
 import sys
 import importlib
 import traceback
-import configparser
 import os
 import os.path
 from queue import Queue
@@ -27,13 +26,12 @@ class AppDaemon:
 
         self.logger = logger
         self.error = error
-
+        self.config = kwargs["config"]
         self.q = Queue(maxsize=0)
 
         self.was_dst = False
 
         self.last_state = None
-        # appapi.reading_messages = False
         self.inits = {}
         # ws = None
 
@@ -55,11 +53,13 @@ class AppDaemon:
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
 
-        self.ha_state = {}
-        self.ha_state_lock = threading.RLock()
+        self.state = {}
+        self.state_lock = threading.RLock()
 
         self.endpoints = {}
         self.endpoints_lock = threading.RLock()
+
+        self.plugins = {}
 
         # No locking yet
         self.global_vars = {}
@@ -72,12 +72,13 @@ class AppDaemon:
         self.now = 0
         self.realtime = True
         self.version = 0
-        self.config = None
         self.app_config_file_modified = 0
         self.app_config = None
 
         self.app_config_file = None
         self._process_arg("app_config_file", kwargs)
+
+        self.plugin_params = kwargs["plugins"]
 
         # User Supplied/Defaults
         self.threads = 0
@@ -137,10 +138,461 @@ class AppDaemon:
         self.api_port = None
         self._process_arg("api_port", kwargs)
 
+        self.utility_delay = 1
+        self._process_arg("utility_delay", kwargs)
+
     def _process_arg(self, arg, kwargs):
         if kwargs:
             if arg in kwargs:
                 setattr(self, arg, kwargs[arg])
+
+    def stop(self):
+        self.stopping = True
+        # if ws is not None:
+        #    ws.close()
+        self.appq.put_nowait({"event_type": "ha_stop", "data": None})
+        for plugin in self.plugins:
+            self.plugins[plugin].stop()
+
+    #
+    # Diagnostics
+    #
+
+    def dump_callbacks(self):
+        if self.callbacks == {}:
+            utils.log(self.logger, "INFO", "No callbacks")
+        else:
+            utils.log(self.logger, "INFO", "--------------------------------------------------")
+            utils.log(self.logger, "INFO", "Callbacks")
+            utils.log(self.logger, "INFO", "--------------------------------------------------")
+            for name in self.callbacks.keys():
+                utils.log(self.logger, "INFO", "{}:".format(name))
+                for uuid_ in self.callbacks[name]:
+                    utils.log(self.logger, "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
+            utils.log(self.logger, "INFO", "--------------------------------------------------")
+
+    def dump_objects(self):
+        utils.log(self.logger, "INFO", "--------------------------------------------------")
+        utils.log(self.logger, "INFO", "Objects")
+        utils.log(self.logger, "INFO", "--------------------------------------------------")
+        for object_ in self.objects.keys():
+            utils.log(self.logger, "INFO", "{}: {}".format(object_, self.objects[object_]))
+        utils.log(self.logger, "INFO", "--------------------------------------------------")
+
+    def dump_queue(self):
+        utils.log(self.logger, "INFO", "--------------------------------------------------")
+        utils.log(self.logger, "INFO", "Current Queue Size is {}".format(self.q.qsize()))
+        utils.log(self.logger, "INFO", "--------------------------------------------------")
+
+    def get_callback_entries(self):
+        callbacks = {}
+        for name in self.callbacks.keys():
+            callbacks[name] = {}
+            for uuid_ in self.callbacks[name]:
+                callbacks[name][uuid_] = {}
+                if "entity" in callbacks[name][uuid_]:
+                    callbacks[name][uuid_]["entity"] = self.callbacks[name][uuid_]["entity"]
+                else:
+                    callbacks[name][uuid_]["entity"] = None
+                callbacks[name][uuid_]["type"] = self.callbacks[name][uuid_]["type"]
+                callbacks[name][uuid_]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
+                callbacks[name][uuid_]["function"] = self.callbacks[name][uuid_]["function"]
+                callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
+        return callbacks
+
+
+    #
+    # Constraints
+
+    # TODO: Pull this into the API
+    def check_constraint(self, key, value):
+        unconstrained = True
+        with self.state_lock:
+            if key == "constrain_input_boolean":
+                values = value.split(",")
+                if len(values) == 2:
+                    entity = values[0]
+                    state = values[1]
+                else:
+                    entity = value
+                    state = "on"
+                if entity in self.state and self.state[entity]["state"] != state:
+                    unconstrained = False
+            if key == "constrain_input_select":
+                values = value.split(",")
+                entity = values.pop(0)
+                if entity in self.state and self.state[entity]["state"] not in values:
+                    unconstrained = False
+            if key == "constrain_presence":
+                if value == "everyone" and not utils.everyone_home():
+                    unconstrained = False
+                elif value == "anyone" and not utils.anyone_home():
+                    unconstrained = False
+                elif value == "noone" and not utils.noone_home():
+                    unconstrained = False
+            if key == "constrain_days":
+                if self.today_is_constrained(value):
+                    unconstrained = False
+
+        return unconstrained
+
+    def check_time_constraint(self, args, name):
+        unconstrained = True
+        if "constrain_start_time" in args or "constrain_end_time" in args:
+            if "constrain_start_time" not in args:
+                start_time = "00:00:00"
+            else:
+                start_time = args["constrain_start_time"]
+            if "constrain_end_time" not in args:
+                end_time = "23:59:59"
+            else:
+                end_time = args["constrain_end_time"]
+            if not self.now_is_between(start_time, end_time, name):
+                unconstrained = False
+
+        return unconstrained
+
+    def today_is_constrained(self, days):
+        day = self.get_now().weekday()
+        daylist = [utils.day_of_week(day) for day in days.split(",")]
+        if day in daylist:
+            return False
+        return True
+
+    #
+    # Thread Management
+    #
+
+    def dispatch_worker(self, name, args):
+        unconstrained = True
+        #
+        # Argument Constraints
+        #
+        for arg in self.app_config[name].keys():
+            if not self.check_constraint(arg, self.app_config[name][arg]):
+                unconstrained = False
+        if not self.check_time_constraint(self.app_config[name], name):
+            unconstrained = False
+        #
+        # Callback level constraints
+        #
+        if "kwargs" in args:
+            for arg in args["kwargs"].keys():
+                if not self.check_constraint(arg, args["kwargs"][arg]):
+                    unconstrained = False
+            if not self.check_time_constraint(args["kwargs"], name):
+                unconstrained = False
+
+        if unconstrained:
+            self.q.put_nowait(args)
+
+
+    # noinspection PyBroadException
+    def worker(self):
+        while True:
+            args = self.q.get()
+            _type = args["type"]
+            funcref = args["function"]
+            _id = args["id"]
+            name = args["name"]
+            if name in self.objects and self.objects[name]["id"] == _id:
+                try:
+                    if _type == "initialize":
+                        utils.log(self.logger, "DEBUG", "Calling initialize() for {}".format(name))
+                        funcref()
+                        utils.log(self.logger, "DEBUG", "{} initialize() done".format(name))
+                    elif _type == "timer":
+                        funcref(utils.sanitize_timer_kwargs(args["kwargs"]))
+                    elif _type == "attr":
+                        entity = args["entity"]
+                        attr = args["attribute"]
+                        old_state = args["old_state"]
+                        new_state = args["new_state"]
+                        funcref(entity, attr, old_state, new_state,
+                                utils.sanitize_state_kwargs(args["kwargs"]))
+                    elif _type == "event":
+                        data = args["data"]
+                        funcref(args["event"], data, args["kwargs"])
+
+                except:
+                    utils.log(self.error, "WARNING", '-' * 60)
+                    utils.log(self.error, "WARNING", "Unexpected error in worker for App {}:".format(name))
+                    utils.log(self.error, "WARNING", "Worker Ags: {}".format(args))
+                    utils.log(self.error, "WARNING", '-' * 60)
+                    utils.log(self.error, "WARNING", traceback.format_exc())
+                    utils.log(self.error, "WARNING", '-' * 60)
+                    if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+                        utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+            else:
+                self.logger.warning("Found stale callback for {} - discarding".format(name))
+
+            if self.inits.get(name):
+                self.inits.pop(name)
+
+            self.q.task_done()
+
+    #
+    # State
+    #
+
+    def entity_exists(self, namespace, entity):
+        with self.state_lock:
+            if namespace in self.state and entity in self.state[namespace]:
+                return True
+            else:
+                return False
+
+
+    def add_state_callback(self, name, namespace, entity, cb, kwargs):
+        with self.callbacks_lock:
+            if name not in self.callbacks:
+                self.callbacks[name] = {}
+            handle = uuid.uuid4()
+            self.callbacks[name][handle] = {
+                "name": name,
+                "id": self.objects[name]["id"],
+                "type": "state",
+                "function": cb,
+                "entity": entity,
+                "namespace": namespace,
+                "kwargs": kwargs
+            }
+
+        #
+        # In the case of a quick_start parameter,
+        # start the clock immediately if the device is already in the new state
+        #
+        if "immediate" in kwargs and kwargs["immediate"] is True:
+            if entity is not None and "new" in kwargs and "duration" in kwargs:
+                with self.state_lock:
+                    if self.state[namespace][entity]["state"] == kwargs["new"]:
+                        exec_time = self.get_now_ts() + int(kwargs["duration"])
+                        kwargs["handle"] = self.insert_schedule(
+                            name, exec_time, cb, False, None,
+                            entity=entity,
+                            attribute=None,
+                            old_state=None,
+                            new_state=kwargs["new"], **kwargs
+                    )
+
+        return handle
+
+    def cancel_state_callback(self, handle, name):
+        with self.callbacks_lock:
+            if name in self.callbacks and handle in self.callbacks[name]:
+                del self.callbacks[name][handle]
+            if name in self.callbacks and self.callbacks[name] == {}:
+                del self.callbacks[name]
+
+    def info_state_callback(self, handle, name):
+        with self.callbacks_lock:
+            if name in self.callbacks and handle in self.callbacks[name]:
+                callback = self.callbacks[name][handle]
+                return (
+                    callback["namespace"],
+                    callback["entity"],
+                    callback["kwargs"].get("attribute", None),
+                    utils.sanitize_state_kwargs(callback["kwargs"])
+                )
+            else:
+                raise ValueError("Invalid handle: {}".format(handle))
+
+    def get_state(self, namespace, device, entity, attribute):
+            with self.state_lock:
+                if device is None:
+                    return self.state[namespace]
+                elif entity is None:
+                    devices = {}
+                    for entity_id in self.state[namespace].keys():
+                        thisdevice, thisentity = entity_id.split(".")
+                        if device == thisdevice:
+                            devices[entity_id] = self.state[namespace][entity_id]
+                    return devices
+                elif attribute is None:
+                    entity_id = "{}.{}".format(device, entity)
+                    if entity_id in self.state[namespace]:
+                        return self.state[namespace][entity_id]["state"]
+                    else:
+                        return None
+                else:
+                    entity_id = "{}.{}".format(device, entity)
+                    if attribute == "all":
+                        if entity_id in self.state[namespace]:
+                            return self.state[namespace][entity_id]["attributes"]
+                        else:
+                            return None
+                    else:
+                        if attribute in self.state[namespace][entity_id]:
+                            return self.state[namespace][entity_id][attribute]
+                        elif attribute in self.state[namespace][entity_id]["attributes"]:
+                            return self.state[namespace][entity_id]["attributes"][
+                                attribute]
+                        else:
+                            return None
+
+    def set_state(self, namespace, entity, state):
+        with self.state_lock:
+            self.state[namespace][entity] = state
+
+    def set_app_state(self, entity_id, state):
+        utils.log(self.logger, "DEBUG", "set_app_state: {}".format(entity_id))
+        if entity_id is not None and "." in entity_id:
+            with self.state_lock:
+                if entity_id in self.state:
+                    old_state = self.state[entity_id]
+                else:
+                    old_state = None
+                data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
+                args = {"event_type": "state_changed", "data": data}
+                self.appq.put_nowait(args)
+
+    #
+    # Events
+    #
+    def add_event_callback(self, name, cb, event, **kwargs):
+        with self.callbacks_lock:
+            if name not in self.callbacks:
+                self.callbacks[name] = {}
+            handle = uuid.uuid4()
+            self.callbacks[name][handle] = {
+                "name": name,
+                "id": self.objects[name]["id"],
+                "type": "event",
+                "function": cb,
+                "event": event,
+                "kwargs": kwargs
+            }
+        return handle
+
+    def cancel_event_callback(self, name, handle):
+        with self.callbacks_lock:
+            if name in self.callbacks and handle in self.callbacks[name]:
+                del self.callbacks[name][handle]
+            if name in self.callbacks and self.callbacks[name] == {}:
+                del self.callbacks[name]
+
+    def info_event_callback(self, name, handle):
+        with self.callbacks_lock:
+            if name in self.callbacks and handle in self.callbacks[name]:
+                callback = self.callbacks[name][handle]
+                return callback["event"], callback["kwargs"].copy()
+            else:
+                raise ValueError("Invalid handle: {}".format(handle))
+
+    #
+    # Scheduler
+    #
+
+    def cancel_timer(self, name, handle):
+        utils.log(self.logger, "DEBUG", "Canceling timer for {}".format(name))
+        with self.schedule_lock:
+            if name in self.schedule and handle in self.schedule[name]:
+                del self.schedule[name][handle]
+            if name in self.schedule and self.schedule[name] == {}:
+                del self.schedule[name]
+
+    # noinspection PyBroadException
+    def exec_schedule(self, name, entry, args):
+        try:
+            # Locking performed in calling function
+            if "inactive" in args:
+                return
+            # Call function
+            if "entity" in args["kwargs"]:
+                self.dispatch_worker(name, {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "type": "attr",
+                    "function": args["callback"],
+                    "attribute": args["kwargs"]["attribute"],
+                    "entity": args["kwargs"]["entity"],
+                    "new_state": args["kwargs"]["new_state"],
+                    "old_state": args["kwargs"]["old_state"],
+                    "kwargs": args["kwargs"],
+                })
+            else:
+                self.dispatch_worker(name, {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "type": "timer",
+                    "function": args["callback"],
+                    "kwargs": args["kwargs"],
+                })
+            # If it is a repeating entry, rewrite with new timestamp
+            if args["repeat"]:
+                if args["type"] == "next_rising" or args["type"] == "next_setting":
+                    # Its sunrise or sunset - if the offset is negative we
+                    # won't know the next rise or set time yet so mark as inactive
+                    # So we can adjust with a scan at sun rise/set
+                    if args["offset"] < 0:
+                        args["inactive"] = 1
+                    else:
+                        # We have a valid time for the next sunrise/set so use it
+                        c_offset = self.get_offset(args)
+                        args["timestamp"] = self.calc_sun(args["type"]) + c_offset
+                        args["offset"] = c_offset
+                else:
+                    # Not sunrise or sunset so just increment
+                    # the timestamp with the repeat interval
+                    args["basetime"] += args["interval"]
+                    args["timestamp"] = args["basetime"] + self.get_offset(args)
+            else:  # Otherwise just delete
+                del self.schedule[name][entry]
+
+        except:
+            utils.log(self.error, "WARNING", '-' * 60)
+            utils.log(
+                self.error, "WARNING",
+                "Unexpected error during exec_schedule() for App: {}".format(name)
+            )
+            utils.log(self.error, "WARNING", "Args: {}".format(args))
+            utils.log(self.error, "WARNING", '-' * 60)
+            utils.log(self.error, "WARNING", traceback.format_exc())
+            utils.log(self.error, "WARNING", '-' * 60)
+            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+                # When explicitly logging to stdout and stderr, suppress
+                # log messages about writing an error (since they show up anyway)
+                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+            utils.log(self.error, "WARNING", "Scheduler entry has been deleted")
+            utils.log(self.error, "WARNING", '-' * 60)
+
+            del self.schedule[name][entry]
+
+    def process_sun(self, action):
+        utils.log(
+            self.logger, "DEBUG",
+            "Process sun: {}, next sunrise: {}, next sunset: {}".format(
+                action, self.sun["next_rising"], self.sun["next_setting"]
+            )
+        )
+        with self.schedule_lock:
+            for name in self.schedule.keys():
+                for entry in sorted(
+                        self.schedule[name].keys(),
+                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+                ):
+                    schedule = self.schedule[name][entry]
+                    if schedule["type"] == action and "inactive" in schedule:
+                        del schedule["inactive"]
+                        c_offset = self.get_offset(schedule)
+                        schedule["timestamp"] = self.calc_sun(action) + c_offset
+                        schedule["offset"] = c_offset
+
+    def calc_sun(self, type_):
+        # convert to a localized timestamp
+        return self.sun[type_].timestamp()
+
+    def info_timer(self, handle, name):
+        with self.schedule_lock:
+            if name in self.schedule and handle in self.schedule[name]:
+                callback = self.schedule[name][handle]
+                return (
+                    datetime.datetime.fromtimestamp(callback["timestamp"]),
+                    callback["interval"],
+                    utils.sanitize_timer_kwargs(callback["kwargs"])
+                )
+            else:
+                raise ValueError("Invalid handle: {}".format(handle))
 
     def init_sun(self):
         latitude = self.latitude
@@ -267,12 +719,6 @@ class AppDaemon:
     def is_dst(self):
         return bool(time.localtime(self.get_now_ts()).tm_isdst)
 
-    def stop(self):
-        self.stopping = True
-        # if ws is not None:
-        #    ws.close()
-        self.appq.put_nowait({"event_type": "ha_stop", "data": None})
-
     def get_now(self):
         return datetime.datetime.fromtimestamp(self.now)
 
@@ -386,257 +832,29 @@ class AppDaemon:
                     )
             utils.log(self.logger, "INFO", "--------------------------------------------------")
 
-    def dump_callbacks(self):
-        if self.callbacks == {}:
-            utils.log(self.logger, "INFO", "No callbacks")
-        else:
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
-            utils.log(self.logger, "INFO", "Callbacks")
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
-            for name in self.callbacks.keys():
-                utils.log(self.logger, "INFO", "{}:".format(name))
-                for uuid_ in self.callbacks[name]:
-                    utils.log(self.logger, "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
-
-    def dump_objects(self):
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-        utils.log(self.logger, "INFO", "Objects")
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-        for object_ in self.objects.keys():
-            utils.log(self.logger, "INFO", "{}: {}".format(object_, self.objects[object_]))
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-
-    def dump_queue(self):
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-        utils.log(self.logger, "INFO", "Current Queue Size is {}".format(self.q.qsize()))
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-
-    # TODO: Pull this into the API
-    def check_constraint(self, key, value):
-        unconstrained = True
-        with self.ha_state_lock:
-            if key == "constrain_input_boolean":
-                values = value.split(",")
-                if len(values) == 2:
-                    entity = values[0]
-                    state = values[1]
-                else:
-                    entity = value
-                    state = "on"
-                if entity in self.ha_state and self.ha_state[entity]["state"] != state:
-                    unconstrained = False
-            if key == "constrain_input_select":
-                values = value.split(",")
-                entity = values.pop(0)
-                if entity in self.ha_state and self.ha_state[entity]["state"] not in values:
-                    unconstrained = False
-            if key == "constrain_presence":
-                if value == "everyone" and not utils.everyone_home():
-                    unconstrained = False
-                elif value == "anyone" and not utils.anyone_home():
-                    unconstrained = False
-                elif value == "noone" and not utils.noone_home():
-                    unconstrained = False
-            if key == "constrain_days":
-                if self.today_is_constrained(value):
-                    unconstrained = False
-
-        return unconstrained
-
-    def check_time_constraint(self, args, name):
-        unconstrained = True
-        if "constrain_start_time" in args or "constrain_end_time" in args:
-            if "constrain_start_time" not in args:
-                start_time = "00:00:00"
-            else:
-                start_time = args["constrain_start_time"]
-            if "constrain_end_time" not in args:
-                end_time = "23:59:59"
-            else:
-                end_time = args["constrain_end_time"]
-            if not self.now_is_between(start_time, end_time, name):
-                unconstrained = False
-
-        return unconstrained
-
-    def dispatch_worker(self, name, args):
-        unconstrained = True
-        #
-        # Argument Constraints
-        #
-        for arg in self.app_config[name].keys():
-            if not self.check_constraint(arg, self.app_config[name][arg]):
-                unconstrained = False
-        if not self.check_time_constraint(self.app_config[name], name):
-            unconstrained = False
-        #
-        # Callback level constraints
-        #
-        if "kwargs" in args:
-            for arg in args["kwargs"].keys():
-                if not self.check_constraint(arg, args["kwargs"][arg]):
-                    unconstrained = False
-            if not self.check_time_constraint(args["kwargs"], name):
-                unconstrained = False
-
-        if unconstrained:
-            self.q.put_nowait(args)
-
-    def today_is_constrained(self, days):
-        day = self.get_now().weekday()
-        daylist = [utils.day_of_week(day) for day in days.split(",")]
-        if day in daylist:
-            return False
-        return True
-
-    def process_sun(self, action):
-        utils.log(
-            self.logger, "DEBUG",
-            "Process sun: {}, next sunrise: {}, next sunset: {}".format(
-                action, self.sun["next_rising"], self.sun["next_setting"]
-            )
-        )
-        with self.schedule_lock:
-            for name in self.schedule.keys():
-                for entry in sorted(
-                        self.schedule[name].keys(),
-                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                ):
-                    schedule = self.schedule[name][entry]
-                    if schedule["type"] == action and "inactive" in schedule:
-                        del schedule["inactive"]
-                        c_offset = self.get_offset(schedule)
-                        schedule["timestamp"] = self.calc_sun(action) + c_offset
-                        schedule["offset"] = c_offset
-
-    def calc_sun(self, type_):
-        # convert to a localized timestamp
-        return self.sun[type_].timestamp()
-
-    def info_timer(self, handle, name):
-        with self.schedule_lock:
-            if name in self.schedule and handle in self.schedule[name]:
-                callback = self.schedule[name][handle]
-                return (
-                    datetime.datetime.fromtimestamp(callback["timestamp"]),
-                    callback["interval"],
-                    utils.sanitize_timer_kwargs(callback["kwargs"])
-                )
-            else:
-                raise ValueError("Invalid handle: {}".format(handle))
-
-    def get_callback_entries(self):
-        callbacks = {}
-        for name in self.callbacks.keys():
-            callbacks[name] = {}
-            for uuid_ in self.callbacks[name]:
-                callbacks[name][uuid_] = {}
-                if "entity" in callbacks[name][uuid_]:
-                    callbacks[name][uuid_]["entity"] = self.callbacks[name][uuid_]["entity"]
-                else:
-                    callbacks[name][uuid_]["entity"] = None
-                callbacks[name][uuid_]["type"] = self.callbacks[name][uuid_]["type"]
-                callbacks[name][uuid_]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
-                callbacks[name][uuid_]["function"] = self.callbacks[name][uuid_]["function"]
-                callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
-        return callbacks
-
-    def cancel_timer(self, name, handle):
-        utils.log(self.logger, "DEBUG", "Canceling timer for {}".format(name))
-        with self.schedule_lock:
-            if name in self.schedule and handle in self.schedule[name]:
-                del self.schedule[name][handle]
-            if name in self.schedule and self.schedule[name] == {}:
-                del self.schedule[name]
-
-    # noinspection PyBroadException
-    def exec_schedule(self, name, entry, args):
-        try:
-            # Locking performed in calling function
-            if "inactive" in args:
-                return
-            # Call function
-            if "entity" in args["kwargs"]:
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "attr",
-                    "function": args["callback"],
-                    "attribute": args["kwargs"]["attribute"],
-                    "entity": args["kwargs"]["entity"],
-                    "new_state": args["kwargs"]["new_state"],
-                    "old_state": args["kwargs"]["old_state"],
-                    "kwargs": args["kwargs"],
-                })
-            else:
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "timer",
-                    "function": args["callback"],
-                    "kwargs": args["kwargs"],
-                })
-            # If it is a repeating entry, rewrite with new timestamp
-            if args["repeat"]:
-                if args["type"] == "next_rising" or args["type"] == "next_setting":
-                    # Its sunrise or sunset - if the offset is negative we
-                    # won't know the next rise or set time yet so mark as inactive
-                    # So we can adjust with a scan at sun rise/set
-                    if args["offset"] < 0:
-                        args["inactive"] = 1
-                    else:
-                        # We have a valid time for the next sunrise/set so use it
-                        c_offset = self.get_offset(args)
-                        args["timestamp"] = self.calc_sun(args["type"]) + c_offset
-                        args["offset"] = c_offset
-                else:
-                    # Not sunrise or sunset so just increment
-                    # the timestamp with the repeat interval
-                    args["basetime"] += args["interval"]
-                    args["timestamp"] = args["basetime"] + self.get_offset(args)
-            else:  # Otherwise just delete
-                del self.schedule[name][entry]
-
-        except:
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(
-                self.error, "WARNING",
-                "Unexpected error during exec_schedule() for App: {}".format(name)
-            )
-            utils.log(self.error, "WARNING", "Args: {}".format(args))
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", traceback.format_exc())
-            utils.log(self.error, "WARNING", '-' * 60)
-            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # log messages about writing an error (since they show up anyway)
-                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
-            utils.log(self.error, "WARNING", "Scheduler entry has been deleted")
-            utils.log(self.error, "WARNING", '-' * 60)
-
-            del self.schedule[name][entry]
-
-    @asyncio.coroutine
-    def do_every(self, period, f):
+    async def do_every(self, period, f):
         t = math.floor(self.get_now_ts())
         count = 0
         t_ = math.floor(time.time())
         while not self.stopping:
             count += 1
             delay = max(t_ + count * period - time.time(), 0)
-            yield from asyncio.sleep(delay)
+            await asyncio.sleep(delay)
             t += self.interval
-            r = yield from f(t)
+            r = await f(t)
             if r is not None and r != t:
                 # print("r: {}, t: {}".format(r,t))
                 t = r
                 t_ = r
                 count = 0
 
+    #
+    # Scheduler Loop
+    #
+
     # noinspection PyBroadException,PyBroadException
-    @asyncio.coroutine
-    def do_every_second(self, utc):
+
+    async def do_every_second(self, utc):
 
         try:
             start_time = datetime.datetime.now().timestamp()
@@ -672,7 +890,7 @@ class AppDaemon:
                 )
                 # dump_schedule()
                 utils.log(self.logger, "INFO", "-" * 40)
-                yield from utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
+                await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
                 # dump_schedule()
             self.was_dst = now_dst
 
@@ -682,17 +900,6 @@ class AppDaemon:
             # if random.randint(1, 10) == 5:
             #    time.sleep(random.randint(1,20))
 
-            # Check to see if any apps have changed but only if we have valid state
-
-            yield from utils.run_in_executor(self.loop, self.executor, self.read_apps)
-
-            # Check to see if config has changed
-
-            yield from utils.run_in_executor(self.loop, self.executor, self.check_config)
-
-            qsize = self.q.qsize()
-            if qsize > 0 and qsize % 10 == 0:
-                self.logger.warning("Queue size is {}, suspect thread starvation".format(self.q.qsize()))
 
             # Process callbacks
 
@@ -715,7 +922,7 @@ class AppDaemon:
             end_time = datetime.datetime.now().timestamp()
 
             loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
-            utils.log(self.logger, "DEBUG", "Main loop compute time: {}ms".format(loop_duration))
+            utils.log(self.logger, "DEBUG", "Scheduler loop compute time: {}ms".format(loop_duration))
 
             if loop_duration > 900:
                 utils.log(self.logger, "WARNING", "Excessive time spent in scheduler loop: {}ms".format(loop_duration))
@@ -736,49 +943,62 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errorfile)
                 )
 
-    # noinspection PyBroadException
-    def worker(self):
-        while True:
-            args = self.q.get()
-            _type = args["type"]
-            funcref = args["function"]
-            _id = args["id"]
-            name = args["name"]
-            if name in self.objects and self.objects[name]["id"] == _id:
-                try:
-                    if _type == "initialize":
-                        utils.log(self.logger, "DEBUG", "Calling initialize() for {}".format(name))
-                        funcref()
-                        utils.log(self.logger, "DEBUG", "{} initialize() done".format(name))
-                    elif _type == "timer":
-                        funcref(utils.sanitize_timer_kwargs(args["kwargs"]))
-                    elif _type == "attr":
-                        entity = args["entity"]
-                        attr = args["attribute"]
-                        old_state = args["old_state"]
-                        new_state = args["new_state"]
-                        funcref(entity, attr, old_state, new_state,
-                                utils.sanitize_state_kwargs(args["kwargs"]))
-                    elif _type == "event":
-                        data = args["data"]
-                        funcref(args["event"], data, args["kwargs"])
+    #
+    # Utility Loop
+    #
 
-                except:
-                    utils.log(self.error, "WARNING", '-' * 60)
-                    utils.log(self.error, "WARNING", "Unexpected error in worker for App {}:".format(name))
-                    utils.log(self.error, "WARNING", "Worker Ags: {}".format(args))
-                    utils.log(self.error, "WARNING", '-' * 60)
-                    utils.log(self.error, "WARNING", traceback.format_exc())
-                    utils.log(self.error, "WARNING", '-' * 60)
-                    if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                        utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
-            else:
-                self.logger.warning("Found stale callback for {} - discarding".format(name))
+    async def utility(self):
+        while not self.stopping:
+            start_time = datetime.datetime.now().timestamp()
 
-            if self.inits.get(name):
-                self.inits.pop(name)
+            try:
+                           # Check to see if any apps have changed but only if we have valid state
 
-            self.q.task_done()
+                await utils.run_in_executor(self.loop, self.executor, self.read_apps)
+
+                # Check to see if config has changed
+
+                await utils.run_in_executor(self.loop, self.executor, self.check_config)
+
+                # Check for thread starvation
+
+                qsize = self.q.qsize()
+                if qsize > 0 and qsize % 10 == 0:
+                    self.logger.warning("Queue size is {}, suspect thread starvation".format(self.q.qsize()))
+
+                # Plugins
+
+                for plugin in self.plugins:
+                    self.plugins[plugin].utility()
+
+            except:
+                utils.log(self.error, "WARNING", '-' * 60)
+                utils.log(self.error, "WARNING", "Unexpected error during utility()")
+                utils.log(self.error, "WARNING", '-' * 60)
+                utils.log(self.error, "WARNING", traceback.format_exc())
+                utils.log(self.error, "WARNING", '-' * 60)
+                if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+                    # When explicitly logging to stdout and stderr, suppress
+                    # log messages about writing an error (since they show up anyway)
+                    utils.log(
+                        self.logger, "WARNING",
+                        "Logged an error to {}".format(self.errorfile)
+                    )
+
+            end_time = datetime.datetime.now().timestamp()
+
+            loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
+
+            utils.log(self.logger, "DEBUG", "Util loop compute time: {}ms".format(loop_duration))
+
+            if loop_duration > (self.utility_delay * 1000 * 0.9):
+                utils.log(self.logger, "WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+
+            await asyncio.sleep(self.utility_delay)
+
+    #
+    # AppDaemon API
+    #
 
     def register_endpoint(self, cb, name):
 
@@ -796,17 +1016,9 @@ class AppDaemon:
             if name in self.endpoints and handle in self.endpoints[name]:
                 del self.endpoints[name][handle]
 
-    def set_app_state(self, entity_id, state):
-        utils.log(self.logger, "DEBUG", "set_app_state: {}".format(entity_id))
-        if entity_id is not None and "." in entity_id:
-            with self.ha_state_lock:
-                if entity_id in self.ha_state:
-                    old_state = self.ha_state[entity_id]
-                else:
-                    old_state = None
-                data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
-                args = {"event_type": "state_changed", "data": data}
-                self.appq.put_nowait(args)
+    #
+    # App Management
+    #
 
     def get_app(self, name):
         if name in self.objects:
@@ -852,7 +1064,7 @@ class AppDaemon:
         app_class = getattr(modname, class_name)
         self.objects[name] = {
             "object": app_class(
-                self, name, self.logger, self.error, args, self.global_vars
+                self, name, self.logger, self.error, args, self.config, self.global_vars
             ),
             "id": uuid.uuid4()
         }
@@ -871,210 +1083,24 @@ class AppDaemon:
         #         "function": self.objects[name]["object"].initialize
         #     })
 
-    def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
-                            old_state, cold, cnew, kwargs):
-        if attribute == "all":
-            self.dispatch_worker(name, {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "type": "attr",
-                "function": funcref,
-                "attribute": attribute,
-                "entity": entity,
-                "new_state": new_state,
-                "old_state": old_state,
-                "kwargs": kwargs
-            })
-        else:
-            if old_state is None:
-                old = None
-            else:
-                if attribute in old_state:
-                    old = old_state[attribute]
-                elif attribute in old_state['attributes']:
-                    old = old_state['attributes'][attribute]
-                else:
-                    old = None
-            if new_state is None:
-                new = None
-            else:
-                if attribute in 'new_state':
-                    new = new_state[attribute]
-                elif attribute in new_state['attributes']:
-                    new = new_state['attributes'][attribute]
-                else:
-                    new = None
-
-            if (cold is None or cold == old) and (cnew is None or cnew == new):
-                if "duration" in kwargs:
-                    # Set a timer
-                    exec_time = self.get_now_ts() + int(kwargs["duration"])
-                    kwargs["handle"] = self.insert_schedule(
-                        name, exec_time, funcref, False, None,
-                        entity=entity,
-                        attribute=attribute,
-                        old_state=old,
-                        new_state=new, **kwargs
-                    )
-                else:
-                    # Do it now
-                    self.dispatch_worker(name, {
-                        "name": name,
-                        "id": self.objects[name]["id"],
-                        "type": "attr",
-                        "function": funcref,
-                        "attribute": attribute,
-                        "entity": entity,
-                        "new_state": new,
-                        "old_state": old,
-                        "kwargs": kwargs
-                    })
-            else:
-                if "handle" in kwargs:
-                    # cancel timer
-                    self.cancel_timer(name, kwargs["handle"])
-
-    def process_state_change(self, data):
-        entity_id = data['data']['entity_id']
-        utils.log(self.logger, "DEBUG", "Entity ID:{}:".format(entity_id))
-        device, entity = entity_id.split(".")
-
-        # Process state callbacks
-
-        with self.callbacks_lock:
-            for name in self.callbacks.keys():
-                for uuid_ in self.callbacks[name]:
-                    callback = self.callbacks[name][uuid_]
-                    if callback["type"] == "state":
-                        cdevice = None
-                        centity = None
-                        if callback["entity"] is not None:
-                            if "." not in callback["entity"]:
-                                cdevice = callback["entity"]
-                                centity = None
-                            else:
-                                cdevice, centity = callback["entity"].split(".")
-                        if callback["kwargs"].get("attribute") is None:
-                            cattribute = "state"
-                        else:
-                            cattribute = callback["kwargs"].get("attribute")
-
-                        cold = callback["kwargs"].get("old")
-                        cnew = callback["kwargs"].get("new")
-
-                        if cdevice is None:
-                            self.check_and_disapatch(
-                                name, callback["function"], entity_id,
-                                cattribute,
-                                data['data']['new_state'],
-                                data['data']['old_state'],
-                                cold, cnew,
-                                callback["kwargs"]
-                            )
-                        elif centity is None:
-                            if device == cdevice:
-                                self.check_and_disapatch(
-                                    name, callback["function"], entity_id,
-                                    cattribute,
-                                    data['data']['new_state'],
-                                    data['data']['old_state'],
-                                    cold, cnew,
-                                    callback["kwargs"]
-                                )
-                        elif device == cdevice and entity == centity:
-                            self.check_and_disapatch(
-                                name, callback["function"], entity_id,
-                                cattribute,
-                                data['data']['new_state'],
-                                data['data']['old_state'], cold,
-                                cnew,
-                                callback["kwargs"]
-                            )
-
-    def process_event(self, data):
-        with self.callbacks_lock:
-            for name in self.callbacks.keys():
-                for uuid_ in self.callbacks[name]:
-                    callback = self.callbacks[name][uuid_]
-                    if "event" in callback and (
-                                    callback["event"] is None
-                            or data['event_type'] == callback["event"]):
-                        # Check any filters
-                        _run = True
-                        for key in callback["kwargs"]:
-                            if key in data["data"] and callback["kwargs"][key] != \
-                                    data["data"][key]:
-                                _run = False
-                        if _run:
-                            self.dispatch_worker(name, {
-                                "name": name,
-                                "id": self.objects[name]["id"],
-                                "type": "event",
-                                "event": data['event_type'],
-                                "function": callback["function"],
-                                "data": data["data"],
-                                "kwargs": callback["kwargs"]
-                            })
-
-    # noinspection PyBroadException
-    def process_message(self, data):
-        try:
-            utils.log(
-                self.logger, "DEBUG",
-                "Event type:{}:".format(data['event_type'])
-            )
-            utils.log(self.logger, "DEBUG", data["data"])
-
-            if data['event_type'] == "state_changed":
-                entity_id = data['data']['entity_id']
-
-                # First update our global state
-                with self.ha_state_lock:
-                    self.ha_state[entity_id] = data['data']['new_state']
-
-            if self.apps is True:
-                # Process state changed message
-                if data['event_type'] == "state_changed":
-                    self.process_state_change(data)
-
-                    # Process non-state callbacks
-                    self.process_event(data)
-
-#            # Update dashboards
-#            if self.dashboard is True:
-#                appdash.ws_update(data)
-
-        except:
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", "Unexpected error during process_message()")
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", traceback.format_exc())
-            utils.log(self.error, "WARNING", '-' * 60)
-            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
-
     def read_config(self):
         new_config = None
         root, ext = os.path.splitext(self.app_config_file)
-        if ext == ".yaml":
-            with open(self.app_config_file, 'r') as yamlfd:
-                config_file_contents = yamlfd.read()
-            try:
-                new_config = yaml.load(config_file_contents)
-            except yaml.YAMLError as exc:
-                utils.log(self.logger, "WARNING", "Error loading configuration")
-                if hasattr(exc, 'problem_mark'):
-                    if exc.context is not None:
-                        utils.log(self.error, "WARNING", "parser says")
-                        utils.log(self.error, "WARNING", str(exc.problem_mark))
-                        utils.log(self.error, "WARNING", str(exc.problem) + " " + str(exc.context))
-                    else:
-                        utils.log(self.error, "WARNING", "parser says")
-                        utils.log(self.error, "WARNING", str(exc.problem_mark))
-                        utils.log(self.error, "WARNING", str(exc.problem))
-        else:
-            new_config = configparser.ConfigParser()
-            new_config.read_file(open(self.app_config_file))
+        with open(self.app_config_file, 'r') as yamlfd:
+            config_file_contents = yamlfd.read()
+        try:
+            new_config = yaml.load(config_file_contents)
+        except yaml.YAMLError as exc:
+            utils.log(self.logger, "WARNING", "Error loading configuration")
+            if hasattr(exc, 'problem_mark'):
+                if exc.context is not None:
+                    utils.log(self.error, "WARNING", "parser says")
+                    utils.log(self.error, "WARNING", str(exc.problem_mark))
+                    utils.log(self.error, "WARNING", str(exc.problem) + " " + str(exc.context))
+                else:
+                    utils.log(self.error, "WARNING", "parser says")
+                    utils.log(self.error, "WARNING", str(exc.problem_mark))
+                    utils.log(self.error, "WARNING", str(exc.problem))
 
         return new_config
 
@@ -1364,6 +1390,213 @@ class AppDaemon:
             utils.log(self.logger, "WARNING", traceback.format_exc())
             utils.log(self.logger, "WARNING", '-' * 60)
 
+    #
+    # State Updates
+    #
+
+    def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
+                            old_state, cold, cnew, kwargs):
+        if attribute == "all":
+            self.dispatch_worker(name, {
+                "name": name,
+                "id": self.objects[name]["id"],
+                "type": "attr",
+                "function": funcref,
+                "attribute": attribute,
+                "entity": entity,
+                "new_state": new_state,
+                "old_state": old_state,
+                "kwargs": kwargs
+            })
+        else:
+            if old_state is None:
+                old = None
+            else:
+                if attribute in old_state:
+                    old = old_state[attribute]
+                elif 'attributes' in old_state and attribute in old_state['attributes']:
+                    old = old_state['attributes'][attribute]
+                else:
+                    old = None
+            if new_state is None:
+                new = None
+            else:
+                if attribute in new_state:
+                    new = new_state[attribute]
+                elif 'attributes' in new_state and attribute in new_state['attributes']:
+                    new = new_state['attributes'][attribute]
+                else:
+                    new = None
+
+            if (cold is None or cold == old) and (cnew is None or cnew == new):
+                if "duration" in kwargs:
+                    # Set a timer
+                    exec_time = self.get_now_ts() + int(kwargs["duration"])
+                    kwargs["handle"] = self.insert_schedule(
+                        name, exec_time, funcref, False, None,
+                        entity=entity,
+                        attribute=attribute,
+                        old_state=old,
+                        new_state=new, **kwargs
+                    )
+                # Do it now
+                self.dispatch_worker(name, {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "type": "attr",
+                    "function": funcref,
+                    "attribute": attribute,
+                    "entity": entity,
+                    "new_state": new,
+                    "old_state": old,
+                    "kwargs": kwargs
+                })
+            else:
+                if "handle" in kwargs:
+                    # cancel timer
+                    self.cancel_timer(name, kwargs["handle"])
+
+    def process_state_change(self, state):
+        data = state["data"]
+        namespace = data["namespace"]
+        entity_id = data['entity_id']
+        utils.log(self.logger, "DEBUG", data)
+        device, entity = entity_id.split(".")
+
+        # Process state callbacks
+
+        with self.callbacks_lock:
+            for name in self.callbacks.keys():
+                for uuid_ in self.callbacks[name]:
+                    callback = self.callbacks[name][uuid_]
+                    if callback["type"] == "state" and callback["namespace"] == namespace:
+                        cdevice = None
+                        centity = None
+                        if callback["entity"] is not None:
+                            if "." not in callback["entity"]:
+                                cdevice = callback["entity"]
+                                centity = None
+                            else:
+                                cdevice, centity = callback["entity"].split(".")
+                        if callback["kwargs"].get("attribute") is None:
+                            cattribute = "state"
+                        else:
+                            cattribute = callback["kwargs"].get("attribute")
+
+                        cold = callback["kwargs"].get("old")
+                        cnew = callback["kwargs"].get("new")
+
+                        if cdevice is None:
+                            self.check_and_disapatch(
+                                name, callback["function"], entity_id,
+                                cattribute,
+                                data['new_state'],
+                                data['old_state'],
+                                cold, cnew,
+                                callback["kwargs"]
+                            )
+                        elif centity is None:
+                            if device == cdevice:
+                                self.check_and_disapatch(
+                                    name, callback["function"], entity_id,
+                                    cattribute,
+                                    data['new_state'],
+                                    data['old_state'],
+                                    cold, cnew,
+                                    callback["kwargs"]
+                                )
+                        elif device == cdevice and entity == centity:
+                            self.check_and_disapatch(
+                                name, callback["function"], entity_id,
+                                cattribute,
+                                data['new_state'],
+                                data['old_state'], cold,
+                                cnew,
+                                callback["kwargs"]
+                            )
+
+    async def state_update(self, my_object):
+        while not self.stopping:
+            try:
+                data = await my_object.get_next_update()
+
+                utils.log(
+                    self.logger, "DEBUG",
+                    "Event type:{}:".format(data['event_type'])
+                )
+                utils.log(self.logger, "DEBUG", data["data"])
+
+                if data['event_type'] == "state_changed":
+                    entity_id = data['data']['entity_id']
+
+                    # First update our global state
+                    with self.state_lock:
+                        namespace = data["data"]["namespace"]
+                        self.state[namespace][entity_id] = data['data']['new_state']
+
+                if self.apps is True:
+                    # Process state changed message
+                    if data['event_type'] == "state_changed":
+                        self.process_state_change(data)
+
+                    # Process non-state callbacks
+                    self.process_event(data)
+
+                # Update dashboards
+
+                #if self.dashboard is True:
+                #    appdash.ws_update(data)
+
+            except:
+                utils.log(self.error, "WARNING", '-' * 60)
+                utils.log(self.error, "WARNING", "Unexpected error during state_update()")
+                utils.log(self.error, "WARNING", '-' * 60)
+                utils.log(self.error, "WARNING", traceback.format_exc())
+                utils.log(self.error, "WARNING", '-' * 60)
+                if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+                    utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+
+
+    #
+    # Event Update
+    #
+
+    def process_event(self, data):
+        with self.callbacks_lock:
+            for name in self.callbacks.keys():
+                for uuid_ in self.callbacks[name]:
+                    callback = self.callbacks[name][uuid_]
+                    if "event" in callback and (
+                                    callback["event"] is None
+                            or data['event_type'] == callback["event"]):
+                        # Check any filters
+                        _run = True
+                        for key in callback["kwargs"]:
+                            if key in data["data"] and callback["kwargs"][key] != \
+                                    data["data"][key]:
+                                _run = False
+                        if _run:
+                            self.dispatch_worker(name, {
+                                "name": name,
+                                "id": self.objects[name]["id"],
+                                "type": "event",
+                                "event": data['event_type'],
+                                "function": callback["function"],
+                                "data": data["data"],
+                                "kwargs": callback["kwargs"]
+                            })
+
+    #
+    # Plugin Management
+    #
+
+    def get_plugin(self, name):
+        return self.plugins[name]
+
+    #
+    # Initial Setup
+    #
+
     def run_ad(self, loop, tasks):
 
         self.appq = asyncio.Queue(maxsize=0)
@@ -1400,6 +1633,50 @@ class AppDaemon:
 
         utils.log(self.logger, "DEBUG", "Done")
 
+
+        # Create timer loop
+
+        utils.log(self.logger, "DEBUG", "Starting timer loop")
+
+        tasks.append(asyncio.async(self.do_every(self.tick, self.do_every_second)))
+
+        # Create utility loop
+
+        utils.log(self.logger, "DEBUG", "Starting utility loop")
+
+        tasks.append(asyncio.async(self.utility()))
+
+        # Load Plugins
+
+        for name in self.plugin_params:
+            basename = self.plugin_params[name]["plugin"]
+            module_name = "{}plugin".format(basename)
+            class_name = "{}Plugin".format(basename.capitalize())
+            basepath = "appdaemon.plugins"
+
+            utils.log(self.logger, "INFO",
+                      "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
+            full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+            mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
+            app_class = getattr(mod, class_name)
+
+            plugin = app_class(name, self.logger, self.error, self.plugin_params[name])
+
+            state = plugin.get_complete_state()
+            namespace = state["namespace"]
+
+            with self.state_lock:
+                self.state[namespace] = state["state"]
+
+            self.plugins[namespace] = plugin
+
+            tasks.append(asyncio.async(self.state_update(self.plugins[namespace])))
+
+        #
+        # All plugins are loaded and we have initial state
+        # Now we can initialize the Apps
+        #
+
         utils.log(self.logger, "DEBUG", "Reading Apps")
 
         self.read_apps(True)
@@ -1407,10 +1684,6 @@ class AppDaemon:
 
         utils.log(self.logger, "INFO", "App initialization complete")
 
-        # Create timer loop
-
-        utils.log(self.logger, "DEBUG", "Starting timer loop")
-
-        # tasks.append(asyncio.async(self.appstate_loop()))
-
-        tasks.append(asyncio.async(self.do_every(self.tick, self.do_every_second)))
+        #
+        # Initialization complete - now we run in the various async routines we added to the loop
+        #

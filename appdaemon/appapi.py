@@ -11,11 +11,12 @@ class AppDaemon:
     # Internal
     #
 
-    def __init__(self, ad, name, logger, error, args, global_vars):
+    def __init__(self, ad, name, logger, error, args, config, global_vars):
         self.ad = ad
         self.name = name
         self._logger = logger
         self._error = error
+        self.config = config
         self.args = args
         self.global_vars = global_vars
         # self.config = conf.config
@@ -48,6 +49,15 @@ class AppDaemon:
 
     def get_app(self, name):
         return self.ad.get_app(name)
+
+    def _check_entity(self, namespace, entity):
+        if "." not in entity:
+            raise ValueError(
+                "{}: Invalid entity ID: {}".format(self.name, entity))
+        if not self.ad.entity_exists(namespace, entity):
+            utils.log(self._logger, "WARNING",
+                      "{}: Entity {} not found in AppDaemon".format(
+                          self.name, entity))
 
     #
     # Apiai
@@ -141,17 +151,74 @@ class AppDaemon:
     def unregister_endpoint(self, handle):
         self.ad.unregister_endpoint(handle, self.name)
 
-    def set_app_state(self, entity_id, state):
-        self.ad.set_app_state(entity_id, state)
+    #
+    # State
+    #
 
-    def set_state(self, entity_id, **kwargs):
-        return 0
-
-    def listen_state(self, function, entity=None, **kwargs):
-        return 0
+    def listen_state(self, namespace, cb, entity, **kwargs):
+        name = self.name
+        if entity is not None and "." in entity:
+            self._check_entity(namespace, entity)
+        return self.ad.add_state_callback(name, namespace, entity, cb, kwargs)
 
     def cancel_listen_state(self, handle):
-        return 0
+        utils.log(
+            self._logger, "DEBUG",
+            "Canceling listen_state for {}".format(self.name)
+        )
+        self.ad.cancel_state_callback(handle, self.name)
+
+    def info_listen_state(self, handle):
+        utils.log(
+            self._logger, "DEBUG",
+            "Calling info_listen_state for {}".format(self.name)
+        )
+        return self.ad.info_state_callback(handle, self.name)
+
+    def get_state(self, namespace, entity_id=None, attribute=None):
+        utils.log(self._logger, "DEBUG",
+               "get_state: {}.{}".format(entity_id, attribute))
+        device = None
+        entity = None
+        if entity_id is not None and "." in entity_id:
+            if not self.ad.entity_exists(namespace, entity_id):
+                return None
+        if entity_id is not None:
+            if "." not in entity_id:
+                if attribute is not None:
+                    raise ValueError(
+                        "{}: Invalid entity ID: {}".format(self.name, entity))
+                device = entity_id
+                entity = None
+            else:
+                device, entity = entity_id.split(".")
+
+        return self.ad.get_state(namespace, device, entity, attribute)
+
+    #
+    # Events
+    #
+
+    def listen_event(self, cb, event=None, **kwargs):
+        utils.log(
+            self._logger, "DEBUG",
+            "Calling listen_event for {}".format(self.name)
+        )
+        return self.ad.add_event_callback(self.name, cb, event, **kwargs)
+
+    def cancel_listen_event(self, handle):
+        utils.log(
+            self._logger, "DEBUG",
+            "Canceling listen_event for {}".format(self.name)
+        )
+        self.ad.cancel_event_callback(self.name, handle)
+
+    def info_listen_event(self, handle):
+        utils.log(
+            self._logger, "DEBUG",
+            "Calling info_listen_event for {}".format(self.name)
+        )
+        return self.ad.info_event_callback(self.name, handle)
 
     #
     # Time
@@ -343,18 +410,23 @@ class AppDaemon:
         return handle
 
     #
-    # Other
+    # Dashboard
     #
 
-# TODO: Reimplement using state
-#   def dash_navigate(self, target, timeout=-1, ret=None):
-#     kwargs = {"command": "navigate", "target": target}
-#
-#        if timeout != -1:
-#            kwargs["timeout"] = timeout
-#        if ret is not None:
-#            kwargs["return"] = ret
-#        self.fire_event("hadashboard", **kwargs)
+    # TODO: Reimplement using state
+
+    def dash_navigate(self, target, timeout=-1, ret=None):
+        kwargs = {"command": "navigate", "target": target}
+
+        if timeout != -1:
+            kwargs["timeout"] = timeout
+        if ret is not None:
+            kwargs["return"] = ret
+        self.fire_event("hadashboard", **kwargs)
+
+    #
+    # Other
+    #
 
     def get_scheduler_entries(self):
         return self.ad.get_scheduler_entries()
@@ -362,32 +434,32 @@ class AppDaemon:
     def get_callback_entries(self):
         return self.ad.get_callback_entries()
 
-
-def get_alexa_slot_value(data, slot=None):
-    if "request" in data and \
-                    "intent" in data["request"] and \
-                    "slots" in data["request"]["intent"]:
-        if slot is None:
-            return data["request"]["intent"]["slots"]
-        else:
-            if slot in data["request"]["intent"]["slots"] and \
-                            "value" in data["request"]["intent"]["slots"][slot]:
-                return data["request"]["intent"]["slots"][slot]["value"]
+    @staticmethod
+    def get_alexa_slot_value(data, slot=None):
+        if "request" in data and \
+                        "intent" in data["request"] and \
+                        "slots" in data["request"]["intent"]:
+            if slot is None:
+                return data["request"]["intent"]["slots"]
             else:
-                return None
-    else:
-        return None
+                if slot in data["request"]["intent"]["slots"] and \
+                                "value" in data["request"]["intent"]["slots"][slot]:
+                    return data["request"]["intent"]["slots"][slot]["value"]
+                else:
+                    return None
+        else:
+            return None
 
+    @staticmethod
+    def get_alexa_error(data):
+        if "request" in data and "error" in data["request"] and "message" in data["request"]["error"]:
+            return data["request"]["error"]["message"]
+        else:
+            return None
 
-def get_alexa_error(data):
-    if "request" in data and "error" in data["request"] and "message" in data["request"]["error"]:
-        return data["request"]["error"]["message"]
-    else:
-        return None
-
-
-def get_alexa_intent(data):
-    if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
-        return data["request"]["intent"]["name"]
-    else:
-        return None
+    @staticmethod
+    def get_alexa_intent(data):
+        if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
+            return data["request"]["intent"]["name"]
+        else:
+            return None

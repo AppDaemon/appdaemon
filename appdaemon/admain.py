@@ -59,8 +59,9 @@ class ADMain():
         return None
 
     # noinspection PyBroadException,PyBroadException
-    def run(self, conf):
+    def run(self):
 
+        conf = self.conf
         tasks = []
 
         loop = asyncio.get_event_loop()
@@ -171,90 +172,45 @@ class ADMain():
             isdaemon = False
 
         if config_dir is None:
-            config_file_conf = self.find_path("appdaemon.cfg")
             config_file_yaml = self.find_path("appdaemon.yaml")
         else:
-            config_file_conf = os.path.join(config_dir, "appdaemon.cfg")
-            if not os.path.isfile(config_file_conf):
-                config_file_conf = None
             config_file_yaml = os.path.join(config_dir, "appdaemon.yaml")
-            if not os.path.isfile(config_file_yaml):
-                config_file_yaml = None
 
         config = None
-        config_from_yaml = False
 
-        if config_file_yaml is not None and args.convertcfg is False:
+        #
+        # First locate secrets file
+        #
+        try:
 
-            #
-            # First locate secrets file
-            #
-            try:
+            secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
+            if os.path.isfile(secrets_file):
+                with open(secrets_file, 'r') as yamlfd:
+                    secrets_file_contents = yamlfd.read()
 
-                secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
-                if os.path.isfile(secrets_file):
-                    with open(secrets_file, 'r') as yamlfd:
-                        secrets_file_contents = yamlfd.read()
+                confmodule.secrets = yaml.load(secrets_file_contents)
 
-                    confmodule.secrets = yaml.load(secrets_file_contents)
+            yaml.add_constructor('!secret', utils._secret_yaml)
 
-                yaml.add_constructor('!secret', utils._secret_yaml)
+            conf.config_file = config_file_yaml
+            conf.app_config_file = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
+            with open(config_file_yaml, 'r') as yamlfd:
+                config_file_contents = yamlfd.read()
 
-                config_from_yaml = True
-                conf.config_file = config_file_yaml
-                conf.app_config_file = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
-                with open(config_file_yaml, 'r') as yamlfd:
-                    config_file_contents = yamlfd.read()
+            config = yaml.load(config_file_contents)
 
-                config = yaml.load(config_file_contents)
-
-            except yaml.YAMLError as exc:
-                print("ERROR", "Error loading configuration")
-                if hasattr(exc, 'problem_mark'):
-                    if exc.context is not None:
-                        print("ERROR", "parser says")
-                        print("ERROR", str(exc.problem_mark))
-                        print("ERROR", str(exc.problem) + " " + str(exc.context))
-                    else:
-                        print("ERROR", "parser says")
-                        print("ERROR", str(exc.problem_mark))
-                        print("ERROR", str(exc.problem))
-                sys.exit()
-
-        else:
-
-            # Read Config File
-            conf.config_file = config_file_conf
-            config = configparser.ConfigParser()
-            config.read_file(open(config_file_conf))
-
-            if args.convertcfg is True:
-                yaml_file = os.path.join(os.path.dirname(config_file_conf), "appdaemon.yaml")
-                print("Converting {} to {}".format(config_file_conf, yaml_file))
-                new_config = {}
-                for section in config:
-                    if section != "DEFAULT":
-                        if section == "AppDaemon":
-                            new_config["AppDaemon"] = {}
-                            new_config["HADashboard"] = {}
-                            new_config["HASS"] = {}
-                            new_section = ""
-                            for var in config[section]:
-                                if var in ("dash_compile_on_start", "dash_dir", "dash_force_compile", "dash_url", "disable_dash", "dash_password", "dash_ssl_key", "dash_ssl_certificate"):
-                                    new_section = "HADashboard"
-                                elif var in ("ha_key", "ha_url", "timeout"):
-                                    new_section = "HASS"
-                                else:
-                                    new_section = "AppDaemon"
-                                new_config[new_section][var] = config[section][var]
-                        else:
-                            new_config[section] = {}
-                            for var in config[section]:
-                                new_config[section][var] = config[section][var]
-                with open(yaml_file, "w") as outfile:
-                    yaml.dump(new_config, outfile, default_flow_style=False)
-                sys.exit()
-
+        except yaml.YAMLError as exc:
+            print("ERROR", "Error loading configuration")
+            if hasattr(exc, 'problem_mark'):
+                if exc.context is not None:
+                    print("ERROR", "parser says")
+                    print("ERROR", str(exc.problem_mark))
+                    print("ERROR", str(exc.problem) + " " + str(exc.context))
+                else:
+                    print("ERROR", "parser says")
+                    print("ERROR", str(exc.problem_mark))
+                    print("ERROR", str(exc.problem))
+            sys.exit()
 
         conf.config_dir = os.path.dirname(conf.config_file)
         conf.config = config
@@ -269,79 +225,51 @@ class ADMain():
         conf.time_zone = config['AppDaemon'].get("time_zone")
         conf.rss_feeds = config['AppDaemon'].get("rss_feeds")
         conf.rss_update = config['AppDaemon'].get("rss_update")
+        conf.utility_delay = config['AppDaemon'].get("utility_delay", 1)
         conf.api_key = config['AppDaemon'].get("api_key")
         conf.api_port = config['AppDaemon'].get("api_port")
         conf.api_ssl_certificate = config['AppDaemon'].get("api_ssl_certificate")
         conf.api_ssl_key = config['AppDaemon'].get("api_ssl_key")
 
-        if config_from_yaml is True:
+        if 'HADashboard' in config:
+            conf.dash_url = config['HADashboard'].get("dash_url")
+            conf.dashboard_dir = config['HADashboard'].get("dash_dir")
+            conf.dash_ssl_certificate = config['HADashboard'].get("dash_ssl_certificate")
+            conf.dash_ssl_key = config['HADashboard'].get("dash_ssl_key")
+            conf.dash_password = config['HADashboard'].get("dash_password")
 
-            conf.timeout = config['HASS'].get("timeout")
-            conf.ha_url = config['HASS'].get('ha_url')
-            conf.ha_key = config['HASS'].get('ha_key', "")
-
-            if 'HADashboard' in config:
-                conf.dash_url = config['HADashboard'].get("dash_url")
-                conf.dashboard_dir = config['HADashboard'].get("dash_dir")
-                conf.dash_ssl_certificate = config['HADashboard'].get("dash_ssl_certificate")
-                conf.dash_ssl_key = config['HADashboard'].get("dash_ssl_key")
-                conf.dash_password = config['HADashboard'].get("dash_password")
-
-                if config['HADashboard'].get("dash_force_compile") == "1":
-                    conf.dash_force_compile = True
-                else:
-                    conf.dash_force_compile = False
-
-                if config['HADashboard'].get("dash_compile_on_start") == "1":
-                    conf.dash_compile_on_start = True
-                else:
-                    conf.dash_compile_on_start = False
-
-                if "disable_dash" in config['HADashboard'] and config['HADashboard']["disable_dash"] == 1:
-                    conf.dashboard = False
-                else:
-                    conf.dashboard = True
-
-        else:
-            conf.timeout = config['AppDaemon'].get("timeout")
-            conf.ha_url = config['AppDaemon'].get('ha_url')
-            conf.ha_key = config['AppDaemon'].get('ha_key', "")
-            conf.dash_url = config['AppDaemon'].get("dash_url")
-            conf.dashboard_dir = config['AppDaemon'].get("dash_dir")
-            conf.dash_ssl_certificate = config['AppDaemon'].get("dash_ssl_certificate")
-            conf.dash_ssl_key = config['AppDaemon'].get("dash_ssl_key")
-            conf.dash_password = config['AppDaemon'].get("dash_password")
-
-            if config['AppDaemon'].get("dash_force_compile") == "1":
+            if config['HADashboard'].get("dash_force_compile") == "1":
                 conf.dash_force_compile = True
             else:
                 conf.dash_force_compile = False
 
-            if config['AppDaemon'].get("dash_compile_on_start") == "1":
+            if config['HADashboard'].get("dash_compile_on_start") == "1":
                 conf.dash_compile_on_start = True
             else:
                 conf.dash_compile_on_start = False
 
-            if "disable_dash" in config['AppDaemon'] and config['AppDaemon']["disable_dash"] == 1:
+            if "disable_dash" in config['HADashboard'] and config['HADashboard']["disable_dash"] == 1:
                 conf.dashboard = False
             else:
                 conf.dashboard = True
-
-
 
         if config['AppDaemon'].get("disable_apps") == "1":
             conf.apps = False
         else:
             conf.apps = True
+            conf.plugins = {}
+            for section in config:
+                if section == "AppDaemon" or section == "HADashboard":
+                    pass
+                else:
+                    conf.plugins[section] = config[section]
+
 
         if config['AppDaemon'].get("cert_verify", True) == False:
             conf.certpath = False
 
         if conf.dash_url is not None:
             url = urlparse(conf.dash_url)
-
-            #if url.scheme != "http":
-            #    raise ValueError("Invalid scheme for 'dash_url' - only HTTP is supported")
 
             dash_net = url.netloc.split(":")
             conf.dash_host = dash_net[0]
@@ -370,6 +298,9 @@ class ADMain():
                             or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"
                         ):
             raise ValueError("STDOUT and STDERR not allowed with -d")
+
+
+        self.conf = conf
 
         # Setup Logging
 
@@ -435,60 +366,12 @@ class ADMain():
 
         utils.log(self.logger, "INFO", "AppDaemon Version {} starting".format(utils.__version__))
         utils.log(self.logger, "INFO", "Configuration read from: {}".format(conf.config_file))
-        if config_from_yaml is True:
-            utils.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
-            utils.log(self.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
-            utils.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
-
-        # Check with HA to get various info
-        #TODO get this from the hass interface API somehow
-        """
-        ha_config = None
-        if conf.ha_url is not None:
-
-            utils.log(self.logger, "DEBUG", "Calling HA for config with key: {} and url: {}".format(conf.ha_key, conf.ha_url))
+        utils.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
+        utils.log(self.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
+        utils.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
 
 
-            while ha_config is None:
-                try:
-                    ha_config = utils.get_ha_config()
-                except:
-                    utils.log(
-                        self.logger, "WARNING", "Unable to connect to Home Assistant, retrying in 5 seconds")
-                    if conf.loglevel == "DEBUG":
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                        utils.log(self.logger, "WARNING", "Unexpected error:")
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                        utils.log(self.logger, "WARNING", traceback.format_exc())
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                    time.sleep(5)
-
-            utils.log(self.logger, "DEBUG", "Success")
-            utils.log(self.logger, "DEBUG", ha_config)
-
-            conf.version = parse_version(ha_config["version"])
-
-            conf.ha_config = ha_config
-
-            conf.latitude = ha_config["latitude"]
-            conf.longitude = ha_config["longitude"]
-            conf.time_zone = ha_config["time_zone"]
-
-            if "elevation" in ha_config:
-                conf.elevation = ha_config["elevation"]
-                if "elevation" in config['AppDaemon']:
-                    utils.log(self.logger, "WARNING",  "'elevation' directive is deprecated, please remove")
-            else:
-                conf.elevation = config['AppDaemon']["elevation"]
-
-        # Use the supplied timezone
-        if "time_zone" in config['AppDaemon']:
-            conf.ad_time_zone = config['AppDaemon']['time_zone']
-            os.environ['TZ'] = config['AppDaemon']['time_zone']
-        else:
-            os.environ['TZ'] = conf.time_zone
-
-        """
+        #TODO: Figure out how to get this from HASS if available
 
         # Now we have logging, warn about deprecated directives
         #if "latitude" in config['AppDaemon']:
@@ -548,7 +431,7 @@ class ADMain():
             while True:
                 time.sleep(1)
         else:
-            self.run(conf)
+            self.run()
 
 
 if __name__ == "__main__":

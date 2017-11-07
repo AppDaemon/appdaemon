@@ -16,7 +16,7 @@ constraints = (
 )
 
 
-__version__ = "2.5.0b1"
+__version__ = "3.0.0b1"
 
 
 class Formatter(object):
@@ -116,8 +116,7 @@ def _secret_yaml(loader, node):
     return conf.secrets[node.value]
 
 
-@asyncio.coroutine
-def dispatch_app_by_name(name, args):
+async def dispatch_app_by_name(name, args):
     with conf.endpoints_lock:
         callback = None
         for app in conf.endpoints:
@@ -213,60 +212,7 @@ def noone_home():
     return True
 
 
-def get_ha_state(entity_id=None):
-    if conf.ha_key != "":
-        headers = {'x-ha-access': conf.ha_key}
-    else:
-        headers = {}
-    if entity_id is None:
-        apiurl = "{}/api/states".format(conf.ha_url)
-    else:
-        apiurl = "{}/api/states/{}".format(conf.ha_url, entity_id)
-    log(conf.logger, "DEBUG", "get_ha_state: url is {}".format(apiurl))
-    r = requests.get(apiurl, headers=headers, verify=conf.certpath)
-    r.raise_for_status()
-    return r.json()
-
-
-def get_ha_config():
-    log(conf.logger, "DEBUG", "get_ha_config()")
-    if conf.ha_key != "":
-        headers = {'x-ha-access': conf.ha_key}
-    else:
-        headers = {}
-    apiurl = "{}/api/config".format(conf.ha_url)
-    log(conf.logger, "DEBUG", "get_ha_config: url is {}".format(apiurl))
-    r = requests.get(apiurl, headers=headers, verify=conf.certpath)
-    r.raise_for_status()
-    return r.json()
-
-
-def _check_service(service):
-    if service.find("/") == -1:
-        raise ValueError("Invalid Service Name: {}".format(service))
-
-
-def call_service(service, **kwargs):
-    _check_service(service)
-    d, s = service.split("/")
-    log(
-        conf.logger, "DEBUG",
-        "call_service: {}/{}, {}".format(d, s, kwargs)
-    )
-    if conf.ha_key != "":
-        headers = {'x-ha-access': conf.ha_key}
-    else:
-        headers = {}
-    apiurl = "{}/api/services/{}/{}".format(conf.ha_url, d, s)
-    r = requests.post(
-        apiurl, headers=headers, json=kwargs, verify=conf.certpath
-    )
-    r.raise_for_status()
-    return r.json()
-
-
-@asyncio.coroutine
-def run_in_executor(loop, executor, fn, *args, **kwargs):
-    completed, pending = yield from asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
+async def run_in_executor(loop, executor, fn, *args, **kwargs):
+    completed, pending = await asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
     response = list(completed)[0].result()
     return response

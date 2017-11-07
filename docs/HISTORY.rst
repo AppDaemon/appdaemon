@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+3.0.0b1
+------------------
+
+**Features**
+
+- Refactored plugguble architecture
+
+**Fixes**
+
+**Breaking Changes**
+
+- Apps need to chane the import and super class
+- `info_listen_state()` now returns the namespace in addition to the previous parameters
+- AppDaemon no longer supports python 3.4
+
+
 2.1.11
 ------------------
 
