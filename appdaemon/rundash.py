@@ -76,9 +76,8 @@ class RunDash():
         return {"logon": 1}
 
 
-    @asyncio.coroutine
-    def logon(self, request):
-        data = yield from request.post()
+    async def logon(self, request):
+        data = await request.post()
         success = False
         password = data["password"]
 
@@ -89,12 +88,12 @@ class RunDash():
 
             # utils.log(conf.dash, "INFO", hashed)
 
-            response = yield from self.list_dash_no_secure(request)
+            response = await self.list_dash_no_secure(request)
             response.set_cookie("adcreds", hashed.decode("utf-8"))
 
         else:
             utils.log(conf.dash, "WARNING", "Unsuccesful logon from {}".format(request.host))
-            response = yield from self.list_dash(request)
+            response = await self.list_dash(request)
 
         return response
 
@@ -103,25 +102,20 @@ class RunDash():
 
 
     # noinspection PyUnusedLocal
-    @asyncio.coroutine
     #@secure
-    def list_dash(self, request):
+    async def list_dash(self, request):
         return (self._list_dash(request))
 
 
-    @asyncio.coroutine
-    def list_dash_no_secure(self, request):
+    async def list_dash_no_secure(self, request):
         return (self._list_dash(request))
-
 
     def _list_dash(self, request):
         response = yield from utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list)
         return web.Response(text=response, content_type="text/html")
 
-
-    @asyncio.coroutine
     #@secure
-    def load_dash(self, request):
+    async def load_dash(self, request):
         name = request.match_info.get('name', "Anonymous")
         params = request.query
         skin = params.get("skin", "default")
@@ -129,13 +123,11 @@ class RunDash():
         if recompile == '1':
             recompile = True
 
-        response = yield from utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard, name, skin, recompile)
+        response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard, name, skin, recompile)
 
         return web.Response(text=response, content_type="text/html")
 
-
-    @asyncio.coroutine
-    def update_rss(self):
+    async def update_rss(self):
         # Grab RSS Feeds
 
         if conf.rss_feeds is not None and conf.rss_update is not None:
@@ -144,7 +136,7 @@ class RunDash():
                     conf.rss_last_update = time.time()
 
                     for feed_data in conf.rss_feeds:
-                        feed = yield from utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
+                        feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
                         new_state = {"feed": feed}
                         with conf.ha_state_lock:
@@ -154,12 +146,11 @@ class RunDash():
                                 "data": {"entity_id": feed_data["target"], "new_state": new_state}}
                         ws_update(data)
 
-                yield from asyncio.sleep(1)
+                await asyncio.sleep(1)
 
 
-    @asyncio.coroutine
     #@securedata
-    def get_state(self, request):
+    async def get_state(self, request):
         entity = request.match_info.get('entity')
 
         if entity in conf.ha_state:
@@ -179,10 +170,9 @@ class RunDash():
 
 
     # noinspection PyUnusedLocal
-    @asyncio.coroutine
     #@securedata
-    def call_service(self, request):
-        data = yield from request.post()
+    async def call_service(self, request):
+        data = await request.post()
         args = {}
         service = data["service"]
         for key in data:
@@ -210,37 +200,33 @@ class RunDash():
 
 
     # noinspection PyUnusedLocal
-    @asyncio.coroutine
-    def not_found(self, request):
+    async def not_found(self, request):
         return web.Response(status=404)
 
 
     # noinspection PyUnusedLocal
-    @asyncio.coroutine
-    def error(self, request):
+    async def error(self, request):
         return web.Response(status=401)
 
 
     # Websockets Handler
 
-    @asyncio.coroutine
-    def on_shutdown(self, application):
+    async def on_shutdown(self, application):
         for ws in application['websockets']:
-            yield from ws.close(code=aiohttp.WSCloseCode.GOING_AWAY,
+            await ws.close(code=aiohttp.WSCloseCode.GOING_AWAY,
                                 message='Server shutdown')
 
 
     #@securedata
-    @asyncio.coroutine
-    def wshandler(self, request):
+    async def wshandler(self, request):
         ws = web.WebSocketResponse()
-        yield from ws.prepare(request)
+        await ws.prepare(request)
 
         request.app['websockets'][ws] = {}
         # noinspection PyBroadException
         try:
             while True:
-                msg = yield from ws.receive()
+                msg = await ws.receive()
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     utils.log(conf.dash, "INFO",
                            "New dashboard connected: {}".format(msg.data))
@@ -254,7 +240,6 @@ class RunDash():
             request.app['websockets'].pop(ws, None)
 
         return ws
-
 
     def ws_update(self, jdata):
         if len(self.app['websockets']) > 0:
