@@ -181,37 +181,6 @@ def day_of_week(day):
         return nums[day]
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
-
-def anyone_home():
-    with conf.ha_state_lock:
-        for entity_id in conf.ha_state.keys():
-            thisdevice, thisentity = entity_id.split(".")
-            if thisdevice == "device_tracker":
-                if conf.ha_state[entity_id]["state"] == "home":
-                    return True
-    return False
-
-
-def everyone_home():
-    with conf.ha_state_lock:
-        for entity_id in conf.ha_state.keys():
-            thisdevice, thisentity = entity_id.split(".")
-            if thisdevice == "device_tracker":
-                if conf.ha_state[entity_id]["state"] != "home":
-                    return False
-    return True
-
-
-def noone_home():
-    with conf.ha_state_lock:
-        for entity_id in conf.ha_state.keys():
-            thisdevice, thisentity = entity_id.split(".")
-            if thisdevice == "device_tracker":
-                if conf.ha_state[entity_id]["state"] == "home":
-                    return False
-    return True
-
-
 async def run_in_executor(loop, executor, fn, *args, **kwargs):
     completed, pending = await asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
     response = list(completed)[0].result()

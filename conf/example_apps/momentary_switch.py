@@ -28,7 +28,7 @@ class MomentarySwitch(appapi.AppDaemon):
     self.turn_off(self.args["switch"])
       
   def log_notify(self, message):
-    if "log" in self.args:
+    if "verbose_log" in self.args:
       self.log(message)
     if "notify" in self.args:
       self.notify(message, name=globals.notify)

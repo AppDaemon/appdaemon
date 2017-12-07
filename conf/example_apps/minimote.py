@@ -29,7 +29,7 @@ class MiniMote(appapi.AppDaemon):
     self.listen_event(self.zwave_event, "zwave.scene_activated", entity_id = self.args["device"])
     
   def zwave_event(self, event_name, data, kwargs):
-    #self.log("Event: {}, data = {}, args = {}".format(event_name, data, kwargs))
+    #self.verbose_log("Event: {}, data = {}, args = {}".format(event_name, data, kwargs))
     scene = data["scene_id"]
     on = "scene_{}_on".format(scene)
     off = "scene_{}_off".format(scene)

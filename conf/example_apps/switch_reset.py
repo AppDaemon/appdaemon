@@ -57,7 +57,7 @@ class SwitchReset(appapi.AppDaemon):
           self.device_db[entity] = state[entity]["state"]
   
   def log_notify(self, message, level = "INFO"):
-    if "log" in self.args:
+    if "verbose_log" in self.args:
       self.log(message)
     if "notify" in self.args:
       self.notify(message, globals.notify, name=globals.notify)

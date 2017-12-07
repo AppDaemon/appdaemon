@@ -35,7 +35,7 @@ class Sequence(appapi.AppDaemon):
             self.listen_state(self.state_change, self.args["input"], new = self.args["state"])
 
     def state_change(self, entity, attribute, old, new, kwargs):
-        #self.log("{} turned {}".format(entity, new))
+        #self.verbose_log("{} turned {}".format(entity, new))
         if "sequence" in self.args:
             for entry in self.args["sequence"]:
                 self.run_in(self.action, entry["delay"], device = entry["entity"], service = entry["service"])

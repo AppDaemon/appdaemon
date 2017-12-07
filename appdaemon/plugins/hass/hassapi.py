@@ -123,18 +123,36 @@ class AppDaemon:
         self._check_entity(entity_id)
         return self.get_state(entity_id)
 
-    def anyone_home(self):
-        return utils.anyone_home()
+    def anyone_home():
+        with conf.ha_state_lock:
+            for entity_id in conf.ha_state.keys():
+                thisdevice, thisentity = entity_id.split(".")
+                if thisdevice == "device_tracker":
+                    if conf.ha_state[entity_id]["state"] == "home":
+                        return True
+        return False
 
-    def everyone_home(self):
-        return utils.everyone_home()
+    def everyone_home():
+        with conf.ha_state_lock:
+            for entity_id in conf.ha_state.keys():
+                thisdevice, thisentity = entity_id.split(".")
+                if thisdevice == "device_tracker":
+                    if conf.ha_state[entity_id]["state"] != "home":
+                        return False
+        return True
 
-    def noone_home(self):
-        return utils.noone_home()
+    def noone_home():
+        with conf.ha_state_lock:
+            for entity_id in conf.ha_state.keys():
+                thisdevice, thisentity = entity_id.split(".")
+                if thisdevice == "device_tracker":
+                    if conf.ha_state[entity_id]["state"] == "home":
+                        return False
+        return True
 
-        #
-        # Event
-        #
+    #
+    # Event
+    #
 
     @hass_check
     def fire_event(self, event, **kwargs):

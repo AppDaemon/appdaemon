@@ -41,7 +41,7 @@ def call_api(request):
     except:
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
             # When explicitly logging to stdout and stderr, suppress
-            # log messages about writing an error (since they show up anyway)
+            # verbose_log messages about writing an error (since they show up anyway)
             ha.log(conf.logger, "WARNING", "Logged an error to {}".format(conf.errorfile))
         ha.log(conf.error, "WARNING", '-' * 60)
         ha.log(conf.error, "WARNING", "Unexpected error during API call")
