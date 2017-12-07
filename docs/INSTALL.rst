@@ -47,8 +47,6 @@ Your initial file should look something like this:
       logsize: 100000
       log_generations: 3
       threads: 10
-      cert_path: <path/to/root/CA/cert>
-      cert_verify: True
       time_zone: <time zone>
       api_port: 5000
       api_key: !secret api_key
@@ -57,6 +55,8 @@ Your initial file should look something like this:
     HASS:
       ha_url: <some_url>
       ha_key: <some key>
+      cert_path: <path/to/root/CA/cert>
+      cert_verify: True
 
 -  ``ha_url`` is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or

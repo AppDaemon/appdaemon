@@ -12,13 +12,12 @@ Change Log
 
 **Breaking Changes**
 
-- Apps need to chane the import and super class
+- Apps need to change the import and super class
 - `info_listen_state()` now returns the namespace in addition to the previous parameters
 - AppDaemon no longer supports python 3.4
 
-
-2.1.11
-------------------
+2.1.12 (2017-11-07)
+------
 
 **Features**
 
@@ -26,9 +25,22 @@ None
 
 **Fixes**
 
-- Fixed a bug in album titles in the media player - contributed by `Andreas Wrede <https://github.com/awrede>`__
-- Label `text_style` now works as documented
-- Fixed Scheduler docs
+- Fixed passwords causing 500 error on HADashboard - contributed by `wchan.ranelagh <https://community.home-assistant.io/u/wchan.ranelagh/summary>`__
+
+**Breaking Changes**
+
+None
+
+2.1.11 (2017-10-25)
+------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an issue with ``run_at_sunset()`` firing multiple times
 
 **Breaking Changes**
 

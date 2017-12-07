@@ -731,7 +731,7 @@ class Dashboard:
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
             dash_list = self._list_dashes()
-            return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
+            return {"errors": ["Dashboard has errors or is not found - check verbose_log for details"], "dash_list": dash_list}
 
         params = dash
         params["base_url"] = self.base_url

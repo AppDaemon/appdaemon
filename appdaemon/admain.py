@@ -375,16 +375,16 @@ class ADMain():
 
         # Now we have logging, warn about deprecated directives
         #if "latitude" in config['AppDaemon']:
-        #    utils.log(self.logger, "WARNING", "'latitude' directive is deprecated, please remove")
+        #    utils.verbose_log(self.logger, "WARNING", "'latitude' directive is deprecated, please remove")
 
         #if "longitude" in config['AppDaemon']:
-        #    utils.log(self.logger, "WARNING", "'longitude' directive is deprecated, please remove")
+        #    utils.verbose_log(self.logger, "WARNING", "'longitude' directive is deprecated, please remove")
 
         #if "timezone" in config['AppDaemon']:
-        #    utils.log(self.logger, "WARNING", "'timezone' directive is deprecated, please remove")
+        #    utils.verbose_log(self.logger, "WARNING", "'timezone' directive is deprecated, please remove")
 
         #if "time_zone" in config['AppDaemon']:
-        #    utils.log(self.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
+        #    utils.verbose_log(self.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
 
         #ad.init_sun()
 

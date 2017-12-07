@@ -71,9 +71,10 @@ class RunDash():
 
         return wrapper
 
-
     def forcelogon(request):
-        return {"logon": 1}
+        response = yield from utils.run_in_executor(conf.loop, conf.executor, conf.dashboard_obj.get_dashboard_list,
+                                                    {"logon": 1})
+        return web.Response(text=response, content_type="text/html")
 
 
     async def logon(self, request):
@@ -86,7 +87,7 @@ class RunDash():
 
             hashed = bcrypt.hashpw(str.encode(conf.dash_password), bcrypt.gensalt())
 
-            # utils.log(conf.dash, "INFO", hashed)
+            # utils.verbose_log(conf.dash, "INFO", hashed)
 
             response = await self.list_dash_no_secure(request)
             response.set_cookie("adcreds", hashed.decode("utf-8"))

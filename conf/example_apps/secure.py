@@ -45,10 +45,10 @@ class Secure(appapi.AppDaemon):
             self.alarm_alert()
 
     def state_event(self, entity, attribute, old, new, kwargs):
-        #self.log("Monitored entity changed state: {}: {} -> {}".format(entity, old, new))
+        #self.verbose_log("Monitored entity changed state: {}: {} -> {}".format(entity, old, new))
         if "alarm_entity" in self.args:
             state = self.get_state(self.args["alarm_entity"])
-            #self.log("Alarm state is: {}".format(state))
+            #self.verbose_log("Alarm state is: {}".format(state))
 
             armed = False
             zone_list = []

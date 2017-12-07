@@ -6,11 +6,13 @@ import appdaemon.utils as utils
 
 class DummyPlugin:
 
-    def __init__(self, name, logger, error, args):
+    def __init__(self, ad, name, logger, error, loglevel,args):
 
+        self.AD = ad
         self.logger = logger
         self.error = error
         self.stopping = False
+        self.loglevel = loglevel
         self.config = args
 
         utils.log(self.logger, "INFO", "Dummy Plugin Initializing")
@@ -77,43 +79,44 @@ class DummyPlugin:
     # Handle state updates
     #
 
-    async def get_next_update(self):
-        ret = None
-        if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
-            while not self.stopping:
-                await asyncio.sleep(1)
-            return None
-        else:
-            event = self.config["sequence"]["events"][self.current_event]
-            await asyncio.sleep(event["offset"])
-            if "state" in event:
-                entity = event["state"]["entity"]
-                old_state = self.state[entity]
-                new_state = event["state"]["newstate"]
-                self.state[entity] = new_state
-                ret = \
-                    {
-                        "event_type": "state_changed",
-                        "data":
-                            {
-                                "namespace": self.namespace,
-                                "entity_id": entity,
-                                "new_state": new_state,
-                                "old_state": old_state
-                            }
-                    }
-            elif "event" in event:
-                ret = \
-                    {
-                        "event_type": event["event"]["event_type"],
-                        "data": event["event"]["data"],
-                    }
+    async def get_updates(self):
+        while not self.stopping:
+            ret = None
+            if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
+                while not self.stopping:
+                    await asyncio.sleep(1)
+                return None
+            else:
+                event = self.config["sequence"]["events"][self.current_event]
+                await asyncio.sleep(event["offset"])
+                if "state" in event:
+                    entity = event["state"]["entity"]
+                    old_state = self.state[entity]
+                    new_state = event["state"]["newstate"]
+                    self.state[entity] = new_state
+                    ret = \
+                        {
+                            "event_type": "state_changed",
+                            "data":
+                                {
+                                    "namespace": self.namespace,
+                                    "entity_id": entity,
+                                    "new_state": new_state,
+                                    "old_state": old_state
+                                }
+                        }
+                elif "event" in event:
+                    ret = \
+                        {
+                            "event_type": event["event"]["event_type"],
+                            "data": event["event"]["data"],
+                        }
 
-            self.current_event += 1
-            if self.current_event >= len(self.config["sequence"]["events"]) and "loop" in self.config["sequence"] and self.config["sequence"]["loop"] == 1:
-                self.current_event = 0
-            self.log("*** State Update: {} ***".format(ret))
-            return copy.deepcopy(ret)
+                self.current_event += 1
+                if self.current_event >= len(self.config["sequence"]["events"]) and "loop" in self.config["sequence"] and self.config["sequence"]["loop"] == 1:
+                    self.current_event = 0
+                self.log("*** State Update: {} ***".format(ret))
+                self.AD.state_update(copy.deepcopy(ret))
 
     #
     # Set State

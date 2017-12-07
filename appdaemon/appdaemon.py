@@ -551,7 +551,7 @@ class AppDaemon:
             utils.log(self.error, "WARNING", '-' * 60)
             if self.errorfile != "STDERR" and self.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
-                # log messages about writing an error (since they show up anyway)
+                # verbose_log messages about writing an error (since they show up anyway)
                 utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
             utils.log(self.error, "WARNING", "Scheduler entry has been deleted")
             utils.log(self.error, "WARNING", '-' * 60)
@@ -668,7 +668,7 @@ class AppDaemon:
             rbefore = kwargs["kwargs"].get("random_start", 0)
             rafter = kwargs["kwargs"].get("random_end", 0)
             offset = random.randint(rbefore, rafter)
-        # log(conf.logger, "INFO", "sun: offset = {}".format(offset))
+        # verbose_log(conf.logger, "INFO", "sun: offset = {}".format(offset))
         return offset
 
     def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
@@ -693,7 +693,7 @@ class AppDaemon:
                 "type": type_,
                 "kwargs": kwargs
             }
-            # log(conf.logger, "INFO", conf.schedule[name][handle])
+            # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
         return handle
 
     def get_scheduler_entries(self):
@@ -903,7 +903,7 @@ class AppDaemon:
 
             # Process callbacks
 
-            # utils.log(self.logger, "DEBUG", "Scheduler invoked at {}".format(now))
+            # utils.verbose_log(self.logger, "DEBUG", "Scheduler invoked at {}".format(now))
             with self.schedule_lock:
                 for name in self.schedule.keys():
                     for entry in sorted(
@@ -937,7 +937,7 @@ class AppDaemon:
             utils.log(self.error, "WARNING", '-' * 60)
             if self.errorfile != "STDERR" and self.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
-                # log messages about writing an error (since they show up anyway)
+                # verbose_log messages about writing an error (since they show up anyway)
                 utils.log(
                     self.logger, "WARNING",
                     "Logged an error to {}".format(self.errorfile)
@@ -979,7 +979,7 @@ class AppDaemon:
                 utils.log(self.error, "WARNING", '-' * 60)
                 if self.errorfile != "STDERR" and self.logfile != "STDOUT":
                     # When explicitly logging to stdout and stderr, suppress
-                    # log messages about writing an error (since they show up anyway)
+                    # verbose_log messages about writing an error (since they show up anyway)
                     utils.log(
                         self.logger, "WARNING",
                         "Logged an error to {}".format(self.errorfile)
@@ -1515,46 +1515,44 @@ class AppDaemon:
                                 callback["kwargs"]
                             )
 
-    async def state_update(self, my_object):
-        while not self.stopping:
-            try:
-                data = await my_object.get_next_update()
+    def state_update(self, data):
+        try:
 
-                utils.log(
-                    self.logger, "DEBUG",
-                    "Event type:{}:".format(data['event_type'])
-                )
-                utils.log(self.logger, "DEBUG", data["data"])
+            utils.log(
+                self.logger, "DEBUG",
+                "Event type:{}:".format(data['event_type'])
+            )
+            utils.log(self.logger, "DEBUG", data["data"])
 
+            if data['event_type'] == "state_changed":
+                entity_id = data['data']['entity_id']
+
+                # First update our global state
+                with self.state_lock:
+                    namespace = data["data"]["namespace"]
+                    self.state[namespace][entity_id] = data['data']['new_state']
+
+            if self.apps is True:
+                # Process state changed message
                 if data['event_type'] == "state_changed":
-                    entity_id = data['data']['entity_id']
+                    self.process_state_change(data)
 
-                    # First update our global state
-                    with self.state_lock:
-                        namespace = data["data"]["namespace"]
-                        self.state[namespace][entity_id] = data['data']['new_state']
+                # Process non-state callbacks
+                self.process_event(data)
 
-                if self.apps is True:
-                    # Process state changed message
-                    if data['event_type'] == "state_changed":
-                        self.process_state_change(data)
+            # Update dashboards
 
-                    # Process non-state callbacks
-                    self.process_event(data)
+            #if self.dashboard is True:
+            #    appdash.ws_update(data)
 
-                # Update dashboards
-
-                #if self.dashboard is True:
-                #    appdash.ws_update(data)
-
-            except:
-                utils.log(self.error, "WARNING", '-' * 60)
-                utils.log(self.error, "WARNING", "Unexpected error during state_update()")
-                utils.log(self.error, "WARNING", '-' * 60)
-                utils.log(self.error, "WARNING", traceback.format_exc())
-                utils.log(self.error, "WARNING", '-' * 60)
-                if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                    utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+        except:
+            utils.log(self.error, "WARNING", '-' * 60)
+            utils.log(self.error, "WARNING", "Unexpected error during state_update()")
+            utils.log(self.error, "WARNING", '-' * 60)
+            utils.log(self.error, "WARNING", traceback.format_exc())
+            utils.log(self.error, "WARNING", '-' * 60)
+            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
 
 
     #
@@ -1660,7 +1658,7 @@ class AppDaemon:
             mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
             app_class = getattr(mod, class_name)
 
-            plugin = app_class(name, self.logger, self.error, self.plugin_params[name])
+            plugin = app_class(self, name, self.logger, self.error, self.loglevel, self.plugin_params[name])
 
             state = plugin.get_complete_state()
             namespace = state["namespace"]
@@ -1670,7 +1668,7 @@ class AppDaemon:
 
             self.plugins[namespace] = plugin
 
-            tasks.append(asyncio.async(self.state_update(self.plugins[namespace])))
+            tasks.append(asyncio.async(plugin.get_updates()))
 
         #
         # All plugins are loaded and we have initial state
@@ -1684,6 +1682,10 @@ class AppDaemon:
 
         utils.log(self.logger, "INFO", "App initialization complete")
 
+        #
+        # Fire APPD Started Event
+        #
+        self.process_event({"event_type": "appd_started", "data": {}})
         #
         # Initialization complete - now we run in the various async routines we added to the loop
         #
