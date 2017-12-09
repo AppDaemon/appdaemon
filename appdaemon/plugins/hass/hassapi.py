@@ -1,26 +1,8 @@
-import appdaemon.conf as conf
-import datetime
-import uuid
 import requests
 import inspect
-import json
-import iso8601
 
+import appdaemon.appapi as appapi
 import appdaemon.utils as utils
-
-reading_messages = False
-
-
-def hass_check(func):
-    def func_wrapper(*args, **kwargs):
-        if not reading_messages:
-            utils.log(conf.logger, "WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
-            return (lambda *args: None)
-        else:
-            return(func(*args, **kwargs))
-
-    return (func_wrapper)
-
 
 #
 # Define an entities class as a descriptor to enable read only access of HASS state
@@ -29,37 +11,39 @@ def hass_check(func):
 class Entities:
 
     def __get__(self, instance, owner):
-        with conf.ha_state_lock:
-            state = utils.StateAttrs(conf.ha_state)
-        return state
+        stateattrs = utils.StateAttrs(owner.get_state(owner))
+        return stateattrs
 
 
-class AppDaemon:
+class Hass(appapi.AppDaemon):
     #
     # Internal
     #
 
     entities = Entities()
 
-    def __init__(self, name, logger, error, args, global_vars):
+    def __init__(self, ad, name, logger, error, args, config, global_vars):
+
+        super(Hass, self).__init__(ad, name, logger, error, args, config, global_vars)
+
+        self.namespace = "hass"
         self.name = name
         self._logger = logger
         self._error = error
         self.args = args
         self.global_vars = global_vars
-        self.config = conf.config
-        self.ha_config = conf.ha_config
+        self.config = config
 
+    def hass_check(func):
+        def func_wrapper(*args, **kwargs):
+            self = args[0]
+            if not self.ad.get_plugin(self._get_namespace(kwargs)).reading_messages:
+                utils.log(self._logger, "WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
+                return lambda *args: None
+            else:
+                return func(*args, **kwargs)
 
-    def _check_entity(self, entity):
-        if "." not in entity:
-            raise ValueError(
-                "{}: Invalid entity ID: {}".format(self.name, entity))
-        with conf.ha_state_lock:
-            if entity not in conf.ha_state:
-                utils.log(conf.logger, "WARNING",
-                       "{}: Entity {} not found in Home Assistant".format(
-                           self.name, entity))
+        return (func_wrapper)
 
     def _sub_stack(self, msg):
         # If msg is a data structure of some type, don't sub
@@ -73,12 +57,76 @@ class AppDaemon:
                 msg = msg.replace("__function__", stack[2][3])
         return msg
 
+    def set_namespace(self, namespace):
+        self.namespace = namespace
+
+    def _get_namespace(self, **kwargs):
+        if "namespace" in kwargs:
+            namespace = kwargs["namespace"]
+            del kwargs["namespace"]
+        else:
+            namespace = self.namespace
+
+        return namespace
+
+
+    #
+    # Listen state stub here as super class doesn't know the namespace
+    #
+
+    def listen_state(self, cb, entity=None, **kwargs):
+        namespace = self._get_namespace(kwargs)
+        return super(Hass, self).listen_state(namespace, cb, entity, **kwargs)
+
+    #
+    # Likewise with get and set state
+    #
+
+    def get_state(self, entity=None, **kwargs):
+        namespace = self._get_namespace(kwargs)
+        return super(Hass, self).get_state(namespace, entity, **kwargs)
+
+    def set_state(self, entity_id, **kwargs):
+        namespace = self._get_namespace(kwargs)
+        self._check_entity(namespace, entity_id)
+        utils.log(
+            self._logger, "DEBUG",
+            "set_state: {}, {}".format(entity_id, kwargs)
+        )
+
+        if entity_id in self.get_state():
+            new_state = self.get_state()[entity_id]
+        else:
+            # Its a new state entry
+            new_state = {}
+            new_state["attributes"] = {}
+
+        if "state" in kwargs:
+            new_state["state"] = kwargs["state"]
+
+        if "attributes" in kwargs:
+            new_state["attributes"].update(kwargs["attributes"])
+
+        # Send update to plugin
+
+        self.ad.get_plugin(namespace).set_state(entity_id, new_state)
+
+        # Update AppDaemon's copy
+
+        self.ad.set_state(namespace, entity_id, new_state)
+
+        return new_state
+
+    def entity_exists(self, entity_id, **kwargs):
+        namespace = self._get_namespace(kwargs)
+        return self.ad.entity_exists(namespace, entity_id)
     #
     # Utility
     #
 
-    def split_entity(self, entity_id):
-        self._check_entity(entity_id)
+
+    def split_entity(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(kwargs), entity_id)
         return entity_id.split(".")
 
     def split_device_list(self, list_):
@@ -92,95 +140,68 @@ class AppDaemon:
         msg = self._sub_stack(msg)
         utils.log(self._error, level, msg, self.name)
 
-    def get_app(self, name):
-        if name in conf.objects:
-            return conf.objects[name]["object"]
-        else:
-            return None
+    #
+    #
+    #
 
-    def friendly_name(self, entity_id):
-        self._check_entity(entity_id)
-        with conf.ha_state_lock:
-            if entity_id in conf.ha_state:
-                if "friendly_name" in conf.ha_state[entity_id]["attributes"]:
-                    return conf.ha_state[entity_id][
-                        "attributes"]["friendly_name"]
-                else:
-                    return entity_id
-            return None
+    def friendly_name(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(kwargs), entity_id)
+        state = self.get_state()
+        if entity_id in state:
+            if "friendly_name" in state[entity_id]["attributes"]:
+                return state[entity_id]["attributes"]["friendly_name"]
+            else:
+                return entity_id
+        return None
 
     #
     # Device Trackers
     #
 
-    def get_trackers(self):
-        return (key for key, value in self.get_state("device_tracker").items())
+    def get_trackers(self, **kwargs):
+        return (key for key, value in self.get_state("device_tracker", kwargs).items())
 
-    def get_tracker_details(self):
-        return (self.get_state("device_tracker"))
+    def get_tracker_details(self, **kwargs):
+        return self.get_state("device_tracker", kwargs)
 
-    def get_tracker_state(self, entity_id):
-        self._check_entity(entity_id)
+    def get_tracker_state(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(kwargs), entity_id)
         return self.get_state(entity_id)
 
-    def anyone_home():
-        with conf.ha_state_lock:
-            for entity_id in conf.ha_state.keys():
-                thisdevice, thisentity = entity_id.split(".")
-                if thisdevice == "device_tracker":
-                    if conf.ha_state[entity_id]["state"] == "home":
-                        return True
+    def anyone_home(self, **kwargs):
+        state = self.get_state(kwargs)
+        for entity_id in state.keys():
+            thisdevice, thisentity = entity_id.split(".")
+            if thisdevice == "device_tracker":
+                if state[entity_id]["state"] == "home":
+                    return True
         return False
 
-    def everyone_home():
-        with conf.ha_state_lock:
-            for entity_id in conf.ha_state.keys():
-                thisdevice, thisentity = entity_id.split(".")
-                if thisdevice == "device_tracker":
-                    if conf.ha_state[entity_id]["state"] != "home":
-                        return False
+    def everyone_home(self, **kwargs):
+        state = self.get_state(kwargs)
+        for entity_id in state.keys():
+            thisdevice, thisentity = entity_id.split(".")
+            if thisdevice == "device_tracker":
+                if state[entity_id]["state"] != "home":
+                    return False
         return True
 
-    def noone_home():
-        with conf.ha_state_lock:
-            for entity_id in conf.ha_state.keys():
-                thisdevice, thisentity = entity_id.split(".")
-                if thisdevice == "device_tracker":
-                    if conf.ha_state[entity_id]["state"] == "home":
-                        return False
+    def noone_home(self, **kwargs):
+        state = self.get_state(kwargs)
+        for entity_id in state.keys():
+            thisdevice, thisentity = entity_id.split(".")
+            if thisdevice == "device_tracker":
+                if state[entity_id]["state"] == "home":
+                    return False
         return True
 
     #
-    # Event
+    # Helper functions for services
     #
-
-    @hass_check
-    def fire_event(self, event, **kwargs):
-        utils.log(conf.logger, "DEBUG",
-                  "fire_event: {}, {}".format(event, kwargs))
-        if conf.ha_key != "":
-            headers = {'x-ha-access': conf.ha_key}
-        else:
-            headers = {}
-        apiurl = "{}/api/events/{}".format(conf.ha_url, event)
-        r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=conf.certpath
-        )
-        r.raise_for_status()
-        return r.json()
-
-    #
-    # Service
-    #
-
-
-    @hass_check
-    def call_service(self, service, **kwargs):
-        return utils.call_service(service, **kwargs)
 
     @hass_check
     def turn_on(self, entity_id, **kwargs):
-        self._check_entity(entity_id)
+        self._check_entity(self._get_namespace(kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -190,7 +211,7 @@ class AppDaemon:
 
     @hass_check
     def turn_off(self, entity_id, **kwargs):
-        self._check_entity(entity_id)
+        self._check_entity(self._get_namespace(kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -204,40 +225,106 @@ class AppDaemon:
             self.call_service("homeassistant/turn_off", **rargs)
 
     @hass_check
-    def toggle(self, entity_id):
-        self._check_entity(entity_id)
-        self.call_service("homeassistant/toggle", entity_id=entity_id)
+    def toggle(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(kwargs), entity_id)
+        if kwargs == {}:
+            rargs = {"entity_id": entity_id}
+        else:
+            rargs = kwargs
+            rargs["entity_id"] = entity_id
+
+        self.call_service("homeassistant/toggle", **rargs)
 
     @hass_check
-    def select_value(self, entity_id, value):
-        self._check_entity(entity_id)
-        rargs = {"entity_id": entity_id, "value": value}
+    def select_value(self, entity_id, value, **kwargs):
+        self._check_entity(self._get_namespace(kwargs), entity_id)
+        if kwargs == {}:
+            rargs = {"entity_id": entity_id, "value": value}
+        else:
+            rargs = kwargs
+            rargs["entity_id"] = entity_id
+            rargs["value"] = value
         self.call_service("input_slider/select_value", **rargs)
 
     @hass_check
-    def select_option(self, entity_id, option):
-        self._check_entity(entity_id)
-        rargs = {"entity_id": entity_id, "option": option}
+    def select_option(self, entity_id, option, **kwargs):
+        self._check_entity(self._get_namespace(kwargs), entity_id)
+        if kwargs == {}:
+            rargs = {"entity_id": entity_id, "option": option}
+        else:
+            rargs = kwargs
+            rargs["entity_id"] = entity_id
+            rargs["option"] = option
         self.call_service("input_select/select_option", **rargs)
 
     @hass_check
     def notify(self, message, **kwargs):
-        args = {"message": message}
-        if "title" in kwargs:
-            args["title"] = kwargs["title"]
+        kwargs["message"] = message
         if "name" in kwargs:
             service = "notify/{}".format(kwargs["name"])
         else:
             service = "notify/notify"
 
-        self.call_service(service, **args)
+        self.call_service(service, **kwargs)
 
     @hass_check
     def persistent_notification(self, message, title=None, id=None):
-        args = {"message": message}
+        kwargs = {}
+        kwargs["message"] = message
         if title is not None:
-            args["title"] = title
+            kwargs["title"] = title
         if id is not None:
-            args["notification_id"] = id
-        self.call_service("persistent_notification/create", **args)
+            kwargs["notification_id"] = id
+        self.call_service("persistent_notification/create", **kwargs)
+
+
+    #
+    # Event
+    #
+
+    @hass_check
+    def fire_event(self, event, **kwargs):
+        utils.log(self._logger, "DEBUG",
+                  "fire_event: {}, {}".format(event, kwargs))
+        config = self.ad.get_plugin(self._get_namespace(kwargs)).config
+        if "ha_key" in config and config["ha_key"] != "":
+            headers = {'x-ha-access': config["ha_key"]}
+        else:
+            headers = {}
+        apiurl = "{}/api/events/{}".format(config["ha_url"], event)
+        r = requests.post(
+            apiurl, headers=headers, json=kwargs, verify=conf.certpath
+        )
+        r.raise_for_status()
+        return r.json()
+
+    #
+    # Service
+    #
+    @staticmethod
+    def _check_service(service):
+        if service.find("/") == -1:
+            raise ValueError("Invalid Service Name: {}".format(service))
+
+    @hass_check
+    def call_service(self, service, **kwargs):
+        self._check_service(service)
+        d, s = service.split("/")
+        utils.log(
+            self._logger, "DEBUG",
+            "call_service: {}/{}, {}".format(d, s, kwargs)
+        )
+
+        config = self.ad.get_plugin(self._get_namespace(kwargs)).config
+
+        if "ha_key" in config and config["ha_key"] != "":
+            headers = {'x-ha-access': config["ha_key"]}
+        else:
+            headers = {}
+        apiurl = "{}/api/services/{}/{}".format(config["ha_key"], d, s)
+        r = requests.post(
+            apiurl, headers=headers, json=kwargs, verify=conf.certpath
+        )
+        r.raise_for_status()
+        return r.json()
 

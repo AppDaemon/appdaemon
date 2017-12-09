@@ -6,6 +6,7 @@ from websocket import create_connection
 from pkg_resources import parse_version
 from sseclient import SSEClient
 import traceback
+import copy
 
 import appdaemon.utils as utils
 
@@ -19,6 +20,8 @@ class HassPlugin:
         self.stopping = False
         self.config = args
         self.loglevel = loglevel
+        self.ws = None
+        self.reading_messages = False
 
         utils.log(self.logger, "INFO", "HASS Plugin Initializing")
 
@@ -73,6 +76,8 @@ class HassPlugin:
     def stop(self):
         self.verbose_log("*** Stopping ***")
         self.stopping = True
+        if self.ws is not None:
+            self.ws.close()
 
     #
     # Get initial state
@@ -80,16 +85,12 @@ class HassPlugin:
 
     def get_complete_state(self):
         hass_state = self.get_hass_state()
+        states = {}
+        for state in hass_state:
+            states[state["entity_id"]] = state
         utils.log(self.logger, "INFO", "Got initial state")
-        state = {"namespace": self.namespace, "state": hass_state}
         self.verbose_log("*** Sending Complete State: {} ***".format(hass_state))
-        return state
-
-    def process_message(self, msg):
-        utils.log(self.logger, "INFO", msg)
-
-    def process_event(self, data):
-        utils.log(self.logger, "INFO", data)
+        return states
 
     #
     # Handle state updates
@@ -103,7 +104,6 @@ class HassPlugin:
         while not self.stopping:
             _id += 1
             try:
-                self.reading_messages = True
 
                 #
                 # Fire HA_STARTED Events
@@ -145,10 +145,12 @@ class HassPlugin:
                                 self.timeout
                             )
                         )
-                    while True:
-                        msg = await utils.run_in_executor(self.loop, conf.executor, messages.__next__)
+                    self.reading_messages = True
+                    while not self.stopping:
+                        msg = await utils.run_in_executor(self.AD.loop, self.AD.executor, messages.__next__)
                         if msg.data != "ping":
-                            self.process_message(json.loads(msg.data))
+                            self.AD.state_update(self.namespace, json.loads(msg.data))
+                    self.reading_messages = False
                 else:
                     #
                     # Connect to websocket interface
@@ -162,10 +164,10 @@ class HassPlugin:
                     sslopt = {'cert_reqs': ssl.CERT_NONE}
                     if self.cert_path:
                         sslopt['ca_certs'] = self.cert_path
-                    ws = create_connection(
+                    self.ws = create_connection(
                         "{}/api/websocket".format(url), sslopt=sslopt
                     )
-                    result = json.loads(ws.recv())
+                    result = json.loads(self.ws.recv())
                     utils.log(self.logger, "INFO",
                               "Connected to Home Assistant {}".format(
                                   result["ha_version"]))
@@ -177,8 +179,8 @@ class HassPlugin:
                             "type": "auth",
                             "api_password": self.ha_key
                         })
-                        ws.send(auth)
-                        result = json.loads(ws.recv())
+                        self.ws.send(auth)
+                        result = json.loads(self.ws.recv())
                         if result["type"] != "auth_ok":
                             utils.log(self.logger, "WARNING",
                                       "Error in authentication")
@@ -190,8 +192,8 @@ class HassPlugin:
                         "id": _id,
                         "type": "subscribe_events"
                     })
-                    ws.send(sub)
-                    result = json.loads(ws.recv())
+                    self.ws.send(sub)
+                    result = json.loads(self.ws.recv())
                     if not (result["id"] == _id and result["type"] == "result" and
                                     result["success"] is True):
                         utils.log(
@@ -204,9 +206,9 @@ class HassPlugin:
                     #
                     # Loop forever consuming events
                     #
-
+                    self.reading_messages = True
                     while not self.stopping:
-                        ret = await utils.run_in_executor(self.loop, self.executor, ws.recv)
+                        ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                         result = json.loads(ret)
 
                         if not (result["id"] == _id and result["type"] == "event"):
@@ -220,12 +222,14 @@ class HassPlugin:
                                 "Unexpected result from Home Assistant"
                             )
 
-                        self.process_message(result["event"])
+                        self.AD.state_update(self.namespace, result["event"])
+                    self.reading_messages = False
 
             except:
+                self.reading_messages = False
                 if not self.stopping:
                     if disconnected_event == False:
-                        self.process_event({"event_type": "ha_disconnected", "data": {}})
+                        self.AD.state_update(self.namespace, {"event_type": "ha_disconnected", "data": {}})
                         disconnected_event = True
                     utils.log(
                         self.logger, "WARNING",
@@ -240,6 +244,9 @@ class HassPlugin:
                     await asyncio.sleep(5)
 
         utils.log(self.logger, "INFO", "Disconnecting from Home Assistant")
+
+    def get_namespace(self):
+        return self.namespace
 
     #
     # Utility functions

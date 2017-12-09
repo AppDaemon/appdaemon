@@ -5,7 +5,6 @@ from aiohttp import web
 import ssl
 import traceback
 
-import appdaemon.conf as conf
 import appdaemon.utils as ha
 
 app = web.Application()
@@ -14,8 +13,8 @@ def get_response(code, error):
     res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
     return res
 
-@asyncio.coroutine
-def call_api(request):
+
+async def call_api(request):
     app = request.match_info.get('app')
 
     if conf.api_key is not None:
@@ -28,7 +27,7 @@ def call_api(request):
             return web.Response(body=res, status=code)
 
     try:
-        args = yield from request.json()
+        args = await request.json()
     except json.decoder.JSONDecodeError:
         code = 400
         response = "JSON Decode Error"
@@ -37,7 +36,7 @@ def call_api(request):
         return web.Response(body = res, status = code)
 
     try:
-        ret, code = yield from ha.dispatch_app_by_name(app, args)
+        ret, code = await ha.dispatch_app_by_name(app, args)
     except:
         if conf.errorfile != "STDERR" and conf.logfile != "STDOUT":
             # When explicitly logging to stdout and stderr, suppress
@@ -67,7 +66,8 @@ def call_api(request):
 def setup_api():
     app.router.add_post('/api/appdaemon/{app}', call_api)
 
-def run_api(loop, tasks, conf):
+
+def run_api(loop, conf):
     # noinspection PyBroadException
     try:
         setup_api()
@@ -81,7 +81,7 @@ def run_api(loop, tasks, conf):
         handler = app.make_handler()
 
         f = loop.create_server(handler, "0.0.0.0", int(conf.api_port), ssl = context)
-        tasks.append(asyncio.async(f))
+        loop.create_task(f)
     except:
         ha.log(conf.dash, "WARNING", '-' * 60)
         ha.log(conf.dash, "WARNING", "Unexpected error in api thread")

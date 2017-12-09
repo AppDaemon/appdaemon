@@ -65,7 +65,7 @@ class DummyPlugin:
 
     def get_complete_state(self):
         self.log("*** Sending Complete State: {} ***".format(self.state))
-        return copy.deepcopy({"namespace": self.namespace, "state": self.state})
+        return copy.deepcopy(self.state)
 
     #
     # Utility gets called every second (or longer if configured
@@ -99,7 +99,6 @@ class DummyPlugin:
                             "event_type": "state_changed",
                             "data":
                                 {
-                                    "namespace": self.namespace,
                                     "entity_id": entity,
                                     "new_state": new_state,
                                     "old_state": old_state
@@ -116,7 +115,7 @@ class DummyPlugin:
                 if self.current_event >= len(self.config["sequence"]["events"]) and "loop" in self.config["sequence"] and self.config["sequence"]["loop"] == 1:
                     self.current_event = 0
                 self.log("*** State Update: {} ***".format(ret))
-                self.AD.state_update(copy.deepcopy(ret))
+                self.AD.state_update(self.namespace, copy.deepcopy(ret))
 
     #
     # Set State
@@ -125,3 +124,6 @@ class DummyPlugin:
     def set_state(self, entity, state):
         self.log("*** Setting State: {} = {} ***".format(entity, state))
         self.state[entity] = state
+
+    def get_namespace(self):
+        return self.namespace

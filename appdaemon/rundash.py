@@ -12,7 +12,6 @@ from aiohttp import web
 import ssl
 import bcrypt
 
-import appdaemon.conf as conf
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
 
@@ -297,7 +296,7 @@ class RunDash():
 
     # Setup
 
-    def run_dash(self, loop, tasks, conf):
+    def run_dash(self, loop, conf):
         # noinspection PyBroadException
         self.loop = loop
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
@@ -321,9 +320,8 @@ class RunDash():
 
             f = loop.create_server(handler, "0.0.0.0", int(conf.dash_port), ssl=context)
 
-            tasks.append(asyncio.async(f))
-            tasks.append(asyncio.async(self.update_rss()))
-            return f
+            loop.create_task(f)
+            loop.create_task(self.update_rss())
         except:
             utils.log(conf.dash, "WARNING", '-' * 60)
             utils.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")
