@@ -265,8 +265,8 @@ By Rene Tode:
 By Supahnoob:
 
 + `AppDaemon Tutorial #1 Tracker-Notifier <https://community.home-assistant.io/t/appdaemon-tutorial-1-tracker-notifier/12545>`__
-+ `[AppDaemon] Tutorial #2 Errorlog Notifications <https://community.home-assistant.io/t/appdaemon-tutorial-2-errorlog-notifications/12907>`__
-+ `[AppDaemon] Tutorial #3 Utility Functions <https://community.home-assistant.io/t/appdaemon-tutorial-3-utility-functions/13247>`__
-+ `[AppDaemon] Tutorial #4 Libraries & Interactivity <https://community.home-assistant.io/t/appdaemon-tutorial-4-libraries-interactivity/14057>`__
++ `AppDaemon Tutorial #2 Errorlog Notifications <https://community.home-assistant.io/t/appdaemon-tutorial-2-errorlog-notifications/12907>`__
++ `AppDaemon Tutorial #3 Utility Functions <https://community.home-assistant.io/t/appdaemon-tutorial-3-utility-functions/13247>`__
++ `AppDaemon Tutorial #4 Libraries & Interactivity <https://community.home-assistant.io/t/appdaemon-tutorial-4-libraries-interactivity/14057>`__
 
 
