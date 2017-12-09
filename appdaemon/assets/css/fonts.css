@@ -1,0 +1,16 @@
+@font-face {
+    font-family: 'Led';
+    src: url('fonts/digital-7-mono.eot');
+    src: url('fonts/digital-7-mono.eot?#iefix') format('embedded-opentype'),
+         url('fonts/digital-7-mono.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'TimeBomb';
+    src: url('fonts/TickingTimebombBB.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Repetition';
+    src: url('fonts/repetition.ttf') format('truetype');
+}

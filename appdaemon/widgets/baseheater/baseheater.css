@@ -1,0 +1,45 @@
+.widget-baseheater-{{id}} {
+	position: relative;
+}
+.widget-baseheater-{{id}} .title {
+    position: absolute;
+    top: 5px;
+    width: 100%;
+}
+.widget-baseheater-{{id}} .title2 {
+    position: absolute;
+    top: 23px;
+    width: 100%;
+}
+
+.widget-baseheater-{{id}} .iconcontainer {
+	position: absolute;
+	bottom: 25%;
+	width: 100%;
+}
+
+.widget-baseheater-{{id}} .toggle-area {
+	z-index: 10;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 75%;
+}
+
+.widget-baseheater-{{id}} .slidercontainer {
+   position: absolute;
+   bottom: 5px;
+   height: 25%;
+   overflow: hidden;
+   width: 100%;
+   horizontal-align: center;
+   margin:auto;
+}
+
+.widget-baseheater-{{id}} input[type=range] {
+  -webkit-appearance: slider-horizontal;
+  border: 1px solid white;
+  height: 90%;
+  width: 90%;
+}
