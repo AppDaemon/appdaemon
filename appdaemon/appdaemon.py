@@ -22,7 +22,7 @@ import appdaemon.utils as utils
 
 
 class AppDaemon:
-    def __init__(self, logger, error, **kwargs):
+    def __init__(self, logger, error, loop, **kwargs):
 
         self.logger = logger
         self.error = error
@@ -140,6 +140,112 @@ class AppDaemon:
 
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs)
+
+        #
+        # Initial Setup
+        #
+
+        self.appq = asyncio.Queue(maxsize=0)
+
+        self.loop = loop
+
+        self.stopping = False
+
+        utils.log(self.logger, "DEBUG", "Entering run()")
+
+        self.init_sun()
+
+        # Load App Config
+
+        self.app_config = self.read_config()
+
+        # Take a note of DST
+
+        self.was_dst = self.is_dst()
+
+        # Setup sun
+
+        self.update_sun()
+
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
+        utils.log(self.logger, "DEBUG", "Creating worker threads ...")
+
+        # Create Worker Threads
+        for i in range(self.threads):
+            t = threading.Thread(target=self.worker)
+            t.daemon = True
+            t.start()
+
+        utils.log(self.logger, "DEBUG", "Done")
+
+
+        # Create timer loop
+
+        utils.log(self.logger, "DEBUG", "Starting timer loop")
+
+        loop.create_task(self.do_every(self.tick, self.do_every_second))
+
+        # Create utility loop
+
+        utils.log(self.logger, "DEBUG", "Starting utility loop")
+
+        loop.create_task(self.utility())
+
+        # Load Plugins
+
+        for name in self.plugin_params:
+            basename = self.plugin_params[name]["plugin"]
+            module_name = "{}plugin".format(basename)
+            class_name = "{}Plugin".format(basename.capitalize())
+            basepath = "appdaemon.plugins"
+
+            utils.log(self.logger, "INFO",
+                      "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
+            full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+            mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
+            app_class = getattr(mod, class_name)
+
+            plugin = app_class(self, name, self.logger, self.error, self.loglevel, self.plugin_params[name])
+
+            state = plugin.get_complete_state()
+            namespace = plugin.get_namespace()
+
+            with self.state_lock:
+                self.state[namespace] = state
+
+            if namespace in self.plugins:
+                raise ValueError("Duplicate namespace: {}".format(namespace))
+
+            self.plugins[namespace] = plugin
+
+            loop.create_task(plugin.get_updates())
+
+        #
+        # All plugins are loaded and we have initial state
+        # Now we can initialize the Apps
+        #
+
+        utils.log(self.logger, "DEBUG", "Reading Apps")
+
+        self.read_apps(True)
+        self.app_config_file_modified = self.now
+
+        utils.log(self.logger, "INFO", "App initialization complete")
+
+        #
+        # Fire APPD Started Event
+        #
+        self.process_event({"event_type": "appd_started", "data": {}})
+        #
+        # Initialization complete - now we run in the various async routines we added to the loop
+        #
+
+    def get_plugin(self, name):
+        if name in self.plugins:
+            return self.plugins[name]
+        else:
+            return None
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
@@ -1456,9 +1562,8 @@ class AppDaemon:
                     # cancel timer
                     self.cancel_timer(name, kwargs["handle"])
 
-    def process_state_change(self, state):
+    def process_state_change(self, namespace, state):
         data = state["data"]
-        namespace = data["namespace"]
         entity_id = data['entity_id']
         utils.log(self.logger, "DEBUG", data)
         device, entity = entity_id.split(".")
@@ -1515,9 +1620,8 @@ class AppDaemon:
                                 callback["kwargs"]
                             )
 
-    def state_update(self, data):
+    def state_update(self, namespace, data):
         try:
-
             utils.log(
                 self.logger, "DEBUG",
                 "Event type:{}:".format(data['event_type'])
@@ -1529,13 +1633,12 @@ class AppDaemon:
 
                 # First update our global state
                 with self.state_lock:
-                    namespace = data["data"]["namespace"]
                     self.state[namespace][entity_id] = data['data']['new_state']
 
             if self.apps is True:
                 # Process state changed message
                 if data['event_type'] == "state_changed":
-                    self.process_state_change(data)
+                    self.process_state_change(namespace, data)
 
                 # Process non-state callbacks
                 self.process_event(data)
@@ -1590,102 +1693,3 @@ class AppDaemon:
 
     def get_plugin(self, name):
         return self.plugins[name]
-
-    #
-    # Initial Setup
-    #
-
-    def run_ad(self, loop, tasks):
-
-        self.appq = asyncio.Queue(maxsize=0)
-
-        self.loop = loop
-
-        self.stopping = False
-
-        utils.log(self.logger, "DEBUG", "Entering run()")
-
-        self.init_sun()
-
-        # Load App Config
-
-        self.app_config = self.read_config()
-
-        # Take a note of DST
-
-        self.was_dst = self.is_dst()
-
-        # Setup sun
-
-        self.update_sun()
-
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
-
-        utils.log(self.logger, "DEBUG", "Creating worker threads ...")
-
-        # Create Worker Threads
-        for i in range(self.threads):
-            t = threading.Thread(target=self.worker)
-            t.daemon = True
-            t.start()
-
-        utils.log(self.logger, "DEBUG", "Done")
-
-
-        # Create timer loop
-
-        utils.log(self.logger, "DEBUG", "Starting timer loop")
-
-        tasks.append(asyncio.async(self.do_every(self.tick, self.do_every_second)))
-
-        # Create utility loop
-
-        utils.log(self.logger, "DEBUG", "Starting utility loop")
-
-        tasks.append(asyncio.async(self.utility()))
-
-        # Load Plugins
-
-        for name in self.plugin_params:
-            basename = self.plugin_params[name]["plugin"]
-            module_name = "{}plugin".format(basename)
-            class_name = "{}Plugin".format(basename.capitalize())
-            basepath = "appdaemon.plugins"
-
-            utils.log(self.logger, "INFO",
-                      "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
-            full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
-            mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
-            app_class = getattr(mod, class_name)
-
-            plugin = app_class(self, name, self.logger, self.error, self.loglevel, self.plugin_params[name])
-
-            state = plugin.get_complete_state()
-            namespace = state["namespace"]
-
-            with self.state_lock:
-                self.state[namespace] = state["state"]
-
-            self.plugins[namespace] = plugin
-
-            tasks.append(asyncio.async(plugin.get_updates()))
-
-        #
-        # All plugins are loaded and we have initial state
-        # Now we can initialize the Apps
-        #
-
-        utils.log(self.logger, "DEBUG", "Reading Apps")
-
-        self.read_apps(True)
-        self.app_config_file_modified = self.now
-
-        utils.log(self.logger, "INFO", "App initialization complete")
-
-        #
-        # Fire APPD Started Event
-        #
-        self.process_event({"event_type": "appd_started", "data": {}})
-        #
-        # Initialization complete - now we run in the various async routines we added to the loop
-        #

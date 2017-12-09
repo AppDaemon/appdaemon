@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 from pkg_resources import parse_version
 import sys
-import traceback
-import configparser
 import argparse
 import logging
 import os
@@ -16,7 +14,6 @@ from urllib.parse import urlparse
 import yaml
 import asyncio
 
-import appdaemon.conf as confmodule
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.adapi as api
@@ -62,7 +59,6 @@ class ADMain():
     def run(self):
 
         conf = self.conf
-        tasks = []
 
         loop = asyncio.get_event_loop()
 
@@ -71,8 +67,7 @@ class ADMain():
         if conf.apps is True:
             utils.log(self.logger, "INFO", "Starting Apps")
             kwargs = conf.__dict__
-            self.AD = ad.AppDaemon(self.logger, self.error, **kwargs)
-            self.AD.run_ad(loop, tasks)
+            self.AD = ad.AppDaemon(self.logger, self.error, loop, **kwargs)
         else:
             utils.log(self.logger, "INFO", "Apps are disabled")
 
@@ -81,19 +76,21 @@ class ADMain():
         if conf.dashboard is True:
             utils.log(self.logger, "INFO", "Starting dashboard")
             self.rundash = rundash.RunDash()
-            self.rundash.run_dash(loop, tasks, conf)
+            self.rundash.run_dash(loop, conf)
         else:
             utils.log(self.logger, "INFO", "Dashboards are disabled")
 
         if conf.api_port is not None:
             utils.log(self.logger, "INFO", "Starting API")
-            api.run_api(loop, tasks, conf)
+            api.run_api(loop, conf)
         else:
             utils.log(self.logger, "INFO", "API is disabled")
 
         utils.log(self.logger, "DEBUG", "Start Loop")
-        loop.run_until_complete(asyncio.wait(tasks))
-        loop.close()
+
+        pending = asyncio.Task.all_tasks()
+        loop.run_until_complete(asyncio.gather(*pending))
+
         utils.log(self.logger, "DEBUG", "End Loop")
 
         utils.log(self.logger, "INFO", "AppDeamon Exited")
@@ -127,11 +124,6 @@ class ADMain():
                                 "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
                             ])
         parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + utils.__version__)
-        parser.add_argument('--commtype', help="Communication Library to use", default="WEBSOCKETS", choices=
-                            [
-                                "SSE",
-                                "WEBSOCKETS"
-                            ])
         parser.add_argument('--profiledash', help=argparse.SUPPRESS, action='store_true')
         parser.add_argument('--convertcfg', help="Convert existing .cfg file to yaml", action='store_true')
 
@@ -161,8 +153,6 @@ class ADMain():
 
         config_dir = args.config
 
-        conf.commtype = args.commtype
-
         if platform.system() != "Windows":
             from daemonize import Daemonize
 
@@ -188,7 +178,7 @@ class ADMain():
                 with open(secrets_file, 'r') as yamlfd:
                     secrets_file_contents = yamlfd.read()
 
-                confmodule.secrets = yaml.load(secrets_file_contents)
+                utils.secrets = yaml.load(secrets_file_contents)
 
             yaml.add_constructor('!secret', utils._secret_yaml)
 
@@ -231,6 +221,7 @@ class ADMain():
         conf.api_ssl_certificate = config['AppDaemon'].get("api_ssl_certificate")
         conf.api_ssl_key = config['AppDaemon'].get("api_ssl_key")
 
+        conf.dashboard = False
         if 'HADashboard' in config:
             conf.dash_url = config['HADashboard'].get("dash_url")
             conf.dashboard_dir = config['HADashboard'].get("dash_dir")
@@ -253,6 +244,18 @@ class ADMain():
             else:
                 conf.dashboard = True
 
+            url = urlparse(conf.dash_url)
+
+            dash_net = url.netloc.split(":")
+            conf.dash_host = dash_net[0]
+            try:
+                conf.dash_port = dash_net[1]
+            except IndexError:
+                conf.dash_port = 80
+
+            if conf.dash_host == "":
+                raise ValueError("Invalid host for 'dash_url'")
+
         if config['AppDaemon'].get("disable_apps") == "1":
             conf.apps = False
         else:
@@ -268,18 +271,6 @@ class ADMain():
         if config['AppDaemon'].get("cert_verify", True) == False:
             conf.certpath = False
 
-        if conf.dash_url is not None:
-            url = urlparse(conf.dash_url)
-
-            dash_net = url.netloc.split(":")
-            conf.dash_host = dash_net[0]
-            try:
-                conf.dash_port = dash_net[1]
-            except IndexError:
-                conf.dash_port = 80
-
-            if conf.dash_host == "":
-                raise ValueError("Invalid host for 'dash_url'")
 
         if conf.threads is None:
             conf.threads = 10
@@ -404,7 +395,7 @@ class ADMain():
 
         # find dashboard dir
 
-        if conf.dashboard:
+        if 'HADashboard' in config:
             if conf.dashboard_dir is None:
                 if config_dir is None:
                     conf.dashboard_dir = self.find_path("dashboards")

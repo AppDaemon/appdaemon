@@ -1,9 +1,6 @@
-import appdaemon.conf as conf
 import requests
 import datetime
-import re
-import random
-import uuid
+
 import asyncio
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -17,7 +14,7 @@ constraints = (
 
 
 __version__ = "3.0.0b1"
-
+secrets = None
 
 class Formatter(object):
     def __init__(self):
@@ -107,13 +104,13 @@ class StateAttrs(dict):
 
 
 def _secret_yaml(loader, node):
-    if conf.secrets is None:
+    if secrets is None:
         raise ValueError("!secret used but no secrets file found")
 
-    if node.value not in conf.secrets:
+    if node.value not in secrets:
         raise ValueError("{} not found in secrets file".format(node.value))
 
-    return conf.secrets[node.value]
+    return secrets[node.value]
 
 
 async def dispatch_app_by_name(name, args):
@@ -135,7 +132,6 @@ def sanitize_state_kwargs(kwargs):
         "old", "new", "attribute", "duration", "state",
         "entity", "handle", "old_state", "new_state",
     ) + constraints)
-
 
 def sanitize_timer_kwargs(kwargs):
     kwargs_copy = kwargs.copy()
