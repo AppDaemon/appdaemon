@@ -554,6 +554,22 @@ widget.
 Note that there is nothing special about the naming of ``OnButtonClick`` - it can be called anything as long as
 the correct references are present in the ``callbacks`` list.
 
+When subscribing to events that relate to value changes in a widget,
+such as for instance an input select being changed by a user, which we must propagate back to Home Assistant,
+there is an issue with race conditions if we subscribe to the normal `change` event. The `change` event will fire,
+and our `onChange` function may be called before the knockout binding has an opportunity to update itself,
+and we will see the old value. To handle this situation, a second type of event subscription is provided -
+we will subscribe to the knockout binding changing rather than the control itself. This is done in a similar way
+to the previous mechanism, the only differentce is that instead of a `selector` parameter, we use an
+`observable` parameter whcih is the name of the binding you want to subscribe to. For instance:
+
+
+.. code:: javascript
+
+        {"observable": "selectedoption", "action": "change", "callback": self.onChange}
+
+Both styles of callback may be used together.
+
 Next we will setup the state callbacks:
 
 .. code:: javascript

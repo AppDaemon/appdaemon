@@ -303,3 +303,58 @@ rss_title_style: $style_title
 rss_title2_style: $style_title2
 rss_text_style: "color: $blue"
 rss_widget_style: $background_style
+
+input_select_title_style: $style_title
+input_select_title2_style: $style_title2
+input_select_widget_style: $background_style
+input_select_select_style: "background-color: #999;color:black"
+input_select_container_style: ""
+
+new_input_slider_title_style: $style_title
+new_input_slider_title2_style: $style_title2
+new_input_slider_minvalue_style: $style_title
+new_input_slider_maxvalue_style: $style_title
+new_input_slider_value_style: $style_title
+new_input_slider_slider_style: "-webkit-appearance: none"
+new_input_slider_container_style: ""
+new_input_slider_widget_style: $background_style
+
+vertical_input_slider_title_style: $style_title
+vertical_input_slider_title2_style: $style_title2
+vertical_input_slider_minvalue_style: $style_title
+vertical_input_slider_maxvalue_style: $style_title
+vertical_input_slider_value_style: $style_title
+vertical_input_slider_slider_style: ""
+vertical_input_slider_container_style: ""
+vertical_input_slider_widget_style: $background_style
+
+light_with_brightness_icon_on: mdi-lightbulb
+light_with_brightness_icon_off: mdi-lightbulb
+light_with_brightness_title_style: $style_title
+light_with_brightness_title2_style: $style_title2
+light_with_brightness_slider_style: ""
+light_with_brightness_widget_style: $background_style
+light_with_brightness_icon_style_active: $style_active
+light_with_brightness_icon_style_inactive: $style_inactive
+
+light_with_colorpicker_icon_on: mdi-lightbulb
+light_with_colorpicker_icon_off: mdi-lightbulb
+light_with_colorpicker_title_style: $style_title
+light_with_colorpicker_title2_style: $style_title2
+light_with_colorpicker_button_style: ""
+light_with_colorpicker_widget_style: $background_style
+light_with_colorpicker_icon_style_active: $style_active
+light_with_colorpicker_icon_style_inactive: $style_inactive
+
+radial_widget_style: "background: none"
+
+thermo_widget_style: "background: none"
+
+heater_icon_on: fa-fire
+heater_icon_off: fa-fire
+heater_title_style: $style_title
+heater_title2_style: $style_title2
+heater_slider_style: ""
+heater_widget_style: $background_style
+heater_icon_style_active: $style_active
+heater_icon_style_inactive: $style_inactive

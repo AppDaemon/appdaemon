@@ -1,0 +1,27 @@
+widget_type: baseslider_vertical
+entity: {{entity}}
+post_service:
+    service: input_slider/select_value
+    entity_id: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  SliderValue: ""
+  MinValue: ""
+  MaxValue: ""
+  sliderValue: ""
+  minValue: ""
+  maxValue: ""
+  StepValue: ""
+icons: []
+css: []
+static_icons: []
+static_css:
+  title_style: $vertical_input_slider_title_style
+  title2_style: $vertical_input_slider_title2_style
+  minvalue_style: $vertical_input_slider_minvalue_style
+  maxvalue_style: $vertical_input_slider_maxvalue_style
+  value_style: $vertical_input_slider_value_style
+  slider_style: $vertical_input_slider_slider_style
+  slidercontainer_style: $vertical_input_slider_container_style
+  widget_style: $vertical_input_slider_widget_style
