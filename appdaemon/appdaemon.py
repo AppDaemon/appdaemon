@@ -1005,7 +1005,7 @@ def read_apps(all_=False):
     found_files = []
     modules = []
     for root, subdirs, files in os.walk(conf.app_dir):
-        if root[-11:] != "__pycache__":
+        if root[-11:] != "__pycache__" and root[-11:] != "AppleDouble":
             for file in files:
                 if file[-3:] == ".py":
                     found_files.append(os.path.join(root, file))
