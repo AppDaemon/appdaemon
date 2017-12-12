@@ -216,19 +216,6 @@ class AppDaemon:
 
         self.log("DEBUG", "Done")
 
-
-        # Create timer loop
-
-        self.log("DEBUG", "Starting timer loop")
-
-        loop.create_task(self.do_every(self.tick, self.do_every_second))
-
-        # Create utility loop
-
-        self.log("DEBUG", "Starting utility loop")
-
-        loop.create_task(self.utility())
-
         # Load Plugins
 
         for name in self.plugins:
@@ -258,25 +245,19 @@ class AppDaemon:
 
             loop.create_task(plugin.get_updates())
 
-        #
-        # All plugins are loaded and we have initial state
-        # Now we can initialize the Apps
-        #
+        # Create timer loop
 
-        self.log("DEBUG", "Reading Apps")
+        self.log("DEBUG", "Starting timer loop")
 
-        self.read_apps(True)
-        self.app_config_file_modified = self.now
+        loop.create_task(self.do_every(self.tick, self.do_every_second))
 
-        self.log("INFO", "App initialization complete")
+        # Create utility loop
 
-        #
-        # Fire APPD Started Event
-        #
-        self.process_event({"event_type": "appd_started", "data": {}})
-        #
-        # Initialization complete - now we run in the various async routines we added to the loop
-        #
+        self.log("DEBUG", "Starting utility loop")
+
+        loop.create_task(self.utility())
+
+
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
@@ -1056,16 +1037,45 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errfile)
                 )
 
+    def notify_plugin_restarted(self, namespace):
+        self.read_apps(True)
+
     #
     # Utility Loop
     #
 
     async def utility(self):
+
+        #
+        # Wait for all plugins to initialize
+        #
+        initialized = False
+        while not initialized:
+            initialized = True
+            for plugin in self.plugin_objs:
+                if not self.plugin_objs[plugin].active():
+                    initialized = False
+                    break
+            await asyncio.sleep(1)
+
+        #
+        # All plugins are loaded and we have initial state
+        #
+        self.log("DEBUG", "Reading Apps")
+
+        self.app_config_file_modified = self.now
+        self.read_apps(True)
+
+        self.log("INFO", "App initialization complete")
+        #
+        # Fire APPD Started Event
+        #
+        self.process_event({"event_type": "appd_started", "data": {}})
+
         while not self.stopping:
             start_time = datetime.datetime.now().timestamp()
 
             try:
-                           # Check to see if any apps have changed but only if we have valid state
 
                 await utils.run_in_executor(self.loop, self.executor, self.read_apps)
 
