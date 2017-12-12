@@ -273,7 +273,7 @@ class AppDaemon:
         return self.AD.get_now_ts()
 
     def now_is_between(self, start_time_str, end_time_str, name=None):
-        return self.AD.now_is_between(self, start_time_str, end_time_str, name)
+        return self.AD.now_is_between(start_time_str, end_time_str, name)
 
     def sunrise(self):
         return self.AD.sunrise()

@@ -104,16 +104,11 @@ class HassPlugin:
 
         _id = 0
 
+        first_time = True
         while not self.stopping:
             _id += 1
             disconnected_event = False
             try:
-
-                #
-                # Fire HA_STARTED Events
-                #
-
-                self.AD.process_event({"event_type": "ha_started", "data": {}})
 
                 if parse_version(utils.__version__) < parse_version('0.34') or self.commtype == "SSE":
                     #
@@ -150,6 +145,14 @@ class HassPlugin:
                             )
                         )
                     self.reading_messages = True
+                    #
+                    # Fire HA_STARTED Events
+                    #
+                    self.AD.process_event({"event_type": "ha_started", "data": {}})
+                    if not first_time:
+                        self.AD.notify_plugin_restarted(self.namespace)
+                    else:
+                        first_time = False
                     while not self.stopping:
                         msg = await utils.run_in_executor(self.AD.loop, self.AD.executor, messages.__next__)
                         if msg.data != "ping":
@@ -211,6 +214,14 @@ class HassPlugin:
                     # Loop forever consuming events
                     #
                     self.reading_messages = True
+                    #
+                    # Fire HA_STARTED Events
+                    #
+                    self.AD.process_event({"event_type": "ha_started", "data": {}})
+                    if not first_time:
+                        self.AD.notify_plugin_restarted(self.namespace)
+                    else:
+                        first_time = False
                     while not self.stopping:
                         ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                         result = json.loads(ret)
@@ -259,6 +270,10 @@ class HassPlugin:
     def utility(self):
        return None
 
+
+    def active(self):
+        return self.reading_messages
+
     #
     # Home Assistant Interactions
     #
@@ -299,7 +314,6 @@ class HassPlugin:
         r.raise_for_status()
         return r.json()
 
-
     def get_ha_config(self):
         self.log("DEBUG", "get_ha_config()")
         if self.ha_key != "":
@@ -312,11 +326,9 @@ class HassPlugin:
         r.raise_for_status()
         return r.json()
 
-
     def _check_service(self, service):
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
-
 
     def call_service(self, service, **kwargs):
         self._check_service(service)

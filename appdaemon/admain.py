@@ -7,7 +7,6 @@ import os
 import os.path
 from logging.handlers import RotatingFileHandler
 import time
-import datetime
 import signal
 import platform
 import yaml
@@ -20,9 +19,6 @@ import appdaemon.rundash as rundash
 
 # Windows does not have Daemonize package so disallow
 
-#
-# Empty class to store attributes
-#
 class ADMain():
 
     def __init__(self):
@@ -215,11 +211,11 @@ class ADMain():
             log_generations = 3
             accessfile = None
         else:
-            logfile = config['appdaemon'].get("logfile", "STDOUT")
-            errorfile = config['appdaemon'].get("errorfile", "STDERR")
-            log_size = config['appdaemon'].get("log_size", 1000000)
-            log_generations = config['appdaemon'].get("log_generations", 3)
-            accessfile = config['appdaemon'].get("accessfile")
+            logfile = config['log'].get("logfile", "STDOUT")
+            errorfile = config['log'].get("errorfile", "STDERR")
+            log_size = config['log'].get("log_size", 1000000)
+            log_generations = config['log'].get("log_generations", 3)
+            accessfile = config['log'].get("accessfile")
 
         if isdaemon and (
                             logfile == "STDOUT" or errorfile == "STDERR"

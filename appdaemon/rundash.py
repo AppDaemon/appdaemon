@@ -405,9 +405,9 @@ class RunDash():
         if os.path.isdir(custom_css):
             self.app.router.add_static('/custom_css', custom_css)
 
-            # Add static path for fonts
-            self.app.router.add_static('/fonts', self.dashboard_obj.fonts_dir)
+        # Add static path for fonts
+        self.app.router.add_static('/fonts', self.dashboard_obj.fonts_dir)
 
         # Add static path for images
-            self.app.router.add_static('/images', self.dashboard_obj.images_dir)
+        self.app.router.add_static('/images', self.dashboard_obj.images_dir)
 

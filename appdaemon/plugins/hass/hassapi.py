@@ -104,8 +104,8 @@ class Hass(appapi.AppDaemon):
             "set_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if entity_id in self.get_state(**kwargs):
-            new_state = self.get_state(**kwargs)[entity_id]
+        if entity_id in self.get_state():
+            new_state = self.get_state()[entity_id]
         else:
             # Its a new state entry
             new_state = {}
