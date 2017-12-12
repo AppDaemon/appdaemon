@@ -39,6 +39,13 @@ class Hass(appapi.AppDaemon):
         self.global_vars = global_vars
         self.config = config
 
+        self.constraints = [
+            "constrain_presence",
+            "constrain_input_boolean",
+            "constrain_input_select",
+            "constrain_days"
+        ]
+
     def _sub_stack(self, msg):
         # If msg is a data structure of some type, don't sub
         if type(msg) is str:
@@ -50,6 +57,15 @@ class Hass(appapi.AppDaemon):
             if msg.find("__function__") != -1:
                 msg = msg.replace("__function__", stack[2][3])
         return msg
+
+    def register_constraint(self, name):
+        self.constraints.append(name)
+
+    def deregister_constraint(self, name):
+        self.constraints.remove(name)
+
+    def list_constraints(self):
+        return self.constraints
 
     def set_namespace(self, namespace):
         self.namespace = namespace
@@ -88,8 +104,8 @@ class Hass(appapi.AppDaemon):
             "set_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if entity_id in self.get_state():
-            new_state = self.get_state()[entity_id]
+        if entity_id in self.get_state(**kwargs):
+            new_state = self.get_state(**kwargs)[entity_id]
         else:
             # Its a new state entry
             new_state = {}
@@ -140,7 +156,7 @@ class Hass(appapi.AppDaemon):
 
     def friendly_name(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
-        state = self.get_state()
+        state = self.get_state(**kwargs)
         if entity_id in state:
             if "friendly_name" in state[entity_id]["attributes"]:
                 return state[entity_id]["attributes"]["friendly_name"]
@@ -160,10 +176,10 @@ class Hass(appapi.AppDaemon):
 
     def get_tracker_state(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
-        return self.get_state(entity_id)
+        return self.get_state(entity_id, **kwargs)
 
     def anyone_home(self, **kwargs):
-        state = self.get_state(kwargs)
+        state = self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
             if thisdevice == "device_tracker":
@@ -172,7 +188,7 @@ class Hass(appapi.AppDaemon):
         return False
 
     def everyone_home(self, **kwargs):
-        state = self.get_state(kwargs)
+        state = self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
             if thisdevice == "device_tracker":
@@ -181,13 +197,62 @@ class Hass(appapi.AppDaemon):
         return True
 
     def noone_home(self, **kwargs):
-        state = self.get_state(kwargs)
+        state = self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
             if thisdevice == "device_tracker":
                 if state[entity_id]["state"] == "home":
                     return False
         return True
+
+    #
+    # Built in constraints
+    #
+
+    def constrain_presence(self, value):
+        unconstrained = True
+        if value == "everyone" and not self.everyone_home():
+            unconstrained = False
+        elif value == "anyone" and not self.anyone_home():
+            unconstrained = False
+        elif value == "noone" and not self.noone_home():
+            unconstrained = False
+
+        return unconstrained
+
+    def constrain_input_boolean(self, value):
+        unconstrained = True
+        state = self.get_state()
+
+        values = value.split(",")
+        if len(values) == 2:
+            entity = values[0]
+            desired_state = values[1]
+        else:
+            entity = value
+            desired_state = "on"
+        if entity in state and state[entity]["state"] != desired_state:
+            unconstrained = False
+
+        return unconstrained
+
+    def constrain_input_select(self, value):
+        unconstrained = True
+        state = self.get_state()
+
+        values = value.split(",")
+        entity = values.pop(0)
+        if entity in state and state[entity]["state"] not in values:
+            unconstrained = False
+
+        return unconstrained
+
+    def constrain_days(self, value):
+        day = self.get_now().weekday()
+        daylist = [utils.day_of_week(day) for day in value.split(",")]
+        if day in daylist:
+            return True
+        return False
 
     #
     # Helper functions for services

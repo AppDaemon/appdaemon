@@ -94,6 +94,8 @@ class AppDaemon:
 
         self.logfile = None
         self._process_arg("logfile", kwargs)
+        if self.logfile == None:
+            self.logfile = "STDOUT"
 
         self.latitude = None
         self._process_arg("latitude", kwargs)
@@ -109,6 +111,8 @@ class AppDaemon:
 
         self.errfile = None
         self._process_arg("error_file", kwargs)
+        if self.errfile == None:
+            self.errfile  = "STDERR"
 
         self.config_file = None
         self._process_arg("config_file", kwargs)
@@ -153,13 +157,6 @@ class AppDaemon:
         else:
             self.apps = True
             self.log("INFO", "Starting Apps")
-
-
-        #TODO: Check this in light of new constraint model
-        self.constraints = (
-                            "constrain_input_select", "constrain_presence",
-                            "constrain_start_time", "constrain_end_time"
-                            )
 
         # Add appdir  and subdirs to path
         if self.apps is True:
@@ -340,39 +337,14 @@ class AppDaemon:
                 callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
         return callbacks
 
-
     #
     # Constraints
-
-    # TODO: Pull this into the API
-    def check_constraint(self, key, value):
+    #
+    def check_constraint(self, key, value, app):
         unconstrained = True
-        with self.state_lock:
-            if key == "constrain_input_boolean":
-                values = value.split(",")
-                if len(values) == 2:
-                    entity = values[0]
-                    state = values[1]
-                else:
-                    entity = value
-                    state = "on"
-                if entity in self.state and self.state[entity]["state"] != state:
-                    unconstrained = False
-            if key == "constrain_input_select":
-                values = value.split(",")
-                entity = values.pop(0)
-                if entity in self.state and self.state[entity]["state"] not in values:
-                    unconstrained = False
-            if key == "constrain_presence":
-                if value == "everyone" and not utils.everyone_home():
-                    unconstrained = False
-                elif value == "anyone" and not utils.anyone_home():
-                    unconstrained = False
-                elif value == "noone" and not utils.noone_home():
-                    unconstrained = False
-            if key == "constrain_days":
-                if self.today_is_constrained(value):
-                    unconstrained = False
+        if key in app.list_constraints():
+            method = getattr(app, key)
+            unconstrained = method(value)
 
         return unconstrained
 
@@ -392,13 +364,6 @@ class AppDaemon:
 
         return unconstrained
 
-    def today_is_constrained(self, days):
-        day = self.get_now().weekday()
-        daylist = [utils.day_of_week(day) for day in days.split(",")]
-        if day in daylist:
-            return False
-        return True
-
     #
     # Thread Management
     #
@@ -409,7 +374,7 @@ class AppDaemon:
         # Argument Constraints
         #
         for arg in self.app_config[name].keys():
-            if not self.check_constraint(arg, self.app_config[name][arg]):
+            if not self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"]):
                 unconstrained = False
         if not self.check_time_constraint(self.app_config[name], name):
             unconstrained = False
@@ -418,7 +383,7 @@ class AppDaemon:
         #
         if "kwargs" in args:
             for arg in args["kwargs"].keys():
-                if not self.check_constraint(arg, args["kwargs"][arg]):
+                if not self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"]):
                     unconstrained = False
             if not self.check_time_constraint(args["kwargs"], name):
                 unconstrained = False
@@ -436,20 +401,21 @@ class AppDaemon:
             _id = args["id"]
             name = args["name"]
             if name in self.objects and self.objects[name]["id"] == _id:
+                app = self.objects[name]["object"]
                 try:
                     if _type == "initialize":
                         self.log("DEBUG", "Calling initialize() for {}".format(name))
                         funcref()
                         self.log("DEBUG", "{} initialize() done".format(name))
                     elif _type == "timer":
-                        funcref(self.sanitize_timer_kwargs(args["kwargs"]))
+                        funcref(self.sanitize_timer_kwargs(app, args["kwargs"]))
                     elif _type == "attr":
                         entity = args["entity"]
                         attr = args["attribute"]
                         old_state = args["old_state"]
                         new_state = args["new_state"]
                         funcref(entity, attr, old_state, new_state,
-                                self.sanitize_state_kwargs(args["kwargs"]))
+                                self.sanitize_state_kwargs(app, args["kwargs"]))
                     elif _type == "event":
                         data = args["data"]
                         funcref(args["event"], data, args["kwargs"])
@@ -532,7 +498,7 @@ class AppDaemon:
                     callback["namespace"],
                     callback["entity"],
                     callback["kwargs"].get("attribute", None),
-                    self.sanitize_state_kwargs(callback["kwargs"])
+                    self.sanitize_state_kwargs(self.objects[name]["object"], callback["kwargs"])
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
@@ -736,7 +702,7 @@ class AppDaemon:
                 return (
                     datetime.datetime.fromtimestamp(callback["timestamp"]),
                     callback["interval"],
-                    self.sanitize_timer_kwargs(callback["kwargs"])
+                    self.sanitize_timer_kwargs(self.objects[name]["object"], callback["kwargs"])
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
@@ -1742,18 +1708,18 @@ class AppDaemon:
     # Utilities
     #
 
-    def sanitize_state_kwargs(self, kwargs):
+    def sanitize_state_kwargs(self, app, kwargs):
         kwargs_copy = kwargs.copy()
-        return self._sanitize_kwargs(kwargs_copy, (
+        return self._sanitize_kwargs(kwargs_copy, [
             "old", "new", "attribute", "duration", "state",
             "entity", "handle", "old_state", "new_state",
-        ) + self.constraints)
+        ] + app.list_constraints())
 
-    def sanitize_timer_kwargs(self, kwargs):
+    def sanitize_timer_kwargs(self, app, kwargs):
         kwargs_copy = kwargs.copy()
-        return self._sanitize_kwargs(kwargs_copy, (
+        return self._sanitize_kwargs(kwargs_copy, [
             "interval", "constrain_days", "constrain_input_boolean",
-        ) + self.constraints)
+        ] + app.list_constraints())
 
     def _sanitize_kwargs(self, kwargs, keys):
         for key in keys:

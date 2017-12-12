@@ -50,7 +50,7 @@ class AppDaemon:
 
     def log(self, msg, level="INFO"):
         msg = self._sub_stack(msg)
-        self.AD.log(level, msg, self.name)
+        self.AD.log(level, msg)
 
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
