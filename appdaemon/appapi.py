@@ -5,14 +5,23 @@ import re
 
 import appdaemon.utils as utils
 
+class Entities:
+
+    def __get__(self, instance, owner):
+        stateattrs = utils.StateAttrs(instance.get_state())
+        return stateattrs
+
+
 
 class AppDaemon:
     #
     # Internal
     #
 
+    entities = Entities()
+
     def __init__(self, ad, name, logger, error, args, config, global_vars):
-        self.ad = ad
+        self.AD = ad
         self.name = name
         self._logger = logger
         self._error = error
@@ -41,21 +50,21 @@ class AppDaemon:
 
     def log(self, msg, level="INFO"):
         msg = self._sub_stack(msg)
-        utils.log(self._logger, level, msg, self.name)
+        self.AD.log(level, msg, self.name)
 
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
-        utils.log(self._error, level, msg, self.name)
+        self.AD.err(level, msg, self.name)
 
     def get_app(self, name):
-        return self.ad.get_app(name)
+        return self.AD.get_app(name)
 
     def _check_entity(self, namespace, entity):
         if "." not in entity:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
-        if not self.ad.entity_exists(namespace, entity):
-            utils.log(self._logger, "WARNING",
+        if not self.AD.entity_exists(namespace, entity):
+            self.AD.log(self._logger, "WARNING",
                       "{}: Entity {} not found in AppDaemon".format(
                           self.name, entity))
 
@@ -146,10 +155,10 @@ class AppDaemon:
             ep = self.name
         else:
             ep = name
-        return self.ad.register_endpoint(cb, ep)
+        return self.AD.register_endpoint(cb, ep)
 
     def unregister_endpoint(self, handle):
-        self.ad.unregister_endpoint(handle, self.name)
+        self.AD.unregister_endpoint(handle, self.name)
 
     #
     # State
@@ -159,29 +168,29 @@ class AppDaemon:
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
-        return self.ad.add_state_callback(name, namespace, entity, cb, kwargs)
+        return self.AD.add_state_callback(name, namespace, entity, cb, kwargs)
 
     def cancel_listen_state(self, handle):
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Canceling listen_state for {}".format(self.name)
         )
-        self.ad.cancel_state_callback(handle, self.name)
+        self.AD.cancel_state_callback(handle, self.name)
 
     def info_listen_state(self, handle):
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Calling info_listen_state for {}".format(self.name)
         )
-        return self.ad.info_state_callback(handle, self.name)
+        return self.AD.info_state_callback(handle, self.name)
 
     def get_state(self, namespace, entity_id=None, attribute=None):
-        utils.log(self._logger, "DEBUG",
+        self.AD.log("DEBUG",
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
         entity = None
         if entity_id is not None and "." in entity_id:
-            if not self.ad.entity_exists(namespace, entity_id):
+            if not self.AD.entity_exists(namespace, entity_id):
                 return None
         if entity_id is not None:
             if "." not in entity_id:
@@ -193,39 +202,39 @@ class AppDaemon:
             else:
                 device, entity = entity_id.split(".")
 
-        return self.ad.get_state(namespace, device, entity, attribute)
+        return self.AD.get_state(namespace, device, entity, attribute)
 
     #
     # Events
     #
 
     def listen_event(self, cb, event=None, **kwargs):
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Calling listen_event for {}".format(self.name)
         )
-        return self.ad.add_event_callback(self.name, cb, event, **kwargs)
+        return self.AD.add_event_callback(self.name, cb, event, **kwargs)
 
     def cancel_listen_event(self, handle):
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Canceling listen_event for {}".format(self.name)
         )
-        self.ad.cancel_event_callback(self.name, handle)
+        self.AD.cancel_event_callback(self.name, handle)
 
     def info_listen_event(self, handle):
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Calling info_listen_event for {}".format(self.name)
         )
-        return self.ad.info_event_callback(self.name, handle)
+        return self.AD.info_event_callback(self.name, handle)
 
     #
     # Time
     #
 
     def calc_sun(self, type_):
-        return self.ad.calc_sun(type_)
+        return self.AD.calc_sun(type_)
 
     def parse_utc_string(self, s):
         return datetime.datetime(*map(
@@ -249,28 +258,28 @@ class AppDaemon:
         return iso8601.parse_date(utc)
 
     def sun_up(self):
-        return self.ad.sun["next_rising"] > self.ad.sun["next_setting"]
+        return self.AD.sun["next_rising"] > self.AD.sun["next_setting"]
 
     def sun_down(self):
-        return self.ad.sun["next_rising"] < self.ad.sun["next_setting"]
+        return self.AD.sun["next_rising"] < self.AD.sun["next_setting"]
 
     def parse_time(self, time_str, name=None):
-        return self.ad.parse_time(time_str, name)
+        return self.AD.parse_time(time_str, name)
 
     def get_now(self):
-        return self.ad.get_now()
+        return self.AD.get_now()
 
     def get_now_ts(self):
-        return self.ad.get_now_ts()
+        return self.AD.get_now_ts()
 
     def now_is_between(self, start_time_str, end_time_str, name=None):
-        return self.ad.now_is_between(self, start_time_str, end_time_str, name)
+        return self.AD.now_is_between(self, start_time_str, end_time_str, name)
 
     def sunrise(self):
-        return self.ad.sunrise()
+        return self.AD.sunrise()
 
     def sunset(self):
-        return self.ad.sunset()
+        return self.AD.sunset()
 
     def time(self):
         return datetime.datetime.fromtimestamp(self.get_now_ts()).time()
@@ -287,21 +296,21 @@ class AppDaemon:
 
     def cancel_timer(self, handle):
         name = self.name
-        self.ad.cancel_timer(name, handle)
+        self.AD.cancel_timer(name, handle)
 
     def info_timer(self, handle):
-        return self.ad.info_timer(handle, self.name)
+        return self.AD.info_timer(handle, self.name)
 
     def run_in(self, callback, seconds, **kwargs):
         name = self.name
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Registering run_in in {} seconds for {}".format(seconds, name)
         )
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
         exec_time = self.get_now_ts() + int(seconds)
-        handle = self.ad.insert_schedule(
+        handle = self.AD.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -315,7 +324,7 @@ class AppDaemon:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
         exec_time = event.timestamp()
-        handle = self.ad.insert_schedule(
+        handle = self.AD.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -329,7 +338,7 @@ class AppDaemon:
                 "in the future".format(self.name)
             )
         exec_time = start.timestamp()
-        handle = self.ad.insert_schedule(
+        handle = self.AD.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -372,28 +381,28 @@ class AppDaemon:
         now = self.get_now()
         if start < now:
             raise ValueError("start cannot be in the past")
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Registering run_every starting {} in {}s intervals for {}".format(
                 start, interval, name
             )
         )
         exec_time = start.timestamp()
-        handle = self.ad.insert_schedule(name, exec_time, callback, True, None,
+        handle = self.AD.insert_schedule(name, exec_time, callback, True, None,
                                          interval=interval, **kwargs)
         return handle
 
     def _schedule_sun(self, name, type_, callback, **kwargs):
         event = self.calc_sun(type_)
-        handle = self.ad.insert_schedule(
+        handle = self.AD.insert_schedule(
             name, event, callback, True, type_, **kwargs
         )
         return handle
 
     def run_at_sunset(self, callback, **kwargs):
         name = self.name
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "Registering run_at_sunset with kwargs = {} for {}".format(
                 kwargs, name
             )
@@ -403,7 +412,7 @@ class AppDaemon:
 
     def run_at_sunrise(self, callback, **kwargs):
         name = self.name
-        utils.log(self._logger, "DEBUG",
+        self.AD.log("DEBUG",
                   "Registering run_at_sunrise with kwargs = {} for {}".format(
                       kwargs, name))
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
@@ -429,10 +438,10 @@ class AppDaemon:
     #
 
     def get_scheduler_entries(self):
-        return self.ad.get_scheduler_entries()
+        return self.AD.get_scheduler_entries()
 
     def get_callback_entries(self):
-        return self.ad.get_callback_entries()
+        return self.AD.get_callback_entries()
 
     @staticmethod
     def get_alexa_slot_value(data, slot=None):

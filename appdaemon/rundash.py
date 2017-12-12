@@ -5,7 +5,7 @@ import re
 import time
 import traceback
 import concurrent
-
+from urllib.parse import urlparse
 import aiohttp
 import feedparser
 from aiohttp import web
@@ -17,15 +17,130 @@ import appdaemon.utils as utils
 
 class RunDash():
 
-    def __init__(self):
+    def __init__(self, ad, loop, logger, access, **config):
+
+        self.AD = ad
+        self.logger = logger
+        self.acc = access
+
+        self.dashboard_dir = None
+        self._process_arg("dashboard_dir", config)
+
+        self.dash_password = None
+        self._process_arg("dash_password", config)
+
+        self.dash_url = None
+        self._process_arg("dash_url", config)
+
+        self.config_dir = None
+        self._process_arg("config_dir", config)
+
+        self.dash_compile_on_start = False
+        self._process_arg("dash_compile_on_start", config)
+
+        self.dash_force_compile = False
+        self._process_arg("dash_force_compile", config)
+
+        self.profile_dashboard = False
+        self._process_arg("profile_dashboard", config)
+
+        self.dash_ssl_certificate = None
+        self._process_arg("dash_ssl_certificate", config)
+
+        self.dash_ssl_key = None
+        self._process_arg("dash_ssl_key", config)
+
+        self.rss_feeds = None
+        self._process_arg("rss_feeds", config)
+
+        self.rss_update = None
+        self._process_arg("rss_feeds", config)
+
+        self.rss_last_update = None
+
+        self.stopping = False
+
+        url = urlparse(self.dash_url)
+
+        dash_net = url.netloc.split(":")
+        self.dash_host = dash_net[0]
+        try:
+            self.dash_port = dash_net[1]
+        except IndexError:
+            self.dash_port = 80
+
+        if self.dash_host == "":
+            raise ValueError("Invalid host for 'dash_url'")
+
+        # find dashboard dir
+
+        if self.dashboard_dir is None:
+            if self.config_dir is None:
+                self.dashboard_dir = utils.find_path("dashboards")
+            else:
+                self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
+
+
+            #
+            # Setup compile directories
+            #
+            if self.config_dir is None:
+                self.compile_dir = utils.find_path("compiled")
+            else:
+                self.compile_dir = os.path.join(self.config_dir, "compiled")
+
 
         # Setup WS handler
 
         self.app = web.Application()
         self.app['websockets'] = {}
 
+        self.loop = loop
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-    def check_password(password, hash):
+        try:
+            self.dashboard_obj = dashboard.Dashboard(self.config_dir, access,
+                                                 dash_compile_on_start=self.dash_compile_on_start,
+                                                 dash_force_compile=self.dash_force_compile,
+                                                 profile_dashboard=self.profile_dashboard,
+                                                 dashboard_dir = self.dashboard_dir,
+                                                     )
+            self.setup_routes()
+
+            if self.dash_ssl_certificate is not None and self.dash_ssl_key is not None:
+                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                context.load_cert_chain(self.dash_ssl_certificate, self.dash_ssl_key)
+            else:
+                context = None
+
+            handler = self.app.make_handler()
+
+            f = loop.create_server(handler, "0.0.0.0", int(self.dash_port), ssl=context)
+
+            loop.create_task(f)
+            loop.create_task(self.update_rss())
+        except:
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", "Unexpected error in dashboard thread")
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", traceback.format_exc())
+            self.log("WARNING", '-' * 60)
+
+    def stop(self):
+        self.stopping = True
+
+    def log(self, level, message):
+        utils.log(self.logger, level, message, "HADasboard")
+
+    def access(self, level, message):
+        utils.log(self.acc, level, message, "HADashboard")
+
+    def _process_arg(self, arg, kwargs):
+        if kwargs:
+            if arg in kwargs:
+                setattr(self, arg, kwargs[arg])
+
+    def check_password(self, password, hash):
         return bcrypt.checkpw, str.encode(password), str.encode(hash)
 
 
@@ -36,12 +151,12 @@ class RunDash():
 
         def wrapper(request):
 
-            if conf.dash_password == None:
+            if self.dash_password == None:
                 return myfunc(request)
             else:
                 if "adcreds" in request.cookies:
                     # TODO - run this in an executor thread
-                    match = bcrypt.checkpw, str.encode(conf.dash_password), str.encode(request.cookies["adcreds"])
+                    match = bcrypt.checkpw, str.encode(self.dash_password), str.encode(request.cookies["adcreds"])
                     if match:
                         return myfunc(request)
                     else:
@@ -59,10 +174,10 @@ class RunDash():
 
         def wrapper(request):
 
-            if conf.dash_password == None:
+            if self.dash_password == None:
                 return myfunc(request)
             else:
-                if "adcreds" in request.cookies and bcrypt.checkpw(str.encode(conf.dash_password),
+                if "adcreds" in request.cookies and bcrypt.checkpw(str.encode(self.dash_password),
                                                                    str.encode(request.cookies["adcreds"])):
                     return myfunc(request)
                 else:
@@ -70,8 +185,8 @@ class RunDash():
 
         return wrapper
 
-    def forcelogon(request):
-        response = yield from utils.run_in_executor(conf.loop, conf.executor, conf.dashboard_obj.get_dashboard_list,
+    async def forcelogon(self, request):
+        response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list,
                                                     {"logon": 1})
         return web.Response(text=response, content_type="text/html")
 
@@ -81,10 +196,10 @@ class RunDash():
         success = False
         password = data["password"]
 
-        if password == conf.dash_password:
-            utils.log(conf.dash, "INFO", "Succesful logon from {}".format(request.host))
+        if password == self.dash_password:
+            self.access("INFO", "Succesful logon from {}".format(request.host))
 
-            hashed = bcrypt.hashpw(str.encode(conf.dash_password), bcrypt.gensalt())
+            hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt())
 
             # utils.verbose_log(conf.dash, "INFO", hashed)
 
@@ -92,7 +207,7 @@ class RunDash():
             response.set_cookie("adcreds", hashed.decode("utf-8"))
 
         else:
-            utils.log(conf.dash, "WARNING", "Unsuccesful logon from {}".format(request.host))
+            self.access("WARNING", "Unsuccesful logon from {}".format(request.host))
             response = await self.list_dash(request)
 
         return response
@@ -104,14 +219,14 @@ class RunDash():
     # noinspection PyUnusedLocal
     #@secure
     async def list_dash(self, request):
-        return (self._list_dash(request))
+        return (await self._list_dash(request))
 
 
     async def list_dash_no_secure(self, request):
-        return (self._list_dash(request))
+        return (await self._list_dash(request))
 
-    def _list_dash(self, request):
-        response = yield from utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list)
+    async def _list_dash(self, request):
+        response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list)
         return web.Response(text=response, content_type="text/html")
 
     #@secure
@@ -130,33 +245,33 @@ class RunDash():
     async def update_rss(self):
         # Grab RSS Feeds
 
-        if conf.rss_feeds is not None and conf.rss_update is not None:
-            while not conf.stopping:
-                if conf.rss_last_update == None or (conf.rss_last_update + conf.rss_update) <= time.time():
-                    conf.rss_last_update = time.time()
+        if self.rss_feeds is not None and self.rss_update is not None:
+            while not self.stopping:
+                if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
+                    self.rss_last_update = time.time()
 
-                    for feed_data in conf.rss_feeds:
+                    for feed_data in self.rss_feeds:
                         feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
+                        # TODO: Fix
                         new_state = {"feed": feed}
                         with conf.ha_state_lock:
                             conf.ha_state[feed_data["target"]] = new_state
 
                         data = {"event_type": "state_changed",
                                 "data": {"entity_id": feed_data["target"], "new_state": new_state}}
-                        ws_update(data)
+                        self.ws_update(data)
 
                 await asyncio.sleep(1)
 
 
     #@securedata
     async def get_state(self, request):
-        entity = request.match_info.get('entity')
 
-        if entity in conf.ha_state:
-            state = conf.ha_state[entity]
-        else:
-            state = None
+        entity_id = request.match_info.get('entity')
+
+        # TODO: Figure out namespaces
+        state = self.AD.get_entity("hass", entity_id)
 
         return web.json_response({"state": state})
 
@@ -194,8 +309,11 @@ class RunDash():
             else:
                 args[key] = data[key]
 
-        # completed, pending = yield from asyncio.wait([conf.loop.run_in_executor(conf.executor, utils.call_service, data)])
-        utils.call_service(service, **args)
+        # TODO; Figure out namespaces
+        plugin = self.AD.get_plugin("hass")
+        # TODO Make this run in an executor
+        plugin.call_service(service, **args)
+        #await utils.run_in_executor(self.loop, self.executor, plugin.call_service, service, *args)
         return web.Response(status=200)
 
 
@@ -228,31 +346,31 @@ class RunDash():
             while True:
                 msg = await ws.receive()
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    utils.log(conf.dash, "INFO",
+                    self.access("INFO",
                            "New dashboard connected: {}".format(msg.data))
                     request.app['websockets'][ws]["dashboard"] = msg.data
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    utils.log(conf.dash, "INFO",
+                    self.access("INFO",
                            "ws connection closed with exception {}".format(ws.exception()))
         except:
-            utils.log(conf.dash, "INFO", "Dashboard disconnected")
+            self.access("INFO", "Dashboard disconnected")
         finally:
             request.app['websockets'].pop(ws, None)
 
         return ws
 
-    def ws_update(self, jdata):
+    def ws_update(self, namespace, jdata):
         if len(self.app['websockets']) > 0:
-            utils.log(conf.dash,
-                   "DEBUG",
+            self.log("DEBUG",
                    "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
-
+        # TODO: Make widgets namespace aware
+        jdata["namespace"] = namespace
         data = json.dumps(jdata)
 
         for ws in self.app['websockets']:
 
             if "dashboard" in self.app['websockets'][ws]:
-                utils.log(conf.dash,
+                self.log(
                        "DEBUG",
                        "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
                 ws.send_str(data)
@@ -293,38 +411,3 @@ class RunDash():
         # Add static path for images
             self.app.router.add_static('/images', self.dashboard_obj.images_dir)
 
-
-    # Setup
-
-    def run_dash(self, loop, conf):
-        # noinspection PyBroadException
-        self.loop = loop
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
-
-        try:
-            self.dashboard_obj = dashboard.Dashboard(conf.config_dir, conf.dash,
-                                                 dash_compile_on_start=conf.dash_compile_on_start,
-                                                 dash_force_compile=conf.dash_force_compile,
-                                                 profile_dashboard=conf.profile_dashboard,
-                                                 dashboard_dir = conf.dashboard_dir,
-                                                 )
-            self.setup_routes()
-
-            if conf.dash_ssl_certificate is not None and conf.dash_ssl_key is not None:
-                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                context.load_cert_chain(conf.dash_ssl_certificate, conf.dash_ssl_key)
-            else:
-                context = None
-
-            handler = self.app.make_handler()
-
-            f = loop.create_server(handler, "0.0.0.0", int(conf.dash_port), ssl=context)
-
-            loop.create_task(f)
-            loop.create_task(self.update_rss())
-        except:
-            utils.log(conf.dash, "WARNING", '-' * 60)
-            utils.log(conf.dash, "WARNING", "Unexpected error in dashboard thread")
-            utils.log(conf.dash, "WARNING", '-' * 60)
-            utils.log(conf.dash, "WARNING", traceback.format_exc())
-            utils.log(conf.dash, "WARNING", '-' * 60)

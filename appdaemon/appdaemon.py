@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import sys
 import importlib
 import traceback
@@ -26,7 +25,7 @@ class AppDaemon:
 
         self.logger = logger
         self.error = error
-        self.config = kwargs["config"]
+        self.config = kwargs
         self.q = Queue(maxsize=0)
 
         self.was_dst = False
@@ -43,6 +42,7 @@ class AppDaemon:
         self.srv = None
         self.appd = None
         self.stopping = False
+        self.dashboard = None
 
         # Will require object based locking if implemented
         self.objects = {}
@@ -59,7 +59,7 @@ class AppDaemon:
         self.endpoints = {}
         self.endpoints_lock = threading.RLock()
 
-        self.plugins = {}
+        self.plugin_objs = {}
 
         # No locking yet
         self.global_vars = {}
@@ -69,7 +69,7 @@ class AppDaemon:
         self.config_file_modified = 0
         self.tz = None
         self.ad_time_zone = None
-        self.now = 0
+
         self.realtime = True
         self.version = 0
         self.app_config_file_modified = 0
@@ -81,19 +81,15 @@ class AppDaemon:
         self.plugin_params = kwargs["plugins"]
 
         # User Supplied/Defaults
-        self.threads = 0
+        self.threads = 10
         self._process_arg("threads", kwargs)
 
         self.app_dir = None
         self._process_arg("app_dir", kwargs)
 
-        self.apps = False
-        self._process_arg("apps", kwargs)
-
         self.start_time = None
         self._process_arg("start_time", kwargs)
 
-        self.now = None
         self._process_arg("now", kwargs)
 
         self.logfile = None
@@ -111,20 +107,24 @@ class AppDaemon:
         self.time_zone = None
         self._process_arg("time_zone", kwargs)
 
-        self.errorfile = None
+        self.errfile = None
         self._process_arg("error_file", kwargs)
 
         self.config_file = None
         self._process_arg("config_file", kwargs)
 
-        self.location = None
-        self._process_arg("location", kwargs)
+        self.config_dir = None
+        self._process_arg("config_dir", kwargs)
+
+        self.plugins = {}
+        self._process_arg("plugins", kwargs)
 
         self.tick = 1
         self._process_arg("tick", kwargs)
 
         self.endtime = None
-        self._process_arg("endtime", kwargs)
+        if "endtime" in kwargs:
+            self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
 
         self.interval = 1
         self._process_arg("interval", kwargs)
@@ -141,6 +141,41 @@ class AppDaemon:
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs)
 
+        if self.tick != 1 or self.interval != 1 or self.start_time is not None:
+            self.realtime = False
+
+        if kwargs.get("cert_verify", True) == False:
+            self.certpath = False
+
+        if kwargs.get("disable_apps") is True:
+            self.apps = False
+            self.log("INFO", "Apps are disabled")
+        else:
+            self.apps = True
+            self.log("INFO", "Starting Apps")
+
+
+        #TODO: Check this in light of new constraint model
+        self.constraints = (
+                            "constrain_input_select", "constrain_presence",
+                            "constrain_start_time", "constrain_end_time"
+                            )
+
+        # Add appdir  and subdirs to path
+        if self.apps is True:
+            self.app_config_file_modified = os.path.getmtime(self.app_config_file)
+            if self.app_dir is None:
+                if self.config_dir is None:
+                    self.app_dir = utils.find_path("apps")
+                else:
+                    self.app_dir = os.path.join(self.config_dir, "apps")
+            for root, subdirs, files in os.walk(self.app_dir):
+                if root[-11:] != "__pycache__":
+                    sys.path.insert(0, root)
+        else:
+            self.app_config_file_modified = 0
+
+
         #
         # Initial Setup
         #
@@ -151,7 +186,12 @@ class AppDaemon:
 
         self.stopping = False
 
-        utils.log(self.logger, "DEBUG", "Entering run()")
+        self.log("DEBUG", "Entering run()")
+
+        if self.start_time:
+            self.now = datetime.datetime.strptime(self.start_time, "%Y-%m-%d %H:%M:%S").timestamp()
+        else:
+            self.now = datetime.datetime.now().timestamp()
 
         self.init_sun()
 
@@ -169,7 +209,7 @@ class AppDaemon:
 
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-        utils.log(self.logger, "DEBUG", "Creating worker threads ...")
+        self.log("DEBUG", "Creating worker threads ...")
 
         # Create Worker Threads
         for i in range(self.threads):
@@ -177,36 +217,36 @@ class AppDaemon:
             t.daemon = True
             t.start()
 
-        utils.log(self.logger, "DEBUG", "Done")
+        self.log("DEBUG", "Done")
 
 
         # Create timer loop
 
-        utils.log(self.logger, "DEBUG", "Starting timer loop")
+        self.log("DEBUG", "Starting timer loop")
 
         loop.create_task(self.do_every(self.tick, self.do_every_second))
 
         # Create utility loop
 
-        utils.log(self.logger, "DEBUG", "Starting utility loop")
+        self.log("DEBUG", "Starting utility loop")
 
         loop.create_task(self.utility())
 
         # Load Plugins
 
-        for name in self.plugin_params:
-            basename = self.plugin_params[name]["plugin"]
+        for name in self.plugins:
+            basename = self.plugins[name]["type"]
             module_name = "{}plugin".format(basename)
             class_name = "{}Plugin".format(basename.capitalize())
             basepath = "appdaemon.plugins"
 
-            utils.log(self.logger, "INFO",
+            self.log("INFO",
                       "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
             full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
             mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
             app_class = getattr(mod, class_name)
 
-            plugin = app_class(self, name, self.logger, self.error, self.loglevel, self.plugin_params[name])
+            plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
 
             state = plugin.get_complete_state()
             namespace = plugin.get_namespace()
@@ -214,10 +254,10 @@ class AppDaemon:
             with self.state_lock:
                 self.state[namespace] = state
 
-            if namespace in self.plugins:
+            if namespace in self.plugin_objs:
                 raise ValueError("Duplicate namespace: {}".format(namespace))
 
-            self.plugins[namespace] = plugin
+            self.plugin_objs[namespace] = plugin
 
             loop.create_task(plugin.get_updates())
 
@@ -226,12 +266,12 @@ class AppDaemon:
         # Now we can initialize the Apps
         #
 
-        utils.log(self.logger, "DEBUG", "Reading Apps")
+        self.log("DEBUG", "Reading Apps")
 
         self.read_apps(True)
         self.app_config_file_modified = self.now
 
-        utils.log(self.logger, "INFO", "App initialization complete")
+        self.log("INFO", "App initialization complete")
 
         #
         # Fire APPD Started Event
@@ -240,12 +280,6 @@ class AppDaemon:
         #
         # Initialization complete - now we run in the various async routines we added to the loop
         #
-
-    def get_plugin(self, name):
-        if name in self.plugins:
-            return self.plugins[name]
-        else:
-            return None
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
@@ -257,8 +291,8 @@ class AppDaemon:
         # if ws is not None:
         #    ws.close()
         self.appq.put_nowait({"event_type": "ha_stop", "data": None})
-        for plugin in self.plugins:
-            self.plugins[plugin].stop()
+        for plugin in self.plugin_objs:
+            self.plugin_objs[plugin].stop()
 
     #
     # Diagnostics
@@ -266,29 +300,29 @@ class AppDaemon:
 
     def dump_callbacks(self):
         if self.callbacks == {}:
-            utils.log(self.logger, "INFO", "No callbacks")
+            self.log("INFO", "No callbacks")
         else:
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
-            utils.log(self.logger, "INFO", "Callbacks")
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
+            self.log("INFO", "--------------------------------------------------")
+            self.log("INFO", "Callbacks")
+            self.log("INFO", "--------------------------------------------------")
             for name in self.callbacks.keys():
-                utils.log(self.logger, "INFO", "{}:".format(name))
+                self.log("INFO", "{}:".format(name))
                 for uuid_ in self.callbacks[name]:
-                    utils.log(self.logger, "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
+                    self.log( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
+            self.log("INFO", "--------------------------------------------------")
 
     def dump_objects(self):
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-        utils.log(self.logger, "INFO", "Objects")
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
+        self.log("INFO", "--------------------------------------------------")
+        self.log("INFO", "Objects")
+        self.log("INFO", "--------------------------------------------------")
         for object_ in self.objects.keys():
-            utils.log(self.logger, "INFO", "{}: {}".format(object_, self.objects[object_]))
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
+            self.log("INFO", "{}: {}".format(object_, self.objects[object_]))
+        self.log("INFO", "--------------------------------------------------")
 
     def dump_queue(self):
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-        utils.log(self.logger, "INFO", "Current Queue Size is {}".format(self.q.qsize()))
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
+        self.log("INFO", "--------------------------------------------------")
+        self.log("INFO", "Current Queue Size is {}".format(self.q.qsize()))
+        self.log("INFO", "--------------------------------------------------")
 
     def get_callback_entries(self):
         callbacks = {}
@@ -404,33 +438,33 @@ class AppDaemon:
             if name in self.objects and self.objects[name]["id"] == _id:
                 try:
                     if _type == "initialize":
-                        utils.log(self.logger, "DEBUG", "Calling initialize() for {}".format(name))
+                        self.log("DEBUG", "Calling initialize() for {}".format(name))
                         funcref()
-                        utils.log(self.logger, "DEBUG", "{} initialize() done".format(name))
+                        self.log("DEBUG", "{} initialize() done".format(name))
                     elif _type == "timer":
-                        funcref(utils.sanitize_timer_kwargs(args["kwargs"]))
+                        funcref(self.sanitize_timer_kwargs(args["kwargs"]))
                     elif _type == "attr":
                         entity = args["entity"]
                         attr = args["attribute"]
                         old_state = args["old_state"]
                         new_state = args["new_state"]
                         funcref(entity, attr, old_state, new_state,
-                                utils.sanitize_state_kwargs(args["kwargs"]))
+                                self.sanitize_state_kwargs(args["kwargs"]))
                     elif _type == "event":
                         data = args["data"]
                         funcref(args["event"], data, args["kwargs"])
 
                 except:
-                    utils.log(self.error, "WARNING", '-' * 60)
-                    utils.log(self.error, "WARNING", "Unexpected error in worker for App {}:".format(name))
-                    utils.log(self.error, "WARNING", "Worker Ags: {}".format(args))
-                    utils.log(self.error, "WARNING", '-' * 60)
-                    utils.log(self.error, "WARNING", traceback.format_exc())
-                    utils.log(self.error, "WARNING", '-' * 60)
-                    if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                        utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name))
+                    self.err("WARNING", "Worker Ags: {}".format(args))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
             else:
-                self.logger.warning("Found stale callback for {} - discarding".format(name))
+                self.log("WARNING", "Found stale callback for {} - discarding".format(name))
 
             if self.inits.get(name):
                 self.inits.pop(name)
@@ -498,10 +532,17 @@ class AppDaemon:
                     callback["namespace"],
                     callback["entity"],
                     callback["kwargs"].get("attribute", None),
-                    utils.sanitize_state_kwargs(callback["kwargs"])
+                    self.sanitize_state_kwargs(callback["kwargs"])
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
+
+    def get_entity(self, namespace, entity_id):
+            with self.state_lock:
+                if entity_id in self.state[namespace]:
+                    return self.state[namespace][entity_id]
+                else:
+                    return None
 
     def get_state(self, namespace, device, entity, attribute):
             with self.state_lock:
@@ -541,7 +582,7 @@ class AppDaemon:
             self.state[namespace][entity] = state
 
     def set_app_state(self, entity_id, state):
-        utils.log(self.logger, "DEBUG", "set_app_state: {}".format(entity_id))
+        self.log("DEBUG", "set_app_state: {}".format(entity_id))
         if entity_id is not None and "." in entity_id:
             with self.state_lock:
                 if entity_id in self.state:
@@ -590,7 +631,7 @@ class AppDaemon:
     #
 
     def cancel_timer(self, name, handle):
-        utils.log(self.logger, "DEBUG", "Canceling timer for {}".format(name))
+        self.log("DEBUG", "Canceling timer for {}".format(name))
         with self.schedule_lock:
             if name in self.schedule and handle in self.schedule[name]:
                 del self.schedule[name][handle]
@@ -646,27 +687,27 @@ class AppDaemon:
                 del self.schedule[name][entry]
 
         except:
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(
-                self.error, "WARNING",
+            self.err("WARNING", '-' * 60)
+            self.err(
+                "WARNING",
                 "Unexpected error during exec_schedule() for App: {}".format(name)
             )
-            utils.log(self.error, "WARNING", "Args: {}".format(args))
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", traceback.format_exc())
-            utils.log(self.error, "WARNING", '-' * 60)
-            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+            self.err("WARNING", "Args: {}".format(args))
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
                 # verbose_log messages about writing an error (since they show up anyway)
-                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
-            utils.log(self.error, "WARNING", "Scheduler entry has been deleted")
-            utils.log(self.error, "WARNING", '-' * 60)
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
+            self.err("WARNING", "Scheduler entry has been deleted")
+            self.err("WARNING", '-' * 60)
 
             del self.schedule[name][entry]
 
     def process_sun(self, action):
-        utils.log(
-            self.logger, "DEBUG",
+        self.log(
+            "DEBUG",
             "Process sun: {}, next sunrise: {}, next sunset: {}".format(
                 action, self.sun["next_rising"], self.sun["next_setting"]
             )
@@ -695,7 +736,7 @@ class AppDaemon:
                 return (
                     datetime.datetime.fromtimestamp(callback["timestamp"]),
                     callback["interval"],
-                    utils.sanitize_timer_kwargs(callback["kwargs"])
+                    self.sanitize_timer_kwargs(callback["kwargs"])
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
@@ -908,27 +949,27 @@ class AppDaemon:
         return parsed_time
 
     def dump_sun(self):
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-        utils.log(self.logger, "INFO", "Sun")
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
-        utils.log(self.logger, "INFO", self.sun)
-        utils.log(self.logger, "INFO", "--------------------------------------------------")
+        self.log("INFO", "--------------------------------------------------")
+        self.log("INFO", "Sun")
+        self.log("INFO", "--------------------------------------------------")
+        self.log("INFO", self.sun)
+        self.log("INFO", "--------------------------------------------------")
 
     def dump_schedule(self):
         if self.schedule == {}:
-            utils.log(self.logger, "INFO", "Schedule is empty")
+            self.log("INFO", "Schedule is empty")
         else:
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
-            utils.log(self.logger, "INFO", "Scheduler Table")
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
+            self.log("INFO", "--------------------------------------------------")
+            self.log("INFO", "Scheduler Table")
+            self.log("INFO", "--------------------------------------------------")
             for name in self.schedule.keys():
-                utils.log(self.logger, "INFO", "{}:".format(name))
+                self.log( "INFO", "{}:".format(name))
                 for entry in sorted(
                         self.schedule[name].keys(),
                         key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
                 ):
-                    utils.log(
-                        self.logger, "INFO",
+                    self.log(
+                        "INFO",
                         "  Timestamp: {} - data: {}".format(
                             time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(
                                 self.schedule[name][entry]["timestamp"]
@@ -936,7 +977,7 @@ class AppDaemon:
                             self.schedule[name][entry]
                         )
                     )
-            utils.log(self.logger, "INFO", "--------------------------------------------------")
+            self.log("INFO", "--------------------------------------------------")
 
     async def do_every(self, period, f):
         t = math.floor(self.get_now_ts())
@@ -969,14 +1010,14 @@ class AppDaemon:
             # If we have reached endtime bail out
 
             if self.endtime is not None and self.get_now() >= self.endtime:
-                utils.log(self.logger, "INFO", "End time reached, exiting")
+                self.log("INFO", "End time reached, exiting")
                 self.stop()
 
             if self.realtime:
                 real_now = datetime.datetime.now().timestamp()
                 delta = abs(utc - real_now)
                 if delta > 1:
-                    utils.log(self.logger, "WARNING",
+                    self.log("WARNING",
                               "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                     return real_now
 
@@ -989,13 +1030,13 @@ class AppDaemon:
 
             now_dst = self.is_dst()
             if now_dst != self.was_dst:
-                utils.log(
-                    self.logger, "INFO",
+                self.log(
+                    "INFO",
                     "Detected change in DST from {} to {} -"
                     " reloading all modules".format(self.was_dst, now_dst)
                 )
                 # dump_schedule()
-                utils.log(self.logger, "INFO", "-" * 40)
+                self.log("INFO", "-" * 40)
                 await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
                 # dump_schedule()
             self.was_dst = now_dst
@@ -1009,7 +1050,7 @@ class AppDaemon:
 
             # Process callbacks
 
-            # utils.verbose_log(self.logger, "DEBUG", "Scheduler invoked at {}".format(now))
+            # self.log("DEBUG", "Scheduler invoked at {}".format(now))
             with self.schedule_lock:
                 for name in self.schedule.keys():
                     for entry in sorted(
@@ -1028,25 +1069,25 @@ class AppDaemon:
             end_time = datetime.datetime.now().timestamp()
 
             loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
-            utils.log(self.logger, "DEBUG", "Scheduler loop compute time: {}ms".format(loop_duration))
+            self.log("DEBUG", "Scheduler loop compute time: {}ms".format(loop_duration))
 
             if loop_duration > 900:
-                utils.log(self.logger, "WARNING", "Excessive time spent in scheduler loop: {}ms".format(loop_duration))
+                self.log("WARNING", "Excessive time spent in scheduler loop: {}ms".format(loop_duration))
 
             return utc
 
         except:
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", "Unexpected error during do_every_second()")
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", traceback.format_exc())
-            utils.log(self.error, "WARNING", '-' * 60)
-            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error during do_every_second()")
+            self.err("WARNING", '-' * 60)
+            self.err( "WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
                 # verbose_log messages about writing an error (since they show up anyway)
-                utils.log(
-                    self.logger, "WARNING",
-                    "Logged an error to {}".format(self.errorfile)
+                self.log(
+                    "WARNING",
+                    "Logged an error to {}".format(self.errfile)
                 )
 
     #
@@ -1070,35 +1111,35 @@ class AppDaemon:
 
                 qsize = self.q.qsize()
                 if qsize > 0 and qsize % 10 == 0:
-                    self.logger.warning("Queue size is {}, suspect thread starvation".format(self.q.qsize()))
+                    self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.q.qsize()))
 
                 # Plugins
 
-                for plugin in self.plugins:
-                    self.plugins[plugin].utility()
+                for plugin in self.plugin_objs:
+                    self.plugin_objs[plugin].utility()
 
             except:
-                utils.log(self.error, "WARNING", '-' * 60)
-                utils.log(self.error, "WARNING", "Unexpected error during utility()")
-                utils.log(self.error, "WARNING", '-' * 60)
-                utils.log(self.error, "WARNING", traceback.format_exc())
-                utils.log(self.error, "WARNING", '-' * 60)
-                if self.errorfile != "STDERR" and self.logfile != "STDOUT":
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", "Unexpected error during utility()")
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", traceback.format_exc())
+                self.err("WARNING", '-' * 60)
+                if self.errfile != "STDERR" and self.logfile != "STDOUT":
                     # When explicitly logging to stdout and stderr, suppress
                     # verbose_log messages about writing an error (since they show up anyway)
-                    utils.log(
-                        self.logger, "WARNING",
-                        "Logged an error to {}".format(self.errorfile)
+                    self.log(
+                        "WARNING",
+                        "Logged an error to {}".format(self.errfile)
                     )
 
             end_time = datetime.datetime.now().timestamp()
 
             loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
 
-            utils.log(self.logger, "DEBUG", "Util loop compute time: {}ms".format(loop_duration))
+            self.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
 
             if loop_duration > (self.utility_delay * 1000 * 0.9):
-                utils.log(self.logger, "WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+                self.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
 
             await asyncio.sleep(self.utility_delay)
 
@@ -1145,7 +1186,7 @@ class AppDaemon:
                     del self.objects[key]
 
     def clear_object(self, object_):
-        utils.log(self.logger, "DEBUG", "Clearing callbacks for {}".format(object_))
+        self.log("DEBUG", "Clearing callbacks for {}".format(object_))
         with self.callbacks_lock:
             if object_ in self.callbacks:
                 del self.callbacks[object_]
@@ -1158,19 +1199,19 @@ class AppDaemon:
 
     def term_object(self, name):
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
-            utils.log(self.logger, "INFO", "Terminating Object {}".format(name))
+            self.log("INFO", "Terminating Object {}".format(name))
             # Call terminate directly rather than via worker thread
             # so we know terminate has completed before we move on
             self.objects[name]["object"].terminate()
 
     def init_object(self, name, class_name, module_name, args):
-        utils.log(self.logger, "INFO",
+        self.log("INFO",
                   "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
         modname = __import__(module_name)
         app_class = getattr(modname, class_name)
         self.objects[name] = {
             "object": app_class(
-                self, name, self.logger, self.error, args, self.config, self.global_vars
+                self, name, self.logger, self.err, args, self.config, self.global_vars
             ),
             "id": uuid.uuid4()
         }
@@ -1197,16 +1238,16 @@ class AppDaemon:
         try:
             new_config = yaml.load(config_file_contents)
         except yaml.YAMLError as exc:
-            utils.log(self.logger, "WARNING", "Error loading configuration")
+            self.log("WARNING", "Error loading configuration")
             if hasattr(exc, 'problem_mark'):
                 if exc.context is not None:
-                    utils.log(self.error, "WARNING", "parser says")
-                    utils.log(self.error, "WARNING", str(exc.problem_mark))
-                    utils.log(self.error, "WARNING", str(exc.problem) + " " + str(exc.context))
+                    self.log("WARNING", "parser says")
+                    self.log("WARNING", str(exc.problem_mark))
+                    self.log("WARNING", str(exc.problem) + " " + str(exc.context))
                 else:
-                    utils.log(self.error, "WARNING", "parser says")
-                    utils.log(self.error, "WARNING", str(exc.problem_mark))
-                    utils.log(self.error, "WARNING", str(exc.problem))
+                    self.log("WARNING", "parser says")
+                    self.log( "WARNING", str(exc.problem_mark))
+                    self.log("WARNING", str(exc.problem))
 
         return new_config
 
@@ -1216,12 +1257,12 @@ class AppDaemon:
         try:
             modified = os.path.getmtime(self.app_config_file)
             if modified > self.app_config_file_modified:
-                utils.log(self.logger, "INFO", "{} modified".format(self.app_config_file))
+                self.log("INFO", "{} modified".format(self.app_config_file))
                 self.app_config_file_modified = modified
                 new_config = self.read_config()
 
                 if new_config is None:
-                    utils.log(self.error, "WARNING", "New config not applied")
+                    self.log("WARNING", "New config not applied")
                     return
 
                 # Check for changes
@@ -1233,7 +1274,7 @@ class AppDaemon:
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
 
-                            utils.log(self.logger, "INFO", "App '{}' changed - reloading".format(name))
+                            self.log("INFO", "App '{}' changed - reloading".format(name))
                             self.term_object(name)
                             self.clear_object(name)
                             self.init_object(
@@ -1244,7 +1285,7 @@ class AppDaemon:
 
                         # Section has been deleted, clear it out
 
-                        utils.log(self.logger, "INFO", "App '{}' deleted - removing".format(name))
+                        self.log("INFO", "App '{}' deleted - removing".format(name))
                         self.clear_object(name)
 
                 for name in new_config:
@@ -1254,7 +1295,7 @@ class AppDaemon:
                         #
                         # New section added!
                         #
-                        utils.log(self.logger, "INFO", "App '{}' added - running".format(name))
+                        self.log("INFO", "App '{}' added - running".format(name))
                         self.init_object(
                             name, new_config[name]["class"],
                             new_config[name]["module"], new_config[name]
@@ -1262,13 +1303,13 @@ class AppDaemon:
 
                 self.app_config = new_config
         except:
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", "Unexpected error:")
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", traceback.format_exc())
-            utils.log(self.error, "WARNING", '-' * 60)
-            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error:")
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
     # noinspection PyBroadException
     def read_app(self, file, reload=False):
@@ -1277,7 +1318,7 @@ class AppDaemon:
         # Import the App
         try:
             if reload:
-                utils.log(self.logger, "INFO", "Reloading Module: {}".format(file))
+                self.log("INFO", "Reloading Module: {}".format(file))
 
                 file, ext = os.path.splitext(name)
 
@@ -1300,7 +1341,7 @@ class AppDaemon:
                         # A real KeyError!
                         raise
             else:
-                utils.log(self.logger, "INFO", "Loading Module: {}".format(file))
+                self.log("INFO", "Loading Module: {}".format(file))
                 self.modules[module_name] = importlib.import_module(module_name)
 
             # Instantiate class and Run initialize() function
@@ -1315,13 +1356,13 @@ class AppDaemon:
                         self.init_object(name, class_name, module_name, self.app_config[name])
 
         except:
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", "Unexpected error during loading of {}:".format(name))
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", traceback.format_exc())
-            utils.log(self.error, "WARNING", '-' * 60)
-            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+            self.err( "WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error during loading of {}:".format(name))
+            self.err( "WARNING", '-' * 60)
+            self.err( "WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
     def get_module_dependencies(self, file):
         module_name = self.get_module_from_path(file)
@@ -1438,10 +1479,10 @@ class AppDaemon:
                             file = self.get_file_from_module(thismod)
 
                             if file is None:
-                                utils.log(self.logger, "ERROR",
+                                self.log( "ERROR",
                                           "Unable to resolve dependencies due to incorrect references")
-                                utils.log(self.logger, "ERROR", "The following modules have unresolved dependencies:")
-                                utils.log(self.logger, "ERROR", self.get_module_from_path(mod["file"]))
+                                self.log("ERROR", "The following modules have unresolved dependencies:")
+                                self.log("ERROR", self.get_module_from_path(mod["file"]))
                                 raise ValueError("Unresolved dependencies")
 
                             mod_def = {"name": file, "reload": True, "load": True}
@@ -1473,12 +1514,12 @@ class AppDaemon:
                     modules.remove(mod)
 
             if not batch:
-                utils.log(self.logger, "ERROR",
+                self.log("ERROR",
                           "Unable to resolve dependencies due to incorrect or circular references")
-                utils.log(self.logger, "ERROR", "The following modules have unresolved dependencies:")
+                self.log("ERROR", "The following modules have unresolved dependencies:")
                 for mod in modules:
                     module_name = self.get_module_from_path(mod["name"])
-                    utils.log(self.logger, "ERROR", module_name)
+                    self.log("ERROR", module_name)
                 raise ValueError("Unresolved dependencies")
 
             load_order.append(batch)
@@ -1490,11 +1531,11 @@ class AppDaemon:
                         self.read_app(mod["name"], mod["reload"])
 
         except:
-            utils.log(self.logger, "WARNING", '-' * 60)
-            utils.log(self.logger, "WARNING", "Unexpected error loading file")
-            utils.log(self.logger, "WARNING", '-' * 60)
-            utils.log(self.logger, "WARNING", traceback.format_exc())
-            utils.log(self.logger, "WARNING", '-' * 60)
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", "Unexpected error loading file")
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", traceback.format_exc())
+            self.log("WARNING", '-' * 60)
 
     #
     # State Updates
@@ -1565,7 +1606,7 @@ class AppDaemon:
     def process_state_change(self, namespace, state):
         data = state["data"]
         entity_id = data['entity_id']
-        utils.log(self.logger, "DEBUG", data)
+        self.log("DEBUG", data)
         device, entity = entity_id.split(".")
 
         # Process state callbacks
@@ -1622,11 +1663,11 @@ class AppDaemon:
 
     def state_update(self, namespace, data):
         try:
-            utils.log(
-                self.logger, "DEBUG",
+            self.log(
+                "DEBUG",
                 "Event type:{}:".format(data['event_type'])
             )
-            utils.log(self.logger, "DEBUG", data["data"])
+            self.log( "DEBUG", data["data"])
 
             if data['event_type'] == "state_changed":
                 entity_id = data['data']['entity_id']
@@ -1645,17 +1686,17 @@ class AppDaemon:
 
             # Update dashboards
 
-            #if self.dashboard is True:
-            #    appdash.ws_update(data)
+            if self.dashboard is not None:
+                self.dashboard.ws_update(namespace, data)
 
         except:
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", "Unexpected error during state_update()")
-            utils.log(self.error, "WARNING", '-' * 60)
-            utils.log(self.error, "WARNING", traceback.format_exc())
-            utils.log(self.error, "WARNING", '-' * 60)
-            if self.errorfile != "STDERR" and self.logfile != "STDOUT":
-                utils.log(self.logger, "WARNING", "Logged an error to {}".format(self.errorfile))
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error during state_update()")
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
 
     #
@@ -1692,4 +1733,52 @@ class AppDaemon:
     #
 
     def get_plugin(self, name):
-        return self.plugins[name]
+        if name in self.plugin_objs:
+            return self.plugin_objs[name]
+        else:
+            return None
+
+    #
+    # Utilities
+    #
+
+    def sanitize_state_kwargs(self, kwargs):
+        kwargs_copy = kwargs.copy()
+        return self._sanitize_kwargs(kwargs_copy, (
+            "old", "new", "attribute", "duration", "state",
+            "entity", "handle", "old_state", "new_state",
+        ) + self.constraints)
+
+    def sanitize_timer_kwargs(self, kwargs):
+        kwargs_copy = kwargs.copy()
+        return self._sanitize_kwargs(kwargs_copy, (
+            "interval", "constrain_days", "constrain_input_boolean",
+        ) + self.constraints)
+
+    def _sanitize_kwargs(self, kwargs, keys):
+        for key in keys:
+            if key in kwargs:
+                del kwargs[key]
+        return kwargs
+
+    def log(self, level, message):
+        utils.log(self.logger, level, message, "AppDaemon")
+
+    def err(self, level, message):
+        utils.log(self.error, level, message, "AppDaemon")
+
+    def register_dashboard(self, dash):
+        self.dashboard = dash
+
+    def dispatch_app_by_name(self, name, args):
+        with self.endpoints_lock:
+            callback = None
+            for app in self.endpoints:
+                for handle in self.endpoints[app]:
+                    if self.endpoints[app][handle]["name"] == name:
+                        callback = self.endpoints[app][handle]["callback"]
+        if callback is not None:
+            return utils.run_in_executor(self.loop, self.executor, callback, args)
+        else:
+            return '', 404
+

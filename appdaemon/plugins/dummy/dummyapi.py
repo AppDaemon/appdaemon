@@ -18,7 +18,7 @@ class Dummy(appapi.AppDaemon):
         super(Dummy, self).__init__(ad, name, logger, error, args, config, global_vars)
 
         self.namespace = "dummy"
-        self.ad = ad
+        self.AD = ad
         self.name = name
         self._logger = logger
         self._error = error
@@ -57,8 +57,8 @@ class Dummy(appapi.AppDaemon):
     def set_state(self, entity_id, **kwargs):
         namespace = self._get_namespace(kwargs)
         self._check_entity(namespace, entity_id)
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "set_state: {}, {}".format(entity_id, kwargs)
         )
 
@@ -77,14 +77,14 @@ class Dummy(appapi.AppDaemon):
 
         # Send update to plugin
 
-        self.ad.get_plugin(namespace).set_state(entity_id, new_state)
+        self.AD.get_plugin(namespace).set_state(entity_id, new_state)
 
         # Update AppDaemon's copy
 
-        self.ad.set_state(namespace, entity_id, new_state)
+        self.AD.set_state(namespace, entity_id, new_state)
 
         return new_state
 
     def entity_exists(self, entity_id, **kwargs):
         namespace = self._get_namespace(kwargs)
-        return self.ad.entity_exists(namespace, entity_id)
+        return self.AD.entity_exists(namespace, entity_id)

@@ -23,7 +23,7 @@ class Dashboard:
         self.config_dir = config_dir
         self.logger = logger
         self.dash_install_dir = os.path.dirname(__file__)
-        self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
+        self.dashboard_dir = os.path.join(config_dir, "dashboards")
         self.profile_dashboard = False
         self.compile_dir = os.path.join(self.config_dir, "compiled")
         self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
