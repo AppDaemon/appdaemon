@@ -10,7 +10,6 @@ import time
 import datetime
 import signal
 import platform
-from urllib.parse import urlparse
 import yaml
 import asyncio
 
@@ -24,14 +23,13 @@ import appdaemon.rundash as rundash
 #
 # Empty class to store attributes
 #
-class Config():
-    pass
-
 class ADMain():
 
     def __init__(self):
         self.logger = None
         self.error = None
+        self.AD = None
+        self.rundash = None
 
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
@@ -44,56 +42,45 @@ class ADMain():
         if signum == signal.SIGHUP:
             self.AD.read_apps(True)
         if signum == signal.SIGINT:
-            utils.log(self.logger, "INFO", "Keyboard interrupt")
+            self.log(self.logger, "INFO", "Keyboard interrupt")
             self.AD.stop()
+            self.rundash.stop()
 
-    def find_path(self, name):
-        for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
-                     os.path.join(os.path.sep, "etc", "appdaemon")]:
-            _file = os.path.join(path, name)
-            if os.path.isfile(_file) or os.path.isdir(_file):
-                return _file
-        return None
+    def log(self, logger, level, msg, name=""):
+        utils.log(logger, level, msg, name)
 
     # noinspection PyBroadException,PyBroadException
-    def run(self):
-
-        conf = self.conf
+    def run(self, appdaemon, hadashboard):
 
         loop = asyncio.get_event_loop()
 
         # Initialize AppDaemon
 
-        if conf.apps is True:
-            utils.log(self.logger, "INFO", "Starting Apps")
-            kwargs = conf.__dict__
-            self.AD = ad.AppDaemon(self.logger, self.error, loop, **kwargs)
-        else:
-            utils.log(self.logger, "INFO", "Apps are disabled")
+        self.AD = ad.AppDaemon(self.logger, self.error, loop, **appdaemon)
 
         # Initialize Dashboard/API
 
-        if conf.dashboard is True:
-            utils.log(self.logger, "INFO", "Starting dashboard")
-            self.rundash = rundash.RunDash()
-            self.rundash.run_dash(loop, conf)
+        if hadashboard["dashboard"] is True:
+            self.log(self.logger, "INFO", "Starting Dashboards")
+            self.rundash = rundash.RunDash(self.AD, loop, self.logger, self.access, **hadashboard)
+            self.AD.register_dashboard(self.rundash)
         else:
-            utils.log(self.logger, "INFO", "Dashboards are disabled")
+            self.log(self.logger, "INFO", "Dashboards are disabled")
 
-        if conf.api_port is not None:
-            utils.log(self.logger, "INFO", "Starting API")
-            api.run_api(loop, conf)
+        if "api_port" in appdaemon:
+            self.log(self.logger, "INFO", "Starting API")
+            self.api = api.ADAPI(self.AD, loop, self.logger, **appdaemon)
         else:
-            utils.log(self.logger, "INFO", "API is disabled")
+            self.log(self.logger, "INFO", "API is disabled")
 
-        utils.log(self.logger, "DEBUG", "Start Loop")
+        self.log(self.logger, "DEBUG", "Start Loop")
 
         pending = asyncio.Task.all_tasks()
         loop.run_until_complete(asyncio.gather(*pending))
 
-        utils.log(self.logger, "DEBUG", "End Loop")
+        self.log(self.logger, "DEBUG", "End Loop")
 
-        utils.log(self.logger, "INFO", "AppDeamon Exited")
+        self.log(self.logger, "INFO", "AppDeamon Exited")
 
 
 
@@ -125,31 +112,12 @@ class ADMain():
                             ])
         parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + utils.__version__)
         parser.add_argument('--profiledash', help=argparse.SUPPRESS, action='store_true')
-        parser.add_argument('--convertcfg', help="Convert existing .cfg file to yaml", action='store_true')
 
         # Windows does not have Daemonize package so disallow
         if platform.system() != "Windows":
             parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
 
         args = parser.parse_args()
-
-        conf = Config()
-
-        conf.tick = args.tick
-        conf.interval = args.interval
-        conf.loglevel = args.debug
-        conf.profile_dashboard = args.profiledash
-
-        if args.starttime is not None:
-            conf.now = datetime.datetime.strptime(args.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
-        else:
-            conf.now = datetime.datetime.now().timestamp()
-
-        if args.endtime is not None:
-            conf.endtime = datetime.datetime.strptime(args.endtime, "%Y-%m-%d %H:%M:%S")
-
-        if conf.tick != 1 or conf.interval != 1 or args.starttime is not None:
-            conf.realtime = False
 
         config_dir = args.config
 
@@ -162,7 +130,7 @@ class ADMain():
             isdaemon = False
 
         if config_dir is None:
-            config_file_yaml = self.find_path("appdaemon.yaml")
+            config_file_yaml = utils.find_path("appdaemon.yaml")
         else:
             config_file_yaml = os.path.join(config_dir, "appdaemon.yaml")
 
@@ -182,8 +150,6 @@ class ADMain():
 
             yaml.add_constructor('!secret', utils._secret_yaml)
 
-            conf.config_file = config_file_yaml
-            conf.app_config_file = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
             with open(config_file_yaml, 'r') as yamlfd:
                 config_file_contents = yamlfd.read()
 
@@ -202,96 +168,65 @@ class ADMain():
                     print("ERROR", str(exc.problem))
             sys.exit()
 
-        conf.config_dir = os.path.dirname(conf.config_file)
-        conf.config = config
-        conf.logfile = config['AppDaemon'].get("logfile")
-        conf.errorfile = config['AppDaemon'].get("errorfile")
-        conf.threads = int(config['AppDaemon'].get('threads'))
-        conf.certpath = config['AppDaemon'].get("cert_path")
-        conf.app_dir = config['AppDaemon'].get("app_dir")
-        conf.latitude = config['AppDaemon'].get("latitude")
-        conf.longitude = config['AppDaemon'].get("longitude")
-        conf.elevation = config['AppDaemon'].get("elevation")
-        conf.time_zone = config['AppDaemon'].get("time_zone")
-        conf.rss_feeds = config['AppDaemon'].get("rss_feeds")
-        conf.rss_update = config['AppDaemon'].get("rss_update")
-        conf.utility_delay = config['AppDaemon'].get("utility_delay", 1)
-        conf.api_key = config['AppDaemon'].get("api_key")
-        conf.api_port = config['AppDaemon'].get("api_port")
-        conf.api_ssl_certificate = config['AppDaemon'].get("api_ssl_certificate")
-        conf.api_ssl_key = config['AppDaemon'].get("api_ssl_key")
+        if "appdaemon" not in config:
+            print("ERROR", "no 'appdaemon' section in {}".format(config_file_yaml))
+            sys.exit()
 
-        conf.dashboard = False
-        if 'HADashboard' in config:
-            conf.dash_url = config['HADashboard'].get("dash_url")
-            conf.dashboard_dir = config['HADashboard'].get("dash_dir")
-            conf.dash_ssl_certificate = config['HADashboard'].get("dash_ssl_certificate")
-            conf.dash_ssl_key = config['HADashboard'].get("dash_ssl_key")
-            conf.dash_password = config['HADashboard'].get("dash_password")
+        appdaemon = config["appdaemon"]
+        if "disable_apps" not in appdaemon:
+            appdaemon["disable_apps"] = False
 
-            if config['HADashboard'].get("dash_force_compile") == "1":
-                conf.dash_force_compile = True
-            else:
-                conf.dash_force_compile = False
+        appdaemon["config_dir"] = config_dir
+        appdaemon["config_file"] = config_file_yaml
+        appdaemon["app_config_file"] = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
 
-            if config['HADashboard'].get("dash_compile_on_start") == "1":
-                conf.dash_compile_on_start = True
-            else:
-                conf.dash_compile_on_start = False
 
-            if "disable_dash" in config['HADashboard'] and config['HADashboard']["disable_dash"] == 1:
-                conf.dashboard = False
-            else:
-                conf.dashboard = True
+        if args.starttime is not None:
+            appdaemon["starttime"] = args.starttime
 
-            url = urlparse(conf.dash_url)
+        if args.endtime is not None:
+            appdaemon["endtime"] = args.endtime
 
-            dash_net = url.netloc.split(":")
-            conf.dash_host = dash_net[0]
-            try:
-                conf.dash_port = dash_net[1]
-            except IndexError:
-                conf.dash_port = 80
+        appdaemon["tick"] = args.tick
+        appdaemon["interval"] = args.interval
+        appdaemon["loglevel"] = args.debug
 
-            if conf.dash_host == "":
-                raise ValueError("Invalid host for 'dash_url'")
+        appdaemon["config_dir"] = os.path.dirname(config_file_yaml)
 
-        if config['AppDaemon'].get("disable_apps") == "1":
-            conf.apps = False
+        if "hadashboard" in config:
+            hadashboard = config["hadashboard"]
+            hadashboard["profile_dashboard"] = args.profiledash
+            hadashboard["config_dir"] = config_dir
+            hadashboard["config_file"] = config_file_yaml
+            hadashboard["config_dir"] = os.path.dirname(config_file_yaml)
+            if args.profiledash:
+                hadashboard["profile_dashboard"] = True
+
+            if "dashboard" not in hadashboard:
+                hadashboard["dashboard"] = True
+
         else:
-            conf.apps = True
-            conf.plugins = {}
-            for section in config:
-                if section == "AppDaemon" or section == "HADashboard":
-                    pass
-                else:
-                    conf.plugins[section] = config[section]
+            hadashboard = {"dashboard": False}
 
-
-        if config['AppDaemon'].get("cert_verify", True) == False:
-            conf.certpath = False
-
-
-        if conf.threads is None:
-            conf.threads = 10
-
-        if conf.logfile is None:
-            conf.logfile = "STDOUT"
-
-        if conf.errorfile is None:
-            conf.errorfile = "STDERR"
-
-        log_size = config['AppDaemon'].get("log_size", 1000000)
-        log_generations = config['AppDaemon'].get("log_generations", 3)
+        if "log" not in config:
+            logfile = "STDOUT"
+            errorfile = "STDERR"
+            log_size = 1000000
+            log_generations = 3
+            accessfile = None
+        else:
+            logfile = config['appdaemon'].get("logfile", "STDOUT")
+            errorfile = config['appdaemon'].get("errorfile", "STDERR")
+            log_size = config['appdaemon'].get("log_size", 1000000)
+            log_generations = config['appdaemon'].get("log_generations", 3)
+            accessfile = config['appdaemon'].get("accessfile")
 
         if isdaemon and (
-                            conf.logfile == "STDOUT" or conf.errorfile == "STDERR"
-                            or conf.logfile == "STDERR" or conf.errorfile == "STDOUT"
+                            logfile == "STDOUT" or errorfile == "STDERR"
+                            or logfile == "STDERR" or errorfile == "STDOUT"
                         ):
-            raise ValueError("STDOUT and STDERR not allowed with -d")
-
-
-        self.conf = conf
+            print("ERROR", "STDOUT and STDERR not allowed with -d")
+            sys.exit()
 
         # Setup Logging
 
@@ -304,8 +239,8 @@ class ADMain():
         # Send to file if we are daemonizing, else send to console
 
         fh = None
-        if conf.logfile != "STDOUT":
-            fh = RotatingFileHandler(conf.logfile, maxBytes=log_size, backupCount=log_generations)
+        if logfile != "STDOUT":
+            fh = RotatingFileHandler(logfile, maxBytes=log_size, backupCount=log_generations)
             fh.setLevel(numeric_level)
             # fh.setFormatter(formatter)
             self.logger.addHandler(fh)
@@ -324,9 +259,9 @@ class ADMain():
         self.error.propagate = False
         # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
-        if conf.errorfile != "STDERR":
+        if errorfile != "STDERR":
             efh = RotatingFileHandler(
-                conf.errorfile, maxBytes=log_size, backupCount=log_generations
+                errorfile, maxBytes=log_size, backupCount=log_generations
             )
         else:
             efh = logging.StreamHandler()
@@ -336,30 +271,28 @@ class ADMain():
         self.error.addHandler(efh)
 
         # Setup dash output
-
-        if config['AppDaemon'].get("accessfile") is not None:
-            conf.dash = logging.getLogger("log3")
+        if accessfile is not None:
+            self.access = logging.getLogger("log3")
             numeric_level = getattr(logging, args.debug, None)
-            conf.dash.setLevel(numeric_level)
-            conf.dash.propagate = False
+            self.access.setLevel(numeric_level)
+            self.access.propagate = False
             # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
             efh = RotatingFileHandler(
-                config['AppDaemon'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
+                config['log'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
             )
 
             efh.setLevel(numeric_level)
             # efh.setFormatter(formatter)
-            conf.dash.addHandler(efh)
+            self.access.addHandler(efh)
         else:
-            conf.dash = self.logger
+            self.access = self.logger
 
         # Startup message
 
-        utils.log(self.logger, "INFO", "AppDaemon Version {} starting".format(utils.__version__))
-        utils.log(self.logger, "INFO", "Configuration read from: {}".format(conf.config_file))
-        utils.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
-        utils.log(self.logger, "DEBUG", "Hass Section: {}".format(config.get("HASS")))
-        utils.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
+        self.log(self.logger, "INFO", "AppDaemon Version {} starting".format(utils.__version__))
+        self.log(self.logger, "INFO", "Configuration read from: {}".format(config_file_yaml))
+        self.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
+        self.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
 
 
         #TODO: Figure out how to get this from HASS if available
@@ -379,38 +312,6 @@ class ADMain():
 
         #ad.init_sun()
 
-        # Add appdir  and subdirs to path
-        if conf.apps is True:
-            conf.app_config_file_modified = os.path.getmtime(conf.app_config_file)
-            if conf.app_dir is None:
-                if config_dir is None:
-                    conf.app_dir = self.find_path("apps")
-                else:
-                    conf.app_dir = os.path.join(config_dir, "apps")
-            for root, subdirs, files in os.walk(conf.app_dir):
-                if root[-11:] != "__pycache__":
-                    sys.path.insert(0, root)
-        else:
-            conf.app_config_file_modified = 0
-
-        # find dashboard dir
-
-        if 'HADashboard' in config:
-            if conf.dashboard_dir is None:
-                if config_dir is None:
-                    conf.dashboard_dir = self.find_path("dashboards")
-                else:
-                    conf.dashboard_dir = os.path.join(config_dir, "dashboards")
-
-
-            #
-            # Setup compile directories
-            #
-            if config_dir is None:
-                conf.compile_dir = self.find_path("compiled")
-            else:
-                conf.compile_dir = os.path.join(config_dir, "compiled")
-
         # Start main loop
 
         if isdaemon:
@@ -422,7 +323,7 @@ class ADMain():
             while True:
                 time.sleep(1)
         else:
-            self.run()
+            self.run(appdaemon, hadashboard)
 
 
 if __name__ == "__main__":

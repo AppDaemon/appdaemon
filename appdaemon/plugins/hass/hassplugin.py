@@ -22,8 +22,9 @@ class HassPlugin:
         self.loglevel = loglevel
         self.ws = None
         self.reading_messages = False
+        self.name = name
 
-        utils.log(self.logger, "INFO", "HASS Plugin Initializing")
+        self.log("INFO", "HASS Plugin Initializing")
 
         self.name = name
 
@@ -45,7 +46,7 @@ class HassPlugin:
         if "ha_url" in args:
             self.ha_url = args["ha_url"]
         else:
-            utils.log(self.logger, "WARN", "ha_url not found in HASS configuration - module not initialized")
+            self.log("WARN", "ha_url not found in HASS configuration - module not initialized")
 
         if "cert_path" in args:
             self.cert_path = args["cert_path"]
@@ -67,11 +68,14 @@ class HassPlugin:
         else:
             self.commtype = "WS"
 
-        utils.log(self.logger, "INFO", "HASS Plugin initialization complete")
+        self.log("INFO", "HASS Plugin initialization complete")
+
+    def log(self, level, message):
+        self.AD.log(level, "{}: {}".format(self.name, message))
 
     def verbose_log(self, text):
         if self.verbose:
-            utils.log(self.logger, "INFO", text)
+            self.log("INFO", text)
 
     def stop(self):
         self.verbose_log("*** Stopping ***")
@@ -88,7 +92,7 @@ class HassPlugin:
         states = {}
         for state in hass_state:
             states[state["entity_id"]] = state
-        utils.log(self.logger, "INFO", "Got initial state")
+        self.log("INFO", "Got initial state")
         self.verbose_log("*** Sending Complete State: {} ***".format(hass_state))
         return states
 
@@ -97,12 +101,12 @@ class HassPlugin:
     #
 
     async def get_updates(self):
-        disconnected_event = False
 
         _id = 0
 
         while not self.stopping:
             _id += 1
+            disconnected_event = False
             try:
 
                 #
@@ -116,10 +120,10 @@ class HassPlugin:
                     # Older version of HA - connect using SSEClient
                     #
                     if self.commtype == "SSE":
-                        utils.log(self.logger, "INFO", "Using SSE")
+                        self.log("INFO", "Using SSE")
                     else:
-                        utils.log(
-                            self.logger, "INFO",
+                        self.log(
+                            "INFO",
                             "Home Assistant version < 0.34.0 - "
                             "falling back to SSE"
                         )
@@ -129,8 +133,8 @@ class HassPlugin:
                             "{}/api/stream".format(self.ha_url),
                             verify=False, headers=headers, retry=3000
                         )
-                        utils.log(
-                            self.logger, "INFO",
+                        self.log(
+                            "INFO",
                             "Connected to Home Assistant".format(self.timeout)
                         )
                     else:
@@ -139,8 +143,8 @@ class HassPlugin:
                             verify=False, headers=headers, retry=3000,
                             timeout=int(self.timeout)
                         )
-                        utils.log(
-                            self.logger, "INFO",
+                        self.log(
+                            "INFO",
                             "Connected to Home Assistant with timeout = {}".format(
                                 self.timeout
                             )
@@ -168,7 +172,7 @@ class HassPlugin:
                         "{}/api/websocket".format(url), sslopt=sslopt
                     )
                     result = json.loads(self.ws.recv())
-                    utils.log(self.logger, "INFO",
+                    self.log("INFO",
                               "Connected to Home Assistant {}".format(
                                   result["ha_version"]))
                     #
@@ -182,7 +186,7 @@ class HassPlugin:
                         self.ws.send(auth)
                         result = json.loads(self.ws.recv())
                         if result["type"] != "auth_ok":
-                            utils.log(self.logger, "WARNING",
+                            self.log("WARNING",
                                       "Error in authentication")
                             raise ValueError("Error in authentication")
                     #
@@ -196,11 +200,11 @@ class HassPlugin:
                     result = json.loads(self.ws.recv())
                     if not (result["id"] == _id and result["type"] == "result" and
                                     result["success"] is True):
-                        utils.log(
-                            self.logger, "WARNING",
+                        self.log(
+                            "WARNING",
                             "Unable to subscribe to HA events, id = {}".format(_id)
                         )
-                        utils.log(self.logger, "WARNING", result)
+                        self.log("WARNING", result)
                         raise ValueError("Error subscribing to HA Events")
 
                     #
@@ -212,12 +216,12 @@ class HassPlugin:
                         result = json.loads(ret)
 
                         if not (result["id"] == _id and result["type"] == "event"):
-                            utils.log(
-                                self.logger, "WARNING",
+                            self.log(
+                                "WARNING",
                                 "Unexpected result from Home Assistant, "
                                 "id = {}".format(_id)
                             )
-                            utils.log(self.logger, "WARNING", result)
+                            self.log("WARNING", result)
                             raise ValueError(
                                 "Unexpected result from Home Assistant"
                             )
@@ -231,19 +235,19 @@ class HassPlugin:
                     if disconnected_event == False:
                         self.AD.state_update(self.namespace, {"event_type": "ha_disconnected", "data": {}})
                         disconnected_event = True
-                    utils.log(
-                        self.logger, "WARNING",
+                    self.log(
+                        "WARNING",
                         "Disconnected from Home Assistant, retrying in 5 seconds"
                     )
                     if self.loglevel == "DEBUG":
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                        utils.log(self.logger, "WARNING", "Unexpected error:")
-                        utils.log(self.logger, "WARNING", '-' * 60)
-                        utils.log(self.logger, "WARNING", traceback.format_exc())
-                        utils.log(self.logger, "WARNING", '-' * 60)
+                        self.log( "WARNING", '-' * 60)
+                        self.log( "WARNING", "Unexpected error:")
+                        self.log("WARNING", '-' * 60)
+                        self.log( "WARNING", traceback.format_exc())
+                        self.log( "WARNING", '-' * 60)
                     await asyncio.sleep(5)
 
-        utils.log(self.logger, "INFO", "Disconnecting from Home Assistant")
+        self.log("INFO", "Disconnecting from Home Assistant")
 
     def get_namespace(self):
         return self.namespace
@@ -290,20 +294,20 @@ class HassPlugin:
             apiurl = "{}/api/states".format(self.ha_url)
         else:
             apiurl = "{}/api/states/{}".format(self.ha_url, entity_id)
-        utils.log(self.logger, "DEBUG", "get_ha_state: url is {}".format(apiurl))
+        self.log("DEBUG", "get_ha_state: url is {}".format(apiurl))
         r = requests.get(apiurl, headers=headers, verify=self.cert_path)
         r.raise_for_status()
         return r.json()
 
 
     def get_ha_config(self):
-        utils.log(self.logger, "DEBUG", "get_ha_config()")
+        self.log("DEBUG", "get_ha_config()")
         if self.ha_key != "":
             headers = {'x-ha-access': self.ha_key}
         else:
             headers = {}
         apiurl = "{}/api/config".format(self.ha_url)
-        utils.log(self.logger, "DEBUG", "get_ha_config: url is {}".format(apiurl))
+        self.log("DEBUG", "get_ha_config: url is {}".format(apiurl))
         r = requests.get(apiurl, headers=headers, verify=self.cert_path)
         r.raise_for_status()
         return r.json()
@@ -317,8 +321,8 @@ class HassPlugin:
     def call_service(self, service, **kwargs):
         self._check_service(service)
         d, s = service.split("/")
-        utils.log(
-            self.logger, "DEBUG",
+        self.log(
+            "DEBUG",
             "call_service: {}/{}, {}".format(d, s, kwargs)
         )
         if self.ha_key != "":

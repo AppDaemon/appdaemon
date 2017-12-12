@@ -1,4 +1,5 @@
 import requests
+import os
 import datetime
 
 import asyncio
@@ -6,12 +7,6 @@ import asyncio
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-constraints = (
-    "constrain_input_select", "constrain_presence",
-    "constrain_start_time", "constrain_end_time"
-)
-
 
 __version__ = "3.0.0b1"
 secrets = None
@@ -112,42 +107,33 @@ def _secret_yaml(loader, node):
 
     return secrets[node.value]
 
+def day_of_week(day):
+    nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    days = {day: idx for idx, day in enumerate(nums)}
 
-async def dispatch_app_by_name(name, args):
-    with conf.endpoints_lock:
-        callback = None
-        for app in conf.endpoints:
-            for handle in conf.endpoints[app]:
-                if conf.endpoints[app][handle]["name"] == name:
-                    callback = conf.endpoints[app][handle]["callback"]
-    if callback is not None:
-        return run_in_executor(conf.loop, conf.executor, callback, args)
-    else:
-        return '', 404
+    if type(day) == str:
+        return days[day]
+    if type(day) == int:
+        return nums[day]
+    raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
-def sanitize_state_kwargs(kwargs):
-    kwargs_copy = kwargs.copy()
-    return _sanitize_kwargs(kwargs_copy, (
-        "old", "new", "attribute", "duration", "state",
-        "entity", "handle", "old_state", "new_state",
-    ) + constraints)
-
-def sanitize_timer_kwargs(kwargs):
-    kwargs_copy = kwargs.copy()
-    return _sanitize_kwargs(kwargs_copy, (
-        "interval", "constrain_days", "constrain_input_boolean",
-    ) + constraints)
+async def run_in_executor(loop, executor, fn, *args, **kwargs):
+    completed, pending = await asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
+    response = list(completed)[0].result()
+    return response
 
 
-def _sanitize_kwargs(kwargs, keys):
-    for key in keys:
-        if key in kwargs:
-            del kwargs[key]
-    return kwargs
+def find_path(name):
+    for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
+                 os.path.join(os.path.sep, "etc", "appdaemon")]:
+        _file = os.path.join(path, name)
+        if os.path.isfile(_file) or os.path.isdir(_file):
+            return _file
+    return None
 
 
-def log(logger, level, msg, name=""):
+def log(logger, level, msg, name="", ts = None):
     levels = {
         "CRITICAL": 50,
         "ERROR": 40,
@@ -159,25 +145,10 @@ def log(logger, level, msg, name=""):
     if name != "":
         name = " {}:".format(name)
 
-    # if conf.realtime:
-    timestamp = datetime.datetime.now()
-    # else:
-    #    timestamp = get_now()
-    # TODO: fix timestamps for timetravel
+    if ts == None:
+        timestamp = datetime.datetime.now()
+    else:
+        timestamp = ts
+
     logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
 
-
-def day_of_week(day):
-    nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-    days = {day: idx for idx, day in enumerate(nums)}
-
-    if type(day) == str:
-        return days[day]
-    if type(day) == int:
-        return nums[day]
-    raise ValueError("Incorrect type for 'day' in day_of_week()'")
-
-async def run_in_executor(loop, executor, fn, *args, **kwargs):
-    completed, pending = await asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
-    response = list(completed)[0].result()
-    return response

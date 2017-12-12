@@ -8,11 +8,17 @@ import appdaemon.utils as utils
 # Define an entities class as a descriptor to enable read only access of HASS state
 #
 
-class Entities:
 
-    def __get__(self, instance, owner):
-        stateattrs = utils.StateAttrs(owner.get_state(owner))
-        return stateattrs
+def hass_check(func):
+    def func_wrapper(*args, **kwargs):
+        self = args[0]
+        if not self.AD.get_plugin(self._get_namespace(**kwargs)).reading_messages:
+            self.AD.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
+            return lambda *args: None
+        else:
+            return func(*args, **kwargs)
+
+    return (func_wrapper)
 
 
 class Hass(appapi.AppDaemon):
@@ -20,30 +26,18 @@ class Hass(appapi.AppDaemon):
     # Internal
     #
 
-    entities = Entities()
-
     def __init__(self, ad, name, logger, error, args, config, global_vars):
 
         super(Hass, self).__init__(ad, name, logger, error, args, config, global_vars)
 
         self.namespace = "hass"
+        self.AD = ad
         self.name = name
         self._logger = logger
         self._error = error
         self.args = args
         self.global_vars = global_vars
         self.config = config
-
-    def hass_check(func):
-        def func_wrapper(*args, **kwargs):
-            self = args[0]
-            if not self.ad.get_plugin(self._get_namespace(kwargs)).reading_messages:
-                utils.log(self._logger, "WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
-                return lambda *args: None
-            else:
-                return func(*args, **kwargs)
-
-        return (func_wrapper)
 
     def _sub_stack(self, msg):
         # If msg is a data structure of some type, don't sub
@@ -75,7 +69,7 @@ class Hass(appapi.AppDaemon):
     #
 
     def listen_state(self, cb, entity=None, **kwargs):
-        namespace = self._get_namespace(kwargs)
+        namespace = self._get_namespace(**kwargs)
         return super(Hass, self).listen_state(namespace, cb, entity, **kwargs)
 
     #
@@ -83,14 +77,14 @@ class Hass(appapi.AppDaemon):
     #
 
     def get_state(self, entity=None, **kwargs):
-        namespace = self._get_namespace(kwargs)
+        namespace = self._get_namespace(**kwargs)
         return super(Hass, self).get_state(namespace, entity, **kwargs)
 
     def set_state(self, entity_id, **kwargs):
-        namespace = self._get_namespace(kwargs)
+        namespace = self._get_namespace(**kwargs)
         self._check_entity(namespace, entity_id)
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "set_state: {}, {}".format(entity_id, kwargs)
         )
 
@@ -109,24 +103,24 @@ class Hass(appapi.AppDaemon):
 
         # Send update to plugin
 
-        self.ad.get_plugin(namespace).set_state(entity_id, new_state)
+        self.AD.get_plugin(namespace).set_state(entity_id, new_state)
 
         # Update AppDaemon's copy
 
-        self.ad.set_state(namespace, entity_id, new_state)
+        self.AD.set_state(namespace, entity_id, new_state)
 
         return new_state
 
     def entity_exists(self, entity_id, **kwargs):
-        namespace = self._get_namespace(kwargs)
-        return self.ad.entity_exists(namespace, entity_id)
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.entity_exists(namespace, entity_id)
     #
     # Utility
     #
 
 
     def split_entity(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         return entity_id.split(".")
 
     def split_device_list(self, list_):
@@ -138,14 +132,14 @@ class Hass(appapi.AppDaemon):
 
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
-        utils.log(self._error, level, msg, self.name)
+        utils.log(self.error, level, msg, self.name)
 
     #
     #
     #
 
     def friendly_name(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         state = self.get_state()
         if entity_id in state:
             if "friendly_name" in state[entity_id]["attributes"]:
@@ -159,13 +153,13 @@ class Hass(appapi.AppDaemon):
     #
 
     def get_trackers(self, **kwargs):
-        return (key for key, value in self.get_state("device_tracker", kwargs).items())
+        return (key for key, value in self.get_state("device_tracker", **kwargs).items())
 
     def get_tracker_details(self, **kwargs):
-        return self.get_state("device_tracker", kwargs)
+        return self.get_state("device_tracker", **kwargs)
 
     def get_tracker_state(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         return self.get_state(entity_id)
 
     def anyone_home(self, **kwargs):
@@ -201,7 +195,7 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def turn_on(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -211,7 +205,7 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def turn_off(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -226,7 +220,7 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def toggle(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -237,7 +231,7 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def select_value(self, entity_id, value, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
         else:
@@ -248,7 +242,7 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def select_option(self, entity_id, option, **kwargs):
-        self._check_entity(self._get_namespace(kwargs), entity_id)
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "option": option}
         else:
@@ -284,16 +278,20 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def fire_event(self, event, **kwargs):
-        utils.log(self._logger, "DEBUG",
+        self.AD.log("DEBUG",
                   "fire_event: {}, {}".format(event, kwargs))
-        config = self.ad.get_plugin(self._get_namespace(kwargs)).config
+        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        if "certpath" in config:
+            certpath = config["certpath"]
+        else:
+            certpath = None
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
         apiurl = "{}/api/events/{}".format(config["ha_url"], event)
         r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=conf.certpath
+            apiurl, headers=headers, json=kwargs, verify=certpath
         )
         r.raise_for_status()
         return r.json()
@@ -310,20 +308,24 @@ class Hass(appapi.AppDaemon):
     def call_service(self, service, **kwargs):
         self._check_service(service)
         d, s = service.split("/")
-        utils.log(
-            self._logger, "DEBUG",
+        self.AD.log(
+            "DEBUG",
             "call_service: {}/{}, {}".format(d, s, kwargs)
         )
 
-        config = self.ad.get_plugin(self._get_namespace(kwargs)).config
+        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        if "certpath" in config:
+            certpath = config["certpath"]
+        else:
+            certpath = None
 
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
-        apiurl = "{}/api/services/{}/{}".format(config["ha_key"], d, s)
+        apiurl = "{}/api/services/{}/{}".format(config["ha_url"], d, s)
         r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=conf.certpath
+            apiurl, headers=headers, json=kwargs, verify=certpath
         )
         r.raise_for_status()
         return r.json()

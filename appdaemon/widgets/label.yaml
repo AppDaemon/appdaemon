@@ -10,7 +10,7 @@ static_css:
   title2_style: $label_title2_style
   unit_style: ""
   value_style: $label_text_style
-  text_style: $label_state_text_style
+  state_text_style: $label_state_text_style
   widget_style: $label_widget_style
 css: []
 icons: []
