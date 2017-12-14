@@ -39,8 +39,11 @@ class ADMain():
             self.AD.read_apps(True)
         if signum == signal.SIGINT:
             self.log(self.logger, "INFO", "Keyboard interrupt")
-            self.AD.stop()
-            self.rundash.stop()
+            self.stop()
+
+    def stop(self):
+        self.AD.stop()
+        self.rundash.stop()
 
     def log(self, logger, level, msg, name=""):
         utils.log(logger, level, msg, name)
@@ -189,6 +192,8 @@ class ADMain():
 
         appdaemon["config_dir"] = os.path.dirname(config_file_yaml)
 
+        appdaemon["stop_function"] = self.stop
+
         if "hadashboard" in config:
             hadashboard = config["hadashboard"]
             hadashboard["profile_dashboard"] = args.profiledash
@@ -321,7 +326,9 @@ class ADMain():
         else:
             self.run(appdaemon, hadashboard)
 
-
-if __name__ == "__main__":
+def main():
     admain = ADMain()
     admain.main()
+
+if __name__ == "__main__":
+    main()

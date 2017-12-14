@@ -87,12 +87,12 @@ class HassPlugin:
     # Get initial state
     #
 
-    def get_complete_state(self):
-        hass_state = self.get_hass_state()
+    async def get_complete_state(self):
+        hass_state = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.get_hass_state)
         states = {}
         for state in hass_state:
             states[state["entity_id"]] = state
-        self.log("INFO", "Got initial state")
+        self.log("DEBUG", "Got state")
         self.verbose_log("*** Sending Complete State: {} ***".format(hass_state))
         return states
 
@@ -104,10 +104,10 @@ class HassPlugin:
 
         _id = 0
 
-        first_time = True
         while not self.stopping:
             _id += 1
             disconnected_event = False
+            first_time = True
             try:
 
                 if parse_version(utils.__version__) < parse_version('0.34') or self.commtype == "SSE":
@@ -148,11 +148,8 @@ class HassPlugin:
                     #
                     # Fire HA_STARTED Events
                     #
-                    self.AD.process_event({"event_type": "ha_started", "data": {}})
-                    if not first_time:
-                        self.AD.notify_plugin_restarted(self.namespace)
-                    else:
-                        first_time = False
+                    await self.AD.notify_plugin_started(self.namespace, first_time)
+
                     while not self.stopping:
                         msg = await utils.run_in_executor(self.AD.loop, self.AD.executor, messages.__next__)
                         if msg.data != "ping":
@@ -174,7 +171,8 @@ class HassPlugin:
                     self.ws = create_connection(
                         "{}/api/websocket".format(url), sslopt=sslopt
                     )
-                    result = json.loads(self.ws.recv())
+                    res = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
+                    result = json.loads(res)
                     self.log("INFO",
                               "Connected to Home Assistant {}".format(
                                   result["ha_version"]))
@@ -186,7 +184,7 @@ class HassPlugin:
                             "type": "auth",
                             "api_password": self.ha_key
                         })
-                        self.ws.send(auth)
+                        await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, auth)
                         result = json.loads(self.ws.recv())
                         if result["type"] != "auth_ok":
                             self.log("WARNING",
@@ -199,7 +197,7 @@ class HassPlugin:
                         "id": _id,
                         "type": "subscribe_events"
                     })
-                    self.ws.send(sub)
+                    await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, sub)
                     result = json.loads(self.ws.recv())
                     if not (result["id"] == _id and result["type"] == "result" and
                                     result["success"] is True):
@@ -217,11 +215,8 @@ class HassPlugin:
                     #
                     # Fire HA_STARTED Events
                     #
-                    self.AD.process_event({"event_type": "ha_started", "data": {}})
-                    if not first_time:
-                        self.AD.notify_plugin_restarted(self.namespace)
-                    else:
-                        first_time = False
+                    await self.AD.notify_plugin_started(self.namespace, first_time)
+
                     while not self.stopping:
                         ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                         result = json.loads(ret)
@@ -242,6 +237,8 @@ class HassPlugin:
 
             except:
                 self.reading_messages = False
+                first_time = False
+                self.AD.notify_plugin_stopped(self.namespace)
                 if not self.stopping:
                     if disconnected_event == False:
                         self.AD.state_update(self.namespace, {"event_type": "ha_disconnected", "data": {}})
@@ -326,7 +323,8 @@ class HassPlugin:
         r.raise_for_status()
         return r.json()
 
-    def _check_service(self, service):
+    @staticmethod
+    def _check_service(service):
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
 

@@ -85,6 +85,7 @@ class DummyPlugin:
     async def get_updates(self):
         while not self.stopping:
             ret = None
+            await self.AD.notify_plugin_started(self.namespace)
             if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
                 while not self.stopping:
                     await asyncio.sleep(1)

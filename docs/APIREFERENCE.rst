@@ -1009,7 +1009,7 @@ Call service is the basic way of calling a service within AppDaemon. It
 can call any service and provide any required parameters. Available
 services can be found using the developer tools in the UI. For listed
 services, the part before the first period is the domain, and the part
-after is the service name. For instance, ``light.turn_on`` has a domain
+after is the service name. For instance, ``light/turn_on`` has a domain
 of ``light`` and a service name of ``turn_on``.
 
 Synopsis
@@ -1030,7 +1030,7 @@ Parameters
 service
 '''''''
 
-The service name, e.g. ``light.turn_on``.
+The service name, e.g. ``light/turn_on``.
 
 \*\*kwargs
 ''''''''''
