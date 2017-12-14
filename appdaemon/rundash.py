@@ -254,14 +254,13 @@ class RunDash():
 
                         new_state = {"feed": feed}
 
-                        # TODO: Namespace Aware
-                        self.AD.set_state("hass", feed_data["target"], new_state)
+                        # RSS Feeds always live in the default namespace
+                        self.AD.set_state("default", feed_data["target"], new_state)
 
                         data = {"event_type": "state_changed",
                                 "data": {"entity_id": feed_data["target"], "new_state": new_state}}
 
-                        # TODO: Namespace again
-                        self.ws_update("hass", data)
+                        self.ws_update("default", data)
 
                 await asyncio.sleep(1)
 
@@ -270,9 +269,9 @@ class RunDash():
     async def get_state(self, request):
 
         entity_id = request.match_info.get('entity')
+        namespace = request.match_info.get('namespace')
 
-        # TODO: Figure out namespaces
-        state = self.AD.get_entity("hass", entity_id)
+        state = self.AD.get_entity(namespace, entity_id)
 
         return web.json_response({"state": state})
 
@@ -291,8 +290,9 @@ class RunDash():
         data = await request.post()
         args = {}
         service = data["service"]
+        namespace = data["namespace"]
         for key in data:
-            if key == "service":
+            if key == "service" or key == "namespace":
                 pass
             elif key == "rgb_color":
                 m = re.search('\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', data[key])
@@ -310,8 +310,7 @@ class RunDash():
             else:
                 args[key] = data[key]
 
-        # TODO; Figure out namespaces
-        plugin = self.AD.get_plugin("hass")
+        plugin = self.AD.get_plugin(namespace)
         # TODO Make this run in an executor
         plugin.call_service(service, **args)
         #await utils.run_in_executor(self.loop, self.executor, plugin.call_service, service, *args)
@@ -364,7 +363,6 @@ class RunDash():
         if len(self.app['websockets']) > 0:
             self.log("DEBUG",
                    "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
-        # TODO: Make widgets namespace aware
         jdata["namespace"] = namespace
         data = json.dumps(jdata)
 
@@ -385,7 +383,7 @@ class RunDash():
         self.app.router.add_post('/logon', self.logon)
         self.app.router.add_get('/stream', self.wshandler)
         self.app.router.add_post('/call_service', self.call_service)
-        self.app.router.add_get('/state/{entity}', self.get_state)
+        self.app.router.add_get('/state/{namespace}/{entity}', self.get_state)
         self.app.router.add_get('/', self.list_dash)
         self.app.router.add_get('/{name}', self.load_dash)
 

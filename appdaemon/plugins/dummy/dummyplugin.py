@@ -16,14 +16,14 @@ class DummyPlugin:
         self.config = args
         self.name = name
 
-        self.AD.log(self.logger, "INFO", "Dummy Plugin Initializing")
+        self.AD.log("INFO", "Dummy Plugin Initializing", "DUMMY")
 
         self.name = name
 
         if "namespace" in args:
             self.namespace = args["namespace"]
         else:
-            self.namespace = "dummy"
+            self.namespace = "default"
 
         if "verbose" in args:
             self.verbose = args["verbose"]
@@ -64,7 +64,7 @@ class DummyPlugin:
     # Get initial state
     #
 
-    def get_complete_state(self):
+    async def get_complete_state(self):
         self.log("*** Sending Complete State: {} ***".format(self.state))
         return copy.deepcopy(self.state)
 
@@ -83,9 +83,9 @@ class DummyPlugin:
     #
 
     async def get_updates(self):
+        await self.AD.notify_plugin_started(self.namespace, True)
         while not self.stopping:
             ret = None
-            await self.AD.notify_plugin_started(self.namespace)
             if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
                 while not self.stopping:
                     await asyncio.sleep(1)

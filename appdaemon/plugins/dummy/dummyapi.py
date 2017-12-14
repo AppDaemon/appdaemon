@@ -17,7 +17,7 @@ class Dummy(appapi.AppDaemon):
 
         super(Dummy, self).__init__(ad, name, logger, error, args, config, global_vars)
 
-        self.namespace = "dummy"
+        self.namespace = "default"
         self.AD = ad
         self.name = name
         self._logger = logger
@@ -88,3 +88,12 @@ class Dummy(appapi.AppDaemon):
     def entity_exists(self, entity_id, **kwargs):
         namespace = self._get_namespace(kwargs)
         return self.AD.entity_exists(namespace, entity_id)
+
+    #def register_constraint(self, name):
+    #    self.constraints.append(name)
+
+    #def deregister_constraint(self, name):
+    #    self.constraints.remove(name)
+
+    def list_constraints(self):
+        return {}
