@@ -431,7 +431,7 @@ class Dashboard:
 
         dash["widgets"] = []
         dash["errors"] = []
-        valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size", "rows"]
+        valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size", "rows", "namespace"]
         layouts = []
 
         if level > self.max_include_depth:
@@ -474,6 +474,12 @@ class Dashboard:
                     ha.log(self.logger, "WARNING",
                            "global_parameters dashboard directive illegal in imported dashboard '{}.{}'".
                            format(name, extension))
+
+            if global_parameters is None:
+                global_parameters = {"namespace": "default"}
+
+            if "namespace" not in global_parameters:
+                global_parameters["namespace"] = "default"
 
             for param in dash_params:
                 if param == "layout" and dash_params[param] is not None:

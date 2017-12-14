@@ -31,7 +31,7 @@ class HassPlugin:
         if "namespace" in args:
             self.namespace = args["namespace"]
         else:
-            self.namespace = "hass"
+            self.namespace = "default"
 
         if "verbose" in args:
             self.verbose = args["verbose"]

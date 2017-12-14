@@ -55,6 +55,7 @@ class AppDaemon:
         self.callbacks_lock = threading.RLock()
 
         self.state = {}
+        self.state["default"] = {}
         self.state_lock = threading.RLock()
 
         self.endpoints = {}
@@ -464,9 +465,13 @@ class AppDaemon:
 
     def get_entity(self, namespace, entity_id):
             with self.state_lock:
-                if entity_id in self.state[namespace]:
-                    return self.state[namespace][entity_id]
+                if namespace in self.state:
+                    if entity_id in self.state[namespace]:
+                        return self.state[namespace][entity_id]
+                    else:
+                        return None
                 else:
+                    self.log("WARNING", "Unknown namespace: {}".format(namespace))
                     return None
 
     def get_state(self, namespace, device, entity, attribute):
