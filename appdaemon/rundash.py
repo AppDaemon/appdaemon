@@ -54,7 +54,7 @@ class RunDash():
         self._process_arg("rss_feeds", config)
 
         self.rss_update = None
-        self._process_arg("rss_feeds", config)
+        self._process_arg("rss_update", config)
 
         self.rss_last_update = None
 
@@ -244,7 +244,6 @@ class RunDash():
 
     async def update_rss(self):
         # Grab RSS Feeds
-
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
                 if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
@@ -253,14 +252,16 @@ class RunDash():
                     for feed_data in self.rss_feeds:
                         feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
-                        # TODO: Fix
                         new_state = {"feed": feed}
-                        with conf.ha_state_lock:
-                            conf.ha_state[feed_data["target"]] = new_state
+
+                        # TODO: Namespace Aware
+                        self.AD.set_state("hass", feed_data["target"], new_state)
 
                         data = {"event_type": "state_changed",
                                 "data": {"entity_id": feed_data["target"], "new_state": new_state}}
-                        self.ws_update(data)
+
+                        # TODO: Namespace again
+                        self.ws_update("hass", data)
 
                 await asyncio.sleep(1)
 

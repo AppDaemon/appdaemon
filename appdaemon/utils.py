@@ -133,7 +133,7 @@ def find_path(name):
     return None
 
 
-def log(logger, level, msg, name="", ts = None):
+def log(logger, level, msg, name="", ts=None):
     levels = {
         "CRITICAL": 50,
         "ERROR": 40,

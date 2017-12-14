@@ -50,7 +50,7 @@ class AppDaemon:
 
     def log(self, msg, level="INFO"):
         msg = self._sub_stack(msg)
-        self.AD.log(level, msg)
+        self.AD.log(level, msg, self.name)
 
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
@@ -64,7 +64,7 @@ class AppDaemon:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
         if not self.AD.entity_exists(namespace, entity):
-            self.AD.log(self._logger, "WARNING",
+            self.AD.log("WARNING",
                       "{}: Entity {} not found in AppDaemon".format(
                           self.name, entity))
 

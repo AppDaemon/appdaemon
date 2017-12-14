@@ -32,7 +32,7 @@ class AppDaemon:
 
         self.last_state = None
         self.inits = {}
-        # ws = None
+        self.last_plugin_state = {}
 
         self.monitored_files = {}
         self.modules = {}
@@ -44,7 +44,8 @@ class AppDaemon:
         self.stopping = False
         self.dashboard = None
 
-        # Will require object based locking if implemented
+        self.now = datetime.datetime.now().timestamp()
+
         self.objects = {}
 
         self.schedule = {}
@@ -87,8 +88,8 @@ class AppDaemon:
         self.app_dir = None
         self._process_arg("app_dir", kwargs)
 
-        self.start_time = None
-        self._process_arg("start_time", kwargs)
+        self.starttime = None
+        self._process_arg("starttime", kwargs)
 
         self._process_arg("now", kwargs)
 
@@ -145,7 +146,10 @@ class AppDaemon:
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs)
 
-        if self.tick != 1 or self.interval != 1 or self.start_time is not None:
+        self.stop_function = None
+        self._process_arg("stop_function", kwargs)
+
+        if self.tick != 1 or self.interval != 1 or self.starttime is not None:
             self.realtime = False
 
         if kwargs.get("cert_verify", True) == False:
@@ -158,7 +162,7 @@ class AppDaemon:
             self.apps = True
             self.log("INFO", "Starting Apps")
 
-        # Add appdir  and subdirs to path
+        # Add appdir and subdirs to path
         if self.apps is True:
             self.app_config_file_modified = os.path.getmtime(self.app_config_file)
             if self.app_dir is None:
@@ -172,7 +176,6 @@ class AppDaemon:
         else:
             self.app_config_file_modified = 0
 
-
         #
         # Initial Setup
         #
@@ -185,24 +188,9 @@ class AppDaemon:
 
         self.log("DEBUG", "Entering run()")
 
-        if self.start_time:
-            self.now = datetime.datetime.strptime(self.start_time, "%Y-%m-%d %H:%M:%S").timestamp()
-        else:
-            self.now = datetime.datetime.now().timestamp()
-
-        self.init_sun()
-
         # Load App Config
 
         self.app_config = self.read_config()
-
-        # Take a note of DST
-
-        self.was_dst = self.is_dst()
-
-        # Setup sun
-
-        self.update_sun()
 
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
@@ -232,11 +220,7 @@ class AppDaemon:
 
             plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
 
-            state = plugin.get_complete_state()
             namespace = plugin.get_namespace()
-
-            with self.state_lock:
-                self.state[namespace] = state
 
             if namespace in self.plugin_objs:
                 raise ValueError("Duplicate namespace: {}".format(namespace))
@@ -244,12 +228,6 @@ class AppDaemon:
             self.plugin_objs[namespace] = plugin
 
             loop.create_task(plugin.get_updates())
-
-        # Create timer loop
-
-        self.log("DEBUG", "Starting timer loop")
-
-        loop.create_task(self.do_every(self.tick, self.do_every_second))
 
         # Create utility loop
 
@@ -927,7 +905,16 @@ class AppDaemon:
             self.log("INFO", "--------------------------------------------------")
 
     async def do_every(self, period, f):
-        t = math.floor(self.get_now_ts())
+        #
+        # We already set self.now for DST calculation and initial sunset,
+        # but lets reset it at the start of the timer loop to avoid an initial clock skew
+        #
+        if self.starttime:
+            self.now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
+        else:
+            self.now = datetime.datetime.now().timestamp()
+
+        t = math.floor(self.now)
         count = 0
         t_ = math.floor(time.time())
         while not self.stopping:
@@ -949,7 +936,6 @@ class AppDaemon:
     # noinspection PyBroadException,PyBroadException
 
     async def do_every_second(self, utc):
-
         try:
             start_time = datetime.datetime.now().timestamp()
             self.now = utc
@@ -958,7 +944,13 @@ class AppDaemon:
 
             if self.endtime is not None and self.get_now() >= self.endtime:
                 self.log("INFO", "End time reached, exiting")
-                self.stop()
+                if self.stop_function is not None:
+                    self.stop_function()
+                else:
+                    #
+                    # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
+                    #
+                    self.stop()
 
             if self.realtime:
                 real_now = datetime.datetime.now().timestamp()
@@ -1037,8 +1029,27 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errfile)
                 )
 
-    def notify_plugin_restarted(self, namespace):
-        self.read_apps(True)
+    async def notify_plugin_started(self, namespace, first_time=False):
+
+        self.last_plugin_state[namespace] = datetime.datetime.now()
+
+        state = await self.plugin_objs[namespace].get_complete_state()
+
+        with self.state_lock:
+            self.state[namespace] = state
+
+        if not first_time:
+            await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
+        else:
+            self.log("INFO", "Got initial state from {}".format(namespace))
+
+        self.process_event({"event_type": "{}_started".format(namespace), "data": {}})
+
+    def notify_plugin_stopped(self, namespace):
+
+
+        self.process_event({"event_type": "{}_stopped".format(namespace), "data": {}})
+
 
     #
     # Utility Loop
@@ -1061,10 +1072,35 @@ class AppDaemon:
         #
         # All plugins are loaded and we have initial state
         #
+
+        if self.starttime:
+            new_now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
+            self.log("INFO", "Starting time travel ...")
+            self.log("INFO", "Setting clocks to {}".format(new_now))
+            self.now = new_now.timestamp()
+        else:
+            self.now = datetime.datetime.now().timestamp()
+
+        # Take a note of DST
+
+        self.was_dst = self.is_dst()
+
+        # Setup sun
+
+        self.init_sun()
+
+        self.update_sun()
+
+        # Create timer loop
+
+        self.log("DEBUG", "Starting timer loop")
+
+        self.loop.create_task(self.do_every(self.tick, self.do_every_second))
+
         self.log("DEBUG", "Reading Apps")
 
-        self.app_config_file_modified = self.now
-        self.read_apps(True)
+        self.app_config_file_modified = datetime.datetime.now().timestamp()
+        await utils.run_in_executor(self.loop, self.executor,self.read_apps, True)
 
         self.log("INFO", "App initialization complete")
         #
@@ -1082,6 +1118,28 @@ class AppDaemon:
                 # Check to see if config has changed
 
                 await utils.run_in_executor(self.loop, self.executor, self.check_config)
+
+                # Call me suspicious, but lets update state from the plugins periodically
+                # in case we miss events for whatever reason
+                # Every 10 minutes seems like a good place to start
+
+                for plugin in self.plugin_objs:
+                    if self.plugin_objs[plugin].active():
+                        if  datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
+                        minutes=10):
+                            try:
+                                self.log("DEBUG",
+                                         "Refreshing {} state".format(plugin))
+
+                                state = await self.plugin_objs[plugin].get_complete_state()
+
+                                with self.state_lock:
+                                    self.state[plugin] = state
+
+                                self.last_plugin_state[plugin] = datetime.datetime.now()
+                            except:
+                                self.log("WARNING",
+                                      "Unexpected error refreshing {} state - retrying in 10 minutes".format(plugin))
 
                 # Check for thread starvation
 
@@ -1195,16 +1253,6 @@ class AppDaemon:
         # Call it's initialize function
 
         self.objects[name]["object"].initialize()
-
-        # with self.threads_busy_lock:
-        #     inits[name] = 1
-        #     self.threads_busy += 1
-        #     q.put_nowait({
-        #         "type": "initialize",
-        #         "name": name,
-        #         "id": self.objects[name]["id"],
-        #         "function": self.objects[name]["object"].initialize
-        #     })
 
     def read_config(self):
         new_config = None
@@ -1737,16 +1785,24 @@ class AppDaemon:
                 del kwargs[key]
         return kwargs
 
-    def log(self, level, message):
-        utils.log(self.logger, level, message, "AppDaemon")
+    def log(self, level, message, name="AppDaemon"):
+        if not self.realtime:
+            ts = self.get_now()
+        else:
+            ts = None
+        utils.log(self.logger, level, message, name, ts)
 
-    def err(self, level, message):
-        utils.log(self.error, level, message, "AppDaemon")
+    def err(self, level, message, name="AppDaemon"):
+        if not self.realtime:
+            ts = self.get_now()
+        else:
+            ts = None
+        utils.log(self.error, level, message, name, ts)
 
     def register_dashboard(self, dash):
         self.dashboard = dash
 
-    def dispatch_app_by_name(self, name, args):
+    async def dispatch_app_by_name(self, name, args):
         with self.endpoints_lock:
             callback = None
             for app in self.endpoints:
@@ -1754,7 +1810,7 @@ class AppDaemon:
                     if self.endpoints[app][handle]["name"] == name:
                         callback = self.endpoints[app][handle]["callback"]
         if callback is not None:
-            return utils.run_in_executor(self.loop, self.executor, callback, args)
+            return await utils.run_in_executor(self.loop, self.executor, callback, args)
         else:
             return '', 404
 

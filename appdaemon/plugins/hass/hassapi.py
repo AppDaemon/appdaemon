@@ -117,15 +117,30 @@ class Hass(appapi.AppDaemon):
         if "attributes" in kwargs:
             new_state["attributes"].update(kwargs["attributes"])
 
-        # Send update to plugin
+        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        if "certpath" in config:
+            certpath = config["certpath"]
+        else:
+            certpath = None
 
-        self.AD.get_plugin(namespace).set_state(entity_id, new_state)
+        if "ha_key" in config and config["ha_key"] != "":
+            headers = {'x-ha-access': config["ha_key"]}
+        else:
+            headers = {}
+        apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
+
+
+        r = requests.post(
+            apiurl, headers=headers, json=new_state, verify=certpath
+        )
+        r.raise_for_status()
+        state= r.json()
 
         # Update AppDaemon's copy
 
-        self.AD.set_state(namespace, entity_id, new_state)
+        self.AD.set_state(namespace, entity_id, state)
 
-        return new_state
+        return state
 
     def entity_exists(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -144,11 +159,11 @@ class Hass(appapi.AppDaemon):
 
     def log(self, msg, level="INFO"):
         msg = self._sub_stack(msg)
-        utils.log(self._logger, level, msg, self.name)
+        self.AD.log(level, msg, self.name)
 
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
-        utils.log(self.error, level, msg, self.name)
+        self.AD.err(level, msg, self.name)
 
     #
     #
@@ -321,6 +336,7 @@ class Hass(appapi.AppDaemon):
         kwargs["message"] = message
         if "name" in kwargs:
             service = "notify/{}".format(kwargs["name"])
+            del kwargs["name"]
         else:
             service = "notify/notify"
 
