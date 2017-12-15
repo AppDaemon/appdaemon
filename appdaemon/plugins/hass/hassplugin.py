@@ -104,6 +104,7 @@ class HassPlugin:
 
         _id = 0
 
+        already_notified = False
         while not self.stopping:
             _id += 1
             disconnected_event = False
@@ -149,6 +150,8 @@ class HassPlugin:
                     # Fire HA_STARTED Events
                     #
                     await self.AD.notify_plugin_started(self.namespace, first_time)
+
+                    already_notified = False
 
                     while not self.stopping:
                         msg = await utils.run_in_executor(self.AD.loop, self.AD.executor, messages.__next__)
@@ -217,6 +220,8 @@ class HassPlugin:
                     #
                     await self.AD.notify_plugin_started(self.namespace, first_time)
 
+                    already_notified = False
+
                     while not self.stopping:
                         ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                         result = json.loads(ret)
@@ -238,7 +243,9 @@ class HassPlugin:
             except:
                 self.reading_messages = False
                 first_time = False
-                self.AD.notify_plugin_stopped(self.namespace)
+                if not already_notified:
+                    self.AD.notify_plugin_stopped(self.namespace)
+                    already_notified = True
                 if not self.stopping:
                     if disconnected_event == False:
                         self.AD.state_update(self.namespace, {"event_type": "ha_disconnected", "data": {}})

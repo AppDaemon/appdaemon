@@ -15,6 +15,50 @@ import bcrypt
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
 
+def securedata(myfunc):
+    """
+    Take care of streams and service calls
+    """
+
+    def wrapper(*args):
+
+        self = args[0]
+        if self.dash_password is None:
+            return myfunc(*args)
+        else:
+            if "adcreds" in args[1].cookies:
+                # TODO - run this in an executor thread
+                match = bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"])
+                if match:
+                    return myfunc(*args)
+                else:
+                    return self.error(args[1])
+            else:
+                return self.error(args[1])
+
+    return wrapper
+
+
+def secure(myfunc):
+    """
+    Take care of screen based security
+    """
+
+    def wrapper(*args):
+
+        self = args[0]
+        if self.dash_password == None:
+            return myfunc(*args)
+        else:
+            if "adcreds" in args[1].cookies and bcrypt.checkpw(str.encode(self.dash_password),
+                                                               str.encode(args[1].cookies["adcreds"])):
+                return myfunc(*args)
+            else:
+                return self.forcelogon(args[1])
+
+    return wrapper
+
+
 class RunDash():
 
     def __init__(self, ad, loop, logger, access, **config):
@@ -144,46 +188,6 @@ class RunDash():
         return bcrypt.checkpw, str.encode(password), str.encode(hash)
 
 
-    def securedata(self, myfunc):
-        """
-        Take care of streams and service calls
-        """
-
-        def wrapper(request):
-
-            if self.dash_password == None:
-                return myfunc(request)
-            else:
-                if "adcreds" in request.cookies:
-                    # TODO - run this in an executor thread
-                    match = bcrypt.checkpw, str.encode(self.dash_password), str.encode(request.cookies["adcreds"])
-                    if match:
-                        return myfunc(request)
-                    else:
-                        return self.error(request)
-                else:
-                    return self.error(request)
-
-        return wrapper
-
-
-    def secure(self, myfunc):
-        """
-        Take care of screen based security
-        """
-
-        def wrapper(request):
-
-            if self.dash_password == None:
-                return myfunc(request)
-            else:
-                if "adcreds" in request.cookies and bcrypt.checkpw(str.encode(self.dash_password),
-                                                                   str.encode(request.cookies["adcreds"])):
-                    return myfunc(request)
-                else:
-                    return self.forcelogon(request)
-
-        return wrapper
 
     async def forcelogon(self, request):
         response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list,
@@ -217,7 +221,7 @@ class RunDash():
 
 
     # noinspection PyUnusedLocal
-    #@secure
+    @secure
     async def list_dash(self, request):
         return (await self._list_dash(request))
 
@@ -229,7 +233,7 @@ class RunDash():
         response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list)
         return web.Response(text=response, content_type="text/html")
 
-    #@secure
+    @secure
     async def load_dash(self, request):
         name = request.match_info.get('name', "Anonymous")
         params = request.query
@@ -265,7 +269,7 @@ class RunDash():
                 await asyncio.sleep(1)
 
 
-    #@securedata
+    @securedata
     async def get_state(self, request):
 
         entity_id = request.match_info.get('entity')
@@ -285,7 +289,7 @@ class RunDash():
 
 
     # noinspection PyUnusedLocal
-    #@securedata
+    @securedata
     async def call_service(self, request):
         data = await request.post()
         args = {}
@@ -335,7 +339,7 @@ class RunDash():
                                 message='Server shutdown')
 
 
-    #@securedata
+    @securedata
     async def wshandler(self, request):
         ws = web.WebSocketResponse()
         await ws.prepare(request)
