@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import globals
 
 #
@@ -21,7 +21,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class MotionLights(appapi.AppDaemon):
+class MotionLights(hass.Hass):
 
   def initialize(self):
     

@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import threading
 import datetime
 import time
@@ -14,7 +14,7 @@ import re
 # Version 1.0:
 #   Initial Version
 
-class Secure(appapi.AppDaemon):
+class Secure(hass.Hass):
 
     def initialize(self):
         self.action_lock = threading.RLock()

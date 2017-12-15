@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 from queue import Queue
 import threading
 import time
@@ -22,7 +22,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class Grandfather(appapi.AppDaemon):
+class Grandfather(hass.Hass):
 
   def initialize(self):
    

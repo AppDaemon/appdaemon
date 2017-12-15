@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 
 """
 
@@ -8,7 +8,7 @@ Arguments:
  - events: List of events to monitor
 
 """
-class Monitor(appapi.AppDaemon):
+class Monitor(hass.Hass):
     def initialize(self):
         events = self.args['events']
 
