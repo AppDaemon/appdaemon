@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import requests
 import json
 from datetime import datetime
@@ -12,7 +12,7 @@ Arguments:
  - interval: Update interval, in minutes
 
 """
-class Bysykkel(appapi.AppDaemon):
+class Bysykkel(hass.Hass):
     def initialize(self):
         self.apiUrl = "http://reisapi.ruter.no"
         self.entity = self.args['event']

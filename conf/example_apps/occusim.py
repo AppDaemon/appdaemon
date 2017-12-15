@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime
 import re
 import random
@@ -10,7 +10,7 @@ import globals
 
 __version__ = "1.1.2"
 
-class OccuSim(appapi.AppDaemon):
+class OccuSim(hass.Hass):
 
   def initialize(self):
   

@@ -1,12 +1,9 @@
-AppDaemon:
+log:
   logfile: STDOUT
   errorfile: STDERR
+appdaeaemon:
   threads: 10
-HASS:
-  ha_url:
-  ha_key:
-# Apps
-hello_world:
-  module: hello
-  class: HelloWorld
-
+  plugins:
+    HASS:
+      ha_url:
+      ha_key:

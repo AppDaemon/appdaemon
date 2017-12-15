@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import globals
 
 
@@ -29,7 +29,7 @@ import globals
         Initial Version
 """
 
-class Sequence(appapi.AppDaemon):
+class Sequence(hass.Hass):
     def initialize(self):
         if "input" in self.args and "state" in self.args:
             self.listen_state(self.state_change, self.args["input"], new = self.args["state"])

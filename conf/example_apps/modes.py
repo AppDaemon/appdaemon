@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime
 import appdaemon
 import globals
@@ -21,7 +21,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class Modes(appapi.AppDaemon):
+class Modes(hass.Hass):
 
   def initialize(self):
     

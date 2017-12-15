@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 
 #
 # App to send notification when sensor values in specific ranges
@@ -16,7 +16,7 @@ import appdaemon.appapi as appapi
 # Version 1.0:
 #   Initial Version
 
-class SensorNotification(appapi.AppDaemon):
+class SensorNotification(hass.Hass):
 
   def initialize(self):
     self.listen_state(self.state, self.args["sensor"])

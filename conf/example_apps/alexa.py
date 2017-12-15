@@ -1,8 +1,8 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import random
 import globals
 
-class Alexa(appapi.AppDaemon):
+class Alexa(hass.Hass):
 
     def initialize(self):
         pass
