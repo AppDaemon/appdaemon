@@ -526,7 +526,7 @@ class AppDaemon:
     #
     # Events
     #
-    def add_event_callback(self, name, cb, event, **kwargs):
+    def add_event_callback(self, name, namespace, cb, event, **kwargs):
         with self.callbacks_lock:
             if name not in self.callbacks:
                 self.callbacks[name] = {}
@@ -536,6 +536,7 @@ class AppDaemon:
                 "id": self.objects[name]["id"],
                 "type": "event",
                 "function": cb,
+                "namespace": namespace,
                 "event": event,
                 "kwargs": kwargs
             }
@@ -1048,12 +1049,12 @@ class AppDaemon:
         else:
             self.log("INFO", "Got initial state from {}".format(namespace))
 
-        self.process_event({"event_type": "{}_started".format(namespace), "data": {}})
+        self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
 
     def notify_plugin_stopped(self, namespace):
 
 
-        self.process_event({"event_type": "{}_stopped".format(namespace), "data": {}})
+        self.process_event("global", {"event_type": "plugin_stopped".format(namespace), "data": {"name": namespace}})
 
 
     #
@@ -1111,7 +1112,7 @@ class AppDaemon:
         #
         # Fire APPD Started Event
         #
-        self.process_event({"event_type": "appd_started", "data": {}})
+        self.process_event("global", {"event_type": "appd_started", "data": {}})
 
         while not self.stopping:
             start_time = datetime.datetime.now().timestamp()
@@ -1644,7 +1645,7 @@ class AppDaemon:
             for name in self.callbacks.keys():
                 for uuid_ in self.callbacks[name]:
                     callback = self.callbacks[name][uuid_]
-                    if callback["type"] == "state" and callback["namespace"] == namespace:
+                    if callback["type"] == "state" and (callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"):
                         cdevice = None
                         centity = None
                         if callback["entity"] is not None:
@@ -1709,9 +1710,9 @@ class AppDaemon:
                 # Process state changed message
                 if data['event_type'] == "state_changed":
                     self.process_state_change(namespace, data)
-
-                # Process non-state callbacks
-                self.process_event(data)
+                else:
+                    # Process non-state callbacks
+                    self.process_event(namespace, data)
 
             # Update dashboards
 
@@ -1732,30 +1733,31 @@ class AppDaemon:
     # Event Update
     #
 
-    def process_event(self, data):
+    def process_event(self, namespace, data):
         with self.callbacks_lock:
             for name in self.callbacks.keys():
                 for uuid_ in self.callbacks[name]:
                     callback = self.callbacks[name][uuid_]
-                    if "event" in callback and (
-                                    callback["event"] is None
-                            or data['event_type'] == callback["event"]):
-                        # Check any filters
-                        _run = True
-                        for key in callback["kwargs"]:
-                            if key in data["data"] and callback["kwargs"][key] != \
-                                    data["data"][key]:
-                                _run = False
-                        if _run:
-                            self.dispatch_worker(name, {
-                                "name": name,
-                                "id": self.objects[name]["id"],
-                                "type": "event",
-                                "event": data['event_type'],
-                                "function": callback["function"],
-                                "data": data["data"],
-                                "kwargs": callback["kwargs"]
-                            })
+                    if callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global":
+                        if "event" in callback and (
+                                        callback["event"] is None
+                                or data['event_type'] == callback["event"]):
+                            # Check any filters
+                            _run = True
+                            for key in callback["kwargs"]:
+                                if key in data["data"] and callback["kwargs"][key] != \
+                                        data["data"][key]:
+                                    _run = False
+                            if _run:
+                                self.dispatch_worker(name, {
+                                    "name": name,
+                                    "id": self.objects[name]["id"],
+                                    "type": "event",
+                                    "event": data['event_type'],
+                                    "function": callback["function"],
+                                    "data": data["data"],
+                                    "kwargs": callback["kwargs"]
+                                })
 
     #
     # Plugin Management

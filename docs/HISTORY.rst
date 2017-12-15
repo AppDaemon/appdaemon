@@ -7,8 +7,9 @@ Change Log
 **Features**
 
 - Refactored plugguble architecture
-- Support for multip[le HASS instances
+- Support for multiple HASS instances
 - Custom constraints
+- Namespaces
 
 **Fixes**
 
@@ -18,7 +19,7 @@ Change Log
 - `info_listen_state()` now returns the namespace in addition to the previous parameters
 - AppDaemon no longer supports python 3.4
 - --commtype command line argument has been moved to the appdaemon.cfg file
-- The "ha_started" event has been renamed to "hass_restarted" or "<namespace>_restarted" if you are using multiple HASS instances
+- The "ha_started" event has been renamed to "plugin_started"
 
 2.1.12 (2017-11-07)
 ------

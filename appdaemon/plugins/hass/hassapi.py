@@ -86,6 +86,8 @@ class Hass(appapi.AppDaemon):
 
     def listen_state(self, cb, entity=None, **kwargs):
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         return super(Hass, self).listen_state(namespace, cb, entity, **kwargs)
 
     #
@@ -93,10 +95,14 @@ class Hass(appapi.AppDaemon):
     #
 
     def get_state(self, entity=None, **kwargs):
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         namespace = self._get_namespace(**kwargs)
         return super(Hass, self).get_state(namespace, entity, **kwargs)
 
     def set_state(self, entity_id, **kwargs):
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         namespace = self._get_namespace(**kwargs)
         self._check_entity(namespace, entity_id)
         self.AD.log(
@@ -143,8 +149,21 @@ class Hass(appapi.AppDaemon):
         return state
 
     def entity_exists(self, entity_id, **kwargs):
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         namespace = self._get_namespace(**kwargs)
         return self.AD.entity_exists(namespace, entity_id)
+
+    #
+    # Events
+    #
+    def listen_event(self, cb, event=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+        return super(Hass, self).listen_event(namespace, cb, event, **kwargs)
+
+
     #
     # Utility
     #
