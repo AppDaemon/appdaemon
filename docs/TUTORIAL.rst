@@ -131,9 +131,9 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class OutsideLights(appapi.AppDaemon):
+    class OutsideLights(hass.Hass):
 
       def initialize(self):
         self.run_at_sunrise(self.sunrise_cb)
@@ -169,9 +169,9 @@ terms:
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class FlashyMotionLights(appapi.AppDaemon):
+    class FlashyMotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
@@ -200,9 +200,9 @@ activated and bales out after 10 iterations.
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class MotionLights(appapi.AppDaemon):
+    class MotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")

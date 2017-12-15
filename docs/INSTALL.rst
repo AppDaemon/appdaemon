@@ -41,28 +41,68 @@ Your initial file should look something like this:
 
 .. code:: yaml
 
-    AppDaemon:
+    log:
+      accessfile: /export/hass/appdaemon_test/logs/access.log
+      errorfile: /export/hass/appdaemon_test/logs/error.log
+      logfile: /export/hass/appdaemon_test/logs/appdaemon.log
+      log_generations: 3
+      log_size: 1024
+    appdaemon:
       logfile: STDOUT
       errorfile: STDERR
-      logsize: 100000
-      log_generations: 3
       threads: 10
       time_zone: <time zone>
       api_port: 5000
       api_key: !secret api_key
       api_ssl_certificate: <path/to/root/CA/cert>
       api_ssl_key: <path/to/root/CA/key>
-    HASS:
-      ha_url: <some_url>
-      ha_key: <some key>
-      cert_path: <path/to/root/CA/cert>
-      cert_verify: True
+      plugins:
+        HASS:
+          type: hass
+          ha_url: <some_url>
+          ha_key: <some key>
+          cert_path: <path/to/root/CA/cert>
+          cert_verify: True
+          namespace: default
 
+-  ``type`` The type of the plugin. For Home Assistant this will always be ``hass``
 -  ``ha_url`` is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or
    ``https://`` as appropriate)
 -  ``ha_key`` should be set to your key if you have one, otherwise it
    can be removed.
+-  ``threads`` - the number of dedicated worker threads to create for
+   running the apps. Note, this will bear no resembelance to the number
+   of apps you have, the threads are re-used and only active for as long
+   as required to run a particular callback or initialization, leave
+   this set to 10 unless you experience thread starvation
+-  ``cert_path`` (optional) - path to root CA cert directory for HASS -
+   use only if you are using self signed certs.
+-  ``cert_verify`` (optional) - flag for cert verification for HASS -
+   set to ``False`` to disable verification on self signed certs.
+-  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
+   specified, AppDaemon will query the timezone from Home Assistant
+-  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
+   on. If not specified, the RESTFul API will be turned off
+-  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
+   to provide a key in the header of a request
+-  ``api_ssl_certificate`` (optional) - certificate to use when running
+   the API over SSL
+-  ``api_ssl_key`` (optional) - key to use when running the API over SSL
+-  ``namespace`` (optional) - which namespace to use. This can safely be left
+out unless you are planning to use multiple plugins (see below)
+
+Optionally, you can place your apps in a directory other than under the
+config directory using the ``app_dir`` directive.
+
+e.g.:
+
+.. code:: yaml
+
+    app_dir: /etc/appdaemon/apps
+
+The ``log:`` section is optional but if included must have at least one directive in it. The directives are as follows:
+
 -  ``logfile`` (optional) is the path to where you want ``AppDaemon`` to
    keep its main log. When run from the command line this is not used
    -log messages come out on the terminal. When running as a daemon this
@@ -82,33 +122,19 @@ Your initial file should look something like this:
 -  ``log_generations`` (optional) is the number of rotated logfiles that
    will be retained before they are overwritten if not specified, this
    will default to 3 files.
--  ``threads`` - the number of dedicated worker threads to create for
-   running the apps. Note, this will bear no resembelance to the number
-   of apps you have, the threads are re-used and only active for as long
-   as required to run a particular callback or initialization, leave
-   this set to 10 unless you experience thread starvation
--  ``cert_path`` (optional) - path to root CA cert directory for HASS -
-   use only if you are using self signed certs.
--  ``cert_verify`` (optional) - flag for cert verification for HASS -
-   set to ``False`` to disable verification on self signed certs.
--  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
-   specified, AppDaemon will query the timezone from Home Assistant
--  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
-   on. If not specified, the RESTFul API will be turned off
--  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
-   to provide a key in the header of a request
--  ``api_ssl_certificate`` (optional) - certificate to use when running
-   the API over SSL
--  ``api_ssl_key`` (optional) - key to use when running the API over SSL
 
-Optionally, you can place your apps in a directory other than under the
-config directory using the ``app_dir`` directive.
+A Note About Plugins
+~~~~~~~~~~~~~~~~~~~~
 
-e.g.:
+In the example above, you will see that home assistant is configured as a plugin.
+For most applications there is little significance to this - just configure a single plugin for HASS exactly as above. However, for power users this is a way to allow AppDaemon to work with more than one installation of Home Assistant.
+The plugin architecture also allows the creation of plugins for other purposes, e.g.
+different home automation systems.
 
-.. code:: yaml
-
-    app_dir: /etc/appdaemon/apps
+To configure more than one plugin, simply add a new section to the plugins list and configure it appropriately.
+Before you do this, make sure to review the section on namespaces to fully understand what this entails, and if you are using more than one plugin, make sure you use the namespace directive to create a unique namespace for each plugin.
+(One of the plugins may be safely allowed to use the default value, however any more than that will require the namespace directive. There is also no harm in giving them all namespaces, since the default namespace is literally ``default``
+and has no particular significance, it's just a different name).
 
 Secrets
 ~~~~~~~
@@ -159,7 +185,7 @@ following into it using your favorite text editor:
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
     #
     # Hello World App
@@ -167,7 +193,7 @@ following into it using your favorite text editor:
     # Args:
     #
 
-    class HelloWorld(appapi.AppDaemon):
+    class HelloWorld(hass.Hass):
 
       def initialize(self):
          self.log("Hello from AppDaemon")
@@ -272,51 +298,6 @@ operations as well as apps using the logging function.
 The -s, -i, -t and -s options are for the Time Travel feature and should
 only be used for testing. They are described in more detail in the API
 documentation.
-
-Legacy Configuration
---------------------
-
-AppDaemon also currently supports a legacy ``ini`` style of
-configuration and it is shown here for backward compatibility. It is
-recommended that you move to the YAML format using the provided tool.
-When using the legacy configuration style, there are no ``HASS`` or
-``HADashboard`` sections - the associated directives all go in the
-``AppDaemon`` section.
-
-.. code:: ini
-
-    [AppDaemon]
-    ha_url = <some_url>
-    ha_key = <some key>
-    logfile = STDOUT
-    errorfile = STDERR
-    threads = 10
-    cert_path = <path/to/root/CA/cert>
-    cert_verify = True
-    # Apps
-    [hello_world]
-    module = hello
-    class = HelloWorld
-
-If you want to move from the legacy ``ini`` style of configuration to
-YAML, AppDaemon is able to do this for you. Just run AppDaemon providing
-the configuration directory using the -c option as usual and specify the
---convertcfg flag. From the command line run:
-
-.. code:: bash
-
-    $ appdaemon -c YOUR_CONFIG_DIR --convertcfg
-    Converting /etc/appdaemon/appdaemon.cfg to /etc/appdaemon/appdaemon.yaml
-    $
-
-AppDaemon should correctly figure out where the file is to convert form
-your existing configuration. After conversion, the new YAML file will be
-used in preference to the old ini file, which can then be removed if
-desired.
-
-Note: any lines in the ini file that are commented out, whether actual
-comments of lines that are not active, will not be converted. Note 2:
-Docker users will unfortunately need to perform the conversion manually.
 
 Starting At Reboot
 ------------------
