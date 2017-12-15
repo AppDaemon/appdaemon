@@ -6,12 +6,14 @@ Change Log
 
 **Features**
 
-- Refactored plugguble architecture
+- Refactored pluggable architecture
 - Support for multiple HASS instances
 - Custom constraints
 - Namespaces
 
 **Fixes**
+
+None
 
 **Breaking Changes**
 
@@ -20,6 +22,11 @@ Change Log
 - AppDaemon no longer supports python 3.4
 - --commtype command line argument has been moved to the appdaemon.cfg file
 - The "ha_started" event has been renamed to "plugin_started"
+- RSS Feed parameters have been moved to the hadashboard section
+- Log directives now have their own section
+- AppDaemon section renamed to appdaemon
+- HADashboard section renamed to hadashboard
+
 
 2.1.12 (2017-11-07)
 ------

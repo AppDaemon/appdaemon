@@ -36,9 +36,9 @@ supplied ``AppDaemon`` class, imported from the supplied
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class MotionLights(appapi.AppDaemon):
+    class OutsideLights(hass.Hass):
 
 When configured as an app in the config file (more on that later) the
 lifecycle of the App begins. It will be instantiated as an object by
@@ -104,11 +104,11 @@ comments):
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
     import datetime
 
-     Declare Class
-    class NightLight(appapi.AppDaemon):
+    # Declare Class
+    class NightLight(hass.Hass):
       #initialize() function which will be called at startup and reload
       def initialize(self):
         # Create a time object for 7pm
@@ -477,13 +477,13 @@ times that span midnight.
 
 .. code:: yaml
 
-     Run between 8am and 10pm
+    # Run between 8am and 10pm
     constrain_start_time: 08:00:00
     constrain_end_time: 22:00:00
-     Run between sunrise and sunset
+    # Run between sunrise and sunset
     constrain_start_time: sunrise
     constrain_end_time: sunset
-     Run between 45 minutes before sunset and 45 minutes after sunrise the next day
+    # Run between 45 minutes before sunset and 45 minutes after sunrise the next day
     constrain_start_time: sunset - 00:45:00
     constrain_end_time: sunrise + 00:45:00
 
@@ -503,7 +503,7 @@ Apps, see later for more details.
 A Note on Threading
 -------------------
 
-AppDaemon is multithreaded. This means that any time code within an App
+AppDaemon is multi-threaded. This means that any time code within an App
 is executed, it is executed by one of many threads. This is generally
 not a particularly important consideration for this application; in
 general, the execution time of callbacks is expected to be far quicker
@@ -872,9 +872,9 @@ Assistant bus:
 
 -  ``appd_started`` - fired once when AppDaemon is first started and
    after Apps are initialized
--  ``ha_started`` - fired every time AppDaemon detects a Home Assistant
+-  ``plugin_started`` - fired every time AppDaemon detects a Home Assistant
    restart
--  ``ha_disconnectd`` - fired once every time AppDaemon loses its
+-  ``plugin_stopped`` - fired once every time AppDaemon loses its
    connection with HASS
 
 About Event Callbacks
@@ -976,9 +976,9 @@ Examples
 .. code:: python
 
     self.listen_event(self.mode_event, "MODE_CHANGE")
-     Listen for a minimote event activating scene 3:
+    # Listen for a minimote event activating scene 3:
     self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
-     Listen for a minimote event activating scene 3 from a specific minimote:
+    # Listen for a minimote event activating scene 3 from a specific minimote:
     self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
 
 Use of Events for Signalling between Home Assistant and AppDaemon
@@ -1035,7 +1035,7 @@ HADashboard listens for certain events. An event type of "hadashboard"
 will trigger certain actions such as page navigation. For more
 information see the ` Dashboard configuration pages <DASHBOARD.html>`__
 
-AppDaemon provides convenience funtions to assist with this.
+AppDaemon provides convenience functions to assist with this.
 
 Presence
 --------
@@ -1274,7 +1274,6 @@ connection is unexpectedly lost, the following will occur:
 -  Any operation reading locally cached state will succeed
 -  Any operation requiring a call to HASS will log a warning and return
    without attempting to contact hass
--  Changes to Apps will not force a reload until HASS is reconnected
 
 When a connection to HASS is reestablished, all Apps will be restarted
 and their ``initialize()`` routines will be called.
@@ -1316,9 +1315,9 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class API(appapi.AppDaemon):
+    class API(hass.Hass):
 
         def initialize(self):
             self.register_endpoint(my_callback, test_endpoint)
@@ -1451,11 +1450,11 @@ want to configure.
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import import appdaemon.plugins.hass.hassapi as hass
     import random
     import globals
 
-    class Alexa(appapi.AppDaemon):
+    class Alexa(hass.Hass):
 
         def initialize(self):
             pass
@@ -1557,103 +1556,209 @@ Google API.AI
 
 Similarly, Google's API.AI for Google home is supported - here is the Google version of the same App.To set up Api.ai with your google home refer to the apiai component in home-assistant. Once it is setup you can use the appdaemon API as the webhook.
 
-import appdaemon.appapi as appapi
-import random
-import globals
+.. code:: python
 
-class Apiai(appapi.AppDaemon):
+    import appdaemon.plugins.hass.hassapi as hass
+    import random
+    import globals
 
-    def initialize(self):
-        pass
+    class Apiai(hass.Hass):
 
-    def api_call(self, data):
-        intent = self.get_apiai_intent(data)
+        def initialize(self):
+            pass
 
-        if intent is None:
-            self.log("Apiai error encountered: Result is empty")
-            return "", 201
+        def api_call(self, data):
+            intent = self.get_apiai_intent(data)
 
-        intents = {
-            "StatusIntent": self.StatusIntent,
-            "LocateIntent": self.LocateIntent,
-        }
+            if intent is None:
+                self.log("Apiai error encountered: Result is empty")
+                return "", 201
 
-        if intent in intents:
-            speech = intents[intent](data)
-            response = self.format_apiai_response(speech)
-            self.log("Recieved Apai request: {}, answering: {}".format(intent, speech))
-        else:
-            response = self.format_apaiai_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
+            intents = {
+                "StatusIntent": self.StatusIntent,
+                "LocateIntent": self.LocateIntent,
+            }
 
-        return response, 200
-
-    def StatusIntent(self, data):
-        response = self.HouseStatus()
-        return response
-
-    def LocateIntent(self, data):
-        user = self.get_apiai_slot_value(data, "User")
-
-        if user is not None:
-            if user.lower() == "jack":
-                response = self.Jack()
-            elif user.lower() == "andrew":
-                response = self.Andrew()
-            elif user.lower() == "wendy":
-                response = self.Wendy()
-            elif user.lower() == "brett":
-                response = "I have no idea where Brett is, he never tells me anything"
+            if intent in intents:
+                speech = intents[intent](data)
+                response = self.format_apiai_response(speech)
+                self.log("Recieved Apai request: {}, answering: {}".format(intent, speech))
             else:
-                response = "I'm sorry, I don't know who {} is".format(user)
-        else:
-            response = "I'm sorry, I don't know who that is"
+                response = self.format_apaiai_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
 
-        return response
+            return response, 200
 
-    def HouseStatus(self):
+        def StatusIntent(self, data):
+            response = self.HouseStatus()
+            return response
 
-        status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
-        status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
-        status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
-        status += self.Wendy()
-        status += self.Andrew()
-        status += self.Jack()
+        def LocateIntent(self, data):
+            user = self.get_apiai_slot_value(data, "User")
 
-        return status
+            if user is not None:
+                if user.lower() == "jack":
+                    response = self.Jack()
+                elif user.lower() == "andrew":
+                    response = self.Andrew()
+                elif user.lower() == "wendy":
+                    response = self.Wendy()
+                elif user.lower() == "brett":
+                    response = "I have no idea where Brett is, he never tells me anything"
+                else:
+                    response = "I'm sorry, I don't know who {} is".format(user)
+            else:
+                response = "I'm sorry, I don't know who that is"
 
-    def Wendy(self):
-        location = self.get_state(globals.wendy_tracker)
-        if location == "home":
-            status = "Wendy is home,"
-        else:
-            status = "Wendy is away,"
+            return response
 
-        return status
+        def HouseStatus(self):
 
-    def Andrew(self):
-        location = self.get_state(globals.andrew_tracker)
-        if location == "home":
-            status = "Andrew is home,"
-        else:
-            status = "Andrew is away,"
+            status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
+            status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
+            status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
+            status += self.Wendy()
+            status += self.Andrew()
+            status += self.Jack()
 
-        return status
+            return status
 
-    def Jack(self):
-        responses = [
-            "Jack is asleep on his chair",
-            "Jack just went out bowling with his kitty friends",
-            "Jack is in the hall cupboard",
-            "Jack is on the back of the den sofa",
-            "Jack is on the bed",
-            "Jack just stole a spot on daddy's chair",
-            "Jack is in the kitchen looking out of the window",
-            "Jack is looking out of the front door",
-            "Jack is on the windowsill behind the bed",
-            "Jack is out checking on his clown suit",
-            "Jack is eating his treats",
-            "Jack just went out for a walk in the neigbourhood",
-            "Jack is by his bowl waiting for treats"
-        ]
+        def Wendy(self):
+            location = self.get_state(globals.wendy_tracker)
+            if location == "home":
+                status = "Wendy is home,"
+            else:
+                status = "Wendy is away,"
 
-        return random.choice(responses)
+            return status
+
+        def Andrew(self):
+            location = self.get_state(globals.andrew_tracker)
+            if location == "home":
+                status = "Andrew is home,"
+            else:
+                status = "Andrew is away,"
+
+            return status
+
+        def Jack(self):
+            responses = [
+                "Jack is asleep on his chair",
+                "Jack just went out bowling with his kitty friends",
+                "Jack is in the hall cupboard",
+                "Jack is on the back of the den sofa",
+                "Jack is on the bed",
+                "Jack just stole a spot on daddy's chair",
+                "Jack is in the kitchen looking out of the window",
+                "Jack is looking out of the front door",
+                "Jack is on the windowsill behind the bed",
+                "Jack is out checking on his clown suit",
+                "Jack is eating his treats",
+                "Jack just went out for a walk in the neigbourhood",
+                "Jack is by his bowl waiting for treats"
+            ]
+
+            return random.choice(responses)
+
+Plugins
+-------
+
+As of version 3.0, AppDaemon has been rewritten to use a pluggable architecture for connection to the systems it monitors.
+At the time of writing, only one real plugin exists, the homeassistant plugin, and this works the same way that it always has. (There is also an experimental dummy plugin used for testing purposes).
+
+In future it will be possible to create plugins that interface with other systems for instance other home automation systems, or anything else for that matter, and expose their operation to AppDaemon and write Apps to monitor and control them.
+
+An interesting caveat of this is that the architecture has been designed so that multiple instances of each plugin can be configured, meaning for instance that it is possible to connect AppDaemon to 2 or more instances of Home Assistant.
+
+To configure additional plugins of any sort, simply add a new section in the list of plugins in the AppDaemon section.
+
+Here is an example of a plugin section with 2 hass instances and 2 dummy instances:
+
+.. code:: yaml
+
+  plugins:
+    HASS1:
+      type: hass
+      ha_key: !secret home_assistant1_key
+      ha_url: http://192.168.1.20:8123
+    HASS2:
+      namespace: hass2
+      type: hass
+      ha_key: !secret home_assistant2_key
+      ha_url: http://192.168.1.21:8123
+    TEST:
+      namespace: test1
+      type: dummy
+      configuration: /export/hass/appdaemon_test/dummy/test1.yaml
+    TEST2:
+      namespace: test2
+      type: dummy
+      configuration: /export/hass/appdaemon_test/dummy/test2.yaml
+
+The ``type`` parameter defines which of the plugins are used, and the parameters for each plugin type will be different.
+As you can see, the parameters for both hass instances are similar, and it supports all the parameters described in the
+installation section of the docs - here I am just using a subset.
+
+Namespaces
+----------
+
+A critical piece of this is the concept of ``namespaces``. Each plugin has an optional``namespace`` directive. If you have more than 1 plugin of any type, their state is separated into namespaces, and you need to name those namespaces using the ``namespace`` parameter. If you don't supply a namespace, the namespace defaults to ``default`` and this is the default for all areas of AppDaemon meaning that if you only have one plugin you don't need to worry about namespace at all.
+
+In the case above, the first instance had no namespace so it's namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
+
+These namespaces can be accessed separately by the various API calls to keep things separate, but individual Apps can switch between namespaces at will as well as monitor all namespaces in certain calls like ``listen_state()`` or ``listen_event()`` by setting the namespace to ``global``.
+
+Use of Namespaces in Apps
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each App maintains a current namespace at all times. At initialization, this is set to ``default``. This means that if you only have a single plugin you don't need to worry about namespaces at all as everything will just work.
+
+There are 2 ways to work with namespaces in apps. The first is to make a call to ``set_namespace()`` whenever you want to change namespaces. For instance, if in the configuration above, you wanted a particular app to work entirely with the ``HASS2`` plugin instance, all you would need to do is put the following code at the top of your ``initialize()`` function:
+
+.. code:: python
+
+    self.set_namespace("hass2")
+
+Note that you should use the value of the namespace parameter, not the name of the plugin section. From that point on, all state changes, events, service calls etc. will apply to the ``HASS2`` instance and the ``HASS1`` and ``DUMMY`` instances will be ignored. This is convenient for the case in which you don't need to switch between namespaces.
+
+In addition, most of the api calls allow you to optionally supply a namespace for them to operate under. This will override the namespace set by ``set_namespace()`` for that call only.
+
+For example:
+
+.. code:: python
+
+    self.set_namespace("hass2")
+    # Get the entity value from the HASS2 plugin
+    state = self.get_state("light.light1")
+
+    # Get the entity value from the HASS1 plugin
+    state = self.get_state("light.light1", namespace="default")
+
+In this way it is possible to use a single app to work with multiple namespaces easily and quickly.
+
+A Note on Callbacks
+~~~~~~~~~~~~~~~~~~~
+
+One important thing to note, when working with namespaces is that callbacks will honor the namespace they were created with. So if for instance you create a ``listen_state()`` callback with a namespace of ``default`` then later change the namespace to ``hass1``, that callback will continue to listen to the ``default`` namespace.
+
+For instance:
+
+.. code:: python
+
+    self.set_namespace("default")
+    self.listen_state(callback)
+    self.set_namespace("hass2")
+    self.listen_state(callback)
+    self.set_namespace("dummy1")
+
+This will leave us with 2 callbacks, one listening for state changes in ``default`` and one for state changes in ``hass2``, regardless of the final value of the namespace.
+
+Similarly:
+
+.. code:: python
+
+    self.set_namespace("dummy2")
+    self.listen_state(callback, namespace="default")
+    self.listen_state(callback, namespace="hass2")
+    self.set_namespace("dummy1")
+
+This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.

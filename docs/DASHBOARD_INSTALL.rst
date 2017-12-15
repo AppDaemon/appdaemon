@@ -21,7 +21,7 @@ Dashboard is pretty simple. You just need to add a directive to the
 config file - ``dash_url``.
 
 This and the optional ``dash_dir`` directive should be in the top of the
-file under a new ``HADashboard:`` section.
+file under a new ``hadashboard:`` section.
 
 -  ``dash_url`` - the url you want the dashboard service to listen on
 
@@ -29,10 +29,9 @@ For instance:
 
 .. code:: yaml
 
-    HASS:
-      ha_url: <some_url>
-      ...
-    HADashboard:
+    appdaemon:
+        ...
+    hadashboard:
       dash_url: http://192.168.1.20:5050
 
 To enable https support for HADashboard, add the following directives
@@ -65,7 +64,7 @@ e.g.:
 
 .. code:: yaml
 
-    HADashboard:
+    hadashboard:
     dash_dir: /etc/appdaemon/dashboards
 
 Next, you will need to create the ``dashboards`` directive either under
@@ -105,7 +104,7 @@ can disable the app engine with the following directive:
 
 .. code:: yaml
 
-    AppDaemon:
+    appdaemon:
       disable_apps: 1
 
 This will free up some CPU and memory.
@@ -119,7 +118,7 @@ use the following directive:
 
 .. code:: yaml
 
-    HADashboard:
+    hadashboard:
     dash_force_compile: 1
 
 This will force dashboard recompilation whenever the dashboard is
@@ -132,15 +131,15 @@ a different file, use the ``accessfile`` directive, e.g.:
 
 .. code:: yaml
 
-    HADashboard:
-    accessfile: /var/log/dash_access
+    hadashboard:
+      accessfile: /var/log/dash_access
 
 To force dashboard recompilation of all dashboards after a restart, use:
 
 .. code:: yaml
 
-    HADashboard:
-    dash_compile_on_start: 1
+    hadashboard:
+      dash_compile_on_start: 1
 
 This should not be necessary but may on occasion be required after an
 upgrade to pickup changes.
@@ -154,7 +153,7 @@ The dashboard URL supports a couple of extra parameters:
 -  ``recompile`` - set to anything to force a recompilation of the
    dashboard
 
-For example, the following url will load a dasboard called main with the
+For example, the following url will load a dashboard called main with the
 obsidian skin:
 
 ::

@@ -12,7 +12,7 @@ Synopsis
 
 .. code:: python
 
-    get_state(entity = None, attribute: None)
+    get_state(entity=None, attribute=None, namespace=None)
 
 ``get_state()`` is used to query the state of any component within Home
 Assistant. State updates are continuously tracked so this call runs
@@ -57,6 +57,11 @@ not present.
 The value ``all`` for attribute has special significance and will return
 the entire state dictionary for the specified entity rather than an
 individual attribute value.
+
+namespace
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
 
 Examples
 ^^^^^^^^
@@ -130,6 +135,12 @@ A list of keyword values to be changed or added to the entities state.
 e.g. ``state = "off"``. Note that any optional attributes such as colors
 for bulbs etc, need to reside in a dictionary called ``attributes``; see
 the example.
+
+namespace
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
 
 Examples
 ^^^^^^^^
@@ -241,6 +252,12 @@ for instance you want the duration to be triggered immediately if a light is alr
 If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check if the entity
 is already set to the new state and if so it will start the clock immediately. In this case, old will be ignored
 and when the timer triggers, it's state will be set to None. If new or entity are not set, ``immediate`` will be ignored.
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will lsiten to state updates from any plugin.
+
 
 \*\*kwargs
 ''''''''''
@@ -1032,6 +1049,13 @@ service
 
 The service name, e.g. ``light/turn_on``.
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
+
 \*\*kwargs
 ''''''''''
 
@@ -1085,6 +1109,11 @@ entity\_id
 Fully qualified entity\_id of the thing to be turned on, e.g.
 ``light.office_lamp`` or ``scene.downstairs_on``
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
 \*\*kwargs
 ''''''''''
 
@@ -1128,6 +1157,12 @@ entity\_id
 Fully qualified entity\_id of the thing to be turned off, e.g.
 ``light.office_lamp`` or ``scene.downstairs_on``.
 
+namespace = (optional)
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
 Examples
 ^^^^^^^^
 
@@ -1163,6 +1198,12 @@ entity\_id
 
 Fully qualified entity\_id of the thing to be toggled, e.g.
 ``light.office_lamp`` or ``scene.downstairs_on``.
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
 
 Examples
 ^^^^^^^^
@@ -1205,6 +1246,12 @@ value
 
 The new value to set the input slider to.
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
 Examples
 ^^^^^^^^
 
@@ -1245,6 +1292,12 @@ value
 
 The new value to set the input slider to.
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
 Examples
 ^^^^^^^^
 
@@ -1279,15 +1332,21 @@ message
 
 Message to be sent to the notification service.
 
-title =
-'''''''
+title = (optional)
+''''''''''''''''''
 
 Title of the notification - optional.
 
-name =
-''''''
+name = (optional)
+'''''''''''''''''
 
 Name of the notification service - optional.
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
 
 Examples
 ^^^^^^^^
@@ -1332,6 +1391,12 @@ Name of the event to subscribe to. Can be a standard Home Assistant
 event such as ``service_registered`` or an arbitrary custom event such
 as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
 subscribe to all events.
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will lsiten to state updates from any plugin.
+
 
 \*\*kwargs (optional)
 '''''''''''''''''''''
@@ -1457,6 +1522,13 @@ Name of the event. Can be a standard Home Assistant event such as
 ``service_registered`` or an arbitrary custom event such as
 ``"MODE_CHANGE"``.
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
+
 \*\*kwargs
 ''''''''''
 
@@ -1486,6 +1558,16 @@ Synopsis
 
     tracker_list = get_trackers()
 
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
+
 Returns
 ^^^^^^^
 
@@ -1511,6 +1593,14 @@ Synopsis
 .. code:: python
 
     tracker_list = get_tracker_details()
+
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
 
 Returns
 ^^^^^^^
@@ -1561,6 +1651,12 @@ tracker\_id
 Fully qualified entity\_id of the device tracker to query, e.g.
 ``device_tracker.andrew``.
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
 Examples
 ^^^^^^^^
 
@@ -1588,6 +1684,15 @@ Returns
 ^^^^^^^
 
 Returns ``True`` if everyone is at home, ``False`` otherwise.
+
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
 
 Examples
 ^^^^^^^^
@@ -1617,6 +1722,15 @@ Returns
 
 Returns ``True`` if anyone is at home, ``False`` otherwise.
 
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
 Examples
 ^^^^^^^^
 
@@ -1643,6 +1757,15 @@ Returns
 ^^^^^^^
 
 Returns ``True`` if no one is home, ``False`` otherwise.
+
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
 
 Examples
 ^^^^^^^^
@@ -1960,6 +2083,11 @@ entity
 
 The fully qualified name of the entity to check for (including the
 device type)
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
 
 Examples
 ^^^^^^^^
@@ -2516,3 +2644,37 @@ Examples
 
     self.dash_navigate("/AlarmStatus", timeout=10)        # Switch to AlarmStatus Panel then return to current panel after 10 seconds
     self.dash_navigate("/Locks", timeout=10, ret="/Main") # Switch to Locks Panel then return to Main panel after 10 seconds
+
+set\_namespace()
+----------------
+
+Set a new namespace for the app to use from that point forward.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    set_namespace(self, namespace)
+
+Returns
+^^^^^^^
+
+None.
+
+Parameters
+^^^^^^^^^^
+
+namespace
+'''''''''
+
+The value for the namespace to use moving forward.
+
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.set_namespace("hass1")
+    self.set_namespace("default")
