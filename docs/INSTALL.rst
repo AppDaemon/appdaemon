@@ -124,7 +124,7 @@ An example secrets.yaml might look like this:
 
 .. code:: yaml
 
-    home_assistant_key_key: password123
+    home_assistant_key: password123
     appdaemon_key: password456
 
 The secrets can then be referred to as follows:
