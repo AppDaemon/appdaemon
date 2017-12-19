@@ -97,6 +97,13 @@ class HassPlugin:
         return states
 
     #
+    # Get HASS Metadata
+    #
+
+    async def get_metadata(self):
+        return await utils.run_in_executor(self.AD.loop, self.AD.executor, self.get_hass_config)
+
+    #
     # Handle state updates
     #
 
@@ -282,28 +289,6 @@ class HassPlugin:
     # Home Assistant Interactions
     #
 
-
-    #
-    # Set State
-    #
-
-    def set_state(self, entity, state):
-        self.verbose_log("*** Setting State: {} = {} ***".format(entity, state))
-
-    #
-    # Call Service
-    #
-
-    def call_hass_service(self, service, args):
-        pass
-
-    #
-    # Fire Event
-    #
-
-    def fire_hass_event(self, event, args):
-        pass
-
     def get_hass_state(self, entity_id=None):
         if self.ha_key != "":
             headers = {'x-ha-access': self.ha_key}
@@ -318,7 +303,7 @@ class HassPlugin:
         r.raise_for_status()
         return r.json()
 
-    def get_ha_config(self):
+    def get_hass_config(self):
         self.log("DEBUG", "get_ha_config()")
         if self.ha_key != "":
             headers = {'x-ha-access': self.ha_key}

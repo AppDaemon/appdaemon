@@ -26,9 +26,9 @@ class Hass(appapi.AppDaemon):
     # Internal
     #
 
-    def __init__(self, ad, name, logger, error, args, config, global_vars):
+    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
 
-        super(Hass, self).__init__(ad, name, logger, error, args, config, global_vars)
+        super(Hass, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
         self.namespace = "default"
         self.AD = ad
@@ -38,13 +38,14 @@ class Hass(appapi.AppDaemon):
         self.args = args
         self.global_vars = global_vars
         self.config = config
-
-        self.constraints = [
-            "constrain_presence",
-            "constrain_input_boolean",
-            "constrain_input_select",
-            "constrain_days"
-        ]
+        self.app_config = app_config
+        #
+        # Register specific constraints
+        #
+        self.register_constraint("constrain_presence")
+        self.register_constraint("constrain_input_boolean")
+        self.register_constraint("constrain_input_select")
+        self.register_constraint("constrain_days")
 
     def _sub_stack(self, msg):
         # If msg is a data structure of some type, don't sub
@@ -57,15 +58,6 @@ class Hass(appapi.AppDaemon):
             if msg.find("__function__") != -1:
                 msg = msg.replace("__function__", stack[2][3])
         return msg
-
-    def register_constraint(self, name):
-        self.constraints.append(name)
-
-    def deregister_constraint(self, name):
-        self.constraints.remove(name)
-
-    def list_constraints(self):
-        return self.constraints
 
     def set_namespace(self, namespace):
         self.namespace = namespace
@@ -95,15 +87,15 @@ class Hass(appapi.AppDaemon):
     #
 
     def get_state(self, entity=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        namespace = self._get_namespace(**kwargs)
         return super(Hass, self).get_state(namespace, entity, **kwargs)
 
     def set_state(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        namespace = self._get_namespace(**kwargs)
         self._check_entity(namespace, entity_id)
         self.AD.log(
             "DEBUG",
@@ -183,6 +175,10 @@ class Hass(appapi.AppDaemon):
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
+
+    def get_ha_config(self, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.get_plugin_meta(namespace)
 
     #
     #

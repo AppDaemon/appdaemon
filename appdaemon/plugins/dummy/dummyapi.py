@@ -13,9 +13,9 @@ class Dummy(appapi.AppDaemon):
 
     entities = Entities()
 
-    def __init__(self, ad, name, logger, error, args, config, global_vars):
+    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars,):
 
-        super(Dummy, self).__init__(ad, name, logger, error, args, config, global_vars)
+        super(Dummy, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
         self.namespace = "default"
         self.AD = ad
@@ -24,6 +24,7 @@ class Dummy(appapi.AppDaemon):
         self._error = error
         self.args = args
         self.config = config
+        self.app_config = app_config
         self.global_vars = global_vars
 
     def set_namespace(self, namespace):
@@ -89,11 +90,6 @@ class Dummy(appapi.AppDaemon):
         namespace = self._get_namespace(kwargs)
         return self.AD.entity_exists(namespace, entity_id)
 
-    #def register_constraint(self, name):
-    #    self.constraints.append(name)
-
-    #def deregister_constraint(self, name):
-    #    self.constraints.remove(name)
-
-    def list_constraints(self):
-        return {}
+    def get_ha_config(self, **kwargs):
+        print(self.namespace)
+        return self.AD.get_plugin_meta(self.namespace)

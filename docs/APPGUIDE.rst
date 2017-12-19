@@ -500,6 +500,7 @@ will fire, e.g.
 Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
+
 A Note on Threading
 -------------------
 
@@ -1081,40 +1082,42 @@ needed.
 In addition, Apps have access to the entire configuration if required,
 meaning they can access AppDaemon configuration items as well as
 parameters from other Apps. To use this, there is a class attribute
-called ``self.config``. It contains a ``ConfigParser`` object, which is
-similar in operation to a ``Dictionary``. To access any apps parameters,
-simply reference the ConfigParser object using the Apps name (form the
-config file) as the first key, and the parameter required as the second,
-for instance:
+called ``self.config``. It contains a standard Python nested ``Dictionary``.
+
+To get AppDaemon's config parameters for example:
 
 .. code:: python
 
-    other_apps_arg = self.config["some_app"]["some_parameter"].
+    app_timezone = self.config["time_zone"]
 
-To get AppDaemon's config parameters, use the key "AppDaemon", e.g.:
+
+To access any apps parameters, use the class attribute called ``app_config``. This is
+a python Dictionary with an entry for each app, keyed on the App's name.
 
 .. code:: python
 
-    app_timezone = self.config["AppDaemon"]["time_zone"]
+    other_apps_arg = self.app_config["some_app"]["some_parameter"].
+
 
 AppDaemon also exposes configuration from Home Assistant such as the
 Latitude and Longitude configured in HA. All of the information
 available from the Home Assistant ``/api/config`` endpoint is available
-in the ``self.ha_config`` dictionary. E.g.:
+using the ``get_hass_config()`` call. E.g.:
 
 .. code:: python
 
-    self.log("My current position is {}(Lat), {}(Long)".format(self.ha_config["latitude"], self.ha_config["longitude"]))
+    config = self.get_hass_config()
+    self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
 
-And finally, it is also possible to use the AppDaemon as a global area
+And finally, it is also possible to use ``config`` as a global area
 for sharing parameters across Apps. Simply add the required parameters
-to the AppDaemon section of your config:
+to the top level of the appdaemon.yaml file:
 
 .. code:: yaml
 
-    AppDaemon:
-    ha_url: <some url>
-    ha_key: <some key>
+    logs:
+    ...
+    appdaemon:
     ...
     global_var: hello world
 
@@ -1122,7 +1125,7 @@ Then access it as follows:
 
 .. code:: python
 
-    my_global_var = conf.config["AppDaemon"]["global_var"]
+    my_global_var = conf.config["global_var"]
 
 Development Workflow
 --------------------
@@ -1728,9 +1731,11 @@ For example:
 
     self.set_namespace("hass2")
     # Get the entity value from the HASS2 plugin
+    # Since the HASS2 plugin is configured with a namespace of "hass2"
     state = self.get_state("light.light1")
 
     # Get the entity value from the HASS1 plugin
+    # Since the HASS1 plugin is configured with a namespace of "default"
     state = self.get_state("light.light1", namespace="default")
 
 In this way it is possible to use a single app to work with multiple namespaces easily and quickly.
@@ -1762,3 +1767,63 @@ Similarly:
     self.set_namespace("dummy1")
 
 This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
+
+
+Custom Constraints
+------------------
+
+An App can also register it's own custom constraints which can then be used in exactly the same way as
+App level or callback level constraints. A custom constraint is simply a python function that returns ``True`` or ``False`` when presented with the constraint argument. If it returns ``True``, the constraint is regarded as satisfied and the callback will be made (subject to any other constraints also evaluating to ``True``. Likewise, a False return means that the callback won't fire. Custom constraints are a handy way to control multiple callbacks that have some complex logic and enable you to avoid duplicating code in all callbacks.
+
+To use a custom constraint, it is first necessary to register the function to be used to evaluate it using the ``register_constraint()`` api call. Constraints can also be unregistered using the ``deregister_constraint()`` call, and the ``list_constraints()`` call will return a list of currently registered constraints.
+
+Here is an example of how this all fits together.
+
+We start off with a python function that accepts a value to be evaluated like this:
+
+.. code:: python
+
+    def is_daylight(self, value):
+        if self.sun_up():
+            return True
+        else:
+            return False
+
+
+To use this in a callback level constraint simply use:
+
+.. code:: python
+
+        self.register_constraint("is_daylight")
+        handle = self.run_every(self.callback, time, 1, is_daylight=1)
+
+
+Now ``callback()`` will only fire if the sun is up.
+
+Using the value parameter you can parameterize the constraint for more complex behavior and use in different situations for different callbacks. For instance:
+
+.. code:: python
+
+    def sun(self, value):
+        if value == "up":
+            if self.sun_up():
+            return True
+        elif value == "down":
+            if self.sun_down():
+            return True
+        return False
+
+
+You can use this with 2 separate constraints like so:
+
+.. code:: python
+
+        self.register_constraint("sun")
+        handle = self.run_every(self.up_callback, time, 1, sun="up")
+        handle = self.run_every(self.down_callback, time, 1, sun="down")
+
+
+
+
+
+

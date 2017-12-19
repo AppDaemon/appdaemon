@@ -2645,8 +2645,106 @@ Examples
     self.dash_navigate("/AlarmStatus", timeout=10)        # Switch to AlarmStatus Panel then return to current panel after 10 seconds
     self.dash_navigate("/Locks", timeout=10, ret="/Main") # Switch to Locks Panel then return to Main panel after 10 seconds
 
+Constraints
+-----------
+
+register_constraint()
+~~~~~~~~~~~~~~~~~~~~~
+
+Register a custom constraint
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    register_constraint(self, name)
+
+Returns
+^^^^^^^
+
+None.
+
+Parameters
+^^^^^^^^^^
+
+name
+''''''
+
+Name of the function to register for the constraint. Note: this is a string not a function reference.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+        self.register_constraint("my_custom_constraint")
+
+
+
+deregister_constraint()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+De-register a custom constraint.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    deregister_constraint(self, name)
+
+Returns
+^^^^^^^
+
+None.
+
+Parameters
+^^^^^^^^^^
+
+name
+''''''
+
+Name of the function to register for the constraint. Note: this is a string not a function reference.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+        self.deregister_constraint("my_custom_constraint")
+
+list_constraints()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Get a list of all currently registered custom constraints. Note: this list will include any constraints registered by the plugin itself.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    constraints = list_constraints()
+
+Returns
+^^^^^^^
+
+A list of all currently registered constraints.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+        list = self.list_constraints()
+
+
+
+Namespace
+---------
+
 set\_namespace()
-----------------
+~~~~~~~~~~~~~~~~
 
 Set a new namespace for the app to use from that point forward.
 
@@ -2678,3 +2776,31 @@ Examples
 
     self.set_namespace("hass1")
     self.set_namespace("default")
+
+Home Assistant Config
+---------------------
+
+get_hass_config()
+~~~~~~~~~~~~~~~~~
+
+Get Home Assistant configuration data such as latitude and longitude.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_hass_config()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the configuration information available from the Home Assistant ``/api/config`` endpoint.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    config = self.get_hass_config()
+    self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))

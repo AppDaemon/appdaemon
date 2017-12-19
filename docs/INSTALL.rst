@@ -24,9 +24,7 @@ Install Using hass.io
 ---------------------
 
 There is an official hass.io addon for AppDaemon maintained by
-`vkorn <https://community.home-assistant.io/u/vkorn/summary>`__.
-Instructions to install AppDaemon this way can be found
-`here <https://community.home-assistant.io/t/repository-few-addons/20659>`__
+`sparck75 <https://github.com/sparck75/hassio-addons>`__.
 
 Configuration
 -------------
@@ -41,6 +39,7 @@ Your initial file should look something like this:
 
 .. code:: yaml
 
+    secrets: /some/path
     log:
       accessfile: /export/hass/appdaemon_test/logs/access.log
       errorfile: /export/hass/appdaemon_test/logs/error.log
@@ -65,30 +64,48 @@ Your initial file should look something like this:
           cert_verify: True
           namespace: default
 
+The top level consists of a number of directives:
+
+- ``secrets`` is an optional path to a secrets file (see later). If not AppDeamon will look for a file called ``secrets.yaml`` in the config directory
+
+- ``appdaemon``
+
+The AppDaemon section has a number of sub parameters:
+
+-  ``threads`` - the number of dedicated worker threads to create for
+   running the apps. Note, this will bear no resembelance to the number
+   of apps you have, the threads are re-used and only active for as long
+   as required to run a particular callback or initialization, leave
+   this set to 10 unless you experience thread starvation
+-  ``longitude`` (optional) - longitude for AppDaemon to use. If not
+   specified, AppDaemon will query the longitude from Home Assistant
+-  ``elevation`` (optional) - elevation for AppDaemon to use. If not
+   specified, AppDaemon will query the elevation from Home Assistant
+-  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
+   specified, AppDaemon will query the timezone from Home Assistant
+-  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
+   to provide a key in the header of a request
+-  ``api_ssl_certificate`` (optional) - certificate to use when running
+   the API over SSL
+-  ``api_ssl_key`` (optional) - key to use when running the API over SSL
+
+In the ``appdaemon`` section there will usually be one or more plugins with a number of sub parameters introduced by a top level name:
+
 -  ``type`` The type of the plugin. For Home Assistant this will always be ``hass``
 -  ``ha_url`` is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or
    ``https://`` as appropriate)
 -  ``ha_key`` should be set to your key if you have one, otherwise it
    can be removed.
--  ``threads`` - the number of dedicated worker threads to create for
-   running the apps. Note, this will bear no resembelance to the number
-   of apps you have, the threads are re-used and only active for as long
-   as required to run a particular callback or initialization, leave
-   this set to 10 unless you experience thread starvation
+
 -  ``cert_path`` (optional) - path to root CA cert directory for HASS -
    use only if you are using self signed certs.
 -  ``cert_verify`` (optional) - flag for cert verification for HASS -
    set to ``False`` to disable verification on self signed certs.
--  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
-   specified, AppDaemon will query the timezone from Home Assistant
+-  ``latitude`` (optional) - latitude for AppDaemon to use. If not
+   specified, AppDaemon will query the latitude from Home Assistant
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off
--  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
-   to provide a key in the header of a request
--  ``api_ssl_certificate`` (optional) - certificate to use when running
-   the API over SSL
--  ``api_ssl_key`` (optional) - key to use when running the API over SSL
 -  ``namespace`` (optional) - which namespace to use. This can safely be left
 out unless you are planning to use multiple plugins (see below)
 
@@ -134,16 +151,15 @@ different home automation systems.
 To configure more than one plugin, simply add a new section to the plugins list and configure it appropriately.
 Before you do this, make sure to review the section on namespaces to fully understand what this entails, and if you are using more than one plugin, make sure you use the namespace directive to create a unique namespace for each plugin.
 (One of the plugins may be safely allowed to use the default value, however any more than that will require the namespace directive. There is also no harm in giving them all namespaces, since the default namespace is literally ``default``
-and has no particular significance, it's just a different name).
+and has no particular significance, it's just a different name, but if you use namespaces other than default you will need to change your Apps to understand which namespaces are in use.).
 
 Secrets
 ~~~~~~~
 
-AppDaemon supports the use of secrets in the configuration file (YAML
-only), to allow separate storage of sensitive information such as
+AppDaemon supports the use of secrets in the configuration file,
+to allow separate storage of sensitive information such as
 passwords. For this to work, AppDaemon expects to find a file called
-secrets.yaml in the configuration directory with a simple list of all
-the secrets. The secrets can be referred to using a !secret value in the
+secrets.yaml in the configuration directory, or a named file introduced by the top level ``secrets`` directive. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the
 configuration file.
 
 An example secrets.yaml might look like this:

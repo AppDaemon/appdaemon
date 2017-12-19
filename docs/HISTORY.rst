@@ -10,6 +10,7 @@ Change Log
 - Support for multiple HASS instances
 - Custom constraints
 - Namespaces
+- Secret file can now be specified
 
 **Fixes**
 
@@ -26,6 +27,8 @@ None
 - Log directives now have their own section
 - AppDaemon section renamed to appdaemon
 - HADashboard section renamed to hadashboard
+- Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
+- the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
 
 
 2.1.12 (2017-11-07)

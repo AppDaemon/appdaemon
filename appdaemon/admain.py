@@ -140,13 +140,37 @@ class ADMain():
         #
         try:
 
-            secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
+            #
+            # Initially load file to see if secret directive is present
+            #
+            yaml.add_constructor('!secret', utils._dummy_secret)
+            with open(config_file_yaml, 'r') as yamlfd:
+                config_file_contents = yamlfd.read()
+
+            config = yaml.load(config_file_contents)
+
+            if "secrets" in config:
+                secrets_file = config["secrets"]
+            else:
+                secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
+
+            #
+            # Read Secrets
+            #
             if os.path.isfile(secrets_file):
                 with open(secrets_file, 'r') as yamlfd:
                     secrets_file_contents = yamlfd.read()
 
                 utils.secrets = yaml.load(secrets_file_contents)
 
+            else:
+                if "secrets" in config:
+                    print("ERROR", "Error loading secrets file: {}".format(config["secrets"]))
+                    sys.exit()
+
+            #
+            # Read config file again, this time with secrets
+            #
             yaml.add_constructor('!secret', utils._secret_yaml)
 
             with open(config_file_yaml, 'r') as yamlfd:
@@ -166,6 +190,8 @@ class ADMain():
                     print("ERROR", str(exc.problem_mark))
                     print("ERROR", str(exc.problem))
             sys.exit()
+
+        print(config)
 
         if "appdaemon" not in config:
             print("ERROR", "no 'appdaemon' section in {}".format(config_file_yaml))
@@ -294,26 +320,6 @@ class ADMain():
         self.log(self.logger, "INFO", "Configuration read from: {}".format(config_file_yaml))
         self.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
         self.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
-
-
-        #TODO: Figure out how to get this from HASS if available
-
-        # Now we have logging, warn about deprecated directives
-        #if "latitude" in config['AppDaemon']:
-        #    utils.verbose_log(self.logger, "WARNING", "'latitude' directive is deprecated, please remove")
-
-        #if "longitude" in config['AppDaemon']:
-        #    utils.verbose_log(self.logger, "WARNING", "'longitude' directive is deprecated, please remove")
-
-        #if "timezone" in config['AppDaemon']:
-        #    utils.verbose_log(self.logger, "WARNING", "'timezone' directive is deprecated, please remove")
-
-        #if "time_zone" in config['AppDaemon']:
-        #    utils.verbose_log(self.logger, "WARNING", "'time_zone' directive is deprecated, please remove")
-
-        #ad.init_sun()
-
-        # Start main loop
 
         if isdaemon:
             keep_fds = [fh.stream.fileno(), efh.stream.fileno()]
