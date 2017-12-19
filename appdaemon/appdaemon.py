@@ -21,6 +21,9 @@ import appdaemon.utils as utils
 
 
 class AppDaemon:
+
+    required_meta = ["latitude", "longitude", "elevation", "time_zone"]
+
     def __init__(self, logger, error, loop, **kwargs):
 
         self.logger = logger
@@ -61,6 +64,7 @@ class AppDaemon:
         self.endpoints = {}
         self.endpoints_lock = threading.RLock()
 
+        self.plugin_meta = {}
         self.plugin_objs = {}
 
         # No locking yet
@@ -207,28 +211,29 @@ class AppDaemon:
 
         # Load Plugins
 
-        for name in self.plugins:
-            basename = self.plugins[name]["type"]
-            module_name = "{}plugin".format(basename)
-            class_name = "{}Plugin".format(basename.capitalize())
-            basepath = "appdaemon.plugins"
+        if self.plugins is not None:
+            for name in self.plugins:
+                basename = self.plugins[name]["type"]
+                module_name = "{}plugin".format(basename)
+                class_name = "{}Plugin".format(basename.capitalize())
+                basepath = "appdaemon.plugins"
 
-            self.log("INFO",
-                      "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
-            full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
-            mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
-            app_class = getattr(mod, class_name)
+                self.log("INFO",
+                          "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
+                full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+                mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
+                app_class = getattr(mod, class_name)
 
-            plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
+                plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
 
-            namespace = plugin.get_namespace()
+                namespace = plugin.get_namespace()
 
-            if namespace in self.plugin_objs:
-                raise ValueError("Duplicate namespace: {}".format(namespace))
+                if namespace in self.plugin_objs:
+                    raise ValueError("Duplicate namespace: {}".format(namespace))
 
-            self.plugin_objs[namespace] = plugin
+                self.plugin_objs[namespace] = plugin
 
-            loop.create_task(plugin.get_updates())
+                loop.create_task(plugin.get_updates())
 
         # Create utility loop
 
@@ -334,7 +339,8 @@ class AppDaemon:
         # Argument Constraints
         #
         for arg in self.app_config[name].keys():
-            if not self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"]):
+            constrained = self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"])
+            if not constrained:
                 unconstrained = False
         if not self.check_time_constraint(self.app_config[name], name):
             unconstrained = False
@@ -343,7 +349,8 @@ class AppDaemon:
         #
         if "kwargs" in args:
             for arg in args["kwargs"].keys():
-                if not self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"]):
+                constrained = self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"])
+                if not constrained:
                     unconstrained = False
             if not self.check_time_constraint(args["kwargs"], name):
                 unconstrained = False
@@ -1035,24 +1042,37 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errfile)
                 )
 
+    def process_meta(self, meta, namespace):
+
+        for key in self.required_meta:
+            if getattr(self, key) == None:
+                if key in meta:
+                    # We have a value so override
+                    setattr(self, key, meta[key])
+
     async def notify_plugin_started(self, namespace, first_time=False):
 
         self.last_plugin_state[namespace] = datetime.datetime.now()
 
-        state = await self.plugin_objs[namespace].get_complete_state()
+        meta = await self.plugin_objs[namespace].get_metadata()
+        self.process_meta(meta, namespace)
 
-        with self.state_lock:
-            self.state[namespace] = state
+        if not self.stopping:
+            self.plugin_meta[namespace] = meta
 
-        if not first_time:
-            await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
-        else:
-            self.log("INFO", "Got initial state from {}".format(namespace))
+            state = await self.plugin_objs[namespace].get_complete_state()
 
-        self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
+            with self.state_lock:
+                self.state[namespace] = state
+
+            if not first_time:
+                await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
+            else:
+                self.log("INFO", "Got initial state from namespace {}".format(namespace))
+
+            self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
 
     def notify_plugin_stopped(self, namespace):
-
 
         self.process_event("global", {"event_type": "plugin_stopped".format(namespace), "data": {"name": namespace}})
 
@@ -1075,113 +1095,125 @@ class AppDaemon:
                     break
             await asyncio.sleep(1)
 
-        #
-        # All plugins are loaded and we have initial state
-        #
+        # Check if we need to bail due to missing metadata
 
-        if self.starttime:
-            new_now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
-            self.log("INFO", "Starting time travel ...")
-            self.log("INFO", "Setting clocks to {}".format(new_now))
-            self.now = new_now.timestamp()
-        else:
-            self.now = datetime.datetime.now().timestamp()
+        for key in self.required_meta:
+            if getattr(self, key) == None:
+               # No value so bail
+                self.err("ERROR", "Required attribute not set or obtainable from any plugin: {}".format(key))
+                self.err("ERROR", "AppDaemon is terminating")
+                self.stop()
 
-        # Take a note of DST
 
-        self.was_dst = self.is_dst()
+        if not self.stopping:
 
-        # Setup sun
+            #
+            # All plugins are loaded and we have initial state
+            #
 
-        self.init_sun()
+            if self.starttime:
+                new_now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
+                self.log("INFO", "Starting time travel ...")
+                self.log("INFO", "Setting clocks to {}".format(new_now))
+                self.now = new_now.timestamp()
+            else:
+                self.now = datetime.datetime.now().timestamp()
 
-        self.update_sun()
+            # Take a note of DST
 
-        # Create timer loop
+            self.was_dst = self.is_dst()
 
-        self.log("DEBUG", "Starting timer loop")
+            # Setup sun
 
-        self.loop.create_task(self.do_every(self.tick, self.do_every_second))
+            self.init_sun()
 
-        self.log("DEBUG", "Reading Apps")
+            self.update_sun()
 
-        self.app_config_file_modified = datetime.datetime.now().timestamp()
-        await utils.run_in_executor(self.loop, self.executor,self.read_apps, True)
+            # Create timer loop
 
-        self.log("INFO", "App initialization complete")
-        #
-        # Fire APPD Started Event
-        #
-        self.process_event("global", {"event_type": "appd_started", "data": {}})
+            self.log("DEBUG", "Starting timer loop")
 
-        while not self.stopping:
-            start_time = datetime.datetime.now().timestamp()
+            self.loop.create_task(self.do_every(self.tick, self.do_every_second))
 
-            try:
+            self.log("DEBUG", "Reading Apps")
 
-                await utils.run_in_executor(self.loop, self.executor, self.read_apps)
+            self.app_config_file_modified = datetime.datetime.now().timestamp()
+            await utils.run_in_executor(self.loop, self.executor,self.read_apps, True)
 
-                # Check to see if config has changed
+            self.log("INFO", "App initialization complete")
+            #
+            # Fire APPD Started Event
+            #
+            self.process_event("global", {"event_type": "appd_started", "data": {}})
 
-                await utils.run_in_executor(self.loop, self.executor, self.check_config)
+            while not self.stopping:
+                start_time = datetime.datetime.now().timestamp()
 
-                # Call me suspicious, but lets update state from the plugins periodically
-                # in case we miss events for whatever reason
-                # Every 10 minutes seems like a good place to start
+                try:
 
-                for plugin in self.plugin_objs:
-                    if self.plugin_objs[plugin].active():
-                        if  datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
-                        minutes=10):
-                            try:
-                                self.log("DEBUG",
-                                         "Refreshing {} state".format(plugin))
+                    await utils.run_in_executor(self.loop, self.executor, self.read_apps)
 
-                                state = await self.plugin_objs[plugin].get_complete_state()
+                    # Check to see if config has changed
 
-                                with self.state_lock:
-                                    self.state[plugin] = state
+                    await utils.run_in_executor(self.loop, self.executor, self.check_config)
 
-                                self.last_plugin_state[plugin] = datetime.datetime.now()
-                            except:
-                                self.log("WARNING",
-                                      "Unexpected error refreshing {} state - retrying in 10 minutes".format(plugin))
+                    # Call me suspicious, but lets update state from the plugins periodically
+                    # in case we miss events for whatever reason
+                    # Every 10 minutes seems like a good place to start
 
-                # Check for thread starvation
+                    for plugin in self.plugin_objs:
+                        if self.plugin_objs[plugin].active():
+                            if  datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
+                            minutes=10):
+                                try:
+                                    self.log("DEBUG",
+                                             "Refreshing {} state".format(plugin))
 
-                qsize = self.q.qsize()
-                if qsize > 0 and qsize % 10 == 0:
-                    self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.q.qsize()))
+                                    state = await self.plugin_objs[plugin].get_complete_state()
 
-                # Plugins
+                                    with self.state_lock:
+                                        self.state[plugin] = state
 
-                for plugin in self.plugin_objs:
-                    self.plugin_objs[plugin].utility()
+                                    self.last_plugin_state[plugin] = datetime.datetime.now()
+                                except:
+                                    self.log("WARNING",
+                                          "Unexpected error refreshing {} state - retrying in 10 minutes".format(plugin))
 
-            except:
-                self.err("WARNING", '-' * 60)
-                self.err("WARNING", "Unexpected error during utility()")
-                self.err("WARNING", '-' * 60)
-                self.err("WARNING", traceback.format_exc())
-                self.err("WARNING", '-' * 60)
-                if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                    # When explicitly logging to stdout and stderr, suppress
-                    # verbose_log messages about writing an error (since they show up anyway)
-                    self.log(
-                        "WARNING",
-                        "Logged an error to {}".format(self.errfile)
-                    )
+                    # Check for thread starvation
 
-            end_time = datetime.datetime.now().timestamp()
+                    qsize = self.q.qsize()
+                    if qsize > 0 and qsize % 10 == 0:
+                        self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.q.qsize()))
 
-            loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
+                    # Plugins
 
-            self.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
+                    for plugin in self.plugin_objs:
+                        self.plugin_objs[plugin].utility()
 
-            if loop_duration > (self.utility_delay * 1000 * 0.9):
-                self.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+                except:
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected error during utility()")
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        # When explicitly logging to stdout and stderr, suppress
+                        # verbose_log messages about writing an error (since they show up anyway)
+                        self.log(
+                            "WARNING",
+                            "Logged an error to {}".format(self.errfile)
+                        )
 
-            await asyncio.sleep(self.utility_delay)
+                end_time = datetime.datetime.now().timestamp()
+
+                loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
+
+                self.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
+
+                if loop_duration > (self.utility_delay * 1000 * 0.9):
+                    self.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+
+                await asyncio.sleep(self.utility_delay)
 
     #
     # AppDaemon API
@@ -1244,14 +1276,14 @@ class AppDaemon:
             # so we know terminate has completed before we move on
             self.objects[name]["object"].terminate()
 
-    def init_object(self, name, class_name, module_name, args):
+    def init_object(self, name, class_name, module_name, app_args):
         self.log("INFO",
                   "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
         modname = __import__(module_name)
         app_class = getattr(modname, class_name)
         self.objects[name] = {
             "object": app_class(
-                self, name, self.logger, self.err, args, self.config, self.global_vars
+                self, name, self.logger, self.err, app_args[name], self.config, app_args, self.global_vars
             ),
             "id": uuid.uuid4()
         }
@@ -1378,12 +1410,10 @@ class AppDaemon:
 
             if self.app_config is not None:
                 for name in self.app_config:
-                    if name == "DEFAULT" or name == "AppDaemon" or name == "HASS" or name == "HADashboard":
-                        continue
                     if module_name == self.app_config[name]["module"]:
                         class_name = self.app_config[name]["class"]
 
-                        self.init_object(name, class_name, module_name, self.app_config[name])
+                        self.init_object(name, class_name, module_name, self.app_config)
 
         except:
             self.err( "WARNING", '-' * 60)
@@ -1768,6 +1798,16 @@ class AppDaemon:
             return self.plugin_objs[name]
         else:
             return None
+
+    def get_plugin_meta(self, namespace):
+        for name in self.plugins:
+            if "namespace" not in self.plugins[name] and namespace == "default":
+                return self.plugin_meta[namespace]
+            elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
+                return self.plugin_meta[namespace]
+            else:
+                return None
+
 
     #
     # Utilities

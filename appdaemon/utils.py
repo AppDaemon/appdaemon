@@ -98,6 +98,9 @@ class StateAttrs(dict):
         self.__dict__ = device_dict
 
 
+def _dummy_secret(loader, node):
+    pass
+
 def _secret_yaml(loader, node):
     if secrets is None:
         raise ValueError("!secret used but no secrets file found")

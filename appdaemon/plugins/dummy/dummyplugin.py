@@ -68,6 +68,14 @@ class DummyPlugin:
         self.log("*** Sending Complete State: {} ***".format(self.state))
         return copy.deepcopy(self.state)
 
+    async def get_metadata(self):
+        return {
+            "latitude": 41,
+            "longitude": -73,
+            "elevation": 0,
+            "time_zone": "America/New_York"
+        }
+
     #
     # Utility gets called every second (or longer if configured
     # Allows plugin to do any housekeeping required
@@ -131,3 +139,4 @@ class DummyPlugin:
 
     def get_namespace(self):
         return self.namespace
+

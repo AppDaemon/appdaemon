@@ -20,16 +20,16 @@ class AppDaemon:
 
     entities = Entities()
 
-    def __init__(self, ad, name, logger, error, args, config, global_vars):
+    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
         self.AD = ad
         self.name = name
         self._logger = logger
         self._error = error
         self.config = config
+        self.app_config = app_config
         self.args = args
         self.global_vars = global_vars
-        # self.config = conf.config
-        # self.ha_config = conf.ha_config
+        self.constraints = []
 
     @staticmethod
     def _sub_stack(msg):
@@ -433,6 +433,19 @@ class AppDaemon:
         if ret is not None:
             kwargs["return"] = ret
         self.fire_event("hadashboard", **kwargs)
+    #
+    # Constraints
+    #
+
+    def register_constraint(self, name):
+        self.constraints.append(name)
+
+    def deregister_constraint(self, name):
+        self.constraints.remove(name)
+
+    def list_constraints(self):
+        return self.constraints
+
 
     #
     # Other
