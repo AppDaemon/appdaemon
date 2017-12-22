@@ -191,8 +191,6 @@ class ADMain():
                     print("ERROR", str(exc.problem))
             sys.exit()
 
-        print(config)
-
         if "appdaemon" not in config:
             print("ERROR", "no 'appdaemon' section in {}".format(config_file_yaml))
             sys.exit()

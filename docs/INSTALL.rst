@@ -183,17 +183,6 @@ The secrets can then be referred to as follows:
 Configuring a Test App
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To start configuring Apps, we need to create a new `apps.yaml` file in the same directory as appdaemon.yaml.
-To start, we can add an entry for the Hello World App like this:
-
-.. code:: yaml
-
-    hello_world:
-      module: hello
-      class: HelloWorld
-
-App configuration is fully described in the `API doc <API.md>`__.
-
 To add an initial test app to match the configuration above, we need to
 first create an ``apps`` subdirectory under the conf directory. Then
 create a file in the apps directory called ``hello.py``, and paste the
@@ -214,6 +203,16 @@ following into it using your favorite text editor:
       def initialize(self):
          self.log("Hello from AppDaemon")
          self.log("You are now ready to run Apps!")
+
+Then, we can create a file called apps.yaml in the apps directory and add an entry for the Hello World App like this:
+
+.. code:: yaml
+
+    hello_world:
+      module: hello
+      class: HelloWorld
+
+App configuration is fully described in the `API doc <API.md>`__.
 
 With this app in place we will be able to test the App part of AppDaemon
 when we first run it.
@@ -311,7 +310,7 @@ are not required if running from the command line.
 -D can be used to increase the debug level for internal AppDaemon
 operations as well as apps using the logging function.
 
-The -s, -i, -t and -s options are for the Time Travel feature and should
+The -s, -i, -t and -e options are for the Time Travel feature and should
 only be used for testing. They are described in more detail in the API
 documentation.
 
@@ -403,7 +402,7 @@ Windows 10 now supports a full Linux bash environment that is capable of
 running Python. This is essentially an Ubuntu distribution and works
 extremely well. It is possible to run AppDaemon in exactly the same way
 as for Linux distributions, and none of the above Windows Caveats apply
-to this version. This is the reccomended way to run AppDaemon in a
+to this version. This is the recommended way to run AppDaemon in a
 Windows 10 and later environment.
 
 Raspbian
