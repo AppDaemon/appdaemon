@@ -169,12 +169,14 @@ class AppDaemon:
 
         # Add appdir and subdirs to path
         if self.apps is True:
-            self.app_config_file_modified = os.path.getmtime(self.app_config_file)
             if self.app_dir is None:
                 if self.config_dir is None:
                     self.app_dir = utils.find_path("apps")
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
+
+            file, self.app_config_file_modified = self.check_latest_app_config()
+
             for root, subdirs, files in os.walk(self.app_dir):
                 if root[-11:] != "__pycache__":
                     sys.path.insert(0, root)
@@ -1293,12 +1295,50 @@ class AppDaemon:
         self.objects[name]["object"].initialize()
 
     def read_config(self):
+
         new_config = None
-        root, ext = os.path.splitext(self.app_config_file)
-        with open(self.app_config_file, 'r') as yamlfd:
+
+        if os.path.isfile(self.app_config_file):
+            self.log("WARNING", "apps.yaml in the Config directory is deprecated. Please move apps.yaml to the apps directory.")
+            new_config = self.read_config_file(self.app_config_file)
+        else:
+            for root, subdirs, files in os.walk(self.app_dir):
+                if root[-11:] != "__pycache__":
+                    for file in files:
+                        if file[-5:] == ".yaml":
+                            #root, ext = os.path.splitext(file)
+                            config = self.read_config_file(os.path.join(root, file))
+
+                            if new_config is None:
+                                new_config = {}
+                            new_config = {**new_config, **config}
+
+        return new_config
+
+    def check_latest_app_config(self):
+        if os.path.isfile(self.app_config_file):
+            return self.app_config_file, os.path.getmtime(self.app_config_file)
+        else:
+            latest = 0
+            file = None
+            for root, subdirs, files in os.walk(self.app_dir):
+                if root[-11:] != "__pycache__":
+                    for file in files:
+                        if file[-5:] == ".yaml":
+                            ts = os.path.getmtime(os.path.join(root, file))
+                            if ts > latest:
+                                latest = ts
+                                file = os.path.join(root, file)
+            return file, latest
+
+    def read_config_file(self, file):
+
+        new_config = None
+        with open(file, 'r') as yamlfd:
             config_file_contents = yamlfd.read()
         try:
             new_config = yaml.load(config_file_contents)
+
         except yaml.YAMLError as exc:
             self.log("WARNING", "Error loading configuration")
             if hasattr(exc, 'problem_mark'):
@@ -1308,7 +1348,7 @@ class AppDaemon:
                     self.log("WARNING", str(exc.problem) + " " + str(exc.context))
                 else:
                     self.log("WARNING", "parser says")
-                    self.log( "WARNING", str(exc.problem_mark))
+                    self.log("WARNING", str(exc.problem_mark))
                     self.log("WARNING", str(exc.problem))
 
         return new_config
@@ -1317,7 +1357,7 @@ class AppDaemon:
     def check_config(self):
 
         try:
-            modified = os.path.getmtime(self.app_config_file)
+            filename, modified = self.check_latest_app_config()
             if modified > self.app_config_file_modified:
                 self.log("INFO", "{} modified".format(self.app_config_file))
                 self.app_config_file_modified = modified
@@ -1341,7 +1381,7 @@ class AppDaemon:
                             self.clear_object(name)
                             self.init_object(
                                 name, new_config[name]["class"],
-                                new_config[name]["module"], new_config[name]
+                                new_config[name]["module"], new_config
                             )
                     else:
 
@@ -1351,8 +1391,6 @@ class AppDaemon:
                         self.clear_object(name)
 
                 for name in new_config:
-                    if name == "DEFAULT" or name == "AppDaemon":
-                        continue
                     if name not in self.app_config:
                         #
                         # New section added!
@@ -1360,7 +1398,7 @@ class AppDaemon:
                         self.log("INFO", "App '{}' added - running".format(name))
                         self.init_object(
                             name, new_config[name]["class"],
-                            new_config[name]["module"], new_config[name]
+                            new_config[name]["module"], new_config
                         )
 
                 self.app_config = new_config
@@ -1537,7 +1575,6 @@ class AppDaemon:
                     else:
                         for thismod in dependent_modules:
                             file = self.get_file_from_module(thismod)
-
                             if file is None:
                                 self.log( "ERROR",
                                           "Unable to resolve dependencies due to incorrect references")

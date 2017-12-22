@@ -11,6 +11,7 @@ Change Log
 - Custom constraints
 - Namespaces
 - Secret file can now be specified
+- apps.yaml can now be split across multiple files and directories
 
 **Fixes**
 
@@ -29,10 +30,11 @@ None
 - HADashboard section renamed to hadashboard
 - Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
 - the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
+- apps.yaml in the config directory has now been deprecated
 
 
 2.1.12 (2017-11-07)
-------
+-------------------
 
 **Features**
 
@@ -47,7 +49,7 @@ None
 None
 
 2.1.11 (2017-10-25)
-------
+-------------------
 
 **Features**
 

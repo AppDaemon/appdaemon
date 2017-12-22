@@ -27,12 +27,12 @@ code when those events occur, allowing the App to respond to the event
 with some kind of action.
 
 The first step is to create a unique file within the apps directory (as
-defined in the ``AppDaemon`` section of configuration file - see `The
+defined in the ``appdaemon`` section of configuration file - see `The
 Installation Page <INSTALL.html>`__ for further information on the
 configuration of AppDaemon itself). This file is in fact a Python
 module, and is expected to contain one or more classes derived from the
-supplied ``AppDaemon`` class, imported from the supplied
-``appdaemon.appapi`` module. The start of an app might look like this:
+supplied ``appdaemon`` class, imported from the supplied
+``appdaemon.plugins.hass.hassapi`` module. The start of an app might look like this:
 
 .. code:: python
 
@@ -144,9 +144,10 @@ variables during the API invocation.
 Configuration of Apps
 ---------------------
 
-Apps are configured by specifying new sections in the app configuration
-file - ``apps.yaml``. The name of the section is the name the App is referred to
-within the system in log files etc. and must be unique.
+Apps are configured by specifying new sections in an app configuration
+file. The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml``. You can have one single file for configuration of all apps, or break it down to have one ``yaml`` file per app, or anything in between. Coupled with the fact that you can have any number of subdirectopries for apps and ``yaml`` files, this gives you the flexibility to structure your apps as you see fit.
+
+The entry for an individual app within a ``yaml`` file is simply a dictionary entry naming the app, with subfields to supply various parameters. The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
 
 To configure a new App you need a minimum of two directives:
 
