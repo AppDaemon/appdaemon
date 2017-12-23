@@ -57,6 +57,25 @@ class Dashboard:
         self._process_arg("dash_compile_on_start", kwargs)
         self._process_arg("max_include_depth", kwargs)
         #
+        # Create some dirs
+        #
+        try:
+            if not os.path.isdir(self.compile_dir):
+                os.makedirs(self.compile_dir)
+
+            if not os.path.isdir(os.path.join(self.compile_dir, "javascript")):
+                os.makedirs(os.path.join(self.compile_dir, "javascript"))
+
+            if not os.path.isdir(os.path.join(self.compile_dir, "css")):
+                os.makedirs(os.path.join(self.compile_dir, "css"))
+        except:
+            ha.log(self.logger, "WARNING", '-' * 60)
+            ha.log(self.logger, "WARNING", "Unexpected error during HADashboard initialization")
+            ha.log(self.logger, "WARNING", '-' * 60)
+            ha.log(self.logger, "WARNING", traceback.format_exc())
+            ha.log(self.logger, "WARNING", '-' * 60)
+
+        #
         # Set a start time
         #
         self.start_time = datetime.datetime.now()
@@ -159,16 +178,11 @@ class Dashboard:
         # Parse styles in order from a string and allow later entries to override earlier ones
         #
         result = {}
-        styles = style_str.split(";")
+        styles = style_str.split(";", 1)
         for style in styles:
             if style != "" and style is not None:
                 pieces = style.split(":")
-                if len(pieces) == 2:
-                    result[pieces[0].strip()] = pieces[1]
-                else:
-                    ha.log(self.logger, "WARNING",
-                           "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".
-                           format(style, name, field))
+                result[pieces[0].strip()] = pieces[1]
 
         return result
 
@@ -781,15 +795,6 @@ class Dashboard:
     def get_dashboard(self, name, skin, recompile):
 
         try:
-
-            if not os.path.exists(self.compile_dir):
-                os.makedirs(self.compile_dir)
-
-            if not os.path.exists(os.path.join(self.compile_dir, "javascript")):
-                os.makedirs(os.path.join(self.compile_dir, "javascript"))
-
-            if not os.path.exists(os.path.join(self.compile_dir, "css")):
-                os.makedirs(os.path.join(self.compile_dir, "css"))
 
             dash = self._conditional_compile(name, skin, recompile)
 

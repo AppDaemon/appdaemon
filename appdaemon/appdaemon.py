@@ -175,6 +175,11 @@ class AppDaemon:
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
+            if os.path.isdir(self.app_dir) is False:
+                self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
+                return
+
+
             file, self.app_config_file_modified = self.check_latest_app_config()
 
             for root, subdirs, files in os.walk(self.app_dir):
@@ -1569,17 +1574,27 @@ class AppDaemon:
                 continue
             if file == os.path.join(self.app_dir, "__pycache__"):
                 continue
-            modified = os.path.getmtime(file)
-            if file in self.monitored_files:
-                if self.monitored_files[file] < modified or all_:
-                    # read_app(file, True)
-                    thismod = {"name": file, "reload": True, "load": True}
-                    modules.append(thismod)
+            try:
+
+                #check we can actually open the file the first time
+                if all_ is True:
+                    fh = open(file)
+                    fh.close()
+
+                modified = os.path.getmtime(file)
+                if file in self.monitored_files:
+                    if self.monitored_files[file] < modified or all_:
+                        # read_app(file, True)
+                        thismod = {"name": file, "reload": True, "load": True}
+                        modules.append(thismod)
+                        self.monitored_files[file] = modified
+                else:
+                    # read_app(file)
+                    modules.append({"name": file, "reload": False, "load": True})
                     self.monitored_files[file] = modified
-            else:
-                # read_app(file)
-                modules.append({"name": file, "reload": False, "load": True})
-                self.monitored_files[file] = modified
+            except IOError as err:
+                self.log("WARNING",
+                         "Unable to read app {}: {} - skipping".format(file, err))
 
         # Add any required dependent files to the list
         if modules:

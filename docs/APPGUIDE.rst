@@ -504,8 +504,8 @@ times that span midnight.
 .. code:: yaml
 
     # Run between 8am and 10pm
-    constrain_start_time: 08:00:00
-    constrain_end_time: 22:00:00
+    constrain_start_time: "08:00:00"
+    constrain_end_time: "22:00:00"
     # Run between sunrise and sunset
     constrain_start_time: sunrise
     constrain_end_time: sunset

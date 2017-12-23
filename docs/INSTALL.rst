@@ -416,3 +416,20 @@ prior to installing AppDaemon with the pip3 method:
     $ sudo apt-get install python-dev
     $ sudo apt-get install libffi-dev
 
+Raspberry Pi Docker
+-------------------
+
+Since the official Docker image isn't compatible with raspberry Pi, you will need to build your own docker image
+from the downloaded repository. The Dockerfile also needs a couple of changes:
+
+1. Change the image line to use a Resin image:
+
+``FROM arm32v7/python:3.6``
+
+2. Change the ``RUN`` line to the following:
+
+``RUN pip3 install requests && pip3 install .``
+
+At the time of writing, @torkildr is maintaining a linked Raspberry Pi image here:
+
+https://hub.docker.com/r/torkildr/rpi-appdaemon/
