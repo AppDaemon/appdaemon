@@ -10,13 +10,15 @@ Change Log
 - Support for multiple HASS instances
 - Custom constraints
 - Namespaces
-- Secret file can now be specified
+- Path of Secret file can now be specified
 - apps.yaml can now be split across multiple files and directories
 - Apps can now establish loading priorities to influence their loading order
+- IFRAME Refreshes should now be more reliable
 
 **Fixes**
 
-None
+- Fixed an issue with the compiled directory not being created early enough
+- Added error handling for apps that can't be read or have broken links
 
 **Breaking Changes**
 
