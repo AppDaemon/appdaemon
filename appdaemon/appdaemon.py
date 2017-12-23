@@ -1379,6 +1379,7 @@ class AppDaemon:
                             self.log("INFO", "App '{}' changed - reloading".format(name))
                             self.term_object(name)
                             self.clear_object(name)
+                            #TODO: This should force a reload for all dependant apps too
                             self.init_object(
                                 name, new_config[name]["class"],
                                 new_config[name]["module"], new_config
@@ -1493,7 +1494,7 @@ class AppDaemon:
         dependencies = self.get_module_dependencies(_module)
 
         if dependencies is None:
-            return True
+            return None
 
         if self.in_previous_dependencies(dependencies, load_order):
             return True
@@ -1532,6 +1533,24 @@ class AppDaemon:
                 return True
         return False
 
+    def get_app_priority(self, file):
+        # Set to highest priority
+        prio = sys.float_info.max
+        mod = self.get_module_from_path(file)
+        for name in self.app_config:
+            if "module" in self.app_config[name] and self.app_config[name]["module"] == mod:
+                if "priority" in self.app_config[name]:
+                    modprio = float(self.app_config[name]["priority"])
+                    # if any apps have this file at a lower priority set it accordingly
+                    if modprio < prio:
+                        prio = modprio
+
+        # If priority is still at 100, this app has no priority so set it to the middle
+        if prio == sys.float_info.max:
+            prio = float(50.0)
+
+        return prio
+
     # noinspection PyBroadException
     def read_apps(self, all_=False):
         # Check if the apps are disabled in config
@@ -1563,7 +1582,6 @@ class AppDaemon:
                 self.monitored_files[file] = modified
 
         # Add any required dependent files to the list
-
         if modules:
             more_modules = True
             while more_modules:
@@ -1584,6 +1602,8 @@ class AppDaemon:
 
                             mod_def = {"name": file, "reload": True, "load": True}
                             if not self.file_in_modules(file, modules):
+                                # Give each dependency tree module an incremented priority to maintain order for later sort
+                                # This will break if anyone has more than 99,999,999 apps that depend on other apps :(
                                 # print("Appending {} ({})".format(mod, file))
                                 modules.append(mod_def)
 
@@ -1592,21 +1612,28 @@ class AppDaemon:
 
         for file in self.monitored_files:
             if not self.file_in_modules(file, modules):
-                modules.append({"name": file, "reload": False, "load": False})
+                name = self.get_module_from_path(file)
+                modules.append({"name": file, "reload": False, "load": False, "priority": self.get_app_priority(file)})
 
         # Figure out loading order
 
         # for mod in modules:
         #  print(mod["name"], mod["load"])
 
-        load_order = []
+        depends_load_order = []
 
+        prio = float(50.1)
         while modules:
             batch = []
             module_list = modules.copy()
             for mod in module_list:
-                # print(module)
-                if self.dependencies_are_satisfied(mod["name"], load_order):
+                if self.dependencies_are_satisfied(mod["name"], depends_load_order) is True:
+                    prio += float(0.0001)
+                    mod ["priority"] = prio
+                    batch.append(mod)
+                    modules.remove(mod)
+                elif self.dependencies_are_satisfied(mod["name"], depends_load_order) is None:
+                    mod["priority"] = self.get_app_priority(mod["name"])
                     batch.append(mod)
                     modules.remove(mod)
 
@@ -1619,13 +1646,20 @@ class AppDaemon:
                     self.log("ERROR", module_name)
                 raise ValueError("Unresolved dependencies")
 
-            load_order.append(batch)
+            depends_load_order.append(batch)
+
+        final_load_order = []
+
+        for batch in depends_load_order:
+            for mod in batch:
+                final_load_order.append(mod)
+
+        final_load_order.sort(key = lambda mod: mod["priority"])
 
         try:
-            for batch in load_order:
-                for mod in batch:
-                    if mod["load"]:
-                        self.read_app(mod["name"], mod["reload"])
+            for mod in final_load_order:
+                if mod["load"]:
+                    self.read_app(mod["name"], mod["reload"])
 
         except:
             self.log("WARNING", '-' * 60)
