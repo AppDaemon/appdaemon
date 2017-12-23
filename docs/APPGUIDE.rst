@@ -310,10 +310,10 @@ examples where this might be the case are:
 In these cases, when changes are made to one of these modules, we also
 want the modules that depend upon them to be reloaded. Furthermore, we
 also want to guarantee that they are loaded in order so that the modules
-dpended upon by other modules are loaded first.
+depended upon by other modules are loaded first.
 
 AppDaemon fully supports this through the use of the dependency
-directive in the App configuration. Using this directice, each App
+directive in the App configuration. Using this directive, each App
 identifies modules that it depends upon. Note that the dependency is at
 the module level, not the App level, since a change to the module will
 force a reload of all apps using it anyway. The dependency directive
@@ -353,6 +353,31 @@ separate list (no spaces)
 
 AppDaemon will write errors to the log if a dependency is missing and it
 should also detect circular dependencies.
+
+Loading Priority
+----------------
+
+It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an app, simply add a ``priority`` entry to its paremeters. e.g.:
+
+.. code:: yaml
+
+    downstairs_motion_light:
+      module: motion_light
+      class: MotionLight
+      sensor: binary_sensor.downstairs_hall
+      light: light.downstairs_hall
+      priority: 10
+
+
+Priorities can be any number you like, and can be float values if required, the lower the number the higher the priority. AppDaemon will load any modules with a priority in the order specified.
+
+For modules with no priority specified, the priority is assumed to be ``50``. It is therefore possible to cause modules to be loaded before and after modules with no priority.
+
+The priority system is complimentary to the dependency system, although they are trying to solve different problems. Dependencies should be used when an app literally depends upon another, for instance it is using variables stored in it with the ``get_app()`` call. Priorities should be used when an app does some setup for other apps but doesn't provide variables or code for the dependent app. An example of this might be an App that sets up some sensors in Home Assistant, or sets some switch or input_slider to a specific value. It may be necessary for that setup to be performed before other apps are started, but there is no requirement to reload those apps if the first app changes.
+
+To accommodate both systems, dependency trees are assigned priorities in the range 50 - 51, again allowing apps to set priorities such that they will be loaded before or after specific sets of dependent apps.
+
+Note that apps that are dependent upon other apps will ignore any priority setting in their configuration.
 
 Callback Constraints
 --------------------

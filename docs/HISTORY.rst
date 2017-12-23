@@ -12,6 +12,7 @@ Change Log
 - Namespaces
 - Secret file can now be specified
 - apps.yaml can now be split across multiple files and directories
+- Apps can now establish loading priorities to influence their loading order
 
 **Fixes**
 
