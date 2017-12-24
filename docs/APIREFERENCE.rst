@@ -182,7 +182,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard State Callback format documented above.
+conform to the standard State Callback format documented `Here <APPGUIDE.html#state-callbacks>`__
 
 entity
 ''''''
@@ -395,7 +395,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 delay
 '''''
@@ -441,7 +441,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 time
 ''''
@@ -492,7 +492,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 datetime
 ''''''''
@@ -545,7 +545,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 start
 '''''
@@ -597,7 +597,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 start
 '''''
@@ -651,7 +651,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 start
 '''''
@@ -704,7 +704,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 time
 ''''
@@ -830,7 +830,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 offset = 
 '''''''''
@@ -886,7 +886,7 @@ callback
 ''''''''
 
 Function to be invoked when the requested state change occurs. It must
-conform to the standard Scheduler Callback format documented above.
+conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
 offset = 
 '''''''''
@@ -1369,7 +1369,7 @@ Synopsis
 
 .. code:: python
 
-    handle = listen_event(function, event = None, **kwargs):
+    handle = listen_event(callback, event = None, **kwargs):
 
 Returns
 ^^^^^^^
@@ -1379,10 +1379,11 @@ A handle that can be used to cancel the callback.
 Parameters
 ^^^^^^^^^^
 
-function
+callback
 ''''''''
 
-The function to be called when the event is fired.
+Function to be invoked when the requested state change occurs. It must
+conform to the standard Event Callback format documented `Here <APPGUIDE.html#about-event-callbacks>`__.
 
 event
 '''''
