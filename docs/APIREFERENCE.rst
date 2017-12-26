@@ -1353,7 +1353,7 @@ Examples
 
 .. code:: python
 
-    self.notify("", "Switching mode to Evening")
+    self.notify("Switching mode to Evening")
     self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
 
 Events
@@ -1400,7 +1400,7 @@ Namespace to use for the call - see the section on namespaces for a detailed des
 
 
 \*\*kwargs (optional)
-'''''''''''''''''''''
+'''''''''''''''''''
 
 One or more keyword value pairs representing App specific parameters to
 supply to the callback. If the keywords match values within the event
@@ -2170,6 +2170,8 @@ Example
 Logfiles
 --------
 
+AppDaemon provides a couple of convenience functions for loggin to bith the main log and the app error log. These will automatically insert the app name for information.
+
 log()
 ~~~~~
 
@@ -2244,6 +2246,53 @@ Examples
 
     self.error("Some Warning string")
     self.error("Some Critical string", level = "CRITICAL")
+
+
+If you want to perform more elaborate logging or formattin, the underlying ``logger`` objects can be obtained:
+
+get_main_log()
+~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_main_log()
+
+
+Returns
+^^^^^^^
+
+The underlying ``logger`` object used for the main log.
+
+.. code:: python
+
+    log = self.get_main_log()
+    log.log(50, "Log a critical error")
+
+
+get_error_log()
+~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_error_log()
+
+
+Returns
+^^^^^^^
+
+The underlying ``logger`` object used for the error log.
+
+.. code:: python
+
+    error_log = self.get_error_log()
+    error_log.log(40, "Log an error")
+
 
 API
 ---
