@@ -14,7 +14,8 @@ Change Log
 - apps.yaml can now be split across multiple files and directories
 - Apps can now establish loading priorities to influence their loading order
 - IFRAME Refreshes should now be more reliable
-- Added calls to av=ccess the underlying logger objects for the main and error lohs
+- Added calls to access the underlying logger objects for the main and error logs
+- Add the ability to ignore specific subdirectories under appdir
 
 **Fixes**
 

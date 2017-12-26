@@ -88,6 +88,18 @@ The AppDaemon section has a number of sub parameters:
 -  ``api_ssl_certificate`` (optional) - certificate to use when running
    the API over SSL
 -  ``api_ssl_key`` (optional) - key to use when running the API over SSL
+-  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
+
+When using the ``exclude_dirs`` directive you should supply a list of directory names that should be ignored, e.g.
+
+.. code:: yaml
+
+    exclude_dirs:
+        - dir1
+        - dir2
+        - dir3
+
+
 
 In the ``appdaemon`` section there will usually be one or more plugins with a number of sub parameters introduced by a top level name:
 
