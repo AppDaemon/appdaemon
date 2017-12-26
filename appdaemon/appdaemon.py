@@ -151,6 +151,11 @@ class AppDaemon:
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs)
 
+        self.exclude_dirs = ["__pycache__"]
+        if "exclude_dirs" in kwargs:
+            self.exclude_dirs += kwargs["exclude_dirs"]
+
+        self.stop_function = None
         self.stop_function = None
         self._process_arg("stop_function", kwargs)
 
@@ -1564,15 +1569,19 @@ class AppDaemon:
 
         found_files = []
         modules = []
-        for root, subdirs, files in os.walk(self.app_dir):
-            if root[-11:] != "__pycache__":
-                for file in files:
-                    if file[-3:] == ".py":
-                        found_files.append(os.path.join(root, file))
+        for root, subdirs, files in os.walk(self.app_dir, topdown=True):
+            #print(root, subdirs, files)
+            #
+            # Prune dir list
+            #
+            subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
+
+            for file in files:
+                if file[-3:] == ".py":
+                    found_files.append(os.path.join(root, file))
+
         for file in found_files:
             if file == os.path.join(self.app_dir, "__init__.py"):
-                continue
-            if file == os.path.join(self.app_dir, "__pycache__"):
                 continue
             try:
 
