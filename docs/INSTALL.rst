@@ -99,7 +99,7 @@ When using the ``exclude_dirs`` directive you should supply a list of directory 
         - dir2
         - dir3
 
-
+AppDaemon will search for matching directory names at any level of the folder hierarchy under appdir and will exclude that directory and any beneath it. It is not possible to match multiple level directory names e.g. ``somedir/dir1``. In that case the match should be on ``dir1``, with the caveat that if you have dir1 anywhere else in the hierarchy it will also be excluded.
 
 In the ``appdaemon`` section there will usually be one or more plugins with a number of sub parameters introduced by a top level name:
 
