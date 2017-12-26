@@ -68,6 +68,12 @@ class AppDaemon:
                       "{}: Entity {} not found in AppDaemon".format(
                           self.name, entity))
 
+    def get_main_log(self):
+        return self._logger
+
+    def get_error_log(self):
+        return self._error
+
     #
     # Apiai
     #
