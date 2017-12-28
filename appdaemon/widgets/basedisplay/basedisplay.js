@@ -3,30 +3,30 @@ function basedisplay(widget_id, url, skin, parameters)
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
     
-    self = this
+    self = this;
     
     // Initialization
     
-    self.widget_id = widget_id
+    self.widget_id = widget_id;
     
     // Store on brightness or fallback to a default
         
     // Parameters may come in useful later on
     
-    self.parameters = parameters
+    self.parameters = parameters;
        
-    var callbacks = []
+    var callbacks = [];
 
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
      
-    self.OnStateAvailable = OnStateAvailable
-    self.OnStateUpdate = OnStateUpdate
-    self.OnSubStateAvailable = OnSubStateAvailable
-    self.OnSubStateUpdate = OnSubStateUpdate
+    self.OnStateAvailable = OnStateAvailable;
+    self.OnStateUpdate = OnStateUpdate;
+    self.OnSubStateAvailable = OnSubStateAvailable;
+    self.OnSubStateUpdate = OnSubStateUpdate;
 
-    var monitored_entities =  []
+    var monitored_entities =  [];
 
     if ("entity" in parameters)
     {
@@ -40,7 +40,7 @@ function basedisplay(widget_id, url, skin, parameters)
 
     // Finally, call the parent constructor to get things moving
     
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
 
     // Function Definitions
     
@@ -71,17 +71,17 @@ function basedisplay(widget_id, url, skin, parameters)
 
     function set_value(self, state)
     {
-        value = self.map_state(self, state.state)
+        value = self.map_state(self, state.state);
         if (isNaN(value))
         {
-            self.set_field(self, "value_style", self.parameters.css.text_style)
+            self.set_field(self, "value_style", self.parameters.css.text_style);
             self.set_field(self, "value", self.map_state(self, value))
         }
         else
         {
-            self.set_field(self, "value_style", self.parameters.css.value_style)
-            self.set_field(self, "value", self.format_number(self, value))
-            self.set_field(self, "unit_style", self.parameters.css.unit_style)
+            self.set_field(self, "value_style", self.parameters.css.value_style);
+            self.set_field(self, "value", self.format_number(self, value));
+            self.set_field(self, "unit_style", self.parameters.css.unit_style);
             if ("units" in self.parameters)
             {
                 self.set_field(self, "unit", self.parameters.units)
