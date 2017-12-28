@@ -178,11 +178,16 @@ class Dashboard:
         # Parse styles in order from a string and allow later entries to override earlier ones
         #
         result = {}
-        styles = style_str.split(";", 1)
+        styles = style_str.split(";")
         for style in styles:
             if style != "" and style is not None:
                 pieces = style.split(":")
-                result[pieces[0].strip()] = pieces[1]
+                if len(pieces) == 2:
+                    result[pieces[0].strip()] = pieces[1]
+                else:
+                    ha.log(self.logger, "WARNING",
+                           "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".
+                           format(style, name, field))
 
         return result
 
