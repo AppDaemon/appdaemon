@@ -585,6 +585,7 @@ Alexa Intent, simply define the event and associated data as follows
         command: navigate
         timeout: 10
         target: SensorPanel
+        sticky: 0
 
 The current list of commands supported and associated arguments are as
 follows:
@@ -606,8 +607,9 @@ permanent.
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``timeout`` - length of time to stay on the new dashboard ``return`` -
-dashboard to return to after the timeout has elapsed.
+``timeout`` - length of time to stay on the new dashboard
+``return`` - dashboard to return to after the timeout has elapsed.
+``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Namespaces
 ----------
@@ -1524,8 +1526,9 @@ Optional Arguments:
 For an arbitary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
 
-``timeout`` - length of time to stay on the new dashboard ``return`` -
-dashboard to return to after the timeout has elapsed.
+``timeout`` - length of time to stay on the new dashboard
+``return`` - dashboard to return to after the timeout has elapsed.
+``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Both ``timeout`` and ``return`` must be specified.
 

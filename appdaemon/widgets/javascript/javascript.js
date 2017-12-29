@@ -68,7 +68,7 @@ function javascript(widget_id, url, skin, parameters)
         if ("args" in parameters)
         {
             
-            url = url + "?"
+            url = url + "?";
             
             for (var key in parameters.args)
             {
@@ -76,7 +76,7 @@ function javascript(widget_id, url, skin, parameters)
                 {
                     url = url + "&"
                 }
-                url = url + key + "=" + parameters.args[key]
+                url = url + key + "=" + parameters.args[key];
                 i++
             }
         }
@@ -88,26 +88,74 @@ function javascript(widget_id, url, skin, parameters)
         {
             theskin = skin
         }
+
         if (i == 0)
         {
-            url = url + "?skin=" + theskin
+            url = url + "?skin=" + theskin;
+            i++
         }
         else
         {
-            url = url + "&skin=" + theskin
+            url = url + "&skin=" + theskin;
+            i++
         }
+
+        if ("sticky" in parameters)
+        {
+            if (i == 0)
+            {
+                url = url + "?sticky=" + parameters.sticky;
+                i++
+            }
+            else
+            {
+                url = url + "&sticky=" + parameters.sticky;
+                i++
+            }
+        }
+
+        if ("return" in parameters)
+        {
+            if (i == 0)
+            {
+                url = url + "?return=" + parameters.return;
+                i++
+            }
+            else
+            {
+                url = url + "&return=" + parameters.return;
+                i++
+            }
+        }
+
+        if ("timeout" in parameters)
+        {
+            if (i == 0)
+            {
+                url = url + "?timeout=" + parameters.timeout;
+                i++
+            }
+            else
+            {
+                url = url + "&timeout=" + parameters.timeout;
+                i++
+            }
+        }
+
+
+
         command = "window.location.href = '" + url + "'"
     }
     
-    self.set_icon(self, "icon", self.icons.icon_inactive)
-    self.set_field(self, "icon_style", self.css.icon_inactive_style)
+    self.set_icon(self, "icon", self.icons.icon_inactive);
+    self.set_field(self, "icon_style", self.css.icon_inactive_style);
     
-    self.command = command
+    self.command = command;
     
     function OnButtonClick(self)
     {
-        self.set_icon(self, "icon", self.icons.icon_active)
-        self.set_field(self, "icon_style", self.css.icon_active_style)
+        self.set_icon(self, "icon", self.icons.icon_active);
+        self.set_field(self, "icon_style", self.css.icon_active_style);
         eval(self.command);
     }
 }
