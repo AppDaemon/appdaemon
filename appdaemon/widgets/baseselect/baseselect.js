@@ -3,31 +3,32 @@ function baseselect(widget_id, url, skin, parameters)
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
     
-    self = this
+    self = this;
     
     // Initialization
     
-    self.widget_id = widget_id
-    
+    self.widget_id = widget_id;
+
     // Store on brightness or fallback to a default
         
     // Parameters may come in useful later on
     
-    self.parameters = parameters
-       
-    self.onChange = onChange
+    self.parameters = parameters;
+
+    self.initial = 1
+
+    self.onChange = onChange;
 
     var callbacks = [
         {"observable": "selectedoption", "action": "change", "callback": self.onChange}
-                    ]
+                    ];
 
-
-            // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
+    // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
      
-    self.OnStateAvailable = OnStateAvailable
-    self.OnStateUpdate = OnStateUpdate
+    self.OnStateAvailable = OnStateAvailable;
+    self.OnStateUpdate = OnStateUpdate;
     
     if ("entity" in parameters)
     {
@@ -42,7 +43,7 @@ function baseselect(widget_id, url, skin, parameters)
     }
     // Finally, call the parent constructor to get things moving
     
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
 
     // Function Definitions
     
@@ -53,20 +54,20 @@ function baseselect(widget_id, url, skin, parameters)
 
     function OnStateAvailable(self, state)
     {    
-        self.state = state.state
-        set_options(self, state.attributes.options, state)
+        self.state = state;
+        set_options(self, state.attributes.options, state);
         set_value(self, state)
     }
  
     function OnStateUpdate(self, state)
     {
-        self.state = state.state
+        self.state = state.state;
         set_value(self, state)
     }
 
     function set_value(self, state)
     {
-        value = self.map_state(self, state.state)
+        value = self.map_state(self, state.state);
         self.set_field(self, "selectedoption", value)
     }
 
@@ -74,10 +75,17 @@ function baseselect(widget_id, url, skin, parameters)
     {
         if (self.state != self.ViewModel.selectedoption())
         {
-            self.state = self.ViewModel.selectedoption()
-	        args = self.parameters.post_service
-            args["option"] = self.state
-	        self.call_service(self, args)
+            self.state = self.ViewModel.selectedoption();
+            if (self.initial != 1)
+            {
+                args = self.parameters.post_service;
+                args["option"] = self.state;
+                self.call_service(self, args)
+            }
+            else
+            {
+                self.initial = 0
+            }
         }
     }
 
