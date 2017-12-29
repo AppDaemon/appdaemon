@@ -107,17 +107,15 @@ function basedisplay(widget_id, url, skin, parameters)
 
     function set_value(self, state)
     {
-	if ("entity_attribute" in self) {
-		value = state.attributes[self.entity_attribute]
-	}
-	else
-	{
-        	value = state.state
-	}
-      // TODO: Map State
-       // value = self.map_state(self, state.state);
+        if ("entity_attribute" in self) {
+            value = state.attributes[self.entity_attribute]
+        }
+        else
+        {
+                value = state.state
+        }
 
-      if (isNaN(value))
+        if (isNaN(value))
         {
             self.set_field(self, "value_style", self.parameters.css.text_style);
             self.set_field(self, "value", self.map_state(self, value))
