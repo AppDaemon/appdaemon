@@ -16,6 +16,7 @@ Change Log
 - IFRAME Refreshes should now be more reliable
 - Added calls to access the underlying logger objects for the main and error logs
 - Add the ability to ignore specific subdirectories under appdir
+- Added error handling for apps that can't be read or have broken links
 - Added london Underground Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 - Added ability to display sensor attributes - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 - Added Weather Summary Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
@@ -24,12 +25,11 @@ Change Log
 **Fixes**
 
 - Fixed an issue with the compiled directory not being created early enough
-- Added error handling for apps that can't be read or have broken links
 
 **Breaking Changes**
 
 - Apps need to change the import and super class
-- `info_listen_state()` now returns the namespace in addition to the previous parameters
+- ``info_listen_state()`` now returns the namespace in addition to the previous parameters
 - AppDaemon no longer supports python 3.4
 - --commtype command line argument has been moved to the appdaemon.cfg file
 - The "ha_started" event has been renamed to "plugin_started"
