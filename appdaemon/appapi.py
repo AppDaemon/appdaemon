@@ -431,8 +431,8 @@ class AppDaemon:
 
     # TODO: Reimplement using state
 
-    def dash_navigate(self, target, timeout=-1, ret=None):
-        kwargs = {"command": "navigate", "target": target}
+    def dash_navigate(self, target, timeout=-1, ret=None, sticky=0):
+        kwargs = {"command": "navigate", "target": target, "sticky": sticky}
 
         if timeout != -1:
             kwargs["timeout"] = timeout

@@ -19,6 +19,7 @@ Change Log
 - Added london Underground Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 - Added ability to display sensor attributes - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 - Added Weather Summary Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added Sticky navigation - contributed by `Lars Englund <https://github.com/larsenglund>`__
 
 **Fixes**
 
