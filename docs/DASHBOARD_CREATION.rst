@@ -722,6 +722,89 @@ Cosmetic Arguments:
 -  ``unit_style``
 -  ``sub_style``
 
+weather_summary
+~~~~~~~
+
+An icon and summary reflecting the weather forcast. Requires dark sky to be 
+configured in Home Assistant and expects to be used with one of the 
+following sensors:
+
+-  sensor.dark_sky_daily_summary
+-  sensor.dark_sky_hourly_summary
+-  sensor.dark_sky_summary
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored 
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
+london_underground
+~~~~~~~
+
+A widget to report on the status of a London Underground line and
+provide the reason for delays if there are any. Requires the London
+Underground sensor to be configured in Home Assistant.
+
+It is recommended to update the background style to reflect the color
+of the underground line. An example would be as follows:
+
+.. code:: yaml
+
+  widget_style: "background-color: #0098D4"
+
+The colors of the various lines are:
+- Bakerloo: #B36305
+- Central: #E32017
+- Circle: #FFD300
+- District: #00782A
+- DLR: #00A4A7
+- Hammersmith & City: #F3A9BB
+- Jubilee: #A0A5A9
+- London Overground: #EE7C0E
+- Metropolitan: #9B0056
+- Northern: #000000
+- Piccadilly: #003688
+- Victoria: #0098D4
+- Waterloo & City: #95CDBA
+
+For smaller dashboards the Description text can be too long to fit in
+the widget properly. In that case hide the text as follows:
+
+.. code:: yaml
+
+  state_text_style: "display: none"
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored 
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
 sensor
 ~~~~~~
 
@@ -730,11 +813,21 @@ A widget to report on values for any sensor in Home Assistant
 The widget will detect whether or not it is showing a numeric value, and
 if so, it will use the numeric style. If it is showing text it will use
 the text style, which among other things makes the text size smaller.
+To display an attribute of a sensor rather than the state itself add 
+the attribute to the end of the sensor name. For example, to display the
+description of the sensor.dark_sky_summary sensor you would use the 
+following entity definition: "sensor.dark_sky_summary.Description".
+
+Note that you can define a sub_entity to be an attribute of the entity
+using the entity_to_sub_entity_attribute argument, or an entity as an 
+attribute of the sub_entity using the sub_entity_to_entity_attribute.
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
+OR
+-  ``sub_entity`` - the entity\_id of the sensor to be monitored
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -751,6 +844,10 @@ Optional Arguments:
 -  ``state_map``
 -  ``sub_entity`` - second entity to be displayed in the state text area
 -  ``sub_entity_map`` - state map for the sub\_entity
+-  ``entity_to_sub_entity_attribute`` - the attribute of the entity to use
+   as the sub_entity
+-  ``sub_entity_to_entity_attribute`` - the attribute of the sub_entity to
+   use as the entity
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
