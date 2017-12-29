@@ -36,7 +36,16 @@ function ha_status(stream, dash, widgets)
                     {
                         ret = location.pathname
                     }
-                    timeout_params += "timeout=" + timeout + "&return=" + ret;
+                    if ("sticky")
+                    {
+                        sticky = data.data.sticky;
+                    }
+                    else
+                    {
+                        sticky = 0;
+                    }
+
+                    timeout_params += "timeout=" + timeout + "&return=" + ret + "&sticky=" + sticky;
                 }
                 window.location.href = data.data.target + location.search + timeout_params;
             }
