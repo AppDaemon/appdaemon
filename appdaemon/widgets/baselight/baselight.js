@@ -95,7 +95,6 @@ function baselight(widget_id, url, skin, parameters)
         if ("brightness" in state.attributes)
         {
             self.level = state.attributes.brightness
-            console.log(self.level)
         }
         else
         {
