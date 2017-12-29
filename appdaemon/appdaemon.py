@@ -132,6 +132,9 @@ class AppDaemon:
         self.tick = 1
         self._process_arg("tick", kwargs)
 
+        self.max_skew = 1
+        self._process_arg("max_skew", kwargs)
+
         self.endtime = None
         if "endtime" in kwargs:
             self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
@@ -960,7 +963,7 @@ class AppDaemon:
 
     # noinspection PyBroadException,PyBroadException
 
-    async def do_every_second(self, utc):
+    async def do_every_tick(self, utc):
         try:
             start_time = datetime.datetime.now().timestamp()
             self.now = utc
@@ -980,7 +983,7 @@ class AppDaemon:
             if self.realtime:
                 real_now = datetime.datetime.now().timestamp()
                 delta = abs(utc - real_now)
-                if delta > 1:
+                if delta > self.max_skew:
                     self.log("WARNING",
                               "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                     return real_now
@@ -1042,7 +1045,7 @@ class AppDaemon:
 
         except:
             self.err("WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during do_every_second()")
+            self.err("WARNING", "Unexpected error during do_every_tick()")
             self.err("WARNING", '-' * 60)
             self.err( "WARNING", traceback.format_exc())
             self.err("WARNING", '-' * 60)
@@ -1145,7 +1148,7 @@ class AppDaemon:
 
             self.log("DEBUG", "Starting timer loop")
 
-            self.loop.create_task(self.do_every(self.tick, self.do_every_second))
+            self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
 
             self.log("DEBUG", "Reading Apps")
 
