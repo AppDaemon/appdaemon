@@ -16,6 +16,9 @@ Change Log
 - IFRAME Refreshes should now be more reliable
 - Added calls to access the underlying logger objects for the main and error logs
 - Add the ability to ignore specific subdirectories under appdir
+- Added london Underground Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added ability to display sensor attributes - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added Weather Summary Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 
 **Fixes**
 

@@ -182,6 +182,7 @@ class Dashboard:
         for style in styles:
             if style != "" and style is not None:
                 pieces = style.split(":", 1)
+                result[pieces[0].strip()] = pieces[1]
 
         return result
 

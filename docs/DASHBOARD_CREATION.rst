@@ -723,9 +723,9 @@ Cosmetic Arguments:
 -  ``sub_style``
 
 weather_summary
-~~~~~~~
+~~~~~~~~~~~~~~~
 
-An icon and summary reflecting the weather forcast. Requires dark sky to be 
+An icon and summary reflecting the weather forecast. Requires dark sky to be
 configured in Home Assistant and expects to be used with one of the 
 following sensors:
 
@@ -752,11 +752,12 @@ Cosmetic Arguments:
 -  ``widget_style``
 
 london_underground
-~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 A widget to report on the status of a London Underground line and
 provide the reason for delays if there are any. Requires the London
-Underground sensor to be configured in Home Assistant.
+Underground sensor to be configured in Home Assistant. This widget is
+designed to be a 2x2 tile.
 
 It is recommended to update the background style to reflect the color
 of the underground line. An example would be as follows:
