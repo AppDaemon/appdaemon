@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import globals
 
 #
@@ -14,7 +14,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class MomentarySwitch(appapi.AppDaemon):
+class MomentarySwitch(hass.Hass):
 
   def initialize(self):
     self.listen_state(self.state_change, self.args["switch"], new="on")
@@ -28,7 +28,7 @@ class MomentarySwitch(appapi.AppDaemon):
     self.turn_off(self.args["switch"])
       
   def log_notify(self, message):
-    if "log" in self.args:
+    if "verbose_log" in self.args:
       self.log(message)
     if "notify" in self.args:
       self.notify(message, name=globals.notify)

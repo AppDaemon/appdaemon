@@ -29,8 +29,6 @@
 
 head_includes: 
   - <! head tags go here ->
-  - <script src="/custom_css/gauge/gauge.min.js"></script>
-  - <link rel="stylesheet" href="/custom_css/gauge/fonts/fonts.css">
 
 #
 # Custom body includes - should be a YAML List, e.g.:

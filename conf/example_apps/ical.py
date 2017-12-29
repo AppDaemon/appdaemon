@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import requests
 import ics
 import arrow
@@ -18,7 +18,7 @@ Arguments:
  - max_events: Maximum number of calendar events to include
 
 """
-class Calendar(appapi.AppDaemon):
+class Calendar(hass.Hass):
     def initialize(self):
         self.feed = self.args['feed']
         self.entity = self.args['event']

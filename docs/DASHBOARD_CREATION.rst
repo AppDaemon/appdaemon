@@ -38,6 +38,7 @@ optional. An example is as follows:
         use_comma: 0
         precision: 1
         use_hass_icon: 1
+        namespace: default
 
 These are all fairly self explanatory:
 
@@ -62,7 +63,8 @@ These are all fairly self explanatory:
    if desired. This is useful for instance if you want to use commas as
    decimals for all of your widgets. This will also apply to widgets
    defined with just their entity ids so they will not require a formal
-   widget definition just to change the decimal separator.
+   widget definition just to change the decimal separator. The namespace
+   parameter will be explained further in the namespace section of this document.
 
 The very simplest dashboard needs a layout so it can understand where to
 place the widgets. We use a ``layout`` directive to tell HADasboard how
@@ -606,6 +608,54 @@ timeout expires, the timeout will be cancelled.
 
 ``timeout`` - length of time to stay on the new dashboard ``return`` -
 dashboard to return to after the timeout has elapsed.
+
+Namespaces
+----------
+
+For a full explanation of namespaces see the ``Writing AppDaemon Apps`` Section of the guide. Namespaces may be ignored in HADashboard if only one plugin is in use.
+
+If multiple namespaces are in use, HADasboard is able to specify either at the dashboard level or the widget level which namespace to use. This is achieved by use of the ``namespace`` parameter. This parameter may be specified for each individual widget if desired. If it is specified as one of the global paraneters, it will apply to all widgets but may be overriden for individual widgets. If not specified as a global parameter, the default namespace will be used for any widgets that do not override it. For example:
+
+.. code:: yaml
+
+    ##
+    ## Main arguments, all optional
+    ##
+    title: Main Panel
+    widget_dimensions: [120, 120]
+    widget_size: [1, 1]
+    widget_margins: [5, 5]
+    columns: 8
+    global_parameters:
+        use_comma: 0
+        precision: 1
+        use_hass_icon: 1
+        # Not setting namespace here so the default namespace is used
+
+    # Clock has no namespace
+    clock:
+        widget_type: clock
+
+    # side_temperature doesn't specify a namespace so will use the default
+    # If we specified a different namespace in the global options it would use that instead
+    side_temperature:
+        widget_type: sensor
+        title: Temperature
+        units: "&deg;F"
+        precision: 0
+        entity: sensor.side_temp_corrected
+
+    # side_humidity overrides the default and uses the hass2 namespace
+    # It will use hass2 regardless of any global setting
+    side_humidity:
+        namespace: hass2
+        widget_type: sensor
+        title: Humidity
+        units: "%"
+        precision: 0
+        entity: sensor.side_humidity_corrected
+
+One caveat to namespaces is that the RSS widget always works with the default namespace - since the RSS feeds are supplied by AppDaemon itself, and not one of the plugins.
 
 Widget Reference
 ----------------

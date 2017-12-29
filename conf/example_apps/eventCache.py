@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import os
 import json
 
@@ -22,7 +22,7 @@ Arguments:
  - evnets: List of events to monitor, and later publish
 
 """
-class Cache(appapi.AppDaemon):
+class Cache(hass.Hass):
     def initialize(self):
         self.cache = self.args['cache']
         self.events = self.args['events']

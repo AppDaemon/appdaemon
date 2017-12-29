@@ -18,7 +18,7 @@ function baseselect(widget_id, url, skin, parameters)
     self.onChange = onChange
 
     var callbacks = [
-            {"selector": '#' + widget_id + ' > div > select', "action": "change", "callback": self.onChange},
+        {"observable": "selectedoption", "action": "change", "callback": self.onChange}
                     ]
 
 
@@ -72,15 +72,13 @@ function baseselect(widget_id, url, skin, parameters)
 
     function onChange(self, state)
     {
-        setTimeout(function(){
         if (self.state != self.ViewModel.selectedoption())
         {
             self.state = self.ViewModel.selectedoption()
-	    args = self.parameters.post_service
+	        args = self.parameters.post_service
             args["option"] = self.state
-	    self.call_service(self, args)
+	        self.call_service(self, args)
         }
-        },500)
     }
 
     function set_options(self, options, state)

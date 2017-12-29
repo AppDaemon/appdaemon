@@ -3,7 +3,7 @@
 
 from setuptools import setup, find_packages
 
-from appdaemon.conf import (__version__)
+from appdaemon.utils import (__version__)
 
 #sudo apt-get install python3-aiohttp-dbg
 

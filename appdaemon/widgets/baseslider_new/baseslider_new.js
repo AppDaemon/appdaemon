@@ -18,7 +18,7 @@ function baseslider_new(widget_id, url, skin, parameters)
     self.onChange = onChange
 
     var callbacks = [
-            {"selector": '#' + widget_id + ' > div > input', "action": "change", "callback": self.onChange},
+            {"observable": "SliderValue", "action": "change", "callback": self.onChange},
                     ]
 
 
@@ -76,7 +76,6 @@ function baseslider_new(widget_id, url, skin, parameters)
 
     function onChange(self, state)
     {
-        setTimeout(function(){
         if (self.state != self.ViewModel.SliderValue())
         {
             self.state = self.ViewModel.SliderValue()
@@ -84,7 +83,6 @@ function baseslider_new(widget_id, url, skin, parameters)
             args["value"] = self.state
 	    self.call_service(self, args)
         }
-        },500)
     }
 
     function set_options(self, minvalue, maxvalue, stepvalue, state)

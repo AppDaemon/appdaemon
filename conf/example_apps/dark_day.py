@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime
 import globals
 
@@ -19,7 +19,7 @@ import globals
 #   Initial Version
 
 
-class DarkDay(appapi.AppDaemon):
+class DarkDay(hass.Hass):
 
   def initialize(self):
     

@@ -110,7 +110,6 @@ function base_light_with_colorpicker(widget_id, url, skin, parameters)
         {
             args = self.parameters.post_service_inactive
         }
-        console.log(args)
         self.call_service(self, args)
         toggle(self)
     }

@@ -131,9 +131,9 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import homeassistant.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class OutsideLights(appapi.AppDaemon):
+    class OutsideLights(hass.Hass):
 
       def initialize(self):
         self.run_at_sunrise(self.sunrise_cb)
@@ -169,9 +169,9 @@ terms:
 
 .. code:: python
 
-    import homeassistant.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class FlashyMotionLights(appapi.AppDaemon):
+    class FlashyMotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
@@ -200,9 +200,9 @@ activated and bales out after 10 iterations.
 
 .. code:: python
 
-    import homeassistant.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class MotionLights(appapi.AppDaemon):
+    class MotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
@@ -252,3 +252,21 @@ installation instructions, an API reference, and a number of fully
 fleshed out examples.
 
 Happy Automating!
+
+Other Tutorials
+---------------
+
+Here is a list of other tutorials that have been created by AppDaemon users:
+
+By Rene Tode:
+
+- `AppDaemon For Beginners <https://github.com/ReneTode/My-AppDaemon/tree/master/AppDaemon_for_Beginner>`__
+
+By Supahnoob:
+
++ `AppDaemon Tutorial #1 Tracker-Notifier <https://community.home-assistant.io/t/appdaemon-tutorial-1-tracker-notifier/12545>`__
++ `AppDaemon Tutorial #2 Errorlog Notifications <https://community.home-assistant.io/t/appdaemon-tutorial-2-errorlog-notifications/12907>`__
++ `AppDaemon Tutorial #3 Utility Functions <https://community.home-assistant.io/t/appdaemon-tutorial-3-utility-functions/13247>`__
++ `AppDaemon Tutorial #4 Libraries & Interactivity <https://community.home-assistant.io/t/appdaemon-tutorial-4-libraries-interactivity/14057>`__
+
+

@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime
 import globals
 
@@ -17,7 +17,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class Battery(appapi.AppDaemon):
+class Battery(hass.Hass):
 
   def initialize(self):
     #self.check_batteries({"force": 1})

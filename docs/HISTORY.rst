@@ -1,8 +1,45 @@
 Change Log
 ==========
 
-2.1.10
-------
+3.0.0b1
+------------------
+
+**Features**
+
+- Refactored pluggable architecture
+- Support for multiple HASS instances
+- Custom constraints
+- Namespaces
+- Path of Secret file can now be specified
+- apps.yaml can now be split across multiple files and directories
+- Apps can now establish loading priorities to influence their loading order
+- IFRAME Refreshes should now be more reliable
+- Added calls to access the underlying logger objects for the main and error logs
+- Add the ability to ignore specific subdirectories under appdir
+
+**Fixes**
+
+- Fixed an issue with the compiled directory not being created early enough
+- Added error handling for apps that can't be read or have broken links
+
+**Breaking Changes**
+
+- Apps need to change the import and super class
+- `info_listen_state()` now returns the namespace in addition to the previous parameters
+- AppDaemon no longer supports python 3.4
+- --commtype command line argument has been moved to the appdaemon.cfg file
+- The "ha_started" event has been renamed to "plugin_started"
+- RSS Feed parameters have been moved to the hadashboard section
+- Log directives now have their own section
+- AppDaemon section renamed to appdaemon
+- HADashboard section renamed to hadashboard
+- Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
+- the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
+- apps.yaml in the config directory has now been deprecated
+
+
+2.1.12 (2017-11-07)
+-------------------
 
 **Features**
 
@@ -10,11 +47,42 @@ None
 
 **Fixes**
 
-None
+- Fixed passwords causing 500 error on HADashboard - contributed by `wchan.ranelagh <https://community.home-assistant.io/u/wchan.ranelagh/summary>`__
 
 **Breaking Changes**
 
 None
+
+2.1.11 (2017-10-25)
+-------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an issue with ``run_at_sunset()`` firing multiple times
+
+**Breaking Changes**
+
+None
+
+2.1.10 (2017-10-11)
+------------------
+
+**Features**
+
+- Renamed the HADashboard input_slider to input_number to support HASS' change
+- Fixed ``select_value()`` to work with input_number entities
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+The ``input_select`` widget has been renamed to ``input_number`` to support the change in HASS
 
 2.1.9 (2017-09-08)
 ------------------
