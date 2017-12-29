@@ -1,5 +1,8 @@
 widget_type: basedisplay
 entity: {{entity}}
+entity_to_sub_entity_attribute: {{entity_to_sub_entity_attribute}}
+sub_entity: {{sub_entity}}
+sub_entity_to_entity_attribute: {{sub_entity_to_entity_attribute}}
 fields:
   title: {{title}}
   title2: {{title2}}

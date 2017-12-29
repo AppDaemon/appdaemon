@@ -321,3 +321,4 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         this.get_state(child, url, monitored_entities[i])
     }
 };
+
