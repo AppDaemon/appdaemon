@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import globals
 
 #
@@ -22,14 +22,14 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class MiniMote(appapi.AppDaemon):
+class MiniMote(hass.Hass):
 
   def initialize(self):
     
     self.listen_event(self.zwave_event, "zwave.scene_activated", entity_id = self.args["device"])
     
   def zwave_event(self, event_name, data, kwargs):
-    #self.log("Event: {}, data = {}, args = {}".format(event_name, data, kwargs))
+    #self.verbose_log("Event: {}, data = {}, args = {}".format(event_name, data, kwargs))
     scene = data["scene_id"]
     on = "scene_{}_on".format(scene)
     off = "scene_{}_off".format(scene)

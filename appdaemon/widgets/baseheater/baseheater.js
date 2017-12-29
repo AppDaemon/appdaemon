@@ -20,7 +20,7 @@ function baseheater(widget_id, url, skin, parameters)
 
     var callbacks = [
             {"selector": '#' + widget_id + ' > span', "action": "click", "callback": self.OnButtonClick},
-            {"selector": '#' + widget_id + ' > div > input', "action": "change", "callback": self.onChange},
+            {"observable": "Temperature", "action": "change", "callback": self.onChange},
                     ]
 
     self.OnStateAvailable = OnStateAvailable
@@ -91,7 +91,6 @@ function baseheater(widget_id, url, skin, parameters)
 
     function onChange(self, state)
     {
-        setTimeout(function(){
         if (self.thermovalue != self.ViewModel.Temperature())
         {
             self.thermovalue = self.ViewModel.Temperature()
@@ -99,7 +98,6 @@ function baseheater(widget_id, url, skin, parameters)
             args["value"] = self.thermovalue
 	    self.call_service(self, args)
         }
-        },500)
     }
 
     function toggle(self)

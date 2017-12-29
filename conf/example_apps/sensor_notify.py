@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 
 #
 # App to send notification when sensor values in specific ranges
@@ -7,8 +7,8 @@ import appdaemon.appapi as appapi
 # sensor: sensor to monitor e.g. sensor.washer
 # range_min: minimum value to regard as 'on'
 # range_max: maximum value to regard as 'on'
-# log: if set to anything will log on and off messages
-# log: if set to anything will notify on and off messages
+# verbose_log: if set to anything will verbose_log on and off messages
+# verbose_log: if set to anything will notify on and off messages
 # 
 #
 # Release Notes
@@ -16,7 +16,7 @@ import appdaemon.appapi as appapi
 # Version 1.0:
 #   Initial Version
 
-class SensorNotification(appapi.AppDaemon):
+class SensorNotification(hass.Hass):
 
   def initialize(self):
     self.listen_state(self.state, self.args["sensor"])
@@ -37,7 +37,7 @@ class SensorNotification(appapi.AppDaemon):
       self.log_notify(notify)
       
   def log_notify(self, message):
-    if "log" in self.args:
+    if "verbose_log" in self.args:
       self.log(message)
     if "notify" in self.args:
       self.notify(message)

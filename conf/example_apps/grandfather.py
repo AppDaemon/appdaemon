@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 from queue import Queue
 import threading
 import time
@@ -22,7 +22,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class Grandfather(appapi.AppDaemon):
+class Grandfather(hass.Hass):
 
   def initialize(self):
    
@@ -31,18 +31,18 @@ class Grandfather(appapi.AppDaemon):
     
   def check_chime(self, kwargs):
     chime = True
-    #self.log("Checking Chime")
+    #self.verbose_log("Checking Chime")
     if "mute_if_home" in self.args and self.get_state(self.args["mute_if_home"]) == "home":
-      #self.log("Wendy is home")
+      #self.verbose_log("Wendy is home")
       chime = False
     if self.noone_home():
-      #self.log ("No one is home")
+      #self.verbose_log ("No one is home")
       chime = False
     if not self.now_is_between(self.args["start_time"], self.args["end_time"]):
-      #self.log("It's early or late")
+      #self.verbose_log("It's early or late")
       chime = False
     if chime:
-      #self.log("Chiming")
+      #self.verbose_log("Chiming")
       self.chime()
       
   def chime(self):

@@ -15,11 +15,11 @@
 #                                                                                         #
 ###########################################################################################
 
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime as datetime
 import platform
 
-class general_fnc(appapi.AppDaemon):
+class general_fnc(hass.Hass):
 
     def initialize(self):
         return

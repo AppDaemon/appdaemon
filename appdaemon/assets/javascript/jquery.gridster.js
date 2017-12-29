@@ -3898,7 +3898,7 @@
 				moved.push($widget);
 
 				/* $next_widgets.each($.proxy(function(i, widget) {
-				 console.log('from_within_move_widget_up');
+				 console.verbose_log('from_within_move_widget_up');
 				 this.move_widget_up($(widget), y_units);
 				 }, this)); */
 			}

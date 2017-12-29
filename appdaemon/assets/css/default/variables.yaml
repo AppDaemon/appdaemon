@@ -29,8 +29,7 @@
 
 head_includes:
  - <! head tags go here ->
- - <script src="/custom_css/gauge/gauge.min.js"></script>
- - <link rel="stylesheet" href="/custom_css/gauge/fonts/fonts.css">
+
 #
 # Custom body includes - should be a YAML List, e.g.:
 #
@@ -180,6 +179,7 @@ london_underground_widget_style: $background_style
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $white"
+label_state_text_style: "color: $white"
 label_widget_style: $background_style
 
 sensor_title_style: $style_title

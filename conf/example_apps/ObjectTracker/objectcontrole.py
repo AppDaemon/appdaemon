@@ -30,10 +30,10 @@
 #                                                                                         #
 ###########################################################################################
 
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime
 
-class objectcontrole(appapi.AppDaemon):
+class objectcontrole(hass.Hass):
 
   def initialize(self):
     self.listen_state(self.object_controle, self.args["object_type"])
