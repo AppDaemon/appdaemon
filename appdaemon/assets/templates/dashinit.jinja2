@@ -35,11 +35,17 @@ $(function(){ //DOM Ready
 
     $( ".gridster" ).click(function(){
         clearTimeout(myTimeout);
+        if (myTimeoutSticky) {
+            myTimeout = setTimeout(function() { navigate(myTimeoutUrl); }, myTimeoutDelay);
+        }
     });
 
     // Set up timeout
 
-    var myTimeout
+    var myTimeout;
+    var myTimeoutUrl;
+    var myTimeoutDelay;
+    var myTimeoutSticky = 0;
 
     if (location.search != "")
     {
@@ -56,7 +62,7 @@ $(function(){ //DOM Ready
             argcount = 0
             for (arg in result)
             {
-                if (arg != "timeout" && arg != "return")
+                if (arg != "timeout" && arg != "return" && arg != "sticky")
                 {
                     if (argcount == 0)
                     {
@@ -70,6 +76,12 @@ $(function(){ //DOM Ready
                     url += arg + "=" + result[arg]
                 }
             }
+            if ("sticky" in result)
+            {
+                myTimeoutSticky = (result.sticky == "1");
+            }
+            myTimeoutUrl = url;
+            myTimeoutDelay = result.timeout * 1000;
             myTimeout = setTimeout(function() { navigate(url); }, result.timeout * 1000);
         }
     }
