@@ -23,8 +23,11 @@ Before running ``AppDaemon`` you will need to install the package:
 Install Using hass.io
 ---------------------
 
-There is an official hass.io addon for AppDaemon maintained by
-`sparck75 <https://github.com/sparck75/hassio-addons>`__.
+There are a couple of hass.io addons for AppDaemon maintained by:
+
+- `frenk <https://github.com/hassio-addons/repository>`__.
+- `sparck75 <https://github.com/sparck75/hassio-addons>`__.
+
 
 Configuration
 -------------

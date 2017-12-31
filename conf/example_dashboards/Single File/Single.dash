@@ -224,11 +224,6 @@ load_main_panel:
     title: Main Panel
     icon: fa-home
     url: /MainPanel
-    #background_color: "#00f"
-    #icon_color: green
-    #icon_size: 200%
-    #title_color: red
-    #title_size: 200%
 
 load_upstairs_panel:
     widget_type: navigate
