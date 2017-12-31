@@ -1,12 +1,7 @@
-import requests
 import os
 import datetime
 
 import asyncio
-
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __version__ = "3.0.0b1"
 secrets = None
