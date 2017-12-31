@@ -6,7 +6,9 @@ from websocket import create_connection
 from pkg_resources import parse_version
 from sseclient import SSEClient
 import traceback
-import copy
+
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 import appdaemon.utils as utils
 

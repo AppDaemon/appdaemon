@@ -4,10 +4,13 @@ import inspect
 import appdaemon.appapi as appapi
 import appdaemon.utils as utils
 
+
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 #
 # Define an entities class as a descriptor to enable read only access of HASS state
 #
-
 
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
