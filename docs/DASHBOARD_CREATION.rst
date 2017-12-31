@@ -1565,7 +1565,8 @@ Cosmetic Arguments
 -  ``widget_style``
 -  ``title_style``
 -  ``title2_style``
--  ``icon_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
 
 reload
 ~~~~~~
