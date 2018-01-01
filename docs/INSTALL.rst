@@ -452,10 +452,10 @@ You can then build and run a docker image locally as follows:
     $ cd appdaemon
     $ docker build -t appdaemon .
     $ docker run -t -i --name=appdaemon -p 5050:5050 \
-      -e HA_URL="http://192.168.1.20:8123" \
-      -e HA_KEY="i1tkpp'hass'0709" \
-      -e DASH_URL="http://192.168.1.20:5050" \
-      -v /export/hass/appdaemon_test:/conf \
+      -e HA_URL="<Your HA URL>" \
+      -e HA_KEY="<your HA Key>" \
+      -e DASH_URL="<Your DASH URL>" \
+      -v <Your AppDaemon conf dir>:/conf \
       appdaemon:latest
 
 For more information on running AppDeamon under Docker, see the Docker Tutorial. The key difference is that
