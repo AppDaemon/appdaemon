@@ -1851,7 +1851,7 @@ Similarly for body includes:
 
 To learn more about complete styles, take a look at the supplied styles
 to see how they are put together. Start off with the ``dashboard.css``
-and ``variables.yaml`` from an exisitng file and edit to suit your
+and ``variables.yaml`` from an existing file and edit to suit your
 needs.
 
 Example Dashboards
