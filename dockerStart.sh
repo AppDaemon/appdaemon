@@ -14,7 +14,7 @@ if [ ! -d $CONF/apps ]; then
 fi
 
 # if apps file doesn't exist, copy the default
-if [ ! -f $CONF/apps.yaml ]; then
+if [ ! -f $CONF/apps/apps.yaml ]; then
   cp $CONF_SRC/apps.yaml.example $CONF/apps/apps.yaml
 fi
 
