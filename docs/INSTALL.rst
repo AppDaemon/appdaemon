@@ -448,7 +448,8 @@ from the downloaded repository. The Dockerfile also needs a couple of changes:
 You can then build and run a docker image locally as follows:
 
 .. code:: bash
-    $ cd <repository directory>
+    $ git clone https://github.com/home-assistant/appdaemon.git
+    $ cd appdaemon
     $ docker build -t appdaemon .
     $ docker run -t -i --name=appdaemon -p 5050:5050 \
       -e HA_URL="http://192.168.1.20:8123" \
@@ -457,6 +458,9 @@ You can then build and run a docker image locally as follows:
       -v /export/hass/appdaemon_test:/conf \
       appdaemon:latest
 
+For more information on running AppDeamon under Docker, see the Docker Tutorial. The key difference is that
+you will be running a locally built instance of AppDaemon rather than one from Docker Hub, so for run commands,
+make usre yo uspecify "appdaemon:latest" as the image, as above, rather than "acockburn/appdaemon:latest" as the tutorial states.
 
 At the time of writing, @torkildr is maintaining a linked Raspberry Pi image here:
 
