@@ -16,6 +16,7 @@ import concurrent
 import threading
 import random
 import re
+from copy import deepcopy
 
 import appdaemon.utils as utils
 
@@ -499,33 +500,33 @@ class AppDaemon:
     def get_state(self, namespace, device, entity, attribute):
             with self.state_lock:
                 if device is None:
-                    return self.state[namespace]
+                    return deepcopy(self.state[namespace])
                 elif entity is None:
                     devices = {}
                     for entity_id in self.state[namespace].keys():
                         thisdevice, thisentity = entity_id.split(".")
                         if device == thisdevice:
                             devices[entity_id] = self.state[namespace][entity_id]
-                    return devices
+                    return deepcopy(devices)
                 elif attribute is None:
                     entity_id = "{}.{}".format(device, entity)
                     if entity_id in self.state[namespace]:
-                        return self.state[namespace][entity_id]["state"]
+                        return deepcopy(self.state[namespace][entity_id]["state"])
                     else:
                         return None
                 else:
                     entity_id = "{}.{}".format(device, entity)
                     if attribute == "all":
                         if entity_id in self.state[namespace]:
-                            return self.state[namespace][entity_id]["attributes"]
+                            return deepcopy(self.state[namespace][entity_id]["attributes"])
                         else:
                             return None
                     else:
                         if attribute in self.state[namespace][entity_id]:
-                            return self.state[namespace][entity_id][attribute]
+                            return deepcopy(self.state[namespace][entity_id][attribute])
                         elif attribute in self.state[namespace][entity_id]["attributes"]:
-                            return self.state[namespace][entity_id]["attributes"][
-                                attribute]
+                            return deepcopy(self.state[namespace][entity_id]["attributes"][
+                                attribute])
                         else:
                             return None
 

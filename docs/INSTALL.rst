@@ -458,7 +458,7 @@ You can then build and run a docker image locally as follows:
       -v <Your AppDaemon conf dir>:/conf \
       appdaemon:latest
 
-For more information on running AppDeamon under Docker, see the Docker Tutorial. The key difference is that
+For more information on running AppDaemon under Docker, see the Docker Tutorial. The key difference is that
 you will be running a locally built instance of AppDaemon rather than one from Docker Hub, so for run commands,
 make usre yo uspecify "appdaemon:latest" as the image, as above, rather than "acockburn/appdaemon:latest" as the tutorial states.
 
