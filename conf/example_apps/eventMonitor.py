@@ -1,14 +1,14 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 
 """
 
-Monitor events and output changes to the log. Nice for debugging purposes.
+Monitor events and output changes to the verbose_log. Nice for debugging purposes.
 
 Arguments:
  - events: List of events to monitor
 
 """
-class Monitor(appapi.AppDaemon):
+class Monitor(hass.Hass):
     def initialize(self):
         events = self.args['events']
 

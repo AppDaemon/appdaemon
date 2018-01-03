@@ -1,17 +1,17 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import random
 import globals
 
-class Alexa(appapi.AppDaemon):
+class Alexa(hass.Hass):
 
     def initialize(self):
         pass
 
     def api_call(self, data):
-        intent = self.get_alexa_intent(data)
+        intent = get_alexa_intent(data)
 
         if intent is None:
-            self.log("Alexa error encountered: {}".format(self.get_alexa_error(data)))
+            self.log("Alexa error encountered: {}".format(get_alexa_error(data)))
             return "", 201
 
         intents = {
@@ -33,7 +33,7 @@ class Alexa(appapi.AppDaemon):
         return response, response, "House Status"
 
     def LocateIntent(self, data):
-        user = self.get_alexa_slot_value(data, "User")
+        user = get_alexa_slot_value(data, "User")
 
         if user is not None:
             if user.lower() == "jack":

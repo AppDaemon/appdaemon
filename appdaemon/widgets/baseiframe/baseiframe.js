@@ -30,9 +30,11 @@ function baseiframe(widget_id, url, skin, parameters)
             self.set_field(self, "img_src", "/images/Blank.gif");
             size = self.parameters.url_list.length
         }
-        else if ("img_list" in self.parameters)
+       else if ("img_list" in self.parameters)
         {
-            self.set_field(self, "img_src", self.parameters.img_list[self.index]);
+            var url = self.parameters.img_list[self.index]
+            url = url + "?time=" + Math.floor((new Date).getTime()/1000);
+            self.set_field(self, "img_src", url);
             size = self.parameters.img_list.length
         }
         else if ("entity_picture" in self.parameters)

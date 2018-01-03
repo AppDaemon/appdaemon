@@ -1,8 +1,49 @@
 Change Log
 ==========
 
+3.0.0b1
+------------------
+
+**Features**
+
+- Refactored pluggable architecture
+- Support for multiple HASS instances
+- Custom constraints
+- Namespaces
+- Path of Secret file can now be specified
+- apps.yaml can now be split across multiple files and directories
+- Apps can now establish loading priorities to influence their loading order
+- IFRAME Refreshes should now be more reliable
+- Added calls to access the underlying logger objects for the main and error logs
+- Add the ability to ignore specific subdirectories under appdir
+- Added error handling for apps that can't be read or have broken links
+- Added london Underground Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added ability to display sensor attributes - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added Weather Summary Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added Sticky navigation - contributed by `Lars Englund <https://github.com/larsenglund>`__
+
+**Fixes**
+
+- Fixed an issue with the compiled directory not being created early enough
+
+**Breaking Changes**
+
+- Apps need to change the import and super class
+- ``info_listen_state()`` now returns the namespace in addition to the previous parameters
+- AppDaemon no longer supports python 3.4
+- --commtype command line argument has been moved to the appdaemon.cfg file
+- The "ha_started" event has been renamed to "plugin_started"
+- RSS Feed parameters have been moved to the hadashboard section
+- Log directives now have their own section
+- AppDaemon section renamed to appdaemon
+- HADashboard section renamed to hadashboard
+- Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
+- the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
+- apps.yaml in the config directory has now been deprecated
+
+
 2.1.12 (2017-11-07)
-------
+-------------------
 
 **Features**
 
@@ -17,7 +58,7 @@ None
 None
 
 2.1.11 (2017-10-25)
-------
+-------------------
 
 **Features**
 

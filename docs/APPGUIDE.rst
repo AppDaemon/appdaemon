@@ -27,18 +27,18 @@ code when those events occur, allowing the App to respond to the event
 with some kind of action.
 
 The first step is to create a unique file within the apps directory (as
-defined in the ``AppDaemon`` section of configuration file - see `The
+defined in the ``appdaemon`` section of configuration file - see `The
 Installation Page <INSTALL.html>`__ for further information on the
 configuration of AppDaemon itself). This file is in fact a Python
 module, and is expected to contain one or more classes derived from the
-supplied ``AppDaemon`` class, imported from the supplied
-``appdaemon.appapi`` module. The start of an app might look like this:
+supplied ``appdaemon`` class, imported from the supplied
+``appdaemon.plugins.hass.hassapi`` module. The start of an app might look like this:
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class MotionLights(appapi.AppDaemon):
+    class OutsideLights(hass.Hass):
 
 When configured as an app in the config file (more on that later) the
 lifecycle of the App begins. It will be instantiated as an object by
@@ -104,11 +104,11 @@ comments):
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
     import datetime
 
-     Declare Class
-    class NightLight(appapi.AppDaemon):
+    # Declare Class
+    class NightLight(hass.Hass):
       #initialize() function which will be called at startup and reload
       def initialize(self):
         # Create a time object for 7pm
@@ -144,9 +144,10 @@ variables during the API invocation.
 Configuration of Apps
 ---------------------
 
-Apps are configured by specifying new sections in the app configuration
-file - ``apps.yaml``. The name of the section is the name the App is referred to
-within the system in log files etc. and must be unique.
+Apps are configured by specifying new sections in an app configuration
+file. The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml``. You can have one single file for configuration of all apps, or break it down to have one ``yaml`` file per app, or anything in between. Coupled with the fact that you can have any number of subdirectopries for apps and ``yaml`` files, this gives you the flexibility to structure your apps as you see fit.
+
+The entry for an individual app within a ``yaml`` file is simply a dictionary entry naming the app, with subfields to supply various parameters. The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
 
 To configure a new App you need a minimum of two directives:
 
@@ -309,10 +310,10 @@ examples where this might be the case are:
 In these cases, when changes are made to one of these modules, we also
 want the modules that depend upon them to be reloaded. Furthermore, we
 also want to guarantee that they are loaded in order so that the modules
-dpended upon by other modules are loaded first.
+depended upon by other modules are loaded first.
 
 AppDaemon fully supports this through the use of the dependency
-directive in the App configuration. Using this directice, each App
+directive in the App configuration. Using this directive, each App
 identifies modules that it depends upon. Note that the dependency is at
 the module level, not the App level, since a change to the module will
 force a reload of all apps using it anyway. The dependency directive
@@ -352,6 +353,31 @@ separate list (no spaces)
 
 AppDaemon will write errors to the log if a dependency is missing and it
 should also detect circular dependencies.
+
+Loading Priority
+----------------
+
+It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an app, simply add a ``priority`` entry to its paremeters. e.g.:
+
+.. code:: yaml
+
+    downstairs_motion_light:
+      module: motion_light
+      class: MotionLight
+      sensor: binary_sensor.downstairs_hall
+      light: light.downstairs_hall
+      priority: 10
+
+
+Priorities can be any number you like, and can be float values if required, the lower the number the higher the priority. AppDaemon will load any modules with a priority in the order specified.
+
+For modules with no priority specified, the priority is assumed to be ``50``. It is therefore possible to cause modules to be loaded before and after modules with no priority.
+
+The priority system is complimentary to the dependency system, although they are trying to solve different problems. Dependencies should be used when an app literally depends upon another, for instance it is using variables stored in it with the ``get_app()`` call. Priorities should be used when an app does some setup for other apps but doesn't provide variables or code for the dependent app. An example of this might be an App that sets up some sensors in Home Assistant, or sets some switch or input_slider to a specific value. It may be necessary for that setup to be performed before other apps are started, but there is no requirement to reload those apps if the first app changes.
+
+To accommodate both systems, dependency trees are assigned priorities in the range 50 - 51, again allowing apps to set priorities such that they will be loaded before or after specific sets of dependent apps.
+
+Note that apps that are dependent upon other apps will ignore any priority setting in their configuration.
 
 Callback Constraints
 --------------------
@@ -477,13 +503,13 @@ times that span midnight.
 
 .. code:: yaml
 
-     Run between 8am and 10pm
-    constrain_start_time: 08:00:00
-    constrain_end_time: 22:00:00
-     Run between sunrise and sunset
+    # Run between 8am and 10pm
+    constrain_start_time: "08:00:00"
+    constrain_end_time: "22:00:00"
+    # Run between sunrise and sunset
     constrain_start_time: sunrise
     constrain_end_time: sunset
-     Run between 45 minutes before sunset and 45 minutes after sunrise the next day
+    # Run between 45 minutes before sunset and 45 minutes after sunrise the next day
     constrain_start_time: sunset - 00:45:00
     constrain_end_time: sunrise + 00:45:00
 
@@ -500,10 +526,11 @@ will fire, e.g.
 Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
+
 A Note on Threading
 -------------------
 
-AppDaemon is multithreaded. This means that any time code within an App
+AppDaemon is multi-threaded. This means that any time code within an App
 is executed, it is executed by one of many threads. This is generally
 not a particularly important consideration for this application; in
 general, the execution time of callbacks is expected to be far quicker
@@ -872,9 +899,9 @@ Assistant bus:
 
 -  ``appd_started`` - fired once when AppDaemon is first started and
    after Apps are initialized
--  ``ha_started`` - fired every time AppDaemon detects a Home Assistant
+-  ``plugin_started`` - fired every time AppDaemon detects a Home Assistant
    restart
--  ``ha_disconnectd`` - fired once every time AppDaemon loses its
+-  ``plugin_stopped`` - fired once every time AppDaemon loses its
    connection with HASS
 
 About Event Callbacks
@@ -976,9 +1003,9 @@ Examples
 .. code:: python
 
     self.listen_event(self.mode_event, "MODE_CHANGE")
-     Listen for a minimote event activating scene 3:
+    # Listen for a minimote event activating scene 3:
     self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
-     Listen for a minimote event activating scene 3 from a specific minimote:
+    # Listen for a minimote event activating scene 3 from a specific minimote:
     self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
 
 Use of Events for Signalling between Home Assistant and AppDaemon
@@ -1035,7 +1062,7 @@ HADashboard listens for certain events. An event type of "hadashboard"
 will trigger certain actions such as page navigation. For more
 information see the ` Dashboard configuration pages <DASHBOARD.html>`__
 
-AppDaemon provides convenience funtions to assist with this.
+AppDaemon provides convenience functions to assist with this.
 
 Presence
 --------
@@ -1081,40 +1108,42 @@ needed.
 In addition, Apps have access to the entire configuration if required,
 meaning they can access AppDaemon configuration items as well as
 parameters from other Apps. To use this, there is a class attribute
-called ``self.config``. It contains a ``ConfigParser`` object, which is
-similar in operation to a ``Dictionary``. To access any apps parameters,
-simply reference the ConfigParser object using the Apps name (form the
-config file) as the first key, and the parameter required as the second,
-for instance:
+called ``self.config``. It contains a standard Python nested ``Dictionary``.
+
+To get AppDaemon's config parameters for example:
 
 .. code:: python
 
-    other_apps_arg = self.config["some_app"]["some_parameter"].
+    app_timezone = self.config["time_zone"]
 
-To get AppDaemon's config parameters, use the key "AppDaemon", e.g.:
+
+To access any apps parameters, use the class attribute called ``app_config``. This is
+a python Dictionary with an entry for each app, keyed on the App's name.
 
 .. code:: python
 
-    app_timezone = self.config["AppDaemon"]["time_zone"]
+    other_apps_arg = self.app_config["some_app"]["some_parameter"].
+
 
 AppDaemon also exposes configuration from Home Assistant such as the
 Latitude and Longitude configured in HA. All of the information
 available from the Home Assistant ``/api/config`` endpoint is available
-in the ``self.ha_config`` dictionary. E.g.:
+using the ``get_hass_config()`` call. E.g.:
 
 .. code:: python
 
-    self.log("My current position is {}(Lat), {}(Long)".format(self.ha_config["latitude"], self.ha_config["longitude"]))
+    config = self.get_hass_config()
+    self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
 
-And finally, it is also possible to use the AppDaemon as a global area
+And finally, it is also possible to use ``config`` as a global area
 for sharing parameters across Apps. Simply add the required parameters
-to the AppDaemon section of your config:
+to the top level of the appdaemon.yaml file:
 
 .. code:: yaml
 
-    AppDaemon:
-    ha_url: <some url>
-    ha_key: <some key>
+    logs:
+    ...
+    appdaemon:
     ...
     global_var: hello world
 
@@ -1122,7 +1151,7 @@ Then access it as follows:
 
 .. code:: python
 
-    my_global_var = conf.config["AppDaemon"]["global_var"]
+    my_global_var = conf.config["global_var"]
 
 Development Workflow
 --------------------
@@ -1274,7 +1303,6 @@ connection is unexpectedly lost, the following will occur:
 -  Any operation reading locally cached state will succeed
 -  Any operation requiring a call to HASS will log a warning and return
    without attempting to contact hass
--  Changes to Apps will not force a reload until HASS is reconnected
 
 When a connection to HASS is reestablished, all Apps will be restarted
 and their ``initialize()`` routines will be called.
@@ -1316,9 +1344,9 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import appdaemon.plugins.hass.hassapi as hass
 
-    class API(appapi.AppDaemon):
+    class API(hass.Hass):
 
         def initialize(self):
             self.register_endpoint(my_callback, test_endpoint)
@@ -1451,11 +1479,11 @@ want to configure.
 
 .. code:: python
 
-    import appdaemon.appapi as appapi
+    import import appdaemon.plugins.hass.hassapi as hass
     import random
     import globals
 
-    class Alexa(appapi.AppDaemon):
+    class Alexa(hass.Hass):
 
         def initialize(self):
             pass
@@ -1557,103 +1585,271 @@ Google API.AI
 
 Similarly, Google's API.AI for Google home is supported - here is the Google version of the same App.To set up Api.ai with your google home refer to the apiai component in home-assistant. Once it is setup you can use the appdaemon API as the webhook.
 
-import appdaemon.appapi as appapi
-import random
-import globals
+.. code:: python
 
-class Apiai(appapi.AppDaemon):
+    import appdaemon.plugins.hass.hassapi as hass
+    import random
+    import globals
 
-    def initialize(self):
-        pass
+    class Apiai(hass.Hass):
 
-    def api_call(self, data):
-        intent = self.get_apiai_intent(data)
+        def initialize(self):
+            pass
 
-        if intent is None:
-            self.log("Apiai error encountered: Result is empty")
-            return "", 201
+        def api_call(self, data):
+            intent = self.get_apiai_intent(data)
 
-        intents = {
-            "StatusIntent": self.StatusIntent,
-            "LocateIntent": self.LocateIntent,
-        }
+            if intent is None:
+                self.log("Apiai error encountered: Result is empty")
+                return "", 201
 
-        if intent in intents:
-            speech = intents[intent](data)
-            response = self.format_apiai_response(speech)
-            self.log("Recieved Apai request: {}, answering: {}".format(intent, speech))
-        else:
-            response = self.format_apaiai_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
+            intents = {
+                "StatusIntent": self.StatusIntent,
+                "LocateIntent": self.LocateIntent,
+            }
 
-        return response, 200
-
-    def StatusIntent(self, data):
-        response = self.HouseStatus()
-        return response
-
-    def LocateIntent(self, data):
-        user = self.get_apiai_slot_value(data, "User")
-
-        if user is not None:
-            if user.lower() == "jack":
-                response = self.Jack()
-            elif user.lower() == "andrew":
-                response = self.Andrew()
-            elif user.lower() == "wendy":
-                response = self.Wendy()
-            elif user.lower() == "brett":
-                response = "I have no idea where Brett is, he never tells me anything"
+            if intent in intents:
+                speech = intents[intent](data)
+                response = self.format_apiai_response(speech)
+                self.log("Recieved Apai request: {}, answering: {}".format(intent, speech))
             else:
-                response = "I'm sorry, I don't know who {} is".format(user)
+                response = self.format_apaiai_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
+
+            return response, 200
+
+        def StatusIntent(self, data):
+            response = self.HouseStatus()
+            return response
+
+        def LocateIntent(self, data):
+            user = self.get_apiai_slot_value(data, "User")
+
+            if user is not None:
+                if user.lower() == "jack":
+                    response = self.Jack()
+                elif user.lower() == "andrew":
+                    response = self.Andrew()
+                elif user.lower() == "wendy":
+                    response = self.Wendy()
+                elif user.lower() == "brett":
+                    response = "I have no idea where Brett is, he never tells me anything"
+                else:
+                    response = "I'm sorry, I don't know who {} is".format(user)
+            else:
+                response = "I'm sorry, I don't know who that is"
+
+            return response
+
+        def HouseStatus(self):
+
+            status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
+            status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
+            status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
+            status += self.Wendy()
+            status += self.Andrew()
+            status += self.Jack()
+
+            return status
+
+        def Wendy(self):
+            location = self.get_state(globals.wendy_tracker)
+            if location == "home":
+                status = "Wendy is home,"
+            else:
+                status = "Wendy is away,"
+
+            return status
+
+        def Andrew(self):
+            location = self.get_state(globals.andrew_tracker)
+            if location == "home":
+                status = "Andrew is home,"
+            else:
+                status = "Andrew is away,"
+
+            return status
+
+        def Jack(self):
+            responses = [
+                "Jack is asleep on his chair",
+                "Jack just went out bowling with his kitty friends",
+                "Jack is in the hall cupboard",
+                "Jack is on the back of the den sofa",
+                "Jack is on the bed",
+                "Jack just stole a spot on daddy's chair",
+                "Jack is in the kitchen looking out of the window",
+                "Jack is looking out of the front door",
+                "Jack is on the windowsill behind the bed",
+                "Jack is out checking on his clown suit",
+                "Jack is eating his treats",
+                "Jack just went out for a walk in the neigbourhood",
+                "Jack is by his bowl waiting for treats"
+            ]
+
+            return random.choice(responses)
+
+Plugins
+-------
+
+As of version 3.0, AppDaemon has been rewritten to use a pluggable architecture for connection to the systems it monitors.
+At the time of writing, only one real plugin exists, the homeassistant plugin, and this works the same way that it always has. (There is also an experimental dummy plugin used for testing purposes).
+
+In future it will be possible to create plugins that interface with other systems for instance other home automation systems, or anything else for that matter, and expose their operation to AppDaemon and write Apps to monitor and control them.
+
+An interesting caveat of this is that the architecture has been designed so that multiple instances of each plugin can be configured, meaning for instance that it is possible to connect AppDaemon to 2 or more instances of Home Assistant.
+
+To configure additional plugins of any sort, simply add a new section in the list of plugins in the AppDaemon section.
+
+Here is an example of a plugin section with 2 hass instances and 2 dummy instances:
+
+.. code:: yaml
+
+  plugins:
+    HASS1:
+      type: hass
+      ha_key: !secret home_assistant1_key
+      ha_url: http://192.168.1.20:8123
+    HASS2:
+      namespace: hass2
+      type: hass
+      ha_key: !secret home_assistant2_key
+      ha_url: http://192.168.1.21:8123
+    TEST:
+      namespace: test1
+      type: dummy
+      configuration: /export/hass/appdaemon_test/dummy/test1.yaml
+    TEST2:
+      namespace: test2
+      type: dummy
+      configuration: /export/hass/appdaemon_test/dummy/test2.yaml
+
+The ``type`` parameter defines which of the plugins are used, and the parameters for each plugin type will be different.
+As you can see, the parameters for both hass instances are similar, and it supports all the parameters described in the
+installation section of the docs - here I am just using a subset.
+
+Namespaces
+----------
+
+A critical piece of this is the concept of ``namespaces``. Each plugin has an optional``namespace`` directive. If you have more than 1 plugin of any type, their state is separated into namespaces, and you need to name those namespaces using the ``namespace`` parameter. If you don't supply a namespace, the namespace defaults to ``default`` and this is the default for all areas of AppDaemon meaning that if you only have one plugin you don't need to worry about namespace at all.
+
+In the case above, the first instance had no namespace so it's namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
+
+These namespaces can be accessed separately by the various API calls to keep things separate, but individual Apps can switch between namespaces at will as well as monitor all namespaces in certain calls like ``listen_state()`` or ``listen_event()`` by setting the namespace to ``global``.
+
+Use of Namespaces in Apps
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each App maintains a current namespace at all times. At initialization, this is set to ``default``. This means that if you only have a single plugin you don't need to worry about namespaces at all as everything will just work.
+
+There are 2 ways to work with namespaces in apps. The first is to make a call to ``set_namespace()`` whenever you want to change namespaces. For instance, if in the configuration above, you wanted a particular app to work entirely with the ``HASS2`` plugin instance, all you would need to do is put the following code at the top of your ``initialize()`` function:
+
+.. code:: python
+
+    self.set_namespace("hass2")
+
+Note that you should use the value of the namespace parameter, not the name of the plugin section. From that point on, all state changes, events, service calls etc. will apply to the ``HASS2`` instance and the ``HASS1`` and ``DUMMY`` instances will be ignored. This is convenient for the case in which you don't need to switch between namespaces.
+
+In addition, most of the api calls allow you to optionally supply a namespace for them to operate under. This will override the namespace set by ``set_namespace()`` for that call only.
+
+For example:
+
+.. code:: python
+
+    self.set_namespace("hass2")
+    # Get the entity value from the HASS2 plugin
+    # Since the HASS2 plugin is configured with a namespace of "hass2"
+    state = self.get_state("light.light1")
+
+    # Get the entity value from the HASS1 plugin
+    # Since the HASS1 plugin is configured with a namespace of "default"
+    state = self.get_state("light.light1", namespace="default")
+
+In this way it is possible to use a single app to work with multiple namespaces easily and quickly.
+
+A Note on Callbacks
+~~~~~~~~~~~~~~~~~~~
+
+One important thing to note, when working with namespaces is that callbacks will honor the namespace they were created with. So if for instance you create a ``listen_state()`` callback with a namespace of ``default`` then later change the namespace to ``hass1``, that callback will continue to listen to the ``default`` namespace.
+
+For instance:
+
+.. code:: python
+
+    self.set_namespace("default")
+    self.listen_state(callback)
+    self.set_namespace("hass2")
+    self.listen_state(callback)
+    self.set_namespace("dummy1")
+
+This will leave us with 2 callbacks, one listening for state changes in ``default`` and one for state changes in ``hass2``, regardless of the final value of the namespace.
+
+Similarly:
+
+.. code:: python
+
+    self.set_namespace("dummy2")
+    self.listen_state(callback, namespace="default")
+    self.listen_state(callback, namespace="hass2")
+    self.set_namespace("dummy1")
+
+This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
+
+
+Custom Constraints
+------------------
+
+An App can also register it's own custom constraints which can then be used in exactly the same way as
+App level or callback level constraints. A custom constraint is simply a python function that returns ``True`` or ``False`` when presented with the constraint argument. If it returns ``True``, the constraint is regarded as satisfied and the callback will be made (subject to any other constraints also evaluating to ``True``. Likewise, a False return means that the callback won't fire. Custom constraints are a handy way to control multiple callbacks that have some complex logic and enable you to avoid duplicating code in all callbacks.
+
+To use a custom constraint, it is first necessary to register the function to be used to evaluate it using the ``register_constraint()`` api call. Constraints can also be unregistered using the ``deregister_constraint()`` call, and the ``list_constraints()`` call will return a list of currently registered constraints.
+
+Here is an example of how this all fits together.
+
+We start off with a python function that accepts a value to be evaluated like this:
+
+.. code:: python
+
+    def is_daylight(self, value):
+        if self.sun_up():
+            return True
         else:
-            response = "I'm sorry, I don't know who that is"
+            return False
 
-        return response
 
-    def HouseStatus(self):
+To use this in a callback level constraint simply use:
 
-        status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
-        status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
-        status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
-        status += self.Wendy()
-        status += self.Andrew()
-        status += self.Jack()
+.. code:: python
 
-        return status
+        self.register_constraint("is_daylight")
+        handle = self.run_every(self.callback, time, 1, is_daylight=1)
 
-    def Wendy(self):
-        location = self.get_state(globals.wendy_tracker)
-        if location == "home":
-            status = "Wendy is home,"
-        else:
-            status = "Wendy is away,"
 
-        return status
+Now ``callback()`` will only fire if the sun is up.
 
-    def Andrew(self):
-        location = self.get_state(globals.andrew_tracker)
-        if location == "home":
-            status = "Andrew is home,"
-        else:
-            status = "Andrew is away,"
+Using the value parameter you can parameterize the constraint for more complex behavior and use in different situations for different callbacks. For instance:
 
-        return status
+.. code:: python
 
-    def Jack(self):
-        responses = [
-            "Jack is asleep on his chair",
-            "Jack just went out bowling with his kitty friends",
-            "Jack is in the hall cupboard",
-            "Jack is on the back of the den sofa",
-            "Jack is on the bed",
-            "Jack just stole a spot on daddy's chair",
-            "Jack is in the kitchen looking out of the window",
-            "Jack is looking out of the front door",
-            "Jack is on the windowsill behind the bed",
-            "Jack is out checking on his clown suit",
-            "Jack is eating his treats",
-            "Jack just went out for a walk in the neigbourhood",
-            "Jack is by his bowl waiting for treats"
-        ]
+    def sun(self, value):
+        if value == "up":
+            if self.sun_up():
+            return True
+        elif value == "down":
+            if self.sun_down():
+            return True
+        return False
 
-        return random.choice(responses)
+
+You can use this with 2 separate constraints like so:
+
+.. code:: python
+
+        self.register_constraint("sun")
+        handle = self.run_every(self.up_callback, time, 1, sun="up")
+        handle = self.run_every(self.down_callback, time, 1, sun="down")
+
+
+
+
+
+

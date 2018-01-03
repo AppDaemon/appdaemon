@@ -36,7 +36,16 @@ function ha_status(stream, dash, widgets)
                     {
                         ret = location.pathname
                     }
-                    timeout_params += "timeout=" + timeout + "&return=" + ret;
+                    if ("sticky")
+                    {
+                        sticky = data.data.sticky;
+                    }
+                    else
+                    {
+                        sticky = 0;
+                    }
+
+                    timeout_params += "timeout=" + timeout + "&return=" + ret + "&sticky=" + sticky;
                 }
                 window.location.href = data.data.target + location.search + timeout_params;
             }
@@ -141,10 +150,10 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.get_state = function(child, base_url, entity)
     {
-        state_url = base_url + "/state/" + entity.entity;
+        state_url = base_url + "/state/" + parameters.namespace + "/" + entity.entity;
         $.ajax
         ({
-            url: state_url, 
+            url: state_url,
             type: 'GET',
             success: function(data)
                     {
@@ -197,7 +206,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         entity = data.data.entity_id;
         elen = monitored_entities.length;
-        if (data.event_type == "state_changed")
+        if (data.event_type == "state_changed" && data.namespace == parameters.namespace)
         {
             for (i = 0; i < elen; i++)
             {
@@ -214,6 +223,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     this.call_service = function(child, args)
     {
         service_url = child.url + "/" + "call_service";
+        args["namespace"] = parameters.namespace
         $.post(service_url, args);
     };
 
@@ -320,3 +330,4 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         this.get_state(child, url, monitored_entities[i])
     }
 };
+

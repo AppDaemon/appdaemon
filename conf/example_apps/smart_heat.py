@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime
 import globals
 
@@ -26,7 +26,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class SmartHeat(appapi.AppDaemon):
+class SmartHeat(hass.Hass):
 
   def initialize(self):
     
