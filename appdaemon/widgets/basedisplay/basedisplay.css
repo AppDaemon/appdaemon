@@ -13,9 +13,8 @@
 }
 
 .widget-basedisplay-{{id}} .valueunit {
-	position: absolute;
-	top: 43px;
 	width: 100%;
+	vertical-align: middle;
 }
 
 .widget-basedisplay-{{id}} .title {

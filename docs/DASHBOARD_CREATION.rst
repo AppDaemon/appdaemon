@@ -38,6 +38,7 @@ optional. An example is as follows:
         use_comma: 0
         precision: 1
         use_hass_icon: 1
+        namespace: default
 
 These are all fairly self explanatory:
 
@@ -62,7 +63,8 @@ These are all fairly self explanatory:
    if desired. This is useful for instance if you want to use commas as
    decimals for all of your widgets. This will also apply to widgets
    defined with just their entity ids so they will not require a formal
-   widget definition just to change the decimal separator.
+   widget definition just to change the decimal separator. The namespace
+   parameter will be explained further in the namespace section of this document.
 
 The very simplest dashboard needs a layout so it can understand where to
 place the widgets. We use a ``layout`` directive to tell HADasboard how
@@ -583,6 +585,7 @@ Alexa Intent, simply define the event and associated data as follows
         command: navigate
         timeout: 10
         target: SensorPanel
+        sticky: 0
 
 The current list of commands supported and associated arguments are as
 follows:
@@ -604,8 +607,57 @@ permanent.
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``timeout`` - length of time to stay on the new dashboard ``return`` -
-dashboard to return to after the timeout has elapsed.
+``timeout`` - length of time to stay on the new dashboard
+``return`` - dashboard to return to after the timeout has elapsed.
+``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+
+Namespaces
+----------
+
+For a full explanation of namespaces see the ``Writing AppDaemon Apps`` Section of the guide. Namespaces may be ignored in HADashboard if only one plugin is in use.
+
+If multiple namespaces are in use, HADasboard is able to specify either at the dashboard level or the widget level which namespace to use. This is achieved by use of the ``namespace`` parameter. This parameter may be specified for each individual widget if desired. If it is specified as one of the global paraneters, it will apply to all widgets but may be overriden for individual widgets. If not specified as a global parameter, the default namespace will be used for any widgets that do not override it. For example:
+
+.. code:: yaml
+
+    ##
+    ## Main arguments, all optional
+    ##
+    title: Main Panel
+    widget_dimensions: [120, 120]
+    widget_size: [1, 1]
+    widget_margins: [5, 5]
+    columns: 8
+    global_parameters:
+        use_comma: 0
+        precision: 1
+        use_hass_icon: 1
+        # Not setting namespace here so the default namespace is used
+
+    # Clock has no namespace
+    clock:
+        widget_type: clock
+
+    # side_temperature doesn't specify a namespace so will use the default
+    # If we specified a different namespace in the global options it would use that instead
+    side_temperature:
+        widget_type: sensor
+        title: Temperature
+        units: "&deg;F"
+        precision: 0
+        entity: sensor.side_temp_corrected
+
+    # side_humidity overrides the default and uses the hass2 namespace
+    # It will use hass2 regardless of any global setting
+    side_humidity:
+        namespace: hass2
+        widget_type: sensor
+        title: Humidity
+        units: "%"
+        precision: 0
+        entity: sensor.side_humidity_corrected
+
+One caveat to namespaces is that the RSS widget always works with the default namespace - since the RSS feeds are supplied by AppDaemon itself, and not one of the plugins.
 
 Widget Reference
 ----------------
@@ -672,6 +724,90 @@ Cosmetic Arguments:
 -  ``unit_style``
 -  ``sub_style``
 
+weather_summary
+~~~~~~~~~~~~~~~
+
+An icon and summary reflecting the weather forecast. Requires dark sky to be
+configured in Home Assistant and expects to be used with one of the 
+following sensors:
+
+-  sensor.dark_sky_daily_summary
+-  sensor.dark_sky_hourly_summary
+-  sensor.dark_sky_summary
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored 
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
+london_underground
+~~~~~~~~~~~~~~~~~~
+
+A widget to report on the status of a London Underground line and
+provide the reason for delays if there are any. Requires the London
+Underground sensor to be configured in Home Assistant. This widget is
+designed to be a 2x2 tile.
+
+It is recommended to update the background style to reflect the color
+of the underground line. An example would be as follows:
+
+.. code:: yaml
+
+  widget_style: "background-color: #0098D4"
+
+The colors of the various lines are:
+- Bakerloo: #B36305
+- Central: #E32017
+- Circle: #FFD300
+- District: #00782A
+- DLR: #00A4A7
+- Hammersmith & City: #F3A9BB
+- Jubilee: #A0A5A9
+- London Overground: #EE7C0E
+- Metropolitan: #9B0056
+- Northern: #000000
+- Piccadilly: #003688
+- Victoria: #0098D4
+- Waterloo & City: #95CDBA
+
+For smaller dashboards the Description text can be too long to fit in
+the widget properly. In that case hide the text as follows:
+
+.. code:: yaml
+
+  state_text_style: "display: none"
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored 
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
 sensor
 ~~~~~~
 
@@ -680,11 +816,21 @@ A widget to report on values for any sensor in Home Assistant
 The widget will detect whether or not it is showing a numeric value, and
 if so, it will use the numeric style. If it is showing text it will use
 the text style, which among other things makes the text size smaller.
+To display an attribute of a sensor rather than the state itself add 
+the attribute to the end of the sensor name. For example, to display the
+description of the sensor.dark_sky_summary sensor you would use the 
+following entity definition: "sensor.dark_sky_summary.Description".
+
+Note that you can define a sub_entity to be an attribute of the entity
+using the entity_to_sub_entity_attribute argument, or an entity as an 
+attribute of the sub_entity using the sub_entity_to_entity_attribute.
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
+OR
+-  ``sub_entity`` - the entity\_id of the sensor to be monitored
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -701,6 +847,10 @@ Optional Arguments:
 -  ``state_map``
 -  ``sub_entity`` - second entity to be displayed in the state text area
 -  ``sub_entity_map`` - state map for the sub\_entity
+-  ``entity_to_sub_entity_attribute`` - the attribute of the entity to use
+   as the sub_entity
+-  ``sub_entity_to_entity_attribute`` - the attribute of the sub_entity to
+   use as the entity
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
@@ -1376,8 +1526,9 @@ Optional Arguments:
 For an arbitary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
 
-``timeout`` - length of time to stay on the new dashboard ``return`` -
-dashboard to return to after the timeout has elapsed.
+``timeout`` - length of time to stay on the new dashboard
+``return`` - dashboard to return to after the timeout has elapsed.
+``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Both ``timeout`` and ``return`` must be specified.
 
@@ -1414,7 +1565,8 @@ Cosmetic Arguments
 -  ``widget_style``
 -  ``title_style``
 -  ``title2_style``
--  ``icon_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
 
 reload
 ~~~~~~
@@ -1699,7 +1851,7 @@ Similarly for body includes:
 
 To learn more about complete styles, take a look at the supplied styles
 to see how they are put together. Start off with the ``dashboard.css``
-and ``variables.yaml`` from an exisitng file and edit to suit your
+and ``variables.yaml`` from an existing file and edit to suit your
 needs.
 
 Example Dashboards
