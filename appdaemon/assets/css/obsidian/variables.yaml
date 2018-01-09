@@ -194,6 +194,7 @@ sensor_text_style: "color: $cyan; font-size: 100%"
 sensor_state_text_style: "color: $cyan; font-size: 100%"
 sensor_unit_style: "color: $cyan; font-size: 95%"
 sensor_widget_style: $background_style
+sensor_container_style: ""
 
 reload_icon_active: fa-spinner fa-spin
 reload_icon_inactive: fa-refresh
