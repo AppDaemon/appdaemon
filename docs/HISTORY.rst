@@ -25,6 +25,7 @@ Change Log
 - Updated Input Slider widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added Radial widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added Temperature widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added container style to sensor widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
 
 **Fixes**
 

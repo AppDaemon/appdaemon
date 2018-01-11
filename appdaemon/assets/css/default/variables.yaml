@@ -170,17 +170,20 @@ weather_summary_title_style: $style_title
 weather_summary_text_style: "font-family: Climacons-Font; font-size: 100px"
 weather_summary_state_text_style: "color: $white"
 weather_summary_widget_style: $background_style
+weather_summary_container_style: ""
 
 london_underground_title_style: "color: $white"
 london_underground_text_style: "color: $white"
 london_underground_state_text_style: "color: $white;"
 london_underground_widget_style: $background_style
+london_underground_container_style: ""
 
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $white"
 label_state_text_style: "color: $white"
 label_widget_style: $background_style
+label_container_style: ""
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2

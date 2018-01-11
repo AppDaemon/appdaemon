@@ -861,6 +861,7 @@ Style Arguments:
 -  ``value_style``
 -  ``text_style``
 -  ``unit_style``
+-  ``container_style``
 
 input_select
 ~~~~~~~~~~~~
