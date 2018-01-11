@@ -189,6 +189,7 @@ sensor_text_style: "color: $white; font-size: 100%"
 sensor_state_text_style: "color: $white; font-size: 100%"
 sensor_unit_style: "color: $blue; font-size: 100%"
 sensor_widget_style: $background_style
+sensor_container_style: ""
 
 alarm_title_style: $style_title
 alarm_title2_style: $style_title2
