@@ -1,0 +1,54 @@
+.widget-baseinputnumber-{{id}} {
+	position: relative;
+}
+.widget-baseinputnumber-{{id}} .title {
+    position: absolute;
+    top: 5px;
+    width: 100%;
+}
+.widget-baseinputnumber-{{id}} .title2 {
+    position: absolute;
+    top: 23px;
+    width: 100%;
+}
+.widget-baseinputnumber-{{id}} .state_text {
+    position: absolute;
+    top: 38px;
+    width: 100%;
+}
+
+.widget-baseinputnumber-{{id}} .minval {
+    position: absolute;
+    bottom: 5px;
+    left: 0px;
+    width: 33%;
+}
+.widget-baseinputnumber-{{id}} .maxval {
+    position: absolute;
+    bottom: 5px;
+    right: 0px;
+    width: 33%;
+}
+.widget-baseinputnumber-{{id}} .value {
+    position: absolute;
+    bottom: 5px;
+    left: 33%;
+    width: 33%;
+}
+
+.widget-baseinputnumber-{{id}} .slidercontainer {
+   position: absolute;
+   top: 45px;
+   height: 29px;
+   overflow: hidden;
+   width: 100%;
+   horizontal-align: center;
+   margin:auto;
+}
+
+.widget-baseinputnumber-{{id}} input[type=range] {
+  -webkit-appearance: slider-horizontal;
+  border: 1px solid white;
+  height: 24px;
+  width: 90%;
+}

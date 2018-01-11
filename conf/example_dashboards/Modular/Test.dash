@@ -34,8 +34,8 @@ hall:
 
 rene:
   title: Rene
-  widget_type: input_slider
-  entity: input_slider.rene
+  widget_type: input_number
+  entity: input_number.rene
   units: "&deg;C"
 
 andrew_presence:
@@ -327,7 +327,7 @@ layout:
   - scene.office_on, office_off, hall, office_light, testlight1, testlight2, testlight3, porch_sensor
   - sonos(2x2), roku(2x2), input_boolean.heating, office_light_switch, andrew_presence, wendy_presence, andrew_presence_ro, wendy_presence_ro, wendy_presence_mapped, alarm
   - summary(2x1), garage, basement_thermostat, script.day, script.evening, weather_summary, garage_status
-  - weather_frame(1x1), light_level, rene, input_slider.test, side_humidity_gauge, front_humidity_gauge, bbc_rss(2x1), cnn_rss(2x1)
+  - weather_frame(1x1), light_level, rene, input_number.test, side_humidity_gauge, front_humidity_gauge, bbc_rss(2x1), cnn_rss(2x1)
   - camera_frame(2x2)
   - empty: 2
   - load_main_panel, default, obsidian, zen, simplyred, glassic, reload
