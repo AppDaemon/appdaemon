@@ -1,38 +1,37 @@
 function baseslider(widget_id, url, skin, parameters)
 {
-
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
-
+    
     self = this
-
+    
     // Initialization
-
+    
     self.widget_id = widget_id
-
+    
+    // Store on brightness or fallback to a default
+        
     // Parameters may come in useful later on
-
+    
     self.parameters = parameters
+       
+    self.onChange = onChange
 
-    self.OnRaiseLevelClick = OnRaiseLevelClick
-    self.OnLowerLevelClick = OnLowerLevelClick
+    var callbacks = [
+            {"observable": "SliderValue", "action": "change", "callback": self.onChange},
+                    ]
 
-    var callbacks =
-        [
-            {"selector": '#' + widget_id + ' #level-up', "action": "click", "callback": self.OnRaiseLevelClick},
-            {"selector": '#' + widget_id + ' #level-down', "action": "click", "callback": self.OnLowerLevelClick},
-        ]
 
-    // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
+            // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
-
+     
     self.OnStateAvailable = OnStateAvailable
     self.OnStateUpdate = OnStateUpdate
-
+    
     if ("entity" in parameters)
     {
-        var monitored_entities =
+        var monitored_entities = 
             [
                 {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
             ]
@@ -41,63 +40,59 @@ function baseslider(widget_id, url, skin, parameters)
     {
         var monitored_entities =  []
     }
-
     // Finally, call the parent constructor to get things moving
-
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)
+    
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
 
     // Function Definitions
-
-    // The StateAvailable function will be called when
+    
+    // The StateAvailable function will be called when 
     // self.state[<entity>] has valid information for the requested entity
     // state is the initial state
     // Methods
 
     function OnStateAvailable(self, state)
-    {
-        self.min = state.attributes.min
-        self.max = state.attributes.max
-        self.step = state.attributes.step
-        self.level = state.state
-        if ("units" in self.parameters)
-        {
-            self.set_field(self, "unit", self.parameters.units)
-        }
-        set_view(self, state)
+    {    
+        self.state = state.state
+        self.minvalue = state.attributes.min
+        self.maxvalue = state.attributes.max
+        self.stepvalue = state.attributes.step
+        set_options(self, self.minvalue, self.maxvalue, self.stepvalue, state)
+        set_value(self, state)
     }
-
+ 
     function OnStateUpdate(self, state)
     {
-        self.level = state.state
-        set_view(self, state)
+        self.state = state.state
+        set_value(self, state)
     }
 
-	function OnRaiseLevelClick(self)
+    function set_value(self, state)
     {
-        self.level = parseFloat(self.level) + self.step;
-		if (self.level > self.max)
-		{
-			self.level = self.max
-		}
-		args = self.parameters.post_service
-        args["value"] = self.level
-		self.call_service(self, args)
+        value = self.map_state(self, state.state)
+        self.set_field(self, "SliderValue", value)
+        self.set_field(self, "sliderValue", self.format_number(self,value))
     }
 
-	function OnLowerLevelClick(self, args)
+    function onChange(self, state)
     {
-        self.level = parseFloat(self.level) - self.step;
-		if (self.level < self.min)
-		{
-			self.level = self.min
-		}
-		args = self.parameters.post_service
-        args["value"] = self.level
-		self.call_service(self, args)
+        if (self.state != self.ViewModel.SliderValue())
+        {
+            self.state = self.ViewModel.SliderValue()
+	    args = self.parameters.post_service
+            args["value"] = self.state
+	    self.call_service(self, args)
+        }
     }
 
-	function set_view(self, state)
+    function set_options(self, minvalue, maxvalue, stepvalue, state)
     {
-        self.set_field(self, "level", self.format_number(self, state.state))
-	}
+        //alert(self.maxvalue)
+        self.set_field(self, "MinValue", minvalue)
+        self.set_field(self, "MaxValue", maxvalue)
+        self.set_field(self, "minValue", self.format_number(self,minvalue))
+        self.set_field(self, "maxValue", self.format_number(self,maxvalue))
+        self.set_field(self, "StepValue", stepvalue)
+    }
+
 }

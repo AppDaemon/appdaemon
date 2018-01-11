@@ -247,14 +247,13 @@ light_level_down_style: "color: $gray_light"
 light_widget_style: $background_style
 light_unit_style:  "color: $gray_light"
 
-input_slider_icon_up: fa-plus
-input_slider_icon_down: fa-minus
 input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
-input_slider_level_style: "color: $blue"
-input_slider_unit_style: "color: $blue"
-input_slider_level_up_style: "color: $gray_light"
-input_slider_level_down_style: "color: $gray_light"
+input_slider_minvalue_style: $style_title
+input_slider_maxvalue_style: $style_title
+input_slider_value_style: $style_title
+input_slider_slider_style: "-webkit-appearance: none"
+input_slider_container_style: ""
 input_slider_widget_style: $background_style
 
 climate_icon_up: fa-plus
