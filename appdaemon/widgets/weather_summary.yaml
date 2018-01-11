@@ -24,6 +24,7 @@ static_css:
   value_style: ""
   state_text_style: $weather_summary_state_text_style
   widget_style: $weather_summary_widget_style
+  container_style: $weather_summary_container_style
 css:
   text_style: $weather_summary_text_style
 icons: []
