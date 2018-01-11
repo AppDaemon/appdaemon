@@ -1213,7 +1213,7 @@ Examples
     self.toggle("switch.patio_lights")
     self.toggle("light.office_1", color_name = "green")
 
-select\_value()
+set\_value()
 ~~~~~~~~~~~~~~~
 
 This is a convenience function for the ``input_number.set_value``
@@ -1225,7 +1225,7 @@ Synopsis
 
 .. code:: python
 
-    self.select_value(entity_id, value)
+    self.set_value(entity_id, value)
 
 Returns
 ^^^^^^^
@@ -1239,7 +1239,7 @@ entity\_id
 ''''''''''
 
 Fully qualified entity\_id of the input\_slider to be changed, e.g.
-``input_slider.alarm_hour``.
+``input_number.alarm_hour``.
 
 value
 '''''
@@ -1257,7 +1257,7 @@ Examples
 
 .. code:: python
 
-    self.select_value("input_slider.alarm_hour", 6)
+    self.set_value("input_number.alarm_hour", 6)
 
 select\_option()
 ~~~~~~~~~~~~~~~~

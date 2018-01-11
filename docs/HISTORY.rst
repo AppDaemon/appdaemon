@@ -22,7 +22,7 @@ Change Log
 - Added Weather Summary Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 - Added Sticky navigation - contributed by `Lars Englund <https://github.com/larsenglund>`__
 - Added Input Select widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
-- Updated Input Slider widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Redesigned Input Number widget (old is still available as ``input_slider``) - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added Radial widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added Temperature widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added container style to sensor widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
@@ -45,7 +45,7 @@ Change Log
 - Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
 - the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
 - apps.yaml in the config directory has now been deprecated
-- ``input_slider`` has been renamed to ``input_number`` to match Home Assistant
+- select_value() has been renamed to set_value() to harmonize with HASS
 
 
 2.1.12 (2017-11-07)

@@ -1419,6 +1419,39 @@ Cosmetic Arguments
 - ``slidercontainer_style``
 - ``widget_style``
 
+input\_slider
+~~~~~~~~~~~~~
+
+An alternate widget to monitor and contol an input number, using plus and minus bittons instead of a slider.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_number
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``step`` - the size of step in brightness when fading the slider up
+   or down
+-  ``units`` - the unit symbol to be displayed
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
+   separator
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+- ``title_style``
+- ``title2_style``
+- ``minvalue_style``
+- ``maxvalue_style``
+- ``value_style``
+- ``slider_style``
+- ``slidercontainer_style``
+- ``widget_style``
+
 climate
 ~~~~~~~
 
