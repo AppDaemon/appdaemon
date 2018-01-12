@@ -1,8 +1,8 @@
 Change Log
 ==========
 
-3.0.0b1
-------------------
+3.0.0b1 (2018-01-12)
+--------------------
 
 **Features**
 
@@ -40,12 +40,14 @@ Change Log
 - The "ha_started" event has been renamed to "plugin_started"
 - RSS Feed parameters have been moved to the hadashboard section
 - Log directives now have their own section
-- AppDaemon section renamed to appdaemon
-- HADashboard section renamed to hadashboard
+- `AppDaemon` section renamed to `appdaemon`, `HADashboard` section renamed to `hadashboard`
 - Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
+- Plugins (such as the HASS plugin now have their own parameters under the plugin section of the config file
+- The !secret directive has been moved to the top level of appdaemon.yaml
 - the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
 - apps.yaml in the config directory has now been deprecated
 - select_value() has been renamed to set_value() to harmonize with HASS
+- It is no longer possible to automatically migrate from the legacy cfg style of config, and support for cfg files has been dropped.
 
 
 2.1.12 (2017-11-07)
