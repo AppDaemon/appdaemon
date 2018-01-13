@@ -90,6 +90,7 @@ class AppDaemon:
         # User Supplied/Defaults
         self.threads = 10
         self._process_arg("threads", kwargs)
+        self.threads = int(self.threads)
 
         self.app_dir = None
         self._process_arg("app_dir", kwargs)
@@ -132,9 +133,11 @@ class AppDaemon:
 
         self.tick = 1
         self._process_arg("tick", kwargs)
+        self.tick = int(self.tick)
 
         self.max_skew = 1
         self._process_arg("max_skew", kwargs)
+        self.max_skew = int(self.max_skew)
 
         self.endtime = None
         if "endtime" in kwargs:
@@ -142,6 +145,7 @@ class AppDaemon:
 
         self.interval = 1
         self._process_arg("interval", kwargs)
+        self.interval = int(self.interval)
 
         self.loglevel = "INFO"
         self._process_arg("loglevel", kwargs)
@@ -154,6 +158,7 @@ class AppDaemon:
 
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs)
+        self.utility_delay = int(self.utility_delay)
 
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
