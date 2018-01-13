@@ -89,8 +89,7 @@ class AppDaemon:
 
         # User Supplied/Defaults
         self.threads = 10
-        self._process_arg("threads", kwargs)
-        self.threads = int(self.threads)
+        self._process_arg("threads", kwargs, int=True)
 
         self.app_dir = None
         self._process_arg("app_dir", kwargs)
@@ -132,20 +131,17 @@ class AppDaemon:
         self._process_arg("plugins", kwargs)
 
         self.tick = 1
-        self._process_arg("tick", kwargs)
-        self.tick = int(self.tick)
+        self._process_arg("tick", kwargs, int=True)
 
         self.max_skew = 1
-        self._process_arg("max_skew", kwargs)
-        self.max_skew = int(self.max_skew)
+        self._process_arg("max_skew", kwargs, int=True)
 
         self.endtime = None
         if "endtime" in kwargs:
             self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
 
         self.interval = 1
-        self._process_arg("interval", kwargs)
-        self.interval = int(self.interval)
+        self._process_arg("interval", kwargs, int=True)
 
         self.loglevel = "INFO"
         self._process_arg("loglevel", kwargs)
@@ -157,8 +153,7 @@ class AppDaemon:
         self._process_arg("api_port", kwargs)
 
         self.utility_delay = 1
-        self._process_arg("utility_delay", kwargs)
-        self.utility_delay = int(self.utility_delay)
+        self._process_arg("utility_delay", kwargs, int=True)
 
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
@@ -264,10 +259,19 @@ class AppDaemon:
 
 
 
-    def _process_arg(self, arg, kwargs):
-        if kwargs:
-            if arg in kwargs:
-                setattr(self, arg, kwargs[arg])
+    def _process_arg(self, arg, args, **kwargs):
+        if args:
+            if arg in args:
+                value = args[arg]
+                if "int" in kwargs and kwargs["int"] is True:
+                    try:
+                        value = int(value)
+                        setattr(self, arg, value)
+                    except ValueError:
+                        self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
+                else:
+                    setattr(self, arg, value)
+
 
     def stop(self):
         self.stopping = True
