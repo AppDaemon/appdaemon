@@ -1422,7 +1422,7 @@ Cosmetic Arguments
 input\_slider
 ~~~~~~~~~~~~~
 
-An alternate widget to monitor and contol an input number, using a slider instead plus and minus buttons.
+An alternate widget to monitor and contol an input number, using plus and minus bittons instead of a slider.
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
