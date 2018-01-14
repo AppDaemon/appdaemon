@@ -1,3 +1,6 @@
+log:
+  logfile: STDOUT
+  errorfile: STDERR
 appdaemon:
   threads: 10
   plugins:

@@ -1632,10 +1632,8 @@ class AppDaemon:
                             file = self.get_file_from_module(thismod)
                             if file is None:
                                 self.log( "ERROR",
-                                          "Unable to resolve dependencies due to incorrect references")
-                                self.log("ERROR", "The following modules have unresolved dependencies:")
-                                self.log("ERROR", self.get_module_from_path(mod["file"]))
-                                raise ValueError("Unresolved dependencies")
+                                          "Unable to resolve dependencies due missing app file for module: {}".format(thismod))
+                                raise ValueError("Missing file")
 
                             mod_def = {"name": file, "reload": True, "load": True}
                             if not self.file_in_modules(file, modules):
