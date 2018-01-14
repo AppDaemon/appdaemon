@@ -73,12 +73,12 @@ h1 {
 h2 {
   font-size: 300%;
   font-weight: 400;
-  
+
 }
 h3 {
   font-size: 125%;
   font-weight: 300;
-  
+
 }
 
 .dashboard_main {
@@ -119,7 +119,7 @@ h3 {
 
 .iframe {
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
   -webkit-border-radius: 6px;
   -moz-border-radius: 6px;
   border-radius: 6px;
@@ -136,13 +136,13 @@ h3 {
   border-radius: 6px;
   /*transform: translateY(5px);*/
   background-color: rgba(46, 174, 212, 0.15);
-  -moz-box-shadow: 
+  -moz-box-shadow:
    0 0 5px rgba(255, 255, 255, 0.9),
    inset 0 0 18px rgba(255, 255, 255, 0.65);
   -webkit-box-shadow:
    0 0 5px rgba(255, 255, 255, 0.9),
    inset 0 0 18px rgba(255, 255, 255, 0.65);
-  box-shadow: 
+  box-shadow:
    0 0 5px rgba(255, 255, 255, 0.9),
    inset 0 0 18px rgba(255, 255, 255, 0.65);*/
 }
@@ -229,3 +229,24 @@ h3 {
 }
 
 .modalDialogCloseButton:hover { background: #313133 }
+
+.loader {
+  display: none;
+  border: 3px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 3px solid #3B5957;
+  width: 10px;
+  height: 10px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

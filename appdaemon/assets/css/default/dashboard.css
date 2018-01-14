@@ -40,7 +40,7 @@ img, object {
 iframe {
   max-width: 100%;
 }
-  
+
 table {
   border-collapse: collapse;
   border-spacing: 0;
@@ -120,7 +120,7 @@ input {
 
 .iframe {
   position: relative;
-  overflow: hidden;  
+  overflow: hidden;
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
   border-radius: 5px;}
@@ -201,3 +201,24 @@ input {
 }
 
 .modalDialogCloseButton:hover { background: #444; }
+
+.loader {
+  display: none;
+  border: 3px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 3px solid #00aaff;
+  width: 10px;
+  height: 10px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
