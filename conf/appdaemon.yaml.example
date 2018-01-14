@@ -1,9 +1,7 @@
-log:
-  logfile: STDOUT
-  errorfile: STDERR
-appdaeaemon:
+appdaemon:
   threads: 10
   plugins:
     HASS:
-      ha_url:
-      ha_key:
+      type: hass
+      ha_url: 
+      ha_key: 
