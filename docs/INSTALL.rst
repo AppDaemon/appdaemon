@@ -50,8 +50,6 @@ Your initial file should look something like this:
       log_generations: 3
       log_size: 1024
     appdaemon:
-      logfile: STDOUT
-      errorfile: STDERR
       threads: 10
       time_zone: <time zone>
       api_port: 5000
