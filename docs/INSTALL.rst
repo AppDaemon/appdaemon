@@ -48,7 +48,7 @@ Your initial file should look something like this:
       errorfile: /export/hass/appdaemon_test/logs/error.log
       logfile: /export/hass/appdaemon_test/logs/appdaemon.log
       log_generations: 3
-      log_size: 1024
+      log_size: 1000000
     appdaemon:
       threads: 10
       time_zone: <time zone>
