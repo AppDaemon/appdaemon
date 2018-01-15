@@ -34,7 +34,7 @@
 
 .widget-baseclimateslider-{{id}} .loader {
   position: absolute;
-  bottom: 5px;
+  bottom: 45px;
   right: 5px;
 }
 
@@ -56,13 +56,13 @@
 
 .widget-baseclimateslider-{{id}} .levelunit2 {
   position: absolute;
-  bottom: 5px;
+  bottom: 45px;
   width: 100%;
 }
 
 .widget-baseclimateslider-{{id}} .slidercontainer {
    position: absolute;
-   top: 95px;
+   top: 125px;
    height: 29px;
    overflow: hidden;
    width: 100%;
