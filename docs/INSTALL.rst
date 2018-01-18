@@ -25,7 +25,7 @@ Install Using hass.io
 
 There are a couple of hass.io addons for AppDaemon maintained by:
 
-- `frenk <https://github.com/hassio-addons/repository>`__.
+- `frenck <https://github.com/hassio-addons/repository>`__.
 - `sparck75 <https://github.com/sparck75/hassio-addons>`__.
 
 
