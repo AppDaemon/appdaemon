@@ -413,8 +413,8 @@ class Hass(appapi.AppDaemon):
         )
 
         config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
-        if "certpath" in config:
-            certpath = config["certpath"]
+        if "cert_path" in config:
+            certpath = config["cert_path"]
         else:
             certpath = None
 
