@@ -6,6 +6,10 @@ Change Log
 
 **Features**
 
+- Make INT args in appdaemon.yaml a little more robust
+- Improve handling for missing app files
+- Module loading enhancements
+
 **Fixes**
 
 **Breaking Changes**
