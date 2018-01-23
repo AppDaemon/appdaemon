@@ -6,16 +6,19 @@ Change Log
 
 **Features**
 
-- Make INT args in appdaemon.yaml a little more robust
+- Make int args in appdaemon.yaml a little more robust
 - Improve handling for missing app files
 - Module loading enhancements
 
 **Fixes**
 
 - Fixed a bug that could cause multiple apps.yaml changes or additions to be ignored
-- Fixed a bug with state changes with `duration` firing immediately
+- Fixed a bug with state changes with ``duration`` firing immediately
+- Pinned yarl library to fix an issue with Docker build
 
 **Breaking Changes**
+
+- App modules not listed in an apps.yaml file will no longer be loaded. Python modules may still be imported directly if they are in a directory in which other apps reside.
 
 3.0.0b1 (2018-01-12)
 --------------------
