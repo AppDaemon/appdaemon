@@ -155,6 +155,12 @@ class AppDaemon:
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs, int=True)
 
+        self.invalid_yaml_warnings = True
+        self._process_arg("invalid_yaml_warnings", kwargs)
+
+        self.missing_app_warnings = True
+        self._process_arg("missing_app_warnings", kwargs)
+
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
             self.exclude_dirs += kwargs["exclude_dirs"]
@@ -1331,13 +1337,18 @@ class AppDaemon:
                         if file[-5:] == ".yaml":
                             #root, ext = os.path.splitext(file)
                             config = self.read_config_file(os.path.join(root, file))
-
-                            valid_apps = {}
-                            for app in config:
-                                if "class" in config[app] and "module" in config[app]:
-                                    valid_apps[app] = config[app]
-                                else:
-                                    self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
+                            if type(config).__name__ == "dict":
+                                valid_apps = {}
+                                for app in config:
+                                    if "class" in config[app] and "module" in config[app]:
+                                        valid_apps[app] = config[app]
+                                    else:
+                                        if self.invalid_yaml_warnings:
+                                            self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
+                            else:
+                                if self.invalid_yaml_warnings:
+                                    self.log("WARNING",
+                                             "File '{}' invalid structure - ignoring".format(file))
 
                             if new_config is None:
                                 new_config = {}
@@ -1433,7 +1444,8 @@ class AppDaemon:
                                 new_config[name]["module"], new_config
                             )
                         else:
-                            self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
+                            if self.invalid_yaml_warnings:
+                                self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
         except:
@@ -1487,7 +1499,8 @@ class AppDaemon:
                     self.log("INFO", "Loading Module: {}".format(file))
                     self.modules[module_name] = importlib.import_module(module_name)
                 else:
-                    self.log("WARNING", "No app description found for: {} - ignoring".format(file))
+                    if self.missing_app_warnings:
+                        self.log("WARNING", "No app description found for: {} - ignoring".format(file))
 
 
             # Instantiate class and Run initialize() function
