@@ -239,11 +239,21 @@ class AppDaemon:
                 basename = self.plugins[name]["type"]
                 module_name = "{}plugin".format(basename)
                 class_name = "{}Plugin".format(basename.capitalize())
-                basepath = "appdaemon.plugins"
 
-                self.log("INFO",
-                          "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
-                full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+                if "module_path" in self.plugins[name]:
+                    module_path = self.plugins[name]["module_path"]
+                    sys.path.insert(0, module_path)
+                    self.log("INFO",
+                              "Loading Plugin {} using class {} from module {} and module_path {}".format(name, class_name, module_name, module_path))
+                    full_module_name = module_name
+                else:
+                    basepath = "appdaemon.plugins"
+                    self.log("INFO",
+                              "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
+                    full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+
+
+
                 mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
                 app_class = getattr(mod, class_name)
 
@@ -1076,11 +1086,12 @@ class AppDaemon:
 
     def process_meta(self, meta, namespace):
 
-        for key in self.required_meta:
-            if getattr(self, key) == None:
-                if key in meta:
-                    # We have a value so override
-                    setattr(self, key, meta[key])
+        if meta is not None:
+            for key in self.required_meta:
+                if getattr(self, key) == None:
+                    if key in meta:
+                        # We have a value so override
+                        setattr(self, key, meta[key])
 
     async def notify_plugin_started(self, namespace, first_time=False):
 
