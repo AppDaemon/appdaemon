@@ -13,6 +13,7 @@ Change Log
 **Fixes**
 
 - Fixed a bug that could cause multiple apps.yaml changes or additions to be ignored
+- Fixed a bug with state changes with `duration` firing immediately
 
 **Breaking Changes**
 
