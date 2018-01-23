@@ -12,6 +12,8 @@ Change Log
 
 **Fixes**
 
+- Fixed a bug that could cause multiple apps.yaml changes or additions to be ignored
+
 **Breaking Changes**
 
 3.0.0b1 (2018-01-12)

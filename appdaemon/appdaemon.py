@@ -195,7 +195,8 @@ class AppDaemon:
                 return
 
 
-            file, self.app_config_file_modified = self.check_latest_app_config()
+            latest = self.check_later_app_configs(0)
+            self.app_config_file_modified = latest["latest"]
 
             for root, subdirs, files in os.walk(self.app_dir):
                 if root[-11:] != "__pycache__":
@@ -1356,21 +1357,23 @@ class AppDaemon:
 
         return new_config
 
-    def check_latest_app_config(self):
+    def check_later_app_configs(self, last_latest):
         if os.path.isfile(self.app_config_file):
-            return self.app_config_file, os.path.getmtime(self.app_config_file)
+            ts = os.path.getmtime(self.app_config_file)
+            return {"latest": ts, "files": [{"name": self.app_config_file, "ts": os.path.getmtime(self.app_config_file)}]}
         else:
-            latest = 0
-            file = None
+            later_files = {}
+            later_files["files"] = []
+            later_files["latest"] = 0
             for root, subdirs, files in os.walk(self.app_dir):
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
                             ts = os.path.getmtime(os.path.join(root, file))
-                            if ts > latest:
-                                latest = ts
-                                file = os.path.join(root, file)
-            return file, latest
+                            if ts > last_latest:
+                                later_files["latest"] = ts
+                                later_files["files"].append({"name": os.path.join(root, file), "ts": ts})
+            return later_files
 
     def read_config_file(self, file):
 
@@ -1398,8 +1401,10 @@ class AppDaemon:
     def check_config(self):
 
         try:
-            filename, modified = self.check_latest_app_config()
-            if modified > self.app_config_file_modified:
+            latest = self.check_later_app_configs(self.app_config_file_modified)
+            for later in latest["files"]:
+                filename = later["name"]
+                modified = later["ts"]
                 self.log("INFO", "{} added or modified".format(filename))
                 self.app_config_file_modified = modified
                 new_config = self.read_config()
