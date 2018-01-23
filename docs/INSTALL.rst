@@ -90,6 +90,8 @@ The AppDaemon section has a number of sub parameters:
    the API over SSL
 -  ``api_ssl_key`` (optional) - key to use when running the API over SSL
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
+- ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
+- ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
 
 When using the ``exclude_dirs`` directive you should supply a list of directory names that should be ignored, e.g.
 
