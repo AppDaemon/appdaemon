@@ -1802,18 +1802,19 @@ class AppDaemon:
                         old_state=old,
                         new_state=new, **kwargs
                     )
-                # Do it now
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "attr",
-                    "function": funcref,
-                    "attribute": attribute,
-                    "entity": entity,
-                    "new_state": new,
-                    "old_state": old,
-                    "kwargs": kwargs
-                })
+                else:
+                    # Do it now
+                    self.dispatch_worker(name, {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "attr",
+                        "function": funcref,
+                        "attribute": attribute,
+                        "entity": entity,
+                        "new_state": new,
+                        "old_state": old,
+                        "kwargs": kwargs
+                    })
             else:
                 if "handle" in kwargs:
                     # cancel timer
