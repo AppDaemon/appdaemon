@@ -1332,9 +1332,16 @@ class AppDaemon:
                             #root, ext = os.path.splitext(file)
                             config = self.read_config_file(os.path.join(root, file))
 
+                            valid_apps = {}
+                            for app in config:
+                                if "class" in config[app] and "module" in config[app]:
+                                    valid_apps[app] = config[app]
+                                else:
+                                    self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
+
                             if new_config is None:
                                 new_config = {}
-                            new_config = {**new_config, **config}
+                            new_config = {**new_config, **valid_apps}
 
         return new_config
 
@@ -1382,7 +1389,7 @@ class AppDaemon:
         try:
             filename, modified = self.check_latest_app_config()
             if modified > self.app_config_file_modified:
-                self.log("INFO", "{} modified".format(self.app_config_file))
+                self.log("INFO", "{} added or modified".format(filename))
                 self.app_config_file_modified = modified
                 new_config = self.read_config()
 
@@ -1419,11 +1426,14 @@ class AppDaemon:
                         #
                         # New section added!
                         #
-                        self.log("INFO", "App '{}' added - running".format(name))
-                        self.init_object(
-                            name, new_config[name]["class"],
-                            new_config[name]["module"], new_config
-                        )
+                        if "class" in new_config[name] and "module" in new_config[name]:
+                            self.log("INFO", "App '{}' added - running".format(name))
+                            self.init_object(
+                                name, new_config[name]["class"],
+                                new_config[name]["module"], new_config
+                            )
+                        else:
+                            self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
         except:
@@ -1434,6 +1444,13 @@ class AppDaemon:
             self.err("WARNING", '-' * 60)
             if self.errfile != "STDERR" and self.logfile != "STDOUT":
                 self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+    def get_app_from_file(self, file):
+        module = self.get_module_from_path(file)
+        for app in self.app_config:
+            if self.app_config[app]["module"] == module:
+                return app
+        return None
 
     # noinspection PyBroadException
     def read_app(self, file, reload=False):
@@ -1465,8 +1482,13 @@ class AppDaemon:
                         # A real KeyError!
                         raise
             else:
-                self.log("INFO", "Loading Module: {}".format(file))
-                self.modules[module_name] = importlib.import_module(module_name)
+                app = self.get_app_from_file(file)
+                if app is not None:
+                    self.log("INFO", "Loading Module: {}".format(file))
+                    self.modules[module_name] = importlib.import_module(module_name)
+                else:
+                    self.log("WARNING", "No app description found for: {} - ignoring".format(file))
+
 
             # Instantiate class and Run initialize() function
 
@@ -1476,7 +1498,6 @@ class AppDaemon:
                         class_name = self.app_config[name]["class"]
 
                         self.init_object(name, class_name, module_name, self.app_config)
-
         except:
             self.err( "WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error during loading of {}:".format(name))
