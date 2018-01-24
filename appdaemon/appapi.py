@@ -429,8 +429,6 @@ class AppDaemon:
     # Dashboard
     #
 
-    # TODO: Reimplement using state
-
     def dash_navigate(self, target, timeout=-1, ret=None, sticky=0):
         kwargs = {"command": "navigate", "target": target, "sticky": sticky}
 

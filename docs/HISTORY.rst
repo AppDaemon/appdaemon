@@ -9,16 +9,22 @@ Change Log
 - Make int args in appdaemon.yaml a little more robust
 - Improve handling for missing app files
 - Module loading enhancements
+- Moved from requests to aiohttp client for better async behavior
+
 
 **Fixes**
 
 - Fixed a bug that could cause multiple apps.yaml changes or additions to be ignored
 - Fixed a bug with state changes with ``duration`` firing immediately
 - Pinned yarl library to fix an issue with Docker build
+- Fixed a couple of potential event loop hold ups
+- Fixed a bug in password security for service and state calls
+- Changes to apps.yaml now also force a reload of dependent modules
 
 **Breaking Changes**
 
 - App modules not listed in an apps.yaml file will no longer be loaded. Python modules may still be imported directly if they are in a directory in which other apps reside.
+- ``cert_path`` is deprecated. With the replacement of requests with aiohttp, it is now sufficient to set ``cert_verify`` to False to use a self signed certificate.
 
 3.0.0b1 (2018-01-12)
 --------------------
