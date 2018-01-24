@@ -27,7 +27,6 @@ def securedata(myfunc):
             return myfunc(*args)
         else:
             if "adcreds" in args[1].cookies:
-                # TODO: Fix performance :(
                 match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"]))
                 if match:
                     return await myfunc(*args)
@@ -89,6 +88,9 @@ class RunDash():
 
         self.dash_force_compile = False
         self._process_arg("dash_force_compile", config)
+
+        self.work_factor = 8
+        self._process_arg("work_factor", config)
 
         self.profile_dashboard = False
         self._process_arg("profile_dashboard", config)
@@ -207,8 +209,7 @@ class RunDash():
 
         if password == self.dash_password:
             self.access("INFO", "Succesful logon from {}".format(request.host))
-
-            hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt())
+            hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt(self.work_factor))
 
             # utils.verbose_log(conf.dash, "INFO", hashed)
 
