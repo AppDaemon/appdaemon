@@ -20,21 +20,21 @@ def securedata(myfunc):
     Take care of streams and service calls
     """
 
-    def wrapper(*args):
+    async def wrapper(*args):
 
         self = args[0]
         if self.dash_password is None:
             return myfunc(*args)
         else:
             if "adcreds" in args[1].cookies:
-                # TODO - run this in an executor thread
-                match = bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"])
+                # TODO: Fix performance :(
+                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"]))
                 if match:
-                    return myfunc(*args)
+                    return await myfunc(*args)
                 else:
-                    return self.error(args[1])
+                    return await self.error(args[1])
             else:
-                return self.error(args[1])
+                return await self.error(args[1])
 
     return wrapper
 
@@ -44,17 +44,22 @@ def secure(myfunc):
     Take care of screen based security
     """
 
-    def wrapper(*args):
+    async def wrapper(*args):
 
         self = args[0]
         if self.dash_password == None:
-            return myfunc(*args)
+            return await myfunc(*args)
         else:
-            if "adcreds" in args[1].cookies and bcrypt.checkpw(str.encode(self.dash_password),
-                                                               str.encode(args[1].cookies["adcreds"])):
-                return myfunc(*args)
+            if "adcreds" in args[1].cookies:
+                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw,
+                                                    str.encode(self.dash_password),
+                                                    str.encode(args[1].cookies["adcreds"]))
+                if match:
+                    return await myfunc(*args)
+                else:
+                    return await self.forcelogon(args[1])
             else:
-                return self.forcelogon(args[1])
+                return await self.forcelogon(args[1])
 
     return wrapper
 
@@ -315,9 +320,7 @@ class RunDash():
                 args[key] = data[key]
 
         plugin = self.AD.get_plugin(namespace)
-        # TODO Make this run in an executor
-        plugin.call_service(service, **args)
-        #await utils.run_in_executor(self.loop, self.executor, plugin.call_service, service, *args)
+        await plugin.call_service (service, **args)
         return web.Response(status=200)
 
 

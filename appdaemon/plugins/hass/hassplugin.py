@@ -1,14 +1,11 @@
 import asyncio
-import requests
 import json
 import ssl
 from websocket import create_connection
 from pkg_resources import parse_version
 from sseclient import SSEClient
 import traceback
-
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+import aiohttp
 
 import appdaemon.utils as utils
 
@@ -63,12 +60,18 @@ class HassPlugin:
         if "cert_verify" in args:
             self.cert_verify = args["cert_verify"]
         else:
-            self.cert_path = False
+            self.cert_verify = True
 
         if "commtype" in args:
             self.commtype = args["commtype"]
         else:
             self.commtype = "WS"
+
+        #
+        # Set up HTTP Client
+        #
+        conn = aiohttp.TCPConnector()
+        self.session = aiohttp.ClientSession(connector=conn)
 
         self.log("INFO", "HASS Plugin initialization complete")
 
@@ -90,7 +93,7 @@ class HassPlugin:
     #
 
     async def get_complete_state(self):
-        hass_state = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.get_hass_state)
+        hass_state = await self.get_hass_state()
         states = {}
         for state in hass_state:
             states[state["entity_id"]] = state
@@ -103,7 +106,7 @@ class HassPlugin:
     #
 
     async def get_metadata(self):
-        return await utils.run_in_executor(self.AD.loop, self.AD.executor, self.get_hass_config)
+        return await self.get_hass_config()
 
     #
     # Handle state updates
@@ -291,7 +294,7 @@ class HassPlugin:
     # Home Assistant Interactions
     #
 
-    def get_hass_state(self, entity_id=None):
+    async def get_hass_state(self, entity_id=None):
         if self.ha_key != "":
             headers = {'x-ha-access': self.ha_key}
         else:
@@ -301,11 +304,11 @@ class HassPlugin:
         else:
             apiurl = "{}/api/states/{}".format(self.ha_url, entity_id)
         self.log("DEBUG", "get_ha_state: url is {}".format(apiurl))
-        r = requests.get(apiurl, headers=headers, verify=self.cert_path)
+        r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
         r.raise_for_status()
-        return r.json()
+        return await r.json()
 
-    def get_hass_config(self):
+    async def get_hass_config(self):
         self.log("DEBUG", "get_ha_config()")
         if self.ha_key != "":
             headers = {'x-ha-access': self.ha_key}
@@ -313,16 +316,16 @@ class HassPlugin:
             headers = {}
         apiurl = "{}/api/config".format(self.ha_url)
         self.log("DEBUG", "get_ha_config: url is {}".format(apiurl))
-        r = requests.get(apiurl, headers=headers, verify=self.cert_path)
+        r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
         r.raise_for_status()
-        return r.json()
+        return await r.json()
 
     @staticmethod
     def _check_service(service):
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
 
-    def call_service(self, service, **kwargs):
+    async def call_service(self, service, **kwargs):
         self._check_service(service)
         d, s = service.split("/")
         self.log(
@@ -334,8 +337,13 @@ class HassPlugin:
         else:
             headers = {}
         apiurl = "{}/api/services/{}/{}".format(self.ha_url, d, s)
-        r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=self.cert_path
-        )
+
+        #async with aiohttp.ClientSession() as client:
+        #    #async with client.post(apiurl, headers=headers, json=kwargs, verify=self.cert_path) as resp:
+        #    async with client.post(apiurl, headers=headers, json=kwargs, verify_ssl=False) as resp:
+        #        assert resp.status == 200
+        #        return await resp.json()
+
+        r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
         r.raise_for_status()
         return r.json()

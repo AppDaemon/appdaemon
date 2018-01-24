@@ -1095,25 +1095,39 @@ class AppDaemon:
 
     async def notify_plugin_started(self, namespace, first_time=False):
 
-        self.last_plugin_state[namespace] = datetime.datetime.now()
+        try:
+            self.last_plugin_state[namespace] = datetime.datetime.now()
 
-        meta = await self.plugin_objs[namespace].get_metadata()
-        self.process_meta(meta, namespace)
+            meta = await self.plugin_objs[namespace].get_metadata()
+            self.process_meta(meta, namespace)
 
-        if not self.stopping:
-            self.plugin_meta[namespace] = meta
+            if not self.stopping:
+                self.plugin_meta[namespace] = meta
 
-            state = await self.plugin_objs[namespace].get_complete_state()
+                state = await self.plugin_objs[namespace].get_complete_state()
 
-            with self.state_lock:
-                self.state[namespace] = state
+                with self.state_lock:
+                    self.state[namespace] = state
 
-            if not first_time:
-                await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
-            else:
-                self.log("INFO", "Got initial state from namespace {}".format(namespace))
+                if not first_time:
+                    await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
+                else:
+                    self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
-            self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
+                self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
+        except:
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error during notify_plugin_started()")
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                # When explicitly logging to stdout and stderr, suppress
+                # verbose_log messages about writing an error (since they show up anyway)
+                self.log(
+                    "WARNING",
+                    "Logged an error to {}".format(self.errfile)
+                )
 
     def notify_plugin_stopped(self, namespace):
 
@@ -1347,7 +1361,6 @@ class AppDaemon:
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
-                            #root, ext = os.path.splitext(file)
                             config = self.read_config_file(os.path.join(root, file))
                             if type(config).__name__ == "dict":
                                 valid_apps = {}
@@ -1356,7 +1369,8 @@ class AppDaemon:
                                         valid_apps[app] = config[app]
                                     else:
                                         if self.invalid_yaml_warnings:
-                                            self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
+                                            self.log("WARNING",
+                                                     "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
                             else:
                                 if self.invalid_yaml_warnings:
                                     self.log("WARNING",
@@ -1364,7 +1378,6 @@ class AppDaemon:
 
                             if new_config is None:
                                 new_config = {}
-                            #new_config = {**new_config, **valid_apps}
                             for app in valid_apps:
                                 if app in new_config:
                                     self.log("WARNING",
@@ -1440,13 +1453,8 @@ class AppDaemon:
                             # Something changed, clear and reload
 
                             self.log("INFO", "App '{}' changed - reloading".format(name))
-                            self.term_object(name)
-                            self.clear_object(name)
-                            #TODO: This should force a reload for all dependant apps too
-                            self.init_object(
-                                name, new_config[name]["class"],
-                                new_config[name]["module"], new_config
-                            )
+                            modfile = self.get_file_from_module(new_config[name]["module"])
+                            self.read_apps(forcefile=modfile)
                     else:
 
                         # Section has been deleted, clear it out
@@ -1461,10 +1469,8 @@ class AppDaemon:
                         #
                         if "class" in new_config[name] and "module" in new_config[name]:
                             self.log("INFO", "App '{}' added - running".format(name))
-                            self.init_object(
-                                name, new_config[name]["class"],
-                                new_config[name]["module"], new_config
-                            )
+                            modfile = self.get_file_from_module(new_config[name]["module"])
+                            self.read_apps(forcefile=modfile)
                         else:
                             if self.invalid_yaml_warnings:
                                 self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
@@ -1631,7 +1637,7 @@ class AppDaemon:
         return prio
 
     # noinspection PyBroadException
-    def read_apps(self, all_=False):
+    def read_apps(self, all_=False, forcefile=None):
         # Check if the apps are disabled in config
         if not self.apps:
             return
@@ -1661,7 +1667,7 @@ class AppDaemon:
 
                 modified = os.path.getmtime(file)
                 if file in self.monitored_files:
-                    if self.monitored_files[file] < modified or all_:
+                    if self.monitored_files[file] < modified or all_ or file == forcefile:
                         # read_app(file, True)
                         thismod = {"name": file, "reload": True, "load": True}
                         modules.append(thismod)
