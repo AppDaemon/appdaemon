@@ -1408,24 +1408,35 @@ class AppDaemon:
     def read_config_file(self, file):
 
         new_config = None
-        with open(file, 'r') as yamlfd:
-            config_file_contents = yamlfd.read()
         try:
-            new_config = yaml.load(config_file_contents)
+            with open(file, 'r') as yamlfd:
+                config_file_contents = yamlfd.read()
 
-        except yaml.YAMLError as exc:
-            self.log("WARNING", "Error loading configuration")
-            if hasattr(exc, 'problem_mark'):
-                if exc.context is not None:
-                    self.log("WARNING", "parser says")
-                    self.log("WARNING", str(exc.problem_mark))
-                    self.log("WARNING", str(exc.problem) + " " + str(exc.context))
-                else:
-                    self.log("WARNING", "parser says")
-                    self.log("WARNING", str(exc.problem_mark))
-                    self.log("WARNING", str(exc.problem))
+            try:
+                new_config = yaml.load(config_file_contents)
 
-        return new_config
+            except yaml.YAMLError as exc:
+                self.log("WARNING", "Error loading configuration")
+                if hasattr(exc, 'problem_mark'):
+                    if exc.context is not None:
+                        self.log("WARNING", "parser says")
+                        self.log("WARNING", str(exc.problem_mark))
+                        self.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                    else:
+                        self.log("WARNING", "parser says")
+                        self.log("WARNING", str(exc.problem_mark))
+                        self.log("WARNING", str(exc.problem))
+
+            return new_config
+
+        except:
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error loading config file: {}".format(file))
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
     # noinspection PyBroadException
     def check_config(self):
