@@ -199,6 +199,7 @@ class AppDaemon:
             self.app_config_file_modified = latest["latest"]
 
             for root, subdirs, files in os.walk(self.app_dir):
+                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     sys.path.insert(0, root)
         else:
@@ -1358,12 +1359,13 @@ class AppDaemon:
             new_config = self.read_config_file(self.app_config_file)
         else:
             for root, subdirs, files in os.walk(self.app_dir):
+                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
                             config = self.read_config_file(os.path.join(root, file))
+                            valid_apps = {}
                             if type(config).__name__ == "dict":
-                                valid_apps = {}
                                 for app in config:
                                     if "class" in config[app] and "module" in config[app]:
                                         valid_apps[app] = config[app]
@@ -1374,14 +1376,14 @@ class AppDaemon:
                             else:
                                 if self.invalid_yaml_warnings:
                                     self.log("WARNING",
-                                             "File '{}' invalid structure - ignoring".format(file))
+                                             "File '{}' invalid structure - ignoring".format(os.path.join(root, file)))
 
                             if new_config is None:
                                 new_config = {}
                             for app in valid_apps:
                                 if app in new_config:
                                     self.log("WARNING",
-                                             "File '{}' duplicate app: {} - ignoring".format(file, app))
+                                             "File '{}' duplicate app: {} - ignoring".format(os.path.join(root, file), app))
                                 else:
                                     new_config[app] = valid_apps[app]
 
@@ -1396,6 +1398,7 @@ class AppDaemon:
             later_files["files"] = []
             later_files["latest"] = 0
             for root, subdirs, files in os.walk(self.app_dir):
+                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":

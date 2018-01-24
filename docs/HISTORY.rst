@@ -20,6 +20,7 @@ Change Log
 - Fixed a couple of potential event loop hold ups
 - Fixed a bug in password security for service and state calls
 - Changes to apps.yaml now also force a reload of dependent modules
+- exclude_dirs now applies to yaml files as well as python files
 
 **Breaking Changes**
 
