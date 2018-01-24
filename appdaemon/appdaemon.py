@@ -1364,7 +1364,13 @@ class AppDaemon:
 
                             if new_config is None:
                                 new_config = {}
-                            new_config = {**new_config, **valid_apps}
+                            #new_config = {**new_config, **valid_apps}
+                            for app in valid_apps:
+                                if app in new_config:
+                                    self.log("WARNING",
+                                             "File '{}' duplicate app: {} - ignoring".format(file, app))
+                                else:
+                                    new_config[app] = valid_apps[app]
 
         return new_config
 
