@@ -11,14 +11,13 @@ Change Log
 - Module loading enhancements
 - Moved from requests to aiohttp client for better async behavior
 
-
 **Fixes**
 
 - Fixed a bug that could cause multiple apps.yaml changes or additions to be ignored
-- Fixed a bug with state changes with ``duration`` firing immediately
+- Fixed a bug causing listen_state() callbacks with ``duration`` set to fire immediately
 - Pinned yarl library to fix an issue with Docker build
 - Fixed a couple of potential event loop hold ups
-- Fixed a bug in password security for service and state calls
+- Fixed a bug in password security for HADashboard service and state calls
 - Changes to apps.yaml now also force a reload of dependent modules
 - exclude_dirs now applies to yaml files as well as python files
 
@@ -26,6 +25,7 @@ Change Log
 
 - App modules not listed in an apps.yaml file will no longer be loaded. Python modules may still be imported directly if they are in a directory in which other apps reside.
 - ``cert_path`` is deprecated. With the replacement of requests with aiohttp, it is now sufficient to set ``cert_verify`` to False to use a self signed certificate.
+- Initial dashboard loads may be slower on less powerful hardware when using password authentication. Updating after the initial load is unaffected.
 
 3.0.0b1 (2018-01-12)
 --------------------
