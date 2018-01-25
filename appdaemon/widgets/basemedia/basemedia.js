@@ -199,7 +199,7 @@ function basemedia(widget_id, url, skin, parameters)
         {
             self.set_field(self, "album", state.attributes.media_album_name)
         }
-        if ("media_album_title" in state.attributes)
+        if ("media_title" in state.attributes)
         {
             if ("truncate_name" in self.parameters)
             {
