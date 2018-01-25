@@ -136,6 +136,9 @@ class AppDaemon:
         self.max_skew = 1
         self._process_arg("max_skew", kwargs, int=True)
 
+        self.threadpool_workers = 10
+        self._process_arg("threadpool_workers", kwargs, int=True)
+
         self.endtime = None
         if "endtime" in kwargs:
             self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
@@ -221,7 +224,7 @@ class AppDaemon:
 
         self.app_config = self.read_config()
 
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         self.log("DEBUG", "Creating worker threads ...")
 
@@ -1363,6 +1366,7 @@ class AppDaemon:
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
+                            self.log("DEBUG", "Reading {}".format(os.path.join(root, file)))
                             config = self.read_config_file(os.path.join(root, file))
                             valid_apps = {}
                             if type(config).__name__ == "dict":
