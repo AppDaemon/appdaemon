@@ -16,7 +16,7 @@ import concurrent
 import threading
 import random
 import re
-from copy import deepcopy
+from copy import deepcopy, copy
 
 import appdaemon.utils as utils
 
@@ -57,6 +57,14 @@ class AppDaemon:
 
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
+
+        self.thread_info = {}
+        self.thread_info_lock = threading.RLock()
+        self.thread_info["threads"] = {}
+        self.thread_info["current_busy"] = 0
+        self.thread_info["max_busy"] = 0
+        self.thread_info["max_busy_time"] = 0
+        self.thread_info["last_action_time"] = 0
 
         self.state = {}
         self.state["default"] = {}
@@ -164,6 +172,9 @@ class AppDaemon:
         self.missing_app_warnings = True
         self._process_arg("missing_app_warnings", kwargs)
 
+        self.log_thread_actions = False
+        self._process_arg("log_thread_actions", kwargs)
+
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
             self.exclude_dirs += kwargs["exclude_dirs"]
@@ -232,6 +243,9 @@ class AppDaemon:
         for i in range(self.threads):
             t = threading.Thread(target=self.worker)
             t.daemon = True
+            t.setName("thread-{}".format(i+1))
+            with self.thread_info_lock:
+                self.thread_info["threads"][t.getName()] = {"callback": "idle", "time_called": 0, "thread": t}
             t.start()
 
         self.log("DEBUG", "Done")
@@ -332,6 +346,52 @@ class AppDaemon:
         self.log("INFO", "Current Queue Size is {}".format(self.q.qsize()))
         self.log("INFO", "--------------------------------------------------")
 
+    @staticmethod
+    def atoi(text):
+        return int(text) if text.isdigit() else text
+
+    def natural_keys(self, text):
+        return [self.atoi(c) for c in re.split('(\d+)', text)]
+
+    def get_thread_info(self):
+        info = {}
+        # Make a copy without the thread objects
+        with self.thread_info_lock:
+            info["max_busy_time"] = copy(self.thread_info["max_busy_time"])
+            info["last_action_time"] = copy(self.thread_info["last_action_time"])
+            info["current_busy"] = copy(self.thread_info["current_busy"])
+            info["max_busy"] = copy(self.thread_info["max_busy"])
+            info["threads"] = {}
+            for thread in self.thread_info["threads"]:
+                if thread not in info["threads"]:
+                    info["threads"][thread] = {}
+                info["threads"][thread]["time_called"] = self.thread_info["threads"][thread]["time_called"]
+                info["threads"][thread]["callback"] = self.thread_info["threads"][thread]["callback"]
+                info["threads"][thread]["is_alive"] = self.thread_info["threads"][thread]["thread"].is_alive()
+        return info
+
+    def dump_threads(self):
+        self.log("INFO", "--------------------------------------------------")
+        self.log("INFO", "Threads")
+        self.log("INFO", "--------------------------------------------------")
+        with self.thread_info_lock:
+            max_ts = datetime.datetime.fromtimestamp(self.thread_info["max_busy_time"])
+            last_ts = datetime.datetime.fromtimestamp(self.thread_info["last_action_time"])
+            self.log("INFO", "Currently busy threads: {}".format(self.thread_info["current_busy"]))
+            self.log("INFO", "Most used threads: {} at {}".format(self.thread_info["max_busy"], max_ts))
+            self.log("INFO", "Last activity: {}".format(last_ts))
+            self.log("INFO", "--------------------------------------------------")
+            for thread in sorted(self.thread_info["threads"], key=self.natural_keys):
+                ts = datetime.datetime.fromtimestamp(self.thread_info["threads"][thread]["time_called"])
+                self.log("INFO",
+                         "{} - current callback: {} since {}, alive: {}".format(
+                             thread,
+                             self.thread_info["threads"][thread]["callback"],
+                             ts,
+                             self.thread_info["threads"][thread]["thread"].is_alive()
+                         ))
+        self.log("INFO", "--------------------------------------------------")
+
     def get_callback_entries(self):
         callbacks = {}
         for name in self.callbacks.keys():
@@ -405,33 +465,60 @@ class AppDaemon:
             self.q.put_nowait(args)
 
 
+    def update_thread_info(self, thread_id, callback, type = None):
+        if self.log_thread_actions:
+            if callback == "idle":
+                self.log("INFO",
+                         "{} done".format(thread_id, type, callback))
+            else:
+                    self.log("INFO",
+                             "{} calling {} callback {}".format(thread_id, type, callback))
+        with self.thread_info_lock:
+            ts = self.now
+            self.thread_info["threads"][thread_id]["callback"] = callback
+            self.thread_info["threads"][thread_id]["time_called"] = ts
+            if callback == "idle":
+                self.thread_info["current_busy"] -= 1
+            else:
+                self.thread_info["current_busy"] += 1
+
+            if self.thread_info["current_busy"] > self.thread_info["max_busy"]:
+                self.thread_info["max_busy"] = self.thread_info["current_busy"]
+                self.thread_info["max_busy_time"] = ts
+
+            self.thread_info["last_action_time"] = ts
+
     # noinspection PyBroadException
     def worker(self):
         while True:
+            thread_id = threading.current_thread().name
             args = self.q.get()
             _type = args["type"]
             funcref = args["function"]
             _id = args["id"]
             name = args["name"]
+            callback = "{}() in {}".format(funcref.__name__, name)
             if name in self.objects and self.objects[name]["id"] == _id:
                 app = self.objects[name]["object"]
                 try:
-                    if _type == "initialize":
-                        self.log("DEBUG", "Calling initialize() for {}".format(name))
-                        funcref()
-                        self.log("DEBUG", "{} initialize() done".format(name))
-                    elif _type == "timer":
+                    if _type == "timer":
+                        self.update_thread_info(thread_id, callback, _type)
                         funcref(self.sanitize_timer_kwargs(app, args["kwargs"]))
+                        self.update_thread_info(thread_id, "idle")
                     elif _type == "attr":
                         entity = args["entity"]
                         attr = args["attribute"]
                         old_state = args["old_state"]
                         new_state = args["new_state"]
+                        self.update_thread_info(thread_id, callback, _type)
                         funcref(entity, attr, old_state, new_state,
                                 self.sanitize_state_kwargs(app, args["kwargs"]))
+                        self.update_thread_info(thread_id, "idle")
                     elif _type == "event":
                         data = args["data"]
+                        self.update_thread_info(thread_id, callback, _type)
                         funcref(args["event"], data, args["kwargs"])
+                        self.update_thread_info(thread_id, "idle")
 
                 except:
                     self.err("WARNING", '-' * 60)
@@ -1180,6 +1267,9 @@ class AppDaemon:
             else:
                 self.now = datetime.datetime.now().timestamp()
 
+            self.thread_info["max_used"] = 0
+            self.thread_info["max_used_time"] = self.now
+
             # Take a note of DST
 
             self.was_dst = self.is_dst()
@@ -1245,6 +1335,8 @@ class AppDaemon:
                     qsize = self.q.qsize()
                     if qsize > 0 and qsize % 10 == 0:
                         self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.q.qsize()))
+
+                        self.dump_threads()
 
                     # Plugins
 

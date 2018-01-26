@@ -455,6 +455,9 @@ class AppDaemon:
     # Other
     #
 
+    def get_thread_info(self):
+        return self.AD.get_thread_info()
+
     def get_scheduler_entries(self):
         return self.AD.get_scheduler_entries()
 
