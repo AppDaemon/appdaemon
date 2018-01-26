@@ -32,6 +32,7 @@ class ADMain():
         if signum == signal.SIGUSR1:
             self.AD.dump_schedule()
             self.AD.dump_callbacks()
+            self.AD.dump_threads()
             self.AD.dump_objects()
             self.AD.dump_queue()
             self.AD.dump_sun()
