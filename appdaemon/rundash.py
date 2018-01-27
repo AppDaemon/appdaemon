@@ -24,7 +24,7 @@ def securedata(myfunc):
 
         self = args[0]
         if self.dash_password is None:
-            return myfunc(*args)
+            return await myfunc(*args)
         else:
             if "adcreds" in args[1].cookies:
                 match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"]))
@@ -254,25 +254,34 @@ class RunDash():
 
     async def update_rss(self):
         # Grab RSS Feeds
+
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
-                if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
-                    self.rss_last_update = time.time()
+                try:
+                    if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
+                        self.rss_last_update = time.time()
 
-                    for feed_data in self.rss_feeds:
-                        feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
+                        for feed_data in self.rss_feeds:
+                            feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
-                        new_state = {"feed": feed}
+                            new_state = {"feed": feed}
 
-                        # RSS Feeds always live in the default namespace
-                        self.AD.set_state("default", feed_data["target"], new_state)
+                            # RSS Feeds always live in the default namespace
+                            self.AD.set_state("default", feed_data["target"], new_state)
 
-                        data = {"event_type": "state_changed",
-                                "data": {"entity_id": feed_data["target"], "new_state": new_state}}
+                            data = {"event_type": "state_changed",
+                                    "data": {"entity_id": feed_data["target"], "new_state": new_state}}
 
-                        self.ws_update("default", data)
+                            self.ws_update("default", data)
 
-                await asyncio.sleep(1)
+                    await asyncio.sleep(1)
+                except:
+                    self.log("WARNING", '-' * 60)
+                    self.log("WARNING", "Unexpected error in dashboard thread")
+                    self.log("WARNING", '-' * 60)
+                    self.log("WARNING", traceback.format_exc())
+                    self.log("WARNING", '-' * 60)
+
 
 
     @securedata
