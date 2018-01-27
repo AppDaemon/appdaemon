@@ -6,5 +6,5 @@ appdaemon:
   plugins:
     HASS:
       type: hass
-      ha_url: 
-      ha_key: 
+      ha_url:
+      ha_key:
