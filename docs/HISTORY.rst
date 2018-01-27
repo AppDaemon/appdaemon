@@ -1,8 +1,47 @@
 Change Log
 ==========
 
-3.0.0b1
-------------------
+3.0.0b3
+--------------------
+
+**Features**
+
+**Fixes**
+
+**Breaking Changes**
+
+3.0.0b2 (2018-01-27)
+--------------------
+
+**Features**
+
+- Make int args in appdaemon.yaml a little more robust
+- Improve handling for missing app files
+- Module loading enhancements
+- Moved from requests to aiohttp client for better async behavior
+- Added thread monitoring for worker threads
+- Give more informative error message if AppDaemon can't locate a valid config dir
+
+**Fixes**
+
+- Fixed a bug that could cause multiple apps.yaml changes or additions to be ignored
+- Fixed a bug causing listen_state() callbacks with ``duration`` set to fire immediately
+- Pinned yarl library to fix an issue with Docker build
+- Fixed a couple of potential event loop hold ups
+- Fixed a bug in password security for HADashboard service and state calls
+- Changes to apps.yaml now also force a reload of dependent modules
+- ``exclude_dirs`` now applies to yaml files as well as python files
+- Fixed broken icon on HADashboard logon screen
+- Fixed a bug preventing the media title from showing in the media player
+
+**Breaking Changes**
+
+- App modules not listed in an apps.yaml file will no longer be loaded. Python modules may still be imported directly if they are in a directory in which other apps reside.
+- ``cert_path`` is deprecated. With the replacement of requests with aiohttp, it is now sufficient to set ``cert_verify`` to False to use a self signed certificate.
+- Initial dashboard loads may be slower on less powerful hardware when using password authentication. Updating after the initial load is unaffected.
+
+3.0.0b1 (2018-01-12)
+--------------------
 
 **Features**
 
@@ -21,6 +60,11 @@ Change Log
 - Added ability to display sensor attributes - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 - Added Weather Summary Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
 - Added Sticky navigation - contributed by `Lars Englund <https://github.com/larsenglund>`__
+- Added Input Select widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Redesigned Input Number widget (old is still available as ``input_slider``) - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added Radial widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added Temperature widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added container style to sensor widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
 
 **Fixes**
 
@@ -35,11 +79,14 @@ Change Log
 - The "ha_started" event has been renamed to "plugin_started"
 - RSS Feed parameters have been moved to the hadashboard section
 - Log directives now have their own section
-- AppDaemon section renamed to appdaemon
-- HADashboard section renamed to hadashboard
+- `AppDaemon` section renamed to `appdaemon`, `HADashboard` section renamed to `hadashboard`
 - Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
+- Plugins (such as the HASS plugin now have their own parameters under the plugin section of the config file
+- The !secret directive has been moved to the top level of appdaemon.yaml
 - the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
 - apps.yaml in the config directory has now been deprecated
+- select_value() has been renamed to set_value() to harmonize with HASS
+- It is no longer possible to automatically migrate from the legacy cfg style of config, and support for cfg files has been dropped.
 
 
 2.1.12 (2017-11-07)

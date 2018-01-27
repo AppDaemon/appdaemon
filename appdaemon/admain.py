@@ -32,6 +32,7 @@ class ADMain():
         if signum == signal.SIGUSR1:
             self.AD.dump_schedule()
             self.AD.dump_callbacks()
+            self.AD.dump_threads()
             self.AD.dump_objects()
             self.AD.dump_queue()
             self.AD.dump_sun()
@@ -132,6 +133,11 @@ class ADMain():
             config_file_yaml = utils.find_path("appdaemon.yaml")
         else:
             config_file_yaml = os.path.join(config_dir, "appdaemon.yaml")
+
+        if config_file_yaml is None:
+            print("FATAL: no configuration directory defined and defaults not present\n")
+            parser.print_help()
+            sys.exit(1)
 
         config = None
 

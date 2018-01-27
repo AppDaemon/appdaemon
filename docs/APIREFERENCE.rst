@@ -1213,7 +1213,7 @@ Examples
     self.toggle("switch.patio_lights")
     self.toggle("light.office_1", color_name = "green")
 
-select\_value()
+set\_value()
 ~~~~~~~~~~~~~~~
 
 This is a convenience function for the ``input_number.set_value``
@@ -1225,7 +1225,7 @@ Synopsis
 
 .. code:: python
 
-    self.select_value(entity_id, value)
+    self.set_value(entity_id, value)
 
 Returns
 ^^^^^^^
@@ -1239,7 +1239,7 @@ entity\_id
 ''''''''''
 
 Fully qualified entity\_id of the input\_slider to be changed, e.g.
-``input_slider.alarm_hour``.
+``input_number.alarm_hour``.
 
 value
 '''''
@@ -1257,7 +1257,7 @@ Examples
 
 .. code:: python
 
-    self.select_value("input_slider.alarm_hour", 6)
+    self.set_value("input_number.alarm_hour", 6)
 
 select\_option()
 ~~~~~~~~~~~~~~~~
@@ -2854,3 +2854,78 @@ Examples
 
     config = self.get_hass_config()
     self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
+
+Introspection
+-------------
+
+get_scheduler_entries()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Get information on AppDaemon scheduler entries.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_scheduler_entries()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the information for entries in the AppDaemon scheduler
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    schedule = self.get_scheduler_entries()
+
+get_callback_entries()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Get information on AppDaemon callback entries.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_callback_entries()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the information for entries in the AppDaemon state and event callback table
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    callbacks = self.get_callback_entries()
+
+get_thread_info()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Get information on AppDaemon worker threads.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_thread_info()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the information for AppDaemon worker threads
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    thread_info = self.get_thread_info()

@@ -20,21 +20,20 @@ def securedata(myfunc):
     Take care of streams and service calls
     """
 
-    def wrapper(*args):
+    async def wrapper(*args):
 
         self = args[0]
         if self.dash_password is None:
-            return myfunc(*args)
+            return await myfunc(*args)
         else:
             if "adcreds" in args[1].cookies:
-                # TODO - run this in an executor thread
-                match = bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"])
+                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"]))
                 if match:
-                    return myfunc(*args)
+                    return await myfunc(*args)
                 else:
-                    return self.error(args[1])
+                    return await self.error(args[1])
             else:
-                return self.error(args[1])
+                return await self.error(args[1])
 
     return wrapper
 
@@ -44,17 +43,22 @@ def secure(myfunc):
     Take care of screen based security
     """
 
-    def wrapper(*args):
+    async def wrapper(*args):
 
         self = args[0]
         if self.dash_password == None:
-            return myfunc(*args)
+            return await myfunc(*args)
         else:
-            if "adcreds" in args[1].cookies and bcrypt.checkpw(str.encode(self.dash_password),
-                                                               str.encode(args[1].cookies["adcreds"])):
-                return myfunc(*args)
+            if "adcreds" in args[1].cookies:
+                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw,
+                                                    str.encode(self.dash_password),
+                                                    str.encode(args[1].cookies["adcreds"]))
+                if match:
+                    return await myfunc(*args)
+                else:
+                    return await self.forcelogon(args[1])
             else:
-                return self.forcelogon(args[1])
+                return await self.forcelogon(args[1])
 
     return wrapper
 
@@ -84,6 +88,9 @@ class RunDash():
 
         self.dash_force_compile = False
         self._process_arg("dash_force_compile", config)
+
+        self.work_factor = 8
+        self._process_arg("work_factor", config)
 
         self.profile_dashboard = False
         self._process_arg("profile_dashboard", config)
@@ -202,8 +209,7 @@ class RunDash():
 
         if password == self.dash_password:
             self.access("INFO", "Succesful logon from {}".format(request.host))
-
-            hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt())
+            hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt(self.work_factor))
 
             # utils.verbose_log(conf.dash, "INFO", hashed)
 
@@ -248,25 +254,34 @@ class RunDash():
 
     async def update_rss(self):
         # Grab RSS Feeds
+
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
-                if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
-                    self.rss_last_update = time.time()
+                try:
+                    if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
+                        self.rss_last_update = time.time()
 
-                    for feed_data in self.rss_feeds:
-                        feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
+                        for feed_data in self.rss_feeds:
+                            feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
-                        new_state = {"feed": feed}
+                            new_state = {"feed": feed}
 
-                        # RSS Feeds always live in the default namespace
-                        self.AD.set_state("default", feed_data["target"], new_state)
+                            # RSS Feeds always live in the default namespace
+                            self.AD.set_state("default", feed_data["target"], new_state)
 
-                        data = {"event_type": "state_changed",
-                                "data": {"entity_id": feed_data["target"], "new_state": new_state}}
+                            data = {"event_type": "state_changed",
+                                    "data": {"entity_id": feed_data["target"], "new_state": new_state}}
 
-                        self.ws_update("default", data)
+                            self.ws_update("default", data)
 
-                await asyncio.sleep(1)
+                    await asyncio.sleep(1)
+                except:
+                    self.log("WARNING", '-' * 60)
+                    self.log("WARNING", "Unexpected error in dashboard thread")
+                    self.log("WARNING", '-' * 60)
+                    self.log("WARNING", traceback.format_exc())
+                    self.log("WARNING", '-' * 60)
+
 
 
     @securedata
@@ -315,9 +330,7 @@ class RunDash():
                 args[key] = data[key]
 
         plugin = self.AD.get_plugin(namespace)
-        # TODO Make this run in an executor
-        plugin.call_service(service, **args)
-        #await utils.run_in_executor(self.loop, self.executor, plugin.call_service, service, *args)
+        await plugin.call_service (service, **args)
         return web.Response(status=200)
 
 

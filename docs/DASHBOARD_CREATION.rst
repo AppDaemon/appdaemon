@@ -861,6 +861,32 @@ Style Arguments:
 -  ``value_style``
 -  ``text_style``
 -  ``unit_style``
+-  ``container_style``
+
+input_select
+~~~~~~~~~~~~
+
+A widget to display and select values from an input_select entity in Home Assistant.
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the sensor to be monitored
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``select_style``
+-  ``selectcontainer_style``
 
 rss
 ~~~
@@ -1360,15 +1386,15 @@ Cosmetic Arguments
 -  ``level_up_style``
 -  ``level_down_style``
 
-input\_slider
+input\_number
 ~~~~~~~~~~~~~
 
-A widget to monitor and contol an input slider
+A widget to monitor and contol an input number
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
--  ``entity`` - the entity\_id of the input\_slider
+-  ``entity`` - the entity\_id of the input\_number
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -1384,15 +1410,47 @@ Optional Arguments:
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
 
--  ``widget_style``
--  ``icon_up``
--  ``icon_down``
--  ``title_style``
--  ``title2_style``
--  ``text_style``
--  ``level_style``
--  ``level_up_style``
--  ``level_down_style``
+- ``title_style``
+- ``title2_style``
+- ``minvalue_style``
+- ``maxvalue_style``
+- ``value_style``
+- ``slider_style``
+- ``slidercontainer_style``
+- ``widget_style``
+
+input\_slider
+~~~~~~~~~~~~~
+
+An alternate widget to monitor and contol an input number, using plus and minus bittons instead of a slider.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_number
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``step`` - the size of step in brightness when fading the slider up
+   or down
+-  ``units`` - the unit symbol to be displayed
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
+   separator
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+- ``title_style``
+- ``title2_style``
+- ``minvalue_style``
+- ``maxvalue_style``
+- ``value_style``
+- ``slider_style``
+- ``slidercontainer_style``
+- ``widget_style``
 
 climate
 ~~~~~~~
@@ -1429,7 +1487,7 @@ Cosmetic Arguments
 media\_player
 ~~~~~~~~~~~~~
 
-A widget to monitor and contol a media player
+A widget to monitor and control a media player
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1716,6 +1774,91 @@ Style Arguments:
 -  ``panel_code_style``
 -  ``panel_background_style``
 -  ``panel_button_style``
+
+Temperature
+~~~~~~~~~~~
+
+A widget to report display a temperature using a thermometer styke view
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the alarm to be monitored
+- ``settings`` - a list if values describing the thermometer with the following entries:
+
+- minValue - minimum value to display
+- maxValue - maximum value to display
+- width - width of the widget, set this to the same width as your cell size or less
+- height - height of the widget, set this to the same height as your cell size or less
+- majorTicks - Where to mark major values, a list
+- highights - color ranges, a list
+
+See the example below:
+
+.. code:: yaml
+
+   your_temperature:
+     widget_type: temperature
+     entity: sensor.your_sensor
+     settings:
+       minValue: 15
+       maxValue: 30
+       width: 120
+       height: 120
+       majorTicks: [15,20,25,30]
+       highlights: [{'from': 15, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 24, 'to': 30, 'color': 'rgba(255, 0, 0, .3)'}]
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+None
+
+Radial
+~~~~~~
+
+A widget to display a numeric value as a gauge
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the alarm to be monitored
+- ``settings`` - a list if values describing the gauge with the following entries:
+
+- title - title of the guage
+- minValue - minimum value to display
+- maxValue - maximum value to display
+- majorTicks - Where to mark major values, a list
+- highights - color ranges, a list
+
+See the example below:
+
+.. code:: yaml
+
+      your_radial:
+        widget_type: radial
+        entity: sensor.your_sensor
+        settings:
+          title: any title
+          minValue: 0
+          maxValue: 100
+          majorTicks: [0,20,40,60,80,100]
+          highlights: [{'from': 0, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 25, 'to': 100, 'color': 'rgba(255, 0, 0, .3)'}]
+
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+None
 
 Skins
 -----
