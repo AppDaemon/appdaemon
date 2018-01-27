@@ -11,6 +11,7 @@ Change Log
 - Module loading enhancements
 - Moved from requests to aiohttp client for better async behavior
 - Added thread monitoring for worker threads
+- Give more informative error message if AppDaemon can't locate a valid config dir
 
 **Fixes**
 
