@@ -25,7 +25,7 @@ Install Using hass.io
 
 There are a couple of hass.io addons for AppDaemon maintained by:
 
-- `frenk <https://github.com/hassio-addons/repository>`__.
+- `frenck <https://github.com/hassio-addons/repository>`__.
 - `sparck75 <https://github.com/sparck75/hassio-addons>`__.
 
 
@@ -60,10 +60,8 @@ A more complete example could look like the following:
       errorfile: /export/hass/appdaemon_test/logs/error.log
       logfile: /export/hass/appdaemon_test/logs/appdaemon.log
       log_generations: 3
-      log_size: 1024
+      log_size: 1000000
     appdaemon:
-      logfile: STDOUT
-      errorfile: STDERR
       threads: 10
       time_zone: <time zone>
       api_port: 5000
@@ -158,7 +156,9 @@ The ``appdaemon:`` section has a number of directives:
    the API over SSL
 -  ``api_ssl_key`` (optional) - key to use when running the API over SSL
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
-
+- ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
+- ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
+- ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events and state changes - this can be useful for troubleshooting thread starvation issues
 When using the ``exclude_dirs`` directive you should supply a list of directory names that should be ignored, e.g.
 
 .. code:: yaml
@@ -176,10 +176,8 @@ In the required ``plugins:`` sub-section, there will usually be one or more plug
 -  ``ha_url`` (required for the ``hass`` plugin) is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or ``https://`` as appropriate)
 -  ``ha_key`` (required for the ``hass`` plugin) should be set to your home assistant password if you have one, otherwise it can be removed.
--  ``cert_path`` (optional) - path to root CA cert directory for HASS -
-   use only if you are using self signed certs.
 -  ``cert_verify`` (optional) - flag for cert verification for HASS -
-   set to ``False`` to disable verification on self signed certs.
+   set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn;tmatch the cert address (e.g. using an internal IP address)
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off.
 -  ``namespace`` (optional) - which namespace to use. This can safely be left out unless you are planning to use multiple plugins (see below)

@@ -16,7 +16,7 @@ import concurrent
 import threading
 import random
 import re
-from copy import deepcopy
+from copy import deepcopy, copy
 
 import appdaemon.utils as utils
 
@@ -57,6 +57,14 @@ class AppDaemon:
 
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
+
+        self.thread_info = {}
+        self.thread_info_lock = threading.RLock()
+        self.thread_info["threads"] = {}
+        self.thread_info["current_busy"] = 0
+        self.thread_info["max_busy"] = 0
+        self.thread_info["max_busy_time"] = 0
+        self.thread_info["last_action_time"] = 0
 
         self.state = {}
         self.state["default"] = {}
@@ -136,6 +144,9 @@ class AppDaemon:
         self.max_skew = 1
         self._process_arg("max_skew", kwargs, int=True)
 
+        self.threadpool_workers = 10
+        self._process_arg("threadpool_workers", kwargs, int=True)
+
         self.endtime = None
         if "endtime" in kwargs:
             self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
@@ -154,6 +165,15 @@ class AppDaemon:
 
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs, int=True)
+
+        self.invalid_yaml_warnings = True
+        self._process_arg("invalid_yaml_warnings", kwargs)
+
+        self.missing_app_warnings = True
+        self._process_arg("missing_app_warnings", kwargs)
+
+        self.log_thread_actions = False
+        self._process_arg("log_thread_actions", kwargs)
 
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
@@ -189,9 +209,11 @@ class AppDaemon:
                 return
 
 
-            file, self.app_config_file_modified = self.check_latest_app_config()
+            latest = self.check_later_app_configs(0)
+            self.app_config_file_modified = latest["latest"]
 
             for root, subdirs, files in os.walk(self.app_dir):
+                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     sys.path.insert(0, root)
         else:
@@ -213,7 +235,7 @@ class AppDaemon:
 
         self.app_config = self.read_config()
 
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         self.log("DEBUG", "Creating worker threads ...")
 
@@ -221,6 +243,9 @@ class AppDaemon:
         for i in range(self.threads):
             t = threading.Thread(target=self.worker)
             t.daemon = True
+            t.setName("thread-{}".format(i+1))
+            with self.thread_info_lock:
+                self.thread_info["threads"][t.getName()] = {"callback": "idle", "time_called": 0, "thread": t}
             t.start()
 
         self.log("DEBUG", "Done")
@@ -232,11 +257,21 @@ class AppDaemon:
                 basename = self.plugins[name]["type"]
                 module_name = "{}plugin".format(basename)
                 class_name = "{}Plugin".format(basename.capitalize())
-                basepath = "appdaemon.plugins"
 
-                self.log("INFO",
-                          "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
-                full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+                if "module_path" in self.plugins[name]:
+                    module_path = self.plugins[name]["module_path"]
+                    sys.path.insert(0, module_path)
+                    self.log("INFO",
+                              "Loading Plugin {} using class {} from module {} and module_path {}".format(name, class_name, module_name, module_path))
+                    full_module_name = module_name
+                else:
+                    basepath = "appdaemon.plugins"
+                    self.log("INFO",
+                              "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
+                    full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+
+
+
                 mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
                 app_class = getattr(mod, class_name)
 
@@ -309,6 +344,52 @@ class AppDaemon:
     def dump_queue(self):
         self.log("INFO", "--------------------------------------------------")
         self.log("INFO", "Current Queue Size is {}".format(self.q.qsize()))
+        self.log("INFO", "--------------------------------------------------")
+
+    @staticmethod
+    def atoi(text):
+        return int(text) if text.isdigit() else text
+
+    def natural_keys(self, text):
+        return [self.atoi(c) for c in re.split('(\d+)', text)]
+
+    def get_thread_info(self):
+        info = {}
+        # Make a copy without the thread objects
+        with self.thread_info_lock:
+            info["max_busy_time"] = copy(self.thread_info["max_busy_time"])
+            info["last_action_time"] = copy(self.thread_info["last_action_time"])
+            info["current_busy"] = copy(self.thread_info["current_busy"])
+            info["max_busy"] = copy(self.thread_info["max_busy"])
+            info["threads"] = {}
+            for thread in self.thread_info["threads"]:
+                if thread not in info["threads"]:
+                    info["threads"][thread] = {}
+                info["threads"][thread]["time_called"] = self.thread_info["threads"][thread]["time_called"]
+                info["threads"][thread]["callback"] = self.thread_info["threads"][thread]["callback"]
+                info["threads"][thread]["is_alive"] = self.thread_info["threads"][thread]["thread"].is_alive()
+        return info
+
+    def dump_threads(self):
+        self.log("INFO", "--------------------------------------------------")
+        self.log("INFO", "Threads")
+        self.log("INFO", "--------------------------------------------------")
+        with self.thread_info_lock:
+            max_ts = datetime.datetime.fromtimestamp(self.thread_info["max_busy_time"])
+            last_ts = datetime.datetime.fromtimestamp(self.thread_info["last_action_time"])
+            self.log("INFO", "Currently busy threads: {}".format(self.thread_info["current_busy"]))
+            self.log("INFO", "Most used threads: {} at {}".format(self.thread_info["max_busy"], max_ts))
+            self.log("INFO", "Last activity: {}".format(last_ts))
+            self.log("INFO", "--------------------------------------------------")
+            for thread in sorted(self.thread_info["threads"], key=self.natural_keys):
+                ts = datetime.datetime.fromtimestamp(self.thread_info["threads"][thread]["time_called"])
+                self.log("INFO",
+                         "{} - current callback: {} since {}, alive: {}".format(
+                             thread,
+                             self.thread_info["threads"][thread]["callback"],
+                             ts,
+                             self.thread_info["threads"][thread]["thread"].is_alive()
+                         ))
         self.log("INFO", "--------------------------------------------------")
 
     def get_callback_entries(self):
@@ -384,33 +465,60 @@ class AppDaemon:
             self.q.put_nowait(args)
 
 
+    def update_thread_info(self, thread_id, callback, type = None):
+        if self.log_thread_actions:
+            if callback == "idle":
+                self.log("INFO",
+                         "{} done".format(thread_id, type, callback))
+            else:
+                    self.log("INFO",
+                             "{} calling {} callback {}".format(thread_id, type, callback))
+        with self.thread_info_lock:
+            ts = self.now
+            self.thread_info["threads"][thread_id]["callback"] = callback
+            self.thread_info["threads"][thread_id]["time_called"] = ts
+            if callback == "idle":
+                self.thread_info["current_busy"] -= 1
+            else:
+                self.thread_info["current_busy"] += 1
+
+            if self.thread_info["current_busy"] > self.thread_info["max_busy"]:
+                self.thread_info["max_busy"] = self.thread_info["current_busy"]
+                self.thread_info["max_busy_time"] = ts
+
+            self.thread_info["last_action_time"] = ts
+
     # noinspection PyBroadException
     def worker(self):
         while True:
+            thread_id = threading.current_thread().name
             args = self.q.get()
             _type = args["type"]
             funcref = args["function"]
             _id = args["id"]
             name = args["name"]
+            callback = "{}() in {}".format(funcref.__name__, name)
             if name in self.objects and self.objects[name]["id"] == _id:
                 app = self.objects[name]["object"]
                 try:
-                    if _type == "initialize":
-                        self.log("DEBUG", "Calling initialize() for {}".format(name))
-                        funcref()
-                        self.log("DEBUG", "{} initialize() done".format(name))
-                    elif _type == "timer":
+                    if _type == "timer":
+                        self.update_thread_info(thread_id, callback, _type)
                         funcref(self.sanitize_timer_kwargs(app, args["kwargs"]))
+                        self.update_thread_info(thread_id, "idle")
                     elif _type == "attr":
                         entity = args["entity"]
                         attr = args["attribute"]
                         old_state = args["old_state"]
                         new_state = args["new_state"]
+                        self.update_thread_info(thread_id, callback, _type)
                         funcref(entity, attr, old_state, new_state,
                                 self.sanitize_state_kwargs(app, args["kwargs"]))
+                        self.update_thread_info(thread_id, "idle")
                     elif _type == "event":
                         data = args["data"]
+                        self.update_thread_info(thread_id, callback, _type)
                         funcref(args["event"], data, args["kwargs"])
+                        self.update_thread_info(thread_id, "idle")
 
                 except:
                     self.err("WARNING", '-' * 60)
@@ -1069,33 +1177,48 @@ class AppDaemon:
 
     def process_meta(self, meta, namespace):
 
-        for key in self.required_meta:
-            if getattr(self, key) == None:
-                if key in meta:
-                    # We have a value so override
-                    setattr(self, key, meta[key])
+        if meta is not None:
+            for key in self.required_meta:
+                if getattr(self, key) == None:
+                    if key in meta:
+                        # We have a value so override
+                        setattr(self, key, meta[key])
 
     async def notify_plugin_started(self, namespace, first_time=False):
 
-        self.last_plugin_state[namespace] = datetime.datetime.now()
+        try:
+            self.last_plugin_state[namespace] = datetime.datetime.now()
 
-        meta = await self.plugin_objs[namespace].get_metadata()
-        self.process_meta(meta, namespace)
+            meta = await self.plugin_objs[namespace].get_metadata()
+            self.process_meta(meta, namespace)
 
-        if not self.stopping:
-            self.plugin_meta[namespace] = meta
+            if not self.stopping:
+                self.plugin_meta[namespace] = meta
 
-            state = await self.plugin_objs[namespace].get_complete_state()
+                state = await self.plugin_objs[namespace].get_complete_state()
 
-            with self.state_lock:
-                self.state[namespace] = state
+                with self.state_lock:
+                    self.state[namespace] = state
 
-            if not first_time:
-                await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
-            else:
-                self.log("INFO", "Got initial state from namespace {}".format(namespace))
+                if not first_time:
+                    await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
+                else:
+                    self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
-            self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
+                self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
+        except:
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error during notify_plugin_started()")
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                # When explicitly logging to stdout and stderr, suppress
+                # verbose_log messages about writing an error (since they show up anyway)
+                self.log(
+                    "WARNING",
+                    "Logged an error to {}".format(self.errfile)
+                )
 
     def notify_plugin_stopped(self, namespace):
 
@@ -1143,6 +1266,9 @@ class AppDaemon:
                 self.now = new_now.timestamp()
             else:
                 self.now = datetime.datetime.now().timestamp()
+
+            self.thread_info["max_used"] = 0
+            self.thread_info["max_used_time"] = self.now
 
             # Take a note of DST
 
@@ -1209,6 +1335,8 @@ class AppDaemon:
                     qsize = self.q.qsize()
                     if qsize > 0 and qsize % 10 == 0:
                         self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.q.qsize()))
+
+                        self.dump_threads()
 
                     # Plugins
 
@@ -1326,63 +1454,98 @@ class AppDaemon:
             new_config = self.read_config_file(self.app_config_file)
         else:
             for root, subdirs, files in os.walk(self.app_dir):
+                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
-                            #root, ext = os.path.splitext(file)
+                            self.log("DEBUG", "Reading {}".format(os.path.join(root, file)))
                             config = self.read_config_file(os.path.join(root, file))
+                            valid_apps = {}
+                            if type(config).__name__ == "dict":
+                                for app in config:
+                                    if "class" in config[app] and "module" in config[app]:
+                                        valid_apps[app] = config[app]
+                                    else:
+                                        if self.invalid_yaml_warnings:
+                                            self.log("WARNING",
+                                                     "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
+                            else:
+                                if self.invalid_yaml_warnings:
+                                    self.log("WARNING",
+                                             "File '{}' invalid structure - ignoring".format(os.path.join(root, file)))
 
                             if new_config is None:
                                 new_config = {}
-                            new_config = {**new_config, **config}
+                            for app in valid_apps:
+                                if app in new_config:
+                                    self.log("WARNING",
+                                             "File '{}' duplicate app: {} - ignoring".format(os.path.join(root, file), app))
+                                else:
+                                    new_config[app] = valid_apps[app]
 
         return new_config
 
-    def check_latest_app_config(self):
+    def check_later_app_configs(self, last_latest):
         if os.path.isfile(self.app_config_file):
-            return self.app_config_file, os.path.getmtime(self.app_config_file)
+            ts = os.path.getmtime(self.app_config_file)
+            return {"latest": ts, "files": [{"name": self.app_config_file, "ts": os.path.getmtime(self.app_config_file)}]}
         else:
-            latest = 0
-            file = None
+            later_files = {}
+            later_files["files"] = []
+            later_files["latest"] = 0
             for root, subdirs, files in os.walk(self.app_dir):
+                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
                             ts = os.path.getmtime(os.path.join(root, file))
-                            if ts > latest:
-                                latest = ts
-                                file = os.path.join(root, file)
-            return file, latest
+                            if ts > last_latest:
+                                later_files["latest"] = ts
+                                later_files["files"].append({"name": os.path.join(root, file), "ts": ts})
+            return later_files
 
     def read_config_file(self, file):
 
         new_config = None
-        with open(file, 'r') as yamlfd:
-            config_file_contents = yamlfd.read()
         try:
-            new_config = yaml.load(config_file_contents)
+            with open(file, 'r') as yamlfd:
+                config_file_contents = yamlfd.read()
 
-        except yaml.YAMLError as exc:
-            self.log("WARNING", "Error loading configuration")
-            if hasattr(exc, 'problem_mark'):
-                if exc.context is not None:
-                    self.log("WARNING", "parser says")
-                    self.log("WARNING", str(exc.problem_mark))
-                    self.log("WARNING", str(exc.problem) + " " + str(exc.context))
-                else:
-                    self.log("WARNING", "parser says")
-                    self.log("WARNING", str(exc.problem_mark))
-                    self.log("WARNING", str(exc.problem))
+            try:
+                new_config = yaml.load(config_file_contents)
 
-        return new_config
+            except yaml.YAMLError as exc:
+                self.log("WARNING", "Error loading configuration")
+                if hasattr(exc, 'problem_mark'):
+                    if exc.context is not None:
+                        self.log("WARNING", "parser says")
+                        self.log("WARNING", str(exc.problem_mark))
+                        self.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                    else:
+                        self.log("WARNING", "parser says")
+                        self.log("WARNING", str(exc.problem_mark))
+                        self.log("WARNING", str(exc.problem))
+
+            return new_config
+
+        except:
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error loading config file: {}".format(file))
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
     # noinspection PyBroadException
     def check_config(self):
 
         try:
-            filename, modified = self.check_latest_app_config()
-            if modified > self.app_config_file_modified:
-                self.log("INFO", "{} modified".format(self.app_config_file))
+            latest = self.check_later_app_configs(self.app_config_file_modified)
+            for later in latest["files"]:
+                filename = later["name"]
+                modified = later["ts"]
+                self.log("INFO", "{} added or modified".format(filename))
                 self.app_config_file_modified = modified
                 new_config = self.read_config()
 
@@ -1400,13 +1563,8 @@ class AppDaemon:
                             # Something changed, clear and reload
 
                             self.log("INFO", "App '{}' changed - reloading".format(name))
-                            self.term_object(name)
-                            self.clear_object(name)
-                            #TODO: This should force a reload for all dependant apps too
-                            self.init_object(
-                                name, new_config[name]["class"],
-                                new_config[name]["module"], new_config
-                            )
+                            modfile = self.get_file_from_module(new_config[name]["module"])
+                            self.read_apps(forcefile=modfile)
                     else:
 
                         # Section has been deleted, clear it out
@@ -1419,11 +1577,13 @@ class AppDaemon:
                         #
                         # New section added!
                         #
-                        self.log("INFO", "App '{}' added - running".format(name))
-                        self.init_object(
-                            name, new_config[name]["class"],
-                            new_config[name]["module"], new_config
-                        )
+                        if "class" in new_config[name] and "module" in new_config[name]:
+                            self.log("INFO", "App '{}' added - running".format(name))
+                            modfile = self.get_file_from_module(new_config[name]["module"])
+                            self.read_apps(forcefile=modfile)
+                        else:
+                            if self.invalid_yaml_warnings:
+                                self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
         except:
@@ -1434,6 +1594,13 @@ class AppDaemon:
             self.err("WARNING", '-' * 60)
             if self.errfile != "STDERR" and self.logfile != "STDOUT":
                 self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+    def get_app_from_file(self, file):
+        module = self.get_module_from_path(file)
+        for app in self.app_config:
+            if self.app_config[app]["module"] == module:
+                return app
+        return None
 
     # noinspection PyBroadException
     def read_app(self, file, reload=False):
@@ -1465,8 +1632,14 @@ class AppDaemon:
                         # A real KeyError!
                         raise
             else:
-                self.log("INFO", "Loading Module: {}".format(file))
-                self.modules[module_name] = importlib.import_module(module_name)
+                app = self.get_app_from_file(file)
+                if app is not None:
+                    self.log("INFO", "Loading Module: {}".format(file))
+                    self.modules[module_name] = importlib.import_module(module_name)
+                else:
+                    if self.missing_app_warnings:
+                        self.log("WARNING", "No app description found for: {} - ignoring".format(file))
+
 
             # Instantiate class and Run initialize() function
 
@@ -1476,7 +1649,6 @@ class AppDaemon:
                         class_name = self.app_config[name]["class"]
 
                         self.init_object(name, class_name, module_name, self.app_config)
-
         except:
             self.err( "WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error during loading of {}:".format(name))
@@ -1575,7 +1747,7 @@ class AppDaemon:
         return prio
 
     # noinspection PyBroadException
-    def read_apps(self, all_=False):
+    def read_apps(self, all_=False, forcefile=None):
         # Check if the apps are disabled in config
         if not self.apps:
             return
@@ -1605,7 +1777,7 @@ class AppDaemon:
 
                 modified = os.path.getmtime(file)
                 if file in self.monitored_files:
-                    if self.monitored_files[file] < modified or all_:
+                    if self.monitored_files[file] < modified or all_ or file == forcefile:
                         # read_app(file, True)
                         thismod = {"name": file, "reload": True, "load": True}
                         modules.append(thismod)
@@ -1752,18 +1924,19 @@ class AppDaemon:
                         old_state=old,
                         new_state=new, **kwargs
                     )
-                # Do it now
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "attr",
-                    "function": funcref,
-                    "attribute": attribute,
-                    "entity": entity,
-                    "new_state": new,
-                    "old_state": old,
-                    "kwargs": kwargs
-                })
+                else:
+                    # Do it now
+                    self.dispatch_worker(name, {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "attr",
+                        "function": funcref,
+                        "attribute": attribute,
+                        "entity": entity,
+                        "new_state": new,
+                        "old_state": old,
+                        "kwargs": kwargs
+                    })
             else:
                 if "handle" in kwargs:
                     # cancel timer

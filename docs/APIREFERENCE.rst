@@ -2854,3 +2854,78 @@ Examples
 
     config = self.get_hass_config()
     self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
+
+Introspection
+-------------
+
+get_scheduler_entries()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Get information on AppDaemon scheduler entries.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_scheduler_entries()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the information for entries in the AppDaemon scheduler
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    schedule = self.get_scheduler_entries()
+
+get_callback_entries()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Get information on AppDaemon callback entries.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_callback_entries()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the information for entries in the AppDaemon state and event callback table
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    callbacks = self.get_callback_entries()
+
+get_thread_info()
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Get information on AppDaemon worker threads.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_thread_info()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the information for AppDaemon worker threads
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    thread_info = self.get_thread_info()
