@@ -113,7 +113,7 @@ In the ``appdaemon`` section there will usually be one or more plugins with a nu
 -  ``ha_key`` should be set to your key if you have one, otherwise it
    can be removed.
 -  ``cert_verify`` (optional) - flag for cert verification for HASS -
-   set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn;tmatch the cert address (e.g. using an internal IP address)
+   set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn' t match the cert address (e.g. using an internal IP address)
 -  ``latitude`` (optional) - latitude for AppDaemon to use. If not
    specified, AppDaemon will query the latitude from Home Assistant
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
