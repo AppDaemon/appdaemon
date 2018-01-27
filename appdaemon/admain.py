@@ -134,6 +134,11 @@ class ADMain():
         else:
             config_file_yaml = os.path.join(config_dir, "appdaemon.yaml")
 
+        if config_file_yaml is None:
+            print("FATAL: no configuration directory defined and defaults not present\n")
+            parser.print_help()
+            sys.exit(1)
+
         config = None
 
         #
