@@ -12,6 +12,7 @@ static_css:
   value_style: $label_text_style
   state_text_style: $label_state_text_style
   widget_style: $label_widget_style
+  container_style: $label_container_style
 css: []
 icons: []
 static_icons: []

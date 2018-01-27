@@ -170,17 +170,20 @@ weather_summary_title_style: $style_title
 weather_summary_text_style: "font-family: Climacons-Font; font-size: 100px"
 weather_summary_state_text_style: "color: $white"
 weather_summary_widget_style: $background_style
+weather_summary_container_style: ""
 
 london_underground_title_style: "color: $white"
 london_underground_text_style: "color: $white"
 london_underground_state_text_style: "color: $white;"
 london_underground_widget_style: $background_style
+london_underground_container_style: ""
 
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: "color: $white"
 label_state_text_style: "color: $white"
 label_widget_style: $background_style
+label_container_style: ""
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
@@ -189,6 +192,7 @@ sensor_text_style: "color: $white; font-size: 100%"
 sensor_state_text_style: "color: $white; font-size: 100%"
 sensor_unit_style: "color: $blue; font-size: 100%"
 sensor_widget_style: $background_style
+sensor_container_style: ""
 
 alarm_title_style: $style_title
 alarm_title2_style: $style_title2
@@ -249,15 +253,14 @@ light_level_up_style: "color: $gray_light"
 light_level_down_style: "color: $gray_light"
 light_widget_style: $background_style
 
-input_slider_icon_up: fa-plus
-input_slider_icon_down: fa-minus
-input_slider_title_style: $style_title
-input_slider_title2_style: $style_title2
-input_slider_level_style: "color: $blue"
-input_slider_unit_style: "color: $blue"
-input_slider_level_up_style: "color: $gray_light"
-input_slider_level_down_style: "color: $gray_light"
-input_slider_widget_style: $background_style
+input_number_title_style: $style_title
+input_number_title2_style: $style_title2
+input_number_minvalue_style: $style_title
+input_number_maxvalue_style: $style_title
+input_number_value_style: $style_title
+input_number_slider_style: "-webkit-appearance: none"
+input_number_container_style: ""
+input_number_widget_style: $background_style
 
 climate_icon_up: fa-plus
 climate_icon_down: fa-minus
@@ -321,23 +324,33 @@ input_select_widget_style: $background_style
 input_select_select_style: "background-color: #999;color:black"
 input_select_container_style: ""
 
-new_input_slider_title_style: $style_title
-new_input_slider_title2_style: $style_title2
-new_input_slider_minvalue_style: $style_title
-new_input_slider_maxvalue_style: $style_title
-new_input_slider_value_style: $style_title
-new_input_slider_slider_style: "-webkit-appearance: none"
-new_input_slider_container_style: ""
-new_input_slider_widget_style: $background_style
+input_slider_icon_up: fa-plus
+input_slider_icon_down: fa-minus
+input_slider_title_style: $style_title
+input_slider_title2_style: $style_title2
+input_slider_level_style: "color: $blue"
+input_slider_unit_style: "color: $blue"
+input_slider_level_up_style: "color: $gray_light"
+input_slider_level_down_style: "color: $gray_light"
+input_slider_widget_style: $background_style
 
-vertical_input_slider_title_style: $style_title
-vertical_input_slider_title2_style: $style_title2
-vertical_input_slider_minvalue_style: $style_title
-vertical_input_slider_maxvalue_style: $style_title
-vertical_input_slider_value_style: $style_title
-vertical_input_slider_slider_style: ""
-vertical_input_slider_container_style: ""
-vertical_input_slider_widget_style: $background_style
+new_input_number_title_style: $style_title
+new_input_number_title2_style: $style_title2
+new_input_number_minvalue_style: $style_title
+new_input_number_maxvalue_style: $style_title
+new_input_number_value_style: $style_title
+new_input_number_slider_style: "-webkit-appearance: none"
+new_input_number_container_style: ""
+new_input_number_widget_style: $background_style
+
+vertical_input_number_title_style: $style_title
+vertical_input_number_title2_style: $style_title2
+vertical_input_number_minvalue_style: $style_title
+vertical_input_number_maxvalue_style: $style_title
+vertical_input_number_value_style: $style_title
+vertical_input_number_slider_style: ""
+vertical_input_number_container_style: ""
+vertical_input_number_widget_style: $background_style
 
 light_with_brightness_icon_on: mdi-lightbulb
 light_with_brightness_icon_off: mdi-lightbulb

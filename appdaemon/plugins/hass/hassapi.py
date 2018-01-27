@@ -328,7 +328,7 @@ class Hass(appapi.AppDaemon):
         self.call_service("homeassistant/toggle", **rargs)
 
     @hass_check
-    def select_value(self, entity_id, value, **kwargs):
+    def set_value(self, entity_id, value, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
@@ -336,7 +336,7 @@ class Hass(appapi.AppDaemon):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
-        self.call_service("input_slider/select_value", **rargs)
+        self.call_service("input_number/set_value", **rargs)
 
     @hass_check
     def select_option(self, entity_id, option, **kwargs):

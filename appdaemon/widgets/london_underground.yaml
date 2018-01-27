@@ -14,6 +14,8 @@ static_css:
   value_style: ""
   state_text_style: $london_underground_state_text_style
   widget_style: $london_underground_widget_style
+  container_style: $london_underground_container_style
+
 css:
   text_style: $london_underground_text_style
 icons: []

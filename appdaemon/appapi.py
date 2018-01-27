@@ -429,8 +429,6 @@ class AppDaemon:
     # Dashboard
     #
 
-    # TODO: Reimplement using state
-
     def dash_navigate(self, target, timeout=-1, ret=None, sticky=0):
         kwargs = {"command": "navigate", "target": target, "sticky": sticky}
 
@@ -456,6 +454,9 @@ class AppDaemon:
     #
     # Other
     #
+
+    def get_thread_info(self):
+        return self.AD.get_thread_info()
 
     def get_scheduler_entries(self):
         return self.AD.get_scheduler_entries()

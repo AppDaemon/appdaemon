@@ -25,7 +25,7 @@ Install Using hass.io
 
 There are a couple of hass.io addons for AppDaemon maintained by:
 
-- `frenk <https://github.com/hassio-addons/repository>`__.
+- `frenck <https://github.com/hassio-addons/repository>`__.
 - `sparck75 <https://github.com/sparck75/hassio-addons>`__.
 
 
@@ -42,16 +42,26 @@ Your initial file should look something like this:
 
 .. code:: yaml
 
+     appdaemon:
+       threads: 10
+       plugins:
+         HASS:
+           type: hass
+           ha_url: <some_url>
+           ha_key: <some_key>
+
+A more complete example could look like the following:
+
+.. code:: yaml
+
     secrets: /some/path
     log:
       accessfile: /export/hass/appdaemon_test/logs/access.log
       errorfile: /export/hass/appdaemon_test/logs/error.log
       logfile: /export/hass/appdaemon_test/logs/appdaemon.log
       log_generations: 3
-      log_size: 1024
+      log_size: 1000000
     appdaemon:
-      logfile: STDOUT
-      errorfile: STDERR
       threads: 10
       time_zone: <time zone>
       api_port: 5000
@@ -67,73 +77,39 @@ Your initial file should look something like this:
           cert_verify: True
           namespace: default
 
-The top level consists of a number of directives:
+The top level consists of a number of sections:
 
-- ``secrets`` is an optional path to a secrets file (see later). If not AppDeamon will look for a file called ``secrets.yaml`` in the config directory
+secrets
+~~~~~~~
 
-- ``appdaemon``
+AppDaemon supports the use of secrets in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
 
-The AppDaemon section has a number of sub parameters:
+The ``secret:`` section is optional. If it doesn't exist, AppDaemon looks for a file called ``secrets.yaml`` in the config directory.
 
--  ``threads`` - the number of dedicated worker threads to create for
-   running the apps. Note, this will bear no resembelance to the number
-   of apps you have, the threads are re-used and only active for as long
-   as required to run a particular callback or initialization, leave
-   this set to 10 unless you experience thread starvation
--  ``longitude`` (optional) - longitude for AppDaemon to use. If not
-   specified, AppDaemon will query the longitude from Home Assistant
--  ``elevation`` (optional) - elevation for AppDaemon to use. If not
-   specified, AppDaemon will query the elevation from Home Assistant
--  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
-   specified, AppDaemon will query the timezone from Home Assistant
--  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
-   to provide a key in the header of a request
--  ``api_ssl_certificate`` (optional) - certificate to use when running
-   the API over SSL
--  ``api_ssl_key`` (optional) - key to use when running the API over SSL
--  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
-
-When using the ``exclude_dirs`` directive you should supply a list of directory names that should be ignored, e.g.
+An example ``secrets.yaml`` might look like this:
 
 .. code:: yaml
 
-    exclude_dirs:
-        - dir1
-        - dir2
-        - dir3
+    home_assistant_key: password123
+    appdaemon_key: password456
 
-AppDaemon will search for matching directory names at any level of the folder hierarchy under appdir and will exclude that directory and any beneath it. It is not possible to match multiple level directory names e.g. ``somedir/dir1``. In that case the match should be on ``dir1``, with the caveat that if you have dir1 anywhere else in the hierarchy it will also be excluded.
-
-In the ``appdaemon`` section there will usually be one or more plugins with a number of sub parameters introduced by a top level name:
-
--  ``type`` The type of the plugin. For Home Assistant this will always be ``hass``
--  ``ha_url`` is a reference to your home assistant installation and
-   must include the correct port number and scheme (``http://`` or
-   ``https://`` as appropriate)
--  ``ha_key`` should be set to your key if you have one, otherwise it
-   can be removed.
-
--  ``cert_path`` (optional) - path to root CA cert directory for HASS -
-   use only if you are using self signed certs.
--  ``cert_verify`` (optional) - flag for cert verification for HASS -
-   set to ``False`` to disable verification on self signed certs.
--  ``latitude`` (optional) - latitude for AppDaemon to use. If not
-   specified, AppDaemon will query the latitude from Home Assistant
--  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
-   on. If not specified, the RESTFul API will be turned off
--  ``namespace`` (optional) - which namespace to use. This can safely be left
-out unless you are planning to use multiple plugins (see below)
-
-Optionally, you can place your apps in a directory other than under the
-config directory using the ``app_dir`` directive.
-
-e.g.:
+The secrets can then be referred to as follows:
 
 .. code:: yaml
 
-    app_dir: /etc/appdaemon/apps
+    appdaemon:
+      api_key: !secret appdaemon_key
+      threads: '10'
+      plugins:
+        HASS:
+          type: hass
+          ha_key: !secret home_assistant_key
+          ha_url: http://192.168.1.20:8123
 
-The ``log:`` section is optional but if included must have at least one directive in it. The directives are as follows:
+log
+~~~
+
+The ``log:`` section is optional but if included, must have at least one directive in it. The directives are as follows:
 
 -  ``logfile`` (optional) is the path to where you want ``AppDaemon`` to
    keep its main log. When run from the command line this is not used
@@ -155,6 +131,66 @@ The ``log:`` section is optional but if included must have at least one directiv
    will be retained before they are overwritten if not specified, this
    will default to 3 files.
 
+appdaemon
+~~~~~~~~~
+
+The ``appdaemon:`` section has a number of directives:
+
+-  ``threads`` (required) - the number of dedicated worker threads to create for
+   running the apps. Note, this will bear no resembelance to the number
+   of apps you have, the threads are re-used and only active for as long
+   as required to run a particular callback or initialization, leave
+   this set to 10 unless you experience thread starvation
+-  ``plugins`` (required) - see below
+-  ``latitude`` (optional) - latitude for AppDaemon to use. If not
+   specified, AppDaemon will query the latitude from Home Assistant
+-  ``longitude`` (optional) - longitude for AppDaemon to use. If not
+   specified, AppDaemon will query the longitude from Home Assistant
+-  ``elevation`` (optional) - elevation for AppDaemon to use. If not
+   specified, AppDaemon will query the elevation from Home Assistant
+-  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
+   specified, AppDaemon will query the timezone from Home Assistant
+-  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
+   to provide a key in the header of a request
+-  ``api_ssl_certificate`` (optional) - certificate to use when running
+   the API over SSL
+-  ``api_ssl_key`` (optional) - key to use when running the API over SSL
+-  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
+- ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
+- ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
+- ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events and state changes - this can be useful for troubleshooting thread starvation issues
+When using the ``exclude_dirs`` directive you should supply a list of directory names that should be ignored, e.g.
+
+.. code:: yaml
+
+    exclude_dirs:
+        - dir1
+        - dir2
+        - dir3
+
+AppDaemon will search for matching directory names at any level of the folder hierarchy under appdir and will exclude that directory and any beneath it. It is not possible to match multiple level directory names e.g. ``somedir/dir1``. In that case the match should be on ``dir1``, with the caveat that if you have dir1 anywhere else in the hierarchy it will also be excluded.
+
+In the required ``plugins:`` sub-section, there will usually be one or more plugins with a number of directives introduced by a top level name:
+
+-  ``type`` (required) The type of the plugin. For Home Assistant this will always be ``hass``
+-  ``ha_url`` (required for the ``hass`` plugin) is a reference to your home assistant installation and
+   must include the correct port number and scheme (``http://`` or ``https://`` as appropriate)
+-  ``ha_key`` (required for the ``hass`` plugin) should be set to your home assistant password if you have one, otherwise it can be removed.
+-  ``cert_verify`` (optional) - flag for cert verification for HASS -
+   set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn;tmatch the cert address (e.g. using an internal IP address)
+-  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
+   on. If not specified, the RESTFul API will be turned off.
+-  ``namespace`` (optional) - which namespace to use. This can safely be left out unless you are planning to use multiple plugins (see below)
+
+Optionally, you can place your apps in a directory other than under the
+config directory using the ``app_dir`` directive.
+
+e.g.:
+
+.. code:: yaml
+
+    app_dir: /etc/appdaemon/apps
+
 A Note About Plugins
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -167,33 +203,6 @@ To configure more than one plugin, simply add a new section to the plugins list 
 Before you do this, make sure to review the section on namespaces to fully understand what this entails, and if you are using more than one plugin, make sure you use the namespace directive to create a unique namespace for each plugin.
 (One of the plugins may be safely allowed to use the default value, however any more than that will require the namespace directive. There is also no harm in giving them all namespaces, since the default namespace is literally ``default``
 and has no particular significance, it's just a different name, but if you use namespaces other than default you will need to change your Apps to understand which namespaces are in use.).
-
-Secrets
-~~~~~~~
-
-AppDaemon supports the use of secrets in the configuration file,
-to allow separate storage of sensitive information such as
-passwords. For this to work, AppDaemon expects to find a file called
-secrets.yaml in the configuration directory, or a named file introduced by the top level ``secrets`` directive. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the
-configuration file.
-
-An example secrets.yaml might look like this:
-
-.. code:: yaml
-
-    home_assistant_key: password123
-    appdaemon_key: password456
-
-The secrets can then be referred to as follows:
-
-.. code:: yaml
-
-    AppDaemon:
-      api_key: !secret appdaemon_key
-      threads: '10'
-    HASS:
-      ha_key: !secret home_assistant_key
-      ha_url: http://192.168.1.20:8123
 
 Configuring a Test App
 ~~~~~~~~~~~~~~~~~~~~~~
