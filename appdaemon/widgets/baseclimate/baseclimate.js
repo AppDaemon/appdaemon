@@ -42,7 +42,6 @@ function baseclimate(widget_id, url, skin, parameters)
         var monitored_entities =  []
     }
 
-    console.log(parameters)
     if( "step" in parameters && ! isNaN(self.parameters.step))
     {
         self.step = parseFloat(parameters.step)
@@ -51,7 +50,6 @@ function baseclimate(widget_id, url, skin, parameters)
     {
         self.step = 1
     }
-    console.log(self.step)
 
     // Finally, call the parent constructor to get things moving
 
