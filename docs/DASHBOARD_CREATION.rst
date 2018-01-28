@@ -1654,6 +1654,39 @@ Cosmetic Arguments
 -  ``icon_active_style``
 -  ``icon_inactive_style``
 
+javascript
+~~~~~~~~~~
+
+A widget to run an arbitary JavaScript command.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+- ``command`` - the JavaScript command to be run.
+
+e.g.
+
+.. code:: yaml
+   command: "alert('hello');"
+
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_active``
+-  ``icon_inactive``
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
+
 iframe
 ~~~~~~
 

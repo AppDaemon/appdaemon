@@ -1,22 +1,22 @@
-.widget-javascript-{{id}} .icon {
+.widget-basejavascript-{{id}} .icon {
 	position: absolute;
 	top: 43px;
 	width: 100%;
 }
 
-.widget-javascript-{{id}} .title {
+.widget-basejavascript-{{id}} .title {
 	position: absolute;
 	top: 5px;
 	width: 100%;
 }
 
-.widget-javascript-{{id}} .title2 {
+.widget-basejavascript-{{id}} .title2 {
 	position: absolute;
 	top: 23px;
 	width: 100%;
 }
 
-.widget-javascript-{{id}} .toggle-area {
+.widget-basejavascript-{{id}} .toggle-area {
 	z-index: 10;
 	position: absolute;
 	top: 0;

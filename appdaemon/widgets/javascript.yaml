@@ -1,0 +1,17 @@
+widget_type: basejavascript
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  icon: ""
+  icon_style: ""
+icons:
+  icon_active: $javascript_icon_active
+  icon_inactive: $javascript_icon_inactive
+static_css:
+  title_style: $javascript_title_style
+  title2_style: $javascript_title2_style
+  widget_style: $javascript_widget_style
+css:
+  icon_active_style: $javascript_icon_active_style
+  icon_inactive_style: $javascript_icon_inactive_style
+static_icons: []

@@ -206,6 +206,14 @@ reload_icon_active_style: $style_active
 reload_icon_inactive_style: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
 reload_widget_style: $background_style
 
+javascript_icon_active: fa-asterisk
+javascript_icon_inactive: fa-asterisk
+javascript_title_style: "color: $blue; font-weight: bold"
+javascript_title2_style: $style_title2
+javascript_icon_active_style: $style_active
+javascript_icon_inactive_style: "line-height: 90%; color: #3B5957; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7); font-weight: bold; text-shadow: 0px 1px 0px rgba(255,255,255,.3), 0px -1px 0px rgba(0,0,0,.7)"
+javascript_widget_style: $background_style
+
 navigate_icon_active: fa-spinner fa-spin
 navigate_icon_inactive: fa-gear
 navigate_title_style: "color: $blue; font-weight: bold"
