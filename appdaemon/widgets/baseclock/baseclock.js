@@ -49,7 +49,7 @@ function baseclock(widget_id, url, skin, parameters)
 		m = formatTime(m);
 		
 		if ("date_format_country" in self.parameters)
-                {
+		{
 			if ("date_format_options" in self.parameters)
 			{
 				self.set_field(self, "date", today.toLocaleDateString(self.parameters.date_format_country, self.parameters.date_format_options));
@@ -58,11 +58,11 @@ function baseclock(widget_id, url, skin, parameters)
 			{
                         	self.set_field(self, "date", today.toLocaleDateString(self.parameters.date_format_country));
 			}
-                }
-                else
-                {       
-                        self.set_field(self, "date", today.toLocaleDateString());
-                }
+		}
+		else
+		{
+				self.set_field(self, "date", today.toLocaleDateString());
+		}
 
 		if ("time_format" in self.parameters && self.parameters.time_format == "24hr")
 		{

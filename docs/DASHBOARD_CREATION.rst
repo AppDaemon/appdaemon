@@ -682,6 +682,18 @@ Optional Arguments:
 -  ``time_format`` - set to "24hr" if you want military time/24 hour
    clock
 -  ``show_seconds`` - set to 1 if you want to see seconds on the display
+- ``date_format_country`` - Format the clock in the style of a specific country. This can take a simple value like ``us`` or more complex parameters as described `here. <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_identification_and_negotiation>`__
+- ``date_format_options`` - if using ``date_format_country`` you can also add additional options for formatting as described `here. <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString>`__. For example:
+
+.. code:: yaml
+
+   clock:
+       widget_type: clock
+       date_format_country: "ro"
+       date_format_options:
+         weekday: "short"
+         day: "numeric"
+         month: "numeric"
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
