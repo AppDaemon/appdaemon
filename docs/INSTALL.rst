@@ -365,7 +365,7 @@ Assistant with is a good choice.
     After=home-assistant@homeassistant.service
     [Service]
     Type=simple
-    User=hass
+    User=%1
     ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
     [Install]
     WantedBy=multi-user.target
