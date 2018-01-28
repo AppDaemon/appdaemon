@@ -1470,6 +1470,7 @@ Optional Arguments:
 -  ``step`` - the size of step in temperature when fading the slider up
    or down
 -  ``units`` - the unit symbol to be displayed
+- ``precision`` - the number of digits to display after the decimal point
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
