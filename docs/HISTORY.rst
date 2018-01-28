@@ -11,6 +11,8 @@ Change Log
 
 **Fixes**
 
+- Fixed image path for android devices
+
 **Breaking Changes**
 
 3.0.0b2 (2018-01-27)
