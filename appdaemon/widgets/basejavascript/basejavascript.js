@@ -1,4 +1,4 @@
-function javascript(widget_id, url, skin, parameters)
+function basejavascript(widget_id, url, skin, parameters)
 {
     // Store Args
     this.widget_id = widget_id

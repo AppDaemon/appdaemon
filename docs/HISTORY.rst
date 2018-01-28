@@ -8,6 +8,7 @@ Change Log
 
 - Add step parameter to climate widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Doc improvements - contributed by `Marco <https://github.com/marconett>`__
+- Added ``javascript`` widget
 
 **Fixes**
 

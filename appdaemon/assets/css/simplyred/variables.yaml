@@ -220,6 +220,14 @@ reload_title_style: $style_title
 reload_title2_style: $style_title2
 reload_widget_style: $background_style
 
+javascript_icon_active: fa-asterisk
+javascript_icon_inactive: fa-asterisk
+javascript_icon_active_style: $style_active
+javascript_icon_inactive_style: $style_active
+javascript_title_style: $style_title
+javascript_title2_style: $style_title2
+javascript_widget_style: $background_style
+
 navigate_icon_active: fa-spinner fa-spin
 navigate_icon_inactive: fa-gear
 navigate_icon_active_style: $style_active
