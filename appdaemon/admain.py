@@ -24,6 +24,7 @@ class ADMain():
     def __init__(self):
         self.logger = None
         self.error = None
+        self.diag = None
         self.AD = None
         self.rundash = None
 
@@ -56,7 +57,7 @@ class ADMain():
 
         # Initialize AppDaemon
 
-        self.AD = ad.AppDaemon(self.logger, self.error, loop, **appdaemon)
+        self.AD = ad.AppDaemon(self.logger, self.error, self.diag, loop, **appdaemon)
 
         # Initialize Dashboard/API
 
@@ -242,12 +243,14 @@ class ADMain():
         if "log" not in config:
             logfile = "STDOUT"
             errorfile = "STDERR"
+            diagfile = "STDOUT"
             log_size = 1000000
             log_generations = 3
             accessfile = None
         else:
             logfile = config['log'].get("logfile", "STDOUT")
             errorfile = config['log'].get("errorfile", "STDERR")
+            diagfile = config['log'].get("diagfile", "STDOUT")
             log_size = config['log'].get("log_size", 1000000)
             log_generations = config['log'].get("log_generations", 3)
             accessfile = config['log'].get("accessfile")
@@ -301,9 +304,28 @@ class ADMain():
         # efh.setFormatter(formatter)
         self.error.addHandler(efh)
 
+        # setup diag output
+
+        self.diag = logging.getLogger("log3")
+        numeric_level = getattr(logging, args.debug, None)
+        self.diag.setLevel(numeric_level)
+        self.diag.propagate = False
+        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
+        if diagfile != "STDOUT":
+            dfh = RotatingFileHandler(
+                diagfile, maxBytes=log_size, backupCount=log_generations
+            )
+        else:
+            dfh = logging.StreamHandler()
+
+        dfh.setLevel(numeric_level)
+        # dfh.setFormatter(formatter)
+        self.diag.addHandler(dfh)
+
         # Setup dash output
         if accessfile is not None:
-            self.access = logging.getLogger("log3")
+            self.access = logging.getLogger("log4")
             numeric_level = getattr(logging, args.debug, None)
             self.access.setLevel(numeric_level)
             self.access.propagate = False

@@ -8,6 +8,7 @@ Change Log
 
 - Added ``javascript`` widget
 - Upgraded MDI Icons to 2.1.19
+- Add separate log for diagnostic info
 - Add step parameter to climate widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Add internationalization options to clock widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Doc improvements - contributed by `Marco <https://github.com/marconett>`__
@@ -15,6 +16,7 @@ Change Log
 **Fixes**
 
 - Fixed image path for android devices
+- Fix a bug with the time parameter for images
 
 **Breaking Changes**
 
