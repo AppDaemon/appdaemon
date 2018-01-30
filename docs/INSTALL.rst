@@ -124,6 +124,7 @@ The ``log:`` section is optional but if included, must have at least one directi
    will usually be errors during compilation and execution of the apps.
    If ``errorfile = STDERR`` errors will be sent to stderr instead of a
    file, if not specified, output will be sent to STDERR.
+-  ``diagfile`` (optional) is the name of the log files for diagnostic information. This will contain information form the ``log_thread_actions`` parameter, as well as information dumped from AppDaemon's internal state when the AppDaemon process is sent a ``SIGUSR1`` signal.
 -  ``log_size`` (optional) is the maximum size a logfile will get to
    before it is rotated if not specified, this will default to 1000000
    bytes.

@@ -25,10 +25,11 @@ class AppDaemon:
 
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
 
-    def __init__(self, logger, error, loop, **kwargs):
+    def __init__(self, logger, error, diag, loop, **kwargs):
 
         self.logger = logger
         self.error = error
+        self.diagnostic = diag
         self.config = kwargs
         self.q = Queue(maxsize=0)
 
@@ -322,29 +323,29 @@ class AppDaemon:
 
     def dump_callbacks(self):
         if self.callbacks == {}:
-            self.log("INFO", "No callbacks")
+            self.diag("INFO", "No callbacks")
         else:
-            self.log("INFO", "--------------------------------------------------")
-            self.log("INFO", "Callbacks")
-            self.log("INFO", "--------------------------------------------------")
+            self.diag("INFO", "--------------------------------------------------")
+            self.diag("INFO", "Callbacks")
+            self.diag("INFO", "--------------------------------------------------")
             for name in self.callbacks.keys():
-                self.log("INFO", "{}:".format(name))
+                self.diag("INFO", "{}:".format(name))
                 for uuid_ in self.callbacks[name]:
-                    self.log( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
-            self.log("INFO", "--------------------------------------------------")
+                    self.diag( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
+            self.diag("INFO", "--------------------------------------------------")
 
     def dump_objects(self):
-        self.log("INFO", "--------------------------------------------------")
-        self.log("INFO", "Objects")
-        self.log("INFO", "--------------------------------------------------")
+        self.diag("INFO", "--------------------------------------------------")
+        self.diag("INFO", "Objects")
+        self.diag("INFO", "--------------------------------------------------")
         for object_ in self.objects.keys():
-            self.log("INFO", "{}: {}".format(object_, self.objects[object_]))
-        self.log("INFO", "--------------------------------------------------")
+            self.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
+        self.diag("INFO", "--------------------------------------------------")
 
     def dump_queue(self):
-        self.log("INFO", "--------------------------------------------------")
-        self.log("INFO", "Current Queue Size is {}".format(self.q.qsize()))
-        self.log("INFO", "--------------------------------------------------")
+        self.diag("INFO", "--------------------------------------------------")
+        self.diag("INFO", "Current Queue Size is {}".format(self.q.qsize()))
+        self.diag("INFO", "--------------------------------------------------")
 
     @staticmethod
     def atoi(text):
@@ -371,26 +372,26 @@ class AppDaemon:
         return info
 
     def dump_threads(self):
-        self.log("INFO", "--------------------------------------------------")
-        self.log("INFO", "Threads")
-        self.log("INFO", "--------------------------------------------------")
+        self.diag("INFO", "--------------------------------------------------")
+        self.diag("INFO", "Threads")
+        self.diag("INFO", "--------------------------------------------------")
         with self.thread_info_lock:
             max_ts = datetime.datetime.fromtimestamp(self.thread_info["max_busy_time"])
             last_ts = datetime.datetime.fromtimestamp(self.thread_info["last_action_time"])
-            self.log("INFO", "Currently busy threads: {}".format(self.thread_info["current_busy"]))
-            self.log("INFO", "Most used threads: {} at {}".format(self.thread_info["max_busy"], max_ts))
-            self.log("INFO", "Last activity: {}".format(last_ts))
-            self.log("INFO", "--------------------------------------------------")
+            self.diag("INFO", "Currently busy threads: {}".format(self.thread_info["current_busy"]))
+            self.diag("INFO", "Most used threads: {} at {}".format(self.thread_info["max_busy"], max_ts))
+            self.diag("INFO", "Last activity: {}".format(last_ts))
+            self.diag("INFO", "--------------------------------------------------")
             for thread in sorted(self.thread_info["threads"], key=self.natural_keys):
                 ts = datetime.datetime.fromtimestamp(self.thread_info["threads"][thread]["time_called"])
-                self.log("INFO",
+                self.diag("INFO",
                          "{} - current callback: {} since {}, alive: {}".format(
                              thread,
                              self.thread_info["threads"][thread]["callback"],
                              ts,
                              self.thread_info["threads"][thread]["thread"].is_alive()
                          ))
-        self.log("INFO", "--------------------------------------------------")
+        self.diag("INFO", "--------------------------------------------------")
 
     def get_callback_entries(self):
         callbacks = {}
@@ -468,10 +469,10 @@ class AppDaemon:
     def update_thread_info(self, thread_id, callback, type = None):
         if self.log_thread_actions:
             if callback == "idle":
-                self.log("INFO",
+                self.diag("INFO",
                          "{} done".format(thread_id, type, callback))
             else:
-                    self.log("INFO",
+                    self.diag("INFO",
                              "{} calling {} callback {}".format(thread_id, type, callback))
         with self.thread_info_lock:
             ts = self.now
@@ -1020,26 +1021,26 @@ class AppDaemon:
         return parsed_time
 
     def dump_sun(self):
-        self.log("INFO", "--------------------------------------------------")
-        self.log("INFO", "Sun")
-        self.log("INFO", "--------------------------------------------------")
-        self.log("INFO", self.sun)
-        self.log("INFO", "--------------------------------------------------")
+        self.diag("INFO", "--------------------------------------------------")
+        self.diag("INFO", "Sun")
+        self.diag("INFO", "--------------------------------------------------")
+        self.diag("INFO", self.sun)
+        self.diag("INFO", "--------------------------------------------------")
 
     def dump_schedule(self):
         if self.schedule == {}:
-            self.log("INFO", "Schedule is empty")
+            self.diag("INFO", "Schedule is empty")
         else:
-            self.log("INFO", "--------------------------------------------------")
-            self.log("INFO", "Scheduler Table")
-            self.log("INFO", "--------------------------------------------------")
+            self.diag("INFO", "--------------------------------------------------")
+            self.diag("INFO", "Scheduler Table")
+            self.diag("INFO", "--------------------------------------------------")
             for name in self.schedule.keys():
-                self.log( "INFO", "{}:".format(name))
+                self.diag( "INFO", "{}:".format(name))
                 for entry in sorted(
                         self.schedule[name].keys(),
                         key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
                 ):
-                    self.log(
+                    self.diag(
                         "INFO",
                         "  Timestamp: {} - data: {}".format(
                             time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(
@@ -1048,7 +1049,7 @@ class AppDaemon:
                             self.schedule[name][entry]
                         )
                     )
-            self.log("INFO", "--------------------------------------------------")
+            self.diag("INFO", "--------------------------------------------------")
 
     async def do_every(self, period, f):
         #
@@ -2124,6 +2125,13 @@ class AppDaemon:
         else:
             ts = None
         utils.log(self.error, level, message, name, ts)
+
+    def diag(self, level, message, name="AppDaemon"):
+        if not self.realtime:
+            ts = self.get_now()
+        else:
+            ts = None
+        utils.log(self.diagnostic, level, message, name, ts)
 
     def register_dashboard(self, dash):
         self.dashboard = dash
