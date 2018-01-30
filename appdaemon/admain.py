@@ -250,7 +250,9 @@ class ADMain():
         else:
             logfile = config['log'].get("logfile", "STDOUT")
             errorfile = config['log'].get("errorfile", "STDERR")
-            diagfile = config['log'].get("diagfile", "STDOUT")
+            diagfile = config['log'].get("diagfile", "NONE")
+            if diagfile == "NONE":
+                diagfile = logfile
             log_size = config['log'].get("log_size", 1000000)
             log_generations = config['log'].get("log_generations", 3)
             accessfile = config['log'].get("accessfile")
