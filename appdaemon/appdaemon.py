@@ -1125,7 +1125,7 @@ class AppDaemon:
                 )
                 # dump_schedule()
                 self.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
+                await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
                 # dump_schedule()
             self.was_dst = now_dst
 
@@ -1204,7 +1204,7 @@ class AppDaemon:
                     self.state[namespace] = state
 
                 if not first_time:
-                    await utils.run_in_executor(self.loop, self.executor, self.read_apps, True)
+                    await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
                 else:
                     self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
@@ -1293,7 +1293,7 @@ class AppDaemon:
                 self.log("DEBUG", "Reading Apps")
 
                 self.app_config_file_modified = datetime.datetime.now().timestamp()
-                await utils.run_in_executor(self.loop, self.executor,self.read_apps, True)
+                await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
 
                 self.log("INFO", "App initialization complete")
                 #
@@ -1307,7 +1307,7 @@ class AppDaemon:
                 try:
 
                     if self.apps:
-                        await utils.run_in_executor(self.loop, self.executor, self.read_apps)
+                        await utils.run_in_executor(self.loop, self.executor, self.read_app_files)
 
                         # Check to see if config has changed
 
@@ -1434,14 +1434,19 @@ class AppDaemon:
             # so we know terminate has completed before we move on
             self.objects[name]["object"].terminate()
 
-    def init_object(self, name, class_name, module_name, app_args):
+    def reinit_app(self, name, app_args):
+        self.term_object(name)
+        self.clear_object(name)
+        self.init_object(name, app_args)
+
+    def init_object(self, name, app_args):
         self.log("INFO",
-                  "Loading Object {} using class {} from module {}".format(name, class_name, module_name))
-        modname = __import__(module_name)
-        app_class = getattr(modname, class_name)
+                  "Loading Object {} using class {} from module {}".format(name, app_args["class"], app_args["module"]))
+        modname = __import__(app_args["module"])
+        app_class = getattr(modname, app_args["class"])
         self.objects[name] = {
             "object": app_class(
-                self, name, self.logger, self.err, app_args[name], self.config, app_args, self.global_vars
+                self, name, self.logger, self.err, app_args, self.config, app_args, self.global_vars
             ),
             "id": uuid.uuid4()
         }
@@ -1568,8 +1573,7 @@ class AppDaemon:
                             # Something changed, clear and reload
 
                             self.log("INFO", "App '{}' changed - reloading".format(name))
-                            modfile = self.get_file_from_module(new_config[name]["module"])
-                            self.read_apps(forcefile=modfile)
+                            self.reinit_app(name, new_config[name])
                     else:
 
                         # Section has been deleted, clear it out
@@ -1584,8 +1588,7 @@ class AppDaemon:
                         #
                         if "class" in new_config[name] and "module" in new_config[name]:
                             self.log("INFO", "App '{}' added - running".format(name))
-                            modfile = self.get_file_from_module(new_config[name]["module"])
-                            self.read_apps(forcefile=modfile)
+                            self.init_object(name, new_config[name])
                         else:
                             if self.invalid_yaml_warnings:
                                 self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
@@ -1651,9 +1654,8 @@ class AppDaemon:
             if self.app_config is not None:
                 for name in self.app_config:
                     if module_name == self.app_config[name]["module"]:
-                        class_name = self.app_config[name]["class"]
-
-                        self.init_object(name, class_name, module_name, self.app_config)
+                        app_config = self.app_config[name]
+                        self.init_object(name, app_config)
         except:
             self.err( "WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error during loading of {}:".format(name))
@@ -1752,7 +1754,7 @@ class AppDaemon:
         return prio
 
     # noinspection PyBroadException
-    def read_apps(self, all_=False, forcefile=None):
+    def read_app_files(self, all_=False, forcefile=None):
         # Check if the apps are disabled in config
         if not self.apps:
             return
