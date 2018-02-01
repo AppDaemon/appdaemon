@@ -1671,7 +1671,7 @@ class AppDaemon:
             for key in self.app_config:
                 if "module" in self.app_config[key] and self.app_config[key]["module"] == module_name:
                     if "dependencies" in self.app_config[key]:
-                        return self.app_config[key]["dependencies"].split(",")
+                        return self.app_config[key]["dependencies"]
                     else:
                         return None
 
@@ -1715,7 +1715,7 @@ class AppDaemon:
         if self.app_config is not None:
             for mod in self.app_config:
                 if "dependencies" in self.app_config[mod]:
-                    for dep in self.app_config[mod]["dependencies"].split(","):
+                    for dep in self.app_config[mod]["dependencies"]:
                         if dep == module_name:
                             dependents.append(self.app_config[mod]["module"])
         return dependents
