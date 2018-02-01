@@ -334,22 +334,26 @@ values. We can represent these dependencies as follows:
     Sound
       module: sound
       class: Sound
-      dependencies: global # Note - module name not App name
+      dependencies:
+        - global # Note - module name not App name
 
     Consumer:
       module: sound
       class: Sound
-      dependencies: sound
+      dependencies:
+        - sound
 
-It is also possible to have multiple dependencies, added as a comma
-separate list (no spaces)
+It is also possible to have multiple dependencies, added as a yaml
+list list
 
 .. code:: yaml
 
     Consumer:
       module: sound
       class: Sound
-      dependencies: sound,global
+      dependencies:
+        - sound
+        - global
 
 AppDaemon will write errors to the log if a dependency is missing and it
 should also detect circular dependencies.
