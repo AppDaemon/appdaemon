@@ -299,7 +299,6 @@ class Dashboard:
             # Variable substitutions
             #
             yaml_file, templates = self._do_subs(yaml_path, instantiated_widget, '""')
-
             try:
                 #
                 # Parse the substituted YAML file - this is a derived widget definition
@@ -324,7 +323,14 @@ class Dashboard:
             #
             if global_parameters is not None:
                 for key in global_parameters:
-                    final_widget[key] = global_parameters[key]
+                    if key == "devices":
+                        if widget_type in global_parameters["devices"]:
+                            for dkey in global_parameters["devices"][widget_type]:
+                                if dkey not in instantiated_widget:
+                                    instantiated_widget[dkey] = global_parameters["devices"][widget_type][dkey]
+                    else:
+                        if key not in instantiated_widget:
+                            instantiated_widget[key] = global_parameters[key]
 
             #
             # Override defaults with parameters in users definition
@@ -337,6 +343,8 @@ class Dashboard:
                         final_widget[key] = final_widget[key] + ";" + instantiated_widget[key]
                     else:
                         final_widget[key] = instantiated_widget[key]
+                    if "fields" in final_widget and key in final_widget["fields"]:
+                        final_widget["fields"][key] = instantiated_widget[key]
                     if "css" in final_widget and key in final_widget["css"]:
                         final_widget["css"][key] = final_widget["css"][key] + ";" + instantiated_widget[key]
                     if "static_css" in final_widget and key in final_widget["static_css"]:

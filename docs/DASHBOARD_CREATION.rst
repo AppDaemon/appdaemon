@@ -39,6 +39,9 @@ optional. An example is as follows:
         precision: 1
         use_hass_icon: 1
         namespace: default
+        devices:
+          media_player:
+            step: 5
 
 These are all fairly self explanatory:
 
@@ -65,6 +68,7 @@ These are all fairly self explanatory:
    defined with just their entity ids so they will not require a formal
    widget definition just to change the decimal separator. The namespace
    parameter will be explained further in the namespace section of this document.
+   Within the ``global`` paraemeters it is also possible to set parameters at the device level by including a ``device`` entry (see above for an example). Under device you can add an entry for any widget type, then under that, list global parameters that will be applied to just that widget type. For instance, in the example above, the default step size for the all media players is set to 5% rather than the default 10%.
 
 The very simplest dashboard needs a layout so it can understand where to
 place the widgets. We use a ``layout`` directive to tell HADasboard how

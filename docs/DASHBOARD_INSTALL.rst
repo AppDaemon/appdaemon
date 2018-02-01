@@ -58,14 +58,14 @@ secrets.yaml file:
 By default, dashboards are searched for under the config directory in a
 sub directory called ``dashboards``. Optionally, you can place your
 dashboards in a directory other than under the config directory using
-the ``dash_dir`` directive.
+the ``dashboard_dir`` directive.
 
 e.g.:
 
 .. code:: yaml
 
     hadashboard:
-    dash_dir: /etc/appdaemon/dashboards
+    dashboard_dir: /etc/appdaemon/dashboards
 
 Next, you will need to create the ``dashboards`` directive either under
 the conf directory, or wherever you specify with ``dash_dir``. Once that
