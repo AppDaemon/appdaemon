@@ -343,8 +343,7 @@ values. We can represent these dependencies as follows:
       dependencies:
         - sound
 
-It is also possible to have multiple dependencies, added as a yaml
-list list
+It is also possible to have multiple dependencies, added as a yaml list
 
 .. code:: yaml
 
