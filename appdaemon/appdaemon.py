@@ -217,14 +217,31 @@ class AppDaemon:
                 subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     sys.path.insert(0, root)
-        else:
-            self.app_config_file_modified = 0
+            #
+            # Initial Setup
+            #
 
-        #
-        # Initial Setup
-        #
+            self.appq = asyncio.Queue(maxsize=0)
 
-        self.appq = asyncio.Queue(maxsize=0)
+            # Load App Config
+
+            self.app_config = self.read_config()
+
+            self.log("DEBUG", "Creating worker threads ...")
+
+            # Create Worker Threads
+            for i in range(self.threads):
+                t = threading.Thread(target=self.worker)
+                t.daemon = True
+                t.setName("thread-{}".format(i+1))
+                with self.thread_info_lock:
+                    self.thread_info["threads"][t.getName()] = {"callback": "idle", "time_called": 0, "thread": t}
+                t.start()
+
+            self.log("DEBUG", "Done")
+
+        #else:
+        #    self.app_config_file_modified = 0
 
         self.loop = loop
 
@@ -232,24 +249,8 @@ class AppDaemon:
 
         self.log("DEBUG", "Entering run()")
 
-        # Load App Config
-
-        self.app_config = self.read_config()
-
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
-        self.log("DEBUG", "Creating worker threads ...")
-
-        # Create Worker Threads
-        for i in range(self.threads):
-            t = threading.Thread(target=self.worker)
-            t.daemon = True
-            t.setName("thread-{}".format(i+1))
-            with self.thread_info_lock:
-                self.thread_info["threads"][t.getName()] = {"callback": "idle", "time_called": 0, "thread": t}
-            t.start()
-
-        self.log("DEBUG", "Done")
 
         # Load Plugins
 
@@ -313,7 +314,8 @@ class AppDaemon:
         self.stopping = True
         # if ws is not None:
         #    ws.close()
-        self.appq.put_nowait({"event_type": "ha_stop", "data": None})
+        if self.apps:
+            self.appq.put_nowait({"event_type": "ha_stop", "data": None})
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin].stop()
 
@@ -1287,31 +1289,33 @@ class AppDaemon:
 
             self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
 
-            self.log("DEBUG", "Reading Apps")
+            if self.apps:
+                self.log("DEBUG", "Reading Apps")
 
-            self.app_config_file_modified = datetime.datetime.now().timestamp()
-            await utils.run_in_executor(self.loop, self.executor,self.read_apps, True)
+                self.app_config_file_modified = datetime.datetime.now().timestamp()
+                await utils.run_in_executor(self.loop, self.executor,self.read_apps, True)
 
-            self.log("INFO", "App initialization complete")
-            #
-            # Fire APPD Started Event
-            #
-            self.process_event("global", {"event_type": "appd_started", "data": {}})
+                self.log("INFO", "App initialization complete")
+                #
+                # Fire APPD Started Event
+                #
+                self.process_event("global", {"event_type": "appd_started", "data": {}})
 
             while not self.stopping:
                 start_time = datetime.datetime.now().timestamp()
 
                 try:
 
-                    await utils.run_in_executor(self.loop, self.executor, self.read_apps)
+                    if self.apps:
+                        await utils.run_in_executor(self.loop, self.executor, self.read_apps)
 
-                    # Check to see if config has changed
+                        # Check to see if config has changed
 
-                    await utils.run_in_executor(self.loop, self.executor, self.check_config)
+                        await utils.run_in_executor(self.loop, self.executor, self.check_config)
 
-                    # Call me suspicious, but lets update state from the plugins periodically
-                    # in case we miss events for whatever reason
-                    # Every 10 minutes seems like a good place to start
+                        # Call me suspicious, but lets update state from the plugins periodically
+                        # in case we miss events for whatever reason
+                        # Every 10 minutes seems like a good place to start
 
                     for plugin in self.plugin_objs:
                         if self.plugin_objs[plugin].active():

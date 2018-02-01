@@ -41,7 +41,6 @@ function baseiframe(widget_id, url, skin, parameters)
             {
                 url = url + "?time=" + Math.floor((new Date).getTime()/1000);
             }
-            console.log(url)
             self.set_field(self, "img_src", url);
             size = self.parameters.img_list.length
         }

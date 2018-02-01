@@ -17,6 +17,7 @@ Change Log
 
 - Fixed image path for android devices
 - Fix a bug with the time parameter for images
+- Fixed `disable_apps`
 
 **Breaking Changes**
 
