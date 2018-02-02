@@ -1313,9 +1313,9 @@ class AppDaemon:
 
                         await utils.run_in_executor(self.loop, self.executor, self.check_config)
 
-                        # Call me suspicious, but lets update state from the plugins periodically
-                        # in case we miss events for whatever reason
-                        # Every 10 minutes seems like a good place to start
+                    # Call me suspicious, but lets update state from the plugins periodically
+                    # in case we miss events for whatever reason
+                    # Every 10 minutes seems like a good place to start
 
                     for plugin in self.plugin_objs:
                         if self.plugin_objs[plugin].active():
@@ -1343,7 +1343,7 @@ class AppDaemon:
 
                         self.dump_threads()
 
-                    # Plugins
+                    # Run utility for each plugin
 
                     for plugin in self.plugin_objs:
                         self.plugin_objs[plugin].utility()

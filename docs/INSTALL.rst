@@ -18,7 +18,9 @@ Before running ``AppDaemon`` you will need to install the package:
 
 .. code:: bash
 
-    $ sudo pip3 install appdaemon
+    $ sudo pip3 install --pre appdaemon
+
+Note: the ``--pre`` flag is required or you will install version 2.1.12. There are many breaking changes between 2.1.12 and this beta so ensure you have the correct version installed before proceeding.
 
 Install Using hass.io
 ---------------------
