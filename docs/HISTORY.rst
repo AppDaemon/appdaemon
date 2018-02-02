@@ -21,7 +21,7 @@ Change Log
 
 **Breaking Changes**
 
-- In apps.yaml, dependencies should now e a proper yaml list rather than a comma separated string
+- In apps.yaml, dependencies should now be a proper yaml list rather than a comma separated string
 
 3.0.0b2 (2018-01-27)
 --------------------
