@@ -43,4 +43,5 @@ if [ -n "$DASH_URL" ]; then
 fi
 
 # Lets run it!
-appdaemon -c $CONF $EXTRA_CMD
+appdaemon -c $CONF "$EXTRA_CMD"
+
