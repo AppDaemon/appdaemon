@@ -38,7 +38,7 @@ class ADMain():
             self.AD.dump_queue()
             self.AD.dump_sun()
         if signum == signal.SIGHUP:
-            self.AD.read_app_files(True)
+            self.AD.check_app_updates(True)
         if signum == signal.SIGINT:
             self.log(self.logger, "INFO", "Keyboard interrupt")
             self.stop()

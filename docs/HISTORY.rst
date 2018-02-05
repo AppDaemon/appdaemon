@@ -19,6 +19,7 @@ Change Log
 - Fixed image path for android devices
 - Fix a bug with the time parameter for images
 - Fixed `disable_apps`
+- Fixed a bug in ``get_state()`` with ``attributes=all`` returning just the attributes dictionary instead of the entire entity.
 
 **Breaking Changes**
 
