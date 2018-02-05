@@ -128,7 +128,7 @@ class HassPlugin:
                     # Older version of HA - connect using SSEClient
                     #
                     if self.commtype == "SSE":
-                        self.log("INFO", "Using SSE")
+                        self.log("WARNING", "Using SSE - use of SSE is deprecated and will be removed in a future version")
                     else:
                         self.log(
                             "INFO",

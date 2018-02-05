@@ -297,29 +297,26 @@ required:
         warning_level: 100
         units: %
 
-Module Dependencies
+App Dependencies
 -------------------
 
-It is possible for modules to be dependant upon other modules. Some
+It is possible for apps to be dependant upon other apps. Some
 examples where this might be the case are:
 
--  A Global module that defines constants for use in other modules
--  A module that provides a service for other modules, e.g. a TTS module
--  A Module that provides part of an object hierarchy to other modules
+-  A global app that defines constants for use in other apps
+-  An app that provides a service for other modules, e.g. a TTS app
 
-In these cases, when changes are made to one of these modules, we also
-want the modules that depend upon them to be reloaded. Furthermore, we
-also want to guarantee that they are loaded in order so that the modules
+In these cases, when changes are made to one of these apps, we also
+want the apps that depend upon them to be reloaded. Furthermore, we
+also want to guarantee that they are loaded in order so that the apps
 depended upon by other modules are loaded first.
 
 AppDaemon fully supports this through the use of the dependency
 directive in the App configuration. Using this directive, each App
-identifies modules that it depends upon. Note that the dependency is at
-the module level, not the App level, since a change to the module will
-force a reload of all apps using it anyway. The dependency directive
-will identify the module name of the App it cares about, and AppDaemon
-will see to it that the dependency is loaded before the module depending
-on it, and that the dependent module will be reloaded if it changes.
+identifies other apps that it depends upon. The dependency directive
+will identify the name of the App it cares about, and AppDaemon
+will see to it that the dependency is loaded before the app depending
+on it, and that the dependent app will be reloaded if it changes.
 
 For example, an App ``Consumer``, uses another app ``Sound`` to play
 sound files. ``Sound`` in turn uses ``Global`` to store some global
@@ -335,13 +332,13 @@ values. We can represent these dependencies as follows:
       module: sound
       class: Sound
       dependencies:
-        - global # Note - module name not App name
+        - Global
 
     Consumer:
       module: sound
       class: Sound
       dependencies:
-        - sound
+        - Sound
 
 It is also possible to have multiple dependencies, added as a yaml list
 
@@ -351,11 +348,11 @@ It is also possible to have multiple dependencies, added as a yaml list
       module: sound
       class: Sound
       dependencies:
-        - sound
-        - global
+        - Sound
+        - Global
 
 AppDaemon will write errors to the log if a dependency is missing and it
-should also detect circular dependencies.
+will also detect circular dependencies.
 
 Loading Priority
 ----------------
@@ -380,7 +377,7 @@ The priority system is complimentary to the dependency system, although they are
 
 To accommodate both systems, dependency trees are assigned priorities in the range 50 - 51, again allowing apps to set priorities such that they will be loaded before or after specific sets of dependent apps.
 
-Note that apps that are dependent upon other apps will ignore any priority setting in their configuration.
+Note that apps that are dependent upon other apps, and apps that are depended upon by other apps will ignore any priority setting in their configuration.
 
 Callback Constraints
 --------------------

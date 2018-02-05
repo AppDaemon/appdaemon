@@ -89,7 +89,7 @@ class AppDaemon:
         self.realtime = True
         self.version = 0
         self.app_config_file_modified = 0
-        self.app_config = None
+        self.app_config = {}
 
         self.app_config_file = None
         self._process_arg("app_config_file", kwargs)
@@ -197,7 +197,12 @@ class AppDaemon:
             self.apps = True
             self.log("INFO", "Starting Apps")
 
-        # Add appdir and subdirs to path
+        # Initialize config file tracking
+
+        self.app_config_file_modified = 0
+        self.app_config_files = {}
+        self.module_dirs = []
+
         if self.apps is True:
             if self.app_dir is None:
                 if self.config_dir is None:
@@ -209,23 +214,11 @@ class AppDaemon:
                 self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
                 return
 
-
-            latest = self.check_later_app_configs(0)
-            self.app_config_file_modified = latest["latest"]
-
-            for root, subdirs, files in os.walk(self.app_dir):
-                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
-                if root[-11:] != "__pycache__":
-                    sys.path.insert(0, root)
             #
             # Initial Setup
             #
 
             self.appq = asyncio.Queue(maxsize=0)
-
-            # Load App Config
-
-            self.app_config = self.read_config()
 
             self.log("DEBUG", "Creating worker threads ...")
 
@@ -638,7 +631,7 @@ class AppDaemon:
                     entity_id = "{}.{}".format(device, entity)
                     if attribute == "all":
                         if entity_id in self.state[namespace]:
-                            return deepcopy(self.state[namespace][entity_id]["attributes"])
+                            return deepcopy(self.state[namespace][entity_id])
                         else:
                             return None
                     else:
@@ -1125,7 +1118,7 @@ class AppDaemon:
                 )
                 # dump_schedule()
                 self.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
+                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, True)
                 # dump_schedule()
             self.was_dst = now_dst
 
@@ -1204,7 +1197,7 @@ class AppDaemon:
                     self.state[namespace] = state
 
                 if not first_time:
-                    await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
+                    await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, True)
                 else:
                     self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
@@ -1292,8 +1285,7 @@ class AppDaemon:
             if self.apps:
                 self.log("DEBUG", "Reading Apps")
 
-                self.app_config_file_modified = datetime.datetime.now().timestamp()
-                await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
+                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, True)
 
                 self.log("INFO", "App initialization complete")
                 #
@@ -1307,11 +1299,11 @@ class AppDaemon:
                 try:
 
                     if self.apps:
-                        await utils.run_in_executor(self.loop, self.executor, self.read_app_files)
+                        await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
 
                         # Check to see if config has changed
 
-                        await utils.run_in_executor(self.loop, self.executor, self.check_config)
+                        # await utils.run_in_executor(self.loop, self.executor, self.check_config)
 
                     # Call me suspicious, but lets update state from the plugins periodically
                     # in case we miss events for whatever reason
@@ -1403,30 +1395,6 @@ class AppDaemon:
         else:
             return None
 
-    def term_file(self, name):
-        for key in self.app_config:
-            if "module" in self.app_config[key] and self.app_config[key]["module"] == name:
-                self.term_object(key)
-
-    def clear_file(self, name):
-        for key in self.app_config:
-            if "module" in self.app_config[key] and self.app_config[key]["module"] == name:
-                self.clear_object(key)
-                if key in self.objects:
-                    del self.objects[key]
-
-    def clear_object(self, object_):
-        self.log("DEBUG", "Clearing callbacks for {}".format(object_))
-        with self.callbacks_lock:
-            if object_ in self.callbacks:
-                del self.callbacks[object_]
-        with self.schedule_lock:
-            if object_ in self.schedule:
-                del self.schedule[object_]
-        with self.endpoints_lock:
-            if object_ in self.endpoints:
-                del self.endpoints[object_]
-
     def term_object(self, name):
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
             self.log("INFO", "Terminating Object {}".format(name))
@@ -1434,26 +1402,40 @@ class AppDaemon:
             # so we know terminate has completed before we move on
             self.objects[name]["object"].terminate()
 
-    def reinit_app(self, name, app_args):
-        self.term_object(name)
-        self.clear_object(name)
-        self.init_object(name, app_args)
+        self.log("DEBUG", "Clearing callbacks for {}".format(name))
+        with self.callbacks_lock:
+            if name in self.callbacks:
+                del self.callbacks[name]
+        with self.schedule_lock:
+            if name in self.schedule:
+                del self.schedule[name]
+        with self.endpoints_lock:
+            if name in self.endpoints:
+                del self.endpoints[name]
 
-    def init_object(self, name, app_args):
+
+    def init_object(self, name):
+        app_args = self.app_config[name]
         self.log("INFO",
-                  "Loading Object {} using class {} from module {}".format(name, app_args["class"], app_args["module"]))
-        modname = __import__(app_args["module"])
-        app_class = getattr(modname, app_args["class"])
-        self.objects[name] = {
-            "object": app_class(
-                self, name, self.logger, self.err, app_args, self.config, app_args, self.global_vars
-            ),
-            "id": uuid.uuid4()
-        }
+                  "Initializing app {} using class {} from module {}".format(name, app_args["class"], app_args["module"]))
 
-        # Call it's initialize function
+        if self.get_file_from_module(app_args["module"]) is not None:
 
-        self.objects[name]["object"].initialize()
+            modname = __import__(app_args["module"])
+            app_class = getattr(modname, app_args["class"])
+            self.objects[name] = {
+                "object": app_class(
+                    self, name, self.logger, self.err, app_args, self.config, app_args, self.global_vars
+                ),
+                "id": uuid.uuid4()
+            }
+
+            # Call it's initialize function
+
+            self.objects[name]["object"].initialize()
+
+        else:
+            self.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
 
     def read_config(self):
 
@@ -1501,17 +1483,33 @@ class AppDaemon:
             return {"latest": ts, "files": [{"name": self.app_config_file, "ts": os.path.getmtime(self.app_config_file)}]}
         else:
             later_files = {}
+            app_config_files = []
             later_files["files"] = []
-            later_files["latest"] = 0
+            later_files["latest"] = last_latest
+            later_files["deleted"] = []
             for root, subdirs, files in os.walk(self.app_dir):
                 subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
-                            ts = os.path.getmtime(os.path.join(root, file))
+                            path = os.path.join(root, file)
+                            app_config_files.append(path)
+                            ts = os.path.getmtime(path)
                             if ts > last_latest:
+                                later_files["files"].append(path)
+                            if ts > later_files["latest"]:
                                 later_files["latest"] = ts
-                                later_files["files"].append({"name": os.path.join(root, file), "ts": ts})
+
+            for file in self.app_config_files:
+                if file not in app_config_files:
+                    later_files["deleted"].append(file)
+
+            for file in app_config_files:
+                if file not in self.app_config_files:
+                    later_files["files"].append(file)
+
+            self.app_config_files = app_config_files
+
             return later_files
 
     def read_config_file(self, file):
@@ -1550,36 +1548,43 @@ class AppDaemon:
     # noinspection PyBroadException
     def check_config(self):
 
+        terminate_apps = {}
+        initialize_apps = {}
+
         try:
             latest = self.check_later_app_configs(self.app_config_file_modified)
-            for later in latest["files"]:
-                filename = later["name"]
-                modified = later["ts"]
-                self.log("INFO", "{} added or modified".format(filename))
-                self.app_config_file_modified = modified
-                new_config = self.read_config()
+            self.app_config_file_modified = latest["latest"]
 
+            if latest["files"] or latest["deleted"]:
+                self.log("INFO", "Reading config")
+                new_config = self.read_config()
                 if new_config is None:
                     self.log("WARNING", "New config not applied")
                     return
 
+                for file in latest["deleted"]:
+                    self.log("INFO", "{} deleted".format(file))
+
+                for file in latest["files"]:
+                    self.log("INFO", "{} added or modified".format(file))
+
                 # Check for changes
 
                 for name in self.app_config:
-                    # if name == "DEFAULT" or name == "AppDaemon" or name == "HADashboard":
-                    #    continue
                     if name in new_config:
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
 
-                            self.log("INFO", "App '{}' changed - reloading".format(name))
-                            self.reinit_app(name, new_config[name])
+                            self.log("INFO", "App '{}' changed".format(name))
+                            #self.reinit_app(name, new_config[name])
+                            terminate_apps[name] = 1
+                            initialize_apps[name] = 1
                     else:
 
                         # Section has been deleted, clear it out
 
-                        self.log("INFO", "App '{}' deleted - removing".format(name))
-                        self.clear_object(name)
+                        self.log("INFO", "App '{}' deleted".format(name))
+                        terminate_apps[name] = 1
 
                 for name in new_config:
                     if name not in self.app_config:
@@ -1587,13 +1592,16 @@ class AppDaemon:
                         # New section added!
                         #
                         if "class" in new_config[name] and "module" in new_config[name]:
-                            self.log("INFO", "App '{}' added - running".format(name))
-                            self.init_object(name, new_config[name])
+                            self.log("INFO", "App '{}' added".format(name))
+                            #self.init_object(name, new_config[name])
+                            initialize_apps[name] = 1
                         else:
                             if self.invalid_yaml_warnings:
                                 self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
+
+            return {"init": initialize_apps, "term": terminate_apps}
         except:
             self.err("WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error:")
@@ -1624,8 +1632,8 @@ class AppDaemon:
                 #
                 # Clear out callbacks and remove objects
                 #
-                self.term_file(file)
-                self.clear_file(file)
+                #self.term_file(file)
+                #self.clear_file(file)
                 #
                 # Reload
                 #
@@ -1651,11 +1659,11 @@ class AppDaemon:
 
             # Instantiate class and Run initialize() function
 
-            if self.app_config is not None:
-                for name in self.app_config:
-                    if module_name == self.app_config[name]["module"]:
-                        app_config = self.app_config[name]
-                        self.init_object(name, app_config)
+            #if self.app_config is not None:
+            #    for name in self.app_config:
+            #        if module_name == self.app_config[name]["module"]:
+            #            app_config = self.app_config[name]
+            #            self.init_object(name, app_config)
         except:
             self.err( "WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error during loading of {}:".format(name))
@@ -1665,43 +1673,43 @@ class AppDaemon:
             if self.errfile != "STDERR" and self.logfile != "STDOUT":
                 self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
-    def get_module_dependencies(self, file):
-        module_name = self.get_module_from_path(file)
-        if self.app_config is not None:
-            for key in self.app_config:
-                if "module" in self.app_config[key] and self.app_config[key]["module"] == module_name:
-                    if "dependencies" in self.app_config[key]:
-                        return self.app_config[key]["dependencies"]
-                    else:
-                        return None
+    #def get_module_dependencies(self, file):
+    #    module_name = self.get_module_from_path(file)
+    #    if self.app_config is not None:
+    #        for key in self.app_config:
+    #            if "module" in self.app_config[key] and self.app_config[key]["module"] == module_name:
+    #                if "dependencies" in self.app_config[key]:
+    #                    return self.app_config[key]["dependencies"]
+    #                else:
+    #                    return None
 
-        return None
+     #   return None
 
-    def in_previous_dependencies(self, dependencies, load_order):
-        for dependency in dependencies:
-            dependency_found = False
-            for batch in load_order:
-                for mod in batch:
-                    module_name = self.get_module_from_path(mod["name"])
-                    # print(dependency, module_name)
-                    if dependency == module_name:
-                        # print("found {}".format(module_name))
-                        dependency_found = True
-            if not dependency_found:
-                return False
+    ##def in_previous_dependencies(self, dependencies, load_order):
+     #   for dependency in dependencies:
+     #       dependency_found = False
+     ##       for batch in load_order:
+      #          for mod in batch:
+      #              module_name = self.get_module_from_path(mod["name"])
+      #              # print(dependency, module_name)
+      #              if dependency == module_name:
+      #                  # print("found {}".format(module_name))
+      #                  dependency_found = True
+      #      if not dependency_found:
+      #          return False
 
-        return True
+       # return True
 
-    def dependencies_are_satisfied(self, _module, load_order):
-        dependencies = self.get_module_dependencies(_module)
+    #def dependencies_are_satisfied(self, _module, load_order):
+    #    dependencies = self.get_module_dependencies(_module)
 
-        if dependencies is None:
-            return None
+    #    if dependencies is None:
+    #        return None
 
-        if self.in_previous_dependencies(dependencies, load_order):
-            return True
+     #   if self.in_previous_dependencies(dependencies, load_order):
+     #       return True
 
-        return False
+    #    return False
 
     @staticmethod
     def get_module_from_path(path):
@@ -1709,16 +1717,16 @@ class AppDaemon:
         module_name = os.path.splitext(name)[0]
         return module_name
 
-    def find_dependent_modules(self, mod):
-        module_name = self.get_module_from_path(mod["name"])
-        dependents = []
-        if self.app_config is not None:
-            for mod in self.app_config:
-                if "dependencies" in self.app_config[mod]:
-                    for dep in self.app_config[mod]["dependencies"]:
-                        if dep == module_name:
-                            dependents.append(self.app_config[mod]["module"])
-        return dependents
+    #def find_dependent_modules(self, mod):
+    #    module_name = self.get_module_from_path(mod["name"])
+    #    dependents = []
+    #    if self.app_config is not None:
+    #        for mod in self.app_config:
+    #            if "dependencies" in self.app_config[mod]:
+    #                for dep in self.app_config[mod]["dependencies"]:
+    #                    if dep == module_name:
+    #                        dependents.append(self.app_config[mod]["module"])
+    #    return dependents
 
     def get_file_from_module(self, mod):
         for file in self.monitored_files:
@@ -1735,23 +1743,207 @@ class AppDaemon:
                 return True
         return False
 
-    def get_app_priority(self, file):
-        # Set to highest priority
-        prio = sys.float_info.max
-        mod = self.get_module_from_path(file)
-        for name in self.app_config:
-            if "module" in self.app_config[name] and self.app_config[name]["module"] == mod:
-                if "priority" in self.app_config[name]:
-                    modprio = float(self.app_config[name]["priority"])
-                    # if any apps have this file at a lower priority set it accordingly
-                    if modprio < prio:
-                        prio = modprio
+    #def get_app_priority(self, file):
+    #    # Set to highest priority
+    #    prio = sys.float_info.max
+    #    mod = self.get_module_from_path(file)
+    #    for name in self.app_config:
+    #        if "module" in self.app_config[name] and self.app_config[name]["module"] == mod:
+    #            if "priority" in self.app_config[name]:
+    #                modprio = float(self.app_config[name]["priority"])
+    #                # if any apps have this file at a lower priority set it accordingly
+    #                if modprio < prio:
+    #                    prio = modprio#
 
         # If priority is still at 100, this app has no priority so set it to the middle
-        if prio == sys.float_info.max:
-            prio = float(50.0)
+     #   if prio == sys.float_info.max:
+     #       prio = float(50.0)
 
-        return prio
+      #  return prio
+
+    def check_app_updates(self, all_=False):
+
+        if not self.apps:
+            return
+
+        # Get list of apps we need to terminate and/or initialize
+
+        apps = self.check_config()
+
+        found_files = []
+        modules = []
+        for root, subdirs, files in os.walk(self.app_dir, topdown=True):
+            # print(root, subdirs, files)
+            #
+            # Prune dir list
+            #
+            subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
+
+            if root[-11:] != "__pycache__":
+                if root not in self.module_dirs:
+                    self.log("INFO", "Adding {} to module import path".format(root))
+                    sys.path.insert(0, root)
+                    self.module_dirs.append(root)
+
+            for file in files:
+                if file[-3:] == ".py":
+                    found_files.append(os.path.join(root, file))
+
+        for file in found_files:
+            if file == os.path.join(self.app_dir, "__init__.py"):
+                continue
+            try:
+
+                # check we can actually open the file
+
+                fh = open(file)
+                fh.close()
+
+                modified = os.path.getmtime(file)
+                if file in self.monitored_files:
+                    if self.monitored_files[file] < modified or all_:
+                        thismod = {"name": file, "reload": True, "load": True}
+                        modules.append(thismod)
+                        self.monitored_files[file] = modified
+                else:
+                    self.log("INFO", "Found module {}".format(file))
+                    modules.append({"name": file, "reload": False, "load": True})
+                    self. monitored_files[file] = modified
+            except IOError as err:
+                self.log("WARNING",
+                         "Unable to read app {}: {} - skipping".format(file, err))
+
+        # Check for deleted modules and add them to the terminate list
+        deleted_modules = []
+        for file in self.monitored_files:
+            if file not in found_files:
+                deleted_modules.append(file)
+                self.log("INFO", "Removing module {}".format(file))
+
+        for file in deleted_modules:
+            del self.monitored_files[file]
+            for app in self.apps_per_module(self.get_module_from_path(file)):
+                apps["term"][app] = 1
+
+        # Add any apps we need to reload because of file changes
+
+        for module in modules:
+            for app in self.apps_per_module(self.get_module_from_path(module["name"])):
+                if module["reload"]:
+                    apps["term"][app] = 1
+                apps["init"][app] = 1
+
+        # Terminate apps
+
+        prio_apps = self.get_app_deps_and_prios(apps["term"])
+
+        for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
+            self.log("INFO", "Terminating {}".format(app))
+            self.term_object(app)
+
+        # Load/reload modules
+
+        for mod in modules:
+            self.read_app(mod["name"], mod["reload"])
+
+        if apps["init"]:
+
+            prio_apps = self.get_app_deps_and_prios(apps["init"])
+
+            # Initialize Apps
+
+            for app in sorted(prio_apps, key=prio_apps.get):
+                self.init_object(app)
+
+    def get_app_deps_and_prios(self, applist):
+
+        # Build a list of modules and their dependencies
+
+        deplist = []
+        for app in applist:
+            if app not in deplist:
+                deplist.append(app)
+            self.get_dependent_apps(app, deplist)
+
+        deps = []
+
+        for app in deplist:
+            dependees = []
+            if "dependencies" in self.app_config[app]:
+                for dep in self.app_config[app]["dependencies"]:
+                    if dep in self.app_config:
+                        dependees.append(dep)
+                    else:
+                        self.log("WARNING", "Unable to find configuration for app {} in dependencies for {}".format(
+                            dep, app))
+            deps.append((app, dependees))
+
+        prio_apps = {}
+        prio = float(50.1)
+        try:
+            for app in self.topological_sort(deps):
+                if "dependencies" in self.app_config[app] or self.app_has_dependents(app):
+                    prio_apps[app] = prio
+                    prio += float(0.0001)
+                else:
+                    if "priority" in self.app_config[app]:
+                        prio_apps[app] = float(self.app_config[app]["priority"])
+                    else:
+                        prio_apps[app] = float(50)
+        except ValueError:
+            self.log("WARNING", "Missing or cyclic dependency")
+
+        return prio_apps
+
+    def app_has_dependents(self, name):
+        for app in self.app_config:
+            if "dependencies" in self.app_config[app]:
+                for dep in self.app_config[app]["dependencies"]:
+                    if dep == name:
+                        return True
+        return False
+
+
+    def get_dependent_apps(self, dependee, deps):
+        for app in self.app_config:
+            if "dependencies" in self.app_config[app]:
+                for dep in self.app_config[app]["dependencies"]:
+                    #print("app= {} dep = {}, dependee = {} deps = {}".format(app, dep, dependee, deps))
+                    if dep == dependee and app not in deps:
+                        deps.append(app)
+                        new_deps = self.get_dependent_apps(app, deps)
+                        if new_deps is not None:
+                            deps.append(new_deps)
+
+    @staticmethod
+    def topological_sort(source):
+
+        pending = [(name, set(deps)) for name, deps in source]  # copy deps so we can modify set in-place
+        emitted = []
+        while pending:
+            next_pending = []
+            next_emitted = []
+            for entry in pending:
+                name, deps = entry
+                deps.difference_update(emitted)  # remove deps we emitted last pass
+                if deps:  # still has deps? recheck during next pass
+                    next_pending.append(entry)
+                else:  # no more deps? time to emit
+                    yield name
+                    emitted.append(name)  # <-- not required, but helps preserve original ordering
+                    next_emitted.append(name)  # remember what we emitted for difference_update() in next pass
+            if not next_emitted:  # all entries have unmet deps, one of two things is wrong...
+                raise ValueError("cyclic or missing dependancy detected: %r" % (next_pending,))
+            pending = next_pending
+            emitted = next_emitted
+
+    def apps_per_module(self, module):
+        apps = []
+        for app in self.app_config:
+            if self.app_config[app]["module"] == module:
+                apps.append(app)
+
+        return apps
 
     # noinspection PyBroadException
     def read_app_files(self, all_=False, forcefile=None):
