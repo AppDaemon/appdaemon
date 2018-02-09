@@ -253,6 +253,13 @@ If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon
 is already set to the new state and if so it will start the clock immediately. In this case, old will be ignored
 and when the timer triggers, it's state will be set to None. If new or entity are not set, ``immediate`` will be ignored.
 
+oneshot = (optional)
+''''''''''''''''''''
+
+True or False
+
+If ``oneshot`` is true, the callback will be automatically cancelled after the first state change that results in a callback.
+
 namespace = (optional)
 ''''''''''''''''''''''
 
