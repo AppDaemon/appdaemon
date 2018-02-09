@@ -1623,110 +1623,38 @@ class AppDaemon:
         name = os.path.basename(file)
         module_name = os.path.splitext(name)[0]
         # Import the App
-        try:
-            if reload:
-                self.log("INFO", "Reloading Module: {}".format(file))
+        if reload:
+            self.log("INFO", "Reloading Module: {}".format(file))
 
-                file, ext = os.path.splitext(name)
-
-                #
-                # Clear out callbacks and remove objects
-                #
-                #self.term_file(file)
-                #self.clear_file(file)
-                #
-                # Reload
-                #
-                try:
-                    importlib.reload(self.modules[module_name])
-                except KeyError:
-                    if name not in sys.modules:
-                        # Probably failed to compile on initial load
-                        # so we need to re-import
-                        self.read_app(file)
-                    else:
-                        # A real KeyError!
-                        raise
-            else:
-                app = self.get_app_from_file(file)
-                if app is not None:
-                    self.log("INFO", "Loading Module: {}".format(file))
-                    self.modules[module_name] = importlib.import_module(module_name)
+            file, ext = os.path.splitext(name)
+            #
+            # Reload
+            #
+            try:
+                importlib.reload(self.modules[module_name])
+            except KeyError:
+                if name not in sys.modules:
+                    # Probably failed to compile on initial load
+                    # so we need to re-import
+                    self.read_app(file)
                 else:
-                    if self.missing_app_warnings:
-                        self.log("WARNING", "No app description found for: {} - ignoring".format(file))
+                    # A real KeyError!
+                    raise
+        else:
+            app = self.get_app_from_file(file)
+            if app is not None:
+                self.log("INFO", "Loading Module: {}".format(file))
+                self.modules[module_name] = importlib.import_module(module_name)
+            else:
+                if self.missing_app_warnings:
+                    self.log("WARNING", "No app description found for: {} - ignoring".format(file))
 
-
-            # Instantiate class and Run initialize() function
-
-            #if self.app_config is not None:
-            #    for name in self.app_config:
-            #        if module_name == self.app_config[name]["module"]:
-            #            app_config = self.app_config[name]
-            #            self.init_object(name, app_config)
-        except:
-            self.err( "WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during loading of {}:".format(name))
-            self.err( "WARNING", '-' * 60)
-            self.err( "WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
-            if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                self.log("WARNING", "Logged an error to {}".format(self.errfile))
-
-    #def get_module_dependencies(self, file):
-    #    module_name = self.get_module_from_path(file)
-    #    if self.app_config is not None:
-    #        for key in self.app_config:
-    #            if "module" in self.app_config[key] and self.app_config[key]["module"] == module_name:
-    #                if "dependencies" in self.app_config[key]:
-    #                    return self.app_config[key]["dependencies"]
-    #                else:
-    #                    return None
-
-     #   return None
-
-    ##def in_previous_dependencies(self, dependencies, load_order):
-     #   for dependency in dependencies:
-     #       dependency_found = False
-     ##       for batch in load_order:
-      #          for mod in batch:
-      #              module_name = self.get_module_from_path(mod["name"])
-      #              # print(dependency, module_name)
-      #              if dependency == module_name:
-      #                  # print("found {}".format(module_name))
-      #                  dependency_found = True
-      #      if not dependency_found:
-      #          return False
-
-       # return True
-
-    #def dependencies_are_satisfied(self, _module, load_order):
-    #    dependencies = self.get_module_dependencies(_module)
-
-    #    if dependencies is None:
-    #        return None
-
-     #   if self.in_previous_dependencies(dependencies, load_order):
-     #       return True
-
-    #    return False
 
     @staticmethod
     def get_module_from_path(path):
         name = os.path.basename(path)
         module_name = os.path.splitext(name)[0]
         return module_name
-
-    #def find_dependent_modules(self, mod):
-    #    module_name = self.get_module_from_path(mod["name"])
-    #    dependents = []
-    #    if self.app_config is not None:
-    #        for mod in self.app_config:
-    #            if "dependencies" in self.app_config[mod]:
-    #                for dep in self.app_config[mod]["dependencies"]:
-    #                    if dep == module_name:
-    #                        dependents.append(self.app_config[mod]["module"])
-    #    return dependents
 
     def get_file_from_module(self, mod):
         for file in self.monitored_files:
@@ -1742,24 +1670,6 @@ class AppDaemon:
             if mod["name"] == file:
                 return True
         return False
-
-    #def get_app_priority(self, file):
-    #    # Set to highest priority
-    #    prio = sys.float_info.max
-    #    mod = self.get_module_from_path(file)
-    #    for name in self.app_config:
-    #        if "module" in self.app_config[name] and self.app_config[name]["module"] == mod:
-    #            if "priority" in self.app_config[name]:
-    #                modprio = float(self.app_config[name]["priority"])
-    #                # if any apps have this file at a lower priority set it accordingly
-    #                if modprio < prio:
-    #                    prio = modprio#
-
-        # If priority is still at 100, this app has no priority so set it to the middle
-     #   if prio == sys.float_info.max:
-     #       prio = float(50.0)
-
-      #  return prio
 
     def check_app_updates(self, all_=False):
 
@@ -1835,16 +1745,44 @@ class AppDaemon:
 
         # Terminate apps
 
-        prio_apps = self.get_app_deps_and_prios(apps["term"])
+        if apps["term"]:
 
-        for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
-            self.log("INFO", "Terminating {}".format(app))
-            self.term_object(app)
+            prio_apps = self.get_app_deps_and_prios(apps["term"])
+
+            for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
+                try:
+                    self.log("INFO", "Terminating {}".format(app))
+                    self.term_object(app)
+                except:
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected error terminating app: {}:".format(app))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
 
         # Load/reload modules
 
         for mod in modules:
-            self.read_app(mod["name"], mod["reload"])
+            try:
+                self.read_app(mod["name"], mod["reload"])
+            except:
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", traceback.format_exc())
+                self.err("WARNING", '-' * 60)
+                if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                    self.log("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                self.log("WARNING", "Removing associated apps:")
+                module = self.get_module_from_path(mod["name"])
+                for app in self.app_config:
+                    if self.app_config[app]["module"] == module:
+                        if apps["init"] and app in apps["init"]:
+                            del apps["init"][app]
+                            self.log("WARNING", "{}".format(app))
 
         if apps["init"]:
 
@@ -1853,7 +1791,16 @@ class AppDaemon:
             # Initialize Apps
 
             for app in sorted(prio_apps, key=prio_apps.get):
-                self.init_object(app)
+                try:
+                    self.init_object(app)
+                except:
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected initializing app: {}:".format(app))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
     def get_app_deps_and_prios(self, applist):
 
@@ -1865,17 +1812,20 @@ class AppDaemon:
                 deplist.append(app)
             self.get_dependent_apps(app, deplist)
 
+        # Need to gove the topological sort a full list of apps or it will fail
+        full_list = list(self.app_config.keys())
+
         deps = []
 
-        for app in deplist:
+        for app in full_list:
             dependees = []
             if "dependencies" in self.app_config[app]:
                 for dep in self.app_config[app]["dependencies"]:
                     if dep in self.app_config:
                         dependees.append(dep)
                     else:
-                        self.log("WARNING", "Unable to find configuration for app {} in dependencies for {}".format(
-                            dep, app))
+                        self.log("WARNING", "Unable to find app {} in dependencies for {}".format(dep, app))
+                        self.log("WARNING", "Ignoring app {}".format(app))
             deps.append((app, dependees))
 
         prio_apps = {}
@@ -1891,9 +1841,16 @@ class AppDaemon:
                     else:
                         prio_apps[app] = float(50)
         except ValueError:
-            self.log("WARNING", "Missing or cyclic dependency")
+            pass
 
-        return prio_apps
+        # now we remove the ones we aren't interested in
+
+        final_apps = {}
+        for app in prio_apps:
+            if app in deplist:
+                final_apps[app] = prio_apps[app]
+
+        return final_apps
 
     def app_has_dependents(self, name):
         for app in self.app_config:
@@ -1915,8 +1872,7 @@ class AppDaemon:
                         if new_deps is not None:
                             deps.append(new_deps)
 
-    @staticmethod
-    def topological_sort(source):
+    def topological_sort(self, source):
 
         pending = [(name, set(deps)) for name, deps in source]  # copy deps so we can modify set in-place
         emitted = []
@@ -1932,8 +1888,16 @@ class AppDaemon:
                     yield name
                     emitted.append(name)  # <-- not required, but helps preserve original ordering
                     next_emitted.append(name)  # remember what we emitted for difference_update() in next pass
-            if not next_emitted:  # all entries have unmet deps, one of two things is wrong...
-                raise ValueError("cyclic or missing dependancy detected: %r" % (next_pending,))
+            if not next_emitted:
+                # all entries have unmet deps, we have cyclic redundancies
+                # since we already know all deps are correct
+                self.log("WARNING", "Cyclic or missing app dependencies detected")
+                for pend in next_pending:
+                    deps = ""
+                    for dep in pend[1]:
+                        deps += "{} ".format(dep)
+                    self.log("WARNING", "{} depends on {}".format(pend[0], deps))
+                raise ValueError("cyclic dependancy detected")
             pending = next_pending
             emitted = next_emitted
 
@@ -1944,135 +1908,6 @@ class AppDaemon:
                 apps.append(app)
 
         return apps
-
-    # noinspection PyBroadException
-    def read_app_files(self, all_=False, forcefile=None):
-        # Check if the apps are disabled in config
-        if not self.apps:
-            return
-
-        found_files = []
-        modules = []
-        for root, subdirs, files in os.walk(self.app_dir, topdown=True):
-            #print(root, subdirs, files)
-            #
-            # Prune dir list
-            #
-            subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
-
-            for file in files:
-                if file[-3:] == ".py":
-                    found_files.append(os.path.join(root, file))
-
-        for file in found_files:
-            if file == os.path.join(self.app_dir, "__init__.py"):
-                continue
-            try:
-
-                #check we can actually open the file the first time
-                if all_ is True:
-                    fh = open(file)
-                    fh.close()
-
-                modified = os.path.getmtime(file)
-                if file in self.monitored_files:
-                    if self.monitored_files[file] < modified or all_ or file == forcefile:
-                        # read_app(file, True)
-                        thismod = {"name": file, "reload": True, "load": True}
-                        modules.append(thismod)
-                        self.monitored_files[file] = modified
-                else:
-                    # read_app(file)
-                    modules.append({"name": file, "reload": False, "load": True})
-                    self.monitored_files[file] = modified
-            except IOError as err:
-                self.log("WARNING",
-                         "Unable to read app {}: {} - skipping".format(file, err))
-
-        # Add any required dependent files to the list
-        if modules:
-            more_modules = True
-            while more_modules:
-                module_list = modules.copy()
-                for mod in module_list:
-                    dependent_modules = self.find_dependent_modules(mod)
-                    if not dependent_modules:
-                        more_modules = False
-                    else:
-                        for thismod in dependent_modules:
-                            file = self.get_file_from_module(thismod)
-                            if file is None:
-                                self.log( "ERROR",
-                                          "Unable to resolve dependencies due missing app file for module: {}".format(thismod))
-                                raise ValueError("Missing file")
-
-                            mod_def = {"name": file, "reload": True, "load": True}
-                            if not self.file_in_modules(file, modules):
-                                # Give each dependency tree module an incremented priority to maintain order for later sort
-                                # This will break if anyone has more than 99,999,999 apps that depend on other apps :(
-                                # print("Appending {} ({})".format(mod, file))
-                                modules.append(mod_def)
-
-        # Loading order algorithm requires full population of modules
-        # so we will add in any missing modules but mark them for not loading
-
-        for file in self.monitored_files:
-            if not self.file_in_modules(file, modules):
-                name = self.get_module_from_path(file)
-                modules.append({"name": file, "reload": False, "load": False, "priority": self.get_app_priority(file)})
-
-        # Figure out loading order
-
-        # for mod in modules:
-        #  print(mod["name"], mod["load"])
-
-        depends_load_order = []
-
-        prio = float(50.1)
-        while modules:
-            batch = []
-            module_list = modules.copy()
-            for mod in module_list:
-                if self.dependencies_are_satisfied(mod["name"], depends_load_order) is True:
-                    prio += float(0.0001)
-                    mod ["priority"] = prio
-                    batch.append(mod)
-                    modules.remove(mod)
-                elif self.dependencies_are_satisfied(mod["name"], depends_load_order) is None:
-                    mod["priority"] = self.get_app_priority(mod["name"])
-                    batch.append(mod)
-                    modules.remove(mod)
-
-            if not batch:
-                self.log("ERROR",
-                          "Unable to resolve dependencies due to incorrect or circular references")
-                self.log("ERROR", "The following modules have unresolved dependencies:")
-                for mod in modules:
-                    module_name = self.get_module_from_path(mod["name"])
-                    self.log("ERROR", module_name)
-                raise ValueError("Unresolved dependencies")
-
-            depends_load_order.append(batch)
-
-        final_load_order = []
-
-        for batch in depends_load_order:
-            for mod in batch:
-                final_load_order.append(mod)
-
-        final_load_order.sort(key = lambda mod: mod["priority"])
-
-        try:
-            for mod in final_load_order:
-                if mod["load"]:
-                    self.read_app(mod["name"], mod["reload"])
-
-        except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error loading file")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
 
     #
     # State Updates

@@ -24,6 +24,7 @@ Change Log
 **Breaking Changes**
 
 - In apps.yaml, dependencies should now be a proper yaml list rather than a comma separated string
+- Dependencies now refer to individual apps rather than modules
 
 3.0.0b2 (2018-01-27)
 --------------------
