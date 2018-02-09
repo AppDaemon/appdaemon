@@ -10,6 +10,9 @@ Change Log
 - Upgraded MDI Icons to 2.1.19
 - Add separate log for diagnostic info
 - Per-widget type global parameters
+- App level dependencies
+- `listen_state()` now returns the handle to the callback
+- added `oneshot` option to `listen_state()`
 - Add step parameter to climate widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Add internationalization options to clock widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Doc improvements - contributed by `Marco <https://github.com/marconett>`__

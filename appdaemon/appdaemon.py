@@ -460,7 +460,6 @@ class AppDaemon:
         if unconstrained:
             self.q.put_nowait(args)
 
-
     def update_thread_info(self, thread_id, callback, type = None):
         if self.log_thread_actions:
             if callback == "idle":
@@ -569,7 +568,7 @@ class AppDaemon:
                 with self.state_lock:
                     if self.state[namespace][entity]["state"] == kwargs["new"]:
                         exec_time = self.get_now_ts() + int(kwargs["duration"])
-                        kwargs["handle"] = self.insert_schedule(
+                        kwargs["_duration"] = self.insert_schedule(
                             name, exec_time, cb, False, None,
                             entity=entity,
                             attribute=None,
@@ -581,6 +580,10 @@ class AppDaemon:
 
     def cancel_state_callback(self, handle, name):
         with self.callbacks_lock:
+            if name not in self.callbacks:
+                self.log("WARNING", "Invalid app {} in cancel_state_callback()".format(name))
+            elif handle not in self.callbacks[name]:
+                self.log("WARNING", "Invalid handle {} in cancel_state_callback()".format(handle))
             if name in self.callbacks and handle in self.callbacks[name]:
                 del self.callbacks[name][handle]
             if name in self.callbacks and self.callbacks[name] == {}:
@@ -1914,7 +1917,8 @@ class AppDaemon:
     #
 
     def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
-                            old_state, cold, cnew, kwargs):
+                            old_state, cold, cnew, kwargs, uuid_):
+        kwargs["handle"] = uuid_
         if attribute == "all":
             self.dispatch_worker(name, {
                 "name": name,
@@ -1925,7 +1929,7 @@ class AppDaemon:
                 "entity": entity,
                 "new_state": new_state,
                 "old_state": old_state,
-                "kwargs": kwargs
+                "kwargs": kwargs,
             })
         else:
             if old_state is None:
@@ -1951,7 +1955,7 @@ class AppDaemon:
                 if "duration" in kwargs:
                     # Set a timer
                     exec_time = self.get_now_ts() + int(kwargs["duration"])
-                    kwargs["handle"] = self.insert_schedule(
+                    kwargs["_duration"] = self.insert_schedule(
                         name, exec_time, funcref, False, None,
                         entity=entity,
                         attribute=attribute,
@@ -1972,9 +1976,9 @@ class AppDaemon:
                         "kwargs": kwargs
                     })
             else:
-                if "handle" in kwargs:
+                if "_duration" in kwargs:
                     # cancel timer
-                    self.cancel_timer(name, kwargs["handle"])
+                    self.cancel_timer(name, kwargs["_duration"])
 
     def process_state_change(self, namespace, state):
         data = state["data"]
@@ -1984,6 +1988,7 @@ class AppDaemon:
 
         # Process state callbacks
 
+        removes = []
         with self.callbacks_lock:
             for name in self.callbacks.keys():
                 for uuid_ in self.callbacks[name]:
@@ -2012,7 +2017,8 @@ class AppDaemon:
                                 data['new_state'],
                                 data['old_state'],
                                 cold, cnew,
-                                callback["kwargs"]
+                                callback["kwargs"],
+                                uuid_
                             )
                         elif centity is None:
                             if device == cdevice:
@@ -2022,7 +2028,8 @@ class AppDaemon:
                                     data['new_state'],
                                     data['old_state'],
                                     cold, cnew,
-                                    callback["kwargs"]
+                                    callback["kwargs"],
+                                    uuid_
                                 )
                         elif device == cdevice and entity == centity:
                             self.check_and_disapatch(
@@ -2031,8 +2038,18 @@ class AppDaemon:
                                 data['new_state'],
                                 data['old_state'], cold,
                                 cnew,
-                                callback["kwargs"]
+                                callback["kwargs"],
+                                uuid_
                             )
+
+                        # Remove the callback if appropriate
+                        remove = callback["kwargs"].get("oneshot", False)
+                        if remove:
+                            removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+
+            for remove in removes:
+                print(remove)
+                self.cancel_state_callback(remove["uuid"], remove["name"])
 
     def state_update(self, namespace, data):
         try:
@@ -2130,7 +2147,8 @@ class AppDaemon:
         kwargs_copy = kwargs.copy()
         return self._sanitize_kwargs(kwargs_copy, [
             "old", "new", "attribute", "duration", "state",
-            "entity", "handle", "old_state", "new_state",
+            "entity", "_duration", "old_state", "new_state",
+            "oneshot"
         ] + app.list_constraints())
 
     def sanitize_timer_kwargs(self, app, kwargs):

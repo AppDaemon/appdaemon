@@ -758,6 +758,8 @@ callback.
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
 
+The kwargs dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
+
 Publishing State from an App
 ----------------------------
 
