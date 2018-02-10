@@ -11,8 +11,8 @@ Change Log
 - Add separate log for diagnostic info
 - Per-widget type global parameters
 - App level dependencies
-- `listen_state()` now returns the handle to the callback
-- added `oneshot` option to `listen_state()`
+- ``listen_state()`` now returns the handle to the callback
+- added ``oneshot`` option to ``listen_state()``
 - Add step parameter to climate widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Add internationalization options to clock widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Doc improvements - contributed by `Marco <https://github.com/marconett>`__
@@ -21,7 +21,7 @@ Change Log
 
 - Fixed image path for android devices
 - Fix a bug with the time parameter for images
-- Fixed `disable_apps`
+- Fixed ``disable_apps``
 - Fixed a bug in ``get_state()`` with ``attributes=all`` returning just the attributes dictionary instead of the entire entity.
 
 **Breaking Changes**

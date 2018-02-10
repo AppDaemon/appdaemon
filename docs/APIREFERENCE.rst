@@ -263,7 +263,7 @@ If ``oneshot`` is true, the callback will be automatically cancelled after the f
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will lsiten to state updates from any plugin.
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will listen to state updates from any plugin.
 
 
 \*\*kwargs
