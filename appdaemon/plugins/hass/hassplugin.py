@@ -117,10 +117,10 @@ class HassPlugin:
         _id = 0
 
         already_notified = False
+        first_time = True
         while not self.stopping:
             _id += 1
             disconnected_event = False
-            first_time = True
             try:
 
                 if parse_version(utils.__version__) < parse_version('0.34') or self.commtype == "SSE":

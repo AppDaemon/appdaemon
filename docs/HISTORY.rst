@@ -8,6 +8,8 @@ Change Log
 
 **Fixes**
 
+- Apps now correctly reload when HASS comes back up after a restart
+
 **Breaking Changes**
 
 
