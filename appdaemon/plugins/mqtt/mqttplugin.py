@@ -70,7 +70,7 @@ class MqttPlugin:
             self.mqtt_client.subscribe(topic, 0)
 
     def mqtt_on_message(self, client, userdata, msg):
-        self.log("on_message: {}".format(msg.payload))
+        self.log("on_message: {}".format(msg.payload), level='DEBUG')
         self.AD.state_update(self.namespace,
             {'event_type': 'MQTT_MESSAGE', 'data': {'topic': msg.topic,
                     'payload': msg.payload.decode('utf-8')}})
@@ -113,7 +113,7 @@ class MqttPlugin:
     #
 
     def set_state(self, entity, state):
-        self.log("__function__: {} = {} ***".format(entity, state))
+        self.log("set_state: {} = {} ***".format(entity, state))
 
     def get_namespace(self):
         return self.namespace
