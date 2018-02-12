@@ -73,7 +73,7 @@ class MqttPlugin:
         self.log("on_message: {}".format(msg.payload), level='DEBUG')
         self.AD.state_update(self.namespace,
             {'event_type': 'MQTT_MESSAGE', 'data': {'topic': msg.topic,
-                    'payload': msg.payload.decode('utf-8')}})
+                    'payload': ''.join( chr(x) for x in msg.payload)}})
 
     #
     # Get initial state
