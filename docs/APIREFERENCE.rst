@@ -2936,3 +2936,27 @@ Examples
 .. code:: python
 
     thread_info = self.get_thread_info()
+
+get_ad_version()
+~~~~~~~~~~~~~~~~
+
+Return the cuurent version of AppDaemon
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_ad_version()
+
+Returns
+^^^^^^^
+
+A string containing the version number
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    version = self.get_ad_version()

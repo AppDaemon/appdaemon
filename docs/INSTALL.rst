@@ -144,6 +144,7 @@ The ``appdaemon:`` section has a number of directives:
    of apps you have, the threads are re-used and only active for as long
    as required to run a particular callback or initialization, leave
    this set to 10 unless you experience thread starvation
+-  ``filters`` (optional) - see below
 -  ``plugins`` (required) - see below
 -  ``latitude`` (optional) - latitude for AppDaemon to use. If not
    specified, AppDaemon will query the latitude from Home Assistant
@@ -206,6 +207,52 @@ To configure more than one plugin, simply add a new section to the plugins list 
 Before you do this, make sure to review the section on namespaces to fully understand what this entails, and if you are using more than one plugin, make sure you use the namespace directive to create a unique namespace for each plugin.
 (One of the plugins may be safely allowed to use the default value, however any more than that will require the namespace directive. There is also no harm in giving them all namespaces, since the default namespace is literally ``default``
 and has no particular significance, it's just a different name, but if you use namespaces other than default you will need to change your Apps to understand which namespaces are in use.).
+
+Filters
+~~~~~~~
+
+The use of filters allows you to run an arbitary command against a file with a specific extenstion to generate a new .py file. The usecases for this are varied, but this can be used to run a preprocessor on an app, or perhaps some kind of global substitute or any of a number of other commands. AppDaemon, when made aware of the filter via configurtion, will look for files in the appdir with the specified extension, and run the specified command on them writing the output to a new file with the specified extension. The output extension would usually be a .py file whcih would then be picked up by normal app processing, meaning that if you edit the original input file, the result will be a new .py file that is part of an app whcih will then be restarted.
+
+In addition, it is possible to chain multiple filters, as the filter list is processed in order - just ensure you end with a .py file.
+
+A simple filter would look like this:
+
+    .. code:: yaml
+
+        filters:
+          - command_line: /bin/cat $1 > $2
+            input_ext: cat
+            output_ext: py
+
+This would result in AppDaemon looking for any files with the extension ``.cat`` and running the ``/bin/cat`` command and creating a file with an extension of ``.py``. In the ``command_line``, ``$1`` and ``$2`` are replaced by the correctly named input and output files. In this example the output is just a copy of the input but this technique could be used with commands such as sed and awk, or even m4 for more complex manipulations.
+
+A chained set of filters might look like this:
+
+    .. code:: yaml
+
+        filters:
+          - command_line: /bin/cat $1 > $2
+            input_ext: mat
+            output_ext: cat
+          - command_line: /bin/cat $1 > $2
+            input_ext: cat
+            output_ext: py
+
+These will run in order resulting in edits to a ``.mat`` file running through the 2 filters and resulting in a new .py file which will run as the app in the usual way.
+
+Finally, it is possible to have multiple unconnected fiters like so:
+
+    .. code:: yaml
+
+        filters:
+          - command_line: /bin/cat $1 > $2
+            input_ext: mat
+            output_ext: .py
+          - command_line: /bin/cat $1 > $2
+            input_ext: cat
+            output_ext: py
+
+Here we have defined ``.mat`` and ``.cat`` files as both creating new apps. In a real world example the ``command_line`` would be different.
 
 Configuring a Test App
 ~~~~~~~~~~~~~~~~~~~~~~

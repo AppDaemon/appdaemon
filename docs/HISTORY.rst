@@ -6,9 +6,16 @@ Change Log
 
 **Features**
 
+- Single App dependencies can now be specified on the dependency line itself and don't have to be a list of size 1
+- Added ``get_ad_version()``, and ``ad_version`` to the config dictionary
+- Added filters for Apps
+
 **Fixes**
 
 - Apps now correctly reload when HASS comes back up after a restart
+- ``get_error()`` now properly returns the error log logger object
+- ``get_hass_config()`` is now correctly named
+- ``app_args`` now correctly returns args for all apps
 
 **Breaking Changes**
 

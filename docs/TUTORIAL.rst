@@ -171,7 +171,7 @@ terms:
 
     import appdaemon.plugins.hass.hassapi as hass
 
-    class FlashyMotionLights(hass.Hass):
+    class MotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
@@ -202,7 +202,7 @@ activated and bales out after 10 iterations.
 
     import appdaemon.plugins.hass.hassapi as hass
 
-    class MotionLights(hass.Hass):
+    class FlashyMotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")

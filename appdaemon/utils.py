@@ -105,6 +105,10 @@ def _secret_yaml(loader, node):
 
     return secrets[node.value]
 
+def rreplace(s, old, new, occurrence):
+    li = s.rsplit(old, occurrence)
+    return new.join(li)
+
 def day_of_week(day):
     nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
     days = {day: idx for idx, day in enumerate(nums)}
@@ -130,6 +134,11 @@ def find_path(name):
             return _file
     return None
 
+def single_or_list(field):
+    if isinstance(field, list):
+        return field
+    else:
+        return [field]
 
 def log(logger, level, msg, name="", ts=None):
     levels = {
