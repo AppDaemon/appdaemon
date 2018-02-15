@@ -86,7 +86,7 @@ class Hass(appapi.AppDaemon):
         return super(Hass, self).listen_state(namespace, cb, entity, **kwargs)
 
     #
-    # Likewise with get and set state
+    # Likewise with get state
     #
 
     def get_state(self, entity=None, **kwargs):
@@ -179,7 +179,7 @@ class Hass(appapi.AppDaemon):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
 
-    def get_ha_config(self, **kwargs):
+    def get_hass_config(self, **kwargs):
         namespace = self._get_namespace(**kwargs)
         return self.AD.get_plugin_meta(namespace)
 

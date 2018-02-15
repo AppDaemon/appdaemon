@@ -74,6 +74,9 @@ class AppDaemon:
     def get_error_log(self):
         return self._error
 
+    def get_ad_version(self):
+        return utils.__version__
+
     #
     # Apiai
     #

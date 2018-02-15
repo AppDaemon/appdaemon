@@ -306,33 +306,41 @@ class RunDash():
     # noinspection PyUnusedLocal
     @securedata
     async def call_service(self, request):
-        data = await request.post()
-        args = {}
-        service = data["service"]
-        namespace = data["namespace"]
-        for key in data:
-            if key == "service" or key == "namespace":
-                pass
-            elif key == "rgb_color":
-                m = re.search('\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', data[key])
-                if m:
-                    r = m.group(1)
-                    g = m.group(2)
-                    b = m.group(3)
-                    args["rgb_color"] = [r, g, b]
-            elif key == "xy_color":
-                m = re.search('\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)', data[key])
-                if m:
-                    x = m.group(1)
-                    y = m.group(2)
-                    args["xy_color"] = [x, y]
-            else:
-                args[key] = data[key]
+        try:
+            data = await request.post()
+            args = {}
+            service = data["service"]
+            namespace = data["namespace"]
+            for key in data:
+                if key == "service" or key == "namespace":
+                    pass
+                elif key == "rgb_color":
+                    m = re.search('\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', data[key])
+                    if m:
+                        r = m.group(1)
+                        g = m.group(2)
+                        b = m.group(3)
+                        args["rgb_color"] = [r, g, b]
+                elif key == "xy_color":
+                    m = re.search('\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)', data[key])
+                    if m:
+                        x = m.group(1)
+                        y = m.group(2)
+                        args["xy_color"] = [x, y]
+                else:
+                    args[key] = data[key]
 
-        plugin = self.AD.get_plugin(namespace)
-        await plugin.call_service (service, **args)
-        return web.Response(status=200)
+            plugin = self.AD.get_plugin(namespace)
+            await plugin.call_service (service, **args)
+            return web.Response(status=200)
 
+        except:
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", "Unexpected error in call_service()")
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", traceback.format_exc())
+            self.log("WARNING", '-' * 60)
+            return web.Response(status=500)
 
     # noinspection PyUnusedLocal
     async def not_found(self, request):

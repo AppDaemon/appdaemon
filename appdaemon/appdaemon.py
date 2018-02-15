@@ -17,6 +17,7 @@ import threading
 import random
 import re
 from copy import deepcopy, copy
+import subprocess
 
 import appdaemon.utils as utils
 
@@ -31,6 +32,7 @@ class AppDaemon:
         self.error = error
         self.diagnostic = diag
         self.config = kwargs
+        self.config["ad_version"] = utils.__version__
         self.q = Queue(maxsize=0)
 
         self.was_dst = False
@@ -40,6 +42,7 @@ class AppDaemon:
         self.last_plugin_state = {}
 
         self.monitored_files = {}
+        self.filter_files = {}
         self.modules = {}
         self.appq = None
         self.executor = None
@@ -1428,7 +1431,7 @@ class AppDaemon:
             app_class = getattr(modname, app_args["class"])
             self.objects[name] = {
                 "object": app_class(
-                    self, name, self.logger, self.err, app_args, self.config, app_args, self.global_vars
+                    self, name, self.logger, self.error, app_args, self.config, self.app_config, self.global_vars
                 ),
                 "id": uuid.uuid4()
             }
@@ -1667,6 +1670,49 @@ class AppDaemon:
 
         return None
 
+    def process_filters(self):
+        if "filters" in self.config:
+            for filter in self.config["filters"]:
+                for root, subdirs, files in os.walk(self.app_dir, topdown=True):
+                    # print(root, subdirs, files)
+                    #
+                    # Prune dir list
+                    #
+                    subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
+
+                    ext = filter["input_ext"]
+                    extlen = len(ext) * -1
+
+                    for file in files:
+                        run = False
+                        if file[extlen:] == ext:
+                            infile = os.path.join(root, file)
+                            modified = os.path.getmtime(infile)
+                            if infile in self.filter_files:
+                                if self.filter_files[infile] < modified:
+                                    run = True
+                            else:
+                                self.log("INFO", "Found new filter file {}".format(infile))
+                                run = True
+
+                            if run is True:
+                                self.log("INFO", "Running filter on {}".format(infile))
+                                self.filter_files[infile] = modified
+
+                                # Run the filter
+
+                                outfile = utils.rreplace(infile, ext, filter["output_ext"], 1)
+                                command_line = filter["command_line"].replace("$1", infile)
+                                command_line = command_line.replace("$2", outfile)
+                                try:
+                                    p = subprocess.Popen(command_line, shell=True)
+                                except:
+                                    self.info("WARNING", '-' * 60)
+                                    self.info("WARNING", "Unexpected running filter on: {}:".format(infile))
+                                    self.info("WARNING", '-' * 60)
+                                    self.info("WARNING", traceback.format_exc())
+                                    self.info("WARNING", '-' * 60)
+
     @staticmethod
     def file_in_modules(file, modules):
         for mod in modules:
@@ -1678,6 +1724,10 @@ class AppDaemon:
 
         if not self.apps:
             return
+
+        # Process filters
+
+        self.process_filters()
 
         # Get list of apps we need to terminate and/or initialize
 
@@ -1823,7 +1873,7 @@ class AppDaemon:
         for app in full_list:
             dependees = []
             if "dependencies" in self.app_config[app]:
-                for dep in self.app_config[app]["dependencies"]:
+                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
                     if dep in self.app_config:
                         dependees.append(dep)
                     else:
@@ -1858,7 +1908,7 @@ class AppDaemon:
     def app_has_dependents(self, name):
         for app in self.app_config:
             if "dependencies" in self.app_config[app]:
-                for dep in self.app_config[app]["dependencies"]:
+                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
                     if dep == name:
                         return True
         return False
@@ -1867,7 +1917,7 @@ class AppDaemon:
     def get_dependent_apps(self, dependee, deps):
         for app in self.app_config:
             if "dependencies" in self.app_config[app]:
-                for dep in self.app_config[app]["dependencies"]:
+                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
                     #print("app= {} dep = {}, dependee = {} deps = {}".format(app, dep, dependee, deps))
                     if dep == dependee and app not in deps:
                         deps.append(app)
@@ -2048,7 +2098,7 @@ class AppDaemon:
                             removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
 
             for remove in removes:
-                print(remove)
+                #print(remove)
                 self.cancel_state_callback(remove["uuid"], remove["name"])
 
     def state_update(self, namespace, data):

@@ -180,7 +180,9 @@ class HassPlugin:
                     elif url.startswith('http://'):
                         url = url.replace('http', 'ws', 1)
 
-                    sslopt = {'cert_reqs': ssl.CERT_NONE}
+                    sslopt = {}
+                    if self.cert_verify == False:
+                        sslopt = {'cert_reqs': ssl.CERT_NONE}
                     if self.cert_path:
                         sslopt['ca_certs'] = self.cert_path
                     self.ws = create_connection(
@@ -320,6 +322,10 @@ class HassPlugin:
         r.raise_for_status()
         return await r.json()
 
+    #
+    # Async version of call_service() for the hass proxy for HADashboard
+    #
+
     @staticmethod
     def _check_service(service):
         if service.find("/") == -1:
@@ -337,12 +343,6 @@ class HassPlugin:
         else:
             headers = {}
         apiurl = "{}/api/services/{}/{}".format(self.ha_url, d, s)
-
-        #async with aiohttp.ClientSession() as client:
-        #    #async with client.post(apiurl, headers=headers, json=kwargs, verify=self.cert_path) as resp:
-        #    async with client.post(apiurl, headers=headers, json=kwargs, verify_ssl=False) as resp:
-        #        assert resp.status == 200
-        #        return await resp.json()
 
         r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
         r.raise_for_status()

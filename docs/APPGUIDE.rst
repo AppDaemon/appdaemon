@@ -331,14 +331,12 @@ values. We can represent these dependencies as follows:
     Sound
       module: sound
       class: Sound
-      dependencies:
-        - Global
+      dependencies: Global
 
     Consumer:
       module: sound
       class: Sound
-      dependencies:
-        - Sound
+      dependencies: Sound
 
 It is also possible to have multiple dependencies, added as a yaml list
 
