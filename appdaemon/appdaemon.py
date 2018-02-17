@@ -161,9 +161,6 @@ class AppDaemon:
         self.loglevel = "INFO"
         self._process_arg("loglevel", kwargs)
 
-        self.config_dir = None
-        self._process_arg("config_dir", kwargs)
-
         self.api_port = None
         self._process_arg("api_port", kwargs)
 
@@ -210,6 +207,7 @@ class AppDaemon:
             if self.app_dir is None:
                 if self.config_dir is None:
                     self.app_dir = utils.find_path("apps")
+                    self.config_dir = os.path.dirname(self.app_dir)
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
@@ -250,39 +248,60 @@ class AppDaemon:
 
         # Load Plugins
 
+        plugins = []
+
+        if os.path.isdir(os.path.join(self.config_dir, "custom_plugins")):
+            plugins = [f.path for f in os.scandir(os.path.join(self.config_dir, "custom_plugins")) if f.is_dir(follow_symlinks=True)]
+            for plugin in plugins:
+                sys.path.insert(0, plugin)
+
         if self.plugins is not None:
             for name in self.plugins:
                 basename = self.plugins[name]["type"]
+                type = self.plugins[name]["type"]
                 module_name = "{}plugin".format(basename)
                 class_name = "{}Plugin".format(basename.capitalize())
 
-                if "module_path" in self.plugins[name]:
-                    module_path = self.plugins[name]["module_path"]
-                    sys.path.insert(0, module_path)
-                    self.log("INFO",
-                              "Loading Plugin {} using class {} from module {} and module_path {}".format(name, class_name, module_name, module_path))
-                    full_module_name = module_name
-                else:
+                full_module_name = None
+                for plugin in plugins:
+                    if os.path.basename(plugin) == type:
+                        full_module_name = "{}".format(module_name)
+                        self.log("INFO",
+                                 "Loading Custom Plugin {} using class {} from module {}".format(name, class_name,
+                                                                                          module_name))
+                        break
+
+                if full_module_name == None:
+                    #
+                    # Not a custom plugin, assume it's a built in
+                    #
                     basepath = "appdaemon.plugins"
-                    self.log("INFO",
-                              "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
                     full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+                    self.log("INFO",
+                                "Loading Plugin {} using class {} from module {}".format(name, class_name,
+                                                                                         module_name))
+                try:
 
+                    mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
 
+                    app_class = getattr(mod, class_name)
 
-                mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
-                app_class = getattr(mod, class_name)
+                    plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
 
-                plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
+                    namespace = plugin.get_namespace()
 
-                namespace = plugin.get_namespace()
+                    if namespace in self.plugin_objs:
+                        raise ValueError("Duplicate namespace: {}".format(namespace))
 
-                if namespace in self.plugin_objs:
-                    raise ValueError("Duplicate namespace: {}".format(namespace))
+                    self.plugin_objs[namespace] = plugin
 
-                self.plugin_objs[namespace] = plugin
+                    loop.create_task(plugin.get_updates())
+                except:
+                    self.log("WARNING", "error loading plugin: {} - ignoring".format(name))
+                    self.log("WARNING", '-' * 60)
+                    self.log("WARNING", traceback.format_exc())
+                    self.log("WARNING", '-' * 60)
 
-                loop.create_task(plugin.get_updates())
 
         # Create utility loop
 
@@ -1461,7 +1480,9 @@ class AppDaemon:
                             valid_apps = {}
                             if type(config).__name__ == "dict":
                                 for app in config:
-                                    if "class" in config[app] and "module" in config[app]:
+                                    if app == "global_modules":
+                                        valid_apps[app] = config[app]
+                                    elif "class" in config[app] and "module" in config[app]:
                                         valid_apps[app] = config[app]
                                     else:
                                         if self.invalid_yaml_warnings:
@@ -1599,8 +1620,9 @@ class AppDaemon:
                         #
                         if "class" in new_config[name] and "module" in new_config[name]:
                             self.log("INFO", "App '{}' added".format(name))
-                            #self.init_object(name, new_config[name])
                             initialize_apps[name] = 1
+                        elif name == "global_modules":
+                            pass
                         else:
                             if self.invalid_yaml_warnings:
                                 self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
@@ -1620,7 +1642,7 @@ class AppDaemon:
     def get_app_from_file(self, file):
         module = self.get_module_from_path(file)
         for app in self.app_config:
-            if self.app_config[app]["module"] == module:
+            if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
                 return app
         return None
 
@@ -1649,7 +1671,10 @@ class AppDaemon:
         else:
             app = self.get_app_from_file(file)
             if app is not None:
-                self.log("INFO", "Loading Module: {}".format(file))
+                self.log("INFO", "Loading App Module: {}".format(file))
+                self.modules[module_name] = importlib.import_module(module_name)
+            elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
+                self.log("INFO", "Loading Global Module: {}".format(file))
                 self.modules[module_name] = importlib.import_module(module_name)
             else:
                 if self.missing_app_warnings:
@@ -1707,11 +1732,11 @@ class AppDaemon:
                                 try:
                                     p = subprocess.Popen(command_line, shell=True)
                                 except:
-                                    self.info("WARNING", '-' * 60)
-                                    self.info("WARNING", "Unexpected running filter on: {}:".format(infile))
-                                    self.info("WARNING", '-' * 60)
-                                    self.info("WARNING", traceback.format_exc())
-                                    self.info("WARNING", '-' * 60)
+                                    self.log("WARNING", '-' * 60)
+                                    self.log("WARNING", "Unexpected running filter on: {}:".format(infile))
+                                    self.log("WARNING", '-' * 60)
+                                    self.log("WARNING", traceback.format_exc())
+                                    self.log("WARNING", '-' * 60)
 
     @staticmethod
     def file_in_modules(file, modules):
@@ -1795,6 +1820,14 @@ class AppDaemon:
                 if module["reload"]:
                     apps["term"][app] = 1
                 apps["init"][app] = 1
+
+            if "global_modules" in self.app_config:
+                for gm in utils.single_or_list(self.app_config["global_modules"]):
+                    if gm == self.get_module_from_path(module["name"]):
+                        for app in self.apps_per_global_module(gm):
+                            if module["reload"]:
+                                apps["term"][app] = 1
+                            apps["init"][app] = 1
 
         # Terminate apps
 
@@ -1957,11 +1990,20 @@ class AppDaemon:
     def apps_per_module(self, module):
         apps = []
         for app in self.app_config:
-            if self.app_config[app]["module"] == module:
+            if app != "global_modules" and self.app_config[app]["module"] == module:
                 apps.append(app)
 
         return apps
 
+    def apps_per_global_module(self, module):
+        apps = []
+        for app in self.app_config:
+            if "global_dependencies" in self.app_config[app]:
+                for gm in utils.single_or_list(self.app_config[app]["global_dependencies"]):
+                    if gm == module:
+                        apps.append(app)
+
+        return apps
     #
     # State Updates
     #

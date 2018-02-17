@@ -9,6 +9,7 @@ Change Log
 - Single App dependencies can now be specified on the dependency line itself and don't have to be a list of size 1
 - Added ``get_ad_version()``, and ``ad_version`` to the config dictionary
 - Added filters for Apps
+- Added global module dependency tracking
 
 **Fixes**
 
