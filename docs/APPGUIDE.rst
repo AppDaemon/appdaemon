@@ -352,8 +352,8 @@ It is also possible to have multiple dependencies, added as a yaml list
 AppDaemon will write errors to the log if a dependency is missing and it
 will also detect circular dependencies.
 
-Loading Priority
-----------------
+App Loading Priority
+--------------------
 
 It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an app, simply add a ``priority`` entry to its paremeters. e.g.:
 
@@ -376,6 +376,45 @@ The priority system is complimentary to the dependency system, although they are
 To accommodate both systems, dependency trees are assigned priorities in the range 50 - 51, again allowing apps to set priorities such that they will be loaded before or after specific sets of dependent apps.
 
 Note that apps that are dependent upon other apps, and apps that are depended upon by other apps will ignore any priority setting in their configuration.
+
+Global Module Dependencies
+--------------------------
+
+The previously described dependencies and load order have all been at the app level. It is however sometimes convenient to have global modules that have no apps in them, that nonetheless require dependency tracking. For instance, a global module might have a number of useful variables in it. When they change, a number of apps may need to be restarted. To configure this dependency tracking, it is first necessary to define which modules are going to be tracked. This is done in any apps.yaml file, although it should only be in one place. We use the ``global_modules`` directive:
+
+.. code:: yaml
+
+    global_modules: global
+
+This means that the file ``globals.py`` anywhere with in the apps directory hierarchy is marked as a global module. Any app may simply import ``globals`` and use it's variables and functions. Marking multiple modules as global can be achieved using standard YAML list format:
+
+.. code:: yaml
+
+    global_modules:
+      - global1
+      - global2
+      - global3
+
+Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding a ``global_dependencies`` field to the app descrption, e.g.:
+
+.. code:: yaml
+
+app1:
+  class: App
+  module: app
+  global_dependencies: global
+
+Or for multiple dependencies:
+
+app1:
+  class: App
+  module: app
+  global_dependencies:
+    - global1
+    - global2
+
+With this in place, whenever a global module is changes that apps depend upon, all dependant apps will be reloaded. This also works well with the app level dependencies. If a change to a global module forces an app to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
+
 
 Callback Constraints
 --------------------
