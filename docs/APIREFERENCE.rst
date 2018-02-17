@@ -420,8 +420,8 @@ Examples
 
 .. code:: python
 
-    self.handle = self.run_in(self.run_in_c)
-    self.handle = self.run_in(self.run_in_c, title = "run_in5")
+    self.handle = self.run_in(self.run_in_c, 10)
+    self.handle = self.run_in(self.run_in_c, , 5, title = "run_in5")
 
 run\_once()
 ~~~~~~~~~~~
