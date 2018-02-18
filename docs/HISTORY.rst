@@ -10,6 +10,7 @@ Change Log
 - Added ``get_ad_version()``, and ``ad_version`` to the config dictionary
 - Added filters for Apps
 - Added global module dependency tracking
+- Added plugin reload app control
 
 **Fixes**
 
@@ -17,6 +18,7 @@ Change Log
 - ``get_error()`` now properly returns the error log logger object
 - ``get_hass_config()`` is now correctly named
 - ``app_args`` now correctly returns args for all apps
+- ``get_state()`` now returns fields from the attributes dictionary in preference to the top level dictionary if there is a clash. In particular, this now means it is easier to iterate through group members
 
 **Breaking Changes**
 
