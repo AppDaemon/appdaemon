@@ -82,7 +82,8 @@ class DummyPlugin:
     #
 
     def utility(self):
-        self.log("*** Utility ***".format(self.state))
+        pass
+        #self.log("*** Utility ***".format(self.state))
 
     def active(self):
         return True
@@ -116,18 +117,28 @@ class DummyPlugin:
                                     "old_state": old_state
                                 }
                         }
+                    self.log("*** State Update: {} ***".format(ret))
+                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = \
                         {
                             "event_type": event["event"]["event_type"],
                             "data": event["event"]["data"],
                         }
+                    self.log("*** Event: {} ***".format(ret))
+                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
+
+                elif "disconnect" in event:
+                    self.log("*** Disconnected ***".format(ret))
+                    self.AD.notify_plugin_stopped(self.namespace)
+
+                elif "connect" in event:
+                    self.log("*** Connected ***".format(ret))
+                    await self.AD.notify_plugin_started(self.namespace)
 
                 self.current_event += 1
                 if self.current_event >= len(self.config["sequence"]["events"]) and "loop" in self.config["sequence"] and self.config["sequence"]["loop"] == 1:
                     self.current_event = 0
-                self.log("*** State Update: {} ***".format(ret))
-                self.AD.state_update(self.namespace, copy.deepcopy(ret))
 
     #
     # Set State

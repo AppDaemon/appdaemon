@@ -232,6 +232,9 @@ class AppDaemon:
                     self.thread_info["threads"][t.getName()] = {"callback": "idle", "time_called": 0, "thread": t}
                 t.start()
 
+            if self.apps is True:
+                self.process_filters()
+
             self.log("DEBUG", "Done")
 
         #else:
@@ -1143,7 +1146,7 @@ class AppDaemon:
                 )
                 # dump_schedule()
                 self.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, True)
+                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, "__ALL__")
                 # dump_schedule()
             self.was_dst = now_dst
 
@@ -1205,6 +1208,16 @@ class AppDaemon:
                         # We have a value so override
                         setattr(self, key, meta[key])
 
+    def get_plugin_from_namespace(self, namespace):
+        if self.plugins is not None:
+            for name in self.plugins:
+                if "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
+                    return name
+                if "namespace" not in self.plugins[name] and namespace == "default":
+                    return name
+        else:
+            return None
+
     async def notify_plugin_started(self, namespace, first_time=False):
 
         try:
@@ -1222,7 +1235,7 @@ class AppDaemon:
                     self.state[namespace] = state
 
                 if not first_time:
-                    await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, True)
+                    await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, self.get_plugin_from_namespace(namespace))
                 else:
                     self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
@@ -1310,7 +1323,7 @@ class AppDaemon:
             if self.apps:
                 self.log("DEBUG", "Reading Apps")
 
-                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, True)
+                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
 
                 self.log("INFO", "App initialization complete")
                 #
@@ -1324,11 +1337,9 @@ class AppDaemon:
                 try:
 
                     if self.apps:
-                        await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
 
                         # Check to see if config has changed
-
-                        # await utils.run_in_executor(self.loop, self.executor, self.check_config)
+                        await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
 
                     # Call me suspicious, but lets update state from the plugins periodically
                     # in case we miss events for whatever reason
@@ -1745,7 +1756,7 @@ class AppDaemon:
                 return True
         return False
 
-    def check_app_updates(self, all_=False):
+    def check_app_updates(self, plugin=None):
 
         if not self.apps:
             return
@@ -1789,12 +1800,11 @@ class AppDaemon:
 
                 modified = os.path.getmtime(file)
                 if file in self.monitored_files:
-                    if self.monitored_files[file] < modified or all_:
-                        thismod = {"name": file, "reload": True, "load": True}
-                        modules.append(thismod)
+                    if self.monitored_files[file] < modified:
+                        modules.append({"name": file, "reload": True, "load": True})
                         self.monitored_files[file] = modified
                 else:
-                    self.log("INFO", "Found module {}".format(file))
+                    self.log("DEBUG", "Found module {}".format(file))
                     modules.append({"name": file, "reload": False, "load": True})
                     self. monitored_files[file] = modified
             except IOError as err:
@@ -1828,6 +1838,30 @@ class AppDaemon:
                             if module["reload"]:
                                 apps["term"][app] = 1
                             apps["init"][app] = 1
+
+        if plugin is not None:
+            self.log("INFO", "Processing restart for {}".format(plugin))
+            # This is a restart of one of the plugins so check which apps need to be restarted
+            for app in self.app_config:
+                reload = False
+                if app == "global_modules":
+                    continue
+                if "plugin" in self.app_config[app]:
+                    for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
+                        if this_plugin == plugin:
+                            # We got a match so do the reload
+                            reload = True
+                            break
+                        elif plugin == "__ALL__":
+                            reload = True
+                            break
+                else:
+                    # No plugin dependency specified, reload to err on the side of caution
+                    reload = True
+
+                if reload is True:
+                    apps["term"][app] = 1
+                    apps["init"][app] = 1
 
         # Terminate apps
 
