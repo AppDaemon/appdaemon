@@ -417,7 +417,7 @@ With this in place, whenever a global module is changes that apps depend upon, a
 Plugin Reloads
 --------------
 
-When a plugin reloads e.g. due to the underlying system restarting, or a network issue, AppDaemon's default assumption is that all apps could potentially be dependant on that system, and it will force a restart of every app. It is possible to modify this behavior at the individual app level, using the ``plugin`` parameter in apps.yaml. To force the app to reload when a specific plugin or list of plugins restarts will force the app to reload after the restart.
+When a plugin reloads e.g. due to the underlying system restarting, or a network issue, AppDaemon's default assumption is that all apps could potentially be dependant on that system, and it will force a restart of every app. It is possible to modify this behavior at the individual app level, using the ``plugin`` parameter in apps.yaml. Specifying a specific plugin or list of plugins will force the app to reload after the named plugin restarts.
 
 For a simple AppDaemon install, the appdaemon.yaml file might look something like this:
 
@@ -433,7 +433,7 @@ For a simple AppDaemon install, the appdaemon.yaml file might look something lik
 
 In this setup, there is only one plugin and it is called ``HASS`` - this will be the case for most AppDaemon users.
 
-To make an app explicitly reload when this plugin is restarted (e.g. in this case when HASS restarts or when AppDaemon loses connectivity to HASS), use the ``plugin`` parameter like so:
+To make an app explicitly reload when only this plugin and no other is restarted (e.g. in the case when HASS restarts or when AppDaemon loses connectivity to HASS), use the ``plugin`` parameter like so:
 
 .. code:: yaml
 
@@ -441,6 +441,17 @@ To make an app explicitly reload when this plugin is restarted (e.g. in this cas
         module: some_module
         class: some_class
         plugin: HASS
+
+If you have more than one plugin, you can make an app dependent on more than one plgin by specifying a YAML list:
+
+.. code:: yaml
+
+    appname:
+        module: some_module
+        class: some_class
+        plugin:
+          - HASS
+          - OTHERPLUGIN
 
 If you want to prevent the app from reloading at all, just set the ``plugin`` parameter to some value that doesn't match any plugin name, e.g.:
 
@@ -457,6 +468,7 @@ Note, that this only effects reloading at plugin restart time:
 - apps will be reloaded if their apps.yaml changes
 - apps will be reloaded when a change to or from DST occurs
 - apps will be reloaded if an app they depend upon is reloaded as part of a plugin restart
+- apps will be reloaded if changes are made to a global module that they depend upon
 
 Callback Constraints
 --------------------
