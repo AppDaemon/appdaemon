@@ -209,9 +209,8 @@ new app has been added, or if one has been removed, and it will act
 appropriately, starting the new app immediately and removing all
 callbacks for the removed app.
 
-The suggested order for creating a new App is to add the module code
-first and work until it compiles cleanly, and only then add an entry in
-the configuration file to actually run it. A good workflow is to
+The suggested order for creating a new App is to first add the apps.yaml entry
+then the module code and work until it compiles cleanly. A good workflow is to
 continuously monitor the error file (using ``tail -f`` on Linux for
 instance) to ensure that errors are seen and can be remedied.
 
@@ -415,6 +414,49 @@ app1:
 
 With this in place, whenever a global module is changes that apps depend upon, all dependant apps will be reloaded. This also works well with the app level dependencies. If a change to a global module forces an app to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
 
+Plugin Reloads
+--------------
+
+When a plugin reloads e.g. due to the underlying system restarting, or a network issue, AppDaemon's default assumption is that all apps could potentially be dependant on that system, and it will force a restart of every app. It is possible to modify this behavior at the individual app level, using the ``plugin`` parameter in apps.yaml. To force the app to reload when a specific plugin or list of plugins restarts will force the app to reload after the restart.
+
+For a simple AppDaemon install, the appdaemon.yaml file might look something like this:
+
+.. code:: yaml
+
+     appdaemon:
+       threads: 10
+       plugins:
+         HASS:
+           type: hass
+           ha_url: <some_url>
+           ha_key: <some_key>
+
+In this setup, there is only one plugin and it is called ``HASS`` - this will be the case for most AppDaemon users.
+
+To make an app explicitly reload when this plugin is restarted (e.g. in this case when HASS restarts or when AppDaemon loses connectivity to HASS), use the ``plugin`` parameter like so:
+
+.. code:: yaml
+
+    appname:
+        module: some_module
+        class: some_class
+        plugin: HASS
+
+If you want to prevent the app from reloading at all, just set the ``plugin`` parameter to some value that doesn't match any plugin name, e.g.:
+
+.. code:: yaml
+
+    appname:
+        module: some_module
+        class: some_class
+        plugin: NONE
+
+Note, that this only effects reloading at plugin restart time:
+
+- apps will be reloaded if the module they use changes
+- apps will be reloaded if their apps.yaml changes
+- apps will be reloaded when a change to or from DST occurs
+- apps will be reloaded if an app they depend upon is reloaded as part of a plugin restart
 
 Callback Constraints
 --------------------
