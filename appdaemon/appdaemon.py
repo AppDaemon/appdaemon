@@ -663,13 +663,13 @@ class AppDaemon:
                         else:
                             return None
                     else:
-                        if attribute in self.state[namespace][entity_id]:
-                            return deepcopy(self.state[namespace][entity_id][attribute])
-                        elif attribute in self.state[namespace][entity_id]["attributes"]:
+                        if attribute in self.state[namespace][entity_id]["attributes"]:
                             return deepcopy(self.state[namespace][entity_id]["attributes"][
                                 attribute])
+                        elif attribute in self.state[namespace][entity_id]:
+                            return deepcopy(self.state[namespace][entity_id][attribute])
                         else:
-                            return None
+                                return None
 
     def set_state(self, namespace, entity, state):
         with self.state_lock:
