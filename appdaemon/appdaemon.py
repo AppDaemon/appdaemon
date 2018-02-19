@@ -605,10 +605,9 @@ class AppDaemon:
 
     def cancel_state_callback(self, handle, name):
         with self.callbacks_lock:
-            if name not in self.callbacks:
-                self.log("WARNING", "Invalid app {} in cancel_state_callback()".format(name))
-            elif handle not in self.callbacks[name]:
-                self.log("WARNING", "Invalid handle {} in cancel_state_callback()".format(handle))
+            if name not in self.callbacks or handle not in self.callbacks[name]:
+                self.log("WARNING", "Invalid callback in cancel_state_callback() from app {}".format(name))
+
             if name in self.callbacks and handle in self.callbacks[name]:
                 del self.callbacks[name][handle]
             if name in self.callbacks and self.callbacks[name] == {}:
