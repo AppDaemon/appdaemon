@@ -398,19 +398,19 @@ Once we have marked the global modules, the next step is to configure any apps t
 
 .. code:: yaml
 
-app1:
-  class: App
-  module: app
-  global_dependencies: global
+    app1:
+      class: App
+      module: app
+      global_dependencies: global
 
 Or for multiple dependencies:
 
-app1:
-  class: App
-  module: app
-  global_dependencies:
-    - global1
-    - global2
+    app1:
+      class: App
+      module: app
+      global_dependencies:
+        - global1
+        - global2
 
 With this in place, whenever a global module is changes that apps depend upon, all dependant apps will be reloaded. This also works well with the app level dependencies. If a change to a global module forces an app to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
 
@@ -560,17 +560,18 @@ presence
 ~~~~~~~~
 
 The presence constraint will constrain based on presence of device
-trackers. It takes 3 possible values: - ``noone`` - only allow callback
-execution when no one is home - ``anyone`` - only allow callback
-execution when one or more person is home - ``everyone`` - only allow
-callback execution when everyone is home
+trackers. It takes 3 possible values:
+
+- ``noone`` - only allow callback execution when no one is home
+- ``anyone`` - only allow callback execution when one or more person is home
+- ``everyone`` - only allow callback execution when everyone is home
 
 .. code:: yaml
 
     constrain_presence: anyone
-     or
+    # or
     constrain_presence: someone
-     or
+    # or
     constrain_presence: noone
 
 time
@@ -584,10 +585,10 @@ to 1 second before midnight - If only end is present, start will default
 to midnight
 
 The times are specified in a string format with one of the following
-formats: - HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour
-format. - ``sunrise``\ \|\ ``sunset`` [+\|- HH:MM:SS]- time of the next
-sunrise or sunset with an optional positive or negative offset in Hours
-Minutes and seconds
+formats:
+
+- HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
+- ``sunrise``\ \|\ ``sunset`` [+\|- HH:MM:SS]- time of the next sunrise or sunset with an optional positive or negative offset in Hours Minutes and seconds
 
 The time based constraint system correctly interprets start and end
 times that span midnight.
@@ -682,7 +683,7 @@ calls and callbacks will implicitly return the value of state unless
 told to do otherwise.
 
 Although the use of ``get_state()`` (below) is still supported, as of
-AppDaemon 2.0.9 it is easier to access HASS state directly as an
+AppDaemon 2.0.9 it is possible to access HASS state directly as an
 attribute of the App itself, under the ``entities`` attribute.
 
 For instance, to access the state of a binary sensor, you could use:
@@ -844,7 +845,7 @@ The value of the state after the state change.
 callback.
 
 \*\*kwargs
-^^^^^^^^^^
+^^^^^^^^
 
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
@@ -929,11 +930,11 @@ For example:
 
 .. code:: python
 
-     Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
+    # Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
     self.handle = self.run_in(callback, 120, random_start = -60, **kwargs)
-     Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
+    # Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
     self.handle = self.run_in(callback, 120, random_end = 60, **kwargs)
-     Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
+    # Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
     self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60, **kwargs)
 
 Sunrise and Sunset
@@ -943,7 +944,7 @@ AppDaemon has a number of features to allow easy tracking of sunrise and
 sunset as well as a couple of scheduler functions. Note that the
 scheduler functions also support the randomization parameters described
 above, but they cannot be used in conjunction with the ``offset``
-parameter\`.
+parameter.
 
 Calling Services
 ----------------

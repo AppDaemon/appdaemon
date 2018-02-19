@@ -11,6 +11,7 @@ Change Log
 - Added filters for Apps
 - Added global module dependency tracking
 - Added plugin reload app control
+- Added icon widget
 
 **Fixes**
 
