@@ -1,4 +1,4 @@
-function basesicon(widget_id, url, skin, parameters)
+function baseicon(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
@@ -13,16 +13,19 @@ function basesicon(widget_id, url, skin, parameters)
     
     self.parameters = parameters;
 
-    var callbacks = []
+    var callbacks = [];
+
+    self.OnStateAvailable = OnStateAvailable;
+    self.OnStateUpdate = OnStateUpdate;
 
     var monitored_entities = 
         [
-            {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
+            {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
         ];
     
     // Finally, call the parent constructor to get things moving
     
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
 
     // Function Definitions
     
@@ -52,16 +55,26 @@ function basesicon(widget_id, url, skin, parameters)
     
     function set_view(self, state, level)
     {
-        if (state == self.parameters.state_active || ("active_map" in self.parameters && self.parameters.active_map.includes(state)))
+        if ("icons" in self.parameters)
         {
-            self.set_icon(self, "icon", self.icons.icon_on);
-            self.set_field(self, "icon_style", self.css.icon_style_active)
+            if (state in self.parameters.icons)
+            {
+                self.set_icon(self, "icon", self.parameters.icons[state].icon);
+                self.set_field(self, "icon_style", self.parameters.icons[state].style)
+            }
+            else if ("default" in self.parameters.icons)
+            {
+                self.set_icon(self, "icon", self.parameters.icons.default.icon);
+                self.set_field(self, "icon_style", self.parameters.icons.default.style)
+            }
+            else
+            {
+                self.set_icon(self, "icon", "fa-circle-thin");
+                self.set_field(self, "icon_style", "color: white")
+            }
+
         }
-        else
-        {
-            self.set_icon(self, "icon", self.icons.icon_off);
-            self.set_field(self, "icon_style", self.css.icon_style_inactive)
-        }
+
         if ("state_text" in self.parameters && self.parameters.state_text == 1)
         {
             self.set_field(self, "state_text", self.map_state(self, state))

@@ -505,6 +505,7 @@ also text of the state itself. The following widgets allow this:
 
 -  scene
 -  binary\_sensor
+-  icon
 -  switch
 -  device\_tracker
 -  script
@@ -1325,6 +1326,57 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``state_text_style``
+
+icon
+~~~~
+
+A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured like the following:
+
+icon:
+  title: icon
+  widget_type: icon
+  entity: binary_sensor.basement_door_sensor
+  state_text: 1
+  icons:
+    "active":
+      icon: fa-glass
+      style: "color: green"
+    "inactive":
+      icon: fa-repeat
+      style: "color: blue"
+    "idle":
+      icon: fa-frown-o
+      style: "color: red"
+    "default":
+      icon: fa-rocket
+      style: "color: cyan"
+
+The icons list is mandatory, and each ebtry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+
+The default sntry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the binary\_sensor
+-  ``icons`` - a list of icons and styles to be applied for various states.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
 
 light
 ~~~~~
