@@ -55,6 +55,7 @@ class AppDaemon:
         self.now = datetime.datetime.now().timestamp()
 
         self.objects = {}
+        self.objects_lock = threading.RLock()
 
         self.schedule = {}
         self.schedule_lock = threading.RLock()
@@ -358,8 +359,9 @@ class AppDaemon:
         self.diag("INFO", "--------------------------------------------------")
         self.diag("INFO", "Objects")
         self.diag("INFO", "--------------------------------------------------")
-        for object_ in self.objects.keys():
-            self.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
+        with self.objects_lock:
+            for object_ in self.objects.keys():
+                self.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
         self.diag("INFO", "--------------------------------------------------")
 
     def dump_queue(self):
@@ -461,26 +463,27 @@ class AppDaemon:
     #
 
     def dispatch_worker(self, name, args):
-        unconstrained = True
-        #
-        # Argument Constraints
-        #
-        for arg in self.app_config[name].keys():
-            constrained = self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"])
-            if not constrained:
-                unconstrained = False
-        if not self.check_time_constraint(self.app_config[name], name):
-            unconstrained = False
-        #
-        # Callback level constraints
-        #
-        if "kwargs" in args:
-            for arg in args["kwargs"].keys():
-                constrained = self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"])
+        with self.objects_lock:
+            unconstrained = True
+            #
+            # Argument Constraints
+            #
+            for arg in self.app_config[name].keys():
+                constrained = self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"])
                 if not constrained:
                     unconstrained = False
-            if not self.check_time_constraint(args["kwargs"], name):
+            if not self.check_time_constraint(self.app_config[name], name):
                 unconstrained = False
+            #
+            # Callback level constraints
+            #
+            if "kwargs" in args:
+                for arg in args["kwargs"].keys():
+                    constrained = self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"])
+                    if not constrained:
+                        unconstrained = False
+                if not self.check_time_constraint(args["kwargs"], name):
+                    unconstrained = False
 
         if unconstrained:
             self.q.put_nowait(args)
@@ -518,8 +521,11 @@ class AppDaemon:
             _id = args["id"]
             name = args["name"]
             callback = "{}() in {}".format(funcref.__name__, name)
-            if name in self.objects and self.objects[name]["id"] == _id:
-                app = self.objects[name]["object"]
+            app = None
+            with self.objects_lock:
+                if name in self.objects and self.objects[name]["id"] == _id:
+                    app = self.objects[name]["object"]
+            if app is not None:
                 try:
                     if _type == "timer":
                         self.update_thread_info(thread_id, callback, _type)
@@ -574,15 +580,16 @@ class AppDaemon:
             if name not in self.callbacks:
                 self.callbacks[name] = {}
             handle = uuid.uuid4()
-            self.callbacks[name][handle] = {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "type": "state",
-                "function": cb,
-                "entity": entity,
-                "namespace": namespace,
-                "kwargs": kwargs
-            }
+            with self.objects_lock:
+                self.callbacks[name][handle] = {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "type": "state",
+                    "function": cb,
+                    "entity": entity,
+                    "namespace": namespace,
+                    "kwargs": kwargs
+                }
 
         #
         # In the case of a quick_start parameter,
@@ -617,12 +624,13 @@ class AppDaemon:
         with self.callbacks_lock:
             if name in self.callbacks and handle in self.callbacks[name]:
                 callback = self.callbacks[name][handle]
-                return (
-                    callback["namespace"],
-                    callback["entity"],
-                    callback["kwargs"].get("attribute", None),
-                    self.sanitize_state_kwargs(self.objects[name]["object"], callback["kwargs"])
-                )
+                with self.objects_lock:
+                    return (
+                        callback["namespace"],
+                        callback["entity"],
+                        callback["kwargs"].get("attribute", None),
+                        self.sanitize_state_kwargs(self.objects[name]["object"], callback["kwargs"])
+                    )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
 
@@ -694,15 +702,16 @@ class AppDaemon:
             if name not in self.callbacks:
                 self.callbacks[name] = {}
             handle = uuid.uuid4()
-            self.callbacks[name][handle] = {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "type": "event",
-                "function": cb,
-                "namespace": namespace,
-                "event": event,
-                "kwargs": kwargs
-            }
+            with self.objects_lock:
+                self.callbacks[name][handle] = {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "type": "event",
+                    "function": cb,
+                    "namespace": namespace,
+                    "event": event,
+                    "kwargs": kwargs
+                }
         return handle
 
     def cancel_event_callback(self, name, handle):
@@ -739,26 +748,27 @@ class AppDaemon:
             if "inactive" in args:
                 return
             # Call function
-            if "entity" in args["kwargs"]:
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "attr",
-                    "function": args["callback"],
-                    "attribute": args["kwargs"]["attribute"],
-                    "entity": args["kwargs"]["entity"],
-                    "new_state": args["kwargs"]["new_state"],
-                    "old_state": args["kwargs"]["old_state"],
-                    "kwargs": args["kwargs"],
-                })
-            else:
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "timer",
-                    "function": args["callback"],
-                    "kwargs": args["kwargs"],
-                })
+            with self.objects_lock:
+                if "entity" in args["kwargs"]:
+                    self.dispatch_worker(name, {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "attr",
+                        "function": args["callback"],
+                        "attribute": args["kwargs"]["attribute"],
+                        "entity": args["kwargs"]["entity"],
+                        "new_state": args["kwargs"]["new_state"],
+                        "old_state": args["kwargs"]["old_state"],
+                        "kwargs": args["kwargs"],
+                    })
+                else:
+                    self.dispatch_worker(name, {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "timer",
+                        "function": args["callback"],
+                        "kwargs": args["kwargs"],
+                    })
             # If it is a repeating entry, rewrite with new timestamp
             if args["repeat"]:
                 if args["type"] == "next_rising" or args["type"] == "next_setting":
@@ -922,19 +932,20 @@ class AppDaemon:
             ts = utc + c_offset
             interval = kwargs.get("interval", 0)
 
-            self.schedule[name][handle] = {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "callback": callback,
-                "timestamp": ts,
-                "interval": interval,
-                "basetime": utc,
-                "repeat": repeat,
-                "offset": c_offset,
-                "type": type_,
-                "kwargs": kwargs
-            }
-            # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
+            with self.objects_lock:
+                self.schedule[name][handle] = {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "callback": callback,
+                    "timestamp": ts,
+                    "interval": interval,
+                    "basetime": utc,
+                    "repeat": repeat,
+                    "offset": c_offset,
+                    "type": type_,
+                    "kwargs": kwargs
+                }
+                # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
         return handle
 
     def get_scheduler_entries(self):
@@ -1425,17 +1436,22 @@ class AppDaemon:
     #
 
     def get_app(self, name):
-        if name in self.objects:
-            return self.objects[name]["object"]
-        else:
-            return None
+        with self.objects_lock:
+            if name in self.objects:
+                return self.objects[name]["object"]
+            else:
+                return None
 
     def term_object(self, name):
-        if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
-            self.log("INFO", "Terminating Object {}".format(name))
-            # Call terminate directly rather than via worker thread
-            # so we know terminate has completed before we move on
-            self.objects[name]["object"].terminate()
+        with self.objects_lock:
+            if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
+                self.log("INFO", "Calling terminate() for {}".format(name))
+                # Call terminate directly rather than via worker thread
+                # so we know terminate has completed before we move on
+                self.objects[name]["object"].terminate()
+
+            if name in self.objects:
+                del self.objects[name]
 
         self.log("DEBUG", "Clearing callbacks for {}".format(name))
         with self.callbacks_lock:
@@ -1448,7 +1464,6 @@ class AppDaemon:
             if name in self.endpoints:
                 del self.endpoints[name]
 
-
     def init_object(self, name):
         app_args = self.app_config[name]
         self.log("INFO",
@@ -1456,18 +1471,19 @@ class AppDaemon:
 
         if self.get_file_from_module(app_args["module"]) is not None:
 
-            modname = __import__(app_args["module"])
-            app_class = getattr(modname, app_args["class"])
-            self.objects[name] = {
-                "object": app_class(
-                    self, name, self.logger, self.error, app_args, self.config, self.app_config, self.global_vars
-                ),
-                "id": uuid.uuid4()
-            }
+            with self.objects_lock:
+                modname = __import__(app_args["module"])
+                app_class = getattr(modname, app_args["class"])
+                self.objects[name] = {
+                    "object": app_class(
+                        self, name, self.logger, self.error, app_args, self.config, self.app_config, self.global_vars
+                    ),
+                    "id": uuid.uuid4()
+                }
 
-            # Call it's initialize function
+                # Call it's initialize function
 
-            self.objects[name]["object"].initialize()
+                self.objects[name]["object"].initialize()
 
         else:
             self.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
@@ -1621,7 +1637,7 @@ class AppDaemon:
                         # Section has been deleted, clear it out
 
                         self.log("INFO", "App '{}' deleted".format(name))
-                        terminate_apps[name] = 1
+                        self.term_object(name)
 
                 for name in new_config:
                     if name not in self.app_config:
@@ -1673,7 +1689,7 @@ class AppDaemon:
             except KeyError:
                 if name not in sys.modules:
                     # Probably failed to compile on initial load
-                    # so we need to re-import
+                    # so we need to re-import not reload
                     self.read_app(file)
                 else:
                     # A real KeyError!
@@ -1800,11 +1816,11 @@ class AppDaemon:
                 modified = os.path.getmtime(file)
                 if file in self.monitored_files:
                     if self.monitored_files[file] < modified:
-                        modules.append({"name": file, "reload": True, "load": True})
+                        modules.append({"name": file, "reload": True})
                         self.monitored_files[file] = modified
                 else:
                     self.log("DEBUG", "Found module {}".format(file))
-                    modules.append({"name": file, "reload": False, "load": True})
+                    modules.append({"name": file, "reload": False})
                     self. monitored_files[file] = modified
             except IOError as err:
                 self.log("WARNING",
@@ -2045,17 +2061,18 @@ class AppDaemon:
                             old_state, cold, cnew, kwargs, uuid_):
         kwargs["handle"] = uuid_
         if attribute == "all":
-            self.dispatch_worker(name, {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "type": "attr",
-                "function": funcref,
-                "attribute": attribute,
-                "entity": entity,
-                "new_state": new_state,
-                "old_state": old_state,
-                "kwargs": kwargs,
-            })
+            with self.objects_lock:
+                self.dispatch_worker(name, {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "type": "attr",
+                    "function": funcref,
+                    "attribute": attribute,
+                    "entity": entity,
+                    "new_state": new_state,
+                    "old_state": old_state,
+                    "kwargs": kwargs,
+                })
         else:
             if old_state is None:
                 old = None
@@ -2089,17 +2106,18 @@ class AppDaemon:
                     )
                 else:
                     # Do it now
-                    self.dispatch_worker(name, {
-                        "name": name,
-                        "id": self.objects[name]["id"],
-                        "type": "attr",
-                        "function": funcref,
-                        "attribute": attribute,
-                        "entity": entity,
-                        "new_state": new,
-                        "old_state": old,
-                        "kwargs": kwargs
-                    })
+                    with self.objects_lock:
+                        self.dispatch_worker(name, {
+                            "name": name,
+                            "id": self.objects[name]["id"],
+                            "type": "attr",
+                            "function": funcref,
+                            "attribute": attribute,
+                            "entity": entity,
+                            "new_state": new,
+                            "old_state": old,
+                            "kwargs": kwargs
+                        })
             else:
                 if "_duration" in kwargs:
                     # cancel timer
@@ -2234,15 +2252,16 @@ class AppDaemon:
                                         data["data"][key]:
                                     _run = False
                             if _run:
-                                self.dispatch_worker(name, {
-                                    "name": name,
-                                    "id": self.objects[name]["id"],
-                                    "type": "event",
-                                    "event": data['event_type'],
-                                    "function": callback["function"],
-                                    "data": data["data"],
-                                    "kwargs": callback["kwargs"]
-                                })
+                                with self.objects_lock:
+                                    self.dispatch_worker(name, {
+                                        "name": name,
+                                        "id": self.objects[name]["id"],
+                                        "type": "event",
+                                        "event": data['event_type'],
+                                        "function": callback["function"],
+                                        "data": data["data"],
+                                        "kwargs": callback["kwargs"]
+                                    })
 
     #
     # Plugin Management
