@@ -12,7 +12,7 @@ import pytz
 import math
 import asyncio
 import yaml
-import concurrent
+import concurrent.futures
 import threading
 import random
 import re
@@ -38,7 +38,6 @@ class AppDaemon:
         self.was_dst = False
 
         self.last_state = None
-        self.inits = {}
         self.last_plugin_state = {}
 
         self.monitored_files = {}
@@ -114,7 +113,7 @@ class AppDaemon:
 
         self.logfile = None
         self._process_arg("logfile", kwargs)
-        if self.logfile == None:
+        if self.logfile is None:
             self.logfile = "STDOUT"
 
         self.latitude = None
@@ -131,8 +130,8 @@ class AppDaemon:
 
         self.errfile = None
         self._process_arg("error_file", kwargs)
-        if self.errfile == None:
-            self.errfile  = "STDERR"
+        if self.errfile is None:
+            self.errfile = "STDERR"
 
         self.config_file = None
         self._process_arg("config_file", kwargs)
@@ -188,7 +187,7 @@ class AppDaemon:
         if self.tick != 1 or self.interval != 1 or self.starttime is not None:
             self.realtime = False
 
-        if kwargs.get("cert_verify", True) == False:
+        if not kwargs.get("cert_verify", True):
             self.certpath = False
 
         if kwargs.get("disable_apps") is True:
@@ -238,9 +237,6 @@ class AppDaemon:
 
             self.log("DEBUG", "Done")
 
-        #else:
-        #    self.app_config_file_modified = 0
-
         self.loop = loop
 
         self.stopping = False
@@ -248,7 +244,6 @@ class AppDaemon:
         self.log("DEBUG", "Entering run()")
 
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
-
 
         # Load Plugins
 
@@ -558,9 +553,6 @@ class AppDaemon:
             else:
                 self.log("WARNING", "Found stale callback for {} - discarding".format(name))
 
-            if self.inits.get(name):
-                self.inits.pop(name)
-
             self.q.task_done()
 
     #
@@ -573,7 +565,6 @@ class AppDaemon:
                 return True
             else:
                 return False
-
 
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
         with self.callbacks_lock:
@@ -1629,7 +1620,6 @@ class AppDaemon:
                             # Something changed, clear and reload
 
                             self.log("INFO", "App '{}' changed".format(name))
-                            #self.reinit_app(name, new_config[name])
                             terminate_apps[name] = 1
                             initialize_apps[name] = 1
                     else:
@@ -1637,6 +1627,10 @@ class AppDaemon:
                         # Section has been deleted, clear it out
 
                         self.log("INFO", "App '{}' deleted".format(name))
+                        #
+                        # Since the entry has been deleted we can't sensibly determine dependencies
+                        # So just immediately terminate it
+                        #
                         self.term_object(name)
 
                 for name in new_config:
@@ -1995,7 +1989,6 @@ class AppDaemon:
                         return True
         return False
 
-
     def get_dependent_apps(self, dependee, deps):
         for app in self.app_config:
             if "dependencies" in self.app_config[app]:
@@ -2194,7 +2187,7 @@ class AppDaemon:
                 #print(remove)
                 self.cancel_state_callback(remove["uuid"], remove["name"])
 
-    def state_update(self, namespace, data):
+    async def state_update(self, namespace, data):
         try:
             self.log(
                 "DEBUG",
@@ -2220,7 +2213,7 @@ class AppDaemon:
             # Update dashboards
 
             if self.dashboard is not None:
-                self.dashboard.ws_update(namespace, data)
+                await self.dashboard.ws_update(namespace, data)
 
         except:
             self.err("WARNING", '-' * 60)
