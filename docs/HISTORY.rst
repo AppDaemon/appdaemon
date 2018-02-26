@@ -20,6 +20,8 @@ Change Log
 - ``get_hass_config()`` is now correctly named
 - ``app_args`` now correctly returns args for all apps
 - ``get_state()`` now returns fields from the attributes dictionary in preference to the top level dictionary if there is a clash. In particular, this now means it is easier to iterate through group members
+- Fixed a bug preventing an objects ``terminate()`` from being called when deleted from apps.yaml
+- Fixed a bug in which object info was not being cleaned out at object termination
 
 **Breaking Changes**
 

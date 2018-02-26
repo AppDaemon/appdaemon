@@ -181,7 +181,7 @@ class HassPlugin:
                         url = url.replace('http', 'ws', 1)
 
                     sslopt = {}
-                    if self.cert_verify == False:
+                    if self.cert_verify is False:
                         sslopt = {'cert_reqs': ssl.CERT_NONE}
                     if self.cert_path:
                         sslopt['ca_certs'] = self.cert_path
@@ -251,7 +251,8 @@ class HassPlugin:
                                 "Unexpected result from Home Assistant"
                             )
 
-                        self.AD.state_update(self.namespace, result["event"])
+                        await self.AD.state_update(self.namespace, result["event"])
+
                     self.reading_messages = False
 
             except:
@@ -287,7 +288,6 @@ class HassPlugin:
 
     def utility(self):
        return None
-
 
     def active(self):
         return self.reading_messages

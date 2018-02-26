@@ -384,7 +384,7 @@ class RunDash():
 
         return ws
 
-    def ws_update(self, namespace, jdata):
+    async def ws_update(self, namespace, jdata):
         if len(self.app['websockets']) > 0:
             self.log("DEBUG",
                    "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
@@ -397,7 +397,7 @@ class RunDash():
                 self.log(
                        "DEBUG",
                        "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
-                ws.send_str(data)
+                await ws.send_str(data)
 
 
     # Routes, Status and Templates
