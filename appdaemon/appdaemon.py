@@ -1497,14 +1497,15 @@ class AppDaemon:
                             valid_apps = {}
                             if type(config).__name__ == "dict":
                                 for app in config:
-                                    if app == "global_modules":
-                                        valid_apps[app] = config[app]
-                                    elif "class" in config[app] and "module" in config[app]:
-                                        valid_apps[app] = config[app]
-                                    else:
-                                        if self.invalid_yaml_warnings:
-                                            self.log("WARNING",
-                                                     "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
+                                    if config[app] is not None:
+                                        if app == "global_modules":
+                                            valid_apps[app] = config[app]
+                                        elif "class" in config[app] and "module" in config[app]:
+                                            valid_apps[app] = config[app]
+                                        else:
+                                            if self.invalid_yaml_warnings:
+                                                self.log("WARNING",
+                                                         "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
                             else:
                                 if self.invalid_yaml_warnings:
                                     self.log("WARNING",
@@ -1718,6 +1719,7 @@ class AppDaemon:
     def process_filters(self):
         if "filters" in self.config:
             for filter in self.config["filters"]:
+
                 for root, subdirs, files in os.walk(self.app_dir, topdown=True):
                     # print(root, subdirs, files)
                     #
@@ -1741,6 +1743,7 @@ class AppDaemon:
                                 run = True
 
                             if run is True:
+                                filtered = True
                                 self.log("INFO", "Running filter on {}".format(infile))
                                 self.filter_files[infile] = modified
 
@@ -1874,7 +1877,7 @@ class AppDaemon:
 
         # Terminate apps
 
-        if apps["term"]:
+        if apps is not None and apps["term"]:
 
             prio_apps = self.get_app_deps_and_prios(apps["term"])
 
@@ -1913,7 +1916,7 @@ class AppDaemon:
                             del apps["init"][app]
                             self.log("WARNING", "{}".format(app))
 
-        if apps["init"]:
+        if apps is not None and apps["init"]:
 
             prio_apps = self.get_app_deps_and_prios(apps["init"])
 

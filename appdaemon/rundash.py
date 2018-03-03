@@ -272,7 +272,7 @@ class RunDash():
                             data = {"event_type": "state_changed",
                                     "data": {"entity_id": feed_data["target"], "new_state": new_state}}
 
-                            self.ws_update("default", data)
+                            await self.ws_update("default", data)
 
                     await asyncio.sleep(1)
                 except:
