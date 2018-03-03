@@ -240,6 +240,8 @@ with the values of ``entity``, ``attr``, ``old`` and ``new`` that were
 current at the time the actual event occured, since the assumption is
 that none of them have changed in the intervening period.
 
+if you use ``duration`` when listening for an entire device type rather than a specific entity, or for all state changes, you may get unpredictable results, so it is recommended that this parameter is only used in conjunction with the state of specific entities.
+
 immediate = (optional)
 ''''''''''''''''''''''
 
