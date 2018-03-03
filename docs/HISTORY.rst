@@ -1,7 +1,23 @@
 Change Log
 ==========
 
-3.0.0b4
+3.0.0b5
+--------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
+
+3.0.0b4 (2018-03-03)
 --------------------
 
 **Features**
@@ -26,6 +42,7 @@ Change Log
 
 **Breaking Changes**
 
+None
 
 3.0.0b3 (2018-02-11)
 --------------------
