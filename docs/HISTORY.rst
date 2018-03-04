@@ -6,9 +6,11 @@ Change Log
 
 **Features**
 
-None
+ - Added additional error checking for badly formed RSS feeds
 
 **Fixes**
+
+ - Fixed a bug for Docker that prevented the initial config from working correctly - contributed by `mradziwo <https://github.com/mradziwo>`__
 
 None
 

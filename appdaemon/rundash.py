@@ -264,15 +264,18 @@ class RunDash():
                         for feed_data in self.rss_feeds:
                             feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
-                            new_state = {"feed": feed}
+                            if "bozo_exception" in feed:
+                                self.log("WARNING", "Error in RSS feed {}: {}".format(feed_data["feed"], feed["bozo_exception"]))
+                            else:
+                                new_state = {"feed": feed}
 
-                            # RSS Feeds always live in the default namespace
-                            self.AD.set_state("default", feed_data["target"], new_state)
+                                # RSS Feeds always live in the default namespace
+                                self.AD.set_state("default", feed_data["target"], new_state)
 
-                            data = {"event_type": "state_changed",
-                                    "data": {"entity_id": feed_data["target"], "new_state": new_state}}
+                                data = {"event_type": "state_changed",
+                                        "data": {"entity_id": feed_data["target"], "new_state": new_state}}
 
-                            await self.ws_update("default", data)
+                                await self.ws_update("default", data)
 
                     await asyncio.sleep(1)
                 except:
