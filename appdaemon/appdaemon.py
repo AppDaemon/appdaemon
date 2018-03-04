@@ -1439,7 +1439,16 @@ class AppDaemon:
                 self.log("INFO", "Calling terminate() for {}".format(name))
                 # Call terminate directly rather than via worker thread
                 # so we know terminate has completed before we move on
-                self.objects[name]["object"].terminate()
+                try:
+                    self.objects[name]["object"].terminate()
+                except:
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected error running terminate() for {}".format(name))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
             if name in self.objects:
                 del self.objects[name]
@@ -1474,7 +1483,16 @@ class AppDaemon:
 
                 # Call it's initialize function
 
-                self.objects[name]["object"].initialize()
+                try:
+                    self.objects[name]["object"].initialize()
+                except:
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected error running initialize() for {}".format(name))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
         else:
             self.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
@@ -1927,7 +1945,7 @@ class AppDaemon:
                     self.init_object(app)
                 except:
                     self.err("WARNING", '-' * 60)
-                    self.err("WARNING", "Unexpected initializing app: {}:".format(app))
+                    self.err("WARNING", "Unexpected error initializing app: {}:".format(app))
                     self.err("WARNING", '-' * 60)
                     self.err("WARNING", traceback.format_exc())
                     self.err("WARNING", '-' * 60)
