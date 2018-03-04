@@ -9,12 +9,10 @@ from appdaemon.utils import (__version__)
 
 REQUIRES = [
     'daemonize',
-    'configparser',
     'astral',
     'requests>=2.6.0',
     'sseclient',
     'websocket-client',
-    'async',
     'aiohttp==2.3.10',
     'yarl==1.1.0',
     'Jinja2==2.10',
