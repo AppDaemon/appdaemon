@@ -1,6 +1,6 @@
 widget_type: baseswitch
 entity: {{entity}}
-state_map: "on"
+state_active: "on"
 state_inactive: "off"
 fields:
   title: {{title}}
