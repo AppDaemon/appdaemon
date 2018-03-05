@@ -1435,21 +1435,27 @@ class AppDaemon:
 
     def term_object(self, name):
         with self.objects_lock:
+            term = None
             if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
                 self.log("INFO", "Calling terminate() for {}".format(name))
                 # Call terminate directly rather than via worker thread
                 # so we know terminate has completed before we move on
-                try:
-                    self.objects[name]["object"].terminate()
-                except:
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", "Unexpected error running terminate() for {}".format(name))
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", traceback.format_exc())
-                    self.err("WARNING", '-' * 60)
-                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
+                term = self.objects[name]["object"].terminate
+
+        if term is not None:
+            try:
+                term()
+            except:
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", "Unexpected error running terminate() for {}".format(name))
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", traceback.format_exc())
+                self.err("WARNING", '-' * 60)
+                if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                    self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+        with self.objects_lock:
             if name in self.objects:
                 del self.objects[name]
 
@@ -1481,18 +1487,20 @@ class AppDaemon:
                     "id": uuid.uuid4()
                 }
 
+                init = self.objects[name]["object"].initialize
+
                 # Call it's initialize function
 
-                try:
-                    self.objects[name]["object"].initialize()
-                except:
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", "Unexpected error running initialize() for {}".format(name))
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", traceback.format_exc())
-                    self.err("WARNING", '-' * 60)
-                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
+            try:
+                init()
+            except:
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", "Unexpected error running initialize() for {}".format(name))
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", traceback.format_exc())
+                self.err("WARNING", '-' * 60)
+                if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                    self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
         else:
             self.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
