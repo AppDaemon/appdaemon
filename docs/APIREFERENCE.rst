@@ -825,7 +825,7 @@ Synopsis
 
 .. code:: python
 
-    self.handle = self.run_at_sunrise(callback, **kwargs)
+    self.handle = self.run_at_sunrise(callback, offset=0, **kwargs)
 
 Returns
 ^^^^^^^
@@ -881,7 +881,7 @@ Synopsis
 
 .. code:: python
 
-    self.handle = self.run_at_sunset(callback, **kwargs)
+    self.handle = self.run_at_sunset(callback, offset=0, **kwargs)
 
 Returns
 ^^^^^^^
