@@ -3,7 +3,7 @@ import datetime
 
 import asyncio
 
-__version__ = "3.0.0b5"
+__version__ = "3.0.0b6"
 secrets = None
 
 class Formatter(object):
