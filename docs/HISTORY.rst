@@ -12,6 +12,7 @@ Change Log
 
  - Fixed a bug that broke binary_sensor widget.
  - Fixed a bug that broke retries when connecting to Home Assistant
+ - Fixed a bug that could cause lockups during app initialization
  - Fixed a bug for Docker that prevented the initial config from working correctly - contributed by `mradziwo <https://github.com/mradziwo>`__
 
 None
