@@ -168,7 +168,7 @@ class HassPlugin:
                     while not self.stopping:
                         msg = await utils.run_in_executor(self.AD.loop, self.AD.executor, messages.__next__)
                         if msg.data != "ping":
-                            self.AD.state_update(self.namespace, json.loads(msg.data))
+                            await self.AD.state_update(self.namespace, json.loads(msg.data))
                     self.reading_messages = False
                 else:
                     #
@@ -263,7 +263,7 @@ class HassPlugin:
                     already_notified = True
                 if not self.stopping:
                     if disconnected_event == False:
-                        self.AD.state_update(self.namespace, {"event_type": "ha_disconnected", "data": {}})
+                        await self.AD.state_update(self.namespace, {"event_type": "ha_disconnected", "data": {}})
                         disconnected_event = True
                     self.log(
                         "WARNING",
