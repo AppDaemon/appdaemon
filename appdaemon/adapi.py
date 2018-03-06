@@ -11,10 +11,11 @@ app = web.Application()
 
 class ADAPI():
 
-    def __init__(self, ad, loop, logger, **config):
+    def __init__(self, ad, loop, logger, access, **config):
 
         self.AD = ad
         self.logger = logger
+        self.access = access
 
         self.api_key = None
         self._process_arg("api_key", config)
@@ -55,6 +56,9 @@ class ADAPI():
 
     def log(self, level, message):
         utils.log(self.logger, level, message, "AppDaemon")
+
+    def log_access(self, level, message):
+        utils.log(self.access, level, message, "AppDaemon")
 
     @staticmethod
     def get_response(code, error):
@@ -104,7 +108,7 @@ class ADAPI():
 
         response = "OK"
         res = self.get_response(code, response)
-        self.log("INFO", "API Call to {}: status: {} {}".format(app, code, response))
+        self.log_access("INFO", "API Call to {}: status: {} {}".format(app, code, response))
 
         return web.json_response(ret, status = code)
 
