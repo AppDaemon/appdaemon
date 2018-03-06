@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- API 200 responses are now logged to the access file
 
 **Fixes**
 

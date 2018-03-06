@@ -70,7 +70,7 @@ class ADMain():
 
         if "api_port" in appdaemon:
             self.log(self.logger, "INFO", "Starting API")
-            self.api = api.ADAPI(self.AD, loop, self.logger, **appdaemon)
+            self.api = api.ADAPI(self.AD, loop, self.logger, self.access, **appdaemon)
         else:
             self.log(self.logger, "INFO", "API is disabled")
 
