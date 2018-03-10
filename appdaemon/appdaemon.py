@@ -308,7 +308,10 @@ class AppDaemon:
 
         loop.create_task(self.utility())
 
+        # Create AppState Loop
 
+        if self.apps:
+            loop.create_task(self.appstate_loop())
 
     def _process_arg(self, arg, args, **kwargs):
         if args:
@@ -329,7 +332,7 @@ class AppDaemon:
         # if ws is not None:
         #    ws.close()
         if self.apps:
-            self.appq.put_nowait({"event_type": "ha_stop", "data": None})
+            self.appq.put_nowait({"namespace": "global", "event_type": "ha_stop", "data": None})
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin].stop()
 
@@ -673,16 +676,29 @@ class AppDaemon:
         with self.state_lock:
             self.state[namespace][entity] = state
 
-    def set_app_state(self, entity_id, state):
+    #
+    # App State
+    #
+
+    async def appstate_loop(self):
+        while not self.stopping:
+            args = await self.appq.get()
+            namespace = args["namespace"]
+            await self.state_update(namespace, args)
+            self.appq.task_done()
+
+    def set_app_state(self, namespace, entity_id, state):
         self.log("DEBUG", "set_app_state: {}".format(entity_id))
+        print(state)
         if entity_id is not None and "." in entity_id:
             with self.state_lock:
-                if entity_id in self.state:
-                    old_state = self.state[entity_id]
+                if entity_id in self.state[namespace]:
+                    old_state = self.state[namespace][entity_id]
                 else:
                     old_state = None
                 data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
-                args = {"event_type": "state_changed", "data": data}
+                args = {"namespace": namespace, "event_type": "state_changed", "data": data}
+                self.state[namespace][entity_id] = state
                 self.appq.put_nowait(args)
 
     #
