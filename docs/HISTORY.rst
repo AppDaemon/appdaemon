@@ -11,7 +11,7 @@ Change Log
 
 **Fixes**
 
-None
+- Re-added set_app_state() to the API
 
 **Breaking Changes**
 

@@ -143,6 +143,35 @@ class Hass(appapi.AppDaemon):
 
         return state
 
+    def set_app_state(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+        self._check_entity(namespace, entity_id)
+        self.AD.log(
+            "DEBUG",
+            "set_app_state: {}, {}".format(entity_id, kwargs)
+        )
+
+        if entity_id in self.get_state():
+            new_state = self.get_state()[entity_id]
+        else:
+            # Its a new state entry
+            new_state = {}
+            new_state["attributes"] = {}
+
+        if "state" in kwargs:
+            new_state["state"] = kwargs["state"]
+
+        if "attributes" in kwargs:
+            new_state["attributes"].update(kwargs["attributes"])
+
+        # Update AppDaemon's copy
+
+        self.AD.set_app_state(namespace, entity_id, new_state)
+
+        return new_state
+
     def entity_exists(self, entity_id, **kwargs):
         if "namespace" in kwargs:
             del kwargs["namespace"]
