@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 - API 200 responses are now logged to the access file
+- Add meta tags to prevent double tap zoom on iOS
 
 **Fixes**
 
