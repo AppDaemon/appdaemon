@@ -1331,26 +1331,28 @@ Cosmetic Arguments
 icon
 ~~~~
 
-A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured like the following:
+A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured in a similar manner to the following:
 
-icon:
-  title: icon
-  widget_type: icon
-  entity: binary_sensor.basement_door_sensor
-  state_text: 1
-  icons:
-    "active":
-      icon: fa-glass
-      style: "color: green"
-    "inactive":
-      icon: fa-repeat
-      style: "color: blue"
-    "idle":
-      icon: fa-frown-o
-      style: "color: red"
-    "default":
-      icon: fa-rocket
-      style: "color: cyan"
+.. code:: yaml
+
+   icon:
+     title: icon
+     widget_type: icon
+     entity: binary_sensor.basement_door_sensor
+     state_text: 1
+     icons:
+       "active":
+         icon: fa-glass
+         style: "color: green"
+       "inactive":
+         icon: fa-repeat
+         style: "color: blue"
+       "idle":
+         icon: fa-frown-o
+         style: "color: red"
+       "default":
+         icon: fa-rocket
+         style: "color: cyan"
 
 The icons list is mandatory, and each ebtry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
 
