@@ -4,7 +4,7 @@ import os
 import re
 import time
 import traceback
-import concurrent
+import concurrent.futures
 from urllib.parse import urlparse
 import aiohttp
 import feedparser
@@ -57,13 +57,15 @@ def secure(myfunc):
                     return await myfunc(*args)
                 else:
                     return await self.forcelogon(args[1])
+            elif "dash_password" in args[1].query and args[1].query["dash_password"] == self.dash_password:
+                return await myfunc(*args)
             else:
                 return await self.forcelogon(args[1])
 
     return wrapper
 
 
-class RunDash():
+class RunDash:
 
     def __init__(self, ad, loop, logger, access, **config):
 
@@ -191,16 +193,14 @@ class RunDash():
             if arg in kwargs:
                 setattr(self, arg, kwargs[arg])
 
-    def check_password(self, password, hash):
+    @staticmethod
+    def check_password(password, hash):
         return bcrypt.checkpw, str.encode(password), str.encode(hash)
-
-
 
     async def forcelogon(self, request):
         response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list,
                                                     {"logon": 1})
         return web.Response(text=response, content_type="text/html")
-
 
     async def logon(self, request):
         data = await request.post()
@@ -217,7 +217,7 @@ class RunDash():
             response.set_cookie("adcreds", hashed.decode("utf-8"))
 
         else:
-            self.access("WARNING", "Unsuccesful logon from {}".format(request.host))
+            self.access("WARNING", "Unsuccessful logon from {}".format(request.host))
             response = await self.list_dash(request)
 
         return response
@@ -229,11 +229,10 @@ class RunDash():
     # noinspection PyUnusedLocal
     @secure
     async def list_dash(self, request):
-        return (await self._list_dash(request))
-
+        return await self._list_dash(request)
 
     async def list_dash_no_secure(self, request):
-        return (await self._list_dash(request))
+        return await self._list_dash(request)
 
     async def _list_dash(self, request):
         response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list)
