@@ -78,10 +78,10 @@ Examples
     state = self.get_state("light.office_1")
 
      Return the brightness attribute for light.office_1
-    state = self.get_state("light.office_1", "brightness")
+    state = self.get_state("light.office_1", attribute="brightness")
 
      Return the entire state for light.office_1
-    state = self.get_state("light.office_1", "all")
+    state = self.get_state("light.office_1", attribute="all")
 
 set\_state()
 ~~~~~~~~~~~~

@@ -1354,9 +1354,9 @@ A widget to monitor the state of an entity and display a different icon and styl
          icon: fa-rocket
          style: "color: cyan"
 
-The icons list is mandatory, and each ebtry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
 
-The default sntry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
+The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
