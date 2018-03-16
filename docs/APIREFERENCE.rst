@@ -68,16 +68,16 @@ Examples
 
 .. code:: python
 
-     Return state for the entire system
+    # Return state for the entire system
     state = self.get_state()
 
-     Return state for all switches in the system
+    # Return state for all switches in the system
     state = self.get_state("switch")
 
-     Return the state attribute for light.office_1
+    # Return the state attribute for light.office_1
     state = self.get_state("light.office_1")
 
-     Return the brightness attribute for light.office_1
+    # Return the brightness attribute for light.office_1
     state = self.get_state("light.office_1", attribute="brightness")
 
      Return the entire state for light.office_1
@@ -87,9 +87,7 @@ set\_state()
 ~~~~~~~~~~~~
 
 ``set_state()`` will make a call back to Home Assistant and make changes
-to the internal state of Home Assistant. This is not something that you
-would usually want to do and the applications are limited however the
-call is included for completeness. Note that for instance, setting the
+to the internal state of Home Assistant. Note that for instance, setting the
 state of a light to ``on`` won't actually switch the device on, it will
 merely change the state of the device in Home Assistant so that it no
 longer reflects reality. In most cases, the state will be corrected the
@@ -1080,7 +1078,7 @@ Examples
 
 .. code:: python
 
-    self.call_service("light/turn_on", entity_id = "light/office_lamp", color_name = "red")
+    self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
     self.call_service("notify/notify", title = "Hello", message = "Hello World")
 
 turn\_on()
