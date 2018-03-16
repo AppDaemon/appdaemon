@@ -130,12 +130,11 @@ class Hass(appapi.AppDaemon):
             headers = {}
         apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
 
-
         r = requests.post(
             apiurl, headers=headers, json=new_state, verify=certpath
         )
         r.raise_for_status()
-        state= r.json()
+        state = r.json()
 
         # Update AppDaemon's copy
 

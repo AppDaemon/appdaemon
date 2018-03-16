@@ -914,7 +914,7 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 
 .. code:: yaml
 
-    AppDaemon:
+    hadashboard:
 
       rss_feeds:
         - feed: <feed_url>
