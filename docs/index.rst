@@ -27,6 +27,7 @@ This is a fairly significant step, and the decision to do this was influenced by
 The naming and placement of the imports needed to change to support the plugin architecture, and to make more sense of the naming in a multiple plugin environment. You will need to edit each of your apps and change the top couple of lines from:
 
 .. code:: python
+
    import appdaemon.appapi as appapi
 
    class MyClass(appapi.AppDaemon):
@@ -36,6 +37,7 @@ The naming and placement of the imports needed to change to support the plugin a
 to:
 
 .. code:: python
+
    import appdaemon.plugins.hass.hassapi as hass
 
    class MyClass(hass.Hass):
@@ -59,6 +61,7 @@ When HADashboard is integrated with HASS, the config for HADashboard needs to be
 e.g.:
 
 .. code:: yaml
+
    hadashboard:
      dash_url: http://192.168.1.20:5050
      rss_feeds:
@@ -74,6 +77,7 @@ Logging is a function of the underlying execution code, not specifically AppDaem
 For example:
 
 .. code:: yaml
+
    log:
      accessfile: /export/hass/appdaemon_test/logs/access.log
      errorfile: /export/hass/appdaemon_test/logs/error.log
@@ -93,6 +97,7 @@ This was done mainly for consistency, and because the capitals bugged me ;)
 This comes down to a reorganization of the apps.yaml file to reflect the fact that there are now plugins and there may be more than one of them. Rather than having it's own section, the HASS plugin is now listed under the ``appdaemon`` section, although the arguments remain the same. Here is an example:
 
 .. code:: yaml
+
    appdaemon:
      api_port: 5001
      api_key: !secret appdaemon_key
@@ -104,6 +109,7 @@ This comes down to a reorganization of the apps.yaml file to reflect the fact th
          ha_key: !secret home_assistant_key
          ha_url: http://192.168.1.20:8123
          #commtype: SSE
+
 
 - --commtype command line argument has been moved to the appdaemon.cfg file
 
@@ -148,6 +154,7 @@ So what does that mean for anyone upgrading? Well, if you weren't using dependen
 If you were using dependencies, you will need to make some minor changes, to reference apps rather than modules, and to change the format for multiple entries. Here's an example of an old style dependency tree:
 
 .. code:: yaml
+
    app1:
      module: module1
      class: class1
@@ -167,6 +174,7 @@ If you were using dependencies, you will need to make some minor changes, to ref
 Under the new system we change the dependencies to apps and change the way the dependencies are listed:
 
 .. code:: yaml
+
    app1:
      module: module1
      class: class1
