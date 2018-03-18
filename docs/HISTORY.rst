@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+3.0.1
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 3.0.0 (2018-03-18)
 ------------------
 
