@@ -87,7 +87,6 @@ class AppDaemon:
 
         self.config_file_modified = 0
         self.tz = None
-        self.ad_time_zone = None
 
         self.realtime = True
         self.version = 0
@@ -871,8 +870,11 @@ class AppDaemon:
         ))
 
     def update_sun(self):
-        # now = datetime.datetime.now(self.tz)
+        #now = datetime.datetime.now(self.tz)
+        #now = pytz.utc.localize(self.get_now())
+
         now = self.tz.localize(self.get_now())
+
         mod = -1
         while True:
             try:
