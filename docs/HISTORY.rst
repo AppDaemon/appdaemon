@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- Added Production Mode
 
 **Fixes**
 

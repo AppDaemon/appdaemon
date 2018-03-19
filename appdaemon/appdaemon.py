@@ -174,6 +174,9 @@ class AppDaemon:
         self.check_app_updates_profile = False
         self._process_arg("check_app_updates_profile", kwargs)
 
+        self.production_mode = False
+        self._process_arg("production_mode", kwargs)
+
         self.invalid_yaml_warnings = True
         self._process_arg("invalid_yaml_warnings", kwargs)
 
@@ -1396,8 +1399,9 @@ class AppDaemon:
 
                     if self.apps:
 
-                        # Check to see if config has changed
-                        await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
+                        if self.production_mode is False:
+                            # Check to see if config has changed
+                            await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
 
 
                     # Call me suspicious, but lets update state from the plugins periodically
