@@ -4,7 +4,6 @@ import traceback
 import os
 import os.path
 from queue import Queue
-import time
 import datetime
 import uuid
 import astral
@@ -18,6 +17,11 @@ import random
 import re
 from copy import deepcopy, copy
 import subprocess
+import functools
+import time
+import cProfile
+import io
+import pstats
 
 import appdaemon.utils as utils
 
@@ -34,6 +38,7 @@ class AppDaemon:
         self.config = kwargs
         self.config["ad_version"] = utils.__version__
         self.q = Queue(maxsize=0)
+        self.check_app_updates_profile = ""
 
         self.was_dst = False
 
@@ -165,6 +170,9 @@ class AppDaemon:
 
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs, int=True)
+
+        self.check_app_updates_profile = False
+        self._process_arg("check_app_updates_profile", kwargs)
 
         self.invalid_yaml_warnings = True
         self._process_arg("invalid_yaml_warnings", kwargs)
@@ -324,6 +332,36 @@ class AppDaemon:
                         self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
                 else:
                     setattr(self, arg, value)
+
+    def _timeit(func):
+        @functools.wraps(func)
+        def newfunc(self, *args, **kwargs):
+            start_time = time.time()
+            result = func(self, *args, **kwargs)
+            elapsed_time = time.time() - start_time
+            self.log("INFO", 'function [{}] finished in {} ms'.format(
+                func.__name__, int(elapsed_time * 1000)))
+            return result
+
+        return newfunc
+
+    def _profile_this(fn):
+        def profiled_fn(self, *args, **kwargs):
+            self.pr = cProfile.Profile()
+            self.pr.enable()
+
+            result = fn(self, *args, **kwargs)
+
+            self.pr.disable()
+            s = io.StringIO()
+            sortby = 'cumulative'
+            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            ps.print_stats()
+            self.profile = fn + s.getvalue()
+
+            return result
+
+        return profiled_fn
 
 
     def stop(self):
@@ -688,7 +726,7 @@ class AppDaemon:
 
     def set_app_state(self, namespace, entity_id, state):
         self.log("DEBUG", "set_app_state: {}".format(entity_id))
-        print(state)
+        #print(state)
         if entity_id is not None and "." in entity_id:
             with self.state_lock:
                 if entity_id in self.state[namespace]:
@@ -1351,6 +1389,7 @@ class AppDaemon:
                 self.process_event("global", {"event_type": "appd_started", "data": {}})
 
             while not self.stopping:
+
                 start_time = datetime.datetime.now().timestamp()
 
                 try:
@@ -1359,6 +1398,7 @@ class AppDaemon:
 
                         # Check to see if config has changed
                         await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
+
 
                     # Call me suspicious, but lets update state from the plugins periodically
                     # in case we miss events for whatever reason
@@ -1414,9 +1454,11 @@ class AppDaemon:
                 loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
 
                 self.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
-
                 if loop_duration > (self.utility_delay * 1000 * 0.9):
                     self.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+                    if self.check_app_updates_profile is True:
+                        self.diag("INFO", "Profile information for Utility Loop")
+                        self.diag("INFO", self.check_app_updates_profile_stats)
 
                 await asyncio.sleep(self.utility_delay)
 
@@ -1812,10 +1854,17 @@ class AppDaemon:
                 return True
         return False
 
+    #@_timeit
     def check_app_updates(self, plugin=None):
 
         if not self.apps:
             return
+
+        # Lets add some profiling
+        pr = None
+        if self.check_app_updates_profile is True:
+            pr = cProfile.Profile()
+            pr.enable()
 
         # Process filters
 
@@ -1977,6 +2026,15 @@ class AppDaemon:
                     self.err("WARNING", '-' * 60)
                     if self.errfile != "STDERR" and self.logfile != "STDOUT":
                         self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+        if self.check_app_updates_profile is True:
+            pr.disable()
+
+        s = io.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        self.check_app_updates_profile_stats = s.getvalue()
 
     def get_app_deps_and_prios(self, applist):
 

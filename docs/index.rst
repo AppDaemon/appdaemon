@@ -94,7 +94,7 @@ This was done mainly for consistency, and because the capitals bugged me ;)
 
 - Plugins (such as the HASS plugin now have their own parameters under the plugin section of the config file
 
-This comes down to a reorganization of the apps.yaml file to reflect the fact that there are now plugins and there may be more than one of them. Rather than having it's own section, the HASS plugin is now listed under the ``appdaemon`` section, although the arguments remain the same. Here is an example:
+This comes down to a reorganization of the appdaemon.yaml file to reflect the fact that there are now plugins and there may be more than one of them. Rather than having it's own section, the HASS plugin is now listed under the ``appdaemon`` section, although the arguments remain the same. Here is an example:
 
 .. code:: yaml
 
@@ -137,7 +137,7 @@ A minor change just to reflect the recent changes to HASS in this area, e.g ``in
 
 - It is no longer possible to automatically migrate from the legacy cfg style of config, and support for cfg files has been dropped.
 
-This has been on the cards for a while - if yo uare still using cfg files, use the latest 2.0 version of appdaemon to migrate to yaml style configuration before you upgrade to 3.0.
+This has been on the cards for a while - if you are still using cfg files, use the latest 2.0 version of appdaemon to migrate to yaml style configuration before you upgrade to 3.0.
 
 - App modules not listed in an apps.yaml file will no longer be loaded. Python modules may still be imported directly if they are in a directory in which other apps reside.
 
