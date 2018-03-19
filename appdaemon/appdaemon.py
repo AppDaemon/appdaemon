@@ -149,8 +149,8 @@ class AppDaemon:
         self.tick = 1
         self._process_arg("tick", kwargs, int=True)
 
-        self.max_skew = 1
-        self._process_arg("max_skew", kwargs, int=True)
+        self.max_clock_skew = 1
+        self._process_arg("max_clock_skew", kwargs, int=True)
 
         self.threadpool_workers = 10
         self._process_arg("threadpool_workers", kwargs, int=True)
@@ -170,6 +170,9 @@ class AppDaemon:
 
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs, int=True)
+
+        self.max_utility_skew = self.utility_delay * 0.9
+        self._process_arg("max_utility_skew", kwargs, float=True)
 
         self.check_app_updates_profile = False
         self._process_arg("check_app_updates_profile", kwargs)
@@ -330,6 +333,12 @@ class AppDaemon:
                 if "int" in kwargs and kwargs["int"] is True:
                     try:
                         value = int(value)
+                        setattr(self, arg, value)
+                    except ValueError:
+                        self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
+                if "float" in kwargs and kwargs["float"] is True:
+                    try:
+                        value = float(value)
                         setattr(self, arg, value)
                     except ValueError:
                         self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
@@ -1185,7 +1194,7 @@ class AppDaemon:
             if self.realtime:
                 real_now = datetime.datetime.now().timestamp()
                 delta = abs(utc - real_now)
-                if delta > self.max_skew:
+                if delta > self.max_clock_skew:
                     self.log("WARNING",
                               "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                     return real_now
@@ -1458,7 +1467,7 @@ class AppDaemon:
                 loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
 
                 self.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
-                if loop_duration > (self.utility_delay * 1000 * 0.9):
+                if loop_duration > (self.max_utility_skew * 1000):
                     self.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
                     if self.check_app_updates_profile is True:
                         self.diag("INFO", "Profile information for Utility Loop")
