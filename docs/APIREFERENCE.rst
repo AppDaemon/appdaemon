@@ -2641,11 +2641,11 @@ state
 '''''
 
 The state to be associated with the entity id. This is a dictionary and
-must contain the enirety of the state information, It will replace the
+must contain the entirety of the state information, It will replace the
 old state information, and calls like ``listen_state()`` should work
 correctly reporting the old and the new state information as long as you
 keep the dictionary looking similar to HA status updates, e.g. the main
-state in a state field, and any attibutes in an attributes
+state in a state field, and any attributes in an attributes
 sub-dictionary.
 
 Examples
