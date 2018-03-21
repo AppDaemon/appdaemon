@@ -932,7 +932,6 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
    dashboard definition file
 -  ``feed_refresh_interval`` - how often AppDaemon will refresh the RSS
    feeds
--  ``show_description`` - if set to ``1`` the widget will show a short description of the story as well as the title. Default is ``0``
 
 There is no limit to the number of feeds you configure, and you will
 need to configure one RSS widget to display each feed.
@@ -953,8 +952,9 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
--  ``recent`` - the number of most recent stories that will be shown. If
-   not specified, all stories in the feed will be shown.
+-  ``recent`` - the number of most recent stories that will be shown. If not specified, all stories in the feed will be shown.
+-  ``show_description`` - if set to ``1`` the widget will show a short description of the story as well as the title. Default is ``0``
+
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^

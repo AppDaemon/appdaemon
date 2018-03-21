@@ -15,7 +15,7 @@ fi
 
 # if apps file doesn't exist, copy the default
 if [ ! -f $CONF/apps/apps.yaml ]; then
-  cp $CONF_SRC/apps.yaml.example $CONF/apps/apps.yaml
+  cp $CONF_SRC/apps/apps.yaml.example $CONF/apps/apps.yaml
 fi
 
 # if dashboards folder doesn't exist, copy the default
