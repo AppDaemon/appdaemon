@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 - Added Production Mode
+- RSS Feed can now optionally show a description for each story
 
 **Fixes**
 
