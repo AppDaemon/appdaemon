@@ -21,7 +21,7 @@ class SwitchReset(hass.Hass):
   def initialize(self):
     
     self.device_db = shelve.open(self.args["file"])
-    self.listen_event(self.ha_event, "ha_started")
+    self.listen_event(self.ha_event, "plugin_started")
     self.listen_event(self.appd_event, "appd_started")
     self.listen_state(self.state_change, "input_boolean")
     self.listen_state(self.state_change, "input_select")
