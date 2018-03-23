@@ -364,7 +364,7 @@ class Hass(appapi.AppDaemon):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
-        self.call_service("input_number/set_value", **rargs)
+        self.call_service("input_text/set_value", **rargs)
 
     @hass_check
     def select_option(self, entity_id, option, **kwargs):
