@@ -11,7 +11,7 @@ Change Log
 
 **Fixes**
 
-None
+- Fixed a problem in the Docker initialization script
 
 **Breaking Changes**
 
