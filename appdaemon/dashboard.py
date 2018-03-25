@@ -453,7 +453,7 @@ class Dashboard:
 
         dash["widgets"] = []
         dash["errors"] = []
-        valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size", "rows", "namespace"]
+        valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size", "rows", "namespace", "scalable"]
         layouts = []
 
         if level > self.max_include_depth:
@@ -818,6 +818,11 @@ class Dashboard:
             else:
                 widgets = {}
 
+            if "scalable" in dash:
+                scalable = dash["scalable"]
+            else:
+                scalable = True
+
             include_path = os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
             with open(include_path, "r") as include_file:
                 head_includes = include_file.read()
@@ -829,7 +834,7 @@ class Dashboard:
             # return params
             #
             params = {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
-                    "head_includes": head_includes, "body_includes": body_includes}
+                    "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable}
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),
