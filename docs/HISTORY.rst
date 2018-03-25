@@ -8,6 +8,7 @@ Change Log
 
 - Added Production Mode
 - RSS Feed can now optionally show a description for each story
+- Disabling of zooming and double tap zooming on iOs devices is now optional
 
 **Fixes**
 

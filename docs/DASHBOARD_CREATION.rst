@@ -60,6 +60,7 @@ These are all fairly self explanatory:
 -  ``rows`` - the total number of rows in the dashboard. This will help
    with spacing, but is optional for dashboards with fewer than 15 rows
 -  ``columns`` - the number of columns the dasboard will have.
+-  ``scalable`` - if set to ``False`` this parameter will disable resizing and double tap zooming on iOS devices, default is to not disable zooming.
 -  ``global_parameters`` - a list of parameters that will be applied to
    every widget. If the widget does not accept that parameter it will be
    ignored. Global parameters can be overriden at the widget definition
