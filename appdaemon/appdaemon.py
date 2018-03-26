@@ -1475,6 +1475,11 @@ class AppDaemon:
 
                 await asyncio.sleep(self.utility_delay)
 
+            #
+            # Stopping, so terminate apps.
+            #
+
+            self.check_app_updates(exit=True)
     #
     # AppDaemon API
     #
@@ -1868,7 +1873,7 @@ class AppDaemon:
         return False
 
     #@_timeit
-    def check_app_updates(self, plugin=None):
+    def check_app_updates(self, plugin=None, exit=False):
 
         if not self.apps:
             return
@@ -1932,7 +1937,7 @@ class AppDaemon:
         # Check for deleted modules and add them to the terminate list
         deleted_modules = []
         for file in self.monitored_files:
-            if file not in found_files:
+            if file not in found_files or exit is True:
                 deleted_modules.append(file)
                 self.log("INFO", "Removing module {}".format(file))
 
