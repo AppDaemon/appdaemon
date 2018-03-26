@@ -9,10 +9,13 @@ Change Log
 - Added Production Mode
 - RSS Feed can now optionally show a description for each story
 - Disabling of zooming and double tap zooming on iOs devices is now optional via the ``scaling`` dashboard argument
+- Exiting form the commandline with ctrl-c will now cleanly terminate apps
+- Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
 
 **Fixes**
 
 - Fixed a problem in the Docker initialization script
+- Fixed an parameter collision for events with a parameter ``name`` in ``listen_event()``
 
 **Breaking Changes**
 

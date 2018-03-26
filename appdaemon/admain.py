@@ -28,6 +28,14 @@ class ADMain():
         self.AD = None
         self.rundash = None
 
+    def init_signals(self):
+        # Windows does not support SIGUSR1 or SIGUSR2
+        if platform.system() != "Windows":
+            signal.signal(signal.SIGUSR1, self.handle_sig)
+            signal.signal(signal.SIGINT, self.handle_sig)
+            signal.signal(signal.SIGHUP, self.handle_sig)
+            signal.signal(signal.SIGTERM, self.handle_sig)
+
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
         if signum == signal.SIGUSR1:
@@ -41,6 +49,9 @@ class ADMain():
             self.AD.check_app_updates(True)
         if signum == signal.SIGINT:
             self.log(self.logger, "INFO", "Keyboard interrupt")
+            self.stop()
+        if signum == signal.SIGTERM:
+            self.log(self.logger, "INFO", "SIGTERM Recieved")
             self.stop()
 
     def stop(self):
@@ -91,11 +102,7 @@ class ADMain():
         # import appdaemon.stacktracer
         # appdaemon.stacktracer.trace_start("/tmp/trace.html")
 
-        # Windows does not support SIGUSR1 or SIGUSR2
-        if platform.system() != "Windows":
-            signal.signal(signal.SIGUSR1, self.handle_sig)
-            signal.signal(signal.SIGINT, self.handle_sig)
-            signal.signal(signal.SIGHUP, self.handle_sig)
+        self.init_signals()
 
         # Get command line args
 
