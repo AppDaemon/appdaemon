@@ -753,15 +753,15 @@ class AppDaemon:
     #
     # Events
     #
-    def add_event_callback(self, name, namespace, cb, event, **kwargs):
+    def add_event_callback(self, _name, namespace, cb, event, **kwargs):
         with self.callbacks_lock:
-            if name not in self.callbacks:
-                self.callbacks[name] = {}
+            if _name not in self.callbacks:
+                self.callbacks[_name] = {}
             handle = uuid.uuid4()
             with self.objects_lock:
-                self.callbacks[name][handle] = {
-                    "name": name,
-                    "id": self.objects[name]["id"],
+                self.callbacks[_name][handle] = {
+                    "name": _name,
+                    "id": self.objects[_name]["id"],
                     "type": "event",
                     "function": cb,
                     "namespace": namespace,

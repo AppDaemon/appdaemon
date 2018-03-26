@@ -218,12 +218,12 @@ class AppDaemon:
     #
 
     def listen_event(self, namespace, cb, event=None, **kwargs):
-        name = self.name
+        _name = self.name
         self.AD.log(
             "DEBUG",
             "Calling listen_event for {}".format(self.name)
         )
-        return self.AD.add_event_callback(name, namespace, cb, event, **kwargs)
+        return self.AD.add_event_callback(_name, namespace, cb, event, **kwargs)
 
     def cancel_listen_event(self, handle):
         self.AD.log(
