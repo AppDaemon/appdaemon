@@ -8,7 +8,7 @@ Change Log
 
 - Added Production Mode
 - RSS Feed can now optionally show a description for each story
-- Disabling of zooming and double tap zooming on iOs devices is now optional
+- Disabling of zooming and double tap zooming on iOs devices is now optional via the ``scaling`` dashboard argument
 
 **Fixes**
 
@@ -16,7 +16,7 @@ Change Log
 
 **Breaking Changes**
 
-None
+- iOS Scaling and tap zooming is no longer disabled by default
 
 3.0.0 (2018-03-18)
 ------------------
