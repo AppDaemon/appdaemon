@@ -711,18 +711,29 @@ Style Arguments:
 weather
 ~~~~~~~
 
-Up to date weather reports. Requires dark sky to be configured in Home
-Assistant with at minimum the following sensors:
+Up to date weather reports. By default it's configured to work with dark sky
+sensor. To use all the features you need to add these sensors to
+monitored_conditions:
 
 -  temperature
+-  apparent\_temperature
 -  humidity
 -  precip\_probability
 -  precip\_intensity
+-  precip\_type
 -  wind\_speed
--  pressure
 -  wind\_bearing
--  apparent\_temperature
+-  pressure
 -  icon
+
+To have the forecast displayed set ``show_forecast`` to 1. For it to work you
+additionally need to add the forecast option in dark_sky Home Assistant
+configuration.
+
+.. code:: yaml
+
+    forecast:
+      - 1
 
 Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^^
@@ -732,7 +743,40 @@ None
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
-None
+- ``title``
+- ``show_forecast`` - show the forecast
+- ``prefer_icons`` - use icons instead of text
+- ``forecast_title`` - title of the forecast if enabled
+- ``sensors`` - list of sensors used by the widget
+
+You can change the entities used by the widget by overwriting thier values 
+in ``sensors`` key in configuration.
+
+Example with default values:
+
+.. code:: yaml
+
+    sample_weather:
+      title: Today
+      show_foreacast: 1
+      prefer_icons: 1
+      forecast_title: Tomorrow
+      sensors:
+        icon: sensor.dark_sky_icon
+        temperature: sensor.dark_sky_temperature
+        apparent_temperature: sensor.dark_sky_apparent_temperature
+        humidity: sensor.dark_sky_humidity
+        precip_probability: sensor.dark_sky_precip_probability
+        precip_intensity: sensor.dark_sky_precip_intensity
+        precip_type: sensor.dark_sky_precip
+        pressure: sensor.dark_sky_pressure
+        wind_speed: sensor.dark_sky_wind_speed
+        wind_bearing: sensor.dark_sky_wind_bearing
+        forecast_icon: sensor.dark_sky_icon_1
+        forecast_temperature: sensor.dark_sky_temperature_1
+        forecast_apparent_temperature: sensor.dark_sky_apparent_temperature_1
+        forecast_precip_probability: sensor.dark_sky_precip_probability_1
+        forecast_precip_type: sensor.dark_sky_precip_1
 
 Cosmetic Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -741,6 +785,8 @@ Cosmetic Arguments:
 -  ``main_style``
 -  ``unit_style``
 -  ``sub_style``
+-  ``sub_unit_style``
+-  ``title_style``
 
 weather_summary
 ~~~~~~~~~~~~~~~
