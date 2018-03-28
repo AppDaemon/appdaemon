@@ -157,5 +157,6 @@ def log(logger, level, msg, name="", ts=None):
     else:
         timestamp = ts
 
-    logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
-
+    safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+    logger.log(levels[level], "{} {}{} {}".format(timestamp, level, 
+        safe_enc(name), safe_enc(msg)))
