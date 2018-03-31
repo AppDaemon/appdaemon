@@ -11,6 +11,7 @@ import feedparser
 from aiohttp import web
 import ssl
 import bcrypt
+import socket
 
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
@@ -169,6 +170,10 @@ class RunDash:
             handler = self.app.make_handler()
 
             f = loop.create_server(handler, "0.0.0.0", int(self.dash_port), ssl=context)
+
+            #print((([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [
+             #   [(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in
+             #    [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + ["no IP found"])[0])
 
             loop.create_task(f)
             loop.create_task(self.update_rss())

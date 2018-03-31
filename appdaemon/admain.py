@@ -356,6 +356,8 @@ class ADMain():
         self.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
         self.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
 
+        utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
+
         if isdaemon:
             keep_fds = [fh.stream.fileno(), efh.stream.fileno()]
             pid = args.pidfile

@@ -60,14 +60,21 @@ class Dashboard:
         # Create some dirs
         #
         try:
+            js = os.path.join(self.compile_dir, "javascript")
+            css = os.path.join(self.compile_dir, "css")
             if not os.path.isdir(self.compile_dir):
                 os.makedirs(self.compile_dir)
 
             if not os.path.isdir(os.path.join(self.compile_dir, "javascript")):
-                os.makedirs(os.path.join(self.compile_dir, "javascript"))
+                os.makedirs(js)
 
             if not os.path.isdir(os.path.join(self.compile_dir, "css")):
-                os.makedirs(os.path.join(self.compile_dir, "css"))
+                os.makedirs(css)
+
+            ha.check_path("css", self.logger, css, permissions="rwx")
+            ha.check_path("javascript", self.logger, js, permissions="rwx")
+
+
         except:
             ha.log(self.logger, "WARNING", '-' * 60)
             ha.log(self.logger, "WARNING", "Unexpected error during HADashboard initialization")
