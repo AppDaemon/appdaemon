@@ -1338,7 +1338,7 @@ class AppDaemon:
         # Wait for all plugins to initialize
         #
         initialized = False
-        while not initialized:
+        while not initialized and self.stopping is False:
             initialized = True
             for plugin in self.plugin_objs:
                 if not self.plugin_objs[plugin].active():
@@ -2339,13 +2339,11 @@ class AppDaemon:
                 await self.dashboard.ws_update(namespace, data)
 
         except:
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during state_update()")
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
-            if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                self.log("WARNING", "Logged an error to {}".format(self.errfile))
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", "Unexpected error during state_update()")
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", traceback.format_exc())
+            self.log("WARNING", '-' * 60)
 
 
     #

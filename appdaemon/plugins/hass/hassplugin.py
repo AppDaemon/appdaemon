@@ -22,6 +22,7 @@ class HassPlugin:
         self.ws = None
         self.reading_messages = False
         self.name = name
+        self.metadata = None
 
         self.log("INFO", "HASS Plugin Initializing")
 
@@ -106,7 +107,7 @@ class HassPlugin:
     #
 
     async def get_metadata(self):
-        return await self.get_hass_config()
+        return self.metadata
 
     #
     # Handle state updates
@@ -158,6 +159,10 @@ class HassPlugin:
                             )
                         )
                     self.reading_messages = True
+                    #
+                    # Grab Metadata
+                    #
+                    self.metadata = await self.get_hass_config()
                     #
                     # Fire HA_STARTED Events
                     #
@@ -225,10 +230,11 @@ class HassPlugin:
                         self.log("WARNING", result)
                         raise ValueError("Error subscribing to HA Events")
 
-                    #
-                    # Loop forever consuming events
-                    #
                     self.reading_messages = True
+                    #
+                    # Grab Metadata
+                    #
+                    self.metadata = await self.get_hass_config()
                     #
                     # Fire HA_STARTED Events
                     #
@@ -236,6 +242,9 @@ class HassPlugin:
 
                     already_notified = False
 
+                    #
+                    # Loop forever consuming events
+                    #
                     while not self.stopping:
                         ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                         result = json.loads(ret)
@@ -311,17 +320,20 @@ class HassPlugin:
         return await r.json()
 
     async def get_hass_config(self):
-        self.log("DEBUG", "get_ha_config()")
-        if self.ha_key != "":
-            headers = {'x-ha-access': self.ha_key}
-        else:
-            headers = {}
-        apiurl = "{}/api/config".format(self.ha_url)
-        self.log("DEBUG", "get_ha_config: url is {}".format(apiurl))
-        r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
-        r.raise_for_status()
-        return await r.json()
-
+        try:
+            self.log("DEBUG", "get_ha_config()")
+            if self.ha_key != "":
+                headers = {'x-ha-access': self.ha_key}
+            else:
+                headers = {}
+            apiurl = "{}/api/config".format(self.ha_url)
+            self.log("DEBUG", "get_ha_config: url is {}".format(apiurl))
+            r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
+            r.raise_for_status()
+            return await r.json()
+        except:
+            self.log("WARNING", "Error getting metadata")
+            raise
     #
     # Async version of call_service() for the hass proxy for HADashboard
     #

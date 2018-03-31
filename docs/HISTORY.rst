@@ -6,11 +6,12 @@ Change Log
 
 **Features**
 
-- Added Production Mode
+- Added Production Mode to disable checking of App config or code changes
 - RSS Feed can now optionally show a description for each story
 - Disabling of zooming and double tap zooming on iOs devices is now optional via the ``scaling`` dashboard argument
-- Exiting form the commandline with ctrl-c will now cleanly terminate apps
+- Exiting from the commandline with ctrl-c will now cleanly terminate apps
 - Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
+- Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
 
 **Fixes**
 
@@ -36,7 +37,6 @@ Change Log
 **Breaking Changes**
 
 None
-
 
 3.0.0b5 (2018-03-05)
 --------------------
