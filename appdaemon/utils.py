@@ -1,7 +1,7 @@
 import os
 import datetime
-
 import asyncio
+import pwd
 
 __version__ = "3.0.1"
 secrets = None
@@ -159,3 +159,67 @@ def log(logger, level, msg, name="", ts=None):
 
     logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
 
+def find_owner(filename):
+    return pwd.getpwuid(os.stat(filename).st_uid).pw_name
+
+def check_path(type, logger, path, pathtype="directory", permissions=None):
+
+    perms = permissions
+    if pathtype == "file":
+        dir = os.path.dirname(path)
+        file = path
+        if perms is None:
+            perms = "r"
+    else:
+        dir = path
+        file = None
+        if perms is None:
+            perms = "rx"
+
+    dirs = []
+    while not os.path.ismount(dir):
+        dirs.append(dir)
+        d, F = os.path.split(dir)
+        dir = d
+
+    fullpath = True
+    for directory in reversed(dirs):
+        if not os.access(directory, os.F_OK):
+            path_log(logger, "{}: {} does not exist exist".format(type, directory))
+            fullpath = False
+        elif not os.path.isdir(directory):
+            if os.path.isfile(directory):
+                path_log(logger, "{}: {} exists, but is a file instead of a directory".format(type,
+directory))
+                fullpath = False
+        else:
+            owner = find_owner(directory)
+            if "r" in perms and not os.access(directory, os.R_OK):
+                path_log(logger, "{}: {} exists, but is not readable, owner: {}".format(type, directory, owner))
+                fullpath = False
+            if "w" in perms and not os.access(directory, os.W_OK):
+                path_log(logger, "{}: {} exists, but is not writeable, owner: {}".format(type, directory, owner))
+                fullpath = False
+            if "x" in perms and not os.access(directory, os.X_OK):
+                path_log(logger, "{}: {} exists, but is not executable, owner: {}".format(type, directory, owner))
+                fullpath = False
+    if fullpath is True:
+        owner = find_owner(path)
+        user = pwd.getpwuid(os.getuid()).pw_name
+        if owner != user:
+            path_log(logger, "{}: {} is owned by {} but appdaemon is running as {}".format(type, path, owner, user))
+
+    if file is not None:
+        owner = find_owner(file)
+        if "r" in perms and not os.access(file, os.R_OK):
+            path_log(logger, "{}: {} exists, but is not readable, owner: {}".format(type, file, owner))
+        if "w" in perms and not os.access(file, os.W_OK):
+            path_log(logger, "{}: {} exists, but is not writeable, owner: {}".format(type, file, owner))
+        if "x" in perms and not os.access(file, os.X_OK):
+            path_log(logger, "{}: {} exists, but is not executable, owner: {}".format(type, file, owner))
+
+def path_log(logger, msg):
+    if logger is None:
+        print(msg)
+    else:
+        log(logger, "WARNING", msg)

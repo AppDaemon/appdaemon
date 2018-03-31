@@ -224,9 +224,11 @@ class AppDaemon:
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
-            if os.path.isdir(self.app_dir) is False:
-                self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
-                return
+            utils.check_path("config_dir", logger, self.config_dir, permissions="rwx")
+            utils.check_path("appdir", logger, self.app_dir)
+            #if os.path.isdir(self.app_dir) is False:
+            #    self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
+            #    return
 
             #
             # Initial Setup
