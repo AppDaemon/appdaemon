@@ -1,0 +1,33 @@
+widget_type: baseheater
+icon_entity: {{icon_entity}}
+slider_entity: {{slider_entity}}
+post_service_active:
+    service: homeassistant/turn_on
+    entity_id: {{icon_entity}}
+post_service_inactive:
+    service: homeassistant/turn_off
+    entity_id: {{icon_entity}}
+post_service_slider_change:
+    service: input_slider/select_value
+    entity_id: {{slider_entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  Temperature: ""
+  MinValue: "15"
+  MaxValue: "25"
+  StepValue: "0.5"
+  icon: ""
+  icon_style: ""
+icons:
+  icon_on: $heater_icon_on
+  icon_off: $heater_icon_off
+static_icons: []
+static_css:
+  title_style: $heater_title_style
+  title2_style: $heater_title2_style
+  slider_style: $heater_slider_style
+  widget_style: $heater_widget_style
+css:
+  icon_style_active: $heater_icon_style_active
+  icon_style_inactive: $heater_icon_style_inactive

@@ -1,10 +1,10 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import shelve
 import time
 import globals
 
 #
-# App to reset input_boolean, input_select, input_slider, device_tracker to previous values after HA restart
+# App to reset input_boolean, input_select, input_number, device_tracker to previous values after HA restart
 #
 # Args:
 #
@@ -16,16 +16,16 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class SwitchReset(appapi.AppDaemon):
+class SwitchReset(hass.Hass):
 
   def initialize(self):
     
     self.device_db = shelve.open(self.args["file"])
-    self.listen_event(self.ha_event, "ha_started")
+    self.listen_event(self.ha_event, "plugin_started")
     self.listen_event(self.appd_event, "appd_started")
     self.listen_state(self.state_change, "input_boolean")
     self.listen_state(self.state_change, "input_select")
-    self.listen_state(self.state_change, "input_slider")
+    self.listen_state(self.state_change, "input_number")
     self.listen_state(self.state_change, "device_tracker")
        
   def ha_event(self, event_name, data, kwargs):
@@ -47,7 +47,7 @@ class SwitchReset(appapi.AppDaemon):
     state = self.get_state()
     for entity in state:
       type, id = entity.split(".")
-      if type == "input_boolean" or type == "input_select" or type == "input_slider" or type == "device_tracker":
+      if type == "input_boolean" or type == "input_select" or type == "input_number" or type == "device_tracker":
         if entity in self.device_db:
           if self.device_db[entity] != state[entity]["state"]:
             self.log_notify("Setting {} to {} (was {})".format(entity, self.device_db[entity], state[entity]["state"]))
@@ -57,7 +57,7 @@ class SwitchReset(appapi.AppDaemon):
           self.device_db[entity] = state[entity]["state"]
   
   def log_notify(self, message, level = "INFO"):
-    if "log" in self.args:
+    if "verbose_log" in self.args:
       self.log(message)
     if "notify" in self.args:
       self.notify(message, globals.notify, name=globals.notify)

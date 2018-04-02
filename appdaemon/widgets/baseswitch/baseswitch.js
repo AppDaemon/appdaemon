@@ -3,28 +3,28 @@ function baseswitch(widget_id, url, skin, parameters)
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
     
-    self = this
+    self = this;
     
     // Initialization
     
-    self.widget_id = widget_id
+    self.widget_id = widget_id;
     
     // Store on brightness or fallback to a default
         
     // Parameters may come in useful later on
     
-    self.parameters = parameters
+    self.parameters = parameters;
     
     // Toggle needs to be referenced from self for the timeout function
     
-    self.toggle = toggle
+    self.toggle = toggle;
     
     // Define callbacks for on click events
     // They are defined as functions below and can be any name as long as the
     // 'self'variables match the callbacks array below
     // We need to add them into the object for later reference
    
-    self.OnButtonClick = OnButtonClick
+    self.OnButtonClick = OnButtonClick;
     
     if ("enable" in self.parameters && self.parameters.enable == 1)
     {
@@ -47,7 +47,7 @@ function baseswitch(widget_id, url, skin, parameters)
     var monitored_entities = 
         [
             {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
-        ]
+        ];
     
     // Finally, call the parent constructor to get things moving
     
@@ -88,8 +88,8 @@ function baseswitch(widget_id, url, skin, parameters)
         {
             args = self.parameters.post_service_active
         }
-        self.call_service(self, args)
-        toggle(self)
+        self.call_service(self, args);
+        toggle(self);
         if ("momentary" in self.parameters)
         {
             setTimeout(function() { self.toggle(self) }, self.parameters["momentary"])
@@ -117,12 +117,12 @@ function baseswitch(widget_id, url, skin, parameters)
     {
         if (state == self.parameters.state_active || ("active_map" in self.parameters && self.parameters.active_map.includes(state)))
         {
-            self.set_icon(self, "icon", self.icons.icon_on)
+            self.set_icon(self, "icon", self.icons.icon_on);
             self.set_field(self, "icon_style", self.css.icon_style_active)
         }
         else
         {
-            self.set_icon(self, "icon", self.icons.icon_off)
+            self.set_icon(self, "icon", self.icons.icon_off);
             self.set_field(self, "icon_style", self.css.icon_style_inactive)
         }
         if ("state_text" in self.parameters && self.parameters.state_text == 1)

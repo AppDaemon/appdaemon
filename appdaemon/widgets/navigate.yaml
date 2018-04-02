@@ -1,4 +1,4 @@
-widget_type: javascript
+widget_type: basejavascript
 fields:
   title: {{title}}
   title2: {{title2}}

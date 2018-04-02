@@ -42,6 +42,15 @@ function baseclimate(widget_id, url, skin, parameters)
         var monitored_entities =  []
     }
 
+    if( "step" in parameters && ! isNaN(self.parameters.step))
+    {
+        self.step = parseFloat(parameters.step)
+    }
+    else
+    {
+        self.step = 1
+    }
+
     // Finally, call the parent constructor to get things moving
 
     WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)
@@ -57,7 +66,6 @@ function baseclimate(widget_id, url, skin, parameters)
     {
         self.min = state.attributes.min_temp
         self.max = state.attributes.max_temp
-        self.step = 1
         self.level = state.attributes.temperature
         self.set_field(self, "unit", state.attributes.unit_of_measurement)
         set_view(self, state)
@@ -88,14 +96,14 @@ function baseclimate(widget_id, url, skin, parameters)
 		{
 			self.level = self.min
 		}
-		args = self.parameters.post_service
-        args["temperature"] = self.level
+		args = self.parameters.post_service;
+        args["temperature"] = self.level;
 		self.call_service(self, args)
     }
 
 	function set_view(self, state)
     {
-        self.set_field(self, "level", self.format_number(self, state.attributes.current_temperature))
+        self.set_field(self, "level", self.format_number(self, state.attributes.current_temperature));
         if ("temperature" in state.attributes && state.attributes.temperature != null)
         {
             self.set_field(self, "level2", self.format_number(self, state.attributes.temperature))

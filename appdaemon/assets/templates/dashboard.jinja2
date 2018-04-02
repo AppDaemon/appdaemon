@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
 	<link rel="shortcut icon" href="images/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/docs/images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32">
     <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16">
     <link rel="manifest" href="images/manifest.json">
+    {% if scalable is sameas false%}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    {%  else %}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    {% endif %}
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
@@ -24,8 +29,7 @@
 		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">  
 	{%else%}
 	<title>{{ title }}</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="apple-mobile-web-app-capable" content="yes">	
+	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-web-app-capable" content="yes">	
     <meta name='mobile-web-app-capable' content='yes'>
 	<link rel="stylesheet" type="text/css" href="compiled_css/{{skin}}/{{name}}_application.css">
@@ -35,6 +39,7 @@
 	<link rel="stylesheet" type="text/css" href="css/materialdesignicons.min.css" media="all" />
 	<link rel="stylesheet" type="text/css" href="css/jquery-ui.css"/>
 	<link rel="stylesheet" type="text/css" href="css/rickshaw.min.css"/>
+    <link rel="stylesheet" href="css/fonts.css">
 	<script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
 	<script type="text/javascript" src="javascript/jquery.gridster.js"></script>
 	<script type="text/javascript" src="javascript/jquery-ui.js"></script>
@@ -45,6 +50,7 @@
     <script type="text/javascript" src="javascript/d3.min.js"></script>
     <script type="text/javascript" src="javascript/d3.layout.min.js"></script>
     <script type="text/javascript" src="javascript/rickshaw.min.js"></script>
+    <script type="text/javascript" src="javascript/gauge.min.js"></script>
 	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
 	<script type="text/javascript" src="javascript/dashboard.js"></script>
 	<script type="text/javascript" src="compiled_javascript/application.js"></script>
@@ -59,7 +65,7 @@
 	{% if dash_list is defined or errors%}
 		<div id="backgroundImage">
         <div class="main">
-        <h1><img src="/docs/images/favicon-32x32.png">&nbsp;HADashboard</h1>
+        <h1><img src="images/favicon-32x32.png">&nbsp;HADashboard</h1>
         <br>Welcome to HADashboard for Home Assistant.</br>
         {% if main is defined %}
         {% else %}
@@ -97,7 +103,7 @@
     {% elif logon is defined %}
         <div id="backgroundImage">
         <div class="main">
-        <h1><img src="/docs/images/favicon-32x32.png">&nbsp;HADashboard</h1>
+        <h1><img src="/images/favicon-32x32.png">&nbsp;HADashboard</h1>
         <br>Welcome to HADashboard for Home Assistant.</br>
         <br/>
         <section class="loginform cf">

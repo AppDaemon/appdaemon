@@ -1,5 +1,8 @@
 widget_type: basedisplay
 entity: {{entity}}
+entity_to_sub_entity_attribute: {{entity_to_sub_entity_attribute}}
+sub_entity: {{sub_entity}}
+sub_entity_to_entity_attribute: {{sub_entity_to_entity_attribute}}
 fields:
   title: {{title}}
   title2: {{title2}}
@@ -13,6 +16,7 @@ static_css:
   value_style: ""
   state_text_style: $mode_state_text_style
   widget_style: $sensor_widget_style
+  container_style: $sensor_container_style
 css:
   value_style: $sensor_value_style
   text_style: $sensor_text_style

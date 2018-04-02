@@ -1,0 +1,27 @@
+widget_type: baseinputnumber
+entity: {{entity}}
+post_service:
+    service: input_number/set_value
+    entity_id: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  SliderValue: ""
+  MinValue: ""
+  MaxValue: ""
+  sliderValue: ""
+  minValue: ""
+  maxValue: ""
+  StepValue: ""
+icons: []
+css: []
+static_icons: []
+static_css:
+  title_style: $input_number_title_style
+  title2_style: $input_number_title2_style
+  minvalue_style: $input_number_minvalue_style
+  maxvalue_style: $input_number_maxvalue_style
+  value_style: $input_number_value_style
+  slider_style: $input_number_slider_style
+  slidercontainer_style: $input_number_container_style
+  widget_style: $input_number_widget_style

@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 
 #
 # App to send email alert if commute time is too long
@@ -17,7 +17,7 @@ import appdaemon.appapi as appapi
 # Version 1.0:
 #   Initial Version
 
-class Commute(appapi.AppDaemon):
+class Commute(hass.Hass):
 
   def initialize(self):
     time = self.parse_time(self.args["time"])

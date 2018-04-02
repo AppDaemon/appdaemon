@@ -38,6 +38,10 @@ optional. An example is as follows:
         use_comma: 0
         precision: 1
         use_hass_icon: 1
+        namespace: default
+        devices:
+          media_player:
+            step: 5
 
 These are all fairly self explanatory:
 
@@ -56,13 +60,16 @@ These are all fairly self explanatory:
 -  ``rows`` - the total number of rows in the dashboard. This will help
    with spacing, but is optional for dashboards with fewer than 15 rows
 -  ``columns`` - the number of columns the dasboard will have.
+-  ``scalable`` - if set to ``False`` this parameter will disable resizing and double tap zooming on iOS devices, default is to not disable zooming.
 -  ``global_parameters`` - a list of parameters that will be applied to
    every widget. If the widget does not accept that parameter it will be
    ignored. Global parameters can be overriden at the widget definition
    if desired. This is useful for instance if you want to use commas as
    decimals for all of your widgets. This will also apply to widgets
    defined with just their entity ids so they will not require a formal
-   widget definition just to change the decimal separator.
+   widget definition just to change the decimal separator. The namespace
+   parameter will be explained further in the namespace section of this document.
+   Within the ``global`` paraemeters it is also possible to set parameters at the device level by including a ``device`` entry (see above for an example). Under device you can add an entry for any widget type, then under that, list global parameters that will be applied to just that widget type. For instance, in the example above, the default step size for the all media players is set to 5% rather than the default 10%.
 
 The very simplest dashboard needs a layout so it can understand where to
 place the widgets. We use a ``layout`` directive to tell HADasboard how
@@ -499,6 +506,7 @@ also text of the state itself. The following widgets allow this:
 
 -  scene
 -  binary\_sensor
+-  icon
 -  switch
 -  device\_tracker
 -  script
@@ -583,6 +591,7 @@ Alexa Intent, simply define the event and associated data as follows
         command: navigate
         timeout: 10
         target: SensorPanel
+        sticky: 0
 
 The current list of commands supported and associated arguments are as
 follows:
@@ -604,8 +613,57 @@ permanent.
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``timeout`` - length of time to stay on the new dashboard ``return`` -
-dashboard to return to after the timeout has elapsed.
+``timeout`` - length of time to stay on the new dashboard
+``return`` - dashboard to return to after the timeout has elapsed.
+``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+
+Namespaces
+----------
+
+For a full explanation of namespaces see the ``Writing AppDaemon Apps`` Section of the guide. Namespaces may be ignored in HADashboard if only one plugin is in use.
+
+If multiple namespaces are in use, HADasboard is able to specify either at the dashboard level or the widget level which namespace to use. This is achieved by use of the ``namespace`` parameter. This parameter may be specified for each individual widget if desired. If it is specified as one of the global paraneters, it will apply to all widgets but may be overriden for individual widgets. If not specified as a global parameter, the default namespace will be used for any widgets that do not override it. For example:
+
+.. code:: yaml
+
+    ##
+    ## Main arguments, all optional
+    ##
+    title: Main Panel
+    widget_dimensions: [120, 120]
+    widget_size: [1, 1]
+    widget_margins: [5, 5]
+    columns: 8
+    global_parameters:
+        use_comma: 0
+        precision: 1
+        use_hass_icon: 1
+        # Not setting namespace here so the default namespace is used
+
+    # Clock has no namespace
+    clock:
+        widget_type: clock
+
+    # side_temperature doesn't specify a namespace so will use the default
+    # If we specified a different namespace in the global options it would use that instead
+    side_temperature:
+        widget_type: sensor
+        title: Temperature
+        units: "&deg;F"
+        precision: 0
+        entity: sensor.side_temp_corrected
+
+    # side_humidity overrides the default and uses the hass2 namespace
+    # It will use hass2 regardless of any global setting
+    side_humidity:
+        namespace: hass2
+        widget_type: sensor
+        title: Humidity
+        units: "%"
+        precision: 0
+        entity: sensor.side_humidity_corrected
+
+One caveat to namespaces is that the RSS widget always works with the default namespace - since the RSS feeds are supplied by AppDaemon itself, and not one of the plugins.
 
 Widget Reference
 ----------------
@@ -630,6 +688,18 @@ Optional Arguments:
 -  ``time_format`` - set to "24hr" if you want military time/24 hour
    clock
 -  ``show_seconds`` - set to 1 if you want to see seconds on the display
+- ``date_format_country`` - Format the clock in the style of a specific country. This can take a simple value like ``us`` or more complex parameters as described `here. <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_identification_and_negotiation>`__
+- ``date_format_options`` - if using ``date_format_country`` you can also add additional options for formatting as described `here. <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString>`__. For example:
+
+.. code:: yaml
+
+   clock:
+       widget_type: clock
+       date_format_country: "ro"
+       date_format_options:
+         weekday: "short"
+         day: "numeric"
+         month: "numeric"
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
@@ -672,6 +742,90 @@ Cosmetic Arguments:
 -  ``unit_style``
 -  ``sub_style``
 
+weather_summary
+~~~~~~~~~~~~~~~
+
+An icon and summary reflecting the weather forecast. Requires dark sky to be
+configured in Home Assistant and expects to be used with one of the 
+following sensors:
+
+-  sensor.dark_sky_daily_summary
+-  sensor.dark_sky_hourly_summary
+-  sensor.dark_sky_summary
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored 
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
+london_underground
+~~~~~~~~~~~~~~~~~~
+
+A widget to report on the status of a London Underground line and
+provide the reason for delays if there are any. Requires the London
+Underground sensor to be configured in Home Assistant. This widget is
+designed to be a 2x2 tile.
+
+It is recommended to update the background style to reflect the color
+of the underground line. An example would be as follows:
+
+.. code:: yaml
+
+  widget_style: "background-color: #0098D4"
+
+The colors of the various lines are:
+- Bakerloo: #B36305
+- Central: #E32017
+- Circle: #FFD300
+- District: #00782A
+- DLR: #00A4A7
+- Hammersmith & City: #F3A9BB
+- Jubilee: #A0A5A9
+- London Overground: #EE7C0E
+- Metropolitan: #9B0056
+- Northern: #000000
+- Piccadilly: #003688
+- Victoria: #0098D4
+- Waterloo & City: #95CDBA
+
+For smaller dashboards the Description text can be too long to fit in
+the widget properly. In that case hide the text as follows:
+
+.. code:: yaml
+
+  state_text_style: "display: none"
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored 
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
 sensor
 ~~~~~~
 
@@ -680,11 +834,21 @@ A widget to report on values for any sensor in Home Assistant
 The widget will detect whether or not it is showing a numeric value, and
 if so, it will use the numeric style. If it is showing text it will use
 the text style, which among other things makes the text size smaller.
+To display an attribute of a sensor rather than the state itself add 
+the attribute to the end of the sensor name. For example, to display the
+description of the sensor.dark_sky_summary sensor you would use the 
+following entity definition: "sensor.dark_sky_summary.Description".
+
+Note that you can define a sub_entity to be an attribute of the entity
+using the entity_to_sub_entity_attribute argument, or an entity as an 
+attribute of the sub_entity using the sub_entity_to_entity_attribute.
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
+OR
+-  ``sub_entity`` - the entity\_id of the sensor to be monitored
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -701,6 +865,10 @@ Optional Arguments:
 -  ``state_map``
 -  ``sub_entity`` - second entity to be displayed in the state text area
 -  ``sub_entity_map`` - state map for the sub\_entity
+-  ``entity_to_sub_entity_attribute`` - the attribute of the entity to use
+   as the sub_entity
+-  ``sub_entity_to_entity_attribute`` - the attribute of the sub_entity to
+   use as the entity
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
@@ -711,6 +879,32 @@ Style Arguments:
 -  ``value_style``
 -  ``text_style``
 -  ``unit_style``
+-  ``container_style``
+
+input_select
+~~~~~~~~~~~~
+
+A widget to display and select values from an input_select entity in Home Assistant.
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the sensor to be monitored
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``select_style``
+-  ``selectcontainer_style``
 
 rss
 ~~~
@@ -721,7 +915,7 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 
 .. code:: yaml
 
-    AppDaemon:
+    hadashboard:
 
       rss_feeds:
         - feed: <feed_url>
@@ -759,8 +953,9 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
--  ``recent`` - the number of most recent stories that will be shown. If
-   not specified, all stories in the feed will be shown.
+-  ``recent`` - the number of most recent stories that will be shown. If not specified, all stories in the feed will be shown.
+-  ``show_description`` - if set to ``1`` the widget will show a short description of the story as well as the title. Default is ``0``
+
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
@@ -1133,6 +1328,59 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``state_text_style``
+
+icon
+~~~~
+
+A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured in a similar manner to the following:
+
+.. code:: yaml
+
+   icon:
+     title: icon
+     widget_type: icon
+     entity: binary_sensor.basement_door_sensor
+     state_text: 1
+     icons:
+       "active":
+         icon: fa-glass
+         style: "color: green"
+       "inactive":
+         icon: fa-repeat
+         style: "color: blue"
+       "idle":
+         icon: fa-frown-o
+         style: "color: red"
+       "default":
+         icon: fa-rocket
+         style: "color: cyan"
+
+The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+
+The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the binary\_sensor
+-  ``icons`` - a list of icons and styles to be applied for various states.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
 
 light
 ~~~~~
@@ -1210,23 +1458,21 @@ Cosmetic Arguments
 -  ``level_up_style``
 -  ``level_down_style``
 
-input\_slider
+input\_number
 ~~~~~~~~~~~~~
 
-A widget to monitor and contol an input slider
+A widget to monitor and contol an input number
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
--  ``entity`` - the entity\_id of the input\_slider
+-  ``entity`` - the entity\_id of the input\_number
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
--  ``step`` - the size of step in brightness when fading the slider up
-   or down
 -  ``units`` - the unit symbol to be displayed
 -  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
@@ -1234,15 +1480,45 @@ Optional Arguments:
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
 
--  ``widget_style``
--  ``icon_up``
--  ``icon_down``
--  ``title_style``
--  ``title2_style``
--  ``text_style``
--  ``level_style``
--  ``level_up_style``
--  ``level_down_style``
+- ``title_style``
+- ``title2_style``
+- ``minvalue_style``
+- ``maxvalue_style``
+- ``value_style``
+- ``slider_style``
+- ``slidercontainer_style``
+- ``widget_style``
+
+input\_slider
+~~~~~~~~~~~~~
+
+An alternate widget to monitor and contol an input number, using plus and minus buttons instead of a slider.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_number
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``units`` - the unit symbol to be displayed
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
+   separator
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+- ``title_style``
+- ``title2_style``
+- ``minvalue_style``
+- ``maxvalue_style``
+- ``value_style``
+- ``slider_style``
+- ``slidercontainer_style``
+- ``widget_style``
 
 climate
 ~~~~~~~
@@ -1262,6 +1538,7 @@ Optional Arguments:
 -  ``step`` - the size of step in temperature when fading the slider up
    or down
 -  ``units`` - the unit symbol to be displayed
+- ``precision`` - the number of digits to display after the decimal point
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
@@ -1279,7 +1556,7 @@ Cosmetic Arguments
 media\_player
 ~~~~~~~~~~~~~
 
-A widget to monitor and contol a media player
+A widget to monitor and control a media player
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1376,8 +1653,9 @@ Optional Arguments:
 For an arbitary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
 
-``timeout`` - length of time to stay on the new dashboard ``return`` -
-dashboard to return to after the timeout has elapsed.
+``timeout`` - length of time to stay on the new dashboard
+``return`` - dashboard to return to after the timeout has elapsed.
+``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Both ``timeout`` and ``return`` must be specified.
 
@@ -1414,7 +1692,8 @@ Cosmetic Arguments
 -  ``widget_style``
 -  ``title_style``
 -  ``title2_style``
--  ``icon_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
 
 reload
 ~~~~~~
@@ -1425,6 +1704,39 @@ Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
 None.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_active``
+-  ``icon_inactive``
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
+
+javascript
+~~~~~~~~~~
+
+A widget to run an arbitary JavaScript command.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+- ``command`` - the JavaScript command to be run.
+
+e.g.
+
+.. code:: yaml
+   command: "alert('hello');"
+
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -1565,6 +1877,91 @@ Style Arguments:
 -  ``panel_background_style``
 -  ``panel_button_style``
 
+Temperature
+~~~~~~~~~~~
+
+A widget to report display a temperature using a thermometer styke view
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the alarm to be monitored
+- ``settings`` - a list if values describing the thermometer with the following entries:
+
+- minValue - minimum value to display
+- maxValue - maximum value to display
+- width - width of the widget, set this to the same width as your cell size or less
+- height - height of the widget, set this to the same height as your cell size or less
+- majorTicks - Where to mark major values, a list
+- highights - color ranges, a list
+
+See the example below:
+
+.. code:: yaml
+
+   your_temperature:
+     widget_type: temperature
+     entity: sensor.your_sensor
+     settings:
+       minValue: 15
+       maxValue: 30
+       width: 120
+       height: 120
+       majorTicks: [15,20,25,30]
+       highlights: [{'from': 15, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 24, 'to': 30, 'color': 'rgba(255, 0, 0, .3)'}]
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+None
+
+Radial
+~~~~~~
+
+A widget to display a numeric value as a gauge
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the alarm to be monitored
+- ``settings`` - a list if values describing the gauge with the following entries:
+
+- title - title of the guage
+- minValue - minimum value to display
+- maxValue - maximum value to display
+- majorTicks - Where to mark major values, a list
+- highights - color ranges, a list
+
+See the example below:
+
+.. code:: yaml
+
+      your_radial:
+        widget_type: radial
+        entity: sensor.your_sensor
+        settings:
+          title: any title
+          minValue: 0
+          maxValue: 100
+          majorTicks: [0,20,40,60,80,100]
+          highlights: [{'from': 0, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 25, 'to': 100, 'color': 'rgba(255, 0, 0, .3)'}]
+
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+None
+
 Skins
 -----
 
@@ -1699,7 +2096,7 @@ Similarly for body includes:
 
 To learn more about complete styles, take a look at the supplied styles
 to see how they are put together. Start off with the ``dashboard.css``
-and ``variables.yaml`` from an exisitng file and edit to suit your
+and ``variables.yaml`` from an existing file and edit to suit your
 needs.
 
 Example Dashboards

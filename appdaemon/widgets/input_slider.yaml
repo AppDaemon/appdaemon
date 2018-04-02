@@ -1,7 +1,7 @@
 widget_type: baseslider
 entity: {{entity}}
 post_service:
-    service: input_slider/select_value
+    service: input_number/set_value
     entity_id: {{entity}}
 fields:
   title: {{title}}

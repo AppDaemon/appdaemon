@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import globals
 
 #
@@ -9,7 +9,7 @@ import globals
 # on_scene: scene to activate at sunset
 # off_scene: scene to activate at sunrise
 
-class OutsideLights(appapi.AppDaemon):
+class OutsideLights(hass.Hass):
 
   def initialize(self):
          

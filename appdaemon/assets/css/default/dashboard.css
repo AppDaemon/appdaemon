@@ -136,18 +136,18 @@ input {
   -moz-border-radius: 5px;
   border-radius: 5px;}
 
-  .title {
-    color: #fff;
-  }
-
-  .icon-inactive {
-    color: #888;
-  }
-
-  .icon-active {
-    color: #aaff00;
-  }
+.title {
+  color: #fff;
 }
+
+.icon-inactive {
+  color: #888;
+}
+
+.icon-active {
+  color: #aaff00;
+}
+
 
 #container {
   padding-top: 0px;

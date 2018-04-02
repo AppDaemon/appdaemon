@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import datetime
 import re
 import random
@@ -10,7 +10,7 @@ import globals
 
 __version__ = "1.1.2"
 
-class OccuSim(appapi.AppDaemon):
+class OccuSim(hass.Hass):
 
   def initialize(self):
   
@@ -216,7 +216,7 @@ class OccuSim(appapi.AppDaemon):
     m = re.match('event\.(.+)\,(.+)', entity)
     if m:  
       if not self.test: self.fire_event(m.group(1), **{m.group(2): self.step})
-      if "log" in self.args:
+      if "verbose_log" in self.args:
         self.log("fired event {} with {} = {}".format(m.group(1), m.group(2), self.step))
       return
     m = re.match('input_select\.', entity)
@@ -233,11 +233,11 @@ class OccuSim(appapi.AppDaemon):
       else:
         if not self.test: self.turn_off(entity)
         
-    if "log" in self.args:
+    if "verbose_log" in self.args:
       self.log("turned {} {}".format(type, entity))
     
   def log_notify(self, message):
-    if "log" in self.args:
+    if "verbose_log" in self.args:
       self.log(message)
     if "notify" in self.args:
       self.notify(message, name=globals.notify)

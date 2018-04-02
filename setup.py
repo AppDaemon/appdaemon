@@ -3,21 +3,20 @@
 
 from setuptools import setup, find_packages
 
-from appdaemon.conf import (__version__)
+from appdaemon.utils import (__version__)
 
 #sudo apt-get install python3-aiohttp-dbg
 
 REQUIRES = [
     'daemonize',
-    'configparser',
     'astral',
     'requests>=2.6.0',
     'sseclient',
     'websocket-client',
-    'async',
-    'aiohttp>=2.2.3',
-    'Jinja2>=2.9.5',
-    'aiohttp_jinja2',
+    'aiohttp==2.3.10',
+    'yarl==1.1.0',
+    'Jinja2==2.10',
+    'aiohttp_jinja2==0.15.0',
     'pyyaml',
     'voluptuous',
     'feedparser',

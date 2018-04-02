@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 import threading
 import datetime
 import time
@@ -14,7 +14,7 @@ import re
 # Version 1.0:
 #   Initial Version
 
-class Secure(appapi.AppDaemon):
+class Secure(hass.Hass):
 
     def initialize(self):
         self.action_lock = threading.RLock()
@@ -45,10 +45,10 @@ class Secure(appapi.AppDaemon):
             self.alarm_alert()
 
     def state_event(self, entity, attribute, old, new, kwargs):
-        #self.log("Monitored entity changed state: {}: {} -> {}".format(entity, old, new))
+        #self.verbose_log("Monitored entity changed state: {}: {} -> {}".format(entity, old, new))
         if "alarm_entity" in self.args:
             state = self.get_state(self.args["alarm_entity"])
-            #self.log("Alarm state is: {}".format(state))
+            #self.verbose_log("Alarm state is: {}".format(state))
 
             armed = False
             zone_list = []

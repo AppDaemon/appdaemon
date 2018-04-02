@@ -1,6 +1,257 @@
 Change Log
 ==========
 
+3.0.1
+------------------
+
+**Features**
+
+- Added Production Mode to disable checking of App config or code changes
+- RSS Feed can now optionally show a description for each story
+- Disabling of zooming and double tap zooming on iOs devices is now optional via the ``scaling`` dashboard argument
+- Exiting from the commandline with ctrl-c will now cleanly terminate apps
+- Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
+- Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
+
+**Fixes**
+
+- Fixed a problem in the Docker initialization script
+- Fixed an parameter collision for events with a parameter ``name`` in ``listen_event()``
+
+**Breaking Changes**
+
+- iOS Scaling and tap zooming is no longer disabled by default
+
+3.0.0 (2018-03-18)
+------------------
+
+**Features**
+
+- API 200 responses are now logged to the access file
+- Add meta tags to prevent double tap zoom on iOS
+
+**Fixes**
+
+- Re-added set_app_state() to the API
+
+**Breaking Changes**
+
+None
+
+3.0.0b5 (2018-03-05)
+--------------------
+
+**Features**
+
+ - Added additional error checking for badly formed RSS feeds
+
+**Fixes**
+
+ - Fixed a bug that broke binary_sensor widget.
+ - Fixed a bug that broke retries when connecting to Home Assistant
+ - Fixed a bug that could cause lockups during app initialization
+ - Fixed a bug for Docker that prevented the initial config from working correctly - contributed by `mradziwo <https://github.com/mradziwo>`__
+
+**Breaking Changes**
+
+None
+
+
+3.0.0b4 (2018-03-03)
+--------------------
+
+**Features**
+
+- Single App dependencies can now be specified on the dependency line itself and don't have to be a list of size 1
+- Added ``get_ad_version()``, and ``ad_version`` to the config dictionary
+- Added filters for Apps
+- Added global module dependency tracking
+- Added plugin reload app control
+- Added icon widget
+
+**Fixes**
+
+- Apps now correctly reload when HASS comes back up after a restart
+- ``get_error()`` now properly returns the error log logger object
+- ``get_hass_config()`` is now correctly named
+- ``app_args`` now correctly returns args for all apps
+- ``get_state()`` now returns fields from the attributes dictionary in preference to the top level dictionary if there is a clash. In particular, this now means it is easier to iterate through group members
+- Fixed a bug preventing an objects ``terminate()`` from being called when deleted from apps.yaml
+- Fixed a bug in which object info was not being cleaned out at object termination
+- Fixed an issue preventing dashboard updates on python 3.6
+
+**Breaking Changes**
+
+None
+
+3.0.0b3 (2018-02-11)
+--------------------
+
+**Features**
+
+- Added ``javascript`` widget
+- Upgraded MDI Icons to 2.1.19
+- Add separate log for diagnostic info
+- Per-widget type global parameters
+- App level dependencies
+- ``listen_state()`` now returns the handle to the callback
+- added ``oneshot`` option to ``listen_state()``
+- Add step parameter to climate widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
+- Add internationalization options to clock widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
+- Doc improvements - contributed by `Marco <https://github.com/marconett>`__
+
+**Fixes**
+
+- Fixed image path for android devices
+- Fix a bug with the time parameter for images
+- Fixed ``disable_apps``
+- Fixed a bug in ``get_state()`` with ``attributes=all`` returning just the attributes dictionary instead of the entire entity.
+
+**Breaking Changes**
+
+- In apps.yaml, dependencies should now be a proper yaml list rather than a comma separated string
+- Dependencies now refer to individual apps rather than modules
+
+3.0.0b2 (2018-01-27)
+--------------------
+
+**Features**
+
+- Make int args in appdaemon.yaml a little more robust
+- Improve handling for missing app files
+- Module loading enhancements
+- Moved from requests to aiohttp client for better async behavior
+- Added thread monitoring for worker threads
+- Give more informative error message if AppDaemon can't locate a valid config dir
+
+**Fixes**
+
+- Fixed a bug that could cause multiple apps.yaml changes or additions to be ignored
+- Fixed a bug causing listen_state() callbacks with ``duration`` set to fire immediately
+- Pinned yarl library to fix an issue with Docker build
+- Fixed a couple of potential event loop hold ups
+- Fixed a bug in password security for HADashboard service and state calls
+- Changes to apps.yaml now also force a reload of dependent modules
+- ``exclude_dirs`` now applies to yaml files as well as python files
+- Fixed broken icon on HADashboard logon screen
+- Fixed a bug preventing the media title from showing in the media player
+
+**Breaking Changes**
+
+- App modules not listed in an apps.yaml file will no longer be loaded. Python modules may still be imported directly if they are in a directory in which other apps reside.
+- ``cert_path`` is deprecated. With the replacement of requests with aiohttp, it is now sufficient to set ``cert_verify`` to False to use a self signed certificate.
+- Initial dashboard loads may be slower on less powerful hardware when using password authentication. Updating after the initial load is unaffected.
+
+3.0.0b1 (2018-01-12)
+--------------------
+
+**Features**
+
+- Refactored pluggable architecture
+- Support for multiple HASS instances
+- Custom constraints
+- Namespaces
+- Path of Secret file can now be specified
+- apps.yaml can now be split across multiple files and directories
+- Apps can now establish loading priorities to influence their loading order
+- IFRAME Refreshes should now be more reliable
+- Added calls to access the underlying logger objects for the main and error logs
+- Add the ability to ignore specific subdirectories under appdir
+- Added error handling for apps that can't be read or have broken links
+- Added london Underground Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added ability to display sensor attributes - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added Weather Summary Widget - contributed by `mmmmmmtasty <https://github.com/mmmmmtasty>`__
+- Added Sticky navigation - contributed by `Lars Englund <https://github.com/larsenglund>`__
+- Added Input Select widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Redesigned Input Number widget (old is still available as ``input_slider``) - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added Radial widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added Temperature widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added container style to sensor widget - contributed by `Rene Tode <https://github.com/ReneTode>`__
+
+**Fixes**
+
+- Fixed an issue with the compiled directory not being created early enough
+
+**Breaking Changes**
+
+- Apps need to change the import and super class
+- ``info_listen_state()`` now returns the namespace in addition to the previous parameters
+- AppDaemon no longer supports python 3.4
+- --commtype command line argument has been moved to the appdaemon.cfg file
+- The "ha_started" event has been renamed to "plugin_started"
+- RSS Feed parameters have been moved to the hadashboard section
+- Log directives now have their own section
+- `AppDaemon` section renamed to `appdaemon`, `HADashboard` section renamed to `hadashboard`
+- Accessing other Apps arguments is now via the ``app_config`` attribute, ``config`` retains just the AppDaemon configuration parameters
+- Plugins (such as the HASS plugin now have their own parameters under the plugin section of the config file
+- The !secret directive has been moved to the top level of appdaemon.yaml
+- the self.ha_config attribute has been replaced by the ``self.get_hass_config()`` api call and now supports namespaces.
+- apps.yaml in the config directory has now been deprecated
+- select_value() has been renamed to set_value() to harmonize with HASS
+- It is no longer possible to automatically migrate from the legacy cfg style of config, and support for cfg files has been dropped.
+
+
+2.1.12 (2017-11-07)
+-------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed passwords causing 500 error on HADashboard - contributed by `wchan.ranelagh <https://community.home-assistant.io/u/wchan.ranelagh/summary>`__
+
+**Breaking Changes**
+
+None
+
+2.1.11 (2017-10-25)
+-------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an issue with ``run_at_sunset()`` firing multiple times
+
+**Breaking Changes**
+
+None
+
+2.1.10 (2017-10-11)
+------------------
+
+**Features**
+
+- Renamed the HADashboard input_slider to input_number to support HASS' change
+- Fixed ``select_value()`` to work with input_number entities
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+The ``input_select`` widget has been renamed to ``input_number`` to support the change in HASS
+
+2.1.9 (2017-09-08)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- broken `disable_apps` temporary workaround
+
+**Breaking Changes**
+
+None
+
 2.1.8 (2017-09-08)
 ------------------
 
@@ -10,6 +261,7 @@ Change Log
 - Addition of check to highlight excessive time in scheduler loop
 - Split app configuration out into a separate file in preparation for HASS integration
 - Enhance widget API to handle all event types instead of just click
+- Add example HADashboard focussed Apps for Oslo City Bikes, Caching of local AppDaemon events, Monitoring events and logging, Google Calendar Feed, Oslo Public Transport, YR Weather - contributed by `Torkild Retvedt <https://github.com/torkildr>`__
 
 **Fixes**
 

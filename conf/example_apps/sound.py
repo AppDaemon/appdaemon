@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.plugins.hass.hassapi as hass
 from queue import Queue
 from threading import Thread
 from threading import Event
@@ -45,7 +45,7 @@ import globals
 # Version 1.0:
 #   Initial Version
 
-class Sound(appapi.AppDaemon):
+class Sound(hass.Hass):
 
   def initialize(self):
     

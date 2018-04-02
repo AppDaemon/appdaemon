@@ -23,7 +23,7 @@ class Dashboard:
         self.config_dir = config_dir
         self.logger = logger
         self.dash_install_dir = os.path.dirname(__file__)
-        self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
+        self.dashboard_dir = os.path.join(config_dir, "dashboards")
         self.profile_dashboard = False
         self.compile_dir = os.path.join(self.config_dir, "compiled")
         self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
@@ -56,6 +56,32 @@ class Dashboard:
         self._process_arg("dash_force_compile", kwargs)
         self._process_arg("dash_compile_on_start", kwargs)
         self._process_arg("max_include_depth", kwargs)
+        #
+        # Create some dirs
+        #
+        try:
+            js = os.path.join(self.compile_dir, "javascript")
+            css = os.path.join(self.compile_dir, "css")
+            if not os.path.isdir(self.compile_dir):
+                os.makedirs(self.compile_dir)
+
+            if not os.path.isdir(os.path.join(self.compile_dir, "javascript")):
+                os.makedirs(js)
+
+            if not os.path.isdir(os.path.join(self.compile_dir, "css")):
+                os.makedirs(css)
+
+            ha.check_path("css", self.logger, css, permissions="rwx")
+            ha.check_path("javascript", self.logger, js, permissions="rwx")
+
+
+        except:
+            ha.log(self.logger, "WARNING", '-' * 60)
+            ha.log(self.logger, "WARNING", "Unexpected error during HADashboard initialization")
+            ha.log(self.logger, "WARNING", '-' * 60)
+            ha.log(self.logger, "WARNING", traceback.format_exc())
+            ha.log(self.logger, "WARNING", '-' * 60)
+
         #
         # Set a start time
         #
@@ -162,13 +188,8 @@ class Dashboard:
         styles = style_str.split(";")
         for style in styles:
             if style != "" and style is not None:
-                pieces = style.split(":")
-                if len(pieces) == 2:
-                    result[pieces[0].strip()] = pieces[1]
-                else:
-                    ha.log(self.logger, "WARNING",
-                           "malformed CSS: {} in widget '{}', field '{}' (could be a problem in the skin) - ignoring".
-                           format(style, name, field))
+                pieces = style.split(":", 1)
+                result[pieces[0].strip()] = pieces[1]
 
         return result
 
@@ -266,12 +287,12 @@ class Dashboard:
             # Check for custom base widgets first
             if os.path.isdir(os.path.join(self.config_dir, "custom_widgets", widget_type)):
                 # This is a custom base widget so return it in full
-                return _resolve_css_params(instantiated_widget, css_vars)
+                return self._resolve_css_params(instantiated_widget, css_vars)
 
             # Now regular base widgets
             if os.path.isdir(os.path.join(self.dash_install_dir, "widgets", widget_type)):
                 # This is a base widget so return it in full
-                return _resolve_css_params(instantiated_widget, css_vars)
+                return self._resolve_css_params(instantiated_widget, css_vars)
 
             # We are working with a derived widget so we need to do some merges and substitutions
 
@@ -285,7 +306,6 @@ class Dashboard:
             # Variable substitutions
             #
             yaml_file, templates = self._do_subs(yaml_path, instantiated_widget, '""')
-
             try:
                 #
                 # Parse the substituted YAML file - this is a derived widget definition
@@ -310,7 +330,14 @@ class Dashboard:
             #
             if global_parameters is not None:
                 for key in global_parameters:
-                    final_widget[key] = global_parameters[key]
+                    if key == "devices":
+                        if widget_type in global_parameters["devices"]:
+                            for dkey in global_parameters["devices"][widget_type]:
+                                if dkey not in instantiated_widget:
+                                    instantiated_widget[dkey] = global_parameters["devices"][widget_type][dkey]
+                    else:
+                        if key not in instantiated_widget:
+                            instantiated_widget[key] = global_parameters[key]
 
             #
             # Override defaults with parameters in users definition
@@ -323,6 +350,8 @@ class Dashboard:
                         final_widget[key] = final_widget[key] + ";" + instantiated_widget[key]
                     else:
                         final_widget[key] = instantiated_widget[key]
+                    if "fields" in final_widget and key in final_widget["fields"]:
+                        final_widget["fields"][key] = instantiated_widget[key]
                     if "css" in final_widget and key in final_widget["css"]:
                         final_widget["css"][key] = final_widget["css"][key] + ";" + instantiated_widget[key]
                     if "static_css" in final_widget and key in final_widget["static_css"]:
@@ -431,7 +460,7 @@ class Dashboard:
 
         dash["widgets"] = []
         dash["errors"] = []
-        valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size", "rows"]
+        valid_params = ["title", "widget_dimensions", "widget_margins", "columns", "widget_size", "rows", "namespace", "scalable"]
         layouts = []
 
         if level > self.max_include_depth:
@@ -474,6 +503,12 @@ class Dashboard:
                     ha.log(self.logger, "WARNING",
                            "global_parameters dashboard directive illegal in imported dashboard '{}.{}'".
                            format(name, extension))
+
+            if global_parameters is None:
+                global_parameters = {"namespace": "default"}
+
+            if "namespace" not in global_parameters:
+                global_parameters["namespace"] = "default"
 
             for param in dash_params:
                 if param == "layout" and dash_params[param] is not None:
@@ -731,7 +766,7 @@ class Dashboard:
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
             dash_list = self._list_dashes()
-            return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
+            return {"errors": ["Dashboard has errors or is not found - check verbose_log for details"], "dash_list": dash_list}
 
         params = dash
         params["base_url"] = self.base_url
@@ -776,15 +811,6 @@ class Dashboard:
 
         try:
 
-            if not os.path.exists(self.compile_dir):
-                os.makedirs(self.compile_dir)
-
-            if not os.path.exists(os.path.join(self.compile_dir, "javascript")):
-                os.makedirs(os.path.join(self.compile_dir, "javascript"))
-
-            if not os.path.exists(os.path.join(self.compile_dir, "css")):
-                os.makedirs(os.path.join(self.compile_dir, "css"))
-
             dash = self._conditional_compile(name, skin, recompile)
 
             if dash is None:
@@ -799,6 +825,11 @@ class Dashboard:
             else:
                 widgets = {}
 
+            if "scalable" in dash:
+                scalable = dash["scalable"]
+            else:
+                scalable = True
+
             include_path = os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
             with open(include_path, "r") as include_file:
                 head_includes = include_file.read()
@@ -810,7 +841,7 @@ class Dashboard:
             # return params
             #
             params = {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
-                    "head_includes": head_includes, "body_includes": body_includes}
+                    "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable}
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),
@@ -830,10 +861,12 @@ class Dashboard:
             ha.log(self.logger, "WARNING", '-' * 60)
             return {"errors": ["An unrecoverable error occured fetching dashboard"]}
 
+    def get_dashboard_list(self, paramOverwrite=None):
 
-    def get_dashboard_list(self):
-
-        dash = self._list_dashes()
+        if paramOverwrite is None:
+            dash = self._list_dashes()
+        else:
+            dash = paramOverwrite
 
         env = Environment(
             loader=FileSystemLoader(self.template_dir),
@@ -843,5 +876,4 @@ class Dashboard:
         template = env.get_template("dashboard.jinja2")
         rendered_template = template.render(dash)
 
-        return(rendered_template)
-
+        return (rendered_template)

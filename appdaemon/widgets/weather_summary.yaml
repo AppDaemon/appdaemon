@@ -1,0 +1,31 @@
+widget_type: basedisplay
+sub_entity: {{entity}}
+sub_entity_to_entity_attribute: entity_picture
+state_map: 
+  "/static/images/darksky/weather-pouring.svg": "&#xe009"
+  "/static/images/darksky/weather-snowy.svg": "&#xe036"
+  "/static/images/darksky/weather-hail.svg": "&#xe003"
+  "/static/images/darksky/weather-windy.svg": "&#xe021"
+  "/static/images/darksky/weather-fog.svg": "&#xe01b"
+  "/static/images/darksky/weather-cloudy.svg": "&#xe000"
+  "/static/images/darksky/weather-sunny.svg": "&#xe028"
+  "/static/images/darksky/weather-night.svg": "&#xe02d"
+  "/static/images/darksky/weather-partlycloudy.svg": "&#xe001"
+fields:
+  title: {{title}}
+  title2: ""
+  value: ""
+  unit: ""
+  state_text: ""
+static_css:
+  title_style: $weather_summary_title_style
+  title2_style: ""
+  unit_style: ""
+  value_style: ""
+  state_text_style: $weather_summary_state_text_style
+  widget_style: $weather_summary_widget_style
+  container_style: $weather_summary_container_style
+css:
+  text_style: $weather_summary_text_style
+icons: []
+static_icons: []

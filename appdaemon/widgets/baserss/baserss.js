@@ -3,26 +3,31 @@ function baserss(widget_id, url, skin, parameters)
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
     
-    self = this
+    self = this;
     
     // Initialization
     
-    self.widget_id = widget_id
+    self.widget_id = widget_id;
     
     // Store on brightness or fallback to a default
         
     // Parameters may come in useful later on
     
-    self.parameters = parameters
+    self.parameters = parameters;
+
+    //
+    // RSS Info is always in the default namespace
+    //
+    self.parameters.namespace = "default";
        
-    var callbacks = []
+    var callbacks = [];
 
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
      
-    self.OnStateAvailable = OnStateAvailable
-    self.OnStateUpdate = OnStateUpdate
+    self.OnStateAvailable = OnStateAvailable;
+    self.OnStateUpdate = OnStateUpdate;
     
     if ("entity" in parameters)
     {
@@ -67,7 +72,19 @@ function baserss(widget_id, url, skin, parameters)
     function show_next_story(self)
     {
         var stories = self.entity_state[parameters.entity].feed.entries;
+        console.log(stories[self.story])
         self.set_field(self, "text", stories[self.story].title)
+        if ("show_description" in self.parameters && self.parameters.show_description === 1)
+        {
+            if ("summary" in stories[self.story])
+            {
+                self.set_field(self, "description", stories[self.story].summary)
+            }
+            if ("description" in stories[self.story])
+            {
+                self.set_field(self, "description", stories[self.story].description)
+            }
+        }
         self.story = self.story + 1;
         if ((self.story >= stories.length) || ("recent" in parameters && self.story >= parameters.recent))
         {

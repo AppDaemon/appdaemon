@@ -1,0 +1,37 @@
+.widget-baseicon-{{id}} {
+	position: relative;
+}
+
+.widget-baseicon-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-baseicon-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
+
+.widget-baseicon-{{id}} .state_text {
+	position: absolute;
+	bottom: -3px;
+	width: 100%;
+}
+
+.widget-baseicon-{{id}} .icon {
+	position: absolute;
+	top: 43px;
+	width: 100%;
+}
+
+.widget-baseicon-{{id}} .toggle-area {
+	z-index: 10;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+

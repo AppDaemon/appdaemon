@@ -30,7 +30,7 @@
 
 head_includes:
  - <! head tags go here ->
- 
+
 #
 # Custom body includes - should be a YAML List, e.g.:
 #
@@ -118,6 +118,11 @@ binary_sensor_title2_style: $style_title2
 binary_sensor_widget_style: $background_style
 binary_sensor_state_text_style: $style_info
 
+icon_title_style: $style_title
+icon_title2_style: $style_title2
+icon_widget_style: $background_style
+icon_state_text_style: $style_info
+
 device_tracker_icon_on: fa-user
 device_tracker_icon_off: fa-user
 device_tracker_icon_style_active: $style_active
@@ -172,10 +177,24 @@ weather_unit_style: "color: $cyan; font-size: 200%"
 weather_sub_style: "color: $white; font-size: 130%"
 weather_widget_style: $stripped
 
+weather_summary_title_style: $style_title
+weather_summary_text_style: "font-family: Climacons-Font; font-size: 100px"
+weather_summary_state_text_style: "color: $white"
+weather_summary_widget_style: $background_style
+weather_summary_container_style: ""
+
+london_underground_title_style: "color: $white; font-size: 150%"
+london_underground_text_style: "color: $white; font-size: 200%"
+london_underground_state_text_style: "color: $white; font-size: 150%"
+london_underground_widget_style: $background_style
+london_underground_container_style: ""
+
 label_title_style: $style_title
 label_title2_style: $style_title2
 label_text_style: $style_info
 label_widget_style: $background_style
+label_state_text_style: $style_info
+label_container_style: ""
 
 sensor_title_style: $style_title
 sensor_title2_style: $style_title2
@@ -184,6 +203,7 @@ sensor_text_style: "color: $cyan; font-size: 100%"
 sensor_state_text_style: "color: $cyan; font-size: 100%"
 sensor_unit_style: "color: $cyan; font-size: 95%"
 sensor_widget_style: $background_style
+sensor_container_style: ""
 
 reload_icon_active: fa-spinner fa-spin
 reload_icon_inactive: fa-refresh
@@ -192,6 +212,14 @@ reload_icon_inactive_style: "color: $white"
 reload_title_style: "color: $white"
 reload_title2_style: $style_title2
 reload_widget_style: $background_style
+
+javascript_icon_active: fa-asterisk
+javascript_icon_inactive: fa-asterisk
+javascript_icon_active_style: $style_active
+javascript_icon_inactive_style: "color: $white"
+javascript_title_style: "color: $white"
+javascript_title2_style: $style_title2
+javascript_widget_style: $background_style
 
 navigate_icon_active: fa-spinner fa-spin
 navigate_icon_inactive: fa-gear
@@ -238,15 +266,14 @@ light_level_down_style: $style_inactive
 light_widget_style: $background_style
 light_unit_style:  $style_inactive
 
-input_slider_icon_up: fa-plus
-input_slider_icon_down: fa-minus
-input_slider_title_style: $style_title
-input_slider_title2_style: $style_title2
-input_slider_unit_style: $style_info
-input_slider_level_style: $style_info
-input_slider_level_up_style: $style_inactive
-input_slider_level_down_style: $style_inactive
-input_slider_widget_style: $background_style
+input_number_title_style: $style_title
+input_number_title2_style: $style_title2
+input_number_minvalue_style: $style_title
+input_number_maxvalue_style: $style_title
+input_number_value_style: $style_title
+input_number_slider_style: "-webkit-appearance: none"
+input_number_container_style: ""
+input_number_widget_style: $background_style
 
 climate_icon_up: fa-plus
 climate_icon_down: fa-minus
@@ -304,3 +331,68 @@ rss_title_style: $style_title
 rss_title2_style: $style_title2
 rss_text_style: "color: $cyan"
 rss_widget_style: $background_style
+
+input_select_title_style: $style_title
+input_select_title2_style: $style_title2
+input_select_widget_style: $background_style
+input_select_select_style: "background-color: #999;color:black"
+input_select_container_style: ""
+
+input_slider_icon_up: fa-plus
+input_slider_icon_down: fa-minus
+input_slider_title_style: $style_title
+input_slider_title2_style: $style_title2
+input_slider_unit_style: $style_info
+input_slider_level_style: $style_info
+input_slider_level_up_style: $style_inactive
+input_slider_level_down_style: $style_inactive
+input_slider_widget_style: $background_style
+
+new_input_number_title_style: $style_title
+new_input_number_title2_style: $style_title2
+new_input_number_minvalue_style: $style_title
+new_input_number_maxvalue_style: $style_title
+new_input_number_value_style: $style_title
+new_input_number_slider_style: "-webkit-appearance: none"
+new_input_number_container_style: ""
+new_input_number_widget_style: $background_style
+
+vertical_input_number_title_style: $style_title
+vertical_input_number_title2_style: $style_title2
+vertical_input_number_minvalue_style: $style_title
+vertical_input_number_maxvalue_style: $style_title
+vertical_input_number_value_style: $style_title
+vertical_input_number_slider_style: ""
+vertical_input_number_container_style: ""
+vertical_input_number_widget_style: $background_style
+
+light_with_brightness_icon_on: mdi-lightbulb
+light_with_brightness_icon_off: mdi-lightbulb
+light_with_brightness_title_style: $style_title
+light_with_brightness_title2_style: $style_title2
+light_with_brightness_slider_style: ""
+light_with_brightness_widget_style: $background_style
+light_with_brightness_icon_style_active: $style_active
+light_with_brightness_icon_style_inactive: $style_inactive
+
+light_with_colorpicker_icon_on: mdi-lightbulb
+light_with_colorpicker_icon_off: mdi-lightbulb
+light_with_colorpicker_title_style: $style_title
+light_with_colorpicker_title2_style: $style_title2
+light_with_colorpicker_button_style: ""
+light_with_colorpicker_widget_style: $background_style
+light_with_colorpicker_icon_style_active: $style_active
+light_with_colorpicker_icon_style_inactive: $style_inactive
+
+radial_widget_style: "background: none"
+
+thermo_widget_style: "background: none"
+
+heater_icon_on: fa-fire
+heater_icon_off: fa-fire
+heater_title_style: $style_title
+heater_title2_style: $style_title2
+heater_slider_style: ""
+heater_widget_style: $background_style
+heater_icon_style_active: $style_active
+heater_icon_style_inactive: $style_inactive
