@@ -82,41 +82,60 @@ class AppDaemon:
     #
 
     @staticmethod
-    def get_apiai_intent(data):
+    def get_dialogflow_intent(data):
         if "result" in data and "action" in data["result"]:
-            return data["result"]["action"]
+            return(data["result"]["action"])
+        elif "queryResult" in data and "action" in data["queryResult"]:
+            return(data["queryResult"]["action"])
         else:
             return None
 
     @staticmethod
-    def get_apiai_slot_value(data, slot=None):
-        if "result" in data and \
-                        "contexts" in data["result"]:
-            req = data.get('result')
-            contexts = req.get('contexts', [{}])
+    def get_dialogflow_slot_value(data, slot=None):
+        if "result" in data:
+            # using V1 API
+            contexts = data["result"]["contexts"][0]
             if contexts:
-                parameters = contexts[0].get('parameters')
+                parameters = contexts.get('parameters')
             else:
-                parameters = req.get('parameters')
+                parameters = data["result"]["parameters"]
             if slot is None:
                 return parameters
+            elif slot in parameters:
+                return parameters[slot] 
             else:
-                if slot in parameters:
-                    return parameters[slot]
-                else:
-                    return None
+                return None
+        elif "queryResult" in data:
+            # using V2 API
+            contexts = data["queryResult"]["outputContexts"][0]
+            if contexts:
+                parameters = contexts.get('parameters')
+            else:
+                parameters = data["queryResult"]["parameters"]
+            if slot is None:
+                return parameters
+            elif slot in parameters:
+                return parameters[slot] 
+            else:
+                return None
         else:
             return None
 
     @staticmethod
-    def format_apiai_response(speech=None):
-        speech = \
-            {
-                "speech": speech,
-                "source": "Appdaemon",
-                "displayText": speech
-            }
-
+    def format_dialogflow_response(speech=None, api_v=1):
+        if api_v == 1:
+            speech = \
+                {
+                    "speech": speech,
+                    "source": "Appdaemon",
+                    "displayText": speech
+                }
+        elif api_v == 2:
+            speech = \
+                {
+                    "fulfillmentText": speech,
+                    "source": "Appdaemon"
+                }
         return speech
 
     #
