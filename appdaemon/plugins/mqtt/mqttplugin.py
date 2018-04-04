@@ -62,6 +62,7 @@ class MqttPlugin:
         self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
                                  self.mqtt_client_timeout)
 
+        self.loop = asyncio.get_event_loop()
         self.AD.log('INFO', "MQTT Plugin initialization complete")
 
     def stop(self):
@@ -82,9 +83,9 @@ class MqttPlugin:
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("on_message: {}".format(msg.payload), level='DEBUG')
-        self.AD.state_update(self.namespace,
+        asyncio.run_coroutine_threadsafe(self.AD.state_update(self.namespace,
             {'event_type': 'MQTT_MESSAGE', 'data': {'topic': msg.topic,
-                    'payload': ''.join( chr(x) for x in msg.payload)}})
+                    'payload': ''.join( chr(x) for x in msg.payload)}}), self.loop)
 
     #
     # Get initial state
