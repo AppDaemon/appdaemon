@@ -36,8 +36,13 @@ class MqttPlugin:
         self.mqtt_client_host = args.get('mqtt_client_host', '127.0.0.1')
         self.mqtt_client_port = args.get('mqtt_client_port', 1883)
         self.mqtt_client_topics = args.get('mqtt_client_topics', ['#'])
-        self.mqtt_client_user = args.get('mqtt_client_user', None)
-        self.mqtt_client_password = args.get('mqtt_client_password', None)
+        self.mqtt_client_user = args.get('mqtt_client_user')
+        self.mqtt_client_password = args.get('mqtt_client_password')
+
+        self.mqtt_client_tls_client_cert = args.get('mqtt_client_cert')
+        self.mqtt_client_tls_client_key = args.get('mqtt_client_key')
+        self.mqtt_client_tls_verify_cert = args.get('mqtt_client_verify_cert')
+
 
         self.mqtt_client_timeout = args.get('mqtt_client_timeout', 60)
 
@@ -46,6 +51,12 @@ class MqttPlugin:
         self.mqtt_client.on_message = self.mqtt_on_message
         self.mqtt_client.username_pw_set(self.mqtt_client_user,
                                          password=self.mqtt_client_password)
+
+        if self.mqtt_client_tls_client_cert:
+            self.mqtt_client.tls_set(certfile=self.mqtt_client_tls_client_cert,
+                keyfile=self.mqtt_client_tls_client_key)
+        if self.mqtt_client_tls_client_verify_cert:
+            mqtt_client.tls_insecure_set(True)
 
         self.mqtt_client.loop_start()
         self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
