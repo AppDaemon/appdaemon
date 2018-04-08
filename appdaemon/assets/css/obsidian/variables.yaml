@@ -174,7 +174,7 @@ clock_widget_style: "border-style: solid; border-width: 2px; border-color: white
 
 weather_main_style: "color: $cyan; font-size: 75%"
 weather_unit_style: "color: $cyan; font-size: 200%"
-weather_sub_style: "color: $white; font-size: 130%"
+weather_sub_style: "color: $white; font-size: 100%"
 weather_widget_style: $stripped
 
 weather_summary_title_style: $style_title
