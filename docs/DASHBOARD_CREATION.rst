@@ -717,6 +717,8 @@ monitored_conditions:
 
 -  temperature
 -  apparent\_temperature
+-  temperature_min
+-  temperature_max
 -  humidity
 -  precip\_probability
 -  precip\_intensity
@@ -773,8 +775,8 @@ Example with default values:
         wind_speed: sensor.dark_sky_wind_speed
         wind_bearing: sensor.dark_sky_wind_bearing
         forecast_icon: sensor.dark_sky_icon_1
-        forecast_temperature: sensor.dark_sky_temperature_1
-        forecast_apparent_temperature: sensor.dark_sky_apparent_temperature_1
+        forecast_temperature_min: sensor.dark_sky_daily_low_temperature_1
+        forecast_temperature_max: sensor.dark_sky_daily_high_temperature_1
         forecast_precip_probability: sensor.dark_sky_precip_probability_1
         forecast_precip_type: sensor.dark_sky_precip_1
 

@@ -53,14 +53,14 @@
 <div data-bind="visible: show_forecast"> 
 <hr>
 <h1 class="title" data-bind="text: forecast_title, attr:{ style: title_style}, visible: show_forecast"></h1>
-<p class="secondary-detail" data-bind="visible: forecast_temperature">
-<span class="secondary-climacon" data-bind="css: icon"></span>
+<p class="secondary-detail" data-bind="visible: forecast_temperature_min">
+<span class="secondary-climacon" data-bind="css: forecast_icon"></span>
 </p>
-<p class="secondary-detail" data-bind="visible: forecast_temperature">
-<span class="secondary-info" data-bind="text: forecast_temperature"></span>
-<span class="secondary-info" data-bind="visible: forecast_apparent_temperature">
+<p class="secondary-detail" data-bind="visible: forecast_temperature_min">
+<span class="secondary-info" data-bind="text: forecast_temperature_min"></span>
+<span class="secondary-info" data-bind="visible: forecast_temperature_max">
 <span>/</span>
-<span class="secondary-info" data-bind="text: forecast_apparent_temperature"></span>
+<span class="secondary-info" data-bind="text: forecast_temperature_max"></span>
 </span>
 </p>
 <p class="secondary-detail" data-bind="visible: forecast_precip_probability">
