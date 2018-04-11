@@ -40,14 +40,14 @@ function baseweather(widget_id, url, skin, parameters)
         }
     }
 
-    // If forecast is disabled - dont monitor the forecast sensors
+    // If forecast is disabled - don't monitor the forecast sensors
     function check_if_forecast_sensor(show_forecast, entity)
     {
         if (show_forecast)
         {
           return true
         }
-        else if(entity.substring(0, 9) === "forecast_")
+        else if(entity.substring(entity.length - 2) === "_1")
         {
           return false
         }
