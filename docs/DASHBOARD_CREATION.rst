@@ -749,8 +749,8 @@ Optional Arguments:
 - ``forecast_title`` - title of the forecast if enabled
 - ``sensors`` - list of sensors used by the widget
 
-You can change the entities used by the widget by overwriting thier values 
-in ``sensors`` key in configuration.
+You can change the entities used by the widget by overwriting their values
+in the ``sensors`` key in configuration.
 
 Example with default values:
 

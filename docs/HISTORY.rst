@@ -12,6 +12,7 @@ Change Log
 - Exiting from the commandline with ctrl-c will now cleanly terminate apps
 - Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
 - Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
+- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates acording to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
 
 **Fixes**
 
