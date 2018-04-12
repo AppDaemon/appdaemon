@@ -56,7 +56,7 @@ class MqttPlugin:
             self.mqtt_client.tls_set(certfile=self.mqtt_client_tls_client_cert,
                 keyfile=self.mqtt_client_tls_client_key)
         if self.mqtt_client_tls_verify_cert:
-            mqtt_client.tls_insecure_set(True)
+            mqtt_client.tls_insecure_set(False)
 
         self.mqtt_client.loop_start()
         self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
