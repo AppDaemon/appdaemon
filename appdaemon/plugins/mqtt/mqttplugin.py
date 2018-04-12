@@ -8,8 +8,8 @@ import appdaemon.utils as utils
 
 class MqttPlugin:
 
-    def __init__(self, ad, name, logger, error, loglevel,args):
-
+    def __init__(self, ad, name, logger, error, loglevel, args):
+        """Initialize MQTT Plugin."""
         self.AD = ad
         self.logger = logger
         self.error = error
@@ -42,8 +42,8 @@ class MqttPlugin:
         self.mqtt_client_tls_client_cert = args.get('mqtt_client_cert')
         self.mqtt_client_tls_client_key = args.get('mqtt_client_key')
 
-        if 'mqtt_client_verify_cert' in args:
-            mqtt_client.tls_insecure_set(args['mqtt_client_verify_cert'])
+        if 'mqtt_verify_cert' in args:
+            mqtt_client.tls_insecure_set(args['mqtt_verify_cert'])
 
 
         self.mqtt_client_timeout = args.get('mqtt_client_timeout', 60)
@@ -56,11 +56,11 @@ class MqttPlugin:
 
         if self.mqtt_client_tls_client_cert:
             self.mqtt_client.tls_set(certfile=self.mqtt_client_tls_client_cert,
-                keyfile=self.mqtt_client_tls_client_key)
+                                     keyfile=self.mqtt_client_tls_client_key)
 
         self.mqtt_client.loop_start()
         self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
-                                 self.mqtt_client_timeout)
+                                       self.mqtt_client_timeout)
 
         self.AD.log('INFO', "MQTT Plugin initialization complete")
 
@@ -76,15 +76,14 @@ class MqttPlugin:
     def mqtt_on_connect(self, client, userdata, flags, rc):
         #self.AD.log('INFO'," __function__: ".format(self.state))
         for topic in self.mqtt_client_topics:
-            self.log("on_connect: subscribed: {}".format(
-                    topic))
+            self.log("on_connect: subscribed: {}".format(topic))
             self.mqtt_client.subscribe(topic, 0)
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("on_message: {} {}".format(msg.topic, msg.payload), level='INFO')
         self.AD.state_update(self.namespace,
             {'event_type': 'MQTT_MESSAGE', 'data': {'topic': msg.topic,
-                    'payload': ''.join( chr(x) for x in msg.payload)}})
+             'payload': ''.join(chr(x) for x in msg.payload)}})
 
     #
     # Get initial state
