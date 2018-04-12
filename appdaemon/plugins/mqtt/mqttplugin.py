@@ -80,7 +80,7 @@ class MqttPlugin:
             self.mqtt_client.subscribe(topic, 0)
 
     def mqtt_on_message(self, client, userdata, msg):
-        self.log("on_message: {} {}".format(msg.topic, msg.payload), level='INFO')
+        self.log("on_message: {} {}".format(msg.topic, msg.payload), level='DEBUG')
         self.AD.state_update(self.namespace,
             {'event_type': 'MQTT_MESSAGE', 'data': {'topic': msg.topic,
              'payload': ''.join(chr(x) for x in msg.payload)}})
