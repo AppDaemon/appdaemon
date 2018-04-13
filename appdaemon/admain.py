@@ -56,7 +56,8 @@ class ADMain():
 
     def stop(self):
         self.AD.stop()
-        self.rundash.stop()
+        if self.rundash is not None:
+            self.rundash.stop()
 
     def log(self, logger, level, msg, name=""):
         utils.log(logger, level, msg, name)
