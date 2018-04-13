@@ -830,7 +830,7 @@ class AppDaemon:
             # If it is a repeating entry, rewrite with new timestamp
             if args["repeat"]:
                 if args["type"] == "next_rising" or args["type"] == "next_setting":
-                    # Its sunrise or sunset - if the offset is negative we
+                    # It's sunrise or sunset - if the offset is negative we
                     # won't know the next rise or set time yet so mark as inactive
                     # So we can adjust with a scan at sun rise/set
                     if args["offset"] < 0:
@@ -1569,7 +1569,7 @@ class AppDaemon:
 
                 init = self.objects[name]["object"].initialize
 
-                # Call it's initialize function
+                # Call its initialize function
 
             try:
                 init()
