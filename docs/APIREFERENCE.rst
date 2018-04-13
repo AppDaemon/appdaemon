@@ -251,7 +251,7 @@ for instance you want the duration to be triggered immediately if a light is alr
 
 If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check if the entity
 is already set to the new state and if so it will start the clock immediately. In this case, old will be ignored
-and when the timer triggers, it's state will be set to None. If new or entity are not set, ``immediate`` will be ignored.
+and when the timer triggers, its state will be set to None. If new or entity are not set, ``immediate`` will be ignored.
 
 oneshot = (optional)
 ''''''''''''''''''''
@@ -342,7 +342,7 @@ Examples
 info\_listen\_state()
 ~~~~~~~~~~~~~~~~~~~~~
 
-Get information on state a callback from it's handle.
+Get information on state a callback from its handle.
 
 Synopsis
 ^^^^^^^^
@@ -776,7 +776,7 @@ Examples
 info\_timer()
 ~~~~~~~~~~~~~
 
-Get information on a scheduler event from it's handle.
+Get information on a scheduler event from its handle.
 
 Synopsis
 ^^^^^^^^
@@ -1473,7 +1473,7 @@ Examples
 info\_listen\_event()
 ~~~~~~~~~~~~~~~~~~~~~
 
-Get information on an event callback from it's handle.
+Get information on an event callback from its handle.
 
 Synopsis
 ^^^^^^^^

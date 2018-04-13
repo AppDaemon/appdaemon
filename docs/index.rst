@@ -94,7 +94,7 @@ This was done mainly for consistency, and because the capitals bugged me ;)
 
 - Plugins (such as the HASS plugin now have their own parameters under the plugin section of the config file
 
-This comes down to a reorganization of the appdaemon.yaml file to reflect the fact that there are now plugins and there may be more than one of them. Rather than having it's own section, the HASS plugin is now listed under the ``appdaemon`` section, although the arguments remain the same. Here is an example:
+This comes down to a reorganization of the appdaemon.yaml file to reflect the fact that there are now plugins and there may be more than one of them. Rather than having its own section, the HASS plugin is now listed under the ``appdaemon`` section, although the arguments remain the same. Here is an example:
 
 .. code:: yaml
 

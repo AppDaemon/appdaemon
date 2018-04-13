@@ -71,7 +71,7 @@ function basemedia(widget_id, url, skin, parameters)
     }
 
     // The OnStateUpdate function will be called when the specific entity
-    // receives a state update - it's new values will be available
+    // receives a state update - its new values will be available
     // in self.state[<entity>] and returned in the state parameter
 
     function OnStateUpdate(self, state)
