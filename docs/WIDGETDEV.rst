@@ -661,7 +661,7 @@ in fact it could probably be a single function for both ``initial`` and ``update
 .. code:: javascript
 
         // The OnStateUpdate function will be called when the specific entity
-        // receives a state update - it's new values will be available
+        // receives a state update - its new values will be available
         // in self.state[<entity>] and returned in the state parameter
 
         function OnStateUpdate(self, state)
@@ -915,7 +915,7 @@ That is the anatomy of a typical widget - here it is in full:
         }
 
         // The OnStateUpdate function will be called when the specific entity
-        // receives a state update - it's new values will be available
+        // receives a state update - its new values will be available
         // in self.state[<entity>] and returned in the state parameter
 
         function OnStateUpdate(self, state)

@@ -179,7 +179,7 @@ AppDir will pick one of them but the exact choice it will make is
 undefined.
 
 When starting the system for the first time or when reloading an App or
-Module, the system will log the fact in it's main log. It is often the
+Module, the system will log the fact in its main log. It is often the
 case that there is a problem with the class, maybe a syntax error or
 some other problem. If that is the case, details will be output to the
 error log allowing the user to remedy the problem and reload.
@@ -385,7 +385,7 @@ The previously described dependencies and load order have all been at the app le
 
     global_modules: global
 
-This means that the file ``globals.py`` anywhere with in the apps directory hierarchy is marked as a global module. Any app may simply import ``globals`` and use it's variables and functions. Marking multiple modules as global can be achieved using standard YAML list format:
+This means that the file ``globals.py`` anywhere with in the apps directory hierarchy is marked as a global module. Any app may simply import ``globals`` and use its variables and functions. Marking multiple modules as global can be achieved using standard YAML list format:
 
 .. code:: yaml
 
@@ -486,7 +486,7 @@ will only be executed if all of the constraints are met. If a constraint
 is absent it will not be checked for.
 
 For example, the presence callback constraint can be added to an App by
-adding a parameter to it's configuration like this:
+adding a parameter to its configuration like this:
 
 .. code:: yaml
 
@@ -1129,7 +1129,7 @@ The custom event ``MODE_CHANGE`` would be subscribed to with:
 
 Home Assistant can send these events in a variety of other places -
 within automations, and also directly from Alexa intents. Home Assistant
-can also listen for custom events with it's automation component. This
+can also listen for custom events with its automation component. This
 can be used to signal from AppDaemon code back to home assistant. Here
 is a sample automation:
 
@@ -1285,7 +1285,7 @@ can.
 Choosing a Start Time
 ~~~~~~~~~~~~~~~~~~~~~
 
-Internally, AppDaemon keeps track of it's own time relative to when it
+Internally, AppDaemon keeps track of its own time relative to when it
 was started. This make is possible to start AppDaemon with a different
 start time and date to the current time. For instance to test that
 sunset App, start AppDaemon at a time just before sunset and see if it
@@ -1557,7 +1557,7 @@ different port, by adding something like this to the config:
 Here we see the default port being remapped to port 5000 which is where
 AppDamon is listening in my setup.
 
-Since each individual Skill has it's own URL it is possible to have
+Since each individual Skill has its own URL it is possible to have
 different skills for Home Assitant and AppDaemon.
 
 Putting it together in an App
@@ -1826,7 +1826,7 @@ Namespaces
 
 A critical piece of this is the concept of ``namespaces``. Each plugin has an optional``namespace`` directive. If you have more than 1 plugin of any type, their state is separated into namespaces, and you need to name those namespaces using the ``namespace`` parameter. If you don't supply a namespace, the namespace defaults to ``default`` and this is the default for all areas of AppDaemon meaning that if you only have one plugin you don't need to worry about namespace at all.
 
-In the case above, the first instance had no namespace so it's namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
+In the case above, the first instance had no namespace so its namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
 
 These namespaces can be accessed separately by the various API calls to keep things separate, but individual Apps can switch between namespaces at will as well as monitor all namespaces in certain calls like ``listen_state()`` or ``listen_event()`` by setting the namespace to ``global``.
 
@@ -1892,7 +1892,7 @@ This code fragment will achieve the same result as above since the namespace is 
 Custom Constraints
 ------------------
 
-An App can also register it's own custom constraints which can then be used in exactly the same way as
+An App can also register its own custom constraints which can then be used in exactly the same way as
 App level or callback level constraints. A custom constraint is simply a python function that returns ``True`` or ``False`` when presented with the constraint argument. If it returns ``True``, the constraint is regarded as satisfied and the callback will be made (subject to any other constraints also evaluating to ``True``. Likewise, a False return means that the callback won't fire. Custom constraints are a handy way to control multiple callbacks that have some complex logic and enable you to avoid duplicating code in all callbacks.
 
 To use a custom constraint, it is first necessary to register the function to be used to evaluate it using the ``register_constraint()`` api call. Constraints can also be unregistered using the ``deregister_constraint()`` call, and the ``list_constraints()`` call will return a list of currently registered constraints.
