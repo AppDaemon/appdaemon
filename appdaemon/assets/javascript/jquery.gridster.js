@@ -1533,7 +1533,7 @@
 	};
 
 	/**
-	 * Collapse the widget to it's pre-expanded size
+	 * Collapse the widget to its pre-expanded size
 	 *
 	 * @method collapse_widget
 	 * @param {HTMLElement} $widget The jQuery wrapped HTMLElement
@@ -3446,7 +3446,7 @@
 				});
 
 				$nexts.each($.proxy(function (i, widget) {
-					//Make sure widget is at it's topmost position
+					//Make sure widget is at its topmost position
 					var $w = $(widget);
 					var wgd = $w.coords().grid;
 

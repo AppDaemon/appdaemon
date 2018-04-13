@@ -84,7 +84,7 @@ to place them. Here is an example:
 
 As you can see, here we are refering directly to native Home Assistant
 entities. From this, HADashboard is able to figure out the right widget
-type and grab it's friendly name and add it to the dasboard. For the
+type and grab its friendly name and add it to the dasboard. For the
 ``clock`` and ``weather`` widgets there is no associated entity id so
 just your ``clock.clock`` or ``weather.weather``.
 
@@ -98,7 +98,7 @@ the widget in columns and the height of the widget in rows. For
 instance, ``(2x1)`` would refer to a widget 2 cells wide and 1 cell
 high. If you leave of the sizing information, the widget will use the
 ``widget_size`` dashboard parameter if specified, or default to
-``(1x1)`` if not. HADasboard will do it's best to calculate the right
+``(1x1)`` if not. HADasboard will do its best to calculate the right
 layout from what you give it but expect strange behavior if you add too
 many widgets on a line.
 
@@ -287,7 +287,7 @@ This will look for a file called ``top_panel.yaml`` in the dashboards
 directory, then include it. There are a couple of different ways this
 can be used.
 
--  If the yaml file includes it's own layouts directive, the widgets
+-  If the yaml file includes its own layouts directive, the widgets
    from that file will be placed as a block, in the way described by its
    layout, making it reusable. You can change the order of the blocks
    inclusion by moving where in the original layout directive you
@@ -573,7 +573,7 @@ through a variety of means:
 -  HASS Automations/Scripts
 -  Alexa Intents
 
-The mechanism used for this is HASS custom events. AppDaemon has it's own
+The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
 `AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
 dashboard will respond to various commands with associated data.
@@ -1819,7 +1819,7 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 -  ``refresh`` - (seconds) if set, the iframe widget will progress down
-   it's list every refresh period, returning to the beginning when it
+   its list every refresh period, returning to the beginning when it
    hits the end. Use this in conjunction with a single entry in the
    ``url_list`` to have a single url refresh at a set interval.
 
