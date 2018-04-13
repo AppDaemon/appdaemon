@@ -1683,16 +1683,18 @@ navigate
 ~~~~~~~~
 
 A widget to navgigate to a new URL, intended to be used for switching
-between dashboards
+between dashboards.
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
+None, but either ``url`` or ``dashboard`` must be specified.
+
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``url`` - a url to navigate to. Use a full URL including the "http"
-   part.
+-  ``url`` - a url to navigate to. Use a full URL including the "http://"
+   or "https://" part.
 -  ``dashboard`` - a dashboard to navigate to e.g. ``MainPanel``
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.
@@ -1701,13 +1703,13 @@ Optional Arguments:
 For an arbitary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
 
-``timeout`` - length of time to stay on the new dashboard
-``return`` - dashboard to return to after the timeout has elapsed.
-``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+-  ``timeout`` - length of time to stay on the new dashboard
+-  ``return`` - dashboard to return to after the timeout has elapsed.
+-  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Both ``timeout`` and ``return`` must be specified.
 
-If adding arguments use the args variable do not append them to the URL
+If adding arguments, use the args variable. Do not append them to the URL
 or you may break skinning. Add arguments like this:
 
 .. code:: yaml
