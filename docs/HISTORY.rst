@@ -52,11 +52,11 @@ None
  - Fixed a bug that broke retries when connecting to Home Assistant
  - Fixed a bug that could cause lockups during app initialization
  - Fixed a bug for Docker that prevented the initial config from working correctly - contributed by `mradziwo <https://github.com/mradziwo>`__
+ - Grammar corrections to docs, and a fix to the stop code - contributed by `Matthias Urlichs <https://github.com/smurfix>`__
 
 **Breaking Changes**
 
 None
-
 
 3.0.0b4 (2018-03-03)
 --------------------
