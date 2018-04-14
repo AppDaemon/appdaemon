@@ -12,12 +12,13 @@ Change Log
 - Exiting from the commandline with ctrl-c will now cleanly terminate apps
 - Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
 - Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
-- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates acording to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
+- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
 
-**Fixes**
+*Fixes**
 
 - Fixed a problem in the Docker initialization script
 - Fixed an parameter collision for events with a parameter ``name`` in ``listen_event()``
+- Grammar corrections to docs, and a fix to the stop code - contributed by `Matthias Urlichs <https://github.com/smurfix>`__
 
 **Breaking Changes**
 
@@ -52,7 +53,6 @@ None
  - Fixed a bug that broke retries when connecting to Home Assistant
  - Fixed a bug that could cause lockups during app initialization
  - Fixed a bug for Docker that prevented the initial config from working correctly - contributed by `mradziwo <https://github.com/mradziwo>`__
- - Grammar corrections to docs, and a fix to the stop code - contributed by `Matthias Urlichs <https://github.com/smurfix>`__
 
 **Breaking Changes**
 
