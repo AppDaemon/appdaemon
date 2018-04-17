@@ -42,10 +42,6 @@ class MqttPlugin:
         self.mqtt_client_tls_client_cert = args.get('mqtt_client_cert')
         self.mqtt_client_tls_client_key = args.get('mqtt_client_key')
 
-        if 'mqtt_verify_cert' in args:
-            mqtt_client.tls_insecure_set(not args['mqtt_verify_cert'])
-
-
         self.mqtt_client_timeout = args.get('mqtt_client_timeout', 60)
 
         self.mqtt_client = mqtt.Client()
@@ -57,6 +53,8 @@ class MqttPlugin:
         if self.mqtt_client_tls_client_cert:
             self.mqtt_client.tls_set(certfile=self.mqtt_client_tls_client_cert,
                                      keyfile=self.mqtt_client_tls_client_key)
+        if 'mqtt_verify_cert' in args:
+            self.mqtt_client.tls_insecure_set(not args['mqtt_verify_cert'])
 
         self.mqtt_client.loop_start()
         self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
