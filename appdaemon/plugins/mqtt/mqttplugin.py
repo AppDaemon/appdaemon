@@ -51,7 +51,7 @@ class MqttPlugin:
         self.mqtt_client.username_pw_set(self.mqtt_client_user,
                                          password=self.mqtt_client_password)
 
-        if self.mqtt_client_tls_client_cert:
+        if self.mqtt_client_tls_client_cert or self.mqtt_client_tls_ca_certs:
             self.mqtt_client.tls_set(self.mqtt_client_tls_ca_certs,
                                      certfile=self.mqtt_client_tls_client_cert,
                                      keyfile=self.mqtt_client_tls_client_key)
