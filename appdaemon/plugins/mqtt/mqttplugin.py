@@ -39,6 +39,7 @@ class MqttPlugin:
         self.mqtt_client_user = args.get('mqtt_client_user')
         self.mqtt_client_password = args.get('mqtt_client_password')
 
+        self.mqtt_client_tls_ca_certs = args.get('mqtt_ca_certs')
         self.mqtt_client_tls_client_cert = args.get('mqtt_client_cert')
         self.mqtt_client_tls_client_key = args.get('mqtt_client_key')
 
@@ -51,7 +52,8 @@ class MqttPlugin:
                                          password=self.mqtt_client_password)
 
         if self.mqtt_client_tls_client_cert:
-            self.mqtt_client.tls_set(certfile=self.mqtt_client_tls_client_cert,
+            self.mqtt_client.tls_set(self.mqtt_client_tls_ca_certs,
+                                     certfile=self.mqtt_client_tls_client_cert,
                                      keyfile=self.mqtt_client_tls_client_key)
         if 'mqtt_verify_cert' in args:
             self.mqtt_client.tls_insecure_set(not args['mqtt_verify_cert'])
