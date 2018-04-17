@@ -2663,7 +2663,7 @@ Synopsis
 
 .. code:: python
 
-    self.set_app_state(entity_id, state)
+    self.set_app_state(entity_id, state, namespace=None)
 
 Returns
 ^^^^^^^
@@ -2693,6 +2693,11 @@ correctly reporting the old and the new state information as long as you
 keep the dictionary looking similar to HA status updates, e.g. the main
 state in a state field, and any attributes in an attributes
 sub-dictionary.
+
+namespace
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
 
 Examples
 ^^^^^^^^
