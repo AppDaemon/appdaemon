@@ -74,7 +74,7 @@ class MqttPlugin:
             self.AD.log(level, "{}: {}".format(self.name, text))
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
-        self.log('INFO',"on_connect: connected: {}".format(rc))
+        self.log("on_connect: connected: {}".format(rc), level='INFO')
         for topic in self.mqtt_client_topics:
             self.log("on_connect: subscribed: {}".format(topic))
             self.mqtt_client.subscribe(topic, 0)
