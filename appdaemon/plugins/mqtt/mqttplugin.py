@@ -57,11 +57,11 @@ class MqttPlugin:
                                      keyfile=self.mqtt_client_tls_client_key)
         if 'mqtt_verify_cert' in args:
             self.mqtt_client.tls_insecure_set(not args['mqtt_verify_cert'])
-
-        self.mqtt_client.loop_start()
+\
         self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
                                        self.mqtt_client_timeout)
-
+        self.mqtt_client.loop_start()
+        
         self.AD.log('INFO', "MQTT Plugin initialization complete")
 
     def stop(self):
