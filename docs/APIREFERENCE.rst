@@ -1245,13 +1245,13 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the input\_slider to be changed, e.g.
+Fully qualified entity\_id of the input\_number to be changed, e.g.
 ``input_number.alarm_hour``.
 
 value
 '''''
 
-The new value to set the input slider to.
+The new value to set the input number to.
 
 namespace = (optional)
 ''''''''''''''''''''''
@@ -1265,6 +1265,52 @@ Examples
 .. code:: python
 
     self.set_value("input_number.alarm_hour", 6)
+
+set\_textvalue()
+~~~~~~~~~~~~~~~
+
+This is a convenience function for the ``input_text.set_value``
+function. It is able to set the value of an input\_text in Home
+Assistant.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.set_textvalue(entity_id, value)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+entity\_id
+''''''''''
+
+Fully qualified entity\_id of the input\_text to be changed, e.g.
+``input_text.text1``.
+
+value
+'''''
+
+The new value to set the input text to.
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.set_textvalue("input_text.text1", "hello world")
 
 select\_option()
 ~~~~~~~~~~~~~~~~
