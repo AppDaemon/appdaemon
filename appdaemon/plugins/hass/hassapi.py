@@ -364,6 +364,17 @@ class Hass(appapi.AppDaemon):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
+        self.call_service("input_number/set_value", **rargs)
+
+    @hass_check
+    def set_textvalue(self, entity_id, value, **kwargs):
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        if kwargs == {}:
+            rargs = {"entity_id": entity_id, "value": value}
+        else:
+            rargs = kwargs
+            rargs["entity_id"] = entity_id
+            rargs["value"] = value
         self.call_service("input_text/set_value", **rargs)
 
     @hass_check

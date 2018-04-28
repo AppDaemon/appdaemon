@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+3.0.2
+------------------
+
+**Features**
+
+- added ``set_textvalue()`` api call.
+
+**Fixes**
+
+- Fixed incorrect service call in ``set_value()``
+
+**Breaking Changes**
+
+None
+
 3.0.1
 ------------------
 
