@@ -11,10 +11,11 @@ Change Log
 **Fixes**
 
 - Fixed incorrect service call in ``set_value()``
+- Enforce domain name in rss feed target
 
 **Breaking Changes**
 
-None
+- RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
 
 3.0.1
 ------------------

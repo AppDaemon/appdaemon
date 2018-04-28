@@ -978,7 +978,7 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 -  ``feed_url`` - fully qualified path to rss feed, e.g.
    ``http://rss.cnn.com/rss/cnn_topstories.rss``
 -  ``target name`` - the entity of the target RSS widget in the
-   dashboard definition file
+   dashboard definition file. This must be an arbitary name prepended by ``rss.`` - e.g. ``rss.cnn_news``
 -  ``feed_refresh_interval`` - how often AppDaemon will refresh the RSS
    feeds
 
@@ -992,7 +992,7 @@ Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the name of the configured feed - this must match the
-   ``target_name`` configured in the AppDaemon configuration
+   ``target_name`` full target name configured in the AppDaemon configuration e.g. `rss.cnn_news`
 -  ``interval`` - the period between display of different items within
    the feed
 

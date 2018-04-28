@@ -107,6 +107,14 @@ class RunDash:
         self.rss_feeds = None
         self._process_arg("rss_feeds", config)
 
+        if "rss_feeds" in config:
+            self.rss_feeds = []
+            for feed in config["rss_feeds"]:
+                if feed["target"].count('.') != 1:
+                    self.log("WARNING", "Invalid RSS feed target: {}".format(feed["target"]))
+                else:
+                    self.rss_feeds.append(feed)
+
         self.rss_update = None
         self._process_arg("rss_update", config)
 
