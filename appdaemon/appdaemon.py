@@ -2302,6 +2302,8 @@ class AppDaemon:
                                 callback["kwargs"],
                                 uuid_
                             )
+                        else:
+                            continue
 
                         # Remove the callback if appropriate
                         remove = callback["kwargs"].get("oneshot", False)
