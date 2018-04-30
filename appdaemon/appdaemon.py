@@ -1799,7 +1799,12 @@ class AppDaemon:
             app = self.get_app_from_file(file)
             if app is not None:
                 self.log("INFO", "Loading App Module: {}".format(file))
-                self.modules[module_name] = importlib.import_module(module_name)
+                if module_name not in self.modules:
+                    self.modules[module_name] = importlib.import_module(module_name)
+                else:
+                    # We previously imported it so we need to reload to pick up any potential changes
+                    importlib.reload(self.modules[module_name])
+
             elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
                 self.log("INFO", "Loading Global Module: {}".format(file))
                 self.modules[module_name] = importlib.import_module(module_name)
