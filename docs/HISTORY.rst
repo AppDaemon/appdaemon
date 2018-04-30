@@ -11,7 +11,8 @@ Change Log
 **Fixes**
 
 - Fixed incorrect service call in ``set_value()``
-- Enforce domain name in rss feed target
+- Enforce domain name in rss feed target to avoid issues with other functions
+- Previously deleted modules will now be correctly reloaded to reflect changes
 
 **Breaking Changes**
 
