@@ -119,10 +119,10 @@ class Hass(appapi.AppDaemon):
             new_state["attributes"].update(kwargs["attributes"])
 
         config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
-        if "certpath" in config:
-            certpath = config["certpath"]
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
         else:
-            certpath = None
+            cert_path = None
 
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
@@ -131,7 +131,7 @@ class Hass(appapi.AppDaemon):
         apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
 
         r = requests.post(
-            apiurl, headers=headers, json=new_state, verify=certpath
+            apiurl, headers=headers, json=new_state, verify=cert_path
         )
         r.raise_for_status()
         state = r.json()
@@ -337,7 +337,7 @@ class Hass(appapi.AppDaemon):
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-        
+
         device, entity = self.split_entity(entity_id)
         if device == "scene":
             self.call_service("homeassistant/turn_on", **rargs)
@@ -419,17 +419,17 @@ class Hass(appapi.AppDaemon):
         self.AD.log("DEBUG",
                   "fire_event: {}, {}".format(event, kwargs))
         config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
-        if "certpath" in config:
-            certpath = config["certpath"]
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
         else:
-            certpath = None
+            cert_path = None
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
         apiurl = "{}/api/events/{}".format(config["ha_url"], event)
         r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=certpath
+            apiurl, headers=headers, json=kwargs, verify=cert_path
         )
         r.raise_for_status()
         return r.json()
@@ -452,10 +452,10 @@ class Hass(appapi.AppDaemon):
         )
 
         config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
-        if "certpath" in config:
-            certpath = config["certpath"]
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
         else:
-            certpath = None
+            cert_path = None
 
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
@@ -463,7 +463,7 @@ class Hass(appapi.AppDaemon):
             headers = {}
         apiurl = "{}/api/services/{}/{}".format(config["ha_url"], d, s)
         r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=certpath
+            apiurl, headers=headers, json=kwargs, verify=cert_path
         )
         r.raise_for_status()
         return r.json()
