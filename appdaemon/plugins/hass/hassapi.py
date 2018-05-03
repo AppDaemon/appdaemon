@@ -122,7 +122,7 @@ class Hass(appapi.AppDaemon):
         if "certpath" in config:
             certpath = config["certpath"]
         else:
-            certpath = None
+            certpath = False
 
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
@@ -422,7 +422,8 @@ class Hass(appapi.AppDaemon):
         if "certpath" in config:
             certpath = config["certpath"]
         else:
-            certpath = None
+            certpath = False
+            
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
         else:
@@ -455,7 +456,7 @@ class Hass(appapi.AppDaemon):
         if "certpath" in config:
             certpath = config["certpath"]
         else:
-            certpath = None
+            certpath = False
 
         if "ha_key" in config and config["ha_key"] != "":
             headers = {'x-ha-access': config["ha_key"]}
