@@ -1,5 +1,3 @@
-import yaml
-import asyncio
 import copy
 import string
 import paho.mqtt.client as mqtt
@@ -68,12 +66,13 @@ class MqttPlugin:
         self.loop = self.AD.loop # get AD loop
 
     def stop(self):
-        self.log("{}: Stoping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
-        for topic in self.mqtt_client_topics:
-            self.log("Unsubscribing from Topic: {}".format(topic))
-            result = self.mqtt_client.unsubscribe(topic)
-            if result[0] == 0:
-                self.log("Unsubscription from Topic {} Sucessful".format(topic))
+        if self.initialization:
+            self.log("{}: Stoping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
+            for topic in self.mqtt_client_topics:
+                self.log("{}: Unsubscribing from Topic: {}".format(self.name, topic))
+                result = self.mqtt_client.unsubscribe(topic)
+                if result[0] == 0:
+                    self.log("{}: Unsubscription from Topic {} Sucessful".format(self.name, topic))
         self.mqtt_client.loop_stop()
         self.stopping = True
 
