@@ -20,7 +20,7 @@ class MqttPlugin:
         self.state = None
         self.initialized = False
 
-        self.AD.log("INFO", "MQTT Plugin Initializing")
+        self.AD.log("INFO", "{} Plugin Initializing".format(self.name))
 
         self.name = name
 
@@ -68,7 +68,7 @@ class MqttPlugin:
         self.loop = self.AD.loop # get AD loop
 
     def stop(self):
-        self.log("Stoping MQTT and Unsubcribing from URL {}:{}".format(self.mqtt_client_host, self.mqtt_client_port))
+        self.log("Stoping {} Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
         for topic in self.mqtt_client_topics:
             self.log("Unsubscribing from Topic: {}".format(topic))
             result = self.mqtt_client.unsubscribe(topic)
@@ -94,7 +94,7 @@ class MqttPlugin:
                 else:
                     self.log("Subscription to Topic {} Unsucessful, as Client not currently connected".format(topic))
             self.initialized = True
-            self.AD.log("INFO", "MQTT Plugin initialization complete")
+            self.AD.log("INFO", "{} Plugin initialization complete".format(self.name))
         elif int(rc) == 1:
             err_msg = "Connection was refused due to Incorrect Protocol Version"
         elif int(rc) == 2:
@@ -109,7 +109,7 @@ class MqttPlugin:
             err_msg = "Connection was refused. Please check configuration settings"
         
         if err_msg != "": #means there was an error
-            self.AD.log("CRITICAL", "Could not complete MQTT Plugin initialization, for {}".format(err_msg))
+            self.AD.log("CRITICAL", "Could not complete {} Plugin initialization, for {}".format(self.name, err_msg))
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("Message Received: Topic = {}, Payload = {}".format(msg.topic, msg.payload), level='INFO')
