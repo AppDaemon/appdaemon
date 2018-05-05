@@ -20,7 +20,7 @@ class MqttPlugin:
         self.state = None
         self.initialized = False
 
-        self.AD.log("INFO", "{} Plugin Initializing".format(self.name))
+        self.AD.log("INFO", "{}: MQTT Plugin Initializing".format(self.name))
 
         self.name = name
 
@@ -68,7 +68,7 @@ class MqttPlugin:
         self.loop = self.AD.loop # get AD loop
 
     def stop(self):
-        self.log("Stoping {} Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
+        self.log("{}: Stoping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
         for topic in self.mqtt_client_topics:
             self.log("Unsubscribing from Topic: {}".format(topic))
             result = self.mqtt_client.unsubscribe(topic)
@@ -80,21 +80,21 @@ class MqttPlugin:
     def log(self, text, **kwargs):
         level = kwargs.get('level', 'INFO')
         if self.verbose:
-            self.AD.log(level, "{}: {}".format(self.name, text))
+            self.AD.log(level, "{}".format(text))
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
         err_msg = ""
         if int(rc) == 0: #means connection was successful
-            self.AD.log("INFO", "Connected to Broker at URL {}:{}".format(self.mqtt_client_host, self.mqtt_client_port))
+            self.AD.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
-                self.log("Subscribing to Topic: {}".format(topic))
+                self.log("{}: Subscribing to Topic: {}".format(self.name, topic))
                 result = self.mqtt_client.subscribe(topic)
                 if result[0] == 0:
-                    self.log("Subscription to Topic {} Sucessful".format(topic))
+                    self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
                 else:
-                    self.log("Subscription to Topic {} Unsucessful, as Client not currently connected".format(topic))
+                    self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
             self.initialized = True
-            self.AD.log("INFO", "{} Plugin initialization complete".format(self.name))
+            self.AD.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
         elif int(rc) == 1:
             err_msg = "Connection was refused due to Incorrect Protocol Version"
         elif int(rc) == 2:
@@ -109,10 +109,10 @@ class MqttPlugin:
             err_msg = "Connection was refused. Please check configuration settings"
         
         if err_msg != "": #means there was an error
-            self.AD.log("CRITICAL", "Could not complete {} Plugin initialization, for {}".format(self.name, err_msg))
+            self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, for {}".format(self.name, err_msg))
 
     def mqtt_on_message(self, client, userdata, msg):
-        self.log("Message Received: Topic = {}, Payload = {}".format(msg.topic, msg.payload), level='INFO')
+        self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
         data = {'event_type': 'MQTT_MESSAGE', 'data': {'topic': msg.topic, 'payload': ''.join( chr(x) for x in msg.payload)}}
         self.loop.create_task(self.send_ad_event(data))
               
