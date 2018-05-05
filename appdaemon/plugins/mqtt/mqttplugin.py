@@ -37,6 +37,7 @@ class MqttPlugin:
         self.mqtt_client_topics = self.config.get('mqtt_client_topics', ['#'])
         self.mqtt_client_user = self.config.get('mqtt_client_user', None)
         self.mqtt_client_password = self.config.get('mqtt_client_password', None)
+        self.mqtt_event_name = self.config.get('mqtt_event_name', 'MQTT_MESSAGE')
 
         self.mqtt_client_tls_ca_certs = self.config.get('mqtt_ca_certs', None)
         self.mqtt_client_tls_client_cert = self.config.get('mqtt_client_cert', None)
@@ -112,7 +113,7 @@ class MqttPlugin:
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
-        data = {'event_type': 'MQTT_MESSAGE', 'data': {'topic': msg.topic, 'payload': ''.join( chr(x) for x in msg.payload)}}
+        data = {'event_type': self.mqtt_event_name, 'data': {'topic': msg.topic, 'payload': ''.join( chr(x) for x in msg.payload)}}
         self.loop.create_task(self.send_ad_event(data))
               
     async def send_ad_event(self, data):
