@@ -72,7 +72,7 @@ class MqttPlugin:
         for topic in self.mqtt_client_topics:
             self.log("Unsubscribing from Topic: {}".format(topic))
             result = self.mqtt_client.unsubscribe(topic)
-            if result[0] == 'MQTT_ERR_SUCCESS':
+            if result[0] == 0:
                 self.log("Unsubscription from Topic {} Sucessful".format(topic))
         self.mqtt_client.loop_stop()
         self.stopping = True
