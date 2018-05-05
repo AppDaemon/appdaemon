@@ -172,3 +172,4 @@ class Mqtt(appapi.AppDaemon):
         result = publish.single(topic, payload = json.dumps(payload), hostname = mqtt_client_host, port = mqtt_client_port, auth = auth, 
                         tls = mqtt_client_tls, retain = retain, keepalive = mqtt_client_timeout)
         return result
+    
