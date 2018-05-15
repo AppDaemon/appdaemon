@@ -131,8 +131,7 @@ class Dashboard:
             with open(yaml_path, 'r') as yamlfd:
                 css_text = yamlfd.read()
             try:
-                yaml.add_constructor('!secret', ha._secret_yaml)
-                css = yaml.load(css_text)
+                css = self._load_yaml(css_text)
             except yaml.YAMLError as exc:
                 ha.log(self.logger, "WARNING", "Error loading CSS variables")
                 self._log_yaml_error(exc)
@@ -236,8 +235,7 @@ class Dashboard:
                 with open(yaml_path, 'r') as yamlfd:
                     widget = yamlfd.read()
                 try:
-                    yaml.add_constructor('!secret', ha._secret_yaml)
-                    instantiated_widget = yaml.load(widget)
+                    instantiated_widget = self._load_yaml(widget)
                 except yaml.YAMLError as exc:
                     self._log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
                     self._log_yaml_dash_error(dash, name, exc)
@@ -294,8 +292,7 @@ class Dashboard:
                 #
                 # Parse the substituted YAML file - this is a derived widget definition
                 #
-                yaml.add_constructor('!secret', ha._secret_yaml)
-                final_widget = yaml.load(yaml_file)
+                final_widget = self._load_yaml(yaml_file)
             except yaml.YAMLError as exc:
                 self._log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
                 self._log_yaml_dash_error(dash, name, exc)
@@ -439,8 +436,12 @@ class Dashboard:
             if exc.context is not None:
                 lines.append(str(exc.problem) + " " + str(exc.context))
             else:
-                lines.append(str(exc.problem))
+                lines.append(str(exc.problem))         
         return lines
+    
+    def _load_yaml(self, stream):
+        yaml.add_constructor('!secret', ha._secret_yaml)
+        return yaml.load(stream)
 
     def _create_dash(self, name, css_vars):
         dash, layout, occupied, includes = self._create_sub_dash(name, "dash", 0, {}, [], 1, css_vars, None)
@@ -473,8 +474,7 @@ class Dashboard:
             return dash, layout, occupied, includes
 
         try:
-            yaml.add_constructor('!secret', ha._secret_yaml)
-            dash_params = yaml.load(defs)
+            dash_params = self._load_yaml(defs)
         except yaml.YAMLError as exc:
             self._log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
             self._log_yaml_dash_error(dash, name, exc)
