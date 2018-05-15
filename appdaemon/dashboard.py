@@ -135,15 +135,7 @@ class Dashboard:
                 css = yaml.load(css_text)
             except yaml.YAMLError as exc:
                 ha.log(self.logger, "WARNING", "Error loading CSS variables")
-                if hasattr(exc, 'problem_mark'):
-                    if exc.context is not None:
-                        ha.log(self.logger, "WARNING", "parser says")
-                        ha.log(self.logger, "WARNING", str(exc.problem_mark))
-                        ha.log(self.logger, "WARNING", str(exc.problem) + " " + str(exc.context))
-                    else:
-                        ha.log(self.logger, "WARNING", "parser says")
-                        ha.log(self.logger, "WARNING", str(exc.problem_mark))
-                        ha.log(self.logger, "WARNING", str(exc.problem))
+                self._log_yaml_error(exc)
                 return None
             if css is None:
                 return {}
@@ -248,7 +240,7 @@ class Dashboard:
                     instantiated_widget = yaml.load(widget)
                 except yaml.YAMLError as exc:
                     self._log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
-                    self._log_yaml_error(dash, name, exc)
+                    self._log_yaml_dash_error(dash, name, exc)
                     return self.error_widget("Error loading widget")
 
             elif name.find(".") != -1:
@@ -306,7 +298,7 @@ class Dashboard:
                 final_widget = yaml.load(yaml_file)
             except yaml.YAMLError as exc:
                 self._log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
-                self._log_yaml_error(dash, name, exc)
+                self._log_yaml_dash_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
 
             #
@@ -431,14 +423,24 @@ class Dashboard:
         dash["errors"].append("{}: {}".format(os.path.basename(name), error))
         ha.log(self.logger, "WARNING", error)
 
-    def _log_yaml_error(self, dash, name, exc):
+    def _log_yaml_error(self, exc):
+        for line in self._yaml_error_lines(exc):
+            ha.log(self.logger, "WARNING", line)
+
+    def _log_yaml_dash_error(self, dash, name, exc):
+        for line in self._yaml_error_lines(exc):
+            self._log_error(dash, name, line)
+
+    def _yaml_error_lines(self, exc):
+        lines = []
         if hasattr(exc, 'problem_mark'):
-            self._log_error(dash, name, "parser says")
-            self._log_error(dash, name, str(exc.problem_mark))
+            lines.append("parser says")
+            lines.append(str(exc.problem_mark))
             if exc.context is not None:
-                self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                lines.append(str(exc.problem) + " " + str(exc.context))
             else:
-                self._log_error(dash, name, str(exc.problem))        
+                lines.append(str(exc.problem))
+        return lines
 
     def _create_dash(self, name, css_vars):
         dash, layout, occupied, includes = self._create_sub_dash(name, "dash", 0, {}, [], 1, css_vars, None)
@@ -475,18 +477,7 @@ class Dashboard:
             dash_params = yaml.load(defs)
         except yaml.YAMLError as exc:
             self._log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
-            if hasattr(exc, 'problem_mark'):
-                if exc.context is not None:
-                    self._log_error(dash, name, "parser says")
-                    self._log_error(dash, name, str(exc.problem_mark))
-                    self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
-                else:
-                    self._log_error(dash, name, "parser says")
-                    self._log_error(dash, name, str(exc.problem_mark))
-                    self._log_error(dash, name, str(exc.problem))
-            else:
-                self._log_error(dash, name, "Something went wrong while parsing dashboard file")
-
+            self._log_yaml_dash_error(dash, name, exc)
             return dash, layout, occupied, includes
         if dash_params is not None:
             if "global_parameters" in dash_params:
