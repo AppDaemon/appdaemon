@@ -248,15 +248,7 @@ class Dashboard:
                     instantiated_widget = yaml.load(widget)
                 except yaml.YAMLError as exc:
                     self._log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
-                    if hasattr(exc, 'problem_mark'):
-                        if exc.context is not None:
-                            self._log_error(dash, name, "parser says")
-                            self._log_error(dash, name, str(exc.problem_mark))
-                            self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
-                        else:
-                            self._log_error(dash, name, "parser says")
-                            self._log_error(dash, name, str(exc.problem_mark))
-                            self._log_error(dash, name, str(exc.problem))
+                    self._log_yaml_error(dash, name, exc)
                     return self.error_widget("Error loading widget")
 
             elif name.find(".") != -1:
@@ -314,15 +306,7 @@ class Dashboard:
                 final_widget = yaml.load(yaml_file)
             except yaml.YAMLError as exc:
                 self._log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
-                if hasattr(exc, 'problem_mark'):
-                    if exc.context is not None:
-                        self._log_error(dash, name, "parser says")
-                        self._log_error(dash, name, str(exc.problem_mark))
-                        self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
-                    else:
-                        self._log_error(dash, name, "parser says")
-                        self._log_error(dash, name, str(exc.problem_mark))
-                        self._log_error(dash, name, str(exc.problem))
+                self._log_yaml_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
 
             #
@@ -446,6 +430,15 @@ class Dashboard:
     def _log_error(self, dash, name, error):
         dash["errors"].append("{}: {}".format(os.path.basename(name), error))
         ha.log(self.logger, "WARNING", error)
+
+    def _log_yaml_error(self, dash, name, exc):
+        if hasattr(exc, 'problem_mark'):
+            self._log_error(dash, name, "parser says")
+            self._log_error(dash, name, str(exc.problem_mark))
+            if exc.context is not None:
+                self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+            else:
+                self._log_error(dash, name, str(exc.problem))        
 
     def _create_dash(self, name, css_vars):
         dash, layout, occupied, includes = self._create_sub_dash(name, "dash", 0, {}, [], 1, css_vars, None)
