@@ -247,16 +247,16 @@ class Dashboard:
                     yaml.add_constructor('!secret', ha._secret_yaml)
                     instantiated_widget = yaml.load(widget)
                 except yaml.YAMLError as exc:
-                    _log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
+                    self._log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
                     if hasattr(exc, 'problem_mark'):
                         if exc.context is not None:
-                            _log_error(dash, name, "parser says")
-                            _log_error(dash, name, str(exc.problem_mark))
-                            _log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                            self._log_error(dash, name, "parser says")
+                            self._log_error(dash, name, str(exc.problem_mark))
+                            self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
                         else:
-                            _log_error(dash, name, "parser says")
-                            _log_error(dash, name, str(exc.problem_mark))
-                            _log_error(dash, name, str(exc.problem))
+                            self._log_error(dash, name, "parser says")
+                            self._log_error(dash, name, str(exc.problem_mark))
+                            self._log_error(dash, name, str(exc.problem))
                     return self.error_widget("Error loading widget")
 
             elif name.find(".") != -1:
@@ -313,16 +313,16 @@ class Dashboard:
                 yaml.add_constructor('!secret', ha._secret_yaml)
                 final_widget = yaml.load(yaml_file)
             except yaml.YAMLError as exc:
-                _log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
+                self._log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
                 if hasattr(exc, 'problem_mark'):
                     if exc.context is not None:
-                        _log_error(dash, name, "parser says")
-                        _log_error(dash, name, str(exc.problem_mark))
-                        _log_error(dash, name, str(exc.problem) + " " + str(exc.context))
+                        self._log_error(dash, name, "parser says")
+                        self._log_error(dash, name, str(exc.problem_mark))
+                        self._log_error(dash, name, str(exc.problem) + " " + str(exc.context))
                     else:
-                        _log_error(dash, name, "parser says")
-                        _log_error(dash, name, str(exc.problem_mark))
-                        _log_error(dash, name, str(exc.problem))
+                        self._log_error(dash, name, "parser says")
+                        self._log_error(dash, name, str(exc.problem_mark))
+                        self._log_error(dash, name, str(exc.problem))
                 return self.error_widget("Error loading widget definition")
 
             #
