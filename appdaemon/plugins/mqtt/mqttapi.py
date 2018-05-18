@@ -168,7 +168,7 @@ class Mqtt(appapi.AppDaemon):
             self.error('Got error with the following {}'.format(e))
             return str(e)
             
-        result = publish.single(topic, payload = payload, hostname = mqtt_client_host, port = mqtt_client_port, auth = auth, 
+        result = publish.single(topic, payload = payload, qos = qos, hostname = mqtt_client_host, port = mqtt_client_port, auth = auth, 
                         tls = mqtt_client_tls, retain = retain, keepalive = mqtt_client_timeout)
         return result
     
