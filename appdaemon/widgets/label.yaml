@@ -1,8 +1,8 @@
 widget_type: basedisplay
 fields:
-  title: {{title}}
-  title2: {{title2}}
-  value: {{text}}
+  title: "{{title}}"
+  title2: "{{title2}}"
+  value: "{{text}}"
   unit: ""
   state_text: ""
 static_css:

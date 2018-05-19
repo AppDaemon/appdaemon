@@ -198,23 +198,38 @@ class Dashboard:
                     line = line + style + ":" + styles[style] + ";"
                 result[key] = line
         return result
+   
+    def _do_subs(self, value, _vars):
+        if isinstance(value, dict):
+            result = {}
+            templates = {}
+            for (key, value) in value.items():
+                processed, t = self._do_subs(value, _vars)
+                result[key] = processed
+                templates = { **templates, **t }
+            return result, templates
+        elif isinstance(value, list):
+            result = []
+            templates = {}
+            for item in value:
+                processed, t = self._do_subs(item)
+                result.append(processed)
+                templates = { **templates, **t }
+            return result, templates
+        elif isinstance(value, str):
+            templates = {}
+            for ikey in _vars:
+                match = "{{{{{}}}}}".format(ikey)
+                if match in value:
+                    templates[ikey] = 1
+                    value = value.replace(match, _vars[ikey])
+            
+            # Replace variables that are still left with an empty string.
+            value = re.sub("\{\{(.+)\}\}", "", value)
+            return value, templates
+        else:
+            return value, {}
 
-    def _do_subs(self, file, _vars, blank):
-        sub = re.compile("\{\{(.+)\}\}")
-        templates = {}
-        result = ""
-        with open(file, 'r') as fd:
-            for line in fd:
-                for ikey in _vars:
-                    match = "{{{{{}}}}}".format(ikey)
-                    if match in line:
-                        templates[ikey] = 1
-                        line = line.replace(match, _vars[ikey])
-
-                line = sub.sub(blank, line)
-
-                result += line
-        return result, templates
 
     # noinspection PyUnresolvedReferences
     def _load_widget(self, dash, includes, name, css_vars, global_parameters):
@@ -284,19 +299,20 @@ class Dashboard:
             if not os.path.isfile(yaml_path):
                 yaml_path = os.path.join(self.dash_install_dir, "widgets", "{}.yaml".format(widget_type))
 
-            #
-            # Variable substitutions
-            #
-            yaml_file, templates = self._do_subs(yaml_path, instantiated_widget, '""')
             try:
                 #
-                # Parse the substituted YAML file - this is a derived widget definition
+                # Parse the derived widget definition
                 #
-                final_widget = self._load_yaml(yaml_file)
+                with open(yaml_path, 'r') as yamlfd:
+                    widget = yamlfd.read()
+                final_widget = self._load_yaml(widget)
             except yaml.YAMLError as exc:
                 self._log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
                 self._log_yaml_dash_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
+
+            # Substitute variables in the parsed widget definiton.
+            final_widget, templates = self._do_subs(final_widget, instantiated_widget)
 
             #
             # Add in global params
@@ -583,8 +599,9 @@ class Dashboard:
                 ha.log(self.logger, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
             else:
                 template = os.path.join(skindir, "dashboard.css")
-                rendered_css, subs = self._do_subs(template, css_vars, "")
-
+                with open(template, 'r') as cssfd:
+                    csstemplate = cssfd.read()
+                rendered_css, subs = self._do_subs(csstemplate, css_vars)
                 css = css + rendered_css + "\n"
 
             #

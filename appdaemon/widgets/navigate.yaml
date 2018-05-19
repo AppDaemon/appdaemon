@@ -1,7 +1,7 @@
 widget_type: basejavascript
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   icon: ""
   icon_style: ""
 icons:
