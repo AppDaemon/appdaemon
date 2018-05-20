@@ -928,6 +928,7 @@ Style Arguments:
 -  ``text_style``
 -  ``unit_style``
 -  ``container_style``
+-  ``state_text_style`` (used for styling of ``sub_entity``)
 
 input_select
 ~~~~~~~~~~~~
