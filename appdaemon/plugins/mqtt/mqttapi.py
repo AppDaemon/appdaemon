@@ -138,7 +138,7 @@ class Mqtt(appapi.AppDaemon):
         if 'retain' in kwargs:
             retain = kwargs['retain']
         if 'qos' in kwargs:
-            qos = kwargs['qos']
+            qos = int(kwargs['qos'])
             
         config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
         try:
