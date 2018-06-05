@@ -1,7 +1,3 @@
-.widget-baseicon-{{id}} {
-	position: relative;
-}
-
 .widget-baseicon-{{id}} .title {
 	position: absolute;
 	top: 5px;
