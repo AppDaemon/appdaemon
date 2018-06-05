@@ -139,10 +139,10 @@ different scenes in a different version of the App.
         self.run_at_sunrise(self.sunrise_cb)
         self.run_at_sunset(self.before_sunset_cb, offset=-900)
         
-      def sunrise_cb(self, kwargs):
+      def sunrise_cb(self, *args, **kwargs):
         self.turn_on(self.args["off_scene"])
 
-      def before_sunset_cb(self, kwargs):
+      def before_sunset_cb(self, *args, **kwargs):
         self.turn_on(self.args["on_scene"])
 
 This is also fairly easy to achieve with Home Assistant automations, but
@@ -176,12 +176,12 @@ terms:
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
       
-      def motion(self, entity, attribute, old, new, kwargs):
+      def motion(self, entity, attribute, old, new, *args, **kwargs):
         if self.sun_down():
           self.turn_on("light.drive")
           self.run_in(self.light_off, 60)
       
-      def light_off(self, kwargs):
+      def light_off(self, *args, **kwargs):
         self.turn_off("light.drive")
 
 This is starting to get a little more complex in Home Assistant
@@ -207,17 +207,17 @@ activated and bales out after 10 iterations.
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
       
-      def motion(self, entity, attribute, old, new, kwargs):
+      def motion(self, entity, attribute, old, new, *args, **kwargs):
         if self.self.sun_down():
           self.turn_on("light.drive")
           self.run_in(self.light_off, 60)
           self.flashcount = 0
           self.run_in(self.flash_warning, 1)
       
-      def light_off(self, kwargs):
+      def light_off(self, *args, **kwargs):
         self.turn_off("light.drive")
         
-      def flash_warning(self, kwargs):
+      def flash_warning(self, *args, **kwargs):
         self.toggle("light.living_room")
         self.flashcount += 1
         if self.flashcount < 10:
