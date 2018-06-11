@@ -95,30 +95,15 @@ class Hass(appapi.AppDaemon):
             del kwargs["namespace"]
         return super(Hass, self).get_state(namespace, entity, **kwargs)
 
-    def set_state(self, entity_id, **kwargs):
+    def set_state(self, entity_id, state, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        self._check_entity(namespace, entity_id)
         self.AD.log(
             "DEBUG",
-            "set_state: {}, {}".format(entity_id, kwargs)
+            "set_state: {}, {}, {}".format(entity_id, state, namespace)
         )
+        self._check_entity(namespace, entity_id)
 
-        if entity_id in self.get_state():
-            new_state = self.get_state()[entity_id]
-        else:
-            # Its a new state entry
-            new_state = {}
-            new_state["attributes"] = {}
-
-        if "state" in kwargs:
-            new_state["state"] = kwargs["state"]
-
-        if "attributes" in kwargs:
-            new_state["attributes"].update(kwargs["attributes"])
-
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        config = self.AD.get_plugin(namespace).config
         if "certpath" in config:
             certpath = config["certpath"]
         else:
@@ -131,24 +116,23 @@ class Hass(appapi.AppDaemon):
         apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
 
         r = requests.post(
-            apiurl, headers=headers, json=new_state, verify=certpath
+            apiurl, headers=headers, json=state, verify=certpath
         )
         r.raise_for_status()
         state = r.json()
 
         # Update AppDaemon's copy
-
         self.AD.set_state(namespace, entity_id, state)
 
         return state
 
     def set_app_state(self, entity_id, state, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        self._check_entity(namespace, entity_id)
         self.AD.log(
             "DEBUG",
             "set_app_state: {}, {}, {}".format(entity_id, state, namespace)
         )
+        self._check_entity(namespace, entity_id)
 
         # Update AppDaemon's copy
         self.AD.set_app_state(namespace, entity_id, state)

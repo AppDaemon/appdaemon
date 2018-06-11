@@ -110,7 +110,7 @@ Synopsis
 
 .. code:: python
 
-    set_state(entity_id, **kwargs)
+    set_state(entity_id, state, namespace=None)
 
 Returns
 ^^^^^^^
@@ -126,13 +126,16 @@ entity\_id
 
 Entity id for which the state is to be set, e.g. ``light.office_1``.
 
-values
-''''''
+state
+'''''
 
-A list of keyword values to be changed or added to the entities state.
-e.g. ``state = "off"``. Note that any optional attributes such as colors
-for bulbs etc, need to reside in a dictionary called ``attributes``; see
-the example.
+The state to be associated with the entity id. This is a dictionary and
+must contain the entirety of the state information, It will replace the
+old state information, and calls like ``listen_state()`` should work
+correctly reporting the old and the new state information as long as you
+keep the dictionary looking similar to HA status updates, e.g. the main
+state in a state field, and any attributes in an attributes
+sub-dictionary.
 
 namespace
 '''''''''
@@ -145,7 +148,7 @@ Examples
 
 .. code:: python
 
-    status = self.set_state("light.office_1", state = "on", attributes = {"color_name": "red"})
+    status = self.set_state("light.office_1", {"state": "on", "attributes":{"color_name": "red"}})
 
 listen\_state()
 ~~~~~~~~~~~~~~~
@@ -2668,7 +2671,8 @@ Synopsis
 Returns
 ^^^^^^^
 
-None.
+``set_app_state()`` returns a dictionary representing the state of the
+device after the call has completed.
 
 Parameters
 ^^^^^^^^^^
