@@ -6,6 +6,21 @@
 <br>
 </div>
 <div data-bind="attr: {style: sub_style}">
+<p class="secondary-detail" data-bind="visible: forecast_temperature_min">
+<span class="secondary-icon mdi mdi-snowflake" title="Minimum Temp" data-bind="visible: prefer_icons"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Minimum Temp:&nbsp;</span>
+<span class="secondary-info" data-bind="html: forecast_temperature_min"></span>
+<span class="secondary-info" data-bind="html: unit, attr: {style: sub_unit_style}"></span>
+</p>
+<p class="secondary-detail" data-bind="visible: forecast_temperature_max">
+<span class="secondary-icon mdi mdi-fire" title="Maximum Temp" data-bind="visible: prefer_icons"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Maximum Temp:&nbsp;</span>
+<span class="secondary-info" data-bind="text: forecast_temperature_max"></span>
+<span class="secondary-info" data-bind="html: unit, attr: {style: sub_unit_style}"></span>
+<br>
+</p>
+</div>
+<div data-bind="attr: {style: sub_style}">
 <p class="secondary-detail" data-bind="visible: apparent_temperature">
 <span class="secondary-icon mdi mdi-thermometer-lines" title="Apparent Temp" data-bind="visible: prefer_icons"></span>
 <span class="secondary-info" data-bind="visible: !prefer_icons()">Apparent Temp:&nbsp;</span>
