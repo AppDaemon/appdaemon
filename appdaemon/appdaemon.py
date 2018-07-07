@@ -1430,7 +1430,7 @@ class AppDaemon:
                                     state = await self.plugin_objs[plugin].get_complete_state()
 
                                     with self.state_lock:
-                                        self.state[plugin] = state
+                                        self.state[plugin].update(state)
 
                                     self.last_plugin_state[plugin] = datetime.datetime.now()
                                 except:
