@@ -49,11 +49,13 @@ class MqttPlugin:
 
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.mqtt_on_connect
+        self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
 
         self.loop = self.AD.loop # get AD loop
 
     def stop(self):
+        self.stopping = True
         if self.initialized:
             self.log("{}: Stoping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
@@ -61,8 +63,9 @@ class MqttPlugin:
                 result = self.mqtt_client.unsubscribe(topic)
                 if result[0] == 0:
                     self.log("{}: Unsubscription from Topic {} Successful".format(self.name, topic))
-        self.mqtt_client.loop_stop()
-        self.stopping = True
+                    
+            self.mqtt_client.loop_stop()
+            self.mqtt_client.disconnect() #disconnect cleanly
 
     def log(self, text, **kwargs):
         level = kwargs.get('level', 'INFO')
@@ -97,6 +100,10 @@ class MqttPlugin:
         
         if err_msg != "": #means there was an error
             self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, for {}".format(self.name, err_msg))
+
+    def mqtt_on_disconnect(self,  client, userdata, rc):
+        if rc != 0 and not self.stopping: #unexpected disconnection
+            self.initialized = False
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
@@ -143,8 +150,7 @@ class MqttPlugin:
         first_time = True
 
         while not self.stopping and not self.initialized: #continue until initialization is successful
-            task = utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service)
-            await asyncio.wait_for(task, 5.0)
+            await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service), 5.0)
 
             if self.initialized: #meaning the plugin started as expected
                 await self.AD.notify_plugin_started(self.namespace, first_time)
@@ -153,6 +159,7 @@ class MqttPlugin:
             else:
                 if not already_notified:
                     self.AD.notify_plugin_stopped(self.namespace)
+                    self.AD.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
                     already_notified = True
                     first_time = False
 
