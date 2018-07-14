@@ -53,6 +53,7 @@ class MqttPlugin:
         self.mqtt_client.on_message = self.mqtt_on_message
 
         self.loop = self.AD.loop # get AD loop
+        self.mqtt_connect_event = asyncio.Event(loop = self.loop)
 
     def stop(self):
         self.stopping = True
@@ -84,6 +85,7 @@ class MqttPlugin:
                 else:
                     self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
             self.initialized = True
+            self.mqtt_connect_event.set() # continue processing
 
         elif rc == 1:
             err_msg = "Connection was refused due to Incorrect Protocol Version"
@@ -152,6 +154,8 @@ class MqttPlugin:
         while not self.stopping and not self.initialized: #continue until initialization is successful
             await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service), 5.0)
 
+            await asyncio.wait_for(self.mqtt_connect_event.wait(), 2.0) # wait for it to return in case still processing connect 
+
             if self.initialized: #meaning the plugin started as expected
                 await self.AD.notify_plugin_started(self.namespace, first_time)
                 already_notified = False
@@ -171,6 +175,7 @@ class MqttPlugin:
 
     def start_mqtt_service(self):
         try:
+            self.mqtt_connect_event.clear() # used to wait for connection
             if self.mqtt_client_user != None:
                 self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
 
