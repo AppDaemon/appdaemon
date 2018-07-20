@@ -35,6 +35,7 @@ class MqttPlugin:
 
         self.mqtt_client_host = self.config.get('mqtt_client_host', '127.0.0.1')
         self.mqtt_client_port = self.config.get('mqtt_client_port', 1883)
+        mqtt_client_id = self.config.get('mqtt_client_id', '')
         self.mqtt_client_topics = self.config.get('mqtt_client_topics', ['#'])
         self.mqtt_client_user = self.config.get('mqtt_client_user', None)
         self.mqtt_client_password = self.config.get('mqtt_client_password', None)
@@ -47,7 +48,7 @@ class MqttPlugin:
 
         self.mqtt_client_timeout = self.config.get('mqtt_client_timeout', 60)
 
-        self.mqtt_client = mqtt.Client()
+        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id)
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
