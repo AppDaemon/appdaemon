@@ -92,7 +92,7 @@ class Mqtt(appapi.AppDaemon):
             "set_app_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if entity_id in self.get_state(namespace = namespace):
+        if self.get_state(namespace = namespace).get(entity_id, None) != None:
             new_state = self.get_state(namespace = namespace)[entity_id]
         else:
             # Its a new state entry
@@ -144,6 +144,7 @@ class Mqtt(appapi.AppDaemon):
         try:
             mqtt_client_host = config.get('mqtt_client_host', '127.0.0.1')
             mqtt_client_port = config.get('mqtt_client_port', 1883)
+            mqtt_client_id = config.get('mqtt_client_id', None)
             mqtt_client_user = config.get('mqtt_client_user', None)
             mqtt_client_password = config.get('mqtt_client_password', None)
             mqtt_client_tls_insecure = config.get('mqtt_verify_cert', False)
@@ -169,6 +170,5 @@ class Mqtt(appapi.AppDaemon):
             return str(e)
             
         result = publish.single(topic, payload = payload, qos = qos, hostname = mqtt_client_host, port = mqtt_client_port, auth = auth, 
-                        tls = mqtt_client_tls, retain = retain, keepalive = mqtt_client_timeout)
+                        tls = mqtt_client_tls, retain = retain, keepalive = mqtt_client_timeout, client_id=mqtt_client_id)
         return result
-    
