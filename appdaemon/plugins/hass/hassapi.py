@@ -152,8 +152,8 @@ class Hass(appapi.AppDaemon):
             "set_app_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if entity_id in self.get_state():
-            new_state = self.get_state()[entity_id]
+        if entity_id in self.get_state(namespace = namespace):
+            new_state = self.get_state(namespace = namespace)[entity_id]
         else:
             # Its a new state entry
             new_state = {}
@@ -162,8 +162,11 @@ class Hass(appapi.AppDaemon):
         if "state" in kwargs:
             new_state["state"] = kwargs["state"]
 
-        if "attributes" in kwargs:
-            new_state["attributes"].update(kwargs["attributes"])
+        if "attributes" in kwargs and kwargs.get('replace', False):
+            new_state["attributes"] = kwargs["attributes"]
+        else:
+            if "attributes" in kwargs:
+                new_state["attributes"].update(kwargs["attributes"])
 
         # Update AppDaemon's copy
 
