@@ -92,7 +92,7 @@ class Mqtt(appapi.AppDaemon):
             "set_app_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if self.get_state(namespace = namespace).get(entity_id, None) != None:
+        if entity_id in self.get_state(namespace = namespace):
             new_state = self.get_state(namespace = namespace)[entity_id]
         else:
             # Its a new state entry
@@ -102,8 +102,13 @@ class Mqtt(appapi.AppDaemon):
         if "state" in kwargs:
             new_state["state"] = kwargs["state"]
 
-        if "attributes" in kwargs:
-            new_state["attributes"].update(kwargs["attributes"])
+        if "attributes" in kwargs and kwargs.get('replace', False):
+            new_state["attributes"] = kwargs["attributes"]
+        else:
+            if "attributes" in kwargs:
+                new_state["attributes"].update(kwargs["attributes"])
+
+
 
         # Update AppDaemon's copy
 
