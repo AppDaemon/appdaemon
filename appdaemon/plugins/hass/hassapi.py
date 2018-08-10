@@ -175,8 +175,6 @@ class Hass(appapi.AppDaemon):
         return new_state
 
     def entity_exists(self, entity_id, **kwargs):
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
         namespace = self._get_namespace(**kwargs)
         return self.AD.entity_exists(namespace, entity_id)
 
