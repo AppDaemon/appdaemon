@@ -119,6 +119,9 @@ class Mqtt(appapi.AppDaemon):
     #
     # Utility
     #
+    def entity_exists(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.entity_exists(namespace, entity_id)
 
     def split_entity(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
