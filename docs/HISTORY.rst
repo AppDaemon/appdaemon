@@ -14,6 +14,7 @@ Change Log
 - Fixed incorrect service call in ``set_value()``
 - Enforce domain name in rss feed target to avoid issues with other functions
 - Previously deleted modules will now be correctly reloaded to reflect changes
+- Prevent periodic refresh of HASS state from overwriting App created entities - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 
 **Breaking Changes**
 
