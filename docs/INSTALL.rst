@@ -186,7 +186,7 @@ In the required ``plugins:`` sub-section, there will usually be one or more plug
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off.
 -  ``namespace`` (optional) - which namespace to use. This can safely be left out unless you are planning to use multiple plugins (see below)
-
+-  ``app_init_delay`` (optional) - If sepcified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g. zwave).
 Optionally, you can place your apps in a directory other than under the
 config directory using the ``app_dir`` directive.
 

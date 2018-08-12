@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 - added ``set_textvalue()`` api call.
+- added ``app_init_delay`` to delay App Initialization
 
 **Fixes**
 
