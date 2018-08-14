@@ -22,6 +22,8 @@ Before running ``AppDaemon`` you will need to install the package:
 
 Note: the ``--pre`` flag is required or you will install version 2.1.12. There are many breaking changes between 2.1.12 and this beta so ensure you have the correct version installed before proceeding.
 
+**Do not** install this in the same Python virtual environment as Home Assistant. If you do that then Home Assistant will stop working.
+
 Install Using hass.io
 ---------------------
 
