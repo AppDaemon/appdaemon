@@ -59,7 +59,7 @@ class MqttPlugin:
     def stop(self):
         self.stopping = True
         if self.initialized:
-            self.log("{}: Stoping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
+            self.AD.log("INFO", "{}: Stoping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
                 self.log("{}: Unsubscribing from Topic: {}".format(self.name, topic))
                 result = self.mqtt_client.unsubscribe(topic)
