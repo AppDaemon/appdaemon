@@ -155,29 +155,34 @@ class MqttPlugin:
         already_notified = False
         first_time = True
 
-        while not self.stopping and not self.initialized: #continue until initialization is successful
-            if not already_initialized: #if it had connected before, it need not run this. Run if just trying for the first time 
-                await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service), 5.0)
-
-                await asyncio.wait_for(self.mqtt_connect_event.wait(), 2.0) # wait for it to return true for 2 seconds in case still processing connect
-            
-            elif already_initialized and already_notified: #if it had initialized before, and it had notified AD it had stopped before, then try reconnection
-                await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.mqtt_client.reconnect), 5.0)
-
-            if self.initialized: #meaning the plugin started as expected
-                await self.AD.notify_plugin_started(self.namespace, first_time)
-                already_notified = False
-                already_initialized = True
-                self.AD.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
-            else:
-                if not already_notified and already_initialized:
-                    self.AD.notify_plugin_stopped(self.namespace)
-                    self.AD.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
-                    already_notified = True
-                    first_time = False
-
-                self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, trying again in 5 seconds".format(self.name))
-                await asyncio.sleep(5)
+        while not self.stopping: 
+            while not self.initialized or not already_initialized: #continue until initialization is successful
+                if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time 
+                    try:
+                        await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service), 5.0, loop=self.loop)
+                        await asyncio.wait_for(self.mqtt_connect_event.wait(), 2.0, loop=self.loop) # wait for it to return true for 2 seconds in case still processing connect
+                    except asyncio.TimeoutError:
+                        self.AD.log(
+                            "CRITICAL", 
+                                "{}: Could not Complete Connection to Broker, please Ensure Broker at URL {}:{} is correct".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
+                if self.initialized : #meaning the plugin started as expected
+                    await self.AD.notify_plugin_started(self.namespace, first_time)
+                    already_notified = False
+                    already_initialized = True
+                    self.AD.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
+                else:
+                    if not already_notified and already_initialized:
+                        self.AD.notify_plugin_stopped(self.namespace)
+                        self.AD.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
+                        already_notified = True
+                        already_initialized = False
+                        first_time = False
+                    if not already_initialized and not already_notified:
+                        self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, trying again in 5 seconds".format(self.name))
+                    else:
+                        self.AD.log("CRITICAL", "{}: Unable to reinitialize MQTT Plugin, will keep trying again until complete".format(self.name))
+                    await asyncio.sleep(5)
+            await asyncio.sleep(5)
 
     def get_namespace(self):
         return self.namespace
