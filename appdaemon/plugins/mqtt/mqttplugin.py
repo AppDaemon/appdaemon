@@ -164,7 +164,7 @@ class MqttPlugin:
                     except asyncio.TimeoutError:
                         self.AD.log(
                             "CRITICAL", 
-                                "{}: Could not Complete Connection to Broker, please Ensure Broker at URL {}:{} is correct".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
+                                "{}: Could not Complete Connection to Broker, please Ensure Broker at URL {}:{} is correct and restart Appdaemon".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
                 if self.initialized : #meaning the plugin started as expected
                     await self.AD.notify_plugin_started(self.namespace, first_time)
                     already_notified = False
