@@ -35,6 +35,7 @@ class MqttPlugin:
 
         self.mqtt_client_host = self.config.get('mqtt_client_host', '127.0.0.1')
         self.mqtt_client_port = self.config.get('mqtt_client_port', 1883)
+        self.mqtt_subcription_qos = self.config.get('mqtt_subscription_qos', 0)
         mqtt_client_id = self.config.get('mqtt_client_id', None)
         self.mqtt_client_topics = self.config.get('mqtt_client_topics', ['#'])
         self.mqtt_client_user = self.config.get('mqtt_client_user', None)
@@ -80,7 +81,7 @@ class MqttPlugin:
             self.AD.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
                 self.log("{}: Subscribing to Topic: {}".format(self.name, topic))
-                result = self.mqtt_client.subscribe(topic)
+                result = self.mqtt_client.subscribe(topic, self.mqtt_subcription_qos)
                 if result[0] == 0:
                     self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
                 else:
