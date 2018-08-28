@@ -87,8 +87,7 @@ class MqttPlugin:
                 else:
                     self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
             self.initialized = True
-            self.mqtt_connect_event.set() # continue processing
-
+            
         elif rc == 1:
             err_msg = "Connection was refused due to Incorrect Protocol Version"
         elif rc == 2:
@@ -104,6 +103,8 @@ class MqttPlugin:
         
         if err_msg != "": #means there was an error
             self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, for {}".format(self.name, err_msg))
+            
+        self.mqtt_connect_event.set() # continue processing
 
     def mqtt_on_disconnect(self,  client, userdata, rc):
         if rc != 0 and not self.stopping: #unexpected disconnection
