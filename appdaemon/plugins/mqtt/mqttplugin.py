@@ -33,21 +33,29 @@ class MqttPlugin:
         else:
             self.verbose = False
 
-        self.mqtt_client_host = self.config.get('mqtt_client_host', '127.0.0.1')
-        self.mqtt_client_port = self.config.get('mqtt_client_port', 1883)
-        self.mqtt_subcription_qos = self.config.get('mqtt_subscription_qos', 0)
-        mqtt_client_id = self.config.get('mqtt_client_id', None)
-        self.mqtt_client_topics = self.config.get('mqtt_client_topics', ['#'])
-        self.mqtt_client_user = self.config.get('mqtt_client_user', None)
-        self.mqtt_client_password = self.config.get('mqtt_client_password', None)
-        self.mqtt_event_name = self.config.get('mqtt_event_name', 'MQTT_MESSAGE')
+        self.mqtt_client_host = self.config.get('client_host', '127.0.0.1')
+        self.mqtt_client_port = self.config.get('client_port', 1883)
+        self.mqtt_subcription_qos = self.config.get('subscription_qos', 0)
+        mqtt_client_id = self.config.get('client_id', None)
+        self.mqtt_client_topics = self.config.get('client_topics', ['#'])
+        self.mqtt_client_user = self.config.get('client_user', None)
+        self.mqtt_client_password = self.config.get('client_password', None)
+        self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
 
-        self.mqtt_client_tls_ca_certs = self.config.get('mqtt_ca_certs', None)
-        self.mqtt_client_tls_client_cert = self.config.get('mqtt_client_cert', None)
-        self.mqtt_client_tls_client_key = self.config.get('mqtt_client_key', None)
-        self.mqtt_client_tls_insecure = self.config.get('mqtt_verify_cert', None)
+        status_topic = '{} status'.format(self.config.get('client_id', self.name+' client'))
+        self.AD.log("INFO", "{}: Using {!r} as Connection Status Topic".format(self.name, status_topic))
+        
+        self.mqtt_will_topic = self.config.get('will_topic', status_topic)
+        self.mqtt_will_payload = self.config.get('will_payload', 'offline')
+        self.mqtt_on_connect_topic = self.config.get('birth_topic', status_topic)
+        self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
 
-        self.mqtt_client_timeout = self.config.get('mqtt_client_timeout', 60)
+        self.mqtt_client_tls_ca_certs = self.config.get('ca_certs', None)
+        self.mqtt_client_tls_client_cert = self.config.get('client_cert', None)
+        self.mqtt_client_tls_client_key = self.config.get('client_key', None)
+        self.mqtt_client_tls_insecure = self.config.get('verify_cert', None)
+
+        self.mqtt_client_timeout = self.config.get('client_timeout', 60)
 
         self.mqtt_client = mqtt.Client(client_id=mqtt_client_id)
         self.mqtt_client.on_connect = self.mqtt_on_connect
@@ -78,6 +86,8 @@ class MqttPlugin:
     def mqtt_on_connect(self, client, userdata, flags, rc):
         err_msg = ""
         if rc == 0: #means connection was successful
+            self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_subcription_qos)
+                
             self.AD.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
                 self.log("{}: Subscribing to Topic: {}".format(self.name, topic))
@@ -86,8 +96,9 @@ class MqttPlugin:
                     self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
                 else:
                     self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
+
             self.initialized = True
-            
+
         elif rc == 1:
             err_msg = "Connection was refused due to Incorrect Protocol Version"
         elif rc == 2:
@@ -103,7 +114,7 @@ class MqttPlugin:
         
         if err_msg != "": #means there was an error
             self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, for {}".format(self.name, err_msg))
-            
+
         self.mqtt_connect_event.set() # continue processing
 
     def mqtt_on_disconnect(self,  client, userdata, rc):
@@ -203,6 +214,8 @@ class MqttPlugin:
                                         keyfile=self.mqtt_client_tls_client_key)
             if self.mqtt_client_tls_insecure != None:
                 self.mqtt_client.tls_insecure_set(not self.mqtt_client_tls_insecure)
+
+            self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_subcription_qos)
 
             self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
                                         self.mqtt_client_timeout)
