@@ -8,6 +8,7 @@ Change Log
 
 - added ``set_textvalue()`` api call.
 - added ``app_init_delay`` to delay App Initialization
+- Docker start script will now check recursively for additional requirements and install them -  - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
 
 **Fixes**
 
