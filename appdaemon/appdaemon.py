@@ -67,6 +67,9 @@ class AppDaemon:
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
 
+        self.log_callbacks = {}
+        self.log_callbacks_lock = threading.RLock()
+
         self.thread_info = {}
         self.thread_info_lock = threading.RLock()
         self.thread_info["threads"] = {}
@@ -2311,7 +2314,9 @@ class AppDaemon:
                         # Remove the callback if appropriate
                         remove = callback["kwargs"].get("oneshot", False)
                         if remove:
-                            removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                            print(callback["kwargs"])
+                            #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                            removes.append({"name": callback["name"], "uuid": uuid_})
 
             for remove in removes:
                 #print(remove)
@@ -2435,12 +2440,33 @@ class AppDaemon:
             ts = None
         utils.log(self.logger, level, message, name, ts)
 
+        self.process_log_callback(level, message, name, ts)
+
     def err(self, level, message, name="AppDaemon"):
         if not self.realtime:
             ts = self.get_now()
         else:
             ts = None
         utils.log(self.error, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts)
+
+    def process_log_callback(self, level, message, name, ts):
+        with self.log_callbacks_lock:
+            if name in self.log_callbacks:
+                self.log_callbacks[name](ts, level, message)
+
+    def add_log_callback(self, name, cb):
+        with self.log_callbacks_lock:
+            self.log_callbacks[name] = cb
+
+    def cancel_log_callback(self, handle, name):
+        with self.log_callbacks_lock:
+            if name not in self.log_callbacks:
+                self.log("WARNING", "Invalid callback in cancel_log_callback() from app {}".format(name))
+
+            if name in self.log_callbacks:
+                del self.log_callbacks[name]
 
     def diag(self, level, message, name="AppDaemon"):
         if not self.realtime:
