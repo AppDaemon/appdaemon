@@ -10,6 +10,7 @@ Change Log
 - added ``app_init_delay`` to delay App Initialization
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
 - Update MID icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
+- Added ability to register apps to recieve log entries
 
 **Fixes**
 

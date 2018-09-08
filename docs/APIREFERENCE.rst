@@ -2319,6 +2319,9 @@ Returns
 
 The underlying ``logger`` object used for the main log.
 
+Examples
+^^^^^^^^
+
 .. code:: python
 
     log = self.get_main_log()
@@ -2341,11 +2344,77 @@ Returns
 
 The underlying ``logger`` object used for the error log.
 
+Examples
+^^^^^^^^
+
 .. code:: python
 
     error_log = self.get_error_log()
     error_log.log(40, "Log an error")
 
+listen_log()
+~~~~~~~
+
+Register the app to receive a callback everytime an app logs a message
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.listen_log(cb)
+
+
+Returns
+^^^^^^^
+
+None.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.listen_log(self.cb)
+
+cancel_log()
+~~~~~~~~~~~~
+
+Cancel the log callback for an app.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.cancel_listen_log()
+
+Returns
+^^^^^^^
+
+None.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.cancel_listen_log()
+
+About listen_log() Callbacks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The signature for a callback used with ``listen_log()`` is as follows:
+
+.. code:: python
+
+    def cb(self, name, ts, level, message):
+
+
+``name`` is the name of the app that logged the message
+``ts`` is the timestamp of the message
+``level`` is the severity level of the message
+``message`` is the text of the message
 
 API
 ---
