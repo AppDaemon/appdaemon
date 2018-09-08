@@ -759,8 +759,9 @@ Example with default values:
 .. code:: yaml
 
     sample_weather:
+      widget_type: weather
       title: Today
-      show_foreacast: 1
+      show_forecast: 1
       prefer_icons: 1
       forecast_title: Tomorrow
       sensors:
