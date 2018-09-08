@@ -42,5 +42,8 @@ if [ -n "$DASH_URL" ]; then
   fi
 fi
 
+#check recursively under CONF for additional python dependencies defined in requirements.txt
+find $CONF -name requirements.txt -exec pip3 install -r {} \;
+
 # Lets run it!
 appdaemon -c $CONF $EXTRA_CMD
