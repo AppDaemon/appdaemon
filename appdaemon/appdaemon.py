@@ -2437,7 +2437,7 @@ class AppDaemon:
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.logger, level, message, name, ts)
 
         self.process_log_callback(level, message, name, ts)
@@ -2446,21 +2446,32 @@ class AppDaemon:
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.error, level, message, name, ts)
 
         self.process_log_callback(level, message, name, ts)
 
     def process_log_callback(self, level, message, name, ts):
         with self.log_callbacks_lock:
-            if name in self.log_callbacks:
-                self.log_callbacks[name](ts, level, message)
+            for thisname in self.log_callbacks:
+                if thisname != name and name != "AppDaemon":
+                    try:
+                        self.log_callbacks[thisname](name, ts, level, message)
+                    except:
+                        self.err("WARNING", '-' * 60)
+                        self.err("WARNING", "Unexpected error in log callback for: {}:".format(name))
+                        self.err("WARNING", '-' * 60)
+                        self.err("WARNING", traceback.format_exc())
+                        self.err("WARNING", '-' * 60)
+                        if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                            self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
 
     def add_log_callback(self, name, cb):
         with self.log_callbacks_lock:
             self.log_callbacks[name] = cb
 
-    def cancel_log_callback(self, handle, name):
+    def cancel_log_callback(self, name):
         with self.log_callbacks_lock:
             if name not in self.log_callbacks:
                 self.log("WARNING", "Invalid callback in cancel_log_callback() from app {}".format(name))

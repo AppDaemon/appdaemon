@@ -59,12 +59,12 @@ class AppDaemon:
     def listen_log(self, cb):
         return self.AD.add_log_callback(self.name, cb)
 
-    def cancel_listen_log(self, handle):
+    def cancel_listen_log(self):
         self.AD.log(
             "DEBUG",
             "Canceling listen_log for {}".format(self.name)
         )
-        self.AD.cancel_log_callback(handle, self.name)
+        self.AD.cancel_log_callback(self.name)
 
     #
     # Utility
