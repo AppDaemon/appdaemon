@@ -25,11 +25,9 @@ Note: the ``--pre`` flag is required or you will install version 2.1.12. There a
 Install Using hass.io
 ---------------------
 
-There are a couple of hass.io addons for AppDaemon maintained by:
+The official hass.io addon for AppDaemon is maintained by:
 
 - `frenck <https://github.com/hassio-addons/repository>`__.
-- `sparck75 <https://github.com/sparck75/hassio-addons>`__.
-
 
 Configuration
 -------------
