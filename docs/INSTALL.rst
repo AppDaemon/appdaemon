@@ -31,7 +31,7 @@ The official hass.io addon for AppDaemon is maintained by:
 Running a Dev Version
 ---------------------
 
-For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. You do this at your won risk, and be aware that although I try to keep things consistent and functional, I can;t guarantee that I won't break things in the dev version - if this happens you are on your own!
+For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. You do this at your own risk, and be aware that although I try to keep things consistent and functional, I can't guarantee that I won't break things in the dev version - if this happens you are on your own!
 
 Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
 
@@ -74,8 +74,8 @@ To install the dev build as a package, change to the appdaemon directory and run
 
     $ pip3 install .
 
-Updating AppDaemon to the latest dev
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Updating AppDaemon to the latest dev version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When the dev version has been updated and you want to pull over the latest changes, run the following command from the top level of the repository:
 
