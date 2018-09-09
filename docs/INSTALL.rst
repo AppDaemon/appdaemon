@@ -18,9 +18,7 @@ Before running ``AppDaemon`` you will need to install the package:
 
 .. code:: bash
 
-    $ sudo pip3 install --pre appdaemon
-
-Note: the ``--pre`` flag is required or you will install version 2.1.12. There are many breaking changes between 2.1.12 and this beta so ensure you have the correct version installed before proceeding.
+    $ sudo pip3 install appdaemon
 
 Install Using hass.io
 ---------------------
@@ -28,6 +26,64 @@ Install Using hass.io
 The official hass.io addon for AppDaemon is maintained by:
 
 - `frenck <https://github.com/hassio-addons/repository>`__.
+
+
+Running a Dev Version
+---------------------
+
+For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. You do this at your won risk, and be aware that although I try to keep things consistent and functional, I can;t guarantee that I won't break things in the dev version - if this happens you are on your own!
+
+Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
+
+To run a dev version follow these steps:
+
+Clone the Repository
+~~~~~~~~~~~~~~~~~~~~
+
+First we need to get a clean copy of the dev branch. To do this, create a fresh directory, and change into it. Run the following command to clone the dev branch of the AppDaemon repository:
+
+.. code:: bash
+
+    $ git clone -b dev https://github.com/home-assistant/appdaemon.git
+
+This will create a directory called ``appdaemon`` - this is your repository directory and all commands will need to be run from inside it.
+
+Run AppDaemon from the command line
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now that you have a local copy of the code, the next step is to run AppDaemon using that code.
+
+As a first step, if you are using a Virtual Environment enable it. The best practice here is to use a venv specifically for the dev version; it is possible that the dev branch may have updated dependencies that will be incompatible with the latest stable version, and may break it.
+
+To run the cloned version of AppDaemon, make sure you are in the ``appdaemon`` subdirectory and run the following command:
+
+.. code:: bash
+
+    $ python3 -m appdaemon.admain -c <PATH To CONFIG DIRECTORY>
+
+In most cases it is possible to share config directories with other AppDaemon instances, but beware of apps that use new features as they will likely cause errors for the stable version. If you prefer, you can create an entirely new conf directory for your dev environment.
+
+Install AppDamon via PIP (Optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Although the reccomended way of running a dev build is to use the command line above, it is possible to install an appdaemon dev build as a pip package. If you do so, it will replace your stable version, so only do this if you are confident with packages and venvs - if you use a specific venv for the dev build this should not be an issue. Also, remember that if you do this you will need to reinstall the package as an extra step every time you refresh the dev repository (see below).
+
+To install the dev build as a package, change to the appdaemon directory and run the following command:
+
+.. code:: bash
+
+    $ pip3 install .
+
+Updating AppDaemon to the latest dev
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When the dev version has been updated and you want to pull over the latest changes, run the following command from the top level of the repository:
+
+.. code:: bash
+
+    $ git pull
+
+You can then immediately run the latest version with the command line above. If you are using pip, remember to run the install command again.
 
 Configuration
 -------------
