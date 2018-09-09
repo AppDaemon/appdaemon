@@ -68,7 +68,7 @@ Install AppDamon via PIP (Optional)
 
 Although the reccomended way of running a dev build is to use the command line above, it is possible to install an appdaemon dev build as a pip package. If you do so, it will replace your stable version, so only do this if you are confident with packages and venvs - if you use a specific venv for the dev build this should not be an issue. Also, remember that if you do this you will need to reinstall the package as an extra step every time you refresh the dev repository (see below).
 
-To install the dev build as a package, change to the appdaemon directory and run the following command:
+To install the dev build as a package, change to the ``appdaemon`` directory and run the following command:
 
 .. code:: bash
 
@@ -77,7 +77,7 @@ To install the dev build as a package, change to the appdaemon directory and run
 Updating AppDaemon to the latest dev version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When the dev version has been updated and you want to pull over the latest changes, run the following command from the top level of the repository:
+When the dev version has been updated and you want to pull over the latest changes, run the following command from the ``appdeamon`` directory:
 
 .. code:: bash
 
