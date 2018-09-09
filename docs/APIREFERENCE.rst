@@ -2121,7 +2121,10 @@ Synopsis
     entity_exists(entity)
 
 ``entity_exists()`` is used to verify if a given entity exists in Home
-Assistant or not.
+Assistant or not. When working with multiple Home Assistant instances, it is
+possible to specify the namespace, so that it checks within the right instance in
+in the event the app is working in a different instance. Also when using this function, 
+it is also possible to check if an Appdaemon entity exists.
 
 Returns
 ^^^^^^^
@@ -2148,9 +2151,15 @@ Examples
 
 .. code:: python
 
-     Return state for the entire system
+    # Return True if the entity light.living_room exist within the app's namespace
     if self.entity_exists("light.living_room"):
       do something 
+      
+    # Return True if the entity mqtt.security_settings exist within the mqtt namespace
+    # if the app is operating in a different namespace like default
+    if self.entity_exists("mqtt.security_settings", namespace = "mqtt"):
+      do something 
+    
       ...
 
 get\_app()
