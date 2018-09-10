@@ -1408,7 +1408,7 @@ AppDaemon supports a simple RESTFul API to enable arbitary HTTP
 connections to pass data to Apps and trigger actions. API Calls must use
 a content type of ``application/json``, and the response will be JSON
 encoded. The RESTFul API is disabled by default, but is enabled by
-adding an ``ad_port`` directive to the AppDaemon section of the
+adding an ``api_port`` directive to the AppDaemon section of the
 configuration file. The API can run http or https if desired, separately
 from the dashboard.
 

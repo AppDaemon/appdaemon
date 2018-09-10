@@ -67,6 +67,9 @@ class AppDaemon:
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
 
+        self.log_callbacks = {}
+        self.log_callbacks_lock = threading.RLock()
+
         self.thread_info = {}
         self.thread_info_lock = threading.RLock()
         self.thread_info["threads"] = {}
@@ -1430,7 +1433,7 @@ class AppDaemon:
                                     state = await self.plugin_objs[plugin].get_complete_state()
 
                                     with self.state_lock:
-                                        self.state[plugin] = state
+                                        self.state[plugin].update(state)
 
                                     self.last_plugin_state[plugin] = datetime.datetime.now()
                                 except:
@@ -2311,7 +2314,9 @@ class AppDaemon:
                         # Remove the callback if appropriate
                         remove = callback["kwargs"].get("oneshot", False)
                         if remove:
-                            removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                            print(callback["kwargs"])
+                            #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                            removes.append({"name": callback["name"], "uuid": uuid_})
 
             for remove in removes:
                 #print(remove)
@@ -2432,15 +2437,47 @@ class AppDaemon:
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.logger, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts)
 
     def err(self, level, message, name="AppDaemon"):
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.error, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts)
+
+    def process_log_callback(self, level, message, name, ts):
+        with self.log_callbacks_lock:
+            for thisname in self.log_callbacks:
+                if thisname != name and name != "AppDaemon":
+                    try:
+                        self.log_callbacks[thisname](name, ts, level, message)
+                    except:
+                        self.err("WARNING", '-' * 60)
+                        self.err("WARNING", "Unexpected error in log callback for: {}:".format(name))
+                        self.err("WARNING", '-' * 60)
+                        self.err("WARNING", traceback.format_exc())
+                        self.err("WARNING", '-' * 60)
+                        if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                            self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+
+    def add_log_callback(self, name, cb):
+        with self.log_callbacks_lock:
+            self.log_callbacks[name] = cb
+
+    def cancel_log_callback(self, name):
+        with self.log_callbacks_lock:
+            if name not in self.log_callbacks:
+                self.log("WARNING", "Invalid callback in cancel_log_callback() from app {}".format(name))
+
+            if name in self.log_callbacks:
+                del self.log_callbacks[name]
 
     def diag(self, level, message, name="AppDaemon"):
         if not self.realtime:

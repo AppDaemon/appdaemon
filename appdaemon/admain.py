@@ -11,6 +11,7 @@ import signal
 import platform
 import yaml
 import asyncio
+import traceback
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
@@ -65,31 +66,38 @@ class ADMain():
     # noinspection PyBroadException,PyBroadException
     def run(self, appdaemon, hadashboard):
 
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
 
-        # Initialize AppDaemon
+            # Initialize AppDaemon
 
-        self.AD = ad.AppDaemon(self.logger, self.error, self.diag, loop, **appdaemon)
+            self.AD = ad.AppDaemon(self.logger, self.error, self.diag, loop, **appdaemon)
 
-        # Initialize Dashboard/API
+            # Initialize Dashboard/API
 
-        if hadashboard["dashboard"] is True:
-            self.log(self.logger, "INFO", "Starting Dashboards")
-            self.rundash = rundash.RunDash(self.AD, loop, self.logger, self.access, **hadashboard)
-            self.AD.register_dashboard(self.rundash)
-        else:
-            self.log(self.logger, "INFO", "Dashboards are disabled")
+            if hadashboard["dashboard"] is True:
+                self.log(self.logger, "INFO", "Starting Dashboards")
+                self.rundash = rundash.RunDash(self.AD, loop, self.logger, self.access, **hadashboard)
+                self.AD.register_dashboard(self.rundash)
+            else:
+                self.log(self.logger, "INFO", "Dashboards are disabled")
 
-        if "api_port" in appdaemon:
-            self.log(self.logger, "INFO", "Starting API")
-            self.api = api.ADAPI(self.AD, loop, self.logger, self.access, **appdaemon)
-        else:
-            self.log(self.logger, "INFO", "API is disabled")
+            if "api_port" in appdaemon:
+                self.log(self.logger, "INFO", "Starting API")
+                self.api = api.ADAPI(self.AD, loop, self.logger, self.access, **appdaemon)
+            else:
+                self.log(self.logger, "INFO", "API is disabled")
 
-        self.log(self.logger, "DEBUG", "Start Loop")
+            self.log(self.logger, "DEBUG", "Start Loop")
 
-        pending = asyncio.Task.all_tasks()
-        loop.run_until_complete(asyncio.gather(*pending))
+            pending = asyncio.Task.all_tasks()
+            loop.run_until_complete(asyncio.gather(*pending))
+        except:
+            self.log(self.logger, "WARNING", '-' * 60)
+            self.log(self.logger, "WARNING", "Unexpected error during run()")
+            self.log(self.logger, "WARNING", '-' * 60)
+            self.log(self.logger, "WARNING", traceback.format_exc())
+            self.log(self.logger, "WARNING", '-' * 60)
 
         self.log(self.logger, "DEBUG", "End Loop")
 
