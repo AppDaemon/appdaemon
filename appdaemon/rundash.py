@@ -347,7 +347,7 @@ class RunDash:
                     for k in json_args.keys():
                         args[k] = json_args[k]
                 else:
-                    args[key] = value
+                    args[key] = data[key]
 
             plugin = self.AD.get_plugin(namespace)
             await plugin.call_service (service, **args)
