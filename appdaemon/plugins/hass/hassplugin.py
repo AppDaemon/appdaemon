@@ -68,6 +68,10 @@ class HassPlugin:
         else:
             self.commtype = "WS"
 
+        if "app_init_delay" in args:
+            self.app_init_delay = args["app_init_delay"]
+        else:
+            self.app_init_delay = 0
         #
         # Set up HTTP Client
         #
@@ -158,14 +162,25 @@ class HassPlugin:
                                 self.timeout
                             )
                         )
-                    self.reading_messages = True
                     #
                     # Grab Metadata
                     #
                     self.metadata = await self.get_hass_config()
                     #
+                    # Wait for app delay
+                    #
+                    if self.app_init_delay > 0:
+                        self.log(
+                            "INFO",
+                            "Delaying app initialization for {} seconds".format(
+                                self.app_init_delay
+                            )
+                        )
+                        await asyncio.sleep(self.app_init_delay)
+                    #
                     # Fire HA_STARTED Events
                     #
+                    self.reading_messages = True
                     await self.AD.notify_plugin_started(self.namespace, first_time)
 
                     already_notified = False
@@ -230,14 +245,25 @@ class HassPlugin:
                         self.log("WARNING", result)
                         raise ValueError("Error subscribing to HA Events")
 
-                    self.reading_messages = True
                     #
                     # Grab Metadata
                     #
                     self.metadata = await self.get_hass_config()
                     #
+                    # Wait for app delay
+                    #
+                    if self.app_init_delay > 0:
+                        self.log(
+                            "INFO",
+                            "Delaying app initialization for {} seconds".format(
+                                self.app_init_delay
+                            )
+                        )
+                        await asyncio.sleep(self.app_init_delay)
+                    #
                     # Fire HA_STARTED Events
                     #
+                    self.reading_messages = True
                     await self.AD.notify_plugin_started(self.namespace, first_time)
 
                     already_notified = False

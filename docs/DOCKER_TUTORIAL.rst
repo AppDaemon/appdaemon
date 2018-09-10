@@ -275,3 +275,8 @@ If you no longer want to use Appdaemon :(, use the following commands:
 
 You can delete the ``conf`` folder if you wish at this time too.
 Appdaemon is now completely removed.
+
+Adding Dependencies
+-------------------
+
+Sometimes it can be helpful to install additional Python dependencies into the Docker container before AppDaemon starts, to allow additional libraries to be used from Apps. The Docker script will recursively search the CONF directory for any files named ``requirements.txt`` and if it finds them, use them as input to pip3 to install any packages that they describe.
