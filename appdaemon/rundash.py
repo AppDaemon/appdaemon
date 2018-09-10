@@ -342,28 +342,12 @@ class RunDash:
                         x = m.group(1)
                         y = m.group(2)
                         args["xy_color"] = [x, y]
+                elif key == "json_args":
+                    json_args = json.loads(data[key])
+                    for k in json_args.keys():
+                        args[k] = json_args[k]
                 else:
-                    # transform value into list if there's "|" 
-                    if "|" in data[key]:
-                        value = data[key].split("|")
-                    else:
-                        value = data[key]
-
-                    # check for nested dicts. 2 levels deep for now
-                    if "[" in key:
-                        newkey = key.replace("]","")
-                        newkey, subkey = newkey.split("[",1)
-                        if not newkey in args.keys():
-                           args[newkey] = {}
-                        if "[" in subkey:
-                           subkey, subsubkey = subkey.split("[")
-                           if not subkey in args[newkey].keys():
-                               args[newkey][subkey] = {}
-                           args[newkey][subkey][subsubkey] = value
-                        else:
-                           args[newkey][subkey] = value
-                    else:
-                        args[key] = value
+                    args[key] = value
 
             plugin = self.AD.get_plugin(namespace)
             await plugin.call_service (service, **args)
