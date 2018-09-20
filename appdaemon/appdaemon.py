@@ -1025,10 +1025,10 @@ class AppDaemon:
                 schedule[name][entry]["type"] = self.schedule[name][entry]["type"]
                 schedule[name][entry]["name"] = self.schedule[name][entry]["name"]
                 schedule[name][entry]["basetime"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["repeat"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["offset"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["interval"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["repeat"] = self.schedule[name][entry]["repeat"]
+                schedule[name][entry]["offset"] = self.schedule[name][entry]["offset"]
+                schedule[name][entry]["interval"] = self.schedule[name][entry]["interval"]
+                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["kwargs"]
                 schedule[name][entry]["callback"] = self.schedule[name][entry]["callback"]
         return schedule
 

@@ -17,6 +17,7 @@ import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.adapi as api
 import appdaemon.rundash as rundash
+import appdaemon.runadmin as runadmin
 
 # Windows does not have Daemonize package so disallow
 
@@ -28,6 +29,7 @@ class ADMain():
         self.diag = None
         self.AD = None
         self.rundash = None
+        self.runadmin = None
 
     def init_signals(self):
         # Windows does not support SIGUSR1 or SIGUSR2
@@ -59,6 +61,8 @@ class ADMain():
         self.AD.stop()
         if self.rundash is not None:
             self.rundash.stop()
+        if self.runadmin is not None:
+            self.runadmin.stop()
 
     def log(self, logger, level, msg, name=""):
         utils.log(logger, level, msg, name)
@@ -87,6 +91,12 @@ class ADMain():
                 self.api = api.ADAPI(self.AD, loop, self.logger, self.access, **appdaemon)
             else:
                 self.log(self.logger, "INFO", "API is disabled")
+
+            if "admin_port" in appdaemon:
+                self.log(self.logger, "INFO", "Starting Admin Interface")
+                self.runadmin = runadmin.RunAdmin(self.AD, loop, self.logger, self.access, **appdaemon)
+            else:
+                self.log(self.logger, "INFO", "Admin Interface is disabled")
 
             self.log(self.logger, "DEBUG", "Start Loop")
 
