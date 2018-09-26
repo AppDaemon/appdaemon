@@ -8,7 +8,7 @@ About Docker
 
 Docker is a popular application container technology. Application
 containers allow an application to be built in a known-good state and
-run totally independant of other applications. This makes it easier to
+run totally independent of other applications. This makes it easier to
 install complex software and removes concerns about application
 dependency conflicts. Containers are powerful, however they require
 abstractions that can sometimes be confusing.
@@ -42,7 +42,7 @@ Before you start, you need to know the following:
 * HA\_URL: The URL of your running Home Assistant, in the form of ``http://[name]:[port]``. Port is usually 8123.
 * HA\_KEY: If your Home Assistant requires an API key, you'll need that
 
-Now, on your Docker host, for linux users, run the following command,
+Now, on your Docker host, for Linux users, run the following command,
 substituting the values above in the quotes below. (Note, if you do not
 need an HA\_KEY, you can omit the entire -e HA\_KEY line)
 
@@ -112,7 +112,7 @@ like:
 
     mkdir -p /docker/appdaemon/conf
 
-Next, we will run a container again, omiting the ``--rm -it`` parameters
+Next, we will run a container again, omitting the ``--rm -it`` parameters
 and adding ``-d`` so that it stays background and doesn't disappear when
 it exits. We will also add ``--restart=always`` so that the container
 will auto-start on system boot and restart on failures, and lastly
@@ -144,7 +144,7 @@ You are now ready to start working on your Appdaemon configurations!
 
 At this point forward, you can edit configurations on your ``conf``
 folder and Appdaemon will load them see the `AppDaemon Installation
-page <INSTALL.html>`__ for full instrctions on AppDaemon configuration.
+page <INSTALL.html>`__ for full instructions on AppDaemon configuration.
 Have fun!
 
 Viewing Appdaemon Log Output
@@ -191,8 +191,8 @@ Run the following commands:
       -v <your_conf_folder>:/conf \
       acockburn/appdaemon:latest
 
-Controlling the Appdaemon Conter
---------------------------------
+Controlling the Appdaemon Container
+-----------------------------------
 
 To restart Appdaemon:
 
@@ -223,7 +223,7 @@ Running with Appdaemon Debug
 ----------------------------
 
 If you need to run Appdaemon with Debug, it may be easiest to stop your
-normal appdaemon and run a temporary container with the debug flag set.
+normal Appdaemon and run a temporary container with the debug flag set.
 This presumes you already have a configured ``conf`` folder you are
 debugging, so we don't need to pass the HA/DASH variables into the
 container.
