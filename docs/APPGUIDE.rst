@@ -1245,7 +1245,7 @@ Then access it as follows:
 
 .. code:: python
 
-    my_global_var = conf.config["global_var"]
+    my_global_var = self.config["global_var"]
 
 Development Workflow
 --------------------
