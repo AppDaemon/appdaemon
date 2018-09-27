@@ -155,7 +155,7 @@ class Mqtt(appapi.AppDaemon):
             mqtt_client_id = config.get('client_id', None)
             mqtt_client_user = config.get('client_user', None)
             mqtt_client_password = config.get('client_password', None)
-            mqtt_client_tls_insecure = config.get('verify_cert', False)
+            mqtt_client_tls_insecure = config.get('verify_cert', True)
 
             mqtt_client_tls_ca_certs = config.get('ca_certs', None)
             mqtt_client_tls_client_cert = config.get('client_cert', None)
@@ -163,7 +163,7 @@ class Mqtt(appapi.AppDaemon):
 
             mqtt_client_timeout = config.get('client_timeout', 60)
 
-            if mqtt_client_tls_ca_certs != None and mqtt_client_tls_insecure != False:
+            if mqtt_client_tls_ca_certs != None and mqtt_client_tls_insecure:
                 mqtt_client_tls = {'ca_certs':mqtt_client_tls_ca_certs, 'certfile':mqtt_client_tls_client_cert, 'keyfile':mqtt_client_tls_client_key}
             else:
                 mqtt_client_tls = None
