@@ -167,12 +167,13 @@ class MqttPlugin:
         already_initialized = False
         already_notified = False
         first_time = True
+        first_time_service = True
 
         while not self.stopping: 
             while not self.initialized or not already_initialized: #continue until initialization is successful
                 if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time 
                     try:
-                        await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service), 5.0, loop=self.loop)
+                        await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
                         await asyncio.wait_for(self.mqtt_connect_event.wait(), 2.0, loop=self.loop) # wait for it to return true for 2 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.AD.log(
@@ -180,6 +181,8 @@ class MqttPlugin:
                                 "{}: Could not Complete Connection to Broker, please Ensure Broker at URL {}:{} is correct or broker not down and restart Appdaemon".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
                         self.mqtt_client.loop_stop()
                         self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
+
+                    first_time_service = False
 
                 if self.initialized : #meaning the plugin started as expected
                     await self.AD.notify_plugin_started(self.namespace, first_time)
@@ -203,19 +206,20 @@ class MqttPlugin:
     def get_namespace(self):
         return self.namespace
 
-    def start_mqtt_service(self):
+    def start_mqtt_service(self, first_time):
         try:
             self.mqtt_connect_event.clear() # used to wait for connection
-            if self.mqtt_client_user != None:
-                self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
+            if first_time:
+                if self.mqtt_client_user != None:
+                    self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
 
-            if self.mqtt_client_tls_ca_certs != None:
-                self.mqtt_client.tls_set(self.mqtt_client_tls_ca_certs, certfile=self.mqtt_client_tls_client_cert,
-                                        keyfile=self.mqtt_client_tls_client_key)
-            if self.mqtt_client_tls_insecure != None:
-                self.mqtt_client.tls_insecure_set(not self.mqtt_client_tls_insecure)
+                if self.mqtt_client_tls_ca_certs != None:
+                    self.mqtt_client.tls_set(self.mqtt_client_tls_ca_certs, certfile=self.mqtt_client_tls_client_cert,
+                                            keyfile=self.mqtt_client_tls_client_key)
+                if self.mqtt_client_tls_insecure != None:
+                    self.mqtt_client.tls_insecure_set(not self.mqtt_client_tls_insecure)
 
-            self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_subcription_qos)
+                self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_subcription_qos)
 
             self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
                                         self.mqtt_client_timeout)
