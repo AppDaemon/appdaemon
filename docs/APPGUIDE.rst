@@ -1231,21 +1231,20 @@ using the ``get_hass_config()`` call. E.g.:
 
 And finally, it is also possible to use ``config`` as a global area
 for sharing parameters across Apps. Simply add the required parameters
-to the top level of the appdaemon.yaml file:
+inside the appdaemon section in the appdaemon.yaml file:
 
 .. code:: yaml
 
     logs:
     ...
     appdaemon:
-    ...
-    global_var: hello world
+      global_var: hello world
 
 Then access it as follows:
 
 .. code:: python
 
-    my_global_var = conf.config["global_var"]
+    my_global_var = self.config["global_var"]
 
 Development Workflow
 --------------------
