@@ -174,7 +174,7 @@ class MqttPlugin:
                 if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time 
                     try:
                         await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
-                        await asyncio.wait_for(self.mqtt_connect_event.wait(), 2.0, loop=self.loop) # wait for it to return true for 2 seconds in case still processing connect
+                        await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.AD.log(
                             "CRITICAL", 
