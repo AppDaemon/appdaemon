@@ -80,6 +80,14 @@ A more complete example could look like the following:
           cert_verify: True
           namespace: default
 
+
+appdaemon still uses old authentication so you have to add the following to your configuration.yaml:
+
+.. code:: yaml
+
+   http:
+     api_password: '<some key>'
+
 The top level consists of a number of sections:
 
 secrets
@@ -108,6 +116,7 @@ The secrets can then be referred to as follows:
           type: hass
           ha_key: !secret home_assistant_key
           ha_url: http://192.168.1.20:8123
+
 
 log
 ~~~
