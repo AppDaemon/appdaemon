@@ -1586,7 +1586,7 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``step`` - the size of step in temperature when fading the slider up
    or down
--  ``units`` - the unit symbol to be displayed
+-  ``unit`` - the unit symbol to be displayed
 - ``precision`` - the number of digits to display after the decimal point
 
 Cosmetic Arguments
@@ -1599,6 +1599,7 @@ Cosmetic Arguments
 -  ``title2_style``
 -  ``text_style``
 -  ``level_style``
+-  ``level2_style``
 -  ``level_up_style``
 -  ``level_down_style``
 
