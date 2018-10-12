@@ -70,7 +70,7 @@ class Mqtt(appapi.AppDaemon):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        return super(Mqtt, self).listen_event(self.namespace, cb, event, **kwargs)
+        return super(Mqtt, self).listen_event(namespace, cb, event, **kwargs)
 
     #
     # Likewise with get and set state
@@ -137,6 +137,10 @@ class Mqtt(appapi.AppDaemon):
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
+
+    def get_config(self, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.get_plugin_meta(namespace)
         
     #
     # Publishing
