@@ -18,6 +18,7 @@ class MqttPlugin:
         self.config = args
         self.name = name
         self.initialized = False
+        self.state = {}
 
         self.AD.log("INFO", "{}: MQTT Plugin Initializing".format(self.name))
 
@@ -61,9 +62,32 @@ class MqttPlugin:
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
+        if mqtt_client_id == None:
+            mqtt_client_id = self.mqtt_client._client_id #get the generated client id
 
         self.loop = self.AD.loop # get AD loop
         self.mqtt_connect_event = asyncio.Event(loop = self.loop)
+        self.mqtt_metadata = {
+            "version": "1.0",
+            "host" : self.mqtt_client_host,
+            "port" : self.mqtt_client_port,
+            "client_id" : mqtt_client_id,
+            "subscription qos" : self.mqtt_subcription_qos,
+            "topics" : self.mqtt_client_topics,
+            "username" : self.mqtt_client_user,
+            "password" : self.mqtt_client_password,
+            "event_name" : self.mqtt_event_name,
+            "status_topic" : status_topic,
+            "will_topic" : self.mqtt_will_topic,
+            "will_payload" : self.mqtt_will_payload,
+            "birth_topic" : self.mqtt_on_connect_topic,
+            "birth_payload" : self.mqtt_on_connect_payload,
+            "ca_certificate" : self.mqtt_client_tls_ca_certs,
+            "client_certificate" : self.mqtt_client_tls_client_cert,
+            "client_key" : self.mqtt_client_tls_client_key,
+            "tls_insecure" : self.mqtt_client_tls_insecure,
+            "timeout" : self.mqtt_client_timeout
+                            }
 
     def stop(self):
         self.stopping = True
@@ -136,16 +160,13 @@ class MqttPlugin:
     #
 
     async def get_complete_state(self):
-        states = {}
         entity_id = '{}.none'.format(self.name.lower())
-        states[entity_id] = {'state': 'None', 'attributes' : {}}
-        self.log("{}: *** Sending Complete State: {} ***".format(self.name, states))
-        return states
+        self.state[entity_id] = {'state': 'None', 'attributes' : {}}
+        self.log("{}: *** Sending Complete State: {} ***".format(self.name, self.state))
+        return copy.deepcopy(self.state)
 
     async def get_metadata(self):
-        return {
-            "version": "0.1"
-        }
+        return self.mqtt_metadata
 
     #
     # Utility gets called every second (or longer if configured
