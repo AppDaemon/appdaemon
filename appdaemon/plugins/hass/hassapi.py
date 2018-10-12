@@ -207,7 +207,7 @@ class Hass(appapi.AppDaemon):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
 
-    def get_hass_config(self, **kwargs):
+    def get_config(self, **kwargs):
         namespace = self._get_namespace(**kwargs)
         return self.AD.get_plugin_meta(namespace)
 
