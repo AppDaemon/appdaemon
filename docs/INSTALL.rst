@@ -234,7 +234,7 @@ In the required ``plugins:`` sub-section, there will usually be one or more plug
 -  ``type`` (required) The type of the plugin. For Home Assistant this will always be ``hass``
 -  ``ha_url`` (required for the ``hass`` plugin) is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or ``https://`` as appropriate)
--  ``ha_key`` (required for the ``hass`` plugin) should be set to your home assistant password if you have one, otherwise it can be removed. This directove is deprecated - you should use the ``token`` directive instead
+-  ``ha_key`` (required for the ``hass`` plugin) should be set to your home assistant password if you have one, otherwise it can be removed. This directive is deprecated - you should use the ``token`` directive instead
 -  ``token`` (required) - set the long lived token for access to your hass instance (see later for a description of how to create a long lived access token)
 -  ``cert_verify`` (optional) - flag for cert verification for HASS -
    set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn;tmatch the cert address (e.g. using an internal IP address)
@@ -256,7 +256,7 @@ HASS Authentication
 
 HASS has recently moved to a new authentication model. For programs such as ``AppDaemon`` it is necessary to create a Long Lived Access Token, then provide that token to AppDaemon with the ``token`` directive in the HASS plugin parameters. To create a Long Lived Access Token for AppDaemon, do the following:
 
-1. Open the user profile for the user that will access HASS via AppDaemon. The profile is found by clicking the icon next to the ``Home Assistant`` label to the left of the web ui when the burger menu is clicked:
+1. Login as the user that you want to create the token for and open the user profile. The profile is found by clicking the icon next to the ``Home Assistant`` label to the left of the web ui when the burger menu is clicked:
 
 .. figure:: images/Profile.png
    :alt: Profile
@@ -272,20 +272,22 @@ This will pop up a dialog that asks you for the name of the token - this can be 
    :alt: Popup
 
 
-3. A new dialog will popup with the token itself showing - copy this string and add it as the argument of the ``token`` directive in your HASS Plugin section:
+3. A new dialog will popup with the token itself showing:
+
+.. figure:: images/token.png
+   :alt: Token
+
+ - copy this string and add it as the argument of the ``token`` directive in your HASS Plugin section:
 
 .. code:: yaml
 
     token: ABCDEF
 
-.. figure:: images/token.png
-   :alt: Token
-
 A real token will be a lot longer than this and will consist of a string of random letters and numbers, for example:
 
 ``eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIwZmRkYmE0YTM0MTY0M2U2ODg5NDdiNmYxNjlkM2IwOSIsImlhdCI6MTUzOTU0NzM4NCwiZXhwIjoxODU0OTA3Mzg0fQ.zNwQqxKkx2ppUIS9Mm7rSLFiyaTNDP5HIlg7_SnxsS8``
 
-4. Your new token will be shown in the Long Lived tokens section, and you can revoke acess via this token at any time by pressing the delete icon. The token will last for 10 years.
+4. A reference to your new token will be shown in the Long Lived tokens section, and you can revoke acess via this token at any time by pressing the delete icon. The token will last for 10 years.
 
 .. figure:: images/list.png
    :alt: List
