@@ -277,7 +277,7 @@ This will pop up a dialog that asks you for the name of the token - this can be 
 .. figure:: images/token.png
    :alt: Token
 
- - copy this string and add it as the argument of the ``token`` directive in your HASS Plugin section:
+Copy this string and add it as the argument of the ``token`` directive in your HASS Plugin section:
 
 .. code:: yaml
 
