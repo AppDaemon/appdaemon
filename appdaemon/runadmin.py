@@ -95,7 +95,7 @@ class RunAdmin:
 
         try:
 
-            self.admin_obj = admin.Admin(self.config_dir, access)
+            self.admin_obj = admin.Admin(self.config_dir, access, self.AD)
 
             self.setup_routes()
 
@@ -112,7 +112,7 @@ class RunAdmin:
             loop.create_task(f)
         except:
             self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error in dashboard thread")
+            self.log("WARNING", "Unexpected error in admin thread")
             self.log("WARNING", '-' * 60)
             self.log("WARNING", traceback.format_exc())
             self.log("WARNING", '-' * 60)
@@ -165,8 +165,30 @@ class RunAdmin:
 
     @secure
     async def index(self, request):
-        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.index)
+        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.index, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
+
+    @secure
+    async def appdaemon(self, request):
+        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.appdaemon, request.scheme, request.host)
+        return web.Response(text=response, content_type="text/html")
+
+    @secure
+    async def apps(self, request):
+        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.apps, request.scheme, request.host)
+        return web.Response(text=response, content_type="text/html")
+
+    @secure
+    async def plugins(self, request):
+        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.plugins, request.scheme, request.host)
+        return web.Response(text=response, content_type="text/html")
+
+    @secure
+    async def oauth(self, request):
+        #response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.index, request.url)
+        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.oauth, request.query["code"])
+        #return web.Response(text=response, content_type="text/html")
+        raise web.HTTPFound('/plugins')
 
     # noinspection PyUnusedLocal
     async def not_found(self, request):
@@ -182,10 +204,18 @@ class RunAdmin:
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon', self.show_logon)
+        self.app.router.add_get('/oauth', self.oauth)
         self.app.router.add_get('/', self.index)
+        self.app.router.add_get('/appdaemon', self.appdaemon)
+        self.app.router.add_get('/apps', self.apps)
+        self.app.router.add_get('/plugins', self.plugins)
 
         # Setup Templates
 
         # Add static path for images
         self.app.router.add_static('/images', self.admin_obj.images_dir)
+        # Add static path for css
+        self.app.router.add_static('/css', self.admin_obj.css_dir)
+        # Add static path for javascript
+        self.app.router.add_static('/javascript', self.admin_obj.javascript_dir)
 

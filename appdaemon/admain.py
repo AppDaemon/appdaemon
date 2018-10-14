@@ -19,8 +19,6 @@ import appdaemon.adapi as api
 import appdaemon.rundash as rundash
 import appdaemon.runadmin as runadmin
 
-# Windows does not have Daemonize package so disallow
-
 class ADMain():
 
     def __init__(self):
@@ -92,11 +90,14 @@ class ADMain():
             else:
                 self.log(self.logger, "INFO", "API is disabled")
 
-            if "admin_port" in appdaemon:
-                self.log(self.logger, "INFO", "Starting Admin Interface")
-                self.runadmin = runadmin.RunAdmin(self.AD, loop, self.logger, self.access, **appdaemon)
-            else:
-                self.log(self.logger, "INFO", "Admin Interface is disabled")
+
+            # Lets hide the admin interface for now
+
+            #if "admin_port" in appdaemon:
+            #    self.log(self.logger, "INFO", "Starting Admin Interface")
+            #    self.runadmin = runadmin.RunAdmin(self.AD, loop, self.logger, self.access, **appdaemon)
+            #else:
+            #    self.log(self.logger, "INFO", "Admin Interface is disabled")
 
             self.log(self.logger, "DEBUG", "Start Loop")
 

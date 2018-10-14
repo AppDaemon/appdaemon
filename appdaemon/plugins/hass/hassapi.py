@@ -42,6 +42,7 @@ class Hass(appapi.AppDaemon):
         self.global_vars = global_vars
         self.config = config
         self.app_config = app_config
+
         #
         # Register specific constraints
         #
@@ -124,10 +125,13 @@ class Hass(appapi.AppDaemon):
         else:
             cert_path = None
 
-        if "ha_key" in config and config["ha_key"] != "":
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key"  in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
+
         apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
 
         r = requests.post(
@@ -423,10 +427,15 @@ class Hass(appapi.AppDaemon):
             cert_path = config["cert_path"]
         else:
             cert_path = None
-        if "ha_key" in config and config["ha_key"] != "":
+
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key"  in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
+
+
         apiurl = "{}/api/events/{}".format(config["ha_url"], event)
         r = requests.post(
             apiurl, headers=headers, json=kwargs, verify=cert_path
@@ -457,10 +466,13 @@ class Hass(appapi.AppDaemon):
         else:
             cert_path = None
 
-        if "ha_key" in config and config["ha_key"] != "":
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key"  in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
+
         apiurl = "{}/api/services/{}/{}".format(config["ha_url"], d, s)
         r = requests.post(
             apiurl, headers=headers, json=kwargs, verify=cert_path

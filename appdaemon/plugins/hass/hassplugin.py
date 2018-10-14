@@ -23,6 +23,7 @@ class HassPlugin:
         self.reading_messages = False
         self.name = name
         self.metadata = None
+        self.oath = False
 
         self.log("INFO", "HASS Plugin Initializing")
 
@@ -40,8 +41,14 @@ class HassPlugin:
 
         if "ha_key" in args:
             self.ha_key = args["ha_key"]
+            self.log("WARNING", "ha_key is deprecated please use HASS Long Lived Tokens instead")
         else:
-            self.ha_key = ""
+            self.ha_key = None
+
+        if "token" in args:
+            self.token = args["token"]
+        else:
+            self.token = None
 
         if "ha_url" in args:
             self.ha_url = args["ha_url"]
@@ -127,168 +134,113 @@ class HassPlugin:
             _id += 1
             disconnected_event = False
             try:
+                #
+                # Connect to websocket interface
+                #
+                url = self.ha_url
+                if url.startswith('https://'):
+                    url = url.replace('https', 'wss', 1)
+                elif url.startswith('http://'):
+                    url = url.replace('http', 'ws', 1)
 
-                if parse_version(utils.__version__) < parse_version('0.34') or self.commtype == "SSE":
-                    #
-                    # Older version of HA - connect using SSEClient
-                    #
-                    if self.commtype == "SSE":
-                        self.log("WARNING", "Using SSE - use of SSE is deprecated and will be removed in a future version")
-                    else:
-                        self.log(
-                            "INFO",
-                            "Home Assistant version < 0.34.0 - "
-                            "falling back to SSE"
-                        )
-                    headers = {'x-ha-access': self.ha_key}
-                    if self.timeout is None:
-                        messages = SSEClient(
-                            "{}/api/stream".format(self.ha_url),
-                            verify=False, headers=headers, retry=3000
-                        )
-                        self.log(
-                            "INFO",
-                            "Connected to Home Assistant".format(self.timeout)
-                        )
-                    else:
-                        messages = SSEClient(
-                            "{}/api/stream".format(self.ha_url),
-                            verify=False, headers=headers, retry=3000,
-                            timeout=int(self.timeout)
-                        )
-                        self.log(
-                            "INFO",
-                            "Connected to Home Assistant with timeout = {}".format(
-                                self.timeout
-                            )
-                        )
-                    #
-                    # Grab Metadata
-                    #
-                    self.metadata = await self.get_hass_config()
-                    #
-                    # Wait for app delay
-                    #
-                    if self.app_init_delay > 0:
-                        self.log(
-                            "INFO",
-                            "Delaying app initialization for {} seconds".format(
-                                self.app_init_delay
-                            )
-                        )
-                        await asyncio.sleep(self.app_init_delay)
-                    #
-                    # Fire HA_STARTED Events
-                    #
-                    self.reading_messages = True
-                    await self.AD.notify_plugin_started(self.namespace, first_time)
-
-                    already_notified = False
-
-                    while not self.stopping:
-                        msg = await utils.run_in_executor(self.AD.loop, self.AD.executor, messages.__next__)
-                        if msg.data != "ping":
-                            await self.AD.state_update(self.namespace, json.loads(msg.data))
-                    self.reading_messages = False
-                else:
-                    #
-                    # Connect to websocket interface
-                    #
-                    url = self.ha_url
-                    if url.startswith('https://'):
-                        url = url.replace('https', 'wss', 1)
-                    elif url.startswith('http://'):
-                        url = url.replace('http', 'ws', 1)
-
-                    sslopt = {}
-                    if self.cert_verify is False:
-                        sslopt = {'cert_reqs': ssl.CERT_NONE}
-                    if self.cert_path:
-                        sslopt['ca_certs'] = self.cert_path
-                    self.ws = create_connection(
-                        "{}/api/websocket".format(url), sslopt=sslopt
-                    )
-                    res = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
-                    result = json.loads(res)
-                    self.log("INFO",
-                              "Connected to Home Assistant {}".format(
-                                  result["ha_version"]))
-                    #
-                    # Check if auth required, if so send password
-                    #
-                    if result["type"] == "auth_required":
+                sslopt = {}
+                if self.cert_verify is False:
+                    sslopt = {'cert_reqs': ssl.CERT_NONE}
+                if self.cert_path:
+                    sslopt['ca_certs'] = self.cert_path
+                self.ws = create_connection(
+                    "{}/api/websocket".format(url), sslopt=sslopt
+                )
+                res = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
+                result = json.loads(res)
+                self.log("INFO",
+                          "Connected to Home Assistant {}".format(
+                              result["ha_version"]))
+                #
+                # Check if auth required, if so send password
+                #
+                if result["type"] == "auth_required":
+                    if self.token is not None:
+                        auth = json.dumps({
+                            "type": "auth",
+                            "access_token": self.token
+                        })
+                    elif self.ha_key is not None:
                         auth = json.dumps({
                             "type": "auth",
                             "api_password": self.ha_key
                         })
-                        await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, auth)
-                        result = json.loads(self.ws.recv())
-                        if result["type"] != "auth_ok":
-                            self.log("WARNING",
-                                      "Error in authentication")
-                            raise ValueError("Error in authentication")
-                    #
-                    # Subscribe to event stream
-                    #
-                    sub = json.dumps({
-                        "id": _id,
-                        "type": "subscribe_events"
-                    })
-                    await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, sub)
+                    else:
+                        raise ValueError("HASS requires authentication and none provided in plugin config")
+
+                    await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, auth)
                     result = json.loads(self.ws.recv())
-                    if not (result["id"] == _id and result["type"] == "result" and
-                                    result["success"] is True):
+                    if result["type"] != "auth_ok":
+                        self.log("WARNING",
+                                  "Error in authentication")
+                        raise ValueError("Error in authentication")
+                #
+                # Subscribe to event stream
+                #
+                sub = json.dumps({
+                    "id": _id,
+                    "type": "subscribe_events"
+                })
+                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, sub)
+                result = json.loads(self.ws.recv())
+                if not (result["id"] == _id and result["type"] == "result" and
+                                result["success"] is True):
+                    self.log(
+                        "WARNING",
+                        "Unable to subscribe to HA events, id = {}".format(_id)
+                    )
+                    self.log("WARNING", result)
+                    raise ValueError("Error subscribing to HA Events")
+
+                #
+                # Grab Metadata
+                #
+                self.metadata = await self.get_hass_config()
+                #
+                # Wait for app delay
+                #
+                if self.app_init_delay > 0:
+                    self.log(
+                        "INFO",
+                        "Delaying app initialization for {} seconds".format(
+                            self.app_init_delay
+                        )
+                    )
+                    await asyncio.sleep(self.app_init_delay)
+                #
+                # Fire HA_STARTED Events
+                #
+                self.reading_messages = True
+                await self.AD.notify_plugin_started(self.namespace, first_time)
+
+                already_notified = False
+
+                #
+                # Loop forever consuming events
+                #
+                while not self.stopping:
+                    ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
+                    result = json.loads(ret)
+
+                    if not (result["id"] == _id and result["type"] == "event"):
                         self.log(
                             "WARNING",
-                            "Unable to subscribe to HA events, id = {}".format(_id)
+                            "Unexpected result from Home Assistant, "
+                            "id = {}".format(_id)
                         )
                         self.log("WARNING", result)
-                        raise ValueError("Error subscribing to HA Events")
-
-                    #
-                    # Grab Metadata
-                    #
-                    self.metadata = await self.get_hass_config()
-                    #
-                    # Wait for app delay
-                    #
-                    if self.app_init_delay > 0:
-                        self.log(
-                            "INFO",
-                            "Delaying app initialization for {} seconds".format(
-                                self.app_init_delay
-                            )
+                        raise ValueError(
+                            "Unexpected result from Home Assistant"
                         )
-                        await asyncio.sleep(self.app_init_delay)
-                    #
-                    # Fire HA_STARTED Events
-                    #
-                    self.reading_messages = True
-                    await self.AD.notify_plugin_started(self.namespace, first_time)
 
-                    already_notified = False
+                    await self.AD.state_update(self.namespace, result["event"])
 
-                    #
-                    # Loop forever consuming events
-                    #
-                    while not self.stopping:
-                        ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
-                        result = json.loads(ret)
-
-                        if not (result["id"] == _id and result["type"] == "event"):
-                            self.log(
-                                "WARNING",
-                                "Unexpected result from Home Assistant, "
-                                "id = {}".format(_id)
-                            )
-                            self.log("WARNING", result)
-                            raise ValueError(
-                                "Unexpected result from Home Assistant"
-                            )
-
-                        await self.AD.state_update(self.namespace, result["event"])
-
-                    self.reading_messages = False
+                self.reading_messages = False
 
             except:
                 self.reading_messages = False
@@ -332,10 +284,13 @@ class HassPlugin:
     #
 
     async def get_hass_state(self, entity_id=None):
-        if self.ha_key != "":
+        if self.token is not None:
+            headers = {'Authorization': "Bearer {}".format(self.token)}
+        elif self.ha_key is not None:
             headers = {'x-ha-access': self.ha_key}
         else:
             headers = {}
+
         if entity_id is None:
             apiurl = "{}/api/states".format(self.ha_url)
         else:
@@ -348,10 +303,13 @@ class HassPlugin:
     async def get_hass_config(self):
         try:
             self.log("DEBUG", "get_ha_config()")
-            if self.ha_key != "":
+            if self.token is not None:
+                headers = {'Authorization': "Bearer {}".format(self.token)}
+            elif self.ha_key is not None:
                 headers = {'x-ha-access': self.ha_key}
             else:
                 headers = {}
+
             apiurl = "{}/api/config".format(self.ha_url)
             self.log("DEBUG", "get_ha_config: url is {}".format(apiurl))
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
@@ -376,10 +334,13 @@ class HassPlugin:
             "DEBUG",
             "call_service: {}/{}, {}".format(d, s, kwargs)
         )
-        if self.ha_key != "":
+        if self.token is not None:
+            headers = {'Authorization': "Bearer {}".format(self.token)}
+        elif self.ha_key is not None:
             headers = {'x-ha-access': self.ha_key}
         else:
             headers = {}
+
         apiurl = "{}/api/services/{}/{}".format(self.ha_url, d, s)
 
         r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)

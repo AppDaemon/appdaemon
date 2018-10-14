@@ -36,6 +36,7 @@ class AppDaemon:
         self.error = error
         self.diagnostic = diag
         self.config = kwargs
+        self.booted = datetime.datetime.now()
         self.config["ad_version"] = utils.__version__
         self.q = Queue(maxsize=0)
         self.check_app_updates_profile = ""

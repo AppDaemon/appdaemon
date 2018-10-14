@@ -27,6 +27,7 @@ Change Log
 **Breaking Changes**
 
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
+- SSE Support has been removed
 
 3.0.1
 ------------------

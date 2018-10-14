@@ -1,14 +1,7 @@
 import os
-import ast
-import re
-import yaml
+
 from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
-import traceback
-import functools
-import time
-import cProfile
-import io
-import pstats
+
 import datetime
 
 import appdaemon.utils as ha
@@ -16,11 +9,12 @@ import appdaemon.utils as ha
 
 class Admin:
 
-    def __init__(self, config_dir, logger, **kwargs):
+    def __init__(self, config_dir, logger, AD, **kwargs):
         #
         # Set Defaults
         #
         self.config_dir = config_dir
+        self.AD = AD
         self.logger = logger
         self.dash_install_dir = os.path.dirname(__file__)
         self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
@@ -51,9 +45,37 @@ class Admin:
     # Methods
     #
 
-    def index(self):
+    def appdaemon(self, scheme, url):
+        print("appdaemon")
+        return self.index(scheme, url, "appdaemon")
+
+    def apps(self, scheme, url):
+        return self.index(scheme, url, "apps")
+
+    def plugins(self, scheme, url):
+        return self.index(scheme, url, "plugins")
+
+    def index(self, scheme, url, tab="appdaemon"):
 
         params = {}
+
+        params["tab"] = tab
+
+        params["appdaemon"] = {}
+        params["appdaemon"]["booted"] = self.AD.booted
+
+        params["apps"] = {}
+        for obj in self.AD.objects:
+            params["apps"][obj] = {}
+
+        params["plugins"] = {}
+        for plug in self.AD.plugin_objs:
+            params["plugins"][plug] = \
+                {
+                    "name": self.AD.plugin_objs[plug].name,
+                    "type": self.AD.plugin_objs[plug].__class__.__name__,
+                    "namespace": self.AD.plugin_objs[plug].namespace,
+                }
 
         env = Environment(
             loader=FileSystemLoader(self.template_dir),
