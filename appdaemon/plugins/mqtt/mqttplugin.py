@@ -72,7 +72,7 @@ class MqttPlugin:
             "host" : self.mqtt_client_host,
             "port" : self.mqtt_client_port,
             "client_id" : mqtt_client_id,
-            "subscription qos" : self.mqtt_subcription_qos,
+            "subscription_qos" : self.mqtt_subcription_qos,
             "topics" : self.mqtt_client_topics,
             "username" : self.mqtt_client_user,
             "password" : self.mqtt_client_password,
