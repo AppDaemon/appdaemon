@@ -1,5 +1,6 @@
 import asyncio
 import json
+import socket
 import ssl
 from websocket import create_connection
 from pkg_resources import parse_version
@@ -55,6 +56,11 @@ class HassPlugin:
         else:
             self.log("WARN", "ha_url not found in HASS configuration - module not initialized")
 
+        if "ha_socket" in args:
+            self.ha_socket_path = args["ha_socket"]
+        else:
+            self.ha_socket_path = None
+
         if "cert_path" in args:
             self.cert_path = args["cert_path"]
         else:
@@ -82,7 +88,7 @@ class HassPlugin:
         #
         # Set up HTTP Client
         #
-        conn = aiohttp.TCPConnector()
+        conn = aiohttp.UnixConnector(path=self.ha_socket_path) if self.ha_socket_path else aiohttp.TCPConnector()
         self.session = aiohttp.ClientSession(connector=conn)
 
         self.log("INFO", "HASS Plugin initialization complete")
@@ -148,8 +154,14 @@ class HassPlugin:
                     sslopt = {'cert_reqs': ssl.CERT_NONE}
                 if self.cert_path:
                     sslopt['ca_certs'] = self.cert_path
+
+                sockopt = None
+                if self.ha_socket_path:
+                    sockopt = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    sockopt.connect(self.ha_socket_path)
+
                 self.ws = create_connection(
-                    "{}/api/websocket".format(url), sslopt=sslopt
+                    "{}/api/websocket".format(url), sslopt=sslopt, socket=sockopt
                 )
                 res = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                 result = json.loads(res)
