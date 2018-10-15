@@ -129,6 +129,7 @@ A more complete example could look like the following:
           type: hass
           ha_url: <some_url>
           ha_key: <some key>
+          ha_socket: <path/to/homeassistant.socket>
           cert_path: <path/to/root/CA/cert>
           cert_verify: True
           namespace: default
@@ -235,6 +236,7 @@ In the required ``plugins:`` sub-section, there will usually be one or more plug
 -  ``ha_url`` (required for the ``hass`` plugin) is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or ``https://`` as appropriate)
 -  ``ha_key`` (required for the ``hass`` plugin) should be set to your home assistant password if you have one, otherwise it can be removed. This directive is deprecated - you should use the ``token`` directive instead
+-  ``ha_socket`` (optional) path to the UNIX socket provided by Home Assistant. If this is set, the UNIX socket will be used to connect to Home Assistant instead of TCP/IP
 -  ``token`` (required) - set the long lived token for access to your hass instance (see later for a description of how to create a long lived access token)
 -  ``cert_verify`` (optional) - flag for cert verification for HASS -
    set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn;tmatch the cert address (e.g. using an internal IP address)
