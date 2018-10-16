@@ -152,23 +152,23 @@ class Mqtt(appapi.AppDaemon):
         if 'qos' in kwargs:
             qos = int(kwargs['qos'])
             
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        config = self.get_config(**kwargs)
         try:
-            mqtt_client_host = config.get('client_host', '127.0.0.1')
-            mqtt_client_port = config.get('client_port', 1883)
-            mqtt_client_id = config.get('client_id', None)
-            mqtt_client_user = config.get('client_user', None)
-            mqtt_client_password = config.get('client_password', None)
-            mqtt_client_tls_insecure = config.get('verify_cert', True)
+            mqtt_client_host = config['host']
+            mqtt_client_port = config['port']
+            mqtt_client_id = config['client_id']
+            mqtt_client_user = config['username']
+            mqtt_client_password = config['password']
+            mqtt_client_verify_cert = config['verify_cert']
 
-            mqtt_client_tls_ca_certs = config.get('ca_certs', None)
-            mqtt_client_tls_client_cert = config.get('client_cert', None)
-            mqtt_client_tls_client_key = config.get('client_key', None)
+            mqtt_client_tls_ca_cert = config['ca_cert']
+            mqtt_client_tls_client_cert = config['client_cert']
+            mqtt_client_tls_client_key = config['client_key']
 
-            mqtt_client_timeout = config.get('client_timeout', 60)
+            mqtt_client_timeout = config['timeout']
 
-            if mqtt_client_tls_ca_certs != None and mqtt_client_tls_insecure:
-                mqtt_client_tls = {'ca_certs':mqtt_client_tls_ca_certs, 'certfile':mqtt_client_tls_client_cert, 'keyfile':mqtt_client_tls_client_key}
+            if mqtt_client_tls_ca_cert != None and mqtt_client_verify_cert:
+                mqtt_client_tls = {'ca_certs':mqtt_client_tls_ca_cert, 'certfile':mqtt_client_tls_client_cert, 'keyfile':mqtt_client_tls_client_key}
             else:
                 mqtt_client_tls = None
             
