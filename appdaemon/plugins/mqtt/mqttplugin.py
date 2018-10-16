@@ -43,12 +43,20 @@ class MqttPlugin:
         self.mqtt_client_password = self.config.get('client_password', None)
         self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
 
-        status_topic = '{} status'.format(self.config.get('client_id', self.name+' client'))
-        self.AD.log("INFO", "{}: Using {!r} as Connection Status Topic".format(self.name, status_topic))
+        status_topic = '{} status'.format(self.config.get('client_id', self.name + ' client').lower())
         
-        self.mqtt_will_topic = self.config.get('will_topic', status_topic)
+        self.mqtt_will_topic = self.config.get('will_topic', None)
+        self.mqtt_on_connect_topic = self.config.get('birth_topic', None)
+
+        if self.mqtt_will_topic == None:
+            self.mqtt_will_topic = status_topic
+            self.AD.log("INFO", "{}: Using {!r} as Will Topic".format(self.name, status_topic))
+        
+        if self.mqtt_on_connect_topic == None:
+            self.mqtt_on_connect_topic = status_topic
+            self.AD.log("INFO", "{}: Using {!r} as Birth Topic".format(self.name, status_topic))
+
         self.mqtt_will_payload = self.config.get('will_payload', 'offline')
-        self.mqtt_on_connect_topic = self.config.get('birth_topic', status_topic)
         self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
 
         self.mqtt_client_tls_ca_cert = self.config.get('ca_cert', None)
