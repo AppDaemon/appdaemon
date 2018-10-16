@@ -51,10 +51,10 @@ class MqttPlugin:
         self.mqtt_on_connect_topic = self.config.get('birth_topic', status_topic)
         self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
 
-        self.mqtt_client_tls_ca_certs = self.config.get('ca_certs', None)
+        self.mqtt_client_tls_ca_cert = self.config.get('ca_cert', None)
         self.mqtt_client_tls_client_cert = self.config.get('client_cert', None)
         self.mqtt_client_tls_client_key = self.config.get('client_key', None)
-        self.mqtt_client_tls_insecure = self.config.get('verify_cert', None)
+        self.mqtt_verify_cert = self.config.get('verify_cert', True)
 
         self.mqtt_client_timeout = self.config.get('client_timeout', 60)
 
@@ -62,6 +62,7 @@ class MqttPlugin:
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
+
         if mqtt_client_id == None:
             mqtt_client_id = self.mqtt_client._client_id #get the generated client id
 
@@ -82,10 +83,10 @@ class MqttPlugin:
             "will_payload" : self.mqtt_will_payload,
             "birth_topic" : self.mqtt_on_connect_topic,
             "birth_payload" : self.mqtt_on_connect_payload,
-            "ca_cert" : self.mqtt_client_tls_ca_certs,
+            "ca_cert" : self.mqtt_client_tls_ca_cert,
             "client_cert" : self.mqtt_client_tls_client_cert,
             "client_key" : self.mqtt_client_tls_client_key,
-            "tls_insecure" : self.mqtt_client_tls_insecure,
+            "verify_cert" : self.mqtt_verify_cert,
             "timeout" : self.mqtt_client_timeout
                             }
 
@@ -234,11 +235,12 @@ class MqttPlugin:
                 if self.mqtt_client_user != None:
                     self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
 
-                if self.mqtt_client_tls_ca_certs != None:
-                    self.mqtt_client.tls_set(self.mqtt_client_tls_ca_certs, certfile=self.mqtt_client_tls_client_cert,
+                if self.mqtt_client_tls_ca_cert != None:
+                    self.mqtt_client.tls_set(self.mqtt_client_tls_ca_cert, certfile=self.mqtt_client_tls_client_cert,
                                             keyfile=self.mqtt_client_tls_client_key)
-                if self.mqtt_client_tls_insecure != None:
-                    self.mqtt_client.tls_insecure_set(not self.mqtt_client_tls_insecure)
+
+                if not self.mqtt_verify_cert:
+                    self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
 
                 self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_subcription_qos)
 
