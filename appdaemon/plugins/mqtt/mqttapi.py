@@ -138,7 +138,7 @@ class Mqtt(appapi.AppDaemon):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
 
-    def get_config(self, **kwargs):
+    def get_plugin_config(self, **kwargs):
         namespace = self._get_namespace(**kwargs)
         return self.AD.get_plugin_meta(namespace)
         
@@ -152,7 +152,7 @@ class Mqtt(appapi.AppDaemon):
         if 'qos' in kwargs:
             qos = int(kwargs['qos'])
             
-        config = self.get_config(**kwargs)
+        config = self.get_plugin_config(**kwargs)
         try:
             mqtt_client_host = config['host']
             mqtt_client_port = config['port']
