@@ -80,9 +80,8 @@ Examples
     # Return the brightness attribute for light.office_1
     state = self.get_state("light.office_1", attribute="brightness")
 
-     Return the entire state for light.office_1
+    # Return the entire state for light.office_1
     state = self.get_state("light.office_1", attribute="all")
-
 set\_state()
 ~~~~~~~~~~~~
 
@@ -2301,7 +2300,7 @@ Examples
     self.error("Some Critical string", level = "CRITICAL")
 
 
-If you want to perform more elaborate logging or formattin, the underlying ``logger`` objects can be obtained:
+If you want to perform more elaborate logging or formatting, the underlying ``logger`` objects can be obtained:
 
 get_main_log()
 ~~~~~~~
@@ -2456,6 +2455,10 @@ Examples
 
     self.register_endpoint(my_callback)
     self.register_callback(alexa_cb, "alexa")
+    
+It should be noted that the register function, should return a string (can be empty), and a HTTP OK status response. 
+For example ``'',200``. if this is not added as a returned response, the function will generate an error each time
+it is processed
 
 unregister_endpoint()
 ~~~~~~~~~~~~~~~~~~~~~
