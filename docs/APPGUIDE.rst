@@ -1219,15 +1219,25 @@ a python Dictionary with an entry for each app, keyed on the App's name.
     other_apps_arg = self.app_config["some_app"]["some_parameter"].
 
 
-AppDaemon also exposes configuration from Home Assistant such as the
+AppDaemon also exposes the configurations from configured plugins. For example that of the HA plugin,
+allows to access configurations from Home Assistant such as the
 Latitude and Longitude configured in HA. All of the information
 available from the Home Assistant ``/api/config`` endpoint is available
-using the ``get_hass_config()`` call. E.g.:
+using the ``get_config()`` call. E.g.:
 
 .. code:: python
 
-    config = self.get_hass_config()
+    config = self.get_config()
     self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
+
+Using this method, it is also possible to use this function to access configurations of other plugins,
+from within apps in a different namespace. This is done by simply passing in the ``namespace`` parameter. E.g.:
+
+.. code:: python
+    ## from within a HASS app, and wanting to access the client Id of the MQTT Plugin
+    
+    config = self.get_config(namespace = 'mqtt')
+    self.log("The Mqtt Client ID is ".format(config["client_id"]))
 
 And finally, it is also possible to use ``config`` as a global area
 for sharing parameters across Apps. Simply add the required parameters
