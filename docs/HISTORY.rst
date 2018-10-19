@@ -10,8 +10,9 @@ Change Log
 - added ``app_init_delay`` to delay App Initialization
 - Added ability to register apps to receive log entries
 - Added instructions for running a dev build
+- Added support for Long Lived Access Tokens
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
-- Update MID icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
+- Update MDI icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
 
 **Fixes**
 
@@ -29,7 +30,7 @@ Change Log
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
 - SSE Support has been removed
 
-3.0.1
+3.0.1 (2018-04-14)
 ------------------
 
 **Features**
