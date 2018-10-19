@@ -2120,7 +2120,10 @@ Synopsis
     entity_exists(entity)
 
 ``entity_exists()`` is used to verify if a given entity exists in Home
-Assistant or not.
+Assistant or not. When working with multiple Home Assistant instances, it is
+possible to specify the namespace, so that it checks within the right instance in
+in the event the app is working in a different instance. Also when using this function, 
+it is also possible to check if an Appdaemon entity exists.
 
 Returns
 ^^^^^^^
@@ -2147,9 +2150,15 @@ Examples
 
 .. code:: python
 
-     Return state for the entire system
+    # Return True if the entity light.living_room exist within the app's namespace
     if self.entity_exists("light.living_room"):
       do something 
+      
+    # Return True if the entity mqtt.security_settings exist within the mqtt namespace
+    # if the app is operating in a different namespace like default
+    if self.entity_exists("mqtt.security_settings", namespace = "mqtt"):
+      do something 
+    
       ...
 
 get\_app()
@@ -2766,12 +2775,44 @@ keep the dictionary looking similar to HA status updates, e.g. the main
 state in a state field, and any attributes in an attributes
 sub-dictionary.
 
+attributes
+'''''''''
+
+A sub-dictionary of keys and values, to set the attributes within AppDaemon's internal state object. It is optional to set these
+values. If this parameter is specified, by default it will update the prexisting ``attributes`` if it was existing. If wanting to
+modify the entire attributes for example remove some keys, the best way to do this, is to read the entire ``attributes`` of the entity
+using ``self.get_state("appdaemon.alerts", attribute = "all")``. Then modify the dictionary as needed, and when using the
+``self.set_app_state()`` again for the entity, set the ``replace`` flag to ``True``. By setting this to ``True``, the internal 
+dictionary is not just updated with the new set of values but completely replaced with it.
+
+namespace
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this
+parameter. When working with multiple namespaces, it is important to set the namespace of the function, either when reading the
+entity's value, or settingit to certain values. Without specifying the namespace, it will always seekout the entity within its present
+namespace. For example if an app operates within the ``default`` namepace which is Home Assistant, it is possible to modify an entity
+within ``mqtt`` namespace, by specifying the namespace during the call.  
+
 Examples
 ^^^^^^^^
 
 .. code:: python
 
     self.set_app_state("appdaemon.alerts", {"state": number, "attributes": {"unit_of_measurement": ""}})
+    
+    # Return state for the entire Appdaemon entities within the namepace
+    state = self.get_state(namepace = "default")
+
+    # though working within default namespace, return state of an entity within mqtt namespace
+    state = self.get_state("mqtt.security_settings", namepace = "mqtt")
+
+    #though working within default namespace, return state of an entity within mqtt namespace,
+    #modify its attributes, and replace with new data
+    all_state = self.get_state("mqtt.security_settings", attribute = "all")
+    state_attribute = all_state["attributes"] #remove keys as required at this point
+    #reload the data with the new values, but this time use the replace flag
+    self.set_app_state("mqtt.security_settings", attributes = state_attribute, replace = True, namepace = "mqtt")
 
 This is an example of a state update that can be used with a sensor
 widget in HADashboard. "state" is the actual value, and the widget also
