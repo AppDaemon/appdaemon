@@ -2407,8 +2407,8 @@ class AppDaemon:
                 return self.plugin_meta[namespace]
             elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
                 return self.plugin_meta[namespace]
-            else:
-                return None
+                
+        return None
 
 
     #
