@@ -1,7 +1,7 @@
 HASS API Reference
 ==================
 
-A list of API calls and information specific to the MQTT plugin.
+A list of API calls and information specific to the HASS plugin.
 
 Services
 --------

@@ -1,5 +1,5 @@
-HASS API Reference
-==================
+AppDaemon API Reference
+=======================
 
 A number of api calls are native to AppDaemon and will exist in any App as they are inherited through the plugin API. These calls are documented below.
 
