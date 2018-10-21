@@ -270,6 +270,7 @@ class AppDaemon:
 
         if os.path.isdir(os.path.join(self.config_dir, "custom_plugins")):
             plugins = [f.path for f in os.scandir(os.path.join(self.config_dir, "custom_plugins")) if f.is_dir(follow_symlinks=True)]
+
             for plugin in plugins:
                 sys.path.insert(0, plugin)
 

@@ -1,5 +1,5 @@
-AppDaemon API Reference
-=======================
+HASS API Reference
+==================
 
 State Operations
 ----------------

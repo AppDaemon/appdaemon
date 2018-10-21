@@ -13,17 +13,22 @@ Change Log
 - Added support for Long Lived Access Tokens
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
 - Update MDI icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
-
+- Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added --upgrade to pip3 call for recursive requirements.txt scanning - contirbuted by `Robert Schindler <https://github.com/efficiosoft>`__
 **Fixes**
 
 - Fixed incorrect service call in ``set_value()``
 - Enforce domain name in rss feed target to avoid issues with other functions
 - Previously deleted modules will now be correctly reloaded to reflect changes
 - Fixed a bug in ``get_scheduler_entries()``
+- Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
 - Prevent periodic refresh of HASS state from overwriting App created entities - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Fix to honor cert_path - contributed by `Myles Eftos <https://github.com/madpilot>`__
 - Run AD in docker as PID 1 - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
 - Fix encoding error in log messages - contributed by `Markus Meissner <https://github.com/daringer>`__
+- Fix a bug in ``get_plugin_meta()`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various Doc corrections and additions - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various fixes in the Docker docs - contributed by `Simon van der Veldt <https://github.com/simonvanderveldt>`__
 
 **Breaking Changes**
 
