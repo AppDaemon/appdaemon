@@ -1,0 +1,21 @@
+.widget-baseentitypicture-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-baseentitypicture-{{id}} .outer-image {
+    position: absolute;
+    top: 23px;
+    bottom: 0px;
+    left: 12px;
+    right: 12px;
+    z-index: 0;
+    border: none;
+}
+
+.widget-baseentitypicture-{{id}} .img-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}

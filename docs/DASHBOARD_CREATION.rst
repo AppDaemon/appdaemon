@@ -1868,6 +1868,49 @@ Cosmetic Arguments
 -  ``widget_style``
 -  ``title_style``
 
+entitypicture
+~~~~~~
+
+A widget to display entity picture
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to display entity_picture attribute
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile.
+-  ``base_url`` - URL to prepend before content of entity_picture.
+
+Example:
+
+.. code:: yaml
+
+    entitypicture1:
+        widget_type: entitypicture
+        title: Weather by YR
+        entity: sensor.yr_symbol
+
+Example showing artwork of just playing album on media player: (tested with Google Home)
+
+.. code:: yaml
+
+    entitypicture2:
+        widget_type: entitypicture
+        entity: media_player.bedroom
+        base_url: https://my_domain.duckdns.org:8123
+        image_style: "top: 0; bottom: 0; left: 0; right: 0;"
+
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``image_style``
+
 camera
 ~~~~~~
 
