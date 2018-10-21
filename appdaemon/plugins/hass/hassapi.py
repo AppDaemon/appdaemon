@@ -106,8 +106,8 @@ class Hass(appapi.AppDaemon):
             "set_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if entity_id in self.get_state():
-            new_state = self.get_state()[entity_id]
+        if entity_id in self.get_state(namespace = namespace):
+            new_state = self.get_state(namespace = namespace)[entity_id]
         else:
             # Its a new state entry
             new_state = {}
@@ -156,8 +156,8 @@ class Hass(appapi.AppDaemon):
             "set_app_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if entity_id in self.get_state():
-            new_state = self.get_state()[entity_id]
+        if entity_id in self.get_state(namespace = namespace):
+            new_state = self.get_state(namespace = namespace)[entity_id]
         else:
             # Its a new state entry
             new_state = {}
@@ -166,8 +166,11 @@ class Hass(appapi.AppDaemon):
         if "state" in kwargs:
             new_state["state"] = kwargs["state"]
 
-        if "attributes" in kwargs:
-            new_state["attributes"].update(kwargs["attributes"])
+        if "attributes" in kwargs and kwargs.get('replace', False):
+            new_state["attributes"] = kwargs["attributes"]
+        else:
+            if "attributes" in kwargs:
+                new_state["attributes"].update(kwargs["attributes"])
 
         # Update AppDaemon's copy
 
@@ -176,8 +179,6 @@ class Hass(appapi.AppDaemon):
         return new_state
 
     def entity_exists(self, entity_id, **kwargs):
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
         namespace = self._get_namespace(**kwargs)
         return self.AD.entity_exists(namespace, entity_id)
 
@@ -211,7 +212,7 @@ class Hass(appapi.AppDaemon):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
 
-    def get_hass_config(self, **kwargs):
+    def get_plugin_config(self, **kwargs):
         namespace = self._get_namespace(**kwargs)
         return self.AD.get_plugin_meta(namespace)
 
