@@ -11,6 +11,7 @@ Change Log
 - Added ability to register apps to receive log entries
 - Added instructions for running a dev build
 - Added support for Long Lived Access Tokens
+- Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
 - Update MDI icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
 - Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
@@ -29,6 +30,7 @@ Change Log
 - Fix a bug in ``get_plugin_meta()`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Various Doc corrections and additions - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Various fixes in the Docker docs - contributed by `Simon van der Veldt <https://github.com/simonvanderveldt>`__
+- Namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 
 **Breaking Changes**
 
