@@ -1,8 +1,10 @@
 MQTT API Reference
 ==================
 
-Services
---------
+A list of API calls and information specific to the MQTT plugin.
+
+Sending Messages
+----------------
 
 mqtt\_send()
 ~~~~~~~~~~~~~~~
@@ -74,8 +76,7 @@ Events
 listen\_event()
 ~~~~~~~~~~~~~~~
 
-Listen event sets up a callback for a specific event, or any event. This is the primary way of listening
-for data from subscribed topics the plugin subscribed to, there there is no state change used. All MQTT messages will have an event type of ``MQTT_EVENT``
+This is the primary way of listening for changes within the MQTT plugin - unlike other plugins, MQTT does not keep state. All MQTT messages will have an event type of ``MQTT_EVENT``
 
 Synopsis
 ^^^^^^^^
