@@ -83,7 +83,12 @@ When the dev version has been updated and you want to pull over the latest chang
 
     $ git pull
 
-You can then immediately run the latest version with the command line above. If you are using pip, remember to run the install command again.
+You can then immediately run the latest version with the command line above. If you are using pip, remember to run the install command again, using the ``--upgrade flag``:
+
+.. code:: bash
+
+    $ pip3 install --upgrade .
+
 
 Running
 -------
