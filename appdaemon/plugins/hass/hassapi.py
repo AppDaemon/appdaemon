@@ -447,7 +447,6 @@ class Hass(appapi.AppDaemon):
             kwargs["notification_id"] = id
         self.call_service("persistent_notification/create", **kwargs)
 
-
     #
     # Event
     #
@@ -502,8 +501,6 @@ class Hass(appapi.AppDaemon):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
-        self._check_entity(namespace, entity_id)
 
         config = self.AD.get_plugin(namespace).config
         if "cert_path" in config:
