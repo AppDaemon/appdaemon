@@ -11,6 +11,7 @@ Change Log
 - Added ability to register apps to receive log entries
 - Added instructions for running a dev build
 - Added support for Long Lived Access Tokens
+- Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
 - Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
 - Update MDI icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
@@ -22,7 +23,6 @@ Change Log
 - Enforce domain name in rss feed target to avoid issues with other functions
 - Previously deleted modules will now be correctly reloaded to reflect changes
 - Fixed a bug in ``get_scheduler_entries()``
-- Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
 - Prevent periodic refresh of HASS state from overwriting App created entities - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Fix to honor cert_path - contributed by `Myles Eftos <https://github.com/madpilot>`__
 - Run AD in docker as PID 1 - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
@@ -31,6 +31,7 @@ Change Log
 - Various Doc corrections and additions - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Various fixes in the Docker docs - contributed by `Simon van der Veldt <https://github.com/simonvanderveldt>`__
 - Namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- More namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 
 **Breaking Changes**
 
