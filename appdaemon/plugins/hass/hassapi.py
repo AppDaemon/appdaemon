@@ -326,23 +326,34 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def turn_on(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
+            
+        rargs["namespace"] = namesspace
         self.call_service("homeassistant/turn_on", **rargs)
 
     @hass_check
     def turn_off(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
 
+        rargs["namespace"] = namesspace
         device, entity = self.split_entity(entity_id)
         if device == "scene":
             self.call_service("homeassistant/turn_on", **rargs)
@@ -351,46 +362,68 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def toggle(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-
+            
+        rargs["namespace"] = namesspace
         self.call_service("homeassistant/toggle", **rargs)
 
     @hass_check
     def set_value(self, entity_id, value, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
+        rargs["namespace"] = namesspace
         self.call_service("input_number/set_value", **rargs)
 
     @hass_check
     def set_textvalue(self, entity_id, value, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
+            
+        rargs["namespace"] = namesspace
         self.call_service("input_text/set_value", **rargs)
 
     @hass_check
     def select_option(self, entity_id, option, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "option": option}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["option"] = option
+            
+        rargs["namespace"] = namesspace
         self.call_service("input_select/select_option", **rargs)
 
     @hass_check
@@ -414,7 +447,6 @@ class Hass(appapi.AppDaemon):
             kwargs["notification_id"] = id
         self.call_service("persistent_notification/create", **kwargs)
 
-
     #
     # Event
     #
@@ -423,7 +455,12 @@ class Hass(appapi.AppDaemon):
     def fire_event(self, event, **kwargs):
         self.AD.log("DEBUG",
                   "fire_event: {}, {}".format(event, kwargs))
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        config = self.AD.get_plugin(namespace).config        
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -460,8 +497,12 @@ class Hass(appapi.AppDaemon):
             "DEBUG",
             "call_service: {}/{}, {}".format(d, s, kwargs)
         )
+        
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
 
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        config = self.AD.get_plugin(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -480,4 +521,3 @@ class Hass(appapi.AppDaemon):
         )
         r.raise_for_status()
         return r.json()
-
