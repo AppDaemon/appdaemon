@@ -119,7 +119,7 @@ class Hass(appapi.AppDaemon):
         if "attributes" in kwargs:
             new_state["attributes"].update(kwargs["attributes"])
 
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
+        config = self.AD.get_plugin(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
