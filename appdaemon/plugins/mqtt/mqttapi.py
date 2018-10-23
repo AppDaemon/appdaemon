@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import traceback
 import paho.mqtt.publish as publish
+import json
 
 
 class Entities:
@@ -143,20 +144,39 @@ class Mqtt(appapi.AppDaemon):
         return self.AD.get_plugin_meta(namespace)
         
     #
-    # Publishing
+    # service calls
     #
-    
-    def mqtt_send(self, topic, payload, qos = 0, retain = False, **kwargs):
-        if 'retain' in kwargs:
-            retain = kwargs['retain']
-        if 'qos' in kwargs:
-            qos = int(kwargs['qos'])
+    def mqtt_publish(self, topic, payload = None, **kwargs):
+        kwargs['topic'] = topic
+        kwargs['payload'] = payload
+        service = 'publish'
+        result = self.call_service(service, **kwargs)
+        return result
+
+    def mqtt_subscribe(self, topic, **kwargs):
+        kwargs['payload'] = json.dumps({'task' : 'subscribe', 'topic' : topic})
+        service = 'subscribe'
+        result = self.call_service(service, **kwargs)
+        return result
+
+    def mqtt_unsubscribe(self, topic, **kwargs):
+        kwargs['payload'] = json.dumps({'task' : 'unsubscribe', 'topic' : topic})
+        service = 'unsubscribe'
+        result = self.call_service(service, **kwargs)
+        return result
+
+    def call_service(self, service, **kwargs):
+        self.AD.log(
+            "DEBUG",
+            "call_service: {}, {}".format(service, kwargs)
+        )
             
         config = self.get_plugin_config(**kwargs)
         try:
             mqtt_client_host = config['host']
             mqtt_client_port = config['port']
             mqtt_client_id = config['client_id']
+            mqtt_client_transport = config['transport']
             mqtt_client_user = config['username']
             mqtt_client_password = config['password']
             mqtt_client_verify_cert = config['verify_cert']
@@ -177,10 +197,38 @@ class Mqtt(appapi.AppDaemon):
             else:
                 auth = None
         except Exception as e:
-            self.AD.log('CRITICAL', 'Got the following Error {}, when trying to retrieve Mqtt Server Values'.format(e))
-            self.error('Got error with the following {}'.format(e))
-            return str(e)
-            
+            namespace = self._get_namespace(**kwargs)
+            config = self.AD.get_plugin(namespace).config
+            if config['type'] == 'mqtt':
+                self.AD.log('DEBUG', 'Got the following Error {}, when trying to retrieve Mqtt Server Values'.format(e))
+                self.error('Got error with the following {}'.format(e))
+                return str(e)
+            else:
+                self.AD.log('CRITICAL', 'Wrong Namespace {!r} selected for MQTT Service. Please use proper namespace before trying again'.format(namespace))
+                self.error('Could not execute service call, as wrong namespace {!r} used'.format(namespace))
+                self.AD.log('DEBUG', 'Got the following Error {}, when trying to retrieve Mqtt Server Values as wrong namespace used'.format(e))
+                return 'ERR'
+
+        payload = kwargs.get('payload', None)
+        retain = kwargs.get('retain', False)
+        qos = int(kwargs.get('qos', 0))
+
+        if service == 'publish':
+            if 'topic' in kwargs:
+                topic = kwargs['topic']
+            else:
+                self.error('Could not execute service call, as no Topic provided')
+                raise ValueError("No topic provided. Please provide topic to publish to")
+                return 'ERR'
+
+        elif service == 'subscribe' or service == 'unsubscribe':
+            topic = config['plugin_topic']
+
+        else:
+            raise ValueError("Invalid Service Name: {}".format(service))
+            return 'ERR'
+
         result = publish.single(topic, payload = payload, qos = qos, hostname = mqtt_client_host, port = mqtt_client_port, auth = auth, 
-                        tls = mqtt_client_tls, retain = retain, keepalive = mqtt_client_timeout, client_id=mqtt_client_id)
+                            tls = mqtt_client_tls, retain = retain, keepalive = mqtt_client_timeout, client_id='{}_app'.format(mqtt_client_id), 
+                            transport = mqtt_client_transport)
         return result
