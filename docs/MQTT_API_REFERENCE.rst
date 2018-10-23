@@ -6,7 +6,7 @@ A list of API calls and information specific to the MQTT plugin.
 Service Calls
 ----------------
 
-call\_sservice()
+call\_service()
 ~~~~~~~~~~~~~~~
 
 ``call_service()`` is used to carry out service calls from within an AppDaemon app. This allows the app to carry out one of the following services:
