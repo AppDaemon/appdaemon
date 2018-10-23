@@ -3,6 +3,7 @@ import string
 import paho.mqtt.client as mqtt
 import asyncio
 import traceback
+import json
 
 import appdaemon.utils as utils
 
@@ -38,6 +39,8 @@ class MqttPlugin:
         self.mqtt_client_port = self.config.get('client_port', 1883)
         self.mqtt_subcription_qos = self.config.get('subscription_qos', 0)
         mqtt_client_id = self.config.get('client_id', None)
+        mqtt_transport = self.config.get('client_transport', 'tcp')
+        mqtt_session = self.config.get('client_clean_session', True)
         self.mqtt_client_topics = self.config.get('client_topics', ['#'])
         self.mqtt_client_user = self.config.get('client_user', None)
         self.mqtt_client_password = self.config.get('client_password', None)
@@ -66,13 +69,14 @@ class MqttPlugin:
 
         self.mqtt_client_timeout = self.config.get('client_timeout', 60)
 
-        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id)
+        if mqtt_client_id == None:
+            mqtt_client_id = 'appdaemon_{}_client'.format(self.name.lower())
+            self.AD.log("INFO", "{}: Using {!r} as Client ID".format(self.name, mqtt_client_id))
+
+        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport= mqtt_transport)
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
-
-        if mqtt_client_id == None:
-            mqtt_client_id = self.mqtt_client._client_id #get the generated client id
 
         self.loop = self.AD.loop # get AD loop
         self.mqtt_connect_event = asyncio.Event(loop = self.loop)
@@ -81,6 +85,8 @@ class MqttPlugin:
             "host" : self.mqtt_client_host,
             "port" : self.mqtt_client_port,
             "client_id" : mqtt_client_id,
+            "transport" : mqtt_transport,
+            "clean_session": mqtt_session,
             "sub_qos" : self.mqtt_subcription_qos,
             "topics" : self.mqtt_client_topics,
             "username" : self.mqtt_client_user,
@@ -97,6 +103,11 @@ class MqttPlugin:
             "verify_cert" : self.mqtt_verify_cert,
             "timeout" : self.mqtt_client_timeout
                             }
+
+        self.mqtt_metadata['plugin_topic'] = 'appdaemon/{}'.format(mqtt_client_id.lower().replace(' ', '_')) #used for internal communication
+
+        if '#' not in self.mqtt_client_topics: #meaning all topics are not subscribed too
+            self.mqtt_client_topics.append(self.mqtt_metadata['plugin_topic'])
 
     def stop(self):
         self.stopping = True
@@ -128,7 +139,11 @@ class MqttPlugin:
                 if result[0] == 0:
                     self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
                 else:
-                    self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
+                    if topic == self.mqtt_metadata['plugin_topic']:
+                        self.AD.log("CRITICAL", 
+                                "{}: Subscription to Plugin Internal Topic Unsucessful. Please check Broker and Restart AD".format(self.name))
+                    else:
+                        self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
 
             self.initialized = True
 
@@ -158,9 +173,37 @@ class MqttPlugin:
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
-        data = {'event_type': self.mqtt_event_name, 'data': {'topic': msg.topic, 'payload': msg.payload.decode()}}
-        self.loop.create_task(self.send_ad_event(data))
-              
+
+        if msg.topic != self.mqtt_metadata['plugin_topic']:
+            data = {'event_type': self.mqtt_event_name, 'data': {'topic': msg.topic, 'payload': msg.payload.decode()}}
+            self.loop.create_task(self.send_ad_event(data))
+        else:
+            data = json.loads(msg.payload.decode())
+            task = data['task']
+            topic = data['topic']
+
+            if topic != self.mqtt_metadata['plugin_topic'] and topic != '#': #in case of an error
+
+                if task == 'subscribe':
+                    self.AD.log("DEBUG", 
+                        "{}: Subscribe to Topic: {}".format(self.name, topic))
+
+                    result = self.mqtt_client.subscribe(topic, self.mqtt_subcription_qos)
+                    if result[0] == 0:
+                        self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                        if topic not in self.mqtt_client_topics:
+                            self.mqtt_client_topics.append(topic)
+
+                elif task == 'unsubscribe':
+                    self.AD.log("DEBUG", 
+                        "{}: Unsubscribe from Topic: {}".format(self.name, topic))
+
+                    result = self.mqtt_client.unsubscribe(topic)
+                    if result[0] == 0:
+                        self.log("{}: Unsubscription from Topic {} Successful".format(self.name, topic))
+                        if topic in self.mqtt_client_topics:
+                            self.mqtt_client_topics.remove(topic)
+
     async def send_ad_event(self, data):
         await self.AD.state_update(self.namespace, data)
 
