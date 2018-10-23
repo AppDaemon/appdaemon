@@ -12,6 +12,7 @@ Change Log
 - Added instructions for running a dev build
 - Added support for Long Lived Access Tokens
 - Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
+- Many MQTT Plugin enhancements - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
 - Update MDI icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
