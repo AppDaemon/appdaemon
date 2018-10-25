@@ -8,3 +8,5 @@ appdaemon:
       type: hass
       ha_url:
       token:
+hadashboard:
+  dash_url:

@@ -35,7 +35,7 @@ For the adventurous among you, it is possible to run the very latest dev code to
 
 Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
 
-To run a dev version follow these steps:
+To run a PIP install method dev version follow these steps:
 
 Clone the Repository
 ~~~~~~~~~~~~~~~~~~~~

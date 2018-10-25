@@ -63,11 +63,11 @@ testing.
 You will see Appdaemon's output appear on your screen, and you should
 look for lines like these being output:
 
-Appdaemon successfully connected to Home Assistant
+HASS: Connected to Home Assistant 0.80.0
 
 ::
 
-    2017-04-01 14:26:48.361140 INFO Connected to Home Assistant 0.40.0
+    2017-04-01 14:26:48.361140 INFO Connected to Home Assistant 0.80.0
 
 The 'apps' capability of Appdaemon is working, running the example Hello
 World app
