@@ -18,6 +18,7 @@ Change Log
 - Update MDI icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
 - Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added --upgrade to pip3 call for recursive requirements.txt scanning - contirbuted by `Robert Schindler <https://github.com/efficiosoft>`__
+
 **Fixes**
 
 - Fixed incorrect service call in ``set_value()``
@@ -38,6 +39,7 @@ Change Log
 
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
 - SSE Support has been removed
+- Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
 
 3.0.1 (2018-04-14)
 ------------------

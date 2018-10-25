@@ -40,17 +40,17 @@ later.
 Before you start, you need to know the following:
 
 * HA\_URL: The URL of your running Home Assistant, in the form of ``http://[name]:[port]``. Port is usually 8123.
-* HA\_KEY: If your Home Assistant requires an API key, you'll need that
+* TOKEN: If your Home Assistant is using Long Lived Tokens you will need to use TOKEN
 
 Now, on your Docker host, for Linux users, run the following command,
 substituting the values above in the quotes below. (Note, if you do not
-need an HA\_KEY, you can omit the entire -e HA\_KEY line)
+need a TOKEN, you can omit the entire -e TOKEN line)
 
 ::
 
     docker run --rm -it -p 5050:5050 \
       -e HA_URL="<your HA_URL value>" \
-      -e HA_KEY="<your HA_KEY value>" \
+      -e TOKEN="<your TOKEN value>" \
       -e DASH_URL="http://$HOSTNAME:5050" \
       acockburn/appdaemon:latest
 
@@ -124,7 +124,7 @@ fully qualified and not relative.
     docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<your HA_URL value>" \
-      -e HA_KEY="<your HA_KEY value>" \
+      -e TOKEN="<your TOKEN value>" \
       -e DASH_URL="http://$HOSTNAME:5050" \
       -v <your_conf_folder>:/conf \
       acockburn/appdaemon:latest
@@ -186,7 +186,7 @@ Run the following commands:
     docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<your HA_URL value>" \
-      -e HA_KEY="<your HA_KEY value>" \
+      -e TOKEN="<your TOKEN value>" \
       -e DASH_URL="http://$HOSTNAME:5050" \
       -v <your_conf_folder>:/conf \
       acockburn/appdaemon:latest

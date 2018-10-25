@@ -29,8 +29,8 @@ if [ -n "$HA_URL" ]; then
 fi
 
 # if ENV HA_KEY is set, change the value in appdaemon.yaml
-if [ -n "$HA_KEY" ]; then
-  sed -i "s/^      ha_key:.*/      ha_key: $(echo $HA_KEY | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+if [ -n "$TOKEN" ]; then
+  sed -i "s/^      token:.*/      ha_key: $(echo $TOKEN | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
 # if ENV DASH_URL is set, change the value in appdaemon.yaml
