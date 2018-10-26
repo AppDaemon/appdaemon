@@ -11,13 +11,14 @@ Change Log
 - Added ability to register apps to receive log entries
 - Added instructions for running a dev build
 - Added support for Long Lived Access Tokens
+- Updated MDI Icons to 3.0.39
+- Updated Font Awesome Icons to 3.4.1
 - Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
 - Many MQTT Plugin enhancements - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
-- Update MDI icons to 2.4.85 - contributed by `Jérémie Klein <https://github.com/grm>`__
 - Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
-- Added --upgrade to pip3 call for recursive requirements.txt scanning - contirbuted by `Robert Schindler <https://github.com/efficiosoft>`__
+- Added --upgrade to pip3 call for recursive requirements.txt scanning - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
 
 **Fixes**
 

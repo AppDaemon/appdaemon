@@ -81,10 +81,9 @@ The 'dashboard' capability of Appdaemon has started.
 
 ::
 
-    2017-04-01 14:26:48.348260 INFO HADashboard Started
-    2017-04-01 14:26:48.349135 INFO Listening on ('0.0.0.0', 5050)
+    2018-10-25 16:53:09.105214 INFO Starting Dashboards
 
-Now open up a web browser, and browse to http://:5050. You should see
+Now open up a web browser, and browse to http://<DASH_URL>:5050. You should see
 the "Welcome to HADashboard for Home Assistant" screen and see the Hello
 dashboard is available.
 
