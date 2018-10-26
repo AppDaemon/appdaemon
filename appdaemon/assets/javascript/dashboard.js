@@ -142,10 +142,35 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         }
         return (state)
     };
-    
+
+    this.convert_icon = function(self, value)
+    {
+        bits = value.split("-")
+        iprefix = bits[0];
+        iname = ""
+        for (var i = 1; i <  bits.length; i++)
+        {
+            if (i!=1)
+            {
+                iname += "-"
+            }
+            iname += bits[i]
+        }
+        if (iprefix == "mdi")
+        {
+            icon = "mdi" + ' ' + value
+        }
+        else
+        {
+           icon = iprefix + ' ' + 'fa-' + iname
+        }
+
+        return icon
+    };
+
     this.set_icon = function(self, field, value)
     {
-        self.ViewModel[field](value.split("-")[0] + ' ' + value)
+        self.ViewModel[field](self.convert_icon(self, value))
     };
     
     this.get_state = function(child, base_url, entity)
@@ -291,7 +316,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     if ("static_icons" in parameters)
     {
         Object.keys(parameters.static_icons).forEach(function (key, index) {
-            child.ViewModel[key](parameters.static_icons[key].split("-")[0] + ' ' + parameters.static_icons[key])
+            child.ViewModel[key](self.convert_icon(self, parameters.static_icons[key]))
         });
     }
 

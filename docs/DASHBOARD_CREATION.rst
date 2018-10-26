@@ -221,8 +221,8 @@ Lets look at a couple more examples of widget definitions:
         widget_type: switch
         title: Garage
         entity: switch.garage_door
-        icon_on: fa-car
-        icon_off: fa-car
+        icon_on: fas-car
+        icon_off: fas-car
         warn: 1
 
 Now, instead of an entity id we refer to the name of the widgets we just
@@ -374,8 +374,8 @@ contained sub modules (mode\_panel.yaml):
         widget_type: switch
         title: Garage
         entity: switch.garage_door
-        icon_on: fa-car
-        icon_off: fa-car
+        icon_on: fas-car
+        icon_off: fas-car
         warn: 1
 
     layout:
@@ -545,12 +545,11 @@ Icons
 Widgets that allow the specification of icons have access to both `Font
 Awesome <http://fontawesome.io/cheatsheet/>`__ and `Material
 Design <https://materialdesignicons.com/>`__ Icons. To specify an icon
-simply use the prefix ``fa-`` for Font Aweesome and ``mdi-`` for
-Material Design. e,g,:
+simply use the prefix ``mdi-`` for Material Design, and the appropriate style prefix for Font Awesome Icons
 
 .. code:: yaml
 
-    icon_on: fa-alert
+    icon_on: fas-bell
     icon_off: mdi-cancel
 
 In addition, the widget can be configured to use whatever icon is
@@ -1393,16 +1392,16 @@ A widget to monitor the state of an entity and display a different icon and styl
      state_text: 1
      icons:
        "active":
-         icon: fa-glass
+         icon: fas-glass
          style: "color: green"
        "inactive":
-         icon: fa-repeat
+         icon: fas-repeat
          style: "color: blue"
        "idle":
-         icon: fa-frown-o
+         icon: fas-frown
          style: "color: red"
        "default":
-         icon: fa-rocket
+         icon: fas-rocket
          style: "color: cyan"
 
 The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
@@ -1839,7 +1838,7 @@ Example:
         refresh: 60
         url_list: 
           - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
-          - https://www.pexels.com/photo/eyes-cat-coach-sofa-96938/
+          - https://www.pexels.com/photo/eyes-cat-coach-sofas-96938/
           - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
           - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
           - https://www.pexels.com/photo/grey-fur-kitten-127028/
@@ -2144,10 +2143,10 @@ All entries are required but can be left blank by using double quotes.
 
 .. code:: yaml
 
-    light_icon_on: fa-circle
-    light_icon_off: fa-circle-thin
-    light_icon_up: fa-plus
-    light_icon_down: fa-minus
+    light_icon_on: fas-circle
+    light_icon_off: fas-circle-thin
+    light_icon_up: fas-plus
+    light_icon_down: fas-minus
     light_title_style: $style_title
     light_title2_style: $style_title2
     light_icon_style_active: $style_active

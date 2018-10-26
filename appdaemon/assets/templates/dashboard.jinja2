@@ -35,8 +35,11 @@
 	<link rel="stylesheet" type="text/css" href="compiled_css/{{skin}}/{{name}}_application.css">
 	<link rel="stylesheet" type="text/css" href="css/jquery.gridster.css">
 	<link rel="stylesheet" type="text/css" href="css/climacons-font.css">
-	<link rel="stylesheet" type="text/css" href="css/font-awesome.css">
-	<link rel="stylesheet" type="text/css" href="css/materialdesignicons.min.css" media="all" />
+	<link rel="stylesheet" type="text/css" href="css/all.css">
+    {% if fa4compatibility == True %}
+	<link rel="stylesheet" type="text/css" href="css/v4-shims.min.css">
+	{%endif%}
+    <link rel="stylesheet" type="text/css" href="css/materialdesignicons.min.css" media="all" />
 	<link rel="stylesheet" type="text/css" href="css/jquery-ui.css"/>
 	<link rel="stylesheet" type="text/css" href="css/rickshaw.min.css"/>
     <link rel="stylesheet" href="css/fonts.css">

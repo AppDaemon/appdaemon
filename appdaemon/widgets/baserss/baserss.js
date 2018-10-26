@@ -72,7 +72,6 @@ function baserss(widget_id, url, skin, parameters)
     function show_next_story(self)
     {
         var stories = self.entity_state[parameters.entity].feed.entries;
-        console.log(stories[self.story])
         self.set_field(self, "text", stories[self.story].title)
         if ("show_description" in self.parameters && self.parameters.show_description === 1)
         {

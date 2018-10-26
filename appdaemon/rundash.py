@@ -107,6 +107,9 @@ class RunDash:
         self.rss_feeds = None
         self._process_arg("rss_feeds", config)
 
+        self.fa4compatibility = False
+        self._process_arg("fa4compatibility", config)
+
         if "rss_feeds" in config:
             self.rss_feeds = []
             for feed in config["rss_feeds"]:
@@ -166,6 +169,7 @@ class RunDash:
                                                  dash_force_compile=self.dash_force_compile,
                                                  profile_dashboard=self.profile_dashboard,
                                                  dashboard_dir = self.dashboard_dir,
+                                                 fa4compatibility=self.fa4compatibility
                                                      )
             self.setup_routes()
 
@@ -446,6 +450,9 @@ class RunDash:
 
         # Add static path for fonts
         self.app.router.add_static('/fonts', self.dashboard_obj.fonts_dir)
+
+        # Add static path for webfonts
+        self.app.router.add_static('/webfonts', self.dashboard_obj.webfonts_dir)
 
         # Add static path for images
         self.app.router.add_static('/images', self.dashboard_obj.images_dir)
