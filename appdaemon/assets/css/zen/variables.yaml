@@ -98,8 +98,8 @@ inset_white: "border-style: inset; border-width: 6px; border-color: white; borde
 # Widget Default Definitions
 #
 
-scene_icon_on: fa-square
-scene_icon_off: fa-square
+scene_icon_on: fas-square
+scene_icon_off: fas-square
 scene_icon_style_active: $style_active
 scene_icon_style_inactive: $style_inactive
 scene_title_style: $style_title
@@ -107,8 +107,8 @@ scene_title2_style: $style_title2
 scene_widget_style: $background_style
 scene_state_text_style: "color: red; font-weight: bold"
 
-mode_icon_on: fa-arrows-alt
-mode_icon_off: fa-arrows-alt
+mode_icon_on: fas-arrows-alt
+mode_icon_off: fas-arrows-alt
 mode_icon_style_active: $style_active
 mode_icon_style_inactive: $style_inactive
 mode_title_style: $style_title
@@ -116,8 +116,8 @@ mode_title2_style: $style_title2
 mode_widget_style: $background_style
 mode_state_text_style: "color: red; font-weight: bold"
 
-script_icon_on: fa-th-large
-script_icon_off: fa-th-large
+script_icon_on: fas-th-large
+script_icon_off: fas-th-large
 script_icon_style_active: $style_active
 script_icon_style_inactive: $style_inactive
 script_title_style: $style_title
@@ -125,8 +125,8 @@ script_title2_style: $style_title2
 script_widget_style: $background_style
 script_state_text_style: "color: $red; font-weight: bold"
 
-binary_sensor_icon_on: fa-spinner fa-pulse 
-binary_sensor_icon_off: fa-bars 
+binary_sensor_icon_on: fas-spinner fa-pulse
+binary_sensor_icon_off: fas-bars 
 binary_sensor_icon_style_active: $style_active_warn
 binary_sensor_icon_style_inactive: $style_inactive
 binary_sensor_title_style: $style_title
@@ -139,8 +139,8 @@ icon_title2_style: $style_title2
 icon_widget_style: $background_style
 icon_state_text_style: "color: $red; font-weight: bold"
 
-device_tracker_icon_on: fa-user
-device_tracker_icon_off: fa-user
+device_tracker_icon_on: fas-user
+device_tracker_icon_off: fas-user
 device_tracker_icon_style_active: $style_active
 device_tracker_icon_style_inactive: $style_inactive
 device_tracker_title_style: $style_title
@@ -148,8 +148,8 @@ device_tracker_title2_style: $style_title2
 device_tracker_widget_style: $background_style
 device_tracker_state_text_style: "color: $red; font-weight: bold"
 
-input_boolean_icon_on: fa-sliders
-input_boolean_icon_off: fa-sliders
+input_boolean_icon_on: fas-sliders-h
+input_boolean_icon_off: fas-sliders-h
 input_boolean_icon_style_active: $style_active
 input_boolean_icon_style_inactive: $style_inactive
 input_boolean_title_style: $style_title
@@ -157,8 +157,8 @@ input_boolean_title2_style: $style_title2
 input_boolean_widget_style: $background_style
 input_boolean_state_text_style: "color: $red; font-weight: bold"
 
-switch_icon_on: fa-circle-o-notch fa-spin 
-switch_icon_off: fa-circle-thin
+switch_icon_on: fas-circle-notch fa-spin
+switch_icon_off: far-circle
 switch_icon_style_active: $style_active
 switch_icon_style_inactive: $style_inactive
 switch_title_style: $style_title
@@ -166,8 +166,8 @@ switch_title2_style: $style_title2
 switch_widget_style: $background_style
 switch_state_text_style: "color: $red; font-weight: bold"
 
-lock_icon_on: fa-unlock-alt
-lock_icon_off: fa-lock
+lock_icon_on: fas-unlock-alt
+lock_icon_off: fas-lock
 lock_icon_style_active: $style_active_warn
 lock_icon_style_inactive: $style_inactive
 lock_title_style: $style_title
@@ -175,8 +175,8 @@ lock_title2_style: $style_title2
 lock_widget_style: $background_style
 lock_state_text_style: "color: $red; font-weight: bold"
 
-cover_icon_on: fa-arrows-v
-cover_icon_off: fa-arrows-v
+cover_icon_on: fas-arrows-alt-v
+cover_icon_off: fas-arrows-alt-v
 cover_icon_style_active: $style_active_warn
 cover_icon_style_inactive: $style_inactive
 cover_title_style: $style_title
@@ -221,35 +221,35 @@ sensor_unit_style: "color: $red; font-size: 90%"
 sensor_widget_style: $background_style
 sensor_container_style: ""
 
-reload_icon_active: fa-spinner fa-spin
-reload_icon_inactive: fa-refresh
+reload_icon_active: fas-spinner fa-spin
+reload_icon_inactive: fas-sync
 reload_icon_active_style: $style_active
 reload_icon_inactive_style: $style_active
 reload_title_style: "color: white"
 reload_title2_style: $style_title2
 reload_widget_style: $background_style
 
-javascript_icon_active: fa-asterisk
-javascript_icon_inactive: fa-asterisk
+javascript_icon_active: fas-asterisk
+javascript_icon_inactive: fas-asterisk
 javascript_icon_active_style: $style_active
 javascript_icon_inactive_style: $style_active
 javascript_title_style: "color: white"
 javascript_title2_style: $style_title2
 javascript_widget_style: $background_style
 
-navigate_icon_active: fa-spinner fa-spin
-navigate_icon_inactive: fa-gear
+navigate_icon_active: fas-spinner fa-spin
+navigate_icon_inactive: fas-cog
 navigate_icon_active_style: $style_active
 navigate_icon_inactive_style: $style_active
 navigate_title_style: "color: white"
 navigate_title2_style: "color: white"
 navigate_widget_style: $background_style
 
-media_player_icon_play: fa-play
-media_player_icon_pause: fa-pause
-media_player_icon_stop: fa-stop
-media_player_icon_up: fa-plus
-media_player_icon_down: fa-minus
+media_player_icon_play: fas-play
+media_player_icon_pause: fas-pause
+media_player_icon_stop: fas-stop
+media_player_icon_up: fas-plus
+media_player_icon_down: fas-minus
 media_player_title_style: $style_title
 media_player_media_title_style: $style_title2
 media_player_album_style: $style_title2
@@ -262,15 +262,15 @@ media_player_level_style: "color: $gray_light"
 media_player_level_up_style: "color: $red"
 media_player_level_down_style: "color: $black"
 media_player_widget_style: $transparent_black1
-media_player_icon_previous: fa-step-backward
-media_player_icon_next: fa-step-forward
+media_player_icon_previous: fas-step-backward
+media_player_icon_next: fas-step-forward
 media_player_icon_style_previous: $style_inactive
 media_player_icon_style_next: $style_inactive
 
-light_icon_on: fa-circle-o-notch fa-spin
-light_icon_off: fa-circle-thin
-light_icon_up: fa-plus
-light_icon_down: fa-minus
+light_icon_on: fas-circle-notch fa-spin
+light_icon_off: far-circle
+light_icon_up: fas-plus
+light_icon_down: fas-minus
 light_title_style: $style_title
 light_title2_style: $style_title2
 light_icon_style_active: $style_active
@@ -291,8 +291,8 @@ input_number_slider_style: "-webkit-appearance: none"
 input_number_container_style: ""
 input_number_widget_style: $background_style
 
-climate_icon_up: fa-plus
-climate_icon_down: fa-minus
+climate_icon_up: fas-plus
+climate_icon_down: fas-minus
 climate_title_style: $style_title
 climate_title2_style: $style_title2
 climate_unit_style: "color: $red"
@@ -304,10 +304,10 @@ climate_state_text_style: "color: $white"
 climate_level2_style: "color: $red"
 climate_unit2_style: "color: $red"
 
-group_icon_on: fa-circle
-group_icon_off: fa-circle-thin
-group_icon_up: fa-plus
-group_icon_down: fa-minus
+group_icon_on: fas-circle
+group_icon_off: far-circle
+group_icon_up: fas-plus
+group_icon_down: fas-minus
 group_title_style: $style_title
 group_title2_style: $style_title2
 group_icon_style_active: $style_active
@@ -354,8 +354,8 @@ input_select_widget_style: $background_style
 input_select_select_style: "background-color: #999;color:black"
 input_select_container_style: ""
 
-input_slider_icon_up: fa-plus
-input_slider_icon_down: fa-minus
+input_slider_icon_up: fas-plus
+input_slider_icon_down: fas-minus
 input_slider_title_style: $style_title
 input_slider_title2_style: $style_title2
 input_slider_unit_style: "color: $red"
@@ -404,8 +404,8 @@ radial_widget_style: "background: none"
 
 thermo_widget_style: "background: none"
 
-heater_icon_on: fa-fire
-heater_icon_off: fa-fire
+heater_icon_on: fas-fire
+heater_icon_off: fas-fire
 heater_title_style: $style_title
 heater_title2_style: $style_title2
 heater_slider_style: ""
