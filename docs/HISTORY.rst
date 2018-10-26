@@ -41,6 +41,7 @@ Change Log
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
 - SSE Support has been removed
 - Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
+- Many Font Awesome Icon names have changed - any custom icons you have on dashboards will need to be changed to suit - see docs for more detail.
 
 3.0.1 (2018-04-14)
 ------------------

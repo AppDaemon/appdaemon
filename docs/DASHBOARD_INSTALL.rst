@@ -65,7 +65,7 @@ e.g.:
 .. code:: yaml
 
     hadashboard:
-    dashboard_dir: /etc/appdaemon/dashboards
+        dashboard_dir: /etc/appdaemon/dashboards
 
 Next, you will need to create the ``dashboards`` directive either under
 the conf directory, or wherever you specify with ``dash_dir``. Once that

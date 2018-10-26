@@ -2198,3 +2198,16 @@ Example Dashboards
 Some example dashboards are available in the AppDaemon repository:
 
 `Dashboards <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_dashboards>`__
+
+A Note on Font Awesome Upgrade
+------------------------------
+
+As of AppDaemon 3.0.2, Font Awesome icons have been upgraded form cersion 2 to version 3. FA Introduced a lot of breaking changes with this upgrade. While all of HADashboard's included skins have been updated to reflect this, any custom skins may need changes, as will any custom icons used within dashboard config files. FA have provided a table of changed icons `here <https://fontawesome.com/how-to-use/on-the-web/setup/upgrading-from-version-4>`__.
+
+To ease the transition further, a legacy mode has been included in HADashboard. This is not enabled by default, but can be turned on by specifying the following in the hadashboard section of ``appdaemon.cfg``:
+
+.. code:: yaml
+
+    fa4compatibility: 1
+
+This is not intended as a permanent fix and may be removed at some point, but for now, this will enable existing skins and icons to work correctly, giving you an opportunity to work through your configurations and fix things.
