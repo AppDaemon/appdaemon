@@ -2202,7 +2202,7 @@ Some example dashboards are available in the AppDaemon repository:
 A Note on Font Awesome Upgrade
 ------------------------------
 
-As of AppDaemon 3.0.2, Font Awesome icons have been upgraded form cersion 2 to version 3. FA Introduced a lot of breaking changes with this upgrade. While all of HADashboard's included skins have been updated to reflect this, any custom skins may need changes, as will any custom icons used within dashboard config files. FA have provided a table of changed icons `here <https://fontawesome.com/how-to-use/on-the-web/setup/upgrading-from-version-4>`__.
+As of AppDaemon 3.0.2, Font Awesome icons have been upgraded form version 2 to version 3. FA Introduced a lot of breaking changes with this upgrade. While all of HADashboard's included skins have been updated to reflect this, any custom skins may need changes, as will any custom icons used within dashboard config files. FA have provided a table of changed icons `here <https://fontawesome.com/how-to-use/on-the-web/setup/upgrading-from-version-4>`__.
 
 To ease the transition further, a legacy mode has been included in HADashboard. This is not enabled by default, but can be turned on by specifying the following in the hadashboard section of ``appdaemon.cfg``:
 
