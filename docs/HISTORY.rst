@@ -43,6 +43,8 @@ Change Log
 - Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
 - Many Font Awesome Icon names have changed - any custom icons you have on dashboards will need to be changed to suit - see `docs <https://appdaemon.readthedocs.io/en/latest/DASHBOARD_CREATION.html#a-note-on-font-awesome-upgrade>`__ for more detail.
 
+While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+
 3.0.1 (2018-04-14)
 ------------------
 
