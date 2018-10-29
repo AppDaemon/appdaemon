@@ -28,7 +28,7 @@ class MqttPlugin:
         if 'namespace' in self.config:
             self.namespace = self.config['namespace']
         else:
-            self.namespace = 'mqtt'
+            self.namespace = 'default'
 
         if 'verbose' in self.config:
             self.verbose = self.config['verbose']
