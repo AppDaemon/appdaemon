@@ -346,6 +346,10 @@ class RunDash:
                         x = m.group(1)
                         y = m.group(2)
                         args["xy_color"] = [x, y]
+                elif key == "json_args":
+                      json_args = json.loads(data[key])
+                      for k in json_args.keys():
+                         args[k] = json_args[k]
                 else:
                     args[key] = data[key]
 
