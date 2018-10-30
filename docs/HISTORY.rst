@@ -19,6 +19,7 @@ Change Log
 - Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
 - Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added --upgrade to pip3 call for recursive requirements.txt scanning - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- Added the ability to pass stringified JSON parameters to service calls - contributed by `Clyra <https://github.com/clyra>`__
 
 **Fixes**
 
