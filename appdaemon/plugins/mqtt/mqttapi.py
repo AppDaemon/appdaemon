@@ -3,8 +3,6 @@ import appdaemon.utils as utils
 import asyncio
 import inspect
 import traceback
-import paho.mqtt.publish as publish
-import json
 
 
 class Entities:
@@ -154,13 +152,13 @@ class Mqtt(appapi.AppDaemon):
         return result
 
     def mqtt_subscribe(self, topic, **kwargs):
-        kwargs['payload'] = json.dumps({'task' : 'subscribe', 'topic' : topic})
+        kwargs['topic'] = topic
         service = 'subscribe'
         result = self.call_service(service, **kwargs)
         return result
 
     def mqtt_unsubscribe(self, topic, **kwargs):
-        kwargs['payload'] = json.dumps({'task' : 'unsubscribe', 'topic' : topic})
+        kwargs['topic'] = topic
         service = 'unsubscribe'
         result = self.call_service(service, **kwargs)
         return result
@@ -170,65 +168,26 @@ class Mqtt(appapi.AppDaemon):
             "DEBUG",
             "call_service: {}, {}".format(service, kwargs)
         )
-            
-        config = self.get_plugin_config(**kwargs)
-        try:
-            mqtt_client_host = config['host']
-            mqtt_client_port = config['port']
-            mqtt_client_id = config['client_id']
-            mqtt_client_transport = config['transport']
-            mqtt_client_user = config['username']
-            mqtt_client_password = config['password']
-            mqtt_client_verify_cert = config['verify_cert']
+        
+        namespace = self._get_namespace(**kwargs)
 
-            mqtt_client_tls_ca_cert = config['ca_cert']
-            mqtt_client_tls_client_cert = config['client_cert']
-            mqtt_client_tls_client_key = config['client_key']
-
-            mqtt_client_timeout = config['timeout']
-
-            if mqtt_client_tls_ca_cert != None and mqtt_client_verify_cert:
-                mqtt_client_tls = {'ca_certs':mqtt_client_tls_ca_cert, 'certfile':mqtt_client_tls_client_cert, 'keyfile':mqtt_client_tls_client_key}
-            else:
-                mqtt_client_tls = None
-            
-            if mqtt_client_user != None:
-                auth = {'username':mqtt_client_user, 'password':mqtt_client_password}
-            else:
-                auth = None
-        except Exception as e:
-            namespace = self._get_namespace(**kwargs)
-            config = self.AD.get_plugin(namespace).config
-            if config['type'] == 'mqtt':
-                self.AD.log('DEBUG', 'Got the following Error {}, when trying to retrieve Mqtt Server Values'.format(e))
-                self.error('Got error with the following {}'.format(e))
-                return str(e)
-            else:
-                self.AD.log('CRITICAL', 'Wrong Namespace {!r} selected for MQTT Service. Please use proper namespace before trying again'.format(namespace))
-                self.error('Could not execute service call, as wrong namespace {!r} used'.format(namespace))
-                self.AD.log('DEBUG', 'Got the following Error {}, when trying to retrieve Mqtt Server Values as wrong namespace used'.format(e))
-                return 'ERR'
-
-        payload = kwargs.get('payload', None)
-        retain = kwargs.get('retain', False)
-        qos = int(kwargs.get('qos', 0))
-
-        if service == 'publish':
-            if 'topic' in kwargs:
-                topic = kwargs['topic']
-            else:
-                self.error('Could not execute service call, as no Topic provided')
-                raise ValueError("No topic provided. Please provide topic to publish to")
-                return 'ERR'
-
-        elif service == 'subscribe' or service == 'unsubscribe':
-            topic = config['plugin_topic']
-
+        if 'topic' in kwargs:
+            try:
+                result = self.AD.get_plugin(namespace).mqtt_service(service, **kwargs)
+                
+            except Exception as e:
+                config = self.AD.get_plugin(namespace).config
+                if config['type'] == 'mqtt':
+                    self.AD.log('DEBUG', 'Got the following Error {}, when trying to retrieve Mqtt Plugin'.format(e))
+                    self.error('Got error with the following {}'.format(e))
+                    return str(e)
+                else:
+                    self.AD.log('CRITICAL', 'Wrong Namespace {!r} selected for MQTT Service. Please use proper namespace before trying again'.format(namespace))
+                    self.error('Could not execute Service Call, as wrong Namespace {!r} used'.format(namespace))
+                    return 'ERR'
         else:
-            raise ValueError("Invalid Service Name: {}".format(service))
+            self.AD.log('DEBUG', 'Topic not provided for Service Call {!r}.'.format(service))
+            raise ValueError("Topic not provided, please provide Topic for Service Call")
             return 'ERR'
 
-        result = publish.single(topic, payload = payload, qos = qos, hostname = mqtt_client_host, port = mqtt_client_port, auth = auth, 
-                            tls = mqtt_client_tls, retain = retain, keepalive = mqtt_client_timeout, client_id='{}_app'.format(mqtt_client_id), 
-                            transport = mqtt_client_transport)
         return result
