@@ -37,7 +37,7 @@ class MqttPlugin:
 
         self.mqtt_client_host = self.config.get('client_host', '127.0.0.1')
         self.mqtt_client_port = self.config.get('client_port', 1883)
-        self.mqtt_subcription_qos = self.config.get('subscription_qos', 0)
+        self.mqtt_qos = self.config.get('qos', 0)
         mqtt_client_id = self.config.get('client_id', None)
         mqtt_transport = self.config.get('client_transport', 'tcp')
         mqtt_session = self.config.get('client_clean_session', True)
@@ -87,7 +87,7 @@ class MqttPlugin:
             "client_id" : mqtt_client_id,
             "transport" : mqtt_transport,
             "clean_session": mqtt_session,
-            "sub_qos" : self.mqtt_subcription_qos,
+            "qos" : self.mqtt_qos,
             "topics" : self.mqtt_client_topics,
             "username" : self.mqtt_client_user,
             "password" : self.mqtt_client_password,
@@ -103,11 +103,6 @@ class MqttPlugin:
             "verify_cert" : self.mqtt_verify_cert,
             "timeout" : self.mqtt_client_timeout
                             }
-
-        self.mqtt_metadata['plugin_topic'] = 'appdaemon/{}'.format(mqtt_client_id.lower().replace(' ', '_')) #used for internal communication
-
-        if '#' not in self.mqtt_client_topics: #meaning all topics are not subscribed too
-            self.mqtt_client_topics.append(self.mqtt_metadata['plugin_topic'])
 
     def stop(self):
         self.stopping = True
@@ -130,12 +125,12 @@ class MqttPlugin:
     def mqtt_on_connect(self, client, userdata, flags, rc):
         err_msg = ""
         if rc == 0: #means connection was successful
-            self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_subcription_qos)
+            self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos)
                 
             self.AD.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
                 self.log("{}: Subscribing to Topic: {}".format(self.name, topic))
-                result = self.mqtt_client.subscribe(topic, self.mqtt_subcription_qos)
+                result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
                 if result[0] == 0:
                     self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
                 else:
@@ -174,36 +169,51 @@ class MqttPlugin:
     def mqtt_on_message(self, client, userdata, msg):
         self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
 
-        if msg.topic != self.mqtt_metadata['plugin_topic']:
-            data = {'event_type': self.mqtt_event_name, 'data': {'topic': msg.topic, 'payload': msg.payload.decode()}}
-            self.loop.create_task(self.send_ad_event(data))
+        data = {'event_type': self.mqtt_event_name, 'data': {'topic': msg.topic, 'payload': msg.payload.decode()}}
+        self.loop.create_task(self.send_ad_event(data))
+
+    def mqtt_service(self, service, **kwargs):
+        topic = kwargs['topic']
+        payload = kwargs.get('payload', None)
+        retain = kwargs.get('retain', False)
+        qos = int(kwargs.get('qos', self.mqtt_qos))
+
+        if service == 'publish':
+            self.AD.log("DEBUG", 
+                "{}: Publish Payload: {} to Topic: {}".format(self.name, payload, topic))
+
+            result = self.mqtt_client.publish(topic, payload, qos, retain)
+
+            if result[0] == 0:
+                self.log("{}: Publishing Payload {} to Topic {} Successful".format(self.name, payload, topic))
+
+        elif service == 'subscribe':
+            self.AD.log("DEBUG", 
+                "{}: Subscribe to Topic: {}".format(self.name, topic))
+
+            result = self.mqtt_client.subscribe(topic, qos)
+
+            if result[0] == 0:
+                self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                if topic not in self.mqtt_client_topics:
+                    self.mqtt_client_topics.append(topic)
+
+        elif service == 'unsubscribe':
+            self.AD.log("DEBUG", 
+                "{}: Unsubscribe from Topic: {}".format(self.name, topic))
+
+            result = self.mqtt_client.unsubscribe(topic)
+            if result[0] == 0:
+                self.log("{}: Unsubscription from Topic {} Successful".format(self.name, topic))
+                if topic in self.mqtt_client_topics:
+                    self.mqtt_client_topics.remove(topic)
+        
         else:
-            data = json.loads(msg.payload.decode())
-            task = data['task']
-            topic = data['topic']
+            self.error("{}: Wrong Service Call {} for MQTT".format(self.name, service))
+            result = 'ERR'
 
-            if topic != self.mqtt_metadata['plugin_topic'] and topic != '#': #in case of an error
-
-                if task == 'subscribe':
-                    self.AD.log("DEBUG", 
-                        "{}: Subscribe to Topic: {}".format(self.name, topic))
-
-                    result = self.mqtt_client.subscribe(topic, self.mqtt_subcription_qos)
-                    if result[0] == 0:
-                        self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
-                        if topic not in self.mqtt_client_topics:
-                            self.mqtt_client_topics.append(topic)
-
-                elif task == 'unsubscribe':
-                    self.AD.log("DEBUG", 
-                        "{}: Unsubscribe from Topic: {}".format(self.name, topic))
-
-                    result = self.mqtt_client.unsubscribe(topic)
-                    if result[0] == 0:
-                        self.log("{}: Unsubscription from Topic {} Successful".format(self.name, topic))
-                        if topic in self.mqtt_client_topics:
-                            self.mqtt_client_topics.remove(topic)
-
+        return result
+    
     async def send_ad_event(self, data):
         await self.AD.state_update(self.namespace, data)
 
@@ -293,7 +303,7 @@ class MqttPlugin:
                 if not self.mqtt_verify_cert:
                     self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
 
-                self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_subcription_qos)
+                self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos)
 
             self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
                                         self.mqtt_client_timeout)
