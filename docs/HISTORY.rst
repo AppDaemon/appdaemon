@@ -38,6 +38,7 @@ Change Log
 - More namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Fixes of the namespaces fixes ;) - contributed by `Brian Redbeard <https://github.com/brianredbeard>`__
 - Fix typo in sample systemd config - contributed by `Evgeni Kunev <https://github.com/kunev>`__
+- Fix to cert path config - contributed by `nevalain <https://github.com/nevalain>`__
 
 **Breaking Changes**
 

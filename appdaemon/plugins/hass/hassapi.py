@@ -123,7 +123,7 @@ class Hass(appapi.AppDaemon):
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
-            cert_path = None
+            cert_path = False
 
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
@@ -464,7 +464,7 @@ class Hass(appapi.AppDaemon):
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
-            cert_path = None
+            cert_path = False
 
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
@@ -506,7 +506,7 @@ class Hass(appapi.AppDaemon):
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
-            cert_path = None
+            cert_path = False
 
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
