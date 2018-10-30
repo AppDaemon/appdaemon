@@ -35,6 +35,8 @@ Change Log
 - Various fixes in the Docker docs - contributed by `Simon van der Veldt <https://github.com/simonvanderveldt>`__
 - Namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - More namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Fixes of the namespaces fixes ;) - contributed by `Brian Redbeard <https://github.com/brianredbeard>`__
+- Fix typo in sample systemd config - contributed by `Evgeni Kunev <https://github.com/kunev>`__
 
 **Breaking Changes**
 
