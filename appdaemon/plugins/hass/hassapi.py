@@ -337,7 +337,7 @@ class Hass(appapi.AppDaemon):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             
-        rargs["namespace"] = namesspace
+        rargs["namespace"] = namespace
         self.call_service("homeassistant/turn_on", **rargs)
 
     @hass_check
@@ -353,7 +353,7 @@ class Hass(appapi.AppDaemon):
             rargs = kwargs
             rargs["entity_id"] = entity_id
 
-        rargs["namespace"] = namesspace
+        rargs["namespace"] = namespace
         device, entity = self.split_entity(entity_id)
         if device == "scene":
             self.call_service("homeassistant/turn_on", **rargs)
@@ -373,7 +373,7 @@ class Hass(appapi.AppDaemon):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             
-        rargs["namespace"] = namesspace
+        rargs["namespace"] = namespace
         self.call_service("homeassistant/toggle", **rargs)
 
     @hass_check
@@ -389,7 +389,7 @@ class Hass(appapi.AppDaemon):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
-        rargs["namespace"] = namesspace
+        rargs["namespace"] = namespace
         self.call_service("input_number/set_value", **rargs)
 
     @hass_check
@@ -406,7 +406,7 @@ class Hass(appapi.AppDaemon):
             rargs["entity_id"] = entity_id
             rargs["value"] = value
             
-        rargs["namespace"] = namesspace
+        rargs["namespace"] = namespace
         self.call_service("input_text/set_value", **rargs)
 
     @hass_check
@@ -423,7 +423,7 @@ class Hass(appapi.AppDaemon):
             rargs["entity_id"] = entity_id
             rargs["option"] = option
             
-        rargs["namespace"] = namesspace
+        rargs["namespace"] = namespace
         self.call_service("input_select/select_option", **rargs)
 
     @hass_check
