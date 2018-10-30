@@ -709,13 +709,34 @@ Next we define the functions that we referenced in the ``callback`` list for the
 This is less complicated than it looks. What is happening here is that based on the current state of the entity,
 we are selecting which service to call to change that state. We are looking it up in our parameters that we saved earlier.
 
-So, if the light is ``off`` we consult our parameters for ``post_service_active`` whcih should be set to a service that
+So, if the light is ``off`` we consult our parameters for ``post_service_active`` which should be set to a service that
 will turn ther light on (e.g. ``light/turn_on``). Similarly if it is on, we look for ``post_service_inactive`` to
 find out how to turn it off. Once we have made that choice we make the service call to effect
 the change: ``self.call_service()``
 
 The additional logic and loop when state is off is to construct the necessary dictionary of additional parameters in
 the format the ``turn_on`` service expects to set brightness, color etc, that may be passed in to the widget.
+
+Usually HADasboard understands ``args`` values as a single string. If you need to use a service which expects to 
+receive a list or a dictionary then you may use the special key ``json_args`` and set its value to a stringified 
+json. For example, suppose you want to pass to the service a list called ``colors``, then you could change the above 
+code and include another check:
+
+.. code:: javascript
+            if ("my_json" in self.parameters)
+            {
+               args["json_args"] =  JSON.stringify(self.parameters.my_json);
+            }
+
+The corresponding widget configuration may include something like this:
+
+.. code:: yaml
+
+    my_json:
+       colors:
+         - red
+         - blue
+         - green
 
 Raise level is fairly explanatory - this is clicked to make the light brighter:
 
