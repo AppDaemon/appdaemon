@@ -37,7 +37,7 @@ class MqttPlugin:
 
         self.mqtt_client_host = self.config.get('client_host', '127.0.0.1')
         self.mqtt_client_port = self.config.get('client_port', 1883)
-        self.mqtt_qos = self.config.get('qos', 0)
+        self.mqtt_qos = self.config.get('client_qos', 0)
         mqtt_client_id = self.config.get('client_id', None)
         mqtt_transport = self.config.get('client_transport', 'tcp')
         mqtt_session = self.config.get('client_clean_session', True)
