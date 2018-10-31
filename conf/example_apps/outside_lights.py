@@ -1,4 +1,4 @@
-import .hassapi as hass
+import hassapi as hass
 import globals
 
 #
