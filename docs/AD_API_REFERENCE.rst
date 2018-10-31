@@ -196,7 +196,7 @@ When called, AppDaemon will supply the callback function, in old and
 new, with the state attribute for that entity, e.g. ``on`` or ``off``
 for a light.
 
-attribute (optional)
+attribute =  (optional)
 ''''''''''''''''''''
 
 Name of an attribute within the entity state object. If this parameter

@@ -27,6 +27,7 @@ This guide assumes:
 * You already have Docker installed. If you still need to do this, follow the `Docker Installation documentation <https://docs.docker.com/engine/installation/>`__
 * You have Home Assistant up and running
 * You are comfortable with some tinkering. This is a pre-req for Appdaemon too!
+* You're not running on a Raspberry Pi. See `the install page <https://appdaemon.readthedocs.io/en/latest/INSTALL.html#raspberry-pi-docker/>`__ for further information.
 
 Testing your System
 -------------------

@@ -20,6 +20,9 @@ Before running ``AppDaemon`` you will need to install the package:
 
     $ sudo pip3 install appdaemon
 
+
+**Do not** install this in the same Python virtual environment as Home Assistant. If you do that then Home Assistant will stop working.
+
 Install Using hass.io
 ---------------------
 
