@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+3.0.3
+----------------
+
+**Features**
+
+**Fixes**
+
+**Breaking Changes**
+
+
 3.0.2 10/31/2018
 ----------------
 
@@ -12,7 +22,7 @@ Change Log
 - Added instructions for running a dev build
 - Added support for Long Lived Access Tokens
 - Updated MDI Icons to 3.0.39
-- Updated Font Awesome Icons to 3.4.1
+- Updated Font Awesome Icons to 5.4.2
 - Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
 - Many MQTT Plugin enhancements - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
