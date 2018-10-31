@@ -33,11 +33,13 @@ class Dashboard:
         self.css_dir = os.path.join(self.dash_install_dir, "assets", "css")
         self.compiled_css_dir = os.path.join(self.compile_dir, "css")
         self.fonts_dir = os.path.join(self.dash_install_dir, "assets", "fonts")
+        self.webfonts_dir = os.path.join(self.dash_install_dir, "assets", "webfonts")
         self.images_dir = os.path.join(self.dash_install_dir, "assets", "images")
         self.base_url = ""
         self.dash_force_compile = False
         self.dash_compile_on_start = False
         self.max_include_depth = 10
+        self.fa4compatibility = False
         #
         # Process any overrides
         #
@@ -51,11 +53,13 @@ class Dashboard:
         self._process_arg("css_dir", kwargs)
         self._process_arg("compiled_css_dir", kwargs)
         self._process_arg("fonts_dir", kwargs)
+        self._process_arg("webfonts_dir", kwargs)
         self._process_arg("images_dir", kwargs)
         self._process_arg("base_url", kwargs)
         self._process_arg("dash_force_compile", kwargs)
         self._process_arg("dash_compile_on_start", kwargs)
         self._process_arg("max_include_depth", kwargs)
+        self._process_arg("fa4compatibility", kwargs)
         #
         # Create some dirs
         #
@@ -841,7 +845,8 @@ class Dashboard:
             # return params
             #
             params = {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
-                    "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable}
+                    "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable,
+                    "fa4compatibility": self.fa4compatibility  }
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),

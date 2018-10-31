@@ -1,7 +1,55 @@
 Change Log
 ==========
 
-3.0.1
+3.0.2
+------------------
+
+**Features**
+
+- added ``set_textvalue()`` api call.
+- added ``app_init_delay`` to delay App Initialization
+- Added ability to register apps to receive log entries
+- Added instructions for running a dev build
+- Added support for Long Lived Access Tokens
+- Updated MDI Icons to 3.0.39
+- Updated Font Awesome Icons to 3.4.1
+- Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
+- Many MQTT Plugin enhancements - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
+- Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
+- Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added --upgrade to pip3 call for recursive requirements.txt scanning - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- Added the ability to pass stringified JSON parameters to service calls - contributed by `Clyra <https://github.com/clyra>`__
+
+**Fixes**
+
+- Fixed incorrect service call in ``set_value()``
+- Enforce domain name in rss feed target to avoid issues with other functions
+- Previously deleted modules will now be correctly reloaded to reflect changes
+- Fixed a bug in ``get_scheduler_entries()``
+- Prevent periodic refresh of HASS state from overwriting App created entities - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Fix to honor cert_path - contributed by `Myles Eftos <https://github.com/madpilot>`__
+- Run AD in docker as PID 1 - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
+- Fix encoding error in log messages - contributed by `Markus Meissner <https://github.com/daringer>`__
+- Fix a bug in ``get_plugin_meta()`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various Doc corrections and additions - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various fixes in the Docker docs - contributed by `Simon van der Veldt <https://github.com/simonvanderveldt>`__
+- Namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- More namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Fixes of the namespaces fixes ;) - contributed by `Brian Redbeard <https://github.com/brianredbeard>`__
+- Fix typo in sample systemd config - contributed by `Evgeni Kunev <https://github.com/kunev>`__
+- Fix to cert path config - contributed by `nevalain <https://github.com/nevalain>`__
+
+**Breaking Changes**
+
+- RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
+- SSE Support has been removed
+- Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
+- Many Font Awesome Icon names have changed - any custom icons you have on dashboards will need to be changed to suit - see `docs <https://appdaemon.readthedocs.io/en/latest/DASHBOARD_CREATION.html#a-note-on-font-awesome-upgrade>`__ for more detail.
+
+While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+
+3.0.1 (2018-04-14)
 ------------------
 
 **Features**
@@ -14,7 +62,7 @@ Change Log
 - Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
 - Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
 
-*Fixes**
+**Fixes**
 
 - Fixed a problem in the Docker initialization script
 - Fixed an parameter collision for events with a parameter ``name`` in ``listen_event()``
@@ -53,6 +101,7 @@ None
  - Fixed a bug that broke retries when connecting to Home Assistant
  - Fixed a bug that could cause lockups during app initialization
  - Fixed a bug for Docker that prevented the initial config from working correctly - contributed by `mradziwo <https://github.com/mradziwo>`__
+ - Grammar corrections to docs, and a fix to the stop code - contributed by `Matthias Urlichs <https://github.com/smurfix>`__
 
 **Breaking Changes**
 

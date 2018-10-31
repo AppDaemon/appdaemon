@@ -7,4 +7,6 @@ appdaemon:
     HASS:
       type: hass
       ha_url:
-      ha_key:
+      token:
+hadashboard:
+  dash_url:

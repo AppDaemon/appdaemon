@@ -221,8 +221,8 @@ Lets look at a couple more examples of widget definitions:
         widget_type: switch
         title: Garage
         entity: switch.garage_door
-        icon_on: fa-car
-        icon_off: fa-car
+        icon_on: fas-car
+        icon_off: fas-car
         warn: 1
 
 Now, instead of an entity id we refer to the name of the widgets we just
@@ -374,8 +374,8 @@ contained sub modules (mode\_panel.yaml):
         widget_type: switch
         title: Garage
         entity: switch.garage_door
-        icon_on: fa-car
-        icon_off: fa-car
+        icon_on: fas-car
+        icon_off: fas-car
         warn: 1
 
     layout:
@@ -545,12 +545,11 @@ Icons
 Widgets that allow the specification of icons have access to both `Font
 Awesome <http://fontawesome.io/cheatsheet/>`__ and `Material
 Design <https://materialdesignicons.com/>`__ Icons. To specify an icon
-simply use the prefix ``fa-`` for Font Aweesome and ``mdi-`` for
-Material Design. e,g,:
+simply use the prefix ``mdi-`` for Material Design, and the appropriate style prefix for Font Awesome Icons
 
 .. code:: yaml
 
-    icon_on: fa-alert
+    icon_on: fas-bell
     icon_off: mdi-cancel
 
 In addition, the widget can be configured to use whatever icon is
@@ -760,7 +759,7 @@ Example with default values:
 
     sample_weather:
       title: Today
-      show_foreacast: 1
+      show_forecast: 1
       prefer_icons: 1
       forecast_title: Tomorrow
       sensors:
@@ -928,6 +927,7 @@ Style Arguments:
 -  ``text_style``
 -  ``unit_style``
 -  ``container_style``
+-  ``state_text_style`` (used for styling of ``sub_entity``)
 
 input_select
 ~~~~~~~~~~~~
@@ -978,7 +978,7 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 -  ``feed_url`` - fully qualified path to rss feed, e.g.
    ``http://rss.cnn.com/rss/cnn_topstories.rss``
 -  ``target name`` - the entity of the target RSS widget in the
-   dashboard definition file
+   dashboard definition file. This must be an arbitary name prepended by ``rss.`` - e.g. ``rss.cnn_news``
 -  ``feed_refresh_interval`` - how often AppDaemon will refresh the RSS
    feeds
 
@@ -992,7 +992,7 @@ Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the name of the configured feed - this must match the
-   ``target_name`` configured in the AppDaemon configuration
+   ``target_name`` full target name configured in the AppDaemon configuration e.g. `rss.cnn_news`
 -  ``interval`` - the period between display of different items within
    the feed
 
@@ -1392,16 +1392,16 @@ A widget to monitor the state of an entity and display a different icon and styl
      state_text: 1
      icons:
        "active":
-         icon: fa-glass
+         icon: fas-glass
          style: "color: green"
        "inactive":
-         icon: fa-repeat
+         icon: fas-repeat
          style: "color: blue"
        "idle":
-         icon: fa-frown-o
+         icon: fas-frown
          style: "color: red"
        "default":
-         icon: fa-rocket
+         icon: fas-rocket
          style: "color: cyan"
 
 The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
@@ -1838,7 +1838,7 @@ Example:
         refresh: 60
         url_list: 
           - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
-          - https://www.pexels.com/photo/eyes-cat-coach-sofa-96938/
+          - https://www.pexels.com/photo/eyes-cat-coach-sofas-96938/
           - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
           - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
           - https://www.pexels.com/photo/grey-fur-kitten-127028/
@@ -1866,6 +1866,49 @@ Cosmetic Arguments
 
 -  ``widget_style``
 -  ``title_style``
+
+entitypicture
+~~~~~~
+
+A widget to display entity picture
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to display entity_picture attribute
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile.
+-  ``base_url`` - URL to prepend before content of entity_picture.
+
+Example:
+
+.. code:: yaml
+
+    entitypicture1:
+        widget_type: entitypicture
+        title: Weather by YR
+        entity: sensor.yr_symbol
+
+Example showing artwork of just playing album on media player: (tested with Google Home)
+
+.. code:: yaml
+
+    entitypicture2:
+        widget_type: entitypicture
+        entity: media_player.bedroom
+        base_url: https://my_domain.duckdns.org:8123
+        image_style: "top: 0; bottom: 0; left: 0; right: 0;"
+
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``image_style``
 
 camera
 ~~~~~~
@@ -2100,10 +2143,10 @@ All entries are required but can be left blank by using double quotes.
 
 .. code:: yaml
 
-    light_icon_on: fa-circle
-    light_icon_off: fa-circle-thin
-    light_icon_up: fa-plus
-    light_icon_down: fa-minus
+    light_icon_on: fas-circle
+    light_icon_off: fas-circle-thin
+    light_icon_up: fas-plus
+    light_icon_down: fas-minus
     light_title_style: $style_title
     light_title2_style: $style_title2
     light_icon_style_active: $style_active
@@ -2155,3 +2198,18 @@ Example Dashboards
 Some example dashboards are available in the AppDaemon repository:
 
 `Dashboards <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_dashboards>`__
+
+A Note on Font Awesome Upgrade
+------------------------------
+
+As of AppDaemon 3.0.2, Font Awesome icons have been upgraded form version 4 to version 5. FA Introduced a lot of breaking changes with this upgrade. While all of HADashboard's included skins have been updated to reflect this, any custom skins may need changes, as will any custom icons used within dashboard config files. FA have provided a table of changed icons `here <https://fontawesome.com/how-to-use/on-the-web/setup/upgrading-from-version-4>`__.
+
+To ease the transition further, a legacy mode has been included in HADashboard. This is not enabled by default, but can be turned on by specifying the following in the hadashboard section of ``appdaemon.cfg``:
+
+.. code:: yaml
+
+    fa4compatibility: 1
+
+This is not intended as a permanent fix and may be removed at some point, but for now, this will enable existing skins and icons to work correctly, giving you an opportunity to work through your configurations and fix things.
+
+While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.

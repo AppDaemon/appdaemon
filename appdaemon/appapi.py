@@ -45,7 +45,7 @@ class AppDaemon:
         return msg
 
     #
-    # Utility
+    # Logging
     #
 
     def log(self, msg, level="INFO"):
@@ -55,6 +55,20 @@ class AppDaemon:
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
+
+    def listen_log(self, cb):
+        return self.AD.add_log_callback(self.name, cb)
+
+    def cancel_listen_log(self):
+        self.AD.log(
+            "DEBUG",
+            "Canceling listen_log for {}".format(self.name)
+        )
+        self.AD.cancel_log_callback(self.name)
+
+    #
+    # Utility
+    #
 
     def get_app(self, name):
         return self.AD.get_app(name)

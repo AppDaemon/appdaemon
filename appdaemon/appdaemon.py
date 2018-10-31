@@ -36,6 +36,7 @@ class AppDaemon:
         self.error = error
         self.diagnostic = diag
         self.config = kwargs
+        self.booted = datetime.datetime.now()
         self.config["ad_version"] = utils.__version__
         self.q = Queue(maxsize=0)
         self.check_app_updates_profile = ""
@@ -66,6 +67,9 @@ class AppDaemon:
 
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
+
+        self.log_callbacks = {}
+        self.log_callbacks_lock = threading.RLock()
 
         self.thread_info = {}
         self.thread_info_lock = threading.RLock()
@@ -266,6 +270,7 @@ class AppDaemon:
 
         if os.path.isdir(os.path.join(self.config_dir, "custom_plugins")):
             plugins = [f.path for f in os.scandir(os.path.join(self.config_dir, "custom_plugins")) if f.is_dir(follow_symlinks=True)]
+
             for plugin in plugins:
                 sys.path.insert(0, plugin)
 
@@ -1022,10 +1027,10 @@ class AppDaemon:
                 schedule[name][entry]["type"] = self.schedule[name][entry]["type"]
                 schedule[name][entry]["name"] = self.schedule[name][entry]["name"]
                 schedule[name][entry]["basetime"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["repeat"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["offset"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["interval"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["repeat"] = self.schedule[name][entry]["repeat"]
+                schedule[name][entry]["offset"] = self.schedule[name][entry]["offset"]
+                schedule[name][entry]["interval"] = self.schedule[name][entry]["interval"]
+                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["kwargs"]
                 schedule[name][entry]["callback"] = self.schedule[name][entry]["callback"]
         return schedule
 
@@ -1429,8 +1434,9 @@ class AppDaemon:
 
                                     state = await self.plugin_objs[plugin].get_complete_state()
 
-                                    with self.state_lock:
-                                        self.state[plugin] = state
+                                    if state is not None:
+                                        with self.state_lock:
+                                            self.state[plugin].update(state)
 
                                     self.last_plugin_state[plugin] = datetime.datetime.now()
                                 except:
@@ -1799,7 +1805,12 @@ class AppDaemon:
             app = self.get_app_from_file(file)
             if app is not None:
                 self.log("INFO", "Loading App Module: {}".format(file))
-                self.modules[module_name] = importlib.import_module(module_name)
+                if module_name not in self.modules:
+                    self.modules[module_name] = importlib.import_module(module_name)
+                else:
+                    # We previously imported it so we need to reload to pick up any potential changes
+                    importlib.reload(self.modules[module_name])
+
             elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
                 self.log("INFO", "Loading Global Module: {}".format(file))
                 self.modules[module_name] = importlib.import_module(module_name)
@@ -2306,7 +2317,9 @@ class AppDaemon:
                         # Remove the callback if appropriate
                         remove = callback["kwargs"].get("oneshot", False)
                         if remove:
-                            removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                            print(callback["kwargs"])
+                            #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                            removes.append({"name": callback["name"], "uuid": uuid_})
 
             for remove in removes:
                 #print(remove)
@@ -2395,8 +2408,8 @@ class AppDaemon:
                 return self.plugin_meta[namespace]
             elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
                 return self.plugin_meta[namespace]
-            else:
-                return None
+                
+        return None
 
 
     #
@@ -2427,15 +2440,47 @@ class AppDaemon:
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.logger, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts)
 
     def err(self, level, message, name="AppDaemon"):
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.error, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts)
+
+    def process_log_callback(self, level, message, name, ts):
+        with self.log_callbacks_lock:
+            for thisname in self.log_callbacks:
+                if thisname != name and name != "AppDaemon":
+                    try:
+                        self.log_callbacks[thisname](name, ts, level, message)
+                    except:
+                        self.err("WARNING", '-' * 60)
+                        self.err("WARNING", "Unexpected error in log callback for: {}:".format(name))
+                        self.err("WARNING", '-' * 60)
+                        self.err("WARNING", traceback.format_exc())
+                        self.err("WARNING", '-' * 60)
+                        if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                            self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+
+    def add_log_callback(self, name, cb):
+        with self.log_callbacks_lock:
+            self.log_callbacks[name] = cb
+
+    def cancel_log_callback(self, name):
+        with self.log_callbacks_lock:
+            if name not in self.log_callbacks:
+                self.log("WARNING", "Invalid callback in cancel_log_callback() from app {}".format(name))
+
+            if name in self.log_callbacks:
+                del self.log_callbacks[name]
 
     def diag(self, level, message, name="AppDaemon"):
         if not self.realtime:

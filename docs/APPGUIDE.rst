@@ -3,9 +3,7 @@ Writing AppDaemon Apps
 
 AppDaemon is a loosely coupled, sandboxed, multi-threaded Python
 execution environment for writing automation apps for `Home
-Assistant <https://home-assistant.io/>`__ home automation software. It
-is intended to complement the Automation and Script components that Home
-Assistant currently offers.
+Assistant <https://home-assistant.io/>`__, `MQTT <http://mqtt.org/>`__ event broker and other home automation software.
 
 Examples
 --------
@@ -18,7 +16,7 @@ AppDaemon repository:
 Anatomy of an App
 -----------------
 
-Automations in AppDaemon are performed by creating a piece of code
+Actions in AppDaemon are performed by creating a piece of code
 (essentially a Python Class) and then instantiating it as an Object one
 or more times by configuring it as an App in the configuration file. The
 App is given a chance to register itself for whatever events it wants to
@@ -30,9 +28,8 @@ The first step is to create a unique file within the apps directory (as
 defined in the ``appdaemon`` section of configuration file - see `The
 Installation Page <INSTALL.html>`__ for further information on the
 configuration of AppDaemon itself). This file is in fact a Python
-module, and is expected to contain one or more classes derived from the
-supplied ``appdaemon`` class, imported from the supplied
-``appdaemon.plugins.hass.hassapi`` module. The start of an app might look like this:
+module, and is expected to contain one or more classes derived from a
+supplied ``appdaemon`` class or a custom plugin. For instance, hass support can be used by importing from the supplied``appdaemon.plugins.hass.hassapi`` module. The start of an app might look like this:
 
 .. code:: python
 
@@ -63,7 +60,7 @@ called:
 -  Following a change to the module parameters
 -  Following initial configuration of an app
 -  Following a change in the status of Daylight Saving Time
--  Following a restart of Home Assistant
+-  Following a restart of a plugin or underlying subsystem such as Home Assistant
 
 In every case, the App is responsible for recreating any state it might
 need as if it were the first time it was ever started. If
@@ -79,11 +76,12 @@ that might have been left on by mistake when the app was restarted).
 After the ``initialize()`` function is in place, the rest of the app
 consists of functions that are called by the various callback
 mechanisms, and any additional functions the user wants to add as part
-of the program logic. Apps are able to subscribe to two main classes of
+of the program logic. Apps are able to subscribe to three main classes of
 events:
 
 -  Scheduled Events
 -  State Change Events
+-  Other Events
 
 These, along with their various subscription calls and helper functions,
 will be described in detail in later sections.
@@ -99,7 +97,7 @@ reloaded. This means that any significant delays in the ``terminate()``
 code could have the effect of hanging AppDaemon for the duration of that
 code - this should be avoided.
 
-To wrap up this section, here is a complete functioning App (with
+To wrap up this section, here is a complete functioning HASS App (with
 comments):
 
 .. code:: python
@@ -485,7 +483,7 @@ execution that can be applied to an individual App. An App's callbacks
 will only be executed if all of the constraints are met. If a constraint
 is absent it will not be checked for.
 
-For example, the presence callback constraint can be added to an App by
+For example, a time callback constraint can be added to an App by
 adding a parameter to its configuration like this:
 
 .. code:: yaml
@@ -493,20 +491,14 @@ adding a parameter to its configuration like this:
     some_app:
       module: some_module
       class: SomeClass
-      constrain_presence: noone
+      constrain_start_time: sunrise
+      constrain_end_time: sunset
 
 Now, although the ``initialize()`` function will be called for
 SomeClass, and it will have a chance to register as many callbacks as it
-desires, none of the callbacks will execute, in this case, until
-everyone has left. This could be useful for an interior motion detector
-App for instance. There are several different types of constraints:
+desires, none of the callbacks will execute, in this case, unless it is between sunrise and sunset.
 
--  input\_boolean
--  input\_select
--  presence
--  time
-
-An App can have as many or as few as are required. When more than one
+An App can have as many or as few constraints as are required. When more than one
 constraint is present, they must all evaluate to true to allow the
 callbacks to be called. Constraints becoming true are not an event in
 their own right, but if they are all true at a point in time, the next
@@ -514,65 +506,7 @@ callback that would otherwise been blocked due to constraint failure
 will now be called. Similarly, if one of the constraints becomes false,
 the next callback that would otherwise have been called will be blocked.
 
-They are described individually below.
-
-input\_boolean
-~~~~~~~~~~~~~~
-
-By default, the input\_boolean constraint prevents callbacks unless the
-specified input\_boolean is set to "on". This is useful to allow certain
-Apps to be turned on and off from the user interface. For example:
-
-.. code:: yaml
-
-    some_app:
-      module: some_module
-      class: SomeClass
-      constrain_input_boolean: input_boolean.enable_motion_detection
-
-If you want to reverse the logic so the constraint is only called when
-the input\_boolean is off, use the optional state parameter by appending
-",off" to the argument, e.g.:
-
-.. code:: yaml
-
-    some_app:
-      module: some_module
-      class: SomeClass
-      constrain_input_boolean: input_boolean.enable_motion_detection,off
-
-input\_select
-~~~~~~~~~~~~~
-
-The input\_select constraint prevents callbacks unless the specified
-input\_select is set to one or more of the nominated (comma separated)
-values. This is useful to allow certain Apps to be turned on and off
-according to some flag, e.g. a house mode flag.
-
-.. code:: yaml
-
-     Single value
-    constrain_input_select: input_select.house_mode,Day
-     or multiple values
-    constrain_input_select: input_select.house_mode,Day,Evening,Night
-
-presence
-~~~~~~~~
-
-The presence constraint will constrain based on presence of device
-trackers. It takes 3 possible values:
-
-- ``noone`` - only allow callback execution when no one is home
-- ``anyone`` - only allow callback execution when one or more person is home
-- ``everyone`` - only allow callback execution when everyone is home
-
-.. code:: yaml
-
-    constrain_presence: anyone
-    # or
-    constrain_presence: someone
-    # or
-    constrain_presence: noone
+AppDeamon itself supplies the time constraint:
 
 time
 ~~~~
@@ -605,8 +539,80 @@ times that span midnight.
     constrain_start_time: sunset - 00:45:00
     constrain_end_time: sunrise + 00:45:00
 
+Other constraints may be supplied by the plugin in use.
+
+HASS Plugin Constraints
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The HASS plugin supplies several additional different types of constraints:
+
+-  input\_boolean
+-  input\_select
+-  presence
+-  time
+
+They are described individually below.
+
+input\_boolean
+^^^^^^^^^^^^^^
+
+By default, the input\_boolean constraint prevents callbacks unless the
+specified input\_boolean is set to "on". This is useful to allow certain
+Apps to be turned on and off from the user interface. For example:
+
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_input_boolean: input_boolean.enable_motion_detection
+
+If you want to reverse the logic so the constraint is only called when
+the input\_boolean is off, use the optional state parameter by appending
+",off" to the argument, e.g.:
+
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_input_boolean: input_boolean.enable_motion_detection,off
+
+input\_select
+^^^^^^^^^^^^^
+
+The input\_select constraint prevents callbacks unless the specified
+input\_select is set to one or more of the nominated (comma separated)
+values. This is useful to allow certain Apps to be turned on and off
+according to some flag, e.g. a house mode flag.
+
+.. code:: yaml
+
+     Single value
+    constrain_input_select: input_select.house_mode,Day
+     or multiple values
+    constrain_input_select: input_select.house_mode,Day,Evening,Night
+
+presence
+^^^^^^^^
+
+The presence constraint will constrain based on presence of device
+trackers. It takes 3 possible values:
+
+- ``noone`` - only allow callback execution when no one is home
+- ``anyone`` - only allow callback execution when one or more person is home
+- ``everyone`` - only allow callback execution when everyone is home
+
+.. code:: yaml
+
+    constrain_presence: anyone
+    # or
+    constrain_presence: someone
+    # or
+    constrain_presence: noone
+
 days
-~~~~
+^^^^
 
 The day constraint consists of as list of days for which the callbacks
 will fire, e.g.
@@ -653,6 +659,10 @@ threads.
 
 State Operations
 ----------------
+
+AppDaemon maintains a master state list segmented by namespace. As state changes are notified by the various plugins, AppDaemon takes not and stores the updated state locally.
+
+The MQTT plugin does not use state at all, and relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
 
 A note on Home Assistant State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -703,7 +713,7 @@ About Callbacks
 
 A large proportion of home automation revolves around waiting for
 something to happen and then reacting to it; a light level drops, the
-sun rises, a door opens etc. Home Assistant keeps track of every state
+sun rises, a door opens etc. The various plugins keep track of every state
 change that occurs within the system and streams that information to
 AppDaemon almost immediately.
 
@@ -756,7 +766,7 @@ constraints and have identical functionality. For instance, adding:
 
 ``constrain_presence="everyone"``
 
-to a callback registration will ensure that the callback is only run if
+to a HASS callback registration will ensure that the callback is only run if
 the callback conditions are met and in addition everyone is present
 although any other callbacks might run whenever their event fires if
 they have no constraints.
@@ -949,8 +959,8 @@ parameter.
 Calling Services
 ----------------
 
-About Services
-~~~~~~~~~~~~~~
+About Home Assistant Services
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Services within Home Assistant are how changes are made to the system
 and its devices. Services can be used to turn lights on and off, set
@@ -961,18 +971,26 @@ into Home Assistant and run a service. In addition, it also provides
 convenience functions for some of the more common services making
 calling them a little easier.
 
+Other plugins may or may not support the notion of services
+
 Events
 ------
 
 About Events
 ~~~~~~~~~~~~
 
-Events are a fundamental part of how Home Assistant works under the
-covers. HA has an event bus that all components can read and write to,
-enabling components to inform other components when important events
-take place. We have already seen how state changes can be propagated to
-AppDaemon - a state change however is merely an example of an event
-within Home Assistant. There are several other event types, among them
+Events are a fundamental part of how AppDaemon works under the
+covers. AD receives important events from all of its plugins and communicates them to apps as required. FOr instance, the MQTT plugin will generate an event when a message is recieved; The HASS plugin will generate an event when a service is called, or when it starts or stops.
+
+Events and MQTT
+~~~~~~~~~~~~~~~
+
+The MQTT plugin uses events as itsd primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. APps are able to subscribe to this event and process it appropriately.
+
+Events and Home Assistant
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them
 are:
 
 -  ``homeassistant_start``
@@ -984,10 +1002,13 @@ are:
 -  ``platform_discovered``
 -  ``component_loaded``
 
-Using AppDaemon, it is possible to subscribe to specific events as well
+Using the HASS plugin, it is possible to subscribe to specific events as well
 as fire off events.
 
-In addition to the Home Assistant supplied events, AppDaemon adds 2 more
+AppDaemon Specific Events
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
 Assistant bus:
 
@@ -1065,8 +1086,8 @@ The function to be called when the event is fired.
 event
 '''''
 
-Name of the event to subscribe to. Can be a standard Home Assistant
-event such as ``service_registered`` or an arbitrary custom event such
+Name of the event to subscribe to. Can be a standard HASS or MQTT plugin
+event such as ``service_registered`` or in the case of HASS, an arbitrary custom event such
 as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
 subscribe to all events.
 
@@ -1158,8 +1179,8 @@ information see the ` Dashboard configuration pages <DASHBOARD.html>`__
 
 AppDaemon provides convenience functions to assist with this.
 
-Presence
---------
+HASS Presence
+~~~~~~~~~~~~~
 
 Presence in Home Assistant is tracked using Device Trackers. The state
 of all device trackers can be found using the ``get_state()`` call,
@@ -1219,33 +1240,42 @@ a python Dictionary with an entry for each app, keyed on the App's name.
     other_apps_arg = self.app_config["some_app"]["some_parameter"].
 
 
-AppDaemon also exposes configuration from Home Assistant such as the
+AppDaemon also exposes the configurations from configured plugins. For example that of the HA plugin,
+allows to access configurations from Home Assistant such as the
 Latitude and Longitude configured in HA. All of the information
 available from the Home Assistant ``/api/config`` endpoint is available
-using the ``get_hass_config()`` call. E.g.:
+using the ``get_config()`` call. E.g.:
 
 .. code:: python
 
-    config = self.get_hass_config()
+    config = self.get_config()
     self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
+
+Using this method, it is also possible to use this function to access configurations of other plugins,
+from within apps in a different namespace. This is done by simply passing in the ``namespace`` parameter. E.g.:
+
+.. code:: python
+    ## from within a HASS app, and wanting to access the client Id of the MQTT Plugin
+    
+    config = self.get_config(namespace = 'mqtt')
+    self.log("The Mqtt Client ID is ".format(config["client_id"]))
 
 And finally, it is also possible to use ``config`` as a global area
 for sharing parameters across Apps. Simply add the required parameters
-to the top level of the appdaemon.yaml file:
+inside the appdaemon section in the appdaemon.yaml file:
 
 .. code:: yaml
 
     logs:
     ...
     appdaemon:
-    ...
-    global_var: hello world
+      global_var: hello world
 
 Then access it as follows:
 
 .. code:: python
 
-    my_global_var = conf.config["global_var"]
+    my_global_var = self.config["global_var"]
 
 Development Workflow
 --------------------
@@ -1381,17 +1411,17 @@ which may be useful for some applications. The functions:
 Return the internal data structures, but do not allow them to be
 modified directly. Their format may change.
 
-About HASS Disconnections
-~~~~~~~~~~~~~~~~~~~~~~~~
+About PLugin Disconnections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When AppDaemon is unable to connect initially with Home Assistant, it
-will hold all Apps in statsis until it initially connects, nothing else
+When a plugin is unable to connect initially with the underlying system, e.g. Home Assistant, it
+will hold all Apps in stasis until it initially connects, nothing else
 will happen and no initialization routines will be called. If AppDaemon
-has been running connected to Home Assitant for a while and the
+has been running connected to Home Assistant for a while and the
 connection is unexpectedly lost, the following will occur:
 
 -  When HASS first goes down or becomes disconnected, an event called
-   ``ha_disconnected`` will fire
+   ``plugin_disconnected`` will fire
 -  While disconnected from HASS, Apps will continue to run
 -  Schedules will continue to be honored
 -  Any operation reading locally cached state will succeed
@@ -1408,7 +1438,7 @@ AppDaemon supports a simple RESTFul API to enable arbitary HTTP
 connections to pass data to Apps and trigger actions. API Calls must use
 a content type of ``application/json``, and the response will be JSON
 encoded. The RESTFul API is disabled by default, but is enabled by
-adding an ``ad_port`` directive to the AppDaemon section of the
+adding an ``api_port`` directive to the AppDaemon section of the
 configuration file. The API can run http or https if desired, separately
 from the dashboard.
 
@@ -1786,9 +1816,8 @@ Plugins
 -------
 
 As of version 3.0, AppDaemon has been rewritten to use a pluggable architecture for connection to the systems it monitors.
-At the time of writing, only one real plugin exists, the homeassistant plugin, and this works the same way that it always has. (There is also an experimental dummy plugin used for testing purposes).
 
-In future it will be possible to create plugins that interface with other systems for instance other home automation systems, or anything else for that matter, and expose their operation to AppDaemon and write Apps to monitor and control them.
+It is possible to create plugins that interface with other systems for instance MQTT support was recently added and it would also be possible to connect to other home automation systems, or anything else for that matter, and expose their operation to AppDaemon and write Apps to monitor and control them.
 
 An interesting caveat of this is that the architecture has been designed so that multiple instances of each plugin can be configured, meaning for instance that it is possible to connect AppDaemon to 2 or more instances of Home Assistant.
 

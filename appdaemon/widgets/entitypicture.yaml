@@ -1,0 +1,15 @@
+widget_type: baseentitypicture
+entity: {{entity}}
+fields:
+  title: ""
+  base_url: ""
+  image_style: ""
+  
+  img_inernal_src: ""
+  img_internal_style: ""
+icons: []
+static_css:
+  title_style: $style_title
+  widget_style: $background_style
+css: []
+static_icons: []
