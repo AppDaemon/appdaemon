@@ -1,4 +1,4 @@
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 
 #
 # App to send notification when sensor values in specific ranges

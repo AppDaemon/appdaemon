@@ -343,7 +343,7 @@ following into it using your favorite text editor:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     #
     # Hello World App

@@ -29,11 +29,11 @@ defined in the ``appdaemon`` section of configuration file - see `The
 Installation Page <INSTALL.html>`__ for further information on the
 configuration of AppDaemon itself). This file is in fact a Python
 module, and is expected to contain one or more classes derived from a
-supplied ``appdaemon`` class or a custom plugin. For instance, hass support can be used by importing from the supplied``appdaemon.plugins.hass.hassapi`` module. The start of an app might look like this:
+supplied ``appdaemon`` class or a custom plugin. For instance, hass support can be used by importing from the supplied``hassapi`` module. The start of an app might look like this:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class OutsideLights(hass.Hass):
 
@@ -102,7 +102,7 @@ comments):
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
     import datetime
 
     # Declare Class
@@ -1468,7 +1468,7 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class API(hass.Hass):
 
@@ -1603,7 +1603,7 @@ want to configure.
 
 .. code:: python
 
-    import import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
     import random
     import globals
 
@@ -1711,7 +1711,7 @@ Similarly, Google's API.AI for Google home is supported - here is the Google ver
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
     import random
     import globals
 

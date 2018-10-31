@@ -25,7 +25,7 @@ to:
 
 .. code:: python
 
-   import appdaemon.plugins.hass.hassapi as hass
+   import hassapi as hass
 
    class MyClass(hass.Hass):
    ...

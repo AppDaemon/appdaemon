@@ -131,7 +131,7 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class OutsideLights(hass.Hass):
 
@@ -169,7 +169,7 @@ terms:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class MotionLights(hass.Hass):
 
@@ -200,7 +200,7 @@ activated and bales out after 10 iterations.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class FlashyMotionLights(hass.Hass):
 

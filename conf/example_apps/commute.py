@@ -1,4 +1,4 @@
-import appdaemon.plugins.hass.hassapi as hass
+import .hassapi as hass
 
 #
 # App to send email alert if commute time is too long

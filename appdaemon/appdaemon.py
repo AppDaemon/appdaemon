@@ -266,6 +266,17 @@ class AppDaemon:
 
         # Load Plugins
 
+        # Add built in plugins to path
+
+        moddir = "{}/plugins".format(os.path.dirname(__file__))
+
+        plugins = plugins = [f.path for f in os.scandir(moddir) if f.is_dir(follow_symlinks=True)]
+
+        for plugin in plugins:
+            sys.path.insert(0, plugin)
+
+        # Now custom plugins
+
         plugins = []
 
         if os.path.isdir(os.path.join(self.config_dir, "custom_plugins")):
@@ -294,8 +305,7 @@ class AppDaemon:
                     #
                     # Not a custom plugin, assume it's a built in
                     #
-                    basepath = "appdaemon.plugins"
-                    full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+                    full_module_name = "{}".format(module_name)
                     self.log("INFO",
                                 "Loading Plugin {} using class {} from module {}".format(name, class_name,
                                                                                          module_name))
