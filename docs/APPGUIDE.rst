@@ -1944,7 +1944,7 @@ To get around this, a function called ``get_plugin_api()`` is provided to instan
 
 Note that use of ``get_plugin_api()`` is not necessary to access multiple instances of the same API type - that can be achieved using namespaces only.
 
-This stle of method invocation can also be used as an alternative to the ``self`` style:
+This style of method invocation can also be used as an alternative to the ``self`` style:
 
 .. code:: python
 
