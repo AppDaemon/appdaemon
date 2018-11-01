@@ -99,7 +99,7 @@ Running
 Docker
 ~~~~~~
 
-Assuming you have set the config up as described in the tutotial for
+Assuming you have set the config up as described in `the tutorial <DOCKER_TUTORIAL.html>`_ for
 Docker, you should see the logs output as follows:
 
 .. code:: bash
