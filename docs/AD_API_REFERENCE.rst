@@ -1519,6 +1519,62 @@ Example
     MyApp = self.get_app("MotionLights")
     MyApp.turn_light_on()
 
+get\_plugin_api()
+~~~~~~~~~~~~~~~~
+
+``get_api()`` will return an object suitable for running specific API calls on for a particular plugin. This method is used to enable an app to work with multiple plugins. The object will support all methods that an app derived from the plugin's class would, via the self notation, but will contain methods and configuration data for the target plugin rather than the plugin the App itself was derived from.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_app(self, plugin)
+
+Parameters
+^^^^^^^^^^
+
+plugin
+''''
+
+Name of the plugin required. This is the name specified as the top level of the plugin configuration. For instance, with the following configuration:
+
+.. code:: yaml
+
+  plugins:
+    HASS:
+      type: hass
+        ...
+
+The name used in the ``get_plugin_api()`` call would be ``HASS``.
+
+Returns
+^^^^^^^
+
+An object reference to the class.
+
+Example
+^^^^^^^
+
+This example shows an App built using the hassapi also using an mqtt api call.
+
+.. code:: python
+
+    import hassapi as hass
+
+    class GetAPI(hass.Hass):
+
+      def initialize(self):
+
+        # Hass API Call
+        self.turn_on("light.office")
+
+        # Grab an object for the MQTT API
+        self.mqtt = self.get_plugin_api("MQTT")
+
+        # Make MQTT API Call
+        self.mqtt.mqtt_publish("topic", payload = "Payload"):
+
 split\_device\_list()
 ~~~~~~~~~~~~~~~~~~~~~
 

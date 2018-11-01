@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 - Apps can now use a simplified version of the import statement e.g. ``import hassapi as hass`` or ``import mqttapi as mqtt``. The existing import method will continue to work.
+- Apps can now use multiple plugin APIs with the ``get_api()`` function
 
 **Fixes**
 

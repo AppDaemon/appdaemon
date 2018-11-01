@@ -12,7 +12,6 @@ class Entities:
         return stateattrs
 
 
-
 class AppDaemon:
     #
     # Internal
@@ -441,6 +440,18 @@ class AppDaemon:
                       kwargs, name))
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
+
+    #
+    # API/Plugin
+    #
+
+    def get_plugin_api(self, name):
+        plugin = self.AD.plugins[name]
+        module_name = "{}api".format(plugin["type"])
+        mod = __import__(module_name, globals(), locals(), [module_name], 0)
+        app_class = getattr(mod, plugin["type"].title())
+        api = app_class(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
+        return api
 
     #
     # Dashboard

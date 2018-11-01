@@ -30,7 +30,6 @@ class Hass(appapi.AppDaemon):
     #
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
-
         super(Hass, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
         self.namespace = "default"

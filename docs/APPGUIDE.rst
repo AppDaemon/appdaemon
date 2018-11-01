@@ -1889,6 +1889,46 @@ For example:
 
 In this way it is possible to use a single app to work with multiple namespaces easily and quickly.
 
+Using Multiple APIs From One App
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The way apps are constructed, they inherit from a superclass that contains all the methods needed to access a particular plugin. This is convenient as it hides a lot of the complexity by automatically selecting the righ configuration information based on namespaces. One drawback of this approach is that an App cannot inherently speak to multiple plugin types as the API required is different and the App can only choose one api to inherit from.
+
+To get around this, a function called ``get_plugin_api()`` is provided to instantiate a second (or third) API object, as a distinct object, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly. For example, this App is built using the hassapi but is also using an mqtt api call.
+
+.. code:: python
+
+    import hassapi as hass
+
+    class GetAPI(hass.Hass):
+
+      def initialize(self):
+
+        # Hass API Call
+        self.turn_on("light.office")
+
+        # Grab an object for the MQTT API
+        self.mqtt = self.get_plugin_api("MQTT")
+
+        # Make MQTT API Call
+        self.mqtt.mqtt_publish("topic", payload = "Payload"):
+
+Note that use of ``get_plugin_api()`` is not necessary to access multiple instances of the same API type - that can be achieved using namespaces only.
+
+This stle of method invocation can also be used as an alternative to the ``self`` style:
+
+.. code:: python
+
+    import hassapi as hass
+
+    class GetAPI(hass.Hass):
+
+      def initialize(self):
+
+        hass = self.get_plugin_api("HASS")
+        hass.turn_on("light.office")
+
+
 A Note on Callbacks
 ~~~~~~~~~~~~~~~~~~~
 
