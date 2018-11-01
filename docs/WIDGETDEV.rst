@@ -723,6 +723,7 @@ json. For example, suppose you want to pass to the service a list called ``color
 code and include another check:
 
 .. code:: javascript
+
             if ("my_json" in self.parameters)
             {
                args["json_args"] =  JSON.stringify(self.parameters.my_json);
