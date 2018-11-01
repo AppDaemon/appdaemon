@@ -1957,6 +1957,8 @@ This style of method invocation can also be used as an alternative to the ``self
         hass = self.get_plugin_api("HASS")
         hass.turn_on("light.office")
 
+The objects returned will have their namespace set to the appropriate value for the plugin instance. This can be changed by invoking the ``set_namespace() function on the object, or by specifying a namespace in the method call. These objects will not inherit the namespace of the App itself.
+
 Custom Constraints
 ------------------
 
