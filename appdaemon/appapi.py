@@ -446,17 +446,21 @@ class AppDaemon:
     #
 
     def get_plugin_api(self, name):
-        plugin = self.AD.plugins[name]
-        module_name = "{}api".format(plugin["type"])
-        mod = __import__(module_name, globals(), locals(), [module_name], 0)
-        app_class = getattr(mod, plugin["type"].title())
-        api = app_class(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
-        if "namespace" in plugin:
-            api.set_namespace(plugin["namespace"])
-        else:
-            api.set_namespace("default")
-        return api
+        if name in self.AD.plugins:
+            plugin = self.AD.plugins[name]
+            module_name = "{}api".format(plugin["type"])
+            mod = __import__(module_name, globals(), locals(), [module_name], 0)
+            app_class = getattr(mod, plugin["type"].title())
+            api = app_class(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
+            if "namespace" in plugin:
+                api.set_namespace(plugin["namespace"])
+            else:
+                api.set_namespace("default")
+            return api
 
+        else:
+            self.AD.log("WARNING", "Unknown Plugin Configuration in get_plugin_api()")
+            return None
     #
     # Dashboard
     #

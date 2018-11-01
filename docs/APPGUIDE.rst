@@ -37,6 +37,14 @@ supplied ``appdaemon`` class or a custom plugin. For instance, hass support can 
 
     class OutsideLights(hass.Hass):
 
+For MQTT you would use the mqttapi module:
+
+.. code:: python
+
+    import mqttapi as mqtt
+
+    class OutsideLights(mqtt.Mqtt):
+
 When configured as an app in the config file (more on that later) the
 lifecycle of the App begins. It will be instantiated as an object by
 AppDaemon, and immediately, it will have a call made to its
