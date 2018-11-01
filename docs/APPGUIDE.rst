@@ -1889,8 +1889,37 @@ For example:
 
 In this way it is possible to use a single app to work with multiple namespaces easily and quickly.
 
+A Note on Callbacks
+~~~~~~~~~~~~~~~~~~~
+
+One important thing to note, when working with namespaces is that callbacks will honor the namespace they were created with. So if for instance you create a ``listen_state()`` callback with a namespace of ``default`` then later change the namespace to ``hass1``, that callback will continue to listen to the ``default`` namespace.
+
+For instance:
+
+.. code:: python
+
+    self.set_namespace("default")
+    self.listen_state(callback)
+    self.set_namespace("hass2")
+    self.listen_state(callback)
+    self.set_namespace("dummy1")
+
+This will leave us with 2 callbacks, one listening for state changes in ``default`` and one for state changes in ``hass2``, regardless of the final value of the namespace.
+
+Similarly:
+
+.. code:: python
+
+    self.set_namespace("dummy2")
+    self.listen_state(callback, namespace="default")
+    self.listen_state(callback, namespace="hass2")
+    self.set_namespace("dummy1")
+
+This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
+
+
 Using Multiple APIs From One App
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 
 The way apps are constructed, they inherit from a superclass that contains all the methods needed to access a particular plugin. This is convenient as it hides a lot of the complexity by automatically selecting the righ configuration information based on namespaces. One drawback of this approach is that an App cannot inherently speak to multiple plugin types as the API required is different and the App can only choose one api to inherit from.
 
@@ -1927,36 +1956,6 @@ This stle of method invocation can also be used as an alternative to the ``self`
 
         hass = self.get_plugin_api("HASS")
         hass.turn_on("light.office")
-
-
-A Note on Callbacks
-~~~~~~~~~~~~~~~~~~~
-
-One important thing to note, when working with namespaces is that callbacks will honor the namespace they were created with. So if for instance you create a ``listen_state()`` callback with a namespace of ``default`` then later change the namespace to ``hass1``, that callback will continue to listen to the ``default`` namespace.
-
-For instance:
-
-.. code:: python
-
-    self.set_namespace("default")
-    self.listen_state(callback)
-    self.set_namespace("hass2")
-    self.listen_state(callback)
-    self.set_namespace("dummy1")
-
-This will leave us with 2 callbacks, one listening for state changes in ``default`` and one for state changes in ``hass2``, regardless of the final value of the namespace.
-
-Similarly:
-
-.. code:: python
-
-    self.set_namespace("dummy2")
-    self.listen_state(callback, namespace="default")
-    self.listen_state(callback, namespace="hass2")
-    self.set_namespace("dummy1")
-
-This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
-
 
 Custom Constraints
 ------------------
