@@ -451,6 +451,10 @@ class AppDaemon:
         mod = __import__(module_name, globals(), locals(), [module_name], 0)
         app_class = getattr(mod, plugin["type"].title())
         api = app_class(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
+        if "namespace" in plugin:
+            api.set_namespace(plugin["namespace"])
+        else:
+            api.set_namespace("default")
         return api
 
     #
