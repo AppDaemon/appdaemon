@@ -864,7 +864,19 @@ class Dashboard:
             ha.log(self.logger, "WARNING", '-' * 60)
             ha.log(self.logger, "WARNING", traceback.format_exc())
             ha.log(self.logger, "WARNING", '-' * 60)
-            return {"errors": ["An unrecoverable error occured fetching dashboard"]}
+            return self.html_error()
+
+    def html_error(self):
+        params = {"errors": ["An unrecoverable error occured fetching dashboard"]}
+        env = Environment(
+            loader=FileSystemLoader(self.template_dir),
+            autoescape=select_autoescape(['html', 'xml'])
+        )
+
+        template = env.get_template("dashboard.jinja2")
+        rendered_template = template.render(params)
+
+        return (rendered_template)
 
     def get_dashboard_list(self, paramOverwrite=None):
 
