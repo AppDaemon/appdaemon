@@ -151,7 +151,7 @@ class AppDaemon:
         self._process_arg("plugins", kwargs)
 
         self.tick = 1
-        self._process_arg("tick", kwargs, int=True)
+        self._process_arg("tick", kwargs, float=True)
 
         self.max_clock_skew = 1
         self._process_arg("max_clock_skew", kwargs, int=True)
@@ -164,7 +164,10 @@ class AppDaemon:
             self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
 
         self.interval = 1
-        self._process_arg("interval", kwargs, int=True)
+        if kwargs["interval"] is None:
+            self.interval = self.tick
+        else:
+            self._process_arg("interval", kwargs, float=True)
 
         self.loglevel = "INFO"
         self._process_arg("loglevel", kwargs)
@@ -201,8 +204,10 @@ class AppDaemon:
         self.stop_function = None
         self._process_arg("stop_function", kwargs)
 
-        if self.tick != 1 or self.interval != 1 or self.starttime is not None:
+        if self.tick != self.interval or self.starttime is not None:
             self.realtime = False
+
+        print(self.tick, self.interval, self.realtime)
 
         if not kwargs.get("cert_verify", True):
             self.certpath = False
@@ -1164,6 +1169,12 @@ class AppDaemon:
                     )
             self.diag("INFO", "--------------------------------------------------")
 
+    def myround(self, x, base=1, prec=10):
+        if base == 0:
+            return x
+        else:
+            return round(base * round(float(x) / base), prec)
+
     async def do_every(self, period, f):
         #
         # We already set self.now for DST calculation and initial sunset,
@@ -1174,17 +1185,18 @@ class AppDaemon:
         else:
             self.now = datetime.datetime.now().timestamp()
 
-        t = math.floor(self.now)
+        t = self.myround(self.now, base=period)
         count = 0
-        t_ = math.floor(time.time())
+        t_ = self.myround(time.time(), base=period)
+        #print(t, t_, period)
         while not self.stopping:
             count += 1
             delay = max(t_ + count * period - time.time(), 0)
             await asyncio.sleep(delay)
-            t += self.interval
+            t = self.myround(t + self.interval, base=period)
             r = await f(t)
             if r is not None and r != t:
-                # print("r: {}, t: {}".format(r,t))
+                print("r: {}, t: {}".format(r,t))
                 t = r
                 t_ = r
                 count = 0
@@ -1199,6 +1211,8 @@ class AppDaemon:
         try:
             start_time = datetime.datetime.now().timestamp()
             self.now = utc
+
+            #print("tick - {}".format(utc))
 
             # If we have reached endtime bail out
 
@@ -1406,10 +1420,6 @@ class AppDaemon:
 
             # Create timer loop
 
-            self.log("DEBUG", "Starting timer loop")
-
-            self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
-
             if self.apps:
                 self.log("DEBUG", "Reading Apps")
 
@@ -1420,6 +1430,10 @@ class AppDaemon:
                 # Fire APPD Started Event
                 #
                 self.process_event("global", {"event_type": "appd_started", "data": {}})
+
+            self.log("DEBUG", "Starting timer loop")
+
+            self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
 
             while not self.stopping:
 

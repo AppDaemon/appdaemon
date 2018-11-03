@@ -8,12 +8,14 @@ Change Log
 
 - Apps can now use a simplified version of the import statement e.g. ``import hassapi as hass`` or ``import mqttapi as mqtt``. The existing import method will continue to work.
 - Apps can now use multiple plugin APIs with the ``get_api()`` function
+- Scheduler can now run at muvh higher speeds if your hardware can take it
 
 **Fixes**
 
 **Breaking Changes**
 
 - appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
+- Time travel semantics have changed to support faster scheduling.
 
 3.0.2 10/31/2018
 ----------------

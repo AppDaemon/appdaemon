@@ -1313,6 +1313,13 @@ directed to the ``error.log`` file to enable you to see the error and
 correct it. When an error occurs, there will also be a warning message
 in ``appdaemon.log`` to tell you to check the error log.
 
+Scheduler Speed
+---------------
+
+By default, AppDaemon fires its scheduler one a second. For most applications this is more than often enough - it means that worst case, a scheduled activity will happen within a second of the scheduled time. For some applications however, this may not be fast enough. AppDaemon is capable of running it's scheduler at any speed by use of the ``-t`` (tick) flag. If you set it to a value of ``0.1`` for instance, the scheduler will fire every 10th of a second. This means that you can set sub-second callbacks using ``run_every())`` which may be useful for some applications. Bear in mind that a ``run_every()`` callback can never fire more often that the tick value specifies, so if you specify ``run_every()`` with a 0.1 second delay, but the tick value is set to 1, that callback will only fire every second. If the tick value is set to 0.1, that same callback will fire every 0.1 seconds.
+
+Extremely low values for the tick will place a huge strain on the hardware and as you get to the lower values you may start to see clock skew errors, or excessive time spent in the utility loop. This is unavoidable and is a function of the power of your hardware. In testing on low powere PC style hardware, a tick value of 100th of a second worked well, but 1000th of a second started to give problems. On a Raspberry pi the problems will likely start at higher values of tick.
+
 Time Travel
 -----------
 
@@ -1348,31 +1355,30 @@ Speeding things up
 
 Some Apps need to run for periods of a day or two for you to test all
 aspects. This can be time consuming, but Time Travel can also help here
-in two ways. The first is by speeding up time. To do this, simply use
-the ``-t`` option on the command line. This specifies the amount of time
-a second lasts while time travelling. The default of course is 1 second,
-but if you change it to ``0.1`` for instance, AppDaemon will work 10x
-faster. If you set it to ``0``, AppDaemon will work as fast as possible
+ by speeding up time. To do this, simply use the ``-t`` option on the command line. This specifies how often the scheduler fires, and defaults to 1 second, but if you change it to ``0.1`` for instance, AppDaemon will run its scheduler 10x faster. If you set it to ``0``, AppDaemon will work as fast as possible
 and, depending in your hardware, may be able to get through an entire
-day in a matter of minutes. Bear in mind however, due to the threaded
+day in a matter of minutes. In order to tell appdaemon to actually speed up time, we also need to tell it that every scheduler tick is longer than it is and we do this by setting the interval flag (-i). If the flag is set to 1 for instance, each tick of the scheduler will jump the time forward by 1 seconds. If this is coupled with ``-t 0.1``, AD will be running 10x faster than usual. If you use large values for ``-i`` you can jump through large amounts of time very quickly but bear in mind accuracy of events will suffer. Also bear in mind that due to the threaded
 nature of AppDaemon, when you are running with ``-t 0`` you may see
 actual events firing a little later than expected as the rest of the
-system tries to keep up with the timer. To set the tick time, start
-AppDaemon as follows:
+system tries to keep up with the timer. A few examples:
+
+Set appdaemon to run 10x faster than normal:
 
 .. code:: bash
 
-    $ appdaemon -t 0.1
+    $ appdaemon -t 0.1 -i 1
 
-AppDaemon also has an interval flag - think of this as a second
-multiplier. If the flag is set to 3600 for instance, each tick of the
-scheduler will jump the time forward by an hour. This is good for
-covering vast amounts of time quickly but event firing accuracy will
-suffer as a result. For example:
+Set appdaemon to run as fast as possible, with each tick being equal to 1 second
 
 .. code:: bash
 
-    $ appdaemon -i 3600
+    $ appdaemon -t 0 -i 1
+
+Set appdaemon to run as fast as possible, with each tick being equal to 1 hour
+
+.. code:: bash
+
+    $ appdaemon -t 0 -i 3600
 
 Automatically stopping
 ~~~~~~~~~~~~~~~~~~~~~~
