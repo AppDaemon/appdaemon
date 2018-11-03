@@ -400,7 +400,7 @@ This means that the file ``globals.py`` anywhere with in the apps directory hier
       - global2
       - global3
 
-Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding a ``global_dependencies`` field to the app descrption, e.g.:
+Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding a ``global_dependencies`` field to the app description, e.g.:
 
 .. code:: yaml
 
@@ -410,6 +410,8 @@ Once we have marked the global modules, the next step is to configure any apps t
       global_dependencies: global
 
 Or for multiple dependencies:
+
+.. code:: yaml
 
     app1:
       class: App
@@ -1929,43 +1931,47 @@ This code fragment will achieve the same result as above since the namespace is 
 Using Multiple APIs From One App
 --------------------------------
 
-The way apps are constructed, they inherit from a superclass that contains all the methods needed to access a particular plugin. This is convenient as it hides a lot of the complexity by automatically selecting the righ configuration information based on namespaces. One drawback of this approach is that an App cannot inherently speak to multiple plugin types as the API required is different and the App can only choose one api to inherit from.
+The way apps are constructed, they inherit from a superclass that contains all the methods needed to access a particular plugin. This is convenient as it hides a lot of the complexity by automatically selecting the right configuration information based on namespaces. One drawback of this approach is that an App cannot inherently speak to multiple plugin types as the API required is different and the App can only choose one api to inherit from.
 
-To get around this, a function called ``get_plugin_api()`` is provided to instantiate a second (or third) API object, as a distinct object, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly. For example, this App is built using the hassapi but is also using an mqtt api call.
+To get around this, a function called ``get_plugin_api()`` is provided to instantiate API objects to handle multiple plugins, as a distinct objects, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly.
 
-.. code:: python
+In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. Without access to an API object supplied by ``get_plugin_api()``, the App will have access to scheduler calls and a few other common calls as documented in the AppDaemon API reference.
 
-    import hassapi as hass
-
-    class GetAPI(hass.Hass):
-
-      def initialize(self):
-
-        # Hass API Call
-        self.turn_on("light.office")
-
-        # Grab an object for the MQTT API
-        self.mqtt = self.get_plugin_api("MQTT")
-
-        # Make MQTT API Call
-        self.mqtt.mqtt_publish("topic", payload = "Payload"):
-
-Note that use of ``get_plugin_api()`` is not necessary to access multiple instances of the same API type - that can be achieved using namespaces only.
-
-This style of method invocation can also be used as an alternative to the ``self`` style:
+As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to access both HASS and MQTT.
 
 .. code:: python
 
-    import hassapi as hass
+    import adbase as ad
 
-    class GetAPI(hass.Hass):
+    class GetAPI(ad.ADBase):
 
       def initialize(self):
 
+        # Grab an object for the HASS API
         hass = self.get_plugin_api("HASS")
+        # Hass API Call
         hass.turn_on("light.office")
 
-The objects returned will have their namespace set to the appropriate value for the plugin instance. This can be changed by invoking the ``set_namespace() function on the object, or by specifying a namespace in the method call. These objects will not inherit the namespace of the App itself.
+        # Grab an object for the MQTT API
+        mqtt = self.get_plugin_api("MQTT")
+        # Make MQTT API Call
+        mqtt.mqtt_publish("topic", payload = "Payload"):
+
+        # Make a scheduler call using the ADBase class
+        handle = self.run_in(callback, 20)
+
+By default, each plugin api object has it's namespace correctly set for that plugin, which makes it much more convenient to handle calls and callbacks form that plugin. This way of working can often be more convenient and clearer than changing namespaces within apps or on the individual calls, so is the recommended way to handle multiple plugins of the same or even different types:
+
+.. code:: python
+
+    # Listen for state changes specific to the "HASS" plugin
+    hass.listen_state(hass_callback, "light.office")
+    # Listen for state changes specific to the "MQTT" plugin
+    mqtt.listen_state(mqtt_callback, "light.office")
+    # Listen for global state changes
+    self.listen_state(global_callback, namespace="global")
+
+API objects are fairly lightweight and can be created and discarded at will. There may be a slight performance increase by creating an object for each API in the initialize function and using it throughout the app, but this is likely to be minimal.
 
 Custom Constraints
 ------------------

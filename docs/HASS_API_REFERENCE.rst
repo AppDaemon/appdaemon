@@ -3,6 +3,19 @@ HASS API Reference
 
 A list of API calls and information specific to the HASS plugin.
 
+App Creation
+------------
+
+To create apps based on just the AppDaemon base API, use some code like the following:
+
+.. code:: python
+
+    import hassapi as hass
+
+    class MyApp(hass.Hass):
+
+        def initialize(self):
+
 Services
 --------
 

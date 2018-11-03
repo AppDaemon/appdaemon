@@ -3,6 +3,20 @@ AppDaemon API Reference
 
 A number of api calls are native to AppDaemon and will exist in any App as they are inherited through the plugin API. These calls are documented below.
 
+App Creation
+------------
+
+To create apps based on just the AppDaemon base API, use some code like the following:
+
+.. code:: python
+
+    import adbase as ad
+
+    class MyApp(ad.ADBase):
+
+      def initialize(self):
+
+
 State Operations
 ----------------
 

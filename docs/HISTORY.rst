@@ -13,6 +13,7 @@ Change Log
 
 **Breaking Changes**
 
+- appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
 
 3.0.2 10/31/2018
 ----------------

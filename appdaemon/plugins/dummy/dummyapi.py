@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.adbase as appapi
 import appdaemon.utils as utils
 
 
@@ -9,7 +9,7 @@ class Entities:
         return state
 
 
-class Dummy(appapi.AppDaemon):
+class Dummy(appapi.ADBase):
 
     entities = Entities()
 

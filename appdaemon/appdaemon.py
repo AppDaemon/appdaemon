@@ -266,11 +266,15 @@ class AppDaemon:
 
         # Load Plugins
 
+        # Add Path for adbase
+
+        sys.path.insert(0, os.path.dirname(__file__))
+
         # Add built in plugins to path
 
         moddir = "{}/plugins".format(os.path.dirname(__file__))
 
-        plugins = plugins = [f.path for f in os.scandir(moddir) if f.is_dir(follow_symlinks=True)]
+        plugins = [f.path for f in os.scandir(moddir) if f.is_dir(follow_symlinks=True)]
 
         for plugin in plugins:
             sys.path.insert(0, plugin)

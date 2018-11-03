@@ -1,4 +1,4 @@
-import appdaemon.appapi as appapi
+import appdaemon.adbase as appapi
 import appdaemon.utils as utils
 import asyncio
 import inspect
@@ -12,7 +12,7 @@ class Entities:
         return state
 
 
-class Mqtt(appapi.AppDaemon):
+class Mqtt(appapi.ADBase):
 
     entities = Entities()
 

@@ -12,7 +12,7 @@ class Entities:
         return stateattrs
 
 
-class AppDaemon:
+class ADBase:
     #
     # Internal
     #

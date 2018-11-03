@@ -1,7 +1,7 @@
 import requests
 import inspect
 
-import appdaemon.appapi as appapi
+import appdaemon.adbase as appapi
 import appdaemon.utils as utils
 
 
@@ -24,7 +24,7 @@ def hass_check(func):
     return (func_wrapper)
 
 
-class Hass(appapi.AppDaemon):
+class Hass(appapi.ADBase):
     #
     # Internal
     #

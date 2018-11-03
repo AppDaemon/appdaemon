@@ -3,6 +3,19 @@ MQTT API Reference
 
 A list of API calls and information specific to the MQTT plugin.
 
+App Creation
+------------
+
+To create apps based on just the MQTT API, use some code like the following:
+
+.. code:: python
+
+    import mqttapi as mqtt
+
+    class MyApp(mqtt.Mqtt:
+
+        def initialize(self):
+
 Service Calls
 ----------------
 
