@@ -646,13 +646,106 @@ than the frequency of events causing them. However, it should be noted
 for completeness, that it is certainly possible for different pieces of
 code within the App to be executed concurrently, so some care may be
 necessary if different callback for instance inspect and change shared
-variables. This is a fairly standard caveat with concurrent programming,
-and if you know enough to want to do this, then you should know enough
-to put appropriate safeguards in place. For the average user however
-this shouldn't be an issue. If there are sufficient use cases to warrant
-it, I will consider adding locking to the function invocations to make
-the entire infrastructure threadsafe, but I am not convinced that it is
-necessary.
+variables. This is a fairly standard caveat with concurrent programming, for the average user however
+this shouldn't be an issue, however for certain applications more care needs to be taken, so AppDaemon supplies a simple locking mechanism to help avoid this. The real issue here is that callbacks in an app can be called at the same time, and even have multiple threads running through them at the same time. To add locking and avoid this, AppDaemon supplies a decorator called ``ad.single_thread``. If you use this with any callbacks that manipulate instance variables you will ensure that there will only be one thread accessing the variables at one time.
+
+Consider the following App which schedules 1000 callbacks all to run at the exact same time, and manipulate the value of ``self.important_var``:
+
+.. code:: python
+
+    import adbase as ad
+    import datetime
+
+    class Locking(ad.ADBase):
+
+        def initialize(self):
+            hass = self.get_plugin_api("HASS")
+            self.important_var = 0
+
+            now = datetime.datetime.now()
+            target = now + datetime.timedelta(seconds=2)
+            for i in range (1000):
+                self.run_at(self.hass_cb, target)
+
+        def hass_cb(self, kwargs):
+            self.important_var += 1
+            self.log(self.important_var)
+
+As it is, it will result in enexpected results because ``self.important_var`` can be manipulated by multiple threads at once - for instance a thread could get the value, add one to it and be just about to write it when another thread jumps in with a different value, which is immediately overwritten. Indeed, when this is run, the output shows just that:
+
+.. code::
+
+    2018-11-04 16:07:01.615683 INFO lock: 981
+    2018-11-04 16:07:01.616150 INFO lock: 982
+    2018-11-04 16:07:01.616640 INFO lock: 983
+    2018-11-04 16:07:01.617781 INFO lock: 986
+    2018-11-04 16:07:01.584471 INFO lock: 914
+    2018-11-04 16:07:01.621809 INFO lock: 995
+    2018-11-04 16:07:01.614406 INFO lock: 978
+    2018-11-04 16:07:01.622616 INFO lock: 997
+    2018-11-04 16:07:01.619447 INFO lock: 990
+    2018-11-04 16:07:01.586680 INFO lock: 919
+    2018-11-04 16:07:01.619926 INFO lock: 991
+    2018-11-04 16:07:01.620401 INFO lock: 992
+    2018-11-04 16:07:01.620897 INFO lock: 993
+    2018-11-04 16:07:01.622156 INFO lock: 996
+    2018-11-04 16:07:01.603427 INFO lock: 954
+    2018-11-04 16:07:01.621381 INFO lock: 994
+    2018-11-04 16:07:01.618622 INFO lock: 988
+    2018-11-04 16:07:01.623005 INFO lock: 998
+    2018-11-04 16:07:01.623968 INFO lock: 1000
+    2018-11-04 16:07:01.623519 INFO lock: 999
+
+However, if we add the decorator to the callback function like so:
+
+.. code:: python
+
+    import adbase as ad
+    import datetime
+
+    class Locking(ad.ADBase):
+
+        def initialize(self):
+            hass = self.get_plugin_api("HASS")
+            self.important_var = 0
+
+            now = datetime.datetime.now()
+            target = now + datetime.timedelta(seconds=2)
+            for i in range (1000):
+                self.run_at(self.hass_cb, target)
+
+        @ad.single_thread
+        def hass_cb(self, kwargs):
+            self.important_var += 1
+            self.log(self.important_var)
+
+The result is what we would hope for since self.important_var is only being accessed by one thread at a time:
+
+.. code::
+
+    2018-11-04 16:08:54.545795 INFO lock: 981
+    2018-11-04 16:08:54.546202 INFO lock: 982
+    2018-11-04 16:08:54.546567 INFO lock: 983
+    2018-11-04 16:08:54.546976 INFO lock: 984
+    2018-11-04 16:08:54.547563 INFO lock: 985
+    2018-11-04 16:08:54.547938 INFO lock: 986
+    2018-11-04 16:08:54.548407 INFO lock: 987
+    2018-11-04 16:08:54.548815 INFO lock: 988
+    2018-11-04 16:08:54.549306 INFO lock: 989
+    2018-11-04 16:08:54.549671 INFO lock: 990
+    2018-11-04 16:08:54.550133 INFO lock: 991
+    2018-11-04 16:08:54.550476 INFO lock: 992
+    2018-11-04 16:08:54.550811 INFO lock: 993
+    2018-11-04 16:08:54.551170 INFO lock: 994
+    2018-11-04 16:08:54.551684 INFO lock: 995
+    2018-11-04 16:08:54.552022 INFO lock: 996
+    2018-11-04 16:08:54.552651 INFO lock: 997
+    2018-11-04 16:08:54.553033 INFO lock: 998
+    2018-11-04 16:08:54.553474 INFO lock: 999
+    2018-11-04 16:08:54.553890 INFO lock: 1000
+
+Thread Hygiene
+--------------
 
 An additional caveat of a threaded worker pool environment is that it is
 the expectation that none of the callbacks tie threads up for a

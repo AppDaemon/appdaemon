@@ -2,6 +2,7 @@ import datetime
 import inspect
 import iso8601
 import re
+from threading import Lock
 
 import appdaemon.utils as utils
 
@@ -11,6 +12,23 @@ class Entities:
         stateattrs = utils.StateAttrs(instance.get_state())
         return stateattrs
 
+#
+# Locking decorator
+#
+
+
+def single_thread(myFunc):
+    """ Synchronization decorator. """
+
+    def wrap(*args, **kw):
+        self = args[0]
+
+        self.lock.acquire()
+        try:
+            return myFunc(*args, **kw)
+        finally:
+            self.lock.release()
+    return wrap
 
 class ADBase:
     #
@@ -29,6 +47,7 @@ class ADBase:
         self.args = args
         self.global_vars = global_vars
         self.constraints = []
+        self.lock = Lock()
 
     @staticmethod
     def _sub_stack(msg):
