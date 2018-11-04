@@ -245,7 +245,7 @@ class HassPlugin:
                 self.reading_messages = False
                 first_time = False
                 if not already_notified:
-                    self.AD.notify_plugin_stopped(self.name)
+                    self.AD.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True
                 if not self.stopping:
                     self.log(

@@ -1343,7 +1343,7 @@ class AppDaemon:
                 else:
                     self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
-                self.process_event("global", {"event_type": "plugin_started", "data": {"name": name}})
+                self.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.err("WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error during notify_plugin_started()")
@@ -1358,9 +1358,9 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errfile)
                 )
 
-    def notify_plugin_stopped(self, name):
+    def notify_plugin_stopped(self, name, namespace):
 
-        self.process_event("global", {"event_type": "plugin_stopped", "data": {"name": name}})
+        self.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
 
     #

@@ -18,6 +18,7 @@ Change Log
 
 - appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
 - Time travel semantics have changed to support faster scheduling.
+- ``plugin_started`` and ``plugin_stopped`` now go to the appropriate namespace for the plugin and are no longer global
 
 3.0.2 10/31/2018
 ----------------
