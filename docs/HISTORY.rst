@@ -11,6 +11,7 @@ Change Log
 - Added ``ADBase`` superclass for apps that want to use the ``get_plugin_api()`` style of coding
 - Scheduler can now run at much higher speeds if your hardware can take it
 - ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
+- Bumped aiohttp to v3.4.4
 
 **Fixes**
 

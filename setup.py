@@ -13,7 +13,7 @@ REQUIRES = [
     'requests>=2.6.0',
     'sseclient',
     'websocket-client',
-    'aiohttp==2.3.10',
+    'aiohttp==3.4.4',
     'yarl==1.1.0',
     'Jinja2==2.10',
     'aiohttp_jinja2==0.15.0',
