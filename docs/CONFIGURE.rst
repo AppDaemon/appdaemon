@@ -313,6 +313,7 @@ All auto-generated data can be picked up within apps, using the ``self.get_plugi
 An example of the MQTT plugin could look like the following:
 
 .. code:: yaml
+
      MQTT:
         type: mqtt
         namespace: mqtt

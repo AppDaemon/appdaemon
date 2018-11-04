@@ -272,13 +272,13 @@ class MqttPlugin:
                     first_time_service = False
 
                 if self.initialized : #meaning the plugin started as expected
-                    await self.AD.notify_plugin_started(self.namespace, first_time)
+                    await self.AD.notify_plugin_started(self.name, self.namespace, first_time)
                     already_notified = False
                     already_initialized = True
                     self.AD.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
                 else:
                     if not already_notified and already_initialized:
-                        self.AD.notify_plugin_stopped(self.namespace)
+                        self.AD.notify_plugin_stopped(self.name)
                         self.AD.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
                         already_notified = True
                         already_initialized = False

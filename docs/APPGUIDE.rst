@@ -1422,7 +1422,7 @@ which may be useful for some applications. The functions:
 Return the internal data structures, but do not allow them to be
 modified directly. Their format may change.
 
-About PLugin Disconnections
+About Plugin Disconnections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When a plugin is unable to connect initially with the underlying system, e.g. Home Assistant, it
@@ -1431,15 +1431,15 @@ will happen and no initialization routines will be called. If AppDaemon
 has been running connected to Home Assistant for a while and the
 connection is unexpectedly lost, the following will occur:
 
--  When HASS first goes down or becomes disconnected, an event called
+-  When the plugin first goes down or becomes disconnected, an event called
    ``plugin_disconnected`` will fire
--  While disconnected from HASS, Apps will continue to run
+-  While disconnected from the plugin, Apps will continue to run
 -  Schedules will continue to be honored
 -  Any operation reading locally cached state will succeed
--  Any operation requiring a call to HASS will log a warning and return
+-  Any operation requiring a call to the plugin will log a warning and return
    without attempting to contact hass
 
-When a connection to HASS is reestablished, all Apps will be restarted
+When a connection to the plugin is reestablished, all Apps will be restarted
 and their ``initialize()`` routines will be called.
 
 RESTFul API Support

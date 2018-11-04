@@ -132,7 +132,6 @@ class HassPlugin:
         first_time = True
         while not self.stopping:
             _id += 1
-            disconnected_event = False
             try:
                 #
                 # Connect to websocket interface
@@ -216,7 +215,7 @@ class HassPlugin:
                 # Fire HA_STARTED Events
                 #
                 self.reading_messages = True
-                await self.AD.notify_plugin_started(self.namespace, first_time)
+                await self.AD.notify_plugin_started(self.name, self.namespace, first_time)
 
                 already_notified = False
 
@@ -246,12 +245,9 @@ class HassPlugin:
                 self.reading_messages = False
                 first_time = False
                 if not already_notified:
-                    self.AD.notify_plugin_stopped(self.namespace)
+                    self.AD.notify_plugin_stopped(self.name)
                     already_notified = True
                 if not self.stopping:
-                    if disconnected_event == False:
-                        await self.AD.state_update(self.namespace, {"event_type": "ha_disconnected", "data": {}})
-                        disconnected_event = True
                     self.log(
                         "WARNING",
                         "Disconnected from Home Assistant, retrying in 5 seconds"

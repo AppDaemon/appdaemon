@@ -1322,7 +1322,7 @@ class AppDaemon:
         else:
             return None
 
-    async def notify_plugin_started(self, namespace, first_time=False):
+    async def notify_plugin_started(self, name, namespace, first_time=False):
 
         try:
             self.last_plugin_state[namespace] = datetime.datetime.now()
@@ -1336,14 +1336,14 @@ class AppDaemon:
                 state = await self.plugin_objs[namespace].get_complete_state()
 
                 with self.state_lock:
-                    self.state[namespace] = state
+                    self.state[namespace]= state
 
                 if not first_time:
                     await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, self.get_plugin_from_namespace(namespace))
                 else:
                     self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
-                self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
+                self.process_event("global", {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.err("WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error during notify_plugin_started()")
@@ -1358,9 +1358,9 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errfile)
                 )
 
-    def notify_plugin_stopped(self, namespace):
+    def notify_plugin_stopped(self, name):
 
-        self.process_event("global", {"event_type": "plugin_stopped".format(namespace), "data": {"name": namespace}})
+        self.process_event("global", {"event_type": "plugin_stopped", "data": {"name": name}})
 
 
     #
