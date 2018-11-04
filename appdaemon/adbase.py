@@ -56,7 +56,6 @@ class ADBase:
         self.AD.err(level, msg, self.name)
 
     def listen_log(self, cb, level="INFO"):
-        print(level)
         return self.AD.add_log_callback(self.name, cb, level)
 
     def cancel_listen_log(self):

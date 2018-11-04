@@ -207,7 +207,7 @@ class AppDaemon:
         if self.tick != self.interval or self.starttime is not None:
             self.realtime = False
 
-        print(self.tick, self.interval, self.realtime)
+        #print(self.tick, self.interval, self.realtime)
 
         if not kwargs.get("cert_verify", True):
             self.certpath = False
@@ -1196,7 +1196,7 @@ class AppDaemon:
             t = self.myround(t + self.interval, base=period)
             r = await f(t)
             if r is not None and r != t:
-                print("r: {}, t: {}".format(r,t))
+                #print("r: {}, t: {}".format(r,t))
                 t = r
                 t_ = r
                 count = 0
@@ -1418,8 +1418,6 @@ class AppDaemon:
 
             self.update_sun()
 
-            # Create timer loop
-
             if self.apps:
                 self.log("DEBUG", "Reading Apps")
 
@@ -1430,6 +1428,8 @@ class AppDaemon:
                 # Fire APPD Started Event
                 #
                 self.process_event("global", {"event_type": "appd_started", "data": {}})
+
+            # Create timer loop
 
             self.log("DEBUG", "Starting timer loop")
 
@@ -2345,7 +2345,7 @@ class AppDaemon:
                         # Remove the callback if appropriate
                         remove = callback["kwargs"].get("oneshot", False)
                         if remove:
-                            print(callback["kwargs"])
+                            #print(callback["kwargs"])
                             #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
                             removes.append({"name": callback["name"], "uuid": uuid_})
 
