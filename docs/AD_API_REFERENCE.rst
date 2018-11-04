@@ -1536,7 +1536,7 @@ Example
 get\_plugin_api()
 ~~~~~~~~~~~~~~~~
 
-``get_api()`` will return an object suitable for running specific API calls on for a particular plugin. This method is used to enable an app to work with multiple plugins. The object will support all methods that an app derived from the plugin's class would, via the self notation, but will contain methods and configuration data for the target plugin rather than the plugin the App itself was derived from.
+``get_plugin_api()`` will return an object suitable for running specific API calls on for a particular plugin. This method is used to enable an app to work with multiple plugins. The object will support all methods that an app derived from the plugin's class would, via the self notation, but will contain methods and configuration data for the target plugin rather than the plugin the App itself was derived from.
 
 Synopsis
 ^^^^^^^^

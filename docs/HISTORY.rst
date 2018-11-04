@@ -7,8 +7,9 @@ Change Log
 **Features**
 
 - Apps can now use a simplified version of the import statement e.g. ``import hassapi as hass`` or ``import mqttapi as mqtt``. The existing import method will continue to work.
-- Apps can now use multiple plugin APIs with the ``get_api()`` function
-- Scheduler can now run at muvh higher speeds if your hardware can take it
+- Apps can now use multiple plugin APIs with the ``get_plugin_api()`` function
+- Added ``ADBase`` superclass for apps that want to use the ``get_plugin_api()`` style of coding
+- Scheduler can now run at much higher speeds if your hardware can take it
 
 **Fixes**
 
