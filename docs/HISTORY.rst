@@ -10,6 +10,7 @@ Change Log
 - Apps can now use multiple plugin APIs with the ``get_plugin_api()`` function
 - Added ``ADBase`` superclass for apps that want to use the ``get_plugin_api()`` style of coding
 - Scheduler can now run at much higher speeds if your hardware can take it
+- ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
 
 **Fixes**
 

@@ -1397,7 +1397,7 @@ before sunset, for an hour, as fast as possible:
 
 .. code:: bash
 
-    $ appdaemon -s "2016-06-06 19:16:00" -e "2016-06-06 20:16:00" -t 0
+    $ appdaemon -s "2016-06-06 19:16:00" -e "2016-06-06 20:16:00" -t 0 -i 1
 
 A Note On Times
 ~~~~~~~~~~~~~~~

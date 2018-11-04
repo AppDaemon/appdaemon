@@ -1606,6 +1606,14 @@ Synopsis
 
     devices = split_device_list(list)
 
+Parameters
+^^^^^^^^^^
+
+list
+''''
+
+Comma separated list of devices to be split (no spaces)
+
 Returns
 ^^^^^^^
 
@@ -1728,7 +1736,7 @@ Examples
 
 
 get_error_log()
-~~~~~~~
+~~~~~~~~~~~~~~~
 
 Synopsis
 ^^^^^^^^
@@ -1752,17 +1760,29 @@ Examples
     error_log.log(40, "Log an error")
 
 listen_log()
-~~~~~~~
+~~~~~~~~~~~~
 
-Register the app to receive a callback everytime an app logs a message
+Register the app to receive a callback every time an app logs a message.
 
 Synopsis
 ^^^^^^^^
 
 .. code:: python
 
-    self.listen_log(cb)
+    self.listen_log(callback, level)
 
+Parameters
+^^^^^^^^^^
+
+callback
+''''''''
+
+Function to be called when a message is logged
+
+level
+'''''
+
+Logging level to be used - lower levels will not be forwarded to the app. Defaults to "INFO".
 
 Returns
 ^^^^^^^
@@ -1774,7 +1794,7 @@ Examples
 
 .. code:: python
 
-    self.listen_log(self.cb)
+    self.listen_log(self.cb, "INFO")
 
 cancel_log()
 ~~~~~~~~~~~~
@@ -1814,6 +1834,8 @@ The signature for a callback used with ``listen_log()`` is as follows:
 ``ts`` is the timestamp of the message
 ``level`` is the severity level of the message
 ``message`` is the text of the message
+
+For AppDaemon system messages, name will be set to "AppDaemon".
 
 API
 ---

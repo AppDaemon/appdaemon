@@ -2485,9 +2485,10 @@ class AppDaemon:
     def process_log_callback(self, level, message, name, ts):
         with self.log_callbacks_lock:
             for thisname in self.log_callbacks:
-                if thisname != name and name != "AppDaemon":
+                if thisname != name:
                     try:
-                        self.log_callbacks[thisname](name, ts, level, message)
+                        if utils.log_levels[level] >= utils.log_levels[self.log_callbacks[thisname]["level"]]:
+                            self.log_callbacks[thisname]["callback"](name, ts, level, message)
                     except:
                         self.err("WARNING", '-' * 60)
                         self.err("WARNING", "Unexpected error in log callback for: {}:".format(name))
@@ -2498,9 +2499,9 @@ class AppDaemon:
                             self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
 
-    def add_log_callback(self, name, cb):
+    def add_log_callback(self, name, cb, level):
         with self.log_callbacks_lock:
-            self.log_callbacks[name] = cb
+            self.log_callbacks[name] = {"callback": cb, "level": level}
 
     def cancel_log_callback(self, name):
         with self.log_callbacks_lock:

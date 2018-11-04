@@ -6,6 +6,16 @@ import pwd
 __version__ = "3.0.3"
 secrets = None
 
+log_levels = {
+    "CRITICAL": 50,
+    "ERROR": 40,
+    "WARNING": 30,
+    "INFO": 20,
+    "DEBUG": 10,
+    "NOTSET": 0
+}
+
+
 class Formatter(object):
     def __init__(self):
         self.types = {}
@@ -141,14 +151,6 @@ def single_or_list(field):
         return [field]
 
 def log(logger, level, msg, name="", ts=None):
-    levels = {
-        "CRITICAL": 50,
-        "ERROR": 40,
-        "WARNING": 30,
-        "INFO": 20,
-        "DEBUG": 10,
-        "NOTSET": 0
-    }
     if name != "":
         name = " {}:".format(name)
 
@@ -158,7 +160,7 @@ def log(logger, level, msg, name="", ts=None):
         timestamp = ts
 
     safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
-    logger.log(levels[level], "{} {}{} {}".format(timestamp, level,
+    logger.log(log_levels[level], "{} {}{} {}".format(timestamp, level,
                                                   safe_enc(name), safe_enc(msg)))
 
 def find_owner(filename):
