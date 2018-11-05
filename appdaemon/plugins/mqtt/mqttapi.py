@@ -172,6 +172,10 @@ class Mqtt(appapi.ADBase):
         namespace = self._get_namespace(**kwargs)
 
         if 'topic' in kwargs:
+            if not self.AD.get_plugin(namespace).active(): #ensure mqtt plugin is connected
+                self.log("Attempt to call Mqtt Service while disconnected: {!r}".format(service), level="WARNING")
+                return None
+
             try:
                 result = self.AD.get_plugin(namespace).mqtt_service(service, **kwargs)
                 
