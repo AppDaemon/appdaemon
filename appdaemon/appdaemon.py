@@ -1397,13 +1397,25 @@ class AppDaemon:
             # All plugins are loaded and we have initial state
             #
 
+            tt = None
             if self.starttime:
-                new_now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
-                self.log("INFO", "Starting time travel ...")
-                self.log("INFO", "Setting clocks to {}".format(new_now))
-                self.now = new_now.timestamp()
+                tt = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
+                self.now = tt.timestamp()
             else:
-                self.now = datetime.datetime.now().timestamp()
+                new_now = datetime.datetime.now()
+                self.now = new_now.timestamp()
+                if self.tick != self.interval:
+                    tt = new_now
+
+            if tt != None:
+                self.log("INFO", "Starting time travel ...")
+                self.log("INFO", "Setting clocks to {}".format(tt))
+                if self.tick == 0:
+                    self.log("INFO", "Time displacement factor infinite")
+                else:
+                    self.log("INFO", "Time displacement factor {}".format(self.interval/self.tick))
+            else:
+                self.log("INFO", "Scheduler tick set to {}s".format(self.tick))
 
             self.thread_info["max_used"] = 0
             self.thread_info["max_used_time"] = self.now

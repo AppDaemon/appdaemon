@@ -60,6 +60,8 @@ The ``appdaemon:`` section has a number of directives:
    of apps you have, the threads are re-used and only active for as long
    as required to run a particular callback or initialization, leave
    this set to 10 unless you experience thread starvation
+-  ``tick`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
+-  ``interval`` (optional) - equivalent to the command line flag ``-i`` but will take precedence
 -  ``filters`` (optional) - see below
 -  ``plugins`` (required) - see below
 -  ``latitude`` (optional) - latitude for AppDaemon to use. If not

@@ -244,8 +244,12 @@ class ADMain():
         if args.endtime is not None:
             appdaemon["endtime"] = args.endtime
 
-        appdaemon["tick"] = args.tick
-        appdaemon["interval"] = args.interval
+        if "tick" not in appdaemon:
+            appdaemon["tick"] = args.tick
+
+        if "interval" not in appdaemon:
+            appdaemon["interval"] = args.interval
+
         appdaemon["loglevel"] = args.debug
 
         appdaemon["config_dir"] = os.path.dirname(config_file_yaml)
