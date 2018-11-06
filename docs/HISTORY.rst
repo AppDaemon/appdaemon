@@ -13,6 +13,8 @@ Change Log
 - ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
 - Bumped aiohttp to v3.4.4
 - Added callback locking decorator
+- Re-architected the work Q to allow App pinning and avoid re-entrant and concurrent code
+- Implemented multiple worker Ques to avoid Head of Line blocking
 
 **Fixes**
 
@@ -21,6 +23,7 @@ Change Log
 - appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
 - Time travel semantics have changed to support faster scheduling.
 - ``plugin_started`` and ``plugin_stopped`` now go to the appropriate namespace for the plugin and are no longer global
+- Apps are no longer concurrent or re-entrant by default. This is most likely a good thing.
 
 3.0.2 10/31/2018
 ----------------

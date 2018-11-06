@@ -63,6 +63,22 @@ class ADBase:
         return msg
 
     #
+    # Threading
+    #
+
+    def set_app_pin(self, pin):
+        self.AD.set_app_pin(self.name, pin)
+
+    def get_app_pin(self):
+        return self.AD.get_app_pin(self.name)
+
+    def set_pin_thread(self, thread):
+        self.AD.set_pin_thread(self.name, thread)
+
+    def get_pin_thread(self):
+        return self.AD.get_pin_thread(self.name)
+
+    #
     # Logging
     #
 

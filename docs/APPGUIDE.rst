@@ -1411,7 +1411,9 @@ Scheduler Speed
 
 By default, AppDaemon fires its scheduler once a second. For most applications this is more than often enough - it means that worst case, a scheduled activity will happen within a second of the scheduled time. For some applications however, this may not be fast enough. AppDaemon is capable of running it's scheduler at any speed by use of the ``-t`` (tick) commandline flag. If you set it to a value of ``0.1`` for instance, the scheduler will fire every 10th of a second. This means that you can set sub-second callbacks using ``run_every())`` which may be useful for some applications. Bear in mind that a ``run_every()`` callback can never fire more often that the tick value specifies, so if you specify ``run_every()`` with a 0.1 second delay, but the tick value is set to 1, that callback will only fire every second. If the tick value is set to 0.1, that same callback will fire every 0.1 seconds.
 
-Extremely low values for the tick will place a huge strain on the hardware and as you get to the lower values you may start to see clock skew errors, or excessive time spent in the utility loop. This is unavoidable and is a function of the power of your hardware. In testing on low powered PC style hardware, a tick value of 100th of a second worked well, but 1000th of a second started to give problems. On a Raspberry pi the problems will likely start at higher values of tick.
+Extremely low values for the tick will place a huge strain on the hardware and as you get to the lower values you may start to see clock skew errors, or excessive time spent in the utility loop as CPU becomes the limiting factor. This is unavoidable and is a function of the power of your hardware. In testing on low powered PC style hardware, a tick value of 100th of a second worked well, but 1000th of a second started to give problems. A raspberry PI had a similar response.
+
+The ``tick`` flag in ``appdaemon.yaml`` is an alternative way of changing the tick speed, and will override the ``-t`` command line setting.
 
 Time Travel
 -----------
@@ -1467,6 +1469,8 @@ Set appdaemon to run as fast as possible, with each tick being equal to 1 hour
 .. code:: bash
 
     $ appdaemon -t 0 -i 3600
+
+The ``interval`` flag in ``appdaemon.yaml`` is an alternative way of changing the tick speed, and will override the ``-i`` command line setting.
 
 Automatically stopping
 ~~~~~~~~~~~~~~~~~~~~~~

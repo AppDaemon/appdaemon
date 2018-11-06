@@ -8,7 +8,6 @@ import datetime
 import uuid
 import astral
 import pytz
-import math
 import asyncio
 import yaml
 import concurrent.futures
@@ -22,6 +21,8 @@ import time
 import cProfile
 import io
 import pstats
+from random import randint
+import hashlib
 
 import appdaemon.utils as utils
 
@@ -38,7 +39,6 @@ class AppDaemon:
         self.config = kwargs
         self.booted = datetime.datetime.now()
         self.config["ad_version"] = utils.__version__
-        self.q = Queue(maxsize=0)
         self.check_app_updates_profile = ""
 
         self.was_dst = False
@@ -56,6 +56,7 @@ class AppDaemon:
         self.appd = None
         self.stopping = False
         self.dashboard = None
+        self.next_thread = 0
 
         self.now = datetime.datetime.now().timestamp()
 
@@ -105,11 +106,29 @@ class AppDaemon:
         self.app_config_file = None
         self._process_arg("app_config_file", kwargs)
 
-        self.plugin_params = kwargs["plugins"]
+        if "plugins" in kwargs:
+            self.plugin_params = kwargs["plugins"]
+        else:
+            self.plugin_params = None
 
         # User Supplied/Defaults
         self.threads = 10
         self._process_arg("threads", kwargs, int=True)
+
+        self.pin_threads = self.threads
+        self._process_arg("pin_threads", kwargs, int=True)
+
+        if self.pin_threads > self.threads:
+            raise ValueError("pin_threads cannot be > threads")
+
+        if self.pin_threads < 1:
+            raise ValueError("pin_threads cannot be < 1")
+
+        self.load_distribution = "roundrobbin"
+        self._process_arg("load_distribution", kwargs)
+
+        self.pin_apps = True
+        self._process_arg("pin_apps", kwargs)
 
         self.app_dir = None
         self._process_arg("app_dir", kwargs)
@@ -217,7 +236,8 @@ class AppDaemon:
             self.log("INFO", "Apps are disabled")
         else:
             self.apps = True
-            self.log("INFO", "Starting Apps")
+            self.log("INFO", "Starting Apps with {} workers and {} pins".format(self.threads, self.pin_threads))
+
 
         # Initialize config file tracking
 
@@ -245,15 +265,18 @@ class AppDaemon:
 
             self.appq = asyncio.Queue(maxsize=0)
 
-            self.log("DEBUG", "Creating worker threads ...")
-
             # Create Worker Threads
             for i in range(self.threads):
                 t = threading.Thread(target=self.worker)
                 t.daemon = True
-                t.setName("thread-{}".format(i+1))
+                t.setName("thread-{}".format(i))
                 with self.thread_info_lock:
-                    self.thread_info["threads"][t.getName()] = {"callback": "idle", "time_called": 0, "thread": t}
+                    self.thread_info["threads"][t.getName()] = \
+                        {"callback": "idle",
+                         "time_called": 0,
+                         "q": Queue(maxsize=0),
+                         "id": i,
+                         "thread": t}
                 t.start()
 
             if self.apps is True:
@@ -349,7 +372,7 @@ class AppDaemon:
 
         # Create AppState Loop
 
-        if self.apps:
+        if self.apps is True:
             loop.create_task(self.appstate_loop())
 
     def _process_arg(self, arg, args, **kwargs):
@@ -406,7 +429,7 @@ class AppDaemon:
         self.stopping = True
         # if ws is not None:
         #    ws.close()
-        if self.apps:
+        if self.apps is True:
             self.appq.put_nowait({"namespace": "global", "event_type": "ha_stop", "data": None})
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin].stop()
@@ -438,9 +461,32 @@ class AppDaemon:
         self.diag("INFO", "--------------------------------------------------")
 
     def dump_queue(self):
+        qsize = self.total_q()
         self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", "Current Queue Size is {}".format(self.q.qsize()))
+        self.diag("INFO", "Total Q size: {}".format(qsize))
+        with self.thread_info_lock:
+            for thread in self.thread_info["threads"]:
+                self.diag("INFO", "Queue size for {}: {}".format(thread, self.thread_info["threads"][thread]["q"].qsize()))
         self.diag("INFO", "--------------------------------------------------")
+
+    def total_q(self):
+        qsize = 0
+        with self.thread_info_lock:
+            for thread in self.thread_info["threads"]:
+                qsize += self.thread_info["threads"][thread]["q"].qsize()
+        return qsize
+
+    def min_q_id(self):
+        id = 0
+        i = 0
+        qsize = sys.maxsize
+        with self.thread_info_lock:
+            for thread in self.thread_info["threads"]:
+                if self.thread_info["threads"][thread]["q"].qsize() < qsize:
+                    qsize = self.thread_info["threads"][thread]["q"].qsize()
+                    id = i
+                i += 1
+        return id
 
     @staticmethod
     def atoi(text):
@@ -559,7 +605,84 @@ class AppDaemon:
                     unconstrained = False
 
         if unconstrained:
-            self.q.put_nowait(args)
+            self.select_q(args)
+
+    def select_q(self, args):
+        #
+        # Select Q based on distribution method:
+        #   Round Robin
+        #   Random
+        #   Load distribution
+        #
+
+        # Check for pinned app and if so figure correct thread for app
+
+        if args["pin_app"] is True:
+            thread = args["pin_thread"]
+        elif self.load_distribution == "load":
+            thread = self.min_q_id()
+        elif self.load_distribution == "random":
+            thread = randint(0, self.threads - 1)
+        else:
+            # Round Robin is the catch all
+            thread = self.next_thread
+            self.next_thread += 1
+            if self.next_thread == self.threads:
+                self.next_thread = 0
+
+        with self.thread_info_lock:
+            id = "thread-{}".format(thread)
+            q = self.thread_info["threads"][id]["q"]
+            q.put_nowait(args)
+
+    #
+    # Pinning
+    #
+
+    def calculate_pin_threads(self):
+
+        thread_pins = [0] * self.pin_threads
+        with self.objects_lock:
+            for name in self.objects:
+                # Looking for apps that already have a thread pin value
+                if self.get_app_pin(name) and self.get_pin_thread(name) != -1:
+                    thread_pins[self.get_pin_thread(name)] += 1
+
+            # Now we know the numbers, go fill in the gaps
+
+            for name in self.objects:
+                if self.get_app_pin(name) and self.get_pin_thread(name) == -1:
+                    thread = thread_pins.index(min(thread_pins))
+                    self.set_pin_thread(name, thread)
+                    thread_pins[thread] += 1
+
+    def app_should_be_pinned(self, name):
+        # Check apps.yaml first - allow override
+        app = self.app_config[name]
+        if "pin_app" in app:
+            return app["pin_app"]
+
+        # if not, go with the global default
+        return self.pin_apps
+
+    def get_app_pin(self, name):
+        with self.objects_lock:
+            return self.objects[name]["pin_app"]
+
+    def set_app_pin(self, name, pin):
+        with self.objects_lock:
+            self.objects[name]["pin_app"] = pin
+        if pin is True:
+            # May need to set this app up with a pinned thread
+            self.calculate_pin_threads()
+
+    def get_pin_thread(self, name):
+        with self.objects_lock:
+            return self.objects[name]["pin_thread"]
+
+    def set_pin_thread(self, name, thread):
+        with self.objects_lock:
+            self.objects[name]["pin_thread"] = thread
 
     def update_thread_info(self, thread_id, callback, type = None):
         if self.log_thread_actions:
@@ -567,8 +690,9 @@ class AppDaemon:
                 self.diag("INFO",
                          "{} done".format(thread_id, type, callback))
             else:
-                    self.diag("INFO",
-                             "{} calling {} callback {}".format(thread_id, type, callback))
+                self.diag("INFO",
+                         "{} calling {} callback {}".format(thread_id, type, callback))
+
         with self.thread_info_lock:
             ts = self.now
             self.thread_info["threads"][thread_id]["callback"] = callback
@@ -588,11 +712,14 @@ class AppDaemon:
     def worker(self):
         while True:
             thread_id = threading.current_thread().name
-            args = self.q.get()
+            with self.thread_info_lock:
+                q = self.thread_info["threads"][thread_id]["q"]
+            args = q.get()
             _type = args["type"]
             funcref = args["function"]
             _id = args["id"]
             name = args["name"]
+            args["kwargs"]["__thread_id"] = thread_id
             callback = "{}() in {}".format(funcref.__name__, name)
             app = None
             with self.objects_lock:
@@ -631,7 +758,7 @@ class AppDaemon:
             else:
                 self.log("WARNING", "Found stale callback for {} - discarding".format(name))
 
-            self.q.task_done()
+            q.task_done()
 
     #
     # State
@@ -645,9 +772,21 @@ class AppDaemon:
                 return False
 
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
+        with self.objects_lock:
+            if "pin_app" in kwargs:
+                pin_app = kwargs["pin_app"]
+            else:
+                pin_app = self.objects[name]["pin_app"]
+
+            if "pin_thread" in kwargs:
+                pin_thread = kwargs["pin_thread"]
+            else:
+                pin_thread = self.objects[name]["pin_thread"]
+
         with self.callbacks_lock:
             if name not in self.callbacks:
                 self.callbacks[name] = {}
+
             handle = uuid.uuid4()
             with self.objects_lock:
                 self.callbacks[name][handle] = {
@@ -657,6 +796,8 @@ class AppDaemon:
                     "function": cb,
                     "entity": entity,
                     "namespace": namespace,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
                     "kwargs": kwargs
                 }
 
@@ -780,6 +921,17 @@ class AppDaemon:
     # Events
     #
     def add_event_callback(self, _name, namespace, cb, event, **kwargs):
+        with self.objects_lock:
+            if "pin_app" in kwargs:
+                pin_app = kwargs["pin_app"]
+            else:
+                pin_app = self.objects[_name]["pin_app"]
+
+            if "pin_thread" in kwargs:
+                pin_thread = kwargs["pin_thread"]
+            else:
+                pin_thread = self.objects[_name]["pin_thread"]
+
         with self.callbacks_lock:
             if _name not in self.callbacks:
                 self.callbacks[_name] = {}
@@ -792,6 +944,8 @@ class AppDaemon:
                     "function": cb,
                     "namespace": namespace,
                     "event": event,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
                     "kwargs": kwargs
                 }
         return handle
@@ -841,6 +995,8 @@ class AppDaemon:
                         "entity": args["kwargs"]["entity"],
                         "new_state": args["kwargs"]["new_state"],
                         "old_state": args["kwargs"]["old_state"],
+                        "pin_app": args["pin_app"],
+                        "pin_thread": args["pin_thread"],
                         "kwargs": args["kwargs"],
                     })
                 else:
@@ -849,6 +1005,8 @@ class AppDaemon:
                         "id": self.objects[name]["id"],
                         "type": "timer",
                         "function": args["callback"],
+                        "pin_app": args["pin_app"],
+                        "pin_thread": args["pin_thread"],
                         "kwargs": args["kwargs"],
                     })
             # If it is a repeating entry, rewrite with new timestamp
@@ -1008,6 +1166,17 @@ class AppDaemon:
         return offset
 
     def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
+        with self.objects_lock:
+            if "pin_app" in kwargs:
+                pin_app = kwargs["pin_app"]
+            else:
+                pin_app = self.objects[name]["pin_app"]
+
+            if "pin_thread" in kwargs:
+                pin_thread = kwargs["pin_thread"]
+            else:
+                pin_thread = self.objects[name]["pin_thread"]
+
         with self.schedule_lock:
             if name not in self.schedule:
                 self.schedule[name] = {}
@@ -1028,6 +1197,8 @@ class AppDaemon:
                     "repeat": repeat,
                     "offset": c_offset,
                     "type": type_,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
                     "kwargs": kwargs
                 }
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
@@ -1430,7 +1601,7 @@ class AppDaemon:
 
             self.update_sun()
 
-            if self.apps:
+            if self.apps is True:
                 self.log("DEBUG", "Reading Apps")
 
                 await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
@@ -1453,7 +1624,7 @@ class AppDaemon:
 
                 try:
 
-                    if self.apps:
+                    if self.apps is True:
 
                         if self.production_mode is False:
                             # Check to see if config has changed
@@ -1485,10 +1656,11 @@ class AppDaemon:
 
                     # Check for thread starvation
 
-                    qsize = self.q.qsize()
+                    qsize = self.total_q()
                     if qsize > 0 and qsize % 10 == 0:
-                        self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.q.qsize()))
+                        self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.total_q()))
 
+                        self.dump_queue()
                         self.dump_threads()
 
                     # Run utility for each plugin
@@ -1559,6 +1731,23 @@ class AppDaemon:
             else:
                 return None
 
+    def initialize_app(self, name):
+        with self.objects_lock:
+            init = self.objects[name]["object"].initialize
+
+        # Call its initialize function
+
+        try:
+            init()
+        except:
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error running initialize() for {}".format(name))
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
     def term_object(self, name):
         with self.objects_lock:
             term = None
@@ -1604,29 +1793,21 @@ class AppDaemon:
         if self.get_file_from_module(app_args["module"]) is not None:
 
             with self.objects_lock:
+                if "pin_thread" in app_args:
+                    pin = app_args["pin_thread"]
+                else:
+                    pin = -1
+
                 modname = __import__(app_args["module"])
                 app_class = getattr(modname, app_args["class"])
                 self.objects[name] = {
                     "object": app_class(
                         self, name, self.logger, self.error, app_args, self.config, self.app_config, self.global_vars
                     ),
-                    "id": uuid.uuid4()
+                    "id": uuid.uuid4(),
+                    "pin_app": self.app_should_be_pinned(name),
+                    "pin_thread": pin
                 }
-
-                init = self.objects[name]["object"].initialize
-
-                # Call its initialize function
-
-            try:
-                init()
-            except:
-                self.err("WARNING", '-' * 60)
-                self.err("WARNING", "Unexpected error running initialize() for {}".format(name))
-                self.err("WARNING", '-' * 60)
-                self.err("WARNING", traceback.format_exc())
-                self.err("WARNING", '-' * 60)
-                if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                    self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
         else:
             self.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
@@ -1701,9 +1882,10 @@ class AppDaemon:
                 if file not in app_config_files:
                     later_files["deleted"].append(file)
 
-            for file in app_config_files:
-                if file not in self.app_config_files:
-                    later_files["files"].append(file)
+            if self.app_config_files != {}:
+                for file in app_config_files:
+                    if file not in self.app_config_files:
+                        later_files["files"].append(file)
 
             self.app_config_files = app_config_files
 
@@ -1928,7 +2110,7 @@ class AppDaemon:
     #@_timeit
     def check_app_updates(self, plugin=None, exit=False):
 
-        if not self.apps:
+        if self.apps is False:
             return
 
         # Lets add some profiling
@@ -2084,7 +2266,7 @@ class AppDaemon:
 
             prio_apps = self.get_app_deps_and_prios(apps["init"])
 
-            # Initialize Apps
+            # Load Apps
 
             for app in sorted(prio_apps, key=prio_apps.get):
                 try:
@@ -2097,6 +2279,13 @@ class AppDaemon:
                     self.err("WARNING", '-' * 60)
                     if self.errfile != "STDERR" and self.logfile != "STDOUT":
                         self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+            self.calculate_pin_threads()
+
+            # Call initialize() for apps
+
+            for app in sorted(prio_apps, key=prio_apps.get):
+                self.initialize_app(app)
 
         if self.check_app_updates_profile is True:
             pr.disable()
@@ -2461,13 +2650,13 @@ class AppDaemon:
         return self._sanitize_kwargs(kwargs_copy, [
             "old", "new", "attribute", "duration", "state",
             "entity", "_duration", "old_state", "new_state",
-            "oneshot"
+            "oneshot", "pin_app", "pin_thread"
         ] + app.list_constraints())
 
     def sanitize_timer_kwargs(self, app, kwargs):
         kwargs_copy = kwargs.copy()
         return self._sanitize_kwargs(kwargs_copy, [
-            "interval", "constrain_days", "constrain_input_boolean",
+            "interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"
         ] + app.list_constraints())
 
     def _sanitize_kwargs(self, kwargs, keys):
