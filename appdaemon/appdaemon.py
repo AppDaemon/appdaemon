@@ -495,6 +495,15 @@ class AppDaemon:
     def natural_keys(self, text):
         return [self.atoi(c) for c in re.split('(\d+)', text)]
 
+    def get_pinned_apps(self, thread):
+        id = int(thread.split("-")[1])
+        apps = []
+        with self.objects_lock:
+            for obj in self.objects:
+                if self.objects[obj]["pin_thread"] == id:
+                    apps.append(obj)
+        return apps
+
     def get_thread_info(self):
         info = {}
         # Make a copy without the thread objects
@@ -510,6 +519,7 @@ class AppDaemon:
                 info["threads"][thread]["time_called"] = self.thread_info["threads"][thread]["time_called"]
                 info["threads"][thread]["callback"] = self.thread_info["threads"][thread]["callback"]
                 info["threads"][thread]["is_alive"] = self.thread_info["threads"][thread]["thread"].is_alive()
+                info["threads"][thread]["pinned_apps"] = self.get_pinned_apps(thread)
         return info
 
     def dump_threads(self):
@@ -526,11 +536,12 @@ class AppDaemon:
             for thread in sorted(self.thread_info["threads"], key=self.natural_keys):
                 ts = datetime.datetime.fromtimestamp(self.thread_info["threads"][thread]["time_called"])
                 self.diag("INFO",
-                         "{} - current callback: {} since {}, alive: {}".format(
+                         "{} - current callback: {} since {}, alive: {}, pinned apps: {}".format(
                              thread,
                              self.thread_info["threads"][thread]["callback"],
                              ts,
-                             self.thread_info["threads"][thread]["thread"].is_alive()
+                             self.thread_info["threads"][thread]["thread"].is_alive(),
+                             self.get_pinned_apps(thread)
                          ))
         self.diag("INFO", "--------------------------------------------------")
 
@@ -548,6 +559,8 @@ class AppDaemon:
                 callbacks[name][uuid_]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
                 callbacks[name][uuid_]["function"] = self.callbacks[name][uuid_]["function"]
                 callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
+                callbacks[name][uuid_]["pin_app"] = self.callbacks[name][uuid_]["pin_app"]
+                callbacks[name][uuid_]["Pin_thread"] = self.callbacks[name][uuid_]["pin_thread"]
         return callbacks
 
     #
