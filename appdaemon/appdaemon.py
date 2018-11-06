@@ -2416,7 +2416,7 @@ class AppDaemon:
     #
 
     def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
-                            old_state, cold, cnew, kwargs, uuid_):
+                            old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
         kwargs["handle"] = uuid_
         if attribute == "all":
             with self.objects_lock:
@@ -2429,6 +2429,8 @@ class AppDaemon:
                     "entity": entity,
                     "new_state": new_state,
                     "old_state": old_state,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
                     "kwargs": kwargs,
                 })
         else:
@@ -2474,6 +2476,8 @@ class AppDaemon:
                             "entity": entity,
                             "new_state": new,
                             "old_state": old,
+                            "pin_app": pin_app,
+                            "pin_thread": pin_thread,
                             "kwargs": kwargs
                         })
             else:
@@ -2519,7 +2523,9 @@ class AppDaemon:
                                 data['old_state'],
                                 cold, cnew,
                                 callback["kwargs"],
-                                uuid_
+                                uuid_,
+                                callback["pin_app"],
+                                callback["pin_thread"]
                             )
                         elif centity is None:
                             if device == cdevice:
@@ -2530,7 +2536,9 @@ class AppDaemon:
                                     data['old_state'],
                                     cold, cnew,
                                     callback["kwargs"],
-                                    uuid_
+                                    uuid_,
+                                    callback["pin_app"],
+                                    callback["pin_thread"]
                                 )
                         elif device == cdevice and entity == centity:
                             self.check_and_disapatch(
@@ -2540,7 +2548,9 @@ class AppDaemon:
                                 data['old_state'], cold,
                                 cnew,
                                 callback["kwargs"],
-                                uuid_
+                                uuid_,
+                                callback["pin_app"],
+                                callback["pin_thread"]
                             )
 
                         # Remove the callback if appropriate
@@ -2618,6 +2628,8 @@ class AppDaemon:
                                         "event": data['event_type'],
                                         "function": callback["function"],
                                         "data": data["data"],
+                                        "pin_app": callback["pin_app"],
+                                        "pin_thread": callback["pin_thread"],
                                         "kwargs": callback["kwargs"]
                                     })
 
