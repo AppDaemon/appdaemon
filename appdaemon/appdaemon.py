@@ -114,20 +114,23 @@ class AppDaemon:
         self.threads = 10
         self._process_arg("threads", kwargs, int=True)
 
-        self.pin_threads = self.threads
+        self.pin_apps = True
+        self._process_arg("pin_apps", kwargs)
+
+        if self.pin_apps is True:
+            self.pin_threads = self.threads
+        else:
+            self.pin_threads = 0
         self._process_arg("pin_threads", kwargs, int=True)
 
         if self.pin_threads > self.threads:
-            raise ValueError("pin_threads cannot be >= threads")
+            raise ValueError("pin_threads cannot be > threads")
 
         if self.pin_threads < 0:
             raise ValueError("pin_threads cannot be < 0")
 
         self.load_distribution = "roundrobbin"
         self._process_arg("load_distribution", kwargs)
-
-        self.pin_apps = True
-        self._process_arg("pin_apps", kwargs)
 
         self.app_dir = None
         self._process_arg("app_dir", kwargs)
@@ -650,16 +653,19 @@ class AppDaemon:
                 if self.next_thread == self.threads:
                     self.next_thread = self.pin_threads
 
-            with self.thread_info_lock:
-                id = "thread-{}".format(thread)
-                q = self.thread_info["threads"][id]["q"]
-                q.put_nowait(args)
+        with self.thread_info_lock:
+            id = "thread-{}".format(thread)
+            q = self.thread_info["threads"][id]["q"]
+            q.put_nowait(args)
 
     #
     # Pinning
     #
 
     def calculate_pin_threads(self):
+
+        if self.pin_threads == 0:
+            return
 
         thread_pins = [0] * self.pin_threads
         with self.objects_lock:

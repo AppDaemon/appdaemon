@@ -867,7 +867,7 @@ For some usages in mixed pinned and non-pinned environments it may be desirable 
 
 In the above example, 5 threads will be reserved for pinned apps, meaning that pinned apps will only run on threads 0 - 4, and will be distributed among them evenly. If the system has 10 threads total, threads 5 - 9 will have no pinned apps running on them, representing spare capacity. In order to utilize the spare threads, you can code apps to explicitly run on them, or set them in the apps.yaml, perhaps reserving threads for specific high priority apps, while the rest of the apps share the lower priority threads. Another way to manage this is via selection of an appropriate scheduler algorithm.
 
-Note, that if you are using any unpinned apps at all it is mandatory to set ``pin_threads`` to a value less than the total number of threads - if not specified it will default to the total number of threads available. This will be fine for environments with all pinned apps as it maximises the threads available to distribute the apps across, however, in a mixed environment, the scheduler needs at least one thread to use for unpinned apps. In an entirely unpinned environment the best setting for ``pin_threads`` is 0.
+``pin_threads`` will default to the actual number of threads, if app pinning is turned on globally, and it will default to 0 if app pinning is turned off globally. In a mixed setting, if you have any unpinned apps at al lyou must ensure that ``pin_threads`` is set to a value less than threads.
 
 Scheduler Algorithms
 ~~~~~~~~~~~~~~~~~~~~
