@@ -15,6 +15,7 @@ Change Log
 - Added callback locking decorator
 - Re-architected the work Q to allow App pinning and avoid re-entrant and concurrent code
 - Implemented multiple worker Ques to avoid Head of Line blocking
+- API Calls to control app pinning
 
 **Fixes**
 

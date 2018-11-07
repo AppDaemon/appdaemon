@@ -271,7 +271,7 @@ like this:
       sensor: binary_sensor.garage
       light: light.garage
 
-Apps can use arbitrarily complex structures within argumens, e.g.:
+Apps can use arbitrarily complex structures within arguments, e.g.:
 
 .. code:: yaml
 
@@ -303,7 +303,7 @@ required:
         units: %
 
 App Dependencies
--------------------
+----------------
 
 It is possible for apps to be dependant upon other apps. Some
 examples where this might be the case are:
@@ -635,19 +635,44 @@ Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
 
-A Note on Threading
--------------------
+AppDaemon and Threading
+-----------------------
 
 AppDaemon is multi-threaded. This means that any time code within an App
 is executed, it is executed by one of many threads. This is generally
 not a particularly important consideration for this application; in
 general, the execution time of callbacks is expected to be far quicker
-than the frequency of events causing them. However, it should be noted
-for completeness, that it is certainly possible for different pieces of
-code within the App to be executed concurrently, so some care may be
-necessary if different callback for instance inspect and change shared
-variables. This is a fairly standard caveat with concurrent programming, for the average user however
-this shouldn't be an issue, however for certain applications more care needs to be taken, so AppDaemon supplies a simple locking mechanism to help avoid this. The real issue here is that callbacks in an app can be called at the same time, and even have multiple threads running through them at the same time. To add locking and avoid this, AppDaemon supplies a decorator called ``ad.single_thread``. If you use this with any callbacks that manipulate instance variables you will ensure that there will only be one thread accessing the variables at one time.
+than the frequency of events causing them. By default, AppDaemon protects Apps from threading considerations by pinning each app to a specific thread which means it is not possible for an app to br running in more than one thread at a time. In extremely busy systems this may cause a reduction in performance but this is unlikely. For most users, threading should be left at the defaults and things will behave sensibly. If however, you understand concurrency, locking and re-entrant code, read on for some additional advanced options.
+
+Thread Hygiene
+~~~~~~~~~~~~~~
+
+An additional caveat of a threaded worker pool environment is that it is
+the expectation that none of the callbacks tie threads up for a
+significant amount of time. To do so would eventually lead to thread
+exhaustion, which would make the system run behind events. No events
+would be lost as they would be queued, but callbacks would be delayed
+which is a bad thing.
+
+Given the above, NEVER use Python's ``time.sleep()`` if you want to
+perform an operation some time in the future, as this will tie up a
+thread for the period of the sleep. Instead use the scheduler's
+``run_in()`` function which will allow you to delay without blocking any
+threads.
+
+Disabling App Pinning
+~~~~~~~~~~~~~~~~~~~~~
+
+If you know what you are doing and understand the risks, you can disable AppDaemon's App Pinning, partially or totally. AppDaemon gives you a huge amount of control allowing you to enable or disable pinning of individual apps, all apps of a certain class, or even down to the callback level. AppDaemon also lets you explicitly choose which thread apps or callbacks run on, resulting in extremely fine grained control.
+
+To disable App Pinning globally within AppDaemon set the Appdaemon directive ``pin_apps`` to ``false`` within the AppDaemon.yaml file and app pinning will be disabled for all apps. At this point, it is possible for different pieces of
+code within the App to be executed concurrently, so some care may be necessary if different callback for instance inspect and change shared
+variables. This is a fairly standard caveat with concurrent programming, and AppDaemon supplies a simple locking mechanism to help avoid this.
+
+Simple Callback Level Locking
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The real issue here is that callbacks in an unpinned app can be called at the same time, and even have multiple threads running through them at the same time. To add locking and avoid this, AppDaemon supplies a decorator called ``ad.single_thread``. If you use this with any callbacks that manipulate instance variables you will ensure that there will only be one thread accessing the variables at one time.
 
 Consider the following App which schedules 1000 callbacks all to run at the exact same time, and manipulate the value of ``self.important_var``:
 
@@ -671,7 +696,7 @@ Consider the following App which schedules 1000 callbacks all to run at the exac
             self.important_var += 1
             self.log(self.important_var)
 
-As it is, it will result in enexpected results because ``self.important_var`` can be manipulated by multiple threads at once - for instance a thread could get the value, add one to it and be just about to write it when another thread jumps in with a different value, which is immediately overwritten. Indeed, when this is run, the output shows just that:
+As it is, it will result in unexpected results because ``self.important_var`` can be manipulated by multiple threads at once - for instance a thread could get the value, add one to it and be just about to write it when another thread jumps in with a different value, which is immediately overwritten. Indeed, when this is run, the output shows just that:
 
 .. code::
 
@@ -744,21 +769,123 @@ The result is what we would hope for since self.important_var is only being acce
     2018-11-04 16:08:54.553474 INFO lock: 999
     2018-11-04 16:08:54.553890 INFO lock: 1000
 
-Thread Hygiene
---------------
+Per-App Pinning
+~~~~~~~~~~~~~~~
 
-An additional caveat of a threaded worker pool environment is that it is
-the expectation that none of the callbacks tie threads up for a
-significant amount of time. To do so would eventually lead to thread
-exhaustion, which would make the system run behind events. No events
-would be lost as they would be queued, but callbacks would be delayed
-which is a bad thing.
+Individual apps can be set to override the global AppDaemon setting for App Pinning by use of the ``pin_app`` directive in apps.yaml:
 
-Given the above, NEVER use Python's ``time.sleep()`` if you want to
-perform an operation some time in the future, as this will tie up a
-thread for the period of the sleep. Instead use the scheduler's
-``run_in()`` function which will allow you to delay without blocking any
-threads.
+.. code:: yaml
+
+    module: test
+    class: Test
+    pin_app: false
+
+So if for instance AppDaemon is set to globally pin apps, the above example will override that and make the app unpinned.
+
+Likewise, if the default is to globally unpin apps, setting ``pin_app`` to ``true`` will pin the app.
+
+In addition to controlling pinning, it is also possible to specify the exact thread an app's callbacks will run on, using the ``pin_thread`` directive:
+
+.. code:: yaml
+
+    module: test
+    class: Test
+    pin_app: true
+    pin_thread: 6
+
+This will result in all callbacks for this app being run by thread 6. The ``pin_thread`` directive will be ignored if ``pin_app`` is set to false, or if ``pin_app`` is not specified and the global setting is to not pin apps.
+
+Per Class Pinning
+~~~~~~~~~~~~~~~~~
+
+In addition to per-app pinning, it is possible to pin an entire class so that all apps running that code can be pinned or not. This is achieved using an API call, usually in the ``initialize()`` function that will control whether or not the app is pinned, which will also apply to all apps of the same type since they share the code. Pinning can be enabled or disabled, and thread selected using the pinning api calls:
+
+- ``set_app_pin()``
+- ``get_app_pin()``
+- ``set_pin_thread()``
+- ``get_pin_thread()``
+
+These API calls are dynamic, so it is possible to pin and unpin an app as required as well as select the thread it will run on at any point in the Apps lifetime. Callbacks for the scheduler, events or state changes will inherit the values currently set at the time the callback is registered:
+
+.. code:: python
+
+    # Turn on app pinning
+    self.set_app_pin(True)
+    # Select a thread
+    self.set_pin_thread(5)
+    # Set a scheduler callback for an hour hence
+    self.run_in(my_callback, 3600)
+    # Change the thread
+    self.set_pin_thread(3)
+    # Set a scheduler callback for 2 hours hence
+    self.run_in(my_callback, 7200)
+
+The code above will result in 2 callbacks, the first will run on thread 5, the second will run on thread 3.
+
+Per Callback Pinning
+~~~~~~~~~~~~~~~~~~~~
+
+Per Class Pinning described above, despite it's dynamic nature is really intended to be a set and forget setup activity in the apps ``initialize()`` function. For more dynamic use, it is possible to set the pinning and thread at the callback level, using the ``pin`` and ``pin_thread`` parameters to scheduler calls and ``listen_state()`` and ``listen_event()``. These parameters will override the default settings for the App as set in apps.yaml or via the API calls above, but just for the callback in question.
+
+.. code:: python
+
+    # Turn off app pinning
+    self.set_app_pin(True)
+    # Select a thread
+    self.set_pin_thread(5)
+    # Set a scheduler callback for an hour hence
+    self.run_in(my_callback, 3600, pin=False)
+
+The above callback will not be pinned.
+
+.. code:: python
+
+    # Turn off app pinning
+    set_app_pin(True)
+    # Select a thread
+    set_pin_thread(5)
+    # Set a scheduler callback for an hour hence
+    run_in(my_callback, 3600, pin_thread=9)
+
+The above callback will be run on thread 9, overriding the call to ``set_pin_thread()``.
+
+.. code:: python
+
+    # Set a scheduler callback for an hour hence
+    run_in(my_callback, 3600, pin=True)
+
+The above code is an edge case, if the global or app default is set to not pin. In this case, there won't be an obvious thread to use since it isn't specified, so the callback will default to run on thread 0.
+
+Restricting Threads for Pinned Apps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For some usages in mixed pinned and non-pinned environments it may be desirable to reserve a block of thread specifically for pinned apps. This can be achieved by setting the ``pin_threads`` directive in AppDamon.yaml:
+
+.. code:: YAML
+
+    pin_threads: 5
+
+In the above example, 5 threads will be reserved for pinned apps, meaning that pinned apps will only run on threads 0 - 4, and will be distributed among them evenly. If the system has 10 threads total, threads 5 - 9 will have no pinned apps running on them, representing spare capacity. In order to utilize the spare threads, you can code apps to explicitly run on them, or set them in the apps.yaml, perhaps reserving threads for specific high priority apps, while the rest of the apps share the lower priority threads. Another way to manage this is via selection of an appropriate scheduler algorithm.
+
+Scheduler Algorithms
+~~~~~~~~~~~~~~~~~~~~
+
+When apps are pinned, there is no choice necessary as to which thread will run a given callback. It will either be selected by AppDaemon, or explicitly specified by the user for each app. For the remainder of unpinned Apps, AppDaemon must make a choice as to whcih thread to use, in an attempt to keep the load balanced. There is a choice of 3 strategies, set by the ``load_distribution`` directive in appdaemon.yaml:
+
+- roundrobin (default) - distribute callbacks to threads in a sequential fashion, one thread after another, starting at the beginning when all threads have had their turn. Round Robin scheduling will honor the ``pin_threads`` directive and only use threads not reserved for pinned apps.
+- random - distribute callbacks to available threads in a random fashion. Random will also honor the ``pin_threads`` directive
+- load - distribute callbacks to the least busy threads (measured by their Q size). Since Load based scheduling is dynamically responding to load, it will take all threads into consideration including those reserved for pinned apps.
+
+For example:
+
+.. code:: YAML
+
+    load_distribution: random
+
+A Final Thought on Threading and Pinning
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Although pinning and scheduling has been thoroughly tested, in current real world applications for AppDaemon, very few of these considerations matter, since in most cases AppDaemon will be able to respond to a callback immediately, and it is unlikely that any significant scheduler queueing will occur unless there are problems with apps blocking threads. At the rate that most people are using AppDaemon, events come in a few times a second, and modern hardware can usually handle the load pretty easily. The considerations above will start to matter more when event rates become a lot faster, by at least an order of magnitude. That is now a possibility with the recent upgrade to the scheduler allowing sub-second tick times, so the ability to lock and pin apps was added in anticipation of new applications for AppDaemon that may require more robust management of apps and much higher event rates.
 
 State Operations
 ----------------

@@ -56,7 +56,6 @@ class AppDaemon:
         self.appd = None
         self.stopping = False
         self.dashboard = None
-        self.next_thread = 0
 
         self.now = datetime.datetime.now().timestamp()
 
@@ -118,8 +117,8 @@ class AppDaemon:
         self.pin_threads = self.threads
         self._process_arg("pin_threads", kwargs, int=True)
 
-        if self.pin_threads > self.threads:
-            raise ValueError("pin_threads cannot be > threads")
+        if self.pin_threads >= self.threads:
+            raise ValueError("pin_threads cannot be >= threads")
 
         if self.pin_threads < 1:
             raise ValueError("pin_threads cannot be < 1")
@@ -238,6 +237,7 @@ class AppDaemon:
             self.apps = True
             self.log("INFO", "Starting Apps with {} workers and {} pins".format(self.threads, self.pin_threads))
 
+        self.next_thread = self.pin_threads
 
         # Initialize config file tracking
 
@@ -632,16 +632,20 @@ class AppDaemon:
 
         if args["pin_app"] is True:
             thread = args["pin_thread"]
+            # Handle the case where an App is unpinned but selects a pinned callback without specifying a thread
+            # If this happens a lot, thread 0 might get congested but the alternatives are worse!
+            if thread == -1:
+                thread = 0
         elif self.load_distribution == "load":
             thread = self.min_q_id()
         elif self.load_distribution == "random":
-            thread = randint(0, self.threads - 1)
+            thread = randint(self.pin_threads, self.threads - 1)
         else:
             # Round Robin is the catch all
             thread = self.next_thread
             self.next_thread += 1
             if self.next_thread == self.threads:
-                self.next_thread = 0
+                self.next_thread = self.pin_threads
 
         with self.thread_info_lock:
             id = "thread-{}".format(thread)
@@ -786,13 +790,14 @@ class AppDaemon:
 
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
         with self.objects_lock:
-            if "pin_app" in kwargs:
-                pin_app = kwargs["pin_app"]
+            if "pin" in kwargs:
+                pin_app = kwargs["pin"]
             else:
                 pin_app = self.objects[name]["pin_app"]
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
+                pin_app = True
             else:
                 pin_thread = self.objects[name]["pin_thread"]
 
@@ -935,13 +940,14 @@ class AppDaemon:
     #
     def add_event_callback(self, _name, namespace, cb, event, **kwargs):
         with self.objects_lock:
-            if "pin_app" in kwargs:
+            if "pin" in kwargs:
                 pin_app = kwargs["pin_app"]
             else:
                 pin_app = self.objects[_name]["pin_app"]
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
+                pin_app = True
             else:
                 pin_thread = self.objects[_name]["pin_thread"]
 
@@ -1180,13 +1186,14 @@ class AppDaemon:
 
     def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
         with self.objects_lock:
-            if "pin_app" in kwargs:
-                pin_app = kwargs["pin_app"]
+            if "pin" in kwargs:
+                pin_app = kwargs["pin"]
             else:
                 pin_app = self.objects[name]["pin_app"]
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
+                pin_app = True
             else:
                 pin_thread = self.objects[name]["pin_thread"]
 

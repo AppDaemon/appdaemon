@@ -280,6 +280,19 @@ namespace = (optional)
 
 Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will listen to state updates from any plugin.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -424,6 +437,20 @@ delay
 
 Delay, in seconds before the callback is invoked.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
 \*\*kwargs
 ''''''''''
 
@@ -471,6 +498,20 @@ time
 A Python ``time`` object that specifies when the callback will occur. If
 the time specified is in the past, the callback will occur the next day
 at the specified time.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -521,6 +562,20 @@ datetime
 
 A Python ``datetime`` object that specifies when the callback will
 occur.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -576,6 +631,20 @@ A Python ``time`` object that specifies when the callback will occur. If
 the time specified is in the past, the callback will occur the next day
 at the specified time.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
 \*\*kwargs
 ''''''''''
 
@@ -629,6 +698,20 @@ the hour component of the time object is ignored. If the time specified
 is in the past, the callback will occur the next hour at the specified
 time. If time is not supplied, the callback will start an hour from the
 time that ``run_hourly()`` was executed.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -684,10 +767,24 @@ time specified is in the past, the callback will occur the next hour at
 the specified time. If time is not supplied, the callback will start a
 minute from the time that ``run_minutely()`` was executed.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
 \*\*kwargs
 ''''''''''
 
-Arbitary keyword parameters to be provided to the callback function when
+Arbitrary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
@@ -739,6 +836,20 @@ repeat
 
 After the initial callback has occurred, another will occur every
 ``repeat`` seconds.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -862,6 +973,20 @@ negative value will result in the callback occurring before sunrise.
 This parameter cannot be combined with ``random_start`` or
 ``random_end``
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
 \*\*kwargs
 ''''''''''
 
@@ -917,6 +1042,20 @@ The time in seconds that the callback should be delayed after sunrise. A
 negative value will result in the callback occurring before sunrise.
 This parameter cannot be combined with ``random_start`` or
 ``random_end``
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -1079,6 +1218,20 @@ namespace = (optional)
 ''''''''''''''''''''''
 
 Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will lsiten to state updates from any plugin.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 
 \*\*kwargs (optional)
@@ -1837,6 +1990,138 @@ The signature for a callback used with ``listen_log()`` is as follows:
 
 For AppDaemon system messages, name will be set to "AppDaemon".
 
+App Pinning
+-----------
+
+set_app_pin()
+~~~~~~~~~~~~~
+
+Set an app to be pinned or unpinned
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    set_app_pin(pin)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+pin
+'''
+
+True or false to set whether the App becomes pinned.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.set_app_pin(True)
+
+get_app_pin()
+~~~~~~~~~~~~~
+
+Find out if the app is currently pinned or not
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    pinned = get_app_pin()
+
+Returns
+^^^^^^^
+
+True if the app is pinned, False otherwise.
+
+Parameters
+^^^^^^^^^^
+
+None
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        if self.get_app_pin(True):
+            self.log("I'm pinned!")
+
+
+set_pin_thread()
+~~~~~~~~~~~~~~~~
+
+Set the thread that the app will be pinned to
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    set_pin_thread(thread)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+thread
+''''''
+
+Number of the thread to pin to. Threads start at 0 and go up to the number of threads specified in appdaemon.yaml -1.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.set_pin_thread(5)
+
+get_pin_thread()
+~~~~~~~~~~~~~~~~
+
+Find out which thread the app is pinned to.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    thread = get_pin_thread()
+
+Returns
+^^^^^^^
+
+The thread the app is pinned to or ``-1`` if the thread is not pinned.
+
+Parameters
+^^^^^^^^^^
+
+None
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        thread = self.get_pin_thread(True):
+        self.log("I'm pinned to thread {}".format(thread))
+
 API
 ---
 
@@ -2344,7 +2629,7 @@ Examples
         self.deregister_constraint("my_custom_constraint")
 
 list_constraints()
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 Get a list of all currently registered custom constraints. Note: this list will include any constraints registered by the plugin itself.
 

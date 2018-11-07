@@ -15,7 +15,6 @@ Your initial ``appdaemon.yaml`` file should look something like this if you are 
 .. code:: yaml
 
      appdaemon:
-       threads: 10
        plugins:
          HASS:
            type: hass
@@ -24,8 +23,8 @@ Your initial ``appdaemon.yaml`` file should look something like this if you are 
 
 The top level consists of a number of sections:
 
-log
-~~~
+Log Configuration
+~~~~~~~~~~~~~~~~~
 
 The ``log:`` section is optional but if included, must have at least one directive in it. The directives are as follows:
 
@@ -50,8 +49,8 @@ The ``log:`` section is optional but if included, must have at least one directi
    will be retained before they are overwritten if not specified, this
    will default to 3 files.
 
-appdaemon
-~~~~~~~~~
+AppDaemon Configuration
+~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``appdaemon:`` section has a number of directives:
 
@@ -60,18 +59,16 @@ The ``appdaemon:`` section has a number of directives:
    of apps you have, the threads are re-used and only active for as long
    as required to run a particular callback or initialization, leave
    this set to 10 unless you experience thread starvation
--  ``tick`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
--  ``interval`` (optional) - equivalent to the command line flag ``-i`` but will take precedence
 -  ``filters`` (optional) - see below
 -  ``plugins`` (required) - see below
 -  ``latitude`` (optional) - latitude for AppDaemon to use. If not
-   specified, AppDaemon will query the latitude from Home Assistant
+   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
 -  ``longitude`` (optional) - longitude for AppDaemon to use. If not
-   specified, AppDaemon will query the longitude from Home Assistant
+   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
 -  ``elevation`` (optional) - elevation for AppDaemon to use. If not
-   specified, AppDaemon will query the elevation from Home Assistant
--  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
-   specified, AppDaemon will query the timezone from Home Assistant
+   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
+-  ``time_zone`` (optional) - timezone for AppDaemon to use. IIf not
+   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
 -  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
    to provide a key in the header of a request
 -  ``api_ssl_certificate`` (optional) - certificate to use when running
@@ -92,6 +89,18 @@ When using the ``exclude_dirs`` directive you should supply a list of directory 
         - dir3
 
 AppDaemon will search for matching directory names at any level of the folder hierarchy under appdir and will exclude that directory and any beneath it. It is not possible to match multiple level directory names e.g. ``somedir/dir1``. In that case the match should be on ``dir1``, with the caveat that if you have dir1 anywhere else in the hierarchy it will also be excluded.
+
+Advanced Appdaemon Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following items provide a high level of control over AppDaemon's internal functions but for most users should be left at the default settings.
+
+-  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and lcoking of instance variables
+-  ``pin_threads`` (optional) - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. Default is to use all threads for pinned apps.
+- ``load_distribution`` - Algorithm to use for loadbalancing between unpinned apps. Can be ``roundrobin`` (the default), ``random`` or ``load``
+-  ``tick`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
+-  ``interval`` (optional) - equivalent to the command line flag ``-i`` but will take precedence
+
 
 secrets
 ~~~~~~~
