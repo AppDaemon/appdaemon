@@ -667,12 +667,17 @@ class AppDaemon:
         if self.pin_threads == 0:
             return
 
-        thread_pins = [0] * self.threads
+        thread_pins = [0] * self.pin_threads
         with self.objects_lock:
             for name in self.objects:
                 # Looking for apps that already have a thread pin value
                 if self.get_app_pin(name) and self.get_pin_thread(name) != -1:
-                    thread_pins[self.get_pin_thread(name)] += 1
+                    thread = self.get_pin_thread(name)
+                    if thread >= self.threads:
+                        raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
+                    # Ignore anything outside the pin range as it will have been set by the user
+                    if thread < self.pin_threads:
+                        thread_pins[thread] += 1
 
             # Now we know the numbers, go fill in the gaps
 
