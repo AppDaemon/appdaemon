@@ -3,7 +3,7 @@ import datetime
 import asyncio
 import pwd
 
-__version__ = "3.0.3"
+__version__ = "3.1.0"
 secrets = None
 
 log_levels = {
