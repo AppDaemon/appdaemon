@@ -172,11 +172,7 @@ class MqttPlugin:
         data = {'event_type': self.mqtt_event_name, 'data': {'topic': msg.topic, 'payload': msg.payload.decode()}}
         self.loop.create_task(self.send_ad_event(data))
 
-    def mqtt_service(self, service, **kwargs):
-        if not self.initialized:
-            self.AD.log("WARNING", "{}: Attempt to call Mqtt Service while disconnected: {!r}".format(self.name, service))
-            return None
-        
+    def mqtt_service(self, service, **kwargs):        
         topic = kwargs['topic']
         payload = kwargs.get('payload', None)
         retain = kwargs.get('retain', False)
