@@ -867,16 +867,16 @@ For some usages in mixed pinned and non-pinned environments it may be desirable 
 
 In the above example, 5 threads will be reserved for pinned apps, meaning that pinned apps will only run on threads 0 - 4, and will be distributed among them evenly. If the system has 10 threads total, threads 5 - 9 will have no pinned apps running on them, representing spare capacity. In order to utilize the spare threads, you can code apps to explicitly run on them, or set them in the apps.yaml, perhaps reserving threads for specific high priority apps, while the rest of the apps share the lower priority threads. Another way to manage this is via selection of an appropriate scheduler algorithm.
 
-``pin_threads`` will default to the actual number of threads, if app pinning is turned on globally, and it will default to 0 if app pinning is turned off globally. In a mixed setting, if you have any unpinned apps at al lyou must ensure that ``pin_threads`` is set to a value less than threads.
+``pin_threads`` will default to the actual number of threads, if app pinning is turned on globally, and it will default to 0 if app pinning is turned off globally. In a mixed setting, if you have any unpinned apps at all you must ensure that ``pin_threads`` is set to a value less than threads.
 
 Scheduler Algorithms
 ~~~~~~~~~~~~~~~~~~~~
 
-When apps are pinned, there is no choice necessary as to which thread will run a given callback. It will either be selected by AppDaemon, or explicitly specified by the user for each app. For the remainder of unpinned Apps, AppDaemon must make a choice as to whcih thread to use, in an attempt to keep the load balanced. There is a choice of 3 strategies, set by the ``load_distribution`` directive in appdaemon.yaml:
+When apps are pinned, there is no choice necessary as to which thread will run a given callback. It will either be selected by AppDaemon, or explicitly specified by the user for each app. For the remainder of unpinned Apps, AppDaemon must make a choice as to which thread to use, in an attempt to keep the load balanced. There is a choice of 3 strategies, set by the ``load_distribution`` directive in appdaemon.yaml:
 
-- roundrobin (default) - distribute callbacks to threads in a sequential fashion, one thread after another, starting at the beginning when all threads have had their turn. Round Robin scheduling will honor the ``pin_threads`` directive and only use threads not reserved for pinned apps.
-- random - distribute callbacks to available threads in a random fashion. Random will also honor the ``pin_threads`` directive
-- load - distribute callbacks to the least busy threads (measured by their Q size). Since Load based scheduling is dynamically responding to load, it will take all threads into consideration including those reserved for pinned apps.
+- ``roundrobin`` (default) - distribute callbacks to threads in a sequential fashion, one thread after another, starting at the beginning when all threads have had their turn. Round Robin scheduling will honor the ``pin_threads`` directive and only use threads not reserved for pinned apps.
+- ``random`` - distribute callbacks to available threads in a random fashion. Random will also honor the ``pin_threads`` directive
+- ``load`` - distribute callbacks to the least busy threads (measured by their Q size). Since Load based scheduling is dynamically responding to load, it will take all threads into consideration including those reserved for pinned apps.
 
 For example:
 
