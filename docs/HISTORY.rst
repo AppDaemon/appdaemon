@@ -13,7 +13,7 @@ Change Log
 - ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
 - Bumped aiohttp to v3.4.4
 - Added callback locking decorator
-- Re-architected the work Q to allow App pinning and avoid re-entrant and concurrent code
+- Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code
 - Implemented multiple worker Ques to avoid Head of Line blocking
 - API Calls to control app pinning
 

@@ -667,7 +667,7 @@ class AppDaemon:
         if self.pin_threads == 0:
             return
 
-        thread_pins = [0] * self.pin_threads
+        thread_pins = [0] * self.threads
         with self.objects_lock:
             for name in self.objects:
                 # Looking for apps that already have a thread pin value
