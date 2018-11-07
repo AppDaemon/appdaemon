@@ -117,11 +117,11 @@ class AppDaemon:
         self.pin_threads = self.threads
         self._process_arg("pin_threads", kwargs, int=True)
 
-        if self.pin_threads >= self.threads:
+        if self.pin_threads > self.threads:
             raise ValueError("pin_threads cannot be >= threads")
 
-        if self.pin_threads < 1:
-            raise ValueError("pin_threads cannot be < 1")
+        if self.pin_threads < 0:
+            raise ValueError("pin_threads cannot be < 0")
 
         self.load_distribution = "roundrobbin"
         self._process_arg("load_distribution", kwargs)
@@ -636,21 +636,24 @@ class AppDaemon:
             # If this happens a lot, thread 0 might get congested but the alternatives are worse!
             if thread == -1:
                 thread = 0
-        elif self.load_distribution == "load":
-            thread = self.min_q_id()
-        elif self.load_distribution == "random":
-            thread = randint(self.pin_threads, self.threads - 1)
         else:
-            # Round Robin is the catch all
-            thread = self.next_thread
-            self.next_thread += 1
-            if self.next_thread == self.threads:
-                self.next_thread = self.pin_threads
+            if self.threads == self.pin_threads:
+                raise ValueError("pin_threads must be set lower than threads if unpinned_apps are in use")
+            if self.load_distribution == "load":
+                thread = self.min_q_id()
+            elif self.load_distribution == "random":
+                thread = randint(self.pin_threads, self.threads - 1)
+            else:
+                # Round Robin is the catch all
+                thread = self.next_thread
+                self.next_thread += 1
+                if self.next_thread == self.threads:
+                    self.next_thread = self.pin_threads
 
-        with self.thread_info_lock:
-            id = "thread-{}".format(thread)
-            q = self.thread_info["threads"][id]["q"]
-            q.put_nowait(args)
+            with self.thread_info_lock:
+                id = "thread-{}".format(thread)
+                q = self.thread_info["threads"][id]["q"]
+                q.put_nowait(args)
 
     #
     # Pinning
