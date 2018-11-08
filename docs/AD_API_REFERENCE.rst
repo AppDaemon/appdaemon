@@ -1990,8 +1990,8 @@ The signature for a callback used with ``listen_log()`` is as follows:
 
 For AppDaemon system messages, name will be set to "AppDaemon".
 
-App Pinning
------------
+App Pinning & Threading
+-----------------------
 
 set_app_pin()
 ~~~~~~~~~~~~~
@@ -2121,6 +2121,43 @@ Examples
     def initialize():
         thread = self.get_pin_thread(True):
         self.log("I'm pinned to thread {}".format(thread))
+
+schedule_thread()
+~~~~~~~~~~~~~~~~
+
+Schedule a callback to be run in a different thread from the current one.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    schedule_thread(callback, thread)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+callback
+''''''
+
+Function to be run on the new thread
+
+thread
+''''''
+
+Thread number (0 - number of threads)
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.schedule_thread(my_callback, 8)
 
 API
 ---

@@ -373,6 +373,9 @@ class ADBase:
         )
         return handle
 
+    def schedule_thread(self, callback, thread):
+        self.run_in(callback, 0, pin=False, pin_thread=thread)
+
     def run_once(self, callback, start, **kwargs):
         name = self.name
         now = self.get_now()
