@@ -1812,6 +1812,12 @@ level
 The log level of the message - takes a string representing the standard
 logger levels.
 
+ascii_encode
+'''''
+
+Switch to disable the encoding of all log messages to ascii. Set this to
+true if you want to log UTF-8 characters. (Default: True)
+
 Examples
 ^^^^^^^^
 

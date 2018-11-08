@@ -150,7 +150,7 @@ def single_or_list(field):
     else:
         return [field]
 
-def log(logger, level, msg, name="", ts=None):
+def log(logger, level, msg, name="", ts=None, ascii_encode=True):
     if name != "":
         name = " {}:".format(name)
 
@@ -159,9 +159,12 @@ def log(logger, level, msg, name="", ts=None):
     else:
         timestamp = ts
 
-    safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
-    logger.log(log_levels[level], "{} {}{} {}".format(timestamp, level,
-                                                  safe_enc(name), safe_enc(msg)))
+    if ascii_encode is True:
+        safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+        name = safe_enc(name)
+        msg = safe_enc(msg)
+
+    logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
 
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
