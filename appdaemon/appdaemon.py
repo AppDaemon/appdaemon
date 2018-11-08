@@ -1701,8 +1701,10 @@ class AppDaemon:
                             self.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
                             self.dump_threads(qinfo)
                         warning_step += 1
-                        if warning_step == self.qsize_warning_step:
+                        if warning_step >= self.qsize_warning_step:
                             warning_step = 0
+                    else:
+                        warning_step = 0
 
                     # Run utility for each plugin
 
