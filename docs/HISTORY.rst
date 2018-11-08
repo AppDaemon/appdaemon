@@ -18,7 +18,7 @@ Change Log
 - API Calls to control app pinning
 - added the ``schedule_thread()`` api call
 - added ``fire_app_event()`` api call
-
+- added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 **Fixes**
 
 **Breaking Changes**
