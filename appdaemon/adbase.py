@@ -2,8 +2,7 @@ import datetime
 import inspect
 import iso8601
 import re
-from threading import Lock
-
+import threading
 import appdaemon.utils as utils
 
 class Entities:
@@ -17,7 +16,7 @@ class Entities:
 #
 
 
-def single_thread(myFunc):
+def app_lock(myFunc):
     """ Synchronization decorator. """
 
     def wrap(*args, **kw):
@@ -28,6 +27,19 @@ def single_thread(myFunc):
             return myFunc(*args, **kw)
         finally:
             self.lock.release()
+    return wrap
+
+def global_lock(myFunc):
+    """ Synchronization decorator. """
+
+    def wrap(*args, **kw):
+        self = args[0]
+
+        self.AD.global_lock.acquire()
+        try:
+            return myFunc(*args, **kw)
+        finally:
+            self.AD.global_lock.release()
     return wrap
 
 class ADBase:
@@ -47,7 +59,7 @@ class ADBase:
         self.args = args
         self.global_vars = global_vars
         self.constraints = []
-        self.lock = Lock()
+        self.lock = threading.RLock()
 
     @staticmethod
     def _sub_stack(msg):
@@ -260,6 +272,40 @@ class ADBase:
                 device, entity = entity_id.split(".")
 
         return self.AD.get_state(namespace, device, entity, attribute)
+
+    def parse_state(self, entity_id, namespace, **kwargs):
+        self._check_entity(namespace, entity_id)
+        self.AD.log(
+            "DEBUG",
+            "set_app_state: {}, {}".format(entity_id, kwargs)
+        )
+
+        if entity_id in self.get_state(namespace = namespace):
+            new_state = self.get_state(namespace = namespace)[entity_id]
+        else:
+            # Its a new state entry
+            new_state = {}
+            new_state["attributes"] = {}
+
+        if "state" in kwargs:
+            new_state["state"] = kwargs["state"]
+
+        if "attributes" in kwargs and kwargs.get('replace', False):
+            new_state["attributes"] = kwargs["attributes"]
+        else:
+            if "attributes" in kwargs:
+                new_state["attributes"].update(kwargs["attributes"])
+
+        return new_state
+
+    def set_app_state(self, entity_id, namespace, **kwargs):
+
+        new_state = self.parse_state(entity_id, namespace, **kwargs)
+        # Update AppDaemon's copy
+
+        self.AD.set_app_state(namespace, entity_id, new_state)
+
+        return new_state
 
     #
     # Events

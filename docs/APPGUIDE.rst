@@ -672,7 +672,7 @@ variables. This is a fairly standard caveat with concurrent programming, and App
 Simple Callback Level Locking
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The real issue here is that callbacks in an unpinned app can be called at the same time, and even have multiple threads running through them at the same time. To add locking and avoid this, AppDaemon supplies a decorator called ``ad.single_thread``. If you use this with any callbacks that manipulate instance variables you will ensure that there will only be one thread accessing the variables at one time.
+The real issue here is that callbacks in an unpinned app can be called at the same time, and even have multiple threads running through them at the same time. To add locking and avoid this, AppDaemon supplies a decorator called ``ad.app_lock``. If you use this with any callbacks that manipulate instance variables you will ensure that there will only be one thread accessing the variables at one time.
 
 Consider the following App which schedules 1000 callbacks all to run at the exact same time, and manipulate the value of ``self.important_var``:
 
@@ -739,7 +739,7 @@ However, if we add the decorator to the callback function like so:
             for i in range (1000):
                 self.run_at(self.hass_cb, target)
 
-        @ad.single_thread
+        @ad.app_lock
         def hass_cb(self, kwargs):
             self.important_var += 1
             self.log(self.important_var)
@@ -768,6 +768,36 @@ The result is what we would hope for since self.important_var is only being acce
     2018-11-04 16:08:54.553033 INFO lock: 998
     2018-11-04 16:08:54.553474 INFO lock: 999
     2018-11-04 16:08:54.553890 INFO lock: 1000
+
+The above scenario is only an issue when thread pinning is disabled, however another issue with threading arises  when apps call each other and modify variables using the ``get_app()`` call, regardless of whether or not apps are pinned. If a particular app is called at the same time from several different apps using ``get_app()``, the app in question will potentially be running on many threads at the same time, and any local resources such as instance variables that are updated could be corrupted. ``@ad.app_lock`` will also work well to address this situation, if it is applied to the function in the app that is being called. This will force the function to lock using the local lock of the app being called and will enable thread safe operation.
+
+app1:
+
+.. code:: python
+
+    my_app = get_app("app2")
+    my_app.myfunction()
+
+app2:
+
+.. code:: python
+
+    @ad.app_lock
+    def my_function()
+        self.variable + = 1
+
+Global Locking
+~~~~~~~~~~~~~~~~~
+
+The above style of locking works well for protection of variables within a single app and across apps using ``get_app()``. However, another area where threading might be of concern is if apps are accessing and modifying the global variables dictionary which has no locking.
+
+The solution is a global locking decorator called ``@ad.global_lock``:
+
+.. code:: python
+
+    @ad.global_lock
+    def so_something_with_global_vars()
+        self.global_vars += 1
 
 Per-App Pinning
 ~~~~~~~~~~~~~~~
@@ -1450,7 +1480,7 @@ Sharing information between different Apps is very simple if required.
 Each app gets access to a global dictionary stored in a class attribute
 called ``self.global_vars``. Any App can add or read any key as
 required. This operation is not however threadsafe so some care is
-needed.
+needed - see the section on threading for more details.
 
 In addition, Apps have access to the entire configuration if required,
 meaning they can access AppDaemon configuration items as well as

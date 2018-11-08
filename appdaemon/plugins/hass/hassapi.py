@@ -95,28 +95,18 @@ class Hass(appapi.ADBase):
             del kwargs["namespace"]
         return super(Hass, self).get_state(namespace, entity, **kwargs)
 
+    def set_app_state(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+        return super(Hass, self).set_app_state(entity_id, namespace, **kwargs)
+
     def set_state(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        self._check_entity(namespace, entity_id)
-        self.AD.log(
-            "DEBUG",
-            "set_state: {}, {}".format(entity_id, kwargs)
-        )
 
-        if entity_id in self.get_state(namespace = namespace):
-            new_state = self.get_state(namespace = namespace)[entity_id]
-        else:
-            # Its a new state entry
-            new_state = {}
-            new_state["attributes"] = {}
-
-        if "state" in kwargs:
-            new_state["state"] = kwargs["state"]
-
-        if "attributes" in kwargs:
-            new_state["attributes"].update(kwargs["attributes"])
+        new_state = super(Hass, self).parse_state(entity_id, namespace, **kwargs)
 
         config = self.AD.get_plugin(namespace).config
         if "cert_path" in config:
@@ -144,38 +134,6 @@ class Hass(appapi.ADBase):
         self.AD.set_state(namespace, entity_id, state)
 
         return state
-
-    def set_app_state(self, entity_id, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        self._check_entity(namespace, entity_id)
-        self.AD.log(
-            "DEBUG",
-            "set_app_state: {}, {}".format(entity_id, kwargs)
-        )
-
-        if entity_id in self.get_state(namespace = namespace):
-            new_state = self.get_state(namespace = namespace)[entity_id]
-        else:
-            # Its a new state entry
-            new_state = {}
-            new_state["attributes"] = {}
-
-        if "state" in kwargs:
-            new_state["state"] = kwargs["state"]
-
-        if "attributes" in kwargs and kwargs.get('replace', False):
-            new_state["attributes"] = kwargs["attributes"]
-        else:
-            if "attributes" in kwargs:
-                new_state["attributes"].update(kwargs["attributes"])
-
-        # Update AppDaemon's copy
-
-        self.AD.set_app_state(namespace, entity_id, new_state)
-
-        return new_state
 
     def entity_exists(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)

@@ -90,8 +90,8 @@ class AppDaemon:
         self.plugin_meta = {}
         self.plugin_objs = {}
 
-        # No locking yet
         self.global_vars = {}
+        self.global_lock = threading.RLock()
 
         self.sun = {}
 
