@@ -218,6 +218,12 @@ class AppDaemon:
         self.log_thread_actions = False
         self._process_arg("log_thread_actions", kwargs)
 
+        self.qsize_warning_threshold = 50
+        self._process_arg("qsize_warning_threshold", kwargs, int=True)
+
+        self.qsize_warning_step = 60
+        self._process_arg("qsize_warning_step", kwargs, int=True)
+
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
             self.exclude_dirs += kwargs["exclude_dirs"]
@@ -464,21 +470,14 @@ class AppDaemon:
                 self.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
         self.diag("INFO", "--------------------------------------------------")
 
-    def dump_queue(self):
-        qsize = self.total_q()
-        self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", "Total Q size: {}".format(qsize))
-        with self.thread_info_lock:
-            for thread in self.thread_info["threads"]:
-                self.diag("INFO", "Queue size for {}: {}".format(thread, self.thread_info["threads"][thread]["q"].qsize()))
-        self.diag("INFO", "--------------------------------------------------")
-
-    def total_q(self):
+    def q_info(self):
         qsize = 0
         with self.thread_info_lock:
-            for thread in self.thread_info["threads"]:
-                qsize += self.thread_info["threads"][thread]["q"].qsize()
-        return qsize
+            thread_info = self.get_thread_info()
+
+        for thread in thread_info["threads"]:
+            qsize += self.thread_info["threads"][thread]["q"].qsize()
+        return {"qsize": qsize, "thread_info": thread_info}
 
     def min_q_id(self):
         id = 0
@@ -520,33 +519,36 @@ class AppDaemon:
             for thread in self.thread_info["threads"]:
                 if thread not in info["threads"]:
                     info["threads"][thread] = {}
-                info["threads"][thread]["time_called"] = self.thread_info["threads"][thread]["time_called"]
-                info["threads"][thread]["callback"] = self.thread_info["threads"][thread]["callback"]
-                info["threads"][thread]["is_alive"] = self.thread_info["threads"][thread]["thread"].is_alive()
-                info["threads"][thread]["pinned_apps"] = self.get_pinned_apps(thread)
+                info["threads"][thread]["time_called"] = copy(self.thread_info["threads"][thread]["time_called"])
+                info["threads"][thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
+                info["threads"][thread]["is_alive"] = copy(self.thread_info["threads"][thread]["thread"].is_alive())
+                info["threads"][thread]["pinned_apps"] = copy(self.get_pinned_apps(thread))
+                info["threads"][thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
         return info
 
-    def dump_threads(self):
+    def dump_threads(self, qinfo):
+        thread_info = qinfo["thread_info"]
         self.diag("INFO", "--------------------------------------------------")
         self.diag("INFO", "Threads")
         self.diag("INFO", "--------------------------------------------------")
-        with self.thread_info_lock:
-            max_ts = datetime.datetime.fromtimestamp(self.thread_info["max_busy_time"])
-            last_ts = datetime.datetime.fromtimestamp(self.thread_info["last_action_time"])
-            self.diag("INFO", "Currently busy threads: {}".format(self.thread_info["current_busy"]))
-            self.diag("INFO", "Most used threads: {} at {}".format(self.thread_info["max_busy"], max_ts))
-            self.diag("INFO", "Last activity: {}".format(last_ts))
-            self.diag("INFO", "--------------------------------------------------")
-            for thread in sorted(self.thread_info["threads"], key=self.natural_keys):
-                ts = datetime.datetime.fromtimestamp(self.thread_info["threads"][thread]["time_called"])
-                self.diag("INFO",
-                         "{} - current callback: {} since {}, alive: {}, pinned apps: {}".format(
-                             thread,
-                             self.thread_info["threads"][thread]["callback"],
-                             ts,
-                             self.thread_info["threads"][thread]["thread"].is_alive(),
-                             self.get_pinned_apps(thread)
-                         ))
+        max_ts = datetime.datetime.fromtimestamp(thread_info["max_busy_time"])
+        last_ts = datetime.datetime.fromtimestamp(thread_info["last_action_time"])
+        self.diag("INFO", "Currently busy threads: {}".format(thread_info["current_busy"]))
+        self.diag("INFO", "Most used threads: {} at {}".format(thread_info["max_busy"], max_ts))
+        self.diag("INFO", "Last activity: {}".format(last_ts))
+        self.diag("INFO", "Total Q Entries: {}".format(qinfo["qsize"]))
+        self.diag("INFO", "--------------------------------------------------")
+        for thread in sorted(thread_info["threads"], key=self.natural_keys):
+            ts = datetime.datetime.fromtimestamp(thread_info["threads"][thread]["time_called"])
+            self.diag("INFO",
+                     "{} - qsize: {} | current callback: {} | since {}, | alive: {}, | pinned apps: {}".format(
+                         thread,
+                         thread_info["threads"][thread]["qsize"],
+                         thread_info["threads"][thread]["callback"],
+                         ts,
+                         thread_info["threads"][thread]["is_alive"],
+                         self.get_pinned_apps(thread)
+                     ))
         self.diag("INFO", "--------------------------------------------------")
 
     def get_callback_entries(self):
@@ -1653,6 +1655,8 @@ class AppDaemon:
 
             self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
 
+            warning_step = 0
+
             while not self.stopping:
 
                 start_time = datetime.datetime.now().timestamp()
@@ -1691,12 +1695,14 @@ class AppDaemon:
 
                     # Check for thread starvation
 
-                    qsize = self.total_q()
-                    if qsize > 0 and qsize % 10 == 0:
-                        self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.total_q()))
-
-                        self.dump_queue()
-                        self.dump_threads()
+                    qinfo = self.q_info()
+                    if qinfo["qsize"] > self.qsize_warning_threshold:
+                        if warning_step == 0:
+                            self.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
+                            self.dump_threads(qinfo)
+                        warning_step += 1
+                        if warning_step == self.qsize_warning_step:
+                            warning_step = 0
 
                     # Run utility for each plugin
 

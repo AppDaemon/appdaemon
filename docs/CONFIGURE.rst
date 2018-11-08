@@ -100,7 +100,8 @@ The following items provide a high level of control over AppDaemon's internal fu
 - ``load_distribution`` - Algorithm to use for loadbalancing between unpinned apps. Can be ``roundrobin`` (the default), ``random`` or ``load``
 -  ``tick`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
 -  ``interval`` (optional) - equivalent to the command line flag ``-i`` but will take precedence
-
+-  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
+-  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
 
 secrets
 ~~~~~~~
