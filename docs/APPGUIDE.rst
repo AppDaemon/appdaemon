@@ -2182,7 +2182,7 @@ As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to 
         # Grab an object for the MQTT API
         mqtt = self.get_plugin_api("MQTT")
         # Make MQTT API Call
-        mqtt.mqtt_publish("topic", payload = "Payload"):
+        mqtt.mqtt_publish("topic", "Payload"):
 
         # Make a scheduler call using the ADBase class
         handle = self.run_in(callback, 20)
