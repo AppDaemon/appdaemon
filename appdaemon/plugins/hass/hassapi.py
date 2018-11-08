@@ -32,7 +32,7 @@ class Hass(appapi.ADBase):
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
         super(Hass, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
-        self.namespace = "default"
+        #self.namespace = "default"
         self.AD = ad
         self.name = name
         self._logger = logger

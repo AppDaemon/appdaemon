@@ -700,6 +700,57 @@ Example
     if device == "scene":
         do something specific to scenes
 
+Events
+------
+
+fire\_event()
+~~~~~~~~~~~~~
+
+Fire an event on the HomeAssistant bus, for other components to hear.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    fire_event(event, **kwargs)
+
+Returns
+^^^^^^^
+
+None.
+
+Parameters
+^^^^^^^^^^
+
+event
+'''''
+
+Name of the event. Can be a standard Home Assistant event such as
+``service_registered`` or an arbitrary custom event such as
+``"MODE_CHANGE"``.
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+
+
+\*\*kwargs
+''''''''''
+
+Zero or more keyword arguments that will be supplied as part of the
+event.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.fire_event("MY_CUSTOM_EVENT", jam="true")
+
+
 Home Assistant Config
 ---------------------
 

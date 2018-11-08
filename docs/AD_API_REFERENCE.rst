@@ -1331,10 +1331,10 @@ Examples
 
     service, kwargs = self.info_listen_event(handle)
 
-fire\_event()
+fire\_app\_event()
 ~~~~~~~~~~~~~
 
-Fire an event on the HomeAssistant bus, for other components to hear.
+Fire an event on AppDaemons internal bus for other apps and dashboards to hear.
 
 Synopsis
 ^^^^^^^^
@@ -1354,9 +1354,7 @@ Parameters
 event
 '''''
 
-Name of the event. Can be a standard Home Assistant event such as
-``service_registered`` or an arbitrary custom event such as
-``"MODE_CHANGE"``.
+Name of the event.
 
 namespace = (optional)
 ''''''''''''''''''''''
@@ -1376,7 +1374,7 @@ Examples
 
 .. code:: python
 
-    self.fire_event("MY_CUSTOM_EVENT", jam="true")
+    self.fire_app_event("MY_CUSTOM_EVENT", jam="true")
 
 Miscellaneous Helper Functions
 ------------------------------

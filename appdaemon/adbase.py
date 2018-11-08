@@ -60,6 +60,7 @@ class ADBase:
         self.global_vars = global_vars
         self.constraints = []
         self.lock = threading.RLock()
+        self.namespace = "default"
 
     @staticmethod
     def _sub_stack(msg):
@@ -73,6 +74,16 @@ class ADBase:
             if msg.find("__function__") != -1:
                 msg = msg.replace("__function__", stack[2][3])
         return msg
+
+    def _get_namespace(self, **kwargs):
+        if "namespace" in kwargs:
+            namespace = kwargs["namespace"]
+            del kwargs["namespace"]
+        else:
+            namespace = self.namespace
+
+        return namespace
+
 
     #
     # Threading
@@ -332,6 +343,13 @@ class ADBase:
             "Calling info_listen_event for {}".format(self.name)
         )
         return self.AD.info_event_callback(self.name, handle)
+
+    def fire_app_event(self, event, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        self.AD.process_event(namespace, {"event_type": event, "data": kwargs})
 
     #
     # Time

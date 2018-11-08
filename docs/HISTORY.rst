@@ -16,7 +16,8 @@ Change Log
 - Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code
 - Implemented multiple worker Ques to avoid Head of Line blocking
 - API Calls to control app pinning
-- added the ``schedule_thread()`` call
+- added the ``schedule_thread()`` api call
+- added ``fire_app_event()`` api call
 
 **Fixes**
 
