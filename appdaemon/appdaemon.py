@@ -56,6 +56,7 @@ class AppDaemon:
         self.appd = None
         self.stopping = False
         self.dashboard = None
+        self.running_apps = 0
 
         self.now = datetime.datetime.now().timestamp()
 
@@ -2017,6 +2018,8 @@ class AppDaemon:
                                 self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
+
+                self.log("INFO", "Running {} apps".format(len(new_config)))
 
             return {"init": initialize_apps, "term": terminate_apps}
         except:
