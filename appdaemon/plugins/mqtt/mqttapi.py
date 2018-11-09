@@ -20,7 +20,6 @@ class Mqtt(appapi.ADBase):
 
         super(Mqtt, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
-        self.namespace = "default"
         self.AD = ad
         self.name = name
         self._logger = logger

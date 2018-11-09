@@ -16,9 +16,11 @@ Change Log
 - Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code
 - Implemented multiple worker Ques to avoid Head of Line blocking
 - API Calls to control app pinning
-- added the ``schedule_thread()`` api call
+- added the ``run_in_thread()`` api call
 - added ``fire_app_event()`` api call
+- reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
+
 **Fixes**
 
 **Breaking Changes**
@@ -27,6 +29,8 @@ Change Log
 - Time travel semantics have changed to support faster scheduling.
 - ``plugin_started`` and ``plugin_stopped`` now go to the appropriate namespace for the plugin and are no longer global
 - Apps are no longer concurrent or re-entrant by default. This is most likely a good thing.
+- Changed the signature of ``listen_log()`` callbacks
+- ``cancel_listen_log()`` now requires a handle supplied by the initial ``listen_log()``
 
 3.0.2 10/31/2018
 ----------------

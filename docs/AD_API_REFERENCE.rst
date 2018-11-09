@@ -1926,7 +1926,7 @@ Synopsis
 
 .. code:: python
 
-    self.listen_log(callback, level)
+    self.listen_log(callback, level, **kwargs)
 
 Parameters
 ^^^^^^^^^^
@@ -1941,17 +1941,41 @@ level
 
 Logging level to be used - lower levels will not be forwarded to the app. Defaults to "INFO".
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
+\*\*kwargs
+''''''''''
+
+Zero or more keyword arguments that will be supplied to the callback
+when it is called.
+
 Returns
 ^^^^^^^
 
-None.
+A unique identifier that can be used to cancel the callback if required.
+Since variables created within object methods are local to the function
+they are created in, and in all likelihood the cancellation will be
+invoked later in a different function, it is recommended that handles
+are stored in the object namespace, e.g. ``self.handle``.
 
 Examples
 ^^^^^^^^
 
 .. code:: python
 
-    self.listen_log(self.cb, "INFO")
+    self.handle = self.listen_log(self.cb, "WARNING")
 
 cancel_log()
 ~~~~~~~~~~~~
@@ -1963,7 +1987,15 @@ Synopsis
 
 .. code:: python
 
-    self.cancel_listen_log()
+    self.cancel_listen_log(handle)
+
+Parameters
+^^^^^^^^^^
+
+handle
+''''''
+
+The handle returned when the ``listen_log()`` call was made.
 
 Returns
 ^^^^^^^
@@ -1990,7 +2022,9 @@ The signature for a callback used with ``listen_log()`` is as follows:
 ``name`` is the name of the app that logged the message
 ``ts`` is the timestamp of the message
 ``level`` is the severity level of the message
+``type`` is the log the message was sent to - ``log``, ``err``, or ``diag``
 ``message`` is the text of the message
+``kwargs`` any parameters set as keyword values by ``listen_log()``
 
 For AppDaemon system messages, name will be set to "AppDaemon".
 
@@ -2126,7 +2160,7 @@ Examples
         thread = self.get_pin_thread(True):
         self.log("I'm pinned to thread {}".format(thread))
 
-schedule_thread()
+run_in_thread()
 ~~~~~~~~~~~~~~~~
 
 Schedule a callback to be run in a different thread from the current one.
@@ -2136,7 +2170,7 @@ Synopsis
 
 .. code:: python
 
-    schedule_thread(callback, thread)
+    run_in_thread(callback, thread)
 
 Returns
 ^^^^^^^
@@ -2161,7 +2195,7 @@ Examples
 
 .. code:: python
 
-    self.schedule_thread(my_callback, 8)
+    self.run_in_thread(my_callback, 8)
 
 API
 ---

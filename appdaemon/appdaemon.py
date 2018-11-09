@@ -69,8 +69,8 @@ class AppDaemon:
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
 
-        self.log_callbacks = {}
-        self.log_callbacks_lock = threading.RLock()
+        #self.log_callbacks = {}
+        #self.log_callbacks_lock = threading.RLock()
 
         self.thread_info = {}
         self.thread_info_lock = threading.RLock()
@@ -777,20 +777,23 @@ class AppDaemon:
                     elif _type == "event":
                         data = args["data"]
                         self.update_thread_info(thread_id, callback, _type)
-                        funcref(args["event"], data, args["kwargs"])
+                        if args["event"] == "AD_LOG_EVENT":
+                            funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
+                        else:
+                            funcref(args["event"], data, args["kwargs"])
                         self.update_thread_info(thread_id, "idle")
 
                 except:
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name))
-                    self.err("WARNING", "Worker Ags: {}".format(args))
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", traceback.format_exc())
-                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", '-' * 60, name=name)
+                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
+                    self.err("WARNING", "Worker Ags: {}".format(args), name=name)
+                    self.err("WARNING", '-' * 60, name=name)
+                    self.err("WARNING", traceback.format_exc(), name=name)
+                    self.err("WARNING", '-' * 60, name=name)
                     if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile), name=name)
             else:
-                self.log("WARNING", "Found stale callback for {} - discarding".format(name))
+                self.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
 
             q.task_done()
 
@@ -1776,8 +1779,11 @@ class AppDaemon:
 
     def initialize_app(self, name):
         with self.objects_lock:
-            init = self.objects[name]["object"].initialize
-
+            if name in self.objects:
+                init = self.objects[name]["object"].initialize
+            else:
+                self.log("WARNING", "Unable to find module {} - initialize() skipped".format(name))
+                return
         # Call its initialize function
 
         try:
@@ -2666,17 +2672,18 @@ class AppDaemon:
                                     _run = False
                             if _run:
                                 with self.objects_lock:
-                                    self.dispatch_worker(name, {
-                                        "name": name,
-                                        "id": self.objects[name]["id"],
-                                        "type": "event",
-                                        "event": data['event_type'],
-                                        "function": callback["function"],
-                                        "data": data["data"],
-                                        "pin_app": callback["pin_app"],
-                                        "pin_thread": callback["pin_thread"],
-                                        "kwargs": callback["kwargs"]
-                                    })
+                                    if name in self.objects:
+                                        self.dispatch_worker(name, {
+                                            "name": name,
+                                            "id": self.objects[name]["id"],
+                                            "type": "event",
+                                            "event": data['event_type'],
+                                            "function": callback["function"],
+                                            "data": data["data"],
+                                            "pin_app": callback["pin_app"],
+                                            "pin_thread": callback["pin_thread"],
+                                            "kwargs": callback["kwargs"]
+                                        })
 
     #
     # Plugin Management
@@ -2729,7 +2736,7 @@ class AppDaemon:
             ts = datetime.datetime.now()
         utils.log(self.logger, level, message, name, ts)
 
-        self.process_log_callback(level, message, name, ts)
+        self.process_log_callback(level, message, name, ts, "log")
 
     def err(self, level, message, name="AppDaemon"):
         if not self.realtime:
@@ -2738,36 +2745,7 @@ class AppDaemon:
             ts = datetime.datetime.now()
         utils.log(self.error, level, message, name, ts)
 
-        self.process_log_callback(level, message, name, ts)
-
-    def process_log_callback(self, level, message, name, ts):
-        with self.log_callbacks_lock:
-            for thisname in self.log_callbacks:
-                if thisname != name:
-                    try:
-                        if utils.log_levels[level] >= utils.log_levels[self.log_callbacks[thisname]["level"]]:
-                            self.log_callbacks[thisname]["callback"](name, ts, level, message)
-                    except:
-                        self.err("WARNING", '-' * 60)
-                        self.err("WARNING", "Unexpected error in log callback for: {}:".format(name))
-                        self.err("WARNING", '-' * 60)
-                        self.err("WARNING", traceback.format_exc())
-                        self.err("WARNING", '-' * 60)
-                        if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                            self.log("WARNING", "Logged an error to {}".format(self.errfile))
-
-
-    def add_log_callback(self, name, cb, level):
-        with self.log_callbacks_lock:
-            self.log_callbacks[name] = {"callback": cb, "level": level}
-
-    def cancel_log_callback(self, name):
-        with self.log_callbacks_lock:
-            if name not in self.log_callbacks:
-                self.log("WARNING", "Invalid callback in cancel_log_callback() from app {}".format(name))
-
-            if name in self.log_callbacks:
-                del self.log_callbacks[name]
+        self.process_log_callback(level, message, name, ts, "error")
 
     def diag(self, level, message, name="AppDaemon"):
         if not self.realtime:
@@ -2775,6 +2753,47 @@ class AppDaemon:
         else:
             ts = None
         utils.log(self.diagnostic, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts, "diag")
+
+    def process_log_callback(self, level, message, name, ts, type):
+        # Need to check if this log callback belongs to an app that is accepting log events
+        # If so, don't generate the event to avoid loops
+        has_log_callback = False
+        with self.callbacks_lock:
+            for callback in self.callbacks:
+                for uuid in self.callbacks[callback]:
+                    cb = self.callbacks[callback][uuid]
+                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "AD_LOG_EVENT":
+                        has_log_callback = True
+
+        if has_log_callback is False:
+            self.process_event("global", {"event_type": "AD_LOG_EVENT",
+                                          "data": {
+                                              "level": level,
+                                              "app_name": name,
+                                              "message": message,
+                                              "ts": ts,
+                                              "type": type
+                                          }})
+#        with self.log_callbacks_lock:
+#            for thisname in self.log_callbacks:
+#                if thisname != name:
+#                    if utils.log_levels[level] >= utils.log_levels[self.log_callbacks[thisname]["level"]]:
+#                        self.log_callbacks[thisname]["callback"](name, ts, level, message)
+
+    def add_log_callback(self, namespace, name, cb, level, **kwargs):
+        # Add a separate callback for each log level
+        handle = []
+        for thislevel in utils.log_levels:
+            if utils.log_levels[thislevel] >= utils.log_levels[level] :
+                handle.append(self.add_event_callback(name, namespace, cb, "AD_LOG_EVENT", level=thislevel, **kwargs))
+
+        return handle
+
+    def cancel_log_callback(self, name, handle):
+        for h in handle:
+            self.cancel_event_callback(name, h)
 
     def register_dashboard(self, dash):
         self.dashboard = dash

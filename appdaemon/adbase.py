@@ -113,15 +113,16 @@ class ADBase:
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
 
-    def listen_log(self, cb, level="INFO"):
-        return self.AD.add_log_callback(self.name, cb, level)
+    def listen_log(self, cb, level="INFO", **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.add_log_callback(namespace, self.name, cb, level, **kwargs)
 
-    def cancel_listen_log(self):
+    def cancel_listen_log(self, handle):
         self.AD.log(
             "DEBUG",
             "Canceling listen_log for {}".format(self.name)
         )
-        self.AD.cancel_log_callback(self.name)
+        self.AD.cancel_log_callback(self.name, handle)
 
     #
     # Utility
@@ -346,9 +347,6 @@ class ADBase:
 
     def fire_app_event(self, event, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
         self.AD.process_event(namespace, {"event_type": event, "data": kwargs})
 
     #
@@ -437,7 +435,7 @@ class ADBase:
         )
         return handle
 
-    def schedule_thread(self, callback, thread):
+    def run_in_thread(self, callback, thread):
         self.run_in(callback, 0, pin=False, pin_thread=thread)
 
     def run_once(self, callback, start, **kwargs):
