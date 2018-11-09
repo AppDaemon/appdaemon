@@ -367,9 +367,11 @@ class ADBase:
     #
 
     def listen_event(self, cb, event=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        namespace = self._get_namespace(**kwargs)
+            
         _name = self.name
         self.AD.log(
             "DEBUG",
@@ -392,9 +394,11 @@ class ADBase:
         return self.AD.info_event_callback(self.name, handle)
 
     def fire_app_event(self, event, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        namespace = self._get_namespace(**kwargs)
+            
         self.AD.process_event(namespace, {"event_type": event, "data": kwargs})
 
     #
