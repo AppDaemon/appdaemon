@@ -164,7 +164,7 @@ def log(logger, level, msg, name="", ts=None, ascii_encode=True):
         name = safe_enc(name)
         msg = safe_enc(msg)
 
-    logger.log(levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
+    logger.log(log_levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
 
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
