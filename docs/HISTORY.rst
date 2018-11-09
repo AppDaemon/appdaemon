@@ -20,6 +20,7 @@ Change Log
 - added ``fire_app_event()`` api call
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIS to remove duplication
+- added checking for overdue threads
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 
 **Fixes**

@@ -212,6 +212,10 @@ class AppDaemon:
         self.max_clock_skew = 1
         self._process_arg("max_clock_skew", kwargs, int=True)
 
+        self.thread_duration_warning_threshold = 10
+        self._process_arg("thread_duration_warning_threshold", kwargs, float=True)
+
+
         self.threadpool_workers = 10
         self._process_arg("threadpool_workers", kwargs, int=True)
 
@@ -736,6 +740,10 @@ class AppDaemon:
 
         with self.thread_info_lock:
             ts = self.now
+            if callback == "idle":
+                start = self.thread_info["threads"][thread_id]["time_called"]
+                if ts - start >= self.thread_duration_warning_threshold:
+                    self.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
             self.thread_info["threads"][thread_id]["callback"] = callback
             self.thread_info["threads"][thread_id]["time_called"] = ts
             if callback == "idle":
@@ -1727,6 +1735,16 @@ class AppDaemon:
                             warning_step = 0
                     else:
                         warning_step = 0
+
+                    # Check for any overdue threads
+
+                    if self.thread_duration_warning_threshold != 0:
+                        for thread_id in self.thread_info["threads"]:
+                            if self.thread_info["threads"][thread_id]["callback"] != "idle":
+                                start = self.thread_info["threads"][thread_id]["time_called"]
+                                dur = self.now - start
+                                if dur >= self.thread_duration_warning_threshold and dur % self.thread_duration_warning_threshold == 0:
+                                    self.log("WARNING", "Excessive time spent in callback: {} - {}s".format(self.thread_info["threads"][thread_id]["callback"], dur))
 
                     # Run utility for each plugin
 
