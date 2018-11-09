@@ -113,6 +113,8 @@ class ADBase:
 
     def listen_log(self, cb, level="INFO", **kwargs):
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         return self.AD.add_log_callback(namespace, self.name, cb, level, **kwargs)
 
     def cancel_listen_log(self, handle):
@@ -280,6 +282,8 @@ class ADBase:
 
     def listen_state(self, cb, entity=None, **kwargs):
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
@@ -301,6 +305,8 @@ class ADBase:
 
     def get_state(self, entity_id=None, attribute=None, **kwargs):
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         self.AD.log("DEBUG",
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
@@ -347,6 +353,8 @@ class ADBase:
 
     def set_app_state(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         new_state = self.parse_state(entity_id, namespace, **kwargs)
         # Update AppDaemon's copy
 
@@ -359,6 +367,8 @@ class ADBase:
     #
 
     def listen_event(self, cb, event=None, **kwargs):
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         namespace = self._get_namespace(**kwargs)
         _name = self.name
         self.AD.log(
@@ -382,6 +392,8 @@ class ADBase:
         return self.AD.info_event_callback(self.name, handle)
 
     def fire_app_event(self, event, **kwargs):
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         namespace = self._get_namespace(**kwargs)
         self.AD.process_event(namespace, {"event_type": event, "data": kwargs})
 
