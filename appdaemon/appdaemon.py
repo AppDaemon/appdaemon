@@ -27,6 +27,40 @@ import hashlib
 import appdaemon.utils as utils
 
 
+def _timeit(func):
+    @functools.wraps(func)
+    def newfunc(*args, **kwargs):
+        self = args[0]
+        start_time = time.time()
+        result = func(self, *args, **kwargs)
+        elapsed_time = time.time() - start_time
+        self.log("INFO", 'function [{}] finished in {} ms'.format(
+            func.__name__, int(elapsed_time * 1000)))
+        return result
+
+    return newfunc
+
+
+def _profile_this(fn):
+    def profiled_fn(*args, **kwargs):
+        self = args[0]
+        self.pr = cProfile.Profile()
+        self.pr.enable()
+
+        result = fn(self, *args, **kwargs)
+
+        self.pr.disable()
+        s = io.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(self.pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        self.profile = fn + s.getvalue()
+
+        return result
+
+    return profiled_fn
+
+
 class AppDaemon:
 
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
@@ -404,37 +438,6 @@ class AppDaemon:
                 else:
                     setattr(self, arg, value)
 
-    def _timeit(func):
-        @functools.wraps(func)
-        def newfunc(self, *args, **kwargs):
-            start_time = time.time()
-            result = func(self, *args, **kwargs)
-            elapsed_time = time.time() - start_time
-            self.log("INFO", 'function [{}] finished in {} ms'.format(
-                func.__name__, int(elapsed_time * 1000)))
-            return result
-
-        return newfunc
-
-    def _profile_this(fn):
-        def profiled_fn(self, *args, **kwargs):
-            self.pr = cProfile.Profile()
-            self.pr.enable()
-
-            result = fn(self, *args, **kwargs)
-
-            self.pr.disable()
-            s = io.StringIO()
-            sortby = 'cumulative'
-            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            ps.print_stats()
-            self.profile = fn + s.getvalue()
-
-            return result
-
-        return profiled_fn
-
-
     def stop(self):
         self.stopping = True
         # if ws is not None:
@@ -641,6 +644,7 @@ class AppDaemon:
             # Handle the case where an App is unpinned but selects a pinned callback without specifying a thread
             # If this happens a lot, thread 0 might get congested but the alternatives are worse!
             if thread == -1:
+                self.log("WARNING", "Invalid thread ID for pinned thread in app: {} - assigning to thread 0".format(args["name"]))
                 thread = 0
         else:
             if self.threads == self.pin_threads:
@@ -655,6 +659,9 @@ class AppDaemon:
                 self.next_thread += 1
                 if self.next_thread == self.threads:
                     self.next_thread = self.pin_threads
+
+        if thread < 0 or thread >= self.threads:
+            raise ValueError("invalid thread id: {} in app {}".format(thread, args["name"]))
 
         with self.thread_info_lock:
             id = "thread-{}".format(thread)
@@ -808,55 +815,67 @@ class AppDaemon:
             else:
                 return False
 
+    def validate_pin(self, name, kwargs):
+        if "pin_thread" in kwargs:
+            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threads:
+                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
+                return False
+        else:
+            return True
+
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
-        with self.objects_lock:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin"]
-            else:
-                pin_app = self.objects[name]["pin_app"]
-
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.objects[name]["pin_thread"]
-
-        with self.callbacks_lock:
-            if name not in self.callbacks:
-                self.callbacks[name] = {}
-
-            handle = uuid.uuid4()
+        if self.validate_pin(name, kwargs) is True:
             with self.objects_lock:
-                self.callbacks[name][handle] = {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "state",
-                    "function": cb,
-                    "entity": entity,
-                    "namespace": namespace,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs
-                }
+                if "pin" in kwargs:
+                    pin_app = kwargs["pin"]
+                else:
+                    pin_app = self.objects[name]["pin_app"]
 
-        #
-        # In the case of a quick_start parameter,
-        # start the clock immediately if the device is already in the new state
-        #
-        if "immediate" in kwargs and kwargs["immediate"] is True:
-            if entity is not None and "new" in kwargs and "duration" in kwargs:
-                with self.state_lock:
-                    if self.state[namespace][entity]["state"] == kwargs["new"]:
-                        exec_time = self.get_now_ts() + int(kwargs["duration"])
-                        kwargs["_duration"] = self.insert_schedule(
-                            name, exec_time, cb, False, None,
-                            entity=entity,
-                            attribute=None,
-                            old_state=None,
-                            new_state=kwargs["new"], **kwargs
-                    )
+                if "pin_thread" in kwargs:
+                    pin_thread = kwargs["pin_thread"]
+                    pin_app = True
+                else:
+                    pin_thread = self.objects[name]["pin_thread"]
 
-        return handle
+
+            with self.callbacks_lock:
+                if name not in self.callbacks:
+                    self.callbacks[name] = {}
+
+                handle = uuid.uuid4()
+                with self.objects_lock:
+                    self.callbacks[name][handle] = {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "state",
+                        "function": cb,
+                        "entity": entity,
+                        "namespace": namespace,
+                        "pin_app": pin_app,
+                        "pin_thread": pin_thread,
+                        "kwargs": kwargs
+                    }
+
+            #
+            # In the case of a quick_start parameter,
+            # start the clock immediately if the device is already in the new state
+            #
+            if "immediate" in kwargs and kwargs["immediate"] is True:
+                if entity is not None and "new" in kwargs and "duration" in kwargs:
+                    with self.state_lock:
+                        if self.state[namespace][entity]["state"] == kwargs["new"]:
+                            exec_time = self.get_now_ts() + int(kwargs["duration"])
+                            kwargs["_duration"] = self.insert_schedule(
+                                name, exec_time, cb, False, None,
+                                entity=entity,
+                                attribute=None,
+                                old_state=None,
+                                new_state=kwargs["new"], **kwargs
+                        )
+
+            return handle
+        else:
+            return None
 
     def cancel_state_callback(self, handle, name):
         with self.callbacks_lock:
@@ -1843,7 +1862,11 @@ class AppDaemon:
 
             with self.objects_lock:
                 if "pin_thread" in app_args:
-                    pin = app_args["pin_thread"]
+                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.threads:
+                        self.log("WARNING", "pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
+                        return
+                    else:
+                        pin = app_args["pin_thread"]
                 else:
                     pin = -1
 
