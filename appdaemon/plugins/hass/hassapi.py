@@ -50,56 +50,9 @@ class Hass(appapi.ADBase):
         self.register_constraint("constrain_input_select")
         self.register_constraint("constrain_days")
 
-    def _sub_stack(self, msg):
-        # If msg is a data structure of some type, don't sub
-        if type(msg) is str:
-            stack = inspect.stack()
-            if msg.find("__module__") != -1:
-                msg = msg.replace("__module__", stack[2][1])
-            if msg.find("__line__") != -1:
-                msg = msg.replace("__line__", str(stack[2][2]))
-            if msg.find("__function__") != -1:
-                msg = msg.replace("__function__", stack[2][3])
-        return msg
-
-    def set_namespace(self, namespace):
-        self.namespace = namespace
-
-    def _get_namespace(self, **kwargs):
-        if "namespace" in kwargs:
-            namespace = kwargs["namespace"]
-            del kwargs["namespace"]
-        else:
-            namespace = self.namespace
-
-        return namespace
-
-
     #
-    # Listen state stub here as super class doesn't know the namespace
+    # State
     #
-
-    def listen_state(self, cb, entity=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Hass, self).listen_state(namespace, cb, entity, **kwargs)
-
-    #
-    # Likewise with get state
-    #
-
-    def get_state(self, entity=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Hass, self).get_state(namespace, entity, **kwargs)
-
-    def set_app_state(self, entity_id, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Hass, self).set_app_state(entity_id, namespace, **kwargs)
 
     def set_state(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -134,58 +87,6 @@ class Hass(appapi.ADBase):
         self.AD.set_state(namespace, entity_id, state)
 
         return state
-
-    def entity_exists(self, entity_id, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        return self.AD.entity_exists(namespace, entity_id)
-
-    #
-    # Events
-    #
-    def listen_event(self, cb, event=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Hass, self).listen_event(namespace, cb, event, **kwargs)
-
-
-    #
-    # Utility
-    #
-
-
-    def split_entity(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
-        return entity_id.split(".")
-
-    def split_device_list(self, list_):
-        return list_.split(",")
-
-    def log(self, msg, level="INFO"):
-        msg = self._sub_stack(msg)
-        self.AD.log(level, msg, self.name)
-
-    def error(self, msg, level="WARNING"):
-        msg = self._sub_stack(msg)
-        self.AD.err(level, msg, self.name)
-
-    def get_plugin_config(self, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        return self.AD.get_plugin_meta(namespace)
-
-    #
-    #
-    #
-
-    def friendly_name(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
-        state = self.get_state(**kwargs)
-        if entity_id in state:
-            if "friendly_name" in state[entity_id]["attributes"]:
-                return state[entity_id]["attributes"]["friendly_name"]
-            else:
-                return entity_id
-        return None
 
     #
     # Device Trackers

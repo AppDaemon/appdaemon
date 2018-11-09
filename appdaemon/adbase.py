@@ -15,7 +15,6 @@ class Entities:
 # Locking decorator
 #
 
-
 def app_lock(myFunc):
     """ Synchronization decorator. """
 
@@ -84,7 +83,6 @@ class ADBase:
 
         return namespace
 
-
     #
     # Threading
     #
@@ -125,6 +123,16 @@ class ADBase:
         self.AD.cancel_log_callback(self.name, handle)
 
     #
+    # Namespace
+    #
+
+    def set_namespace(self, namespace):
+        self.namespace = namespace
+
+    def get_namespace(self):
+        return self.namespace
+
+    #
     # Utility
     #
 
@@ -148,6 +156,31 @@ class ADBase:
 
     def get_ad_version(self):
         return utils.__version__
+
+    def entity_exists(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.entity_exists(namespace, entity_id)
+
+    def split_entity(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        return entity_id.split(".")
+
+    def split_device_list(self, list_):
+        return list_.split(",")
+
+    def get_plugin_config(self, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.get_plugin_meta(namespace)
+
+    def friendly_name(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        state = self.get_state(**kwargs)
+        if entity_id in state:
+            if "friendly_name" in state[entity_id]["attributes"]:
+                return state[entity_id]["attributes"]["friendly_name"]
+            else:
+                return entity_id
+        return None
 
     #
     # Apiai
@@ -245,7 +278,8 @@ class ADBase:
     # State
     #
 
-    def listen_state(self, namespace, cb, entity, **kwargs):
+    def listen_state(self, cb, entity=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
@@ -265,7 +299,8 @@ class ADBase:
         )
         return self.AD.info_state_callback(handle, self.name)
 
-    def get_state(self, namespace, entity_id=None, attribute=None):
+    def get_state(self, entity_id=None, attribute=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
         self.AD.log("DEBUG",
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
@@ -310,8 +345,8 @@ class ADBase:
 
         return new_state
 
-    def set_app_state(self, entity_id, namespace, **kwargs):
-
+    def set_app_state(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
         new_state = self.parse_state(entity_id, namespace, **kwargs)
         # Update AppDaemon's copy
 
@@ -323,7 +358,8 @@ class ADBase:
     # Events
     #
 
-    def listen_event(self, namespace, cb, event=None, **kwargs):
+    def listen_event(self, cb, event=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
         _name = self.name
         self.AD.log(
             "DEBUG",
@@ -572,7 +608,7 @@ class ADBase:
             kwargs["timeout"] = timeout
         if ret is not None:
             kwargs["return"] = ret
-        self.fire_event("hadashboard", **kwargs)
+        self.fire_app_event("hadashboard", **kwargs)
     #
     # Constraints
     #
