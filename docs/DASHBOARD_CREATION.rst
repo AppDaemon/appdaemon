@@ -1241,6 +1241,8 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``state_text``
 -  ``state_map``
+-  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
+-  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button) 
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
