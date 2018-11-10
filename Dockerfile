@@ -21,4 +21,4 @@ RUN pip3 install .
 
 # Start script
 RUN chmod +x /usr/src/app/dockerStart.sh
-CMD [ "./dockerStart.sh" ]
+ENTRYPOINT [ "./dockerStart.sh" ]
