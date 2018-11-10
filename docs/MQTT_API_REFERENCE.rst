@@ -190,7 +190,7 @@ Events
 listen\_event()
 ~~~~~~~~~~~~~~~
 
-This is the primary way of listening for changes within the MQTT plugin - unlike other plugins, MQTT does not keep state. All MQTT messages will have an event type of ``MQTT_EVENT``
+This is the primary way of listening for changes within the MQTT plugin - unlike other plugins, MQTT does not keep state. All MQTT messages will have an event which is set to ``MQTT_MESSAGE`` by default. This can be changed to whatever that is required in the plugin configuration.
 
 Synopsis
 ^^^^^^^^
@@ -234,12 +234,9 @@ supply to the callback. If the keywords match values within the event
 data, they will act as filters, meaning that if they don't match the
 values, the callback will not fire.
 
-As an example of this, a specific topic can be listened to, instead of listening to all topics subscribed to.
+As an example of this, a specific topic or wildcard can be listened to, instead of listening to all topics subscribed to.
 For example if data is sent to a subscribed topic, it will generate an event as specified in the config;
-if wanting to listen to a specific topic, ``topic`` can be passed in the filter the callback by supplying keyworded
-arguments. If you include keyword values, the values supplied to the \`listen\_event()\` call must match the values in the event or it
-will not fire. If the keywords do not match any of the data in the event
-they are simply ignored.
+if wanting to listen to a specific topic or wildcard, ``topic`` or ``wildcard`` can be passed in, and used to filter the callback by supplying them as keyworded arguments. If you include keyword values, the values supplied to the \`listen\_event()\` call must match the values in the event or it will not fire. If the keywords do not match any of the data in the event they are simply ignored.
 
 Filtering will work with any event type, but it will be necessary to
 figure out the data associated with the event to understand what values
@@ -251,8 +248,12 @@ Examples
 .. code:: python
 
     self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE")
-     #Listen for when a specific subscribed topic gets some data:
+    #Listen for when a specific subscribed topic gets some data:
     self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", topic = 'homeassistant/bedroom/light')
+    #Listen for when a specific subscribed high level topic gets some data:
+    self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
+    
+At this point, it is not possible to use single level wildcard like using ``homeassistant/+/light`` instead of ``homeassistant/bedroom/light``. This could be added later, if need be.
 
 MQTT Config
 -----------
