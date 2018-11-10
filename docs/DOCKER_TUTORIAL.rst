@@ -235,14 +235,15 @@ Run the following commands:
     docker stop appdaemon
     docker run --rm -it -p 5050:5050 \
       -v <your_conf_folder>:/conf \
-      -e EXTRA_CMD="-D DEBUG" \
-      acockburn/appdaemon:latest
+      acockburn/appdaemon:latest -D DEBUG
 
 Once you are done with the debug, start the non-debug container back up:
 
 ::
 
     docker start appdaemon
+
+You can also append any other AppDaemon flags to the end of the command line if desired, e.g. to use time travel.
 
 Timezones
 ---------
