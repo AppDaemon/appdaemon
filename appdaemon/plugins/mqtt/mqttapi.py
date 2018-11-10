@@ -31,6 +31,23 @@ class Mqtt(appapi.ADBase):
         self.loop = self.AD.loop
 
     #
+    # Listen event stub here as super class doesn't know the namespace
+    #
+
+    def listen_event(self, cb, event=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+
+        if 'wildcard' in kwargs:
+            wildcard = kwargs['wildcard']
+            if wildcard[-2:] == '/#' and len(wildcard.split('/')[0]) >= 1:
+                self.AD.get_plugin(namespace).process_mqtt_wildcard(kwargs['wildcard'])
+            else:
+                self.log("Using {!r} as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered".format(wildcard), level="WARNING")
+                return
+
+        return super(Mqtt, self).listen_event(cb, event, **kwargs)
+
+    #
     # service calls
     #
     def mqtt_publish(self, topic, payload = None, **kwargs):
