@@ -1,14 +1,14 @@
 widget_type: baseclimateslider
-entity: {{entity}}
+entity: "{{entity}}"
 post_service:
     service: climate/set_temperature
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   target: ""
   current: ""
-  unit: {{unit}}
+  unit: "{{unit}}"
   SliderValue: ""
   MinValue: ""
   MaxValue: ""

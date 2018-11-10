@@ -632,6 +632,9 @@ class AppDaemon:
 
         if unconstrained:
             self.select_q(args)
+            return True
+        else:
+            return False
 
     def select_q(self, args):
         #
@@ -2509,10 +2512,11 @@ class AppDaemon:
 
     def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
                             old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
+        executed = False
         kwargs["handle"] = uuid_
         if attribute == "all":
             with self.objects_lock:
-                self.dispatch_worker(name, {
+                executed = self.dispatch_worker(name, {
                     "name": name,
                     "id": self.objects[name]["id"],
                     "type": "attr",
@@ -2559,7 +2563,7 @@ class AppDaemon:
                 else:
                     # Do it now
                     with self.objects_lock:
-                        self.dispatch_worker(name, {
+                        executed = self.dispatch_worker(name, {
                             "name": name,
                             "id": self.objects[name]["id"],
                             "type": "attr",
@@ -2576,6 +2580,8 @@ class AppDaemon:
                 if "_duration" in kwargs:
                     # cancel timer
                     self.cancel_timer(name, kwargs["_duration"])
+
+        return executed
 
     def process_state_change(self, namespace, state):
         data = state["data"]
@@ -2607,8 +2613,9 @@ class AppDaemon:
                         cold = callback["kwargs"].get("old")
                         cnew = callback["kwargs"].get("new")
 
+                        executed = False
                         if cdevice is None:
-                            self.check_and_disapatch(
+                            executed = self.check_and_disapatch(
                                 name, callback["function"], entity_id,
                                 cattribute,
                                 data['new_state'],
@@ -2621,7 +2628,7 @@ class AppDaemon:
                             )
                         elif centity is None:
                             if device == cdevice:
-                                self.check_and_disapatch(
+                                executed = self.check_and_disapatch(
                                     name, callback["function"], entity_id,
                                     cattribute,
                                     data['new_state'],
@@ -2632,8 +2639,9 @@ class AppDaemon:
                                     callback["pin_app"],
                                     callback["pin_thread"]
                                 )
+
                         elif device == cdevice and entity == centity:
-                            self.check_and_disapatch(
+                            executed = self.check_and_disapatch(
                                 name, callback["function"], entity_id,
                                 cattribute,
                                 data['new_state'],
@@ -2646,14 +2654,14 @@ class AppDaemon:
                             )
 
                         # Remove the callback if appropriate
-                        remove = callback["kwargs"].get("oneshot", False)
-                        if remove:
-                            #print(callback["kwargs"])
-                            #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
-                            removes.append({"name": callback["name"], "uuid": uuid_})
+                        if executed is True:
+                            remove = callback["kwargs"].get("oneshot", False)
+                            if remove is True:
+                                #print(callback["kwargs"])
+                                #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                                removes.append({"name": callback["name"], "uuid": uuid_})
 
             for remove in removes:
-                #print(remove)
                 self.cancel_state_callback(remove["uuid"], remove["name"])
 
     async def state_update(self, namespace, data):

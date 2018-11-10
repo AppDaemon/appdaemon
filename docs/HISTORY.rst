@@ -28,6 +28,8 @@ Change Log
 
 **Fixes**
 
+- Fixes to listen_state() oneshot function
+
 **Breaking Changes**
 
 - appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
