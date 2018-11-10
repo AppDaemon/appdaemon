@@ -1,18 +1,18 @@
 widget_type: basealarm
-entity: {{entity}}
+entity: "{{entity}}"
 initial_string: "Enter Code"
 post_service_ah:
     service: alarm_control_panel/alarm_arm_home
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_aa:
     service: alarm_control_panel/alarm_arm_away
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_da:
     service: alarm_control_panel/alarm_disarm
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_tr:
     service: alarm_control_panel/alarm_trigger
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 state_map:
   pending: Pending
   armed_home: Armed Home
@@ -20,8 +20,8 @@ state_map:
   disarmed: Disarmed
   triggered: Triggered
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   state: ""
   code: ""
 static_css:
