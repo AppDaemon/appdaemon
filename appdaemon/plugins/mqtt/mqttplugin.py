@@ -80,6 +80,7 @@ class MqttPlugin:
 
         self.loop = self.AD.loop # get AD loop
         self.mqtt_connect_event = asyncio.Event(loop = self.loop)
+        self.mqtt_wildcards = list()
         self.mqtt_metadata = {
             "version": "1.0",
             "host" : self.mqtt_client_host,
@@ -168,8 +169,17 @@ class MqttPlugin:
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
+        topic = msg.topic
 
-        data = {'event_type': self.mqtt_event_name, 'data': {'topic': msg.topic, 'payload': msg.payload.decode()}}
+        if self.mqtt_wildcards != [] and any(list(map(lambda x: x in topic, self.mqtt_wildcards))): #check if any of the wildcards belong
+            index = list(map(lambda x: x in topic, self.mqtt_wildcards)).index(True)
+            wildcard = self.mqtt_wildcards[index] + '#'
+
+            data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': wildcard}}
+
+        else:
+            data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': None}}
+
         self.loop.create_task(self.send_ad_event(data))
 
     def mqtt_service(self, service, **kwargs):        
@@ -213,6 +223,10 @@ class MqttPlugin:
             result = 'ERR'
 
         return result
+
+    def process_mqtt_wildcard(self, wildcard):
+        if wildcard.rstrip('#') not in self.mqtt_wildcards:
+            self.mqtt_wildcards.append(wildcard.rstrip('#'))
     
     async def send_ad_event(self, data):
         await self.AD.state_update(self.namespace, data)
