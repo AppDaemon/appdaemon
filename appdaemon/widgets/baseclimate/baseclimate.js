@@ -67,7 +67,14 @@ function baseclimate(widget_id, url, skin, parameters)
         self.min = state.attributes.min_temp
         self.max = state.attributes.max_temp
         self.level = state.attributes.temperature
-        self.set_field(self, "unit", state.attributes.unit_of_measurement)
+        if ("units" in self.parameters)
+        {
+            self.set_field(self, "unit", self.parameters.unit)
+        }
+        else
+        {
+            self.set_field(self, "unit", state.attributes["unit_of_measurement"])
+        }
         set_view(self, state)
     }
 

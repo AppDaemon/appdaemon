@@ -18,9 +18,9 @@ the `AppDaemon Installation Documentation <INSTALL.html>`__.
 
 When you have AppDaemon installed and running, configuration of the
 Dashboard is pretty simple. You just need to add a directive to the
-config file - ``dash_url``.
+appdaemon.yaml file - ``dash_url``.
 
-This and the optional ``dash_dir`` directive should be in the top of the
+This and the optional ``dash_dir`` directive should be in the toplevel  of the
 file under a new ``hadashboard:`` section.
 
 -  ``dash_url`` - the url you want the dashboard service to listen on
@@ -65,7 +65,7 @@ e.g.:
 .. code:: yaml
 
     hadashboard:
-    dashboard_dir: /etc/appdaemon/dashboards
+        dashboard_dir: /etc/appdaemon/dashboards
 
 Next, you will need to create the ``dashboards`` directive either under
 the conf directory, or wherever you specify with ``dash_dir``. Once that

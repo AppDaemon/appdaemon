@@ -30,7 +30,7 @@
 #                                                                                         #
 ###########################################################################################
 
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 import datetime
 
 class objectcontrole(hass.Hass):

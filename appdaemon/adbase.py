@@ -2,7 +2,7 @@ import datetime
 import inspect
 import iso8601
 import re
-
+import threading
 import appdaemon.utils as utils
 
 class Entities:
@@ -11,9 +11,37 @@ class Entities:
         stateattrs = utils.StateAttrs(instance.get_state())
         return stateattrs
 
+#
+# Locking decorator
+#
 
+def app_lock(myFunc):
+    """ Synchronization decorator. """
 
-class AppDaemon:
+    def wrap(*args, **kw):
+        self = args[0]
+
+        self.lock.acquire()
+        try:
+            return myFunc(*args, **kw)
+        finally:
+            self.lock.release()
+    return wrap
+
+def global_lock(myFunc):
+    """ Synchronization decorator. """
+
+    def wrap(*args, **kw):
+        self = args[0]
+
+        self.AD.global_lock.acquire()
+        try:
+            return myFunc(*args, **kw)
+        finally:
+            self.AD.global_lock.release()
+    return wrap
+
+class ADBase:
     #
     # Internal
     #
@@ -30,6 +58,8 @@ class AppDaemon:
         self.args = args
         self.global_vars = global_vars
         self.constraints = []
+        self.lock = threading.RLock()
+        self.namespace = "default"
 
     @staticmethod
     def _sub_stack(msg):
@@ -44,8 +74,33 @@ class AppDaemon:
                 msg = msg.replace("__function__", stack[2][3])
         return msg
 
+    def _get_namespace(self, **kwargs):
+        if "namespace" in kwargs:
+            namespace = kwargs["namespace"]
+            del kwargs["namespace"]
+        else:
+            namespace = self.namespace
+
+        return namespace
+
     #
-    # Utility
+    # Threading
+    #
+
+    def set_app_pin(self, pin):
+        self.AD.set_app_pin(self.name, pin)
+
+    def get_app_pin(self):
+        return self.AD.get_app_pin(self.name)
+
+    def set_pin_thread(self, thread):
+        self.AD.set_pin_thread(self.name, thread)
+
+    def get_pin_thread(self):
+        return self.AD.get_pin_thread(self.name)
+
+    #
+    # Logging
     #
 
     def log(self, msg, level="INFO"):
@@ -55,6 +110,33 @@ class AppDaemon:
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
         self.AD.err(level, msg, self.name)
+
+    def listen_log(self, cb, level="INFO", **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+        return self.AD.add_log_callback(namespace, self.name, cb, level, **kwargs)
+
+    def cancel_listen_log(self, handle):
+        self.AD.log(
+            "DEBUG",
+            "Canceling listen_log for {}".format(self.name)
+        )
+        self.AD.cancel_log_callback(self.name, handle)
+
+    #
+    # Namespace
+    #
+
+    def set_namespace(self, namespace):
+        self.namespace = namespace
+
+    def get_namespace(self):
+        return self.namespace
+
+    #
+    # Utility
+    #
 
     def get_app(self, name):
         return self.AD.get_app(name)
@@ -73,6 +155,34 @@ class AppDaemon:
 
     def get_error_log(self):
         return self._error
+
+    def get_ad_version(self):
+        return utils.__version__
+
+    def entity_exists(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.entity_exists(namespace, entity_id)
+
+    def split_entity(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        return entity_id.split(".")
+
+    def split_device_list(self, list_):
+        return list_.split(",")
+
+    def get_plugin_config(self, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        return self.AD.get_plugin_meta(namespace)
+
+    def friendly_name(self, entity_id, **kwargs):
+        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        state = self.get_state(**kwargs)
+        if entity_id in state:
+            if "friendly_name" in state[entity_id]["attributes"]:
+                return state[entity_id]["attributes"]["friendly_name"]
+            else:
+                return entity_id
+        return None
 
     #
     # Apiai
@@ -170,7 +280,10 @@ class AppDaemon:
     # State
     #
 
-    def listen_state(self, namespace, cb, entity, **kwargs):
+    def listen_state(self, cb, entity=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
@@ -190,7 +303,10 @@ class AppDaemon:
         )
         return self.AD.info_state_callback(handle, self.name)
 
-    def get_state(self, namespace, entity_id=None, attribute=None):
+    def get_state(self, entity_id=None, attribute=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         self.AD.log("DEBUG",
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
@@ -210,17 +326,58 @@ class AppDaemon:
 
         return self.AD.get_state(namespace, device, entity, attribute)
 
+    def parse_state(self, entity_id, namespace, **kwargs):
+        self._check_entity(namespace, entity_id)
+        self.AD.log(
+            "DEBUG",
+            "set_app_state: {}, {}".format(entity_id, kwargs)
+        )
+
+        if entity_id in self.get_state(namespace = namespace):
+            new_state = self.get_state(namespace = namespace)[entity_id]
+        else:
+            # Its a new state entry
+            new_state = {}
+            new_state["attributes"] = {}
+
+        if "state" in kwargs:
+            new_state["state"] = kwargs["state"]
+
+        if "attributes" in kwargs and kwargs.get('replace', False):
+            new_state["attributes"] = kwargs["attributes"]
+        else:
+            if "attributes" in kwargs:
+                new_state["attributes"].update(kwargs["attributes"])
+
+        return new_state
+
+    def set_app_state(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+        new_state = self.parse_state(entity_id, namespace, **kwargs)
+        # Update AppDaemon's copy
+
+        self.AD.set_app_state(namespace, entity_id, new_state)
+
+        return new_state
+
     #
     # Events
     #
 
-    def listen_event(self, namespace, cb, event=None, **kwargs):
-        name = self.name
+    def listen_event(self, cb, event=None, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        _name = self.name
         self.AD.log(
             "DEBUG",
             "Calling listen_event for {}".format(self.name)
         )
-        return self.AD.add_event_callback(name, namespace, cb, event, **kwargs)
+        return self.AD.add_event_callback(_name, namespace, cb, event, **kwargs)
 
     def cancel_listen_event(self, handle):
         self.AD.log(
@@ -235,6 +392,14 @@ class AppDaemon:
             "Calling info_listen_event for {}".format(self.name)
         )
         return self.AD.info_event_callback(self.name, handle)
+
+    def fire_app_event(self, event, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self.AD.process_event(namespace, {"event_type": event, "data": kwargs})
 
     #
     # Time
@@ -321,6 +486,9 @@ class AppDaemon:
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
+
+    def run_in_thread(self, callback, thread):
+        self.run_in(callback, 0, pin=False, pin_thread=thread)
 
     def run_once(self, callback, start, **kwargs):
         name = self.name
@@ -426,6 +594,26 @@ class AppDaemon:
         return handle
 
     #
+    # API/Plugin
+    #
+
+    def get_plugin_api(self, name):
+        if name in self.AD.plugins:
+            plugin = self.AD.plugins[name]
+            module_name = "{}api".format(plugin["type"])
+            mod = __import__(module_name, globals(), locals(), [module_name], 0)
+            app_class = getattr(mod, plugin["type"].title())
+            api = app_class(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
+            if "namespace" in plugin:
+                api.set_namespace(plugin["namespace"])
+            else:
+                api.set_namespace("default")
+            return api
+
+        else:
+            self.AD.log("WARNING", "Unknown Plugin Configuration in get_plugin_api()")
+            return None
+    #
     # Dashboard
     #
 
@@ -436,7 +624,7 @@ class AppDaemon:
             kwargs["timeout"] = timeout
         if ret is not None:
             kwargs["return"] = ret
-        self.fire_event("hadashboard", **kwargs)
+        self.fire_app_event("hadashboard", **kwargs)
     #
     # Constraints
     #

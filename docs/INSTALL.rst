@@ -18,244 +18,80 @@ Before running ``AppDaemon`` you will need to install the package:
 
 .. code:: bash
 
-    $ sudo pip3 install --pre appdaemon
+    $ sudo pip3 install appdaemon
 
-Note: the ``--pre`` flag is required or you will install version 2.1.12. There are many breaking changes between 2.1.12 and this beta so ensure you have the correct version installed before proceeding.
+
+**Do not** install this in the same Python virtual environment as Home Assistant. If you do that then Home Assistant will stop working.
 
 Install Using hass.io
 ---------------------
 
-There are a couple of hass.io addons for AppDaemon maintained by:
+The official hass.io addon for AppDaemon is maintained by:
 
 - `frenck <https://github.com/hassio-addons/repository>`__.
-- `sparck75 <https://github.com/sparck75/hassio-addons>`__.
 
 
-Configuration
--------------
+Running a Dev Version
+---------------------
 
-When you have appdaemon installed by either method you are ready to
-start working on the appdaemon.yaml file. For docker users, you will
-already have a skeleton to work with. For pip users, you need to create
-a configuration directory somewhere (e.g. ``/home/homeassistant/conf``)
-and create a file in there called ``appdaemon.yaml``.
+For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. You do this at your own risk, and be aware that although I try to keep things consistent and functional, I can't guarantee that I won't break things in the dev version - if this happens you are on your own!
 
-Your initial file should look something like this:
+Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
 
-.. code:: yaml
+To run a PIP install method dev version follow these steps:
 
-     appdaemon:
-       threads: 10
-       plugins:
-         HASS:
-           type: hass
-           ha_url: <some_url>
-           ha_key: <some_key>
-
-A more complete example could look like the following:
-
-.. code:: yaml
-
-    secrets: /some/path
-    log:
-      accessfile: /export/hass/appdaemon_test/logs/access.log
-      errorfile: /export/hass/appdaemon_test/logs/error.log
-      logfile: /export/hass/appdaemon_test/logs/appdaemon.log
-      log_generations: 3
-      log_size: 1000000
-    appdaemon:
-      threads: 10
-      time_zone: <time zone>
-      api_port: 5000
-      api_key: !secret api_key
-      api_ssl_certificate: <path/to/root/CA/cert>
-      api_ssl_key: <path/to/root/CA/key>
-      plugins:
-        HASS:
-          type: hass
-          ha_url: <some_url>
-          ha_key: <some key>
-          cert_path: <path/to/root/CA/cert>
-          cert_verify: True
-          namespace: default
-
-The top level consists of a number of sections:
-
-secrets
-~~~~~~~
-
-AppDaemon supports the use of secrets in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
-
-The ``secret:`` section is optional. If it doesn't exist, AppDaemon looks for a file called ``secrets.yaml`` in the config directory.
-
-An example ``secrets.yaml`` might look like this:
-
-.. code:: yaml
-
-    home_assistant_key: password123
-    appdaemon_key: password456
-
-The secrets can then be referred to as follows:
-
-.. code:: yaml
-
-    appdaemon:
-      api_key: !secret appdaemon_key
-      threads: '10'
-      plugins:
-        HASS:
-          type: hass
-          ha_key: !secret home_assistant_key
-          ha_url: http://192.168.1.20:8123
-
-log
-~~~
-
-The ``log:`` section is optional but if included, must have at least one directive in it. The directives are as follows:
-
--  ``logfile`` (optional) is the path to where you want ``AppDaemon`` to
-   keep its main log. When run from the command line this is not used
-   -log messages come out on the terminal. When running as a daemon this
-   is where the log information will go. In the example above I created
-   a directory specifically for AppDaemon to run from, although there is
-   no reason you can't keep it in the ``appdaemon`` directory of the
-   cloned repository. If ``logfile = STDOUT``, output will be sent to
-   stdout instead of stderr when running in the foreground, if not
-   specified, output will be sent to STDOUT.
--  ``errorfile`` (optional) is the name of the logfile for errors - this
-   will usually be errors during compilation and execution of the apps.
-   If ``errorfile = STDERR`` errors will be sent to stderr instead of a
-   file, if not specified, output will be sent to STDERR.
--  ``diagfile`` (optional) is the name of the log files for diagnostic information. This will contain information form the ``log_thread_actions`` parameter, as well as information dumped from AppDaemon's internal state when the AppDaemon process is sent a ``SIGUSR1`` signal.
--  ``log_size`` (optional) is the maximum size a logfile will get to
-   before it is rotated if not specified, this will default to 1000000
-   bytes.
--  ``log_generations`` (optional) is the number of rotated logfiles that
-   will be retained before they are overwritten if not specified, this
-   will default to 3 files.
-
-appdaemon
-~~~~~~~~~
-
-The ``appdaemon:`` section has a number of directives:
-
--  ``threads`` (required) - the number of dedicated worker threads to create for
-   running the apps. Note, this will bear no resembelance to the number
-   of apps you have, the threads are re-used and only active for as long
-   as required to run a particular callback or initialization, leave
-   this set to 10 unless you experience thread starvation
--  ``plugins`` (required) - see below
--  ``latitude`` (optional) - latitude for AppDaemon to use. If not
-   specified, AppDaemon will query the latitude from Home Assistant
--  ``longitude`` (optional) - longitude for AppDaemon to use. If not
-   specified, AppDaemon will query the longitude from Home Assistant
--  ``elevation`` (optional) - elevation for AppDaemon to use. If not
-   specified, AppDaemon will query the elevation from Home Assistant
--  ``time_zone`` (optional) - timezone for AppDaemon to use. If not
-   specified, AppDaemon will query the timezone from Home Assistant
--  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
-   to provide a key in the header of a request
--  ``api_ssl_certificate`` (optional) - certificate to use when running
-   the API over SSL
--  ``api_ssl_key`` (optional) - key to use when running the API over SSL
--  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
-- ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
-- ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
-- ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events and state changes - this can be useful for troubleshooting thread starvation issues
-When using the ``exclude_dirs`` directive you should supply a list of directory names that should be ignored, e.g.
-
-.. code:: yaml
-
-    exclude_dirs:
-        - dir1
-        - dir2
-        - dir3
-
-AppDaemon will search for matching directory names at any level of the folder hierarchy under appdir and will exclude that directory and any beneath it. It is not possible to match multiple level directory names e.g. ``somedir/dir1``. In that case the match should be on ``dir1``, with the caveat that if you have dir1 anywhere else in the hierarchy it will also be excluded.
-
-In the required ``plugins:`` sub-section, there will usually be one or more plugins with a number of directives introduced by a top level name:
-
--  ``type`` (required) The type of the plugin. For Home Assistant this will always be ``hass``
--  ``ha_url`` (required for the ``hass`` plugin) is a reference to your home assistant installation and
-   must include the correct port number and scheme (``http://`` or ``https://`` as appropriate)
--  ``ha_key`` (required for the ``hass`` plugin) should be set to your home assistant password if you have one, otherwise it can be removed.
--  ``cert_verify`` (optional) - flag for cert verification for HASS -
-   set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn;tmatch the cert address (e.g. using an internal IP address)
--  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
-   on. If not specified, the RESTFul API will be turned off.
--  ``namespace`` (optional) - which namespace to use. This can safely be left out unless you are planning to use multiple plugins (see below)
-
-Optionally, you can place your apps in a directory other than under the
-config directory using the ``app_dir`` directive.
-
-e.g.:
-
-.. code:: yaml
-
-    app_dir: /etc/appdaemon/apps
-
-A Note About Plugins
+Clone the Repository
 ~~~~~~~~~~~~~~~~~~~~
 
-In the example above, you will see that home assistant is configured as a plugin.
-For most applications there is little significance to this - just configure a single plugin for HASS exactly as above. However, for power users this is a way to allow AppDaemon to work with more than one installation of Home Assistant.
-The plugin architecture also allows the creation of plugins for other purposes, e.g.
-different home automation systems.
+First we need to get a clean copy of the dev branch. To do this, create a fresh directory, and change into it. Run the following command to clone the dev branch of the AppDaemon repository:
 
-To configure more than one plugin, simply add a new section to the plugins list and configure it appropriately.
-Before you do this, make sure to review the section on namespaces to fully understand what this entails, and if you are using more than one plugin, make sure you use the namespace directive to create a unique namespace for each plugin.
-(One of the plugins may be safely allowed to use the default value, however any more than that will require the namespace directive. There is also no harm in giving them all namespaces, since the default namespace is literally ``default``
-and has no particular significance, it's just a different name, but if you use namespaces other than default you will need to change your Apps to understand which namespaces are in use.).
+.. code:: bash
 
-Configuring a Test App
-~~~~~~~~~~~~~~~~~~~~~~
+    $ git clone -b dev https://github.com/home-assistant/appdaemon.git
 
-To add an initial test app to match the configuration above, we need to
-first create an ``apps`` subdirectory under the conf directory. Then
-create a file in the apps directory called ``hello.py``, and paste the
-following into it using your favorite text editor:
+This will create a directory called ``appdaemon`` - this is your repository directory and all commands will need to be run from inside it.
 
-.. code:: python
+Run AppDaemon from the command line
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    import appdaemon.plugins.hass.hassapi as hass
+Now that you have a local copy of the code, the next step is to run AppDaemon using that code.
 
-    #
-    # Hello World App
-    #
-    # Args:
-    #
+As a first step, if you are using a Virtual Environment enable it. The best practice here is to use a venv specifically for the dev version; it is possible that the dev branch may have updated dependencies that will be incompatible with the latest stable version, and may break it.
 
-    class HelloWorld(hass.Hass):
+To run the cloned version of AppDaemon, make sure you are in the ``appdaemon`` subdirectory and run the following command:
 
-      def initialize(self):
-         self.log("Hello from AppDaemon")
-         self.log("You are now ready to run Apps!")
+.. code:: bash
 
-Then, we can create a file called apps.yaml in the apps directory and add an entry for the Hello World App like this:
+    $ python3 -m appdaemon.admain -c <PATH To CONFIG DIRECTORY>
 
-.. code:: yaml
+In most cases it is possible to share config directories with other AppDaemon instances, but beware of apps that use new features as they will likely cause errors for the stable version. If you prefer, you can create an entirely new conf directory for your dev environment.
 
-    hello_world:
-      module: hello
-      class: HelloWorld
+Install AppDamon via PIP (Optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-App configuration is fully described in the `API doc <API.md>`__.
+Although the reccomended way of running a dev build is to use the command line above, it is possible to install an appdaemon dev build as a pip package. If you do so, it will replace your stable version, so only do this if you are confident with packages and venvs - if you use a specific venv for the dev build this should not be an issue. Also, remember that if you do this you will need to reinstall the package as an extra step every time you refresh the dev repository (see below).
 
-With this app in place we will be able to test the App part of AppDaemon
-when we first run it.
+To install the dev build as a package, change to the ``appdaemon`` directory and run the following command:
 
-Configuring the Dashboard
-~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code:: bash
 
-Configuration of the dashboard component (HADashboard) is described
-separately in the `Dashboard doc <DASHBOARD_INSTALL.html>`__
+    $ pip3 install .
 
-Example Apps
-------------
+Updating AppDaemon to the latest dev version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are a number of example apps under ``conf/examples`` in the git
-repository, and the ``conf/examples.yaml`` file gives sample parameters
-for them.
+When the dev version has been updated and you want to pull over the latest changes, run the following command from the ``appdeamon`` directory:
+
+.. code:: bash
+
+    $ git pull
+
+You can then immediately run the latest version with the command line above. If you are using pip, remember to run the install command again, using the ``--upgrade flag``:
+
+.. code:: bash
+
+    $ pip3 install --upgrade .
+
 
 Running
 -------
@@ -263,7 +99,7 @@ Running
 Docker
 ~~~~~~
 
-Assuming you have set the config up as described in the tutotial for
+Assuming you have set the config up as described in `the tutorial <DOCKER_TUTORIAL.html>`_ for
 Docker, you should see the logs output as follows:
 
 .. code:: bash
@@ -368,7 +204,7 @@ Assistant with is a good choice.
     After=home-assistant@homeassistant.service
     [Service]
     Type=simple
-    User=%1
+    User=%I
     ExecStart=/usr/local/bin/appdaemon -c <full path to config directory>
     [Install]
     WantedBy=multi-user.target
@@ -386,15 +222,6 @@ Activate Systemd Service
     $ sudo systemctl enable appdaemon@appdaemon.service --now
 
 Now AppDaemon should be up and running and good to go.
-
-Operation
----------
-
-Since AppDaemon under the covers uses the exact same APIs as the
-frontend UI, you typically see it react at about the same time to a
-given event. Calling back to Home Assistant is also pretty fast
-especially if they are running on the same machine. In action, observed
-latency above the built in automation component is usually sub-second.
 
 Updating AppDaemon
 ------------------

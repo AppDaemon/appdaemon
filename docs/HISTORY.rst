@@ -1,7 +1,173 @@
 Change Log
 ==========
 
-3.0.0b3
+3.1.0
+----------------
+
+**Features**
+
+- Apps can now use a simplified version of the import statement e.g. ``import hassapi as hass`` or ``import mqttapi as mqtt``. The existing import method will continue to work.
+- Apps can now use multiple plugin APIs with the ``get_plugin_api()`` function
+- Added ``ADBase`` superclass for apps that want to use the ``get_plugin_api()`` style of coding
+- Scheduler can now run at much higher speeds if your hardware can take it
+- ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
+- Bumped aiohttp to v3.4.4
+- Added callback locking decorator
+- Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code
+- Implemented multiple worker Ques to avoid Head of Line blocking
+- API Calls to control app pinning
+- added the ``run_in_thread()`` api call
+- added ``fire_app_event()`` api call
+- reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
+- Refactored plugin APIS to remove duplication
+- added checking for overdue threads
+- added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
+
+**Fixes**
+
+**Breaking Changes**
+
+- appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
+- Time travel semantics have changed to support faster scheduling.
+- ``plugin_started`` and ``plugin_stopped`` now go to the appropriate namespace for the plugin and are no longer global
+- Apps are no longer concurrent or re-entrant by default. This is most likely a good thing.
+- Changed the signature of ``listen_log()`` callbacks
+- ``cancel_listen_log()`` now requires a handle supplied by the initial ``listen_log()``
+
+3.0.2 10/31/2018
+----------------
+
+**Features**
+
+- added ``set_textvalue()`` api call.
+- added ``app_init_delay`` to delay App Initialization
+- Added ability to register apps to receive log entries
+- Added instructions for running a dev build
+- Added support for Long Lived Access Tokens
+- Updated MDI Icons to 3.0.39
+- Updated Font Awesome Icons to 5.4.2
+- Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
+- Many MQTT Plugin enhancements - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
+- Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
+- Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added --upgrade to pip3 call for recursive requirements.txt scanning - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- Added the ability to pass stringified JSON parameters to service calls - contributed by `Clyra <https://github.com/clyra>`__
+
+**Fixes**
+
+- Fixed incorrect service call in ``set_value()``
+- Enforce domain name in rss feed target to avoid issues with other functions
+- Previously deleted modules will now be correctly reloaded to reflect changes
+- Fixed a bug in ``get_scheduler_entries()``
+- Prevent periodic refresh of HASS state from overwriting App created entities - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Fix to honor cert_path - contributed by `Myles Eftos <https://github.com/madpilot>`__
+- Run AD in docker as PID 1 - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
+- Fix encoding error in log messages - contributed by `Markus Meissner <https://github.com/daringer>`__
+- Fix a bug in ``get_plugin_meta()`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various Doc corrections and additions - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various fixes in the Docker docs - contributed by `Simon van der Veldt <https://github.com/simonvanderveldt>`__
+- Namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- More namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Fixes of the namespaces fixes ;) - contributed by `Brian Redbeard <https://github.com/brianredbeard>`__
+- Fix typo in sample systemd config - contributed by `Evgeni Kunev <https://github.com/kunev>`__
+- Fix to cert path config - contributed by `nevalain <https://github.com/nevalain>`__
+
+**Breaking Changes**
+
+- RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
+- SSE Support has been removed
+- Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
+- Many Font Awesome Icon names have changed - any custom icons you have on dashboards will need to be changed to suit - see `docs <https://appdaemon.readthedocs.io/en/latest/DASHBOARD_CREATION.html#a-note-on-font-awesome-upgrade>`__ for more detail.
+
+While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+
+3.0.1 (2018-04-14)
+------------------
+
+**Features**
+
+- Added Production Mode to disable checking of App config or code changes
+- RSS Feed can now optionally show a description for each story
+- Disabling of zooming and double tap zooming on iOs devices is now optional via the ``scaling`` dashboard argument
+- Exiting from the commandline with ctrl-c will now cleanly terminate apps
+- Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
+- Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
+- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
+
+**Fixes**
+
+- Fixed a problem in the Docker initialization script
+- Fixed an parameter collision for events with a parameter ``name`` in ``listen_event()``
+- Grammar corrections to docs, and a fix to the stop code - contributed by `Matthias Urlichs <https://github.com/smurfix>`__
+
+**Breaking Changes**
+
+- iOS Scaling and tap zooming is no longer disabled by default
+
+3.0.0 (2018-03-18)
+------------------
+
+**Features**
+
+- API 200 responses are now logged to the access file
+- Add meta tags to prevent double tap zoom on iOS
+
+**Fixes**
+
+- Re-added set_app_state() to the API
+
+**Breaking Changes**
+
+None
+
+3.0.0b5 (2018-03-05)
+--------------------
+
+**Features**
+
+ - Added additional error checking for badly formed RSS feeds
+
+**Fixes**
+
+ - Fixed a bug that broke binary_sensor widget.
+ - Fixed a bug that broke retries when connecting to Home Assistant
+ - Fixed a bug that could cause lockups during app initialization
+ - Fixed a bug for Docker that prevented the initial config from working correctly - contributed by `mradziwo <https://github.com/mradziwo>`__
+ - Grammar corrections to docs, and a fix to the stop code - contributed by `Matthias Urlichs <https://github.com/smurfix>`__
+
+**Breaking Changes**
+
+None
+
+3.0.0b4 (2018-03-03)
+--------------------
+
+**Features**
+
+- Single App dependencies can now be specified on the dependency line itself and don't have to be a list of size 1
+- Added ``get_ad_version()``, and ``ad_version`` to the config dictionary
+- Added filters for Apps
+- Added global module dependency tracking
+- Added plugin reload app control
+- Added icon widget
+
+**Fixes**
+
+- Apps now correctly reload when HASS comes back up after a restart
+- ``get_error()`` now properly returns the error log logger object
+- ``get_hass_config()`` is now correctly named
+- ``app_args`` now correctly returns args for all apps
+- ``get_state()`` now returns fields from the attributes dictionary in preference to the top level dictionary if there is a clash. In particular, this now means it is easier to iterate through group members
+- Fixed a bug preventing an objects ``terminate()`` from being called when deleted from apps.yaml
+- Fixed a bug in which object info was not being cleaned out at object termination
+- Fixed an issue preventing dashboard updates on python 3.6
+
+**Breaking Changes**
+
+None
+
+3.0.0b3 (2018-02-11)
 --------------------
 
 **Features**
@@ -10,6 +176,9 @@ Change Log
 - Upgraded MDI Icons to 2.1.19
 - Add separate log for diagnostic info
 - Per-widget type global parameters
+- App level dependencies
+- ``listen_state()`` now returns the handle to the callback
+- added ``oneshot`` option to ``listen_state()``
 - Add step parameter to climate widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Add internationalization options to clock widget - contributed by `Adrian Popa <https://github.com/mad-ady>`__
 - Doc improvements - contributed by `Marco <https://github.com/marconett>`__
@@ -18,11 +187,13 @@ Change Log
 
 - Fixed image path for android devices
 - Fix a bug with the time parameter for images
-- Fixed `disable_apps`
+- Fixed ``disable_apps``
+- Fixed a bug in ``get_state()`` with ``attributes=all`` returning just the attributes dictionary instead of the entire entity.
 
 **Breaking Changes**
 
 - In apps.yaml, dependencies should now be a proper yaml list rather than a comma separated string
+- Dependencies now refer to individual apps rather than modules
 
 3.0.0b2 (2018-01-27)
 --------------------

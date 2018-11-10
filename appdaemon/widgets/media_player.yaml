@@ -1,25 +1,25 @@
 widget_type: basemedia
-entity: {{entity}}
+entity: "{{entity}}"
 post_service_next:
     service: media_player/media_next_track
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_previous:
     service: media_player/media_previous_track
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_play_pause:
     service: media_player/media_play_pause
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_pause:
     service: media_player/media_pause
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_stop:
     service: media_player/media_stop
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_level:
     service: media_player/volume_set
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 fields:
-  title: {{title}}
+  title: "{{title}}"
   artist: ""
   media_title: ""
   album: ""

@@ -4,21 +4,61 @@ import traceback
 import os
 import os.path
 from queue import Queue
-import time
 import datetime
 import uuid
 import astral
 import pytz
-import math
 import asyncio
 import yaml
-import concurrent
+import concurrent.futures
 import threading
 import random
 import re
 from copy import deepcopy, copy
+import subprocess
+import functools
+import time
+import cProfile
+import io
+import pstats
+from random import randint
+import hashlib
 
 import appdaemon.utils as utils
+
+
+def _timeit(func):
+    @functools.wraps(func)
+    def newfunc(*args, **kwargs):
+        self = args[0]
+        start_time = time.time()
+        result = func(self, *args, **kwargs)
+        elapsed_time = time.time() - start_time
+        self.log("INFO", 'function [{}] finished in {} ms'.format(
+            func.__name__, int(elapsed_time * 1000)))
+        return result
+
+    return newfunc
+
+
+def _profile_this(fn):
+    def profiled_fn(*args, **kwargs):
+        self = args[0]
+        self.pr = cProfile.Profile()
+        self.pr.enable()
+
+        result = fn(self, *args, **kwargs)
+
+        self.pr.disable()
+        s = io.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(self.pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        self.profile = fn + s.getvalue()
+
+        return result
+
+    return profiled_fn
 
 
 class AppDaemon:
@@ -31,15 +71,17 @@ class AppDaemon:
         self.error = error
         self.diagnostic = diag
         self.config = kwargs
-        self.q = Queue(maxsize=0)
+        self.booted = datetime.datetime.now()
+        self.config["ad_version"] = utils.__version__
+        self.check_app_updates_profile = ""
 
         self.was_dst = False
 
         self.last_state = None
-        self.inits = {}
         self.last_plugin_state = {}
 
         self.monitored_files = {}
+        self.filter_files = {}
         self.modules = {}
         self.appq = None
         self.executor = None
@@ -48,16 +90,21 @@ class AppDaemon:
         self.appd = None
         self.stopping = False
         self.dashboard = None
+        self.running_apps = 0
 
         self.now = datetime.datetime.now().timestamp()
 
         self.objects = {}
+        self.objects_lock = threading.RLock()
 
         self.schedule = {}
         self.schedule_lock = threading.RLock()
 
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
+
+        #self.log_callbacks = {}
+        #self.log_callbacks_lock = threading.RLock()
 
         self.thread_info = {}
         self.thread_info_lock = threading.RLock()
@@ -77,28 +124,48 @@ class AppDaemon:
         self.plugin_meta = {}
         self.plugin_objs = {}
 
-        # No locking yet
         self.global_vars = {}
+        self.global_lock = threading.RLock()
 
         self.sun = {}
 
         self.config_file_modified = 0
         self.tz = None
-        self.ad_time_zone = None
 
         self.realtime = True
         self.version = 0
         self.app_config_file_modified = 0
-        self.app_config = None
+        self.app_config = {}
 
         self.app_config_file = None
         self._process_arg("app_config_file", kwargs)
 
-        self.plugin_params = kwargs["plugins"]
+        if "plugins" in kwargs:
+            self.plugin_params = kwargs["plugins"]
+        else:
+            self.plugin_params = None
 
         # User Supplied/Defaults
         self.threads = 10
         self._process_arg("threads", kwargs, int=True)
+
+        self.pin_apps = True
+        self._process_arg("pin_apps", kwargs)
+
+        if self.pin_apps is True:
+            self.pin_threads = self.threads
+        else:
+            self.pin_threads = 0
+        self._process_arg("pin_threads", kwargs, int=True)
+
+        if self.pin_threads > self.threads:
+            raise ValueError("pin_threads cannot be > threads")
+
+        if self.pin_threads < 0:
+            raise ValueError("pin_threads cannot be < 0")
+
+        self.load_distribution = "roundrobbin"
+        self._process_arg("load_distribution", kwargs)
 
         self.app_dir = None
         self._process_arg("app_dir", kwargs)
@@ -110,7 +177,7 @@ class AppDaemon:
 
         self.logfile = None
         self._process_arg("logfile", kwargs)
-        if self.logfile == None:
+        if self.logfile is None:
             self.logfile = "STDOUT"
 
         self.latitude = None
@@ -127,8 +194,8 @@ class AppDaemon:
 
         self.errfile = None
         self._process_arg("error_file", kwargs)
-        if self.errfile == None:
-            self.errfile  = "STDERR"
+        if self.errfile is None:
+            self.errfile = "STDERR"
 
         self.config_file = None
         self._process_arg("config_file", kwargs)
@@ -140,10 +207,14 @@ class AppDaemon:
         self._process_arg("plugins", kwargs)
 
         self.tick = 1
-        self._process_arg("tick", kwargs, int=True)
+        self._process_arg("tick", kwargs, float=True)
 
-        self.max_skew = 1
-        self._process_arg("max_skew", kwargs, int=True)
+        self.max_clock_skew = 1
+        self._process_arg("max_clock_skew", kwargs, int=True)
+
+        self.thread_duration_warning_threshold = 10
+        self._process_arg("thread_duration_warning_threshold", kwargs, float=True)
+
 
         self.threadpool_workers = 10
         self._process_arg("threadpool_workers", kwargs, int=True)
@@ -153,19 +224,28 @@ class AppDaemon:
             self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
 
         self.interval = 1
-        self._process_arg("interval", kwargs, int=True)
+        if kwargs["interval"] is None:
+            self.interval = self.tick
+        else:
+            self._process_arg("interval", kwargs, float=True)
 
         self.loglevel = "INFO"
         self._process_arg("loglevel", kwargs)
-
-        self.config_dir = None
-        self._process_arg("config_dir", kwargs)
 
         self.api_port = None
         self._process_arg("api_port", kwargs)
 
         self.utility_delay = 1
         self._process_arg("utility_delay", kwargs, int=True)
+
+        self.max_utility_skew = self.utility_delay * 0.9
+        self._process_arg("max_utility_skew", kwargs, float=True)
+
+        self.check_app_updates_profile = False
+        self._process_arg("check_app_updates_profile", kwargs)
+
+        self.production_mode = False
+        self._process_arg("production_mode", kwargs)
 
         self.invalid_yaml_warnings = True
         self._process_arg("invalid_yaml_warnings", kwargs)
@@ -176,6 +256,12 @@ class AppDaemon:
         self.log_thread_actions = False
         self._process_arg("log_thread_actions", kwargs)
 
+        self.qsize_warning_threshold = 50
+        self._process_arg("qsize_warning_threshold", kwargs, int=True)
+
+        self.qsize_warning_step = 60
+        self._process_arg("qsize_warning_step", kwargs, int=True)
+
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
             self.exclude_dirs += kwargs["exclude_dirs"]
@@ -184,10 +270,12 @@ class AppDaemon:
         self.stop_function = None
         self._process_arg("stop_function", kwargs)
 
-        if self.tick != 1 or self.interval != 1 or self.starttime is not None:
+        if self.tick != self.interval or self.starttime is not None:
             self.realtime = False
 
-        if kwargs.get("cert_verify", True) == False:
+        #print(self.tick, self.interval, self.realtime)
+
+        if not kwargs.get("cert_verify", True):
             self.certpath = False
 
         if kwargs.get("disable_apps") is True:
@@ -195,53 +283,54 @@ class AppDaemon:
             self.log("INFO", "Apps are disabled")
         else:
             self.apps = True
-            self.log("INFO", "Starting Apps")
+            self.log("INFO", "Starting Apps with {} workers and {} pins".format(self.threads, self.pin_threads))
 
-        # Add appdir and subdirs to path
+        self.next_thread = self.pin_threads
+
+        # Initialize config file tracking
+
+        self.app_config_file_modified = 0
+        self.app_config_files = {}
+        self.module_dirs = []
+
         if self.apps is True:
             if self.app_dir is None:
                 if self.config_dir is None:
                     self.app_dir = utils.find_path("apps")
+                    self.config_dir = os.path.dirname(self.app_dir)
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
-            if os.path.isdir(self.app_dir) is False:
-                self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
-                return
+            utils.check_path("config_dir", logger, self.config_dir, permissions="rwx")
+            utils.check_path("appdir", logger, self.app_dir)
+            #if os.path.isdir(self.app_dir) is False:
+            #    self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
+            #    return
 
-
-            latest = self.check_later_app_configs(0)
-            self.app_config_file_modified = latest["latest"]
-
-            for root, subdirs, files in os.walk(self.app_dir):
-                subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
-                if root[-11:] != "__pycache__":
-                    sys.path.insert(0, root)
             #
             # Initial Setup
             #
 
             self.appq = asyncio.Queue(maxsize=0)
 
-            # Load App Config
-
-            self.app_config = self.read_config()
-
-            self.log("DEBUG", "Creating worker threads ...")
-
             # Create Worker Threads
             for i in range(self.threads):
                 t = threading.Thread(target=self.worker)
                 t.daemon = True
-                t.setName("thread-{}".format(i+1))
+                t.setName("thread-{}".format(i))
                 with self.thread_info_lock:
-                    self.thread_info["threads"][t.getName()] = {"callback": "idle", "time_called": 0, "thread": t}
+                    self.thread_info["threads"][t.getName()] = \
+                        {"callback": "idle",
+                         "time_called": 0,
+                         "q": Queue(maxsize=0),
+                         "id": i,
+                         "thread": t}
                 t.start()
 
-            self.log("DEBUG", "Done")
+            if self.apps is True:
+                self.process_filters()
 
-        #else:
-        #    self.app_config_file_modified = 0
+            self.log("DEBUG", "Done")
 
         self.loop = loop
 
@@ -251,42 +340,77 @@ class AppDaemon:
 
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
-
         # Load Plugins
+
+        # Add Path for adbase
+
+        sys.path.insert(0, os.path.dirname(__file__))
+
+        # Add built in plugins to path
+
+        moddir = "{}/plugins".format(os.path.dirname(__file__))
+
+        plugins = [f.path for f in os.scandir(moddir) if f.is_dir(follow_symlinks=True)]
+
+        for plugin in plugins:
+            sys.path.insert(0, plugin)
+
+        # Now custom plugins
+
+        plugins = []
+
+        if os.path.isdir(os.path.join(self.config_dir, "custom_plugins")):
+            plugins = [f.path for f in os.scandir(os.path.join(self.config_dir, "custom_plugins")) if f.is_dir(follow_symlinks=True)]
+
+            for plugin in plugins:
+                sys.path.insert(0, plugin)
 
         if self.plugins is not None:
             for name in self.plugins:
                 basename = self.plugins[name]["type"]
+                type = self.plugins[name]["type"]
                 module_name = "{}plugin".format(basename)
                 class_name = "{}Plugin".format(basename.capitalize())
 
-                if "module_path" in self.plugins[name]:
-                    module_path = self.plugins[name]["module_path"]
-                    sys.path.insert(0, module_path)
+                full_module_name = None
+                for plugin in plugins:
+                    if os.path.basename(plugin) == type:
+                        full_module_name = "{}".format(module_name)
+                        self.log("INFO",
+                                 "Loading Custom Plugin {} using class {} from module {}".format(name, class_name,
+                                                                                          module_name))
+                        break
+
+                if full_module_name == None:
+                    #
+                    # Not a custom plugin, assume it's a built in
+                    #
+                    full_module_name = "{}".format(module_name)
                     self.log("INFO",
-                              "Loading Plugin {} using class {} from module {} and module_path {}".format(name, class_name, module_name, module_path))
-                    full_module_name = module_name
-                else:
-                    basepath = "appdaemon.plugins"
-                    self.log("INFO",
-                              "Loading Plugin {} using class {} from module {}".format(name, class_name, module_name))
-                    full_module_name = "{}.{}.{}".format(basepath, basename, module_name)
+                                "Loading Plugin {} using class {} from module {}".format(name, class_name,
+                                                                                         module_name))
+                try:
 
+                    mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
 
+                    app_class = getattr(mod, class_name)
 
-                mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
-                app_class = getattr(mod, class_name)
+                    plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
 
-                plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
+                    namespace = plugin.get_namespace()
 
-                namespace = plugin.get_namespace()
+                    if namespace in self.plugin_objs:
+                        raise ValueError("Duplicate namespace: {}".format(namespace))
 
-                if namespace in self.plugin_objs:
-                    raise ValueError("Duplicate namespace: {}".format(namespace))
+                    self.plugin_objs[namespace] = plugin
 
-                self.plugin_objs[namespace] = plugin
+                    loop.create_task(plugin.get_updates())
+                except:
+                    self.log("WARNING", "error loading plugin: {} - ignoring".format(name))
+                    self.log("WARNING", '-' * 60)
+                    self.log("WARNING", traceback.format_exc())
+                    self.log("WARNING", '-' * 60)
 
-                loop.create_task(plugin.get_updates())
 
         # Create utility loop
 
@@ -294,7 +418,10 @@ class AppDaemon:
 
         loop.create_task(self.utility())
 
+        # Create AppState Loop
 
+        if self.apps is True:
+            loop.create_task(self.appstate_loop())
 
     def _process_arg(self, arg, args, **kwargs):
         if args:
@@ -306,16 +433,21 @@ class AppDaemon:
                         setattr(self, arg, value)
                     except ValueError:
                         self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
+                if "float" in kwargs and kwargs["float"] is True:
+                    try:
+                        value = float(value)
+                        setattr(self, arg, value)
+                    except ValueError:
+                        self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
                 else:
                     setattr(self, arg, value)
-
 
     def stop(self):
         self.stopping = True
         # if ws is not None:
         #    ws.close()
-        if self.apps:
-            self.appq.put_nowait({"event_type": "ha_stop", "data": None})
+        if self.apps is True:
+            self.appq.put_nowait({"namespace": "global", "event_type": "ha_stop", "data": None})
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin].stop()
 
@@ -340,14 +472,31 @@ class AppDaemon:
         self.diag("INFO", "--------------------------------------------------")
         self.diag("INFO", "Objects")
         self.diag("INFO", "--------------------------------------------------")
-        for object_ in self.objects.keys():
-            self.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
+        with self.objects_lock:
+            for object_ in self.objects.keys():
+                self.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
         self.diag("INFO", "--------------------------------------------------")
 
-    def dump_queue(self):
-        self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", "Current Queue Size is {}".format(self.q.qsize()))
-        self.diag("INFO", "--------------------------------------------------")
+    def q_info(self):
+        qsize = 0
+        with self.thread_info_lock:
+            thread_info = self.get_thread_info()
+
+        for thread in thread_info["threads"]:
+            qsize += self.thread_info["threads"][thread]["q"].qsize()
+        return {"qsize": qsize, "thread_info": thread_info}
+
+    def min_q_id(self):
+        id = 0
+        i = 0
+        qsize = sys.maxsize
+        with self.thread_info_lock:
+            for thread in self.thread_info["threads"]:
+                if self.thread_info["threads"][thread]["q"].qsize() < qsize:
+                    qsize = self.thread_info["threads"][thread]["q"].qsize()
+                    id = i
+                i += 1
+        return id
 
     @staticmethod
     def atoi(text):
@@ -355,6 +504,15 @@ class AppDaemon:
 
     def natural_keys(self, text):
         return [self.atoi(c) for c in re.split('(\d+)', text)]
+
+    def get_pinned_apps(self, thread):
+        id = int(thread.split("-")[1])
+        apps = []
+        with self.objects_lock:
+            for obj in self.objects:
+                if self.objects[obj]["pin_thread"] == id:
+                    apps.append(obj)
+        return apps
 
     def get_thread_info(self):
         info = {}
@@ -368,31 +526,36 @@ class AppDaemon:
             for thread in self.thread_info["threads"]:
                 if thread not in info["threads"]:
                     info["threads"][thread] = {}
-                info["threads"][thread]["time_called"] = self.thread_info["threads"][thread]["time_called"]
-                info["threads"][thread]["callback"] = self.thread_info["threads"][thread]["callback"]
-                info["threads"][thread]["is_alive"] = self.thread_info["threads"][thread]["thread"].is_alive()
+                info["threads"][thread]["time_called"] = copy(self.thread_info["threads"][thread]["time_called"])
+                info["threads"][thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
+                info["threads"][thread]["is_alive"] = copy(self.thread_info["threads"][thread]["thread"].is_alive())
+                info["threads"][thread]["pinned_apps"] = copy(self.get_pinned_apps(thread))
+                info["threads"][thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
         return info
 
-    def dump_threads(self):
+    def dump_threads(self, qinfo):
+        thread_info = qinfo["thread_info"]
         self.diag("INFO", "--------------------------------------------------")
         self.diag("INFO", "Threads")
         self.diag("INFO", "--------------------------------------------------")
-        with self.thread_info_lock:
-            max_ts = datetime.datetime.fromtimestamp(self.thread_info["max_busy_time"])
-            last_ts = datetime.datetime.fromtimestamp(self.thread_info["last_action_time"])
-            self.diag("INFO", "Currently busy threads: {}".format(self.thread_info["current_busy"]))
-            self.diag("INFO", "Most used threads: {} at {}".format(self.thread_info["max_busy"], max_ts))
-            self.diag("INFO", "Last activity: {}".format(last_ts))
-            self.diag("INFO", "--------------------------------------------------")
-            for thread in sorted(self.thread_info["threads"], key=self.natural_keys):
-                ts = datetime.datetime.fromtimestamp(self.thread_info["threads"][thread]["time_called"])
-                self.diag("INFO",
-                         "{} - current callback: {} since {}, alive: {}".format(
-                             thread,
-                             self.thread_info["threads"][thread]["callback"],
-                             ts,
-                             self.thread_info["threads"][thread]["thread"].is_alive()
-                         ))
+        max_ts = datetime.datetime.fromtimestamp(thread_info["max_busy_time"])
+        last_ts = datetime.datetime.fromtimestamp(thread_info["last_action_time"])
+        self.diag("INFO", "Currently busy threads: {}".format(thread_info["current_busy"]))
+        self.diag("INFO", "Most used threads: {} at {}".format(thread_info["max_busy"], max_ts))
+        self.diag("INFO", "Last activity: {}".format(last_ts))
+        self.diag("INFO", "Total Q Entries: {}".format(qinfo["qsize"]))
+        self.diag("INFO", "--------------------------------------------------")
+        for thread in sorted(thread_info["threads"], key=self.natural_keys):
+            ts = datetime.datetime.fromtimestamp(thread_info["threads"][thread]["time_called"])
+            self.diag("INFO",
+                     "{} - qsize: {} | current callback: {} | since {}, | alive: {}, | pinned apps: {}".format(
+                         thread,
+                         thread_info["threads"][thread]["qsize"],
+                         thread_info["threads"][thread]["callback"],
+                         ts,
+                         thread_info["threads"][thread]["is_alive"],
+                         self.get_pinned_apps(thread)
+                     ))
         self.diag("INFO", "--------------------------------------------------")
 
     def get_callback_entries(self):
@@ -409,6 +572,8 @@ class AppDaemon:
                 callbacks[name][uuid_]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
                 callbacks[name][uuid_]["function"] = self.callbacks[name][uuid_]["function"]
                 callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
+                callbacks[name][uuid_]["pin_app"] = self.callbacks[name][uuid_]["pin_app"]
+                callbacks[name][uuid_]["Pin_thread"] = self.callbacks[name][uuid_]["pin_thread"]
         return callbacks
 
     #
@@ -443,30 +608,126 @@ class AppDaemon:
     #
 
     def dispatch_worker(self, name, args):
-        unconstrained = True
-        #
-        # Argument Constraints
-        #
-        for arg in self.app_config[name].keys():
-            constrained = self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"])
-            if not constrained:
-                unconstrained = False
-        if not self.check_time_constraint(self.app_config[name], name):
-            unconstrained = False
-        #
-        # Callback level constraints
-        #
-        if "kwargs" in args:
-            for arg in args["kwargs"].keys():
-                constrained = self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"])
+        with self.objects_lock:
+            unconstrained = True
+            #
+            # Argument Constraints
+            #
+            for arg in self.app_config[name].keys():
+                constrained = self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"])
                 if not constrained:
                     unconstrained = False
-            if not self.check_time_constraint(args["kwargs"], name):
+            if not self.check_time_constraint(self.app_config[name], name):
                 unconstrained = False
+            #
+            # Callback level constraints
+            #
+            if "kwargs" in args:
+                for arg in args["kwargs"].keys():
+                    constrained = self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"])
+                    if not constrained:
+                        unconstrained = False
+                if not self.check_time_constraint(args["kwargs"], name):
+                    unconstrained = False
 
         if unconstrained:
-            self.q.put_nowait(args)
+            self.select_q(args)
 
+    def select_q(self, args):
+        #
+        # Select Q based on distribution method:
+        #   Round Robin
+        #   Random
+        #   Load distribution
+        #
+
+        # Check for pinned app and if so figure correct thread for app
+
+        if args["pin_app"] is True:
+            thread = args["pin_thread"]
+            # Handle the case where an App is unpinned but selects a pinned callback without specifying a thread
+            # If this happens a lot, thread 0 might get congested but the alternatives are worse!
+            if thread == -1:
+                self.log("WARNING", "Invalid thread ID for pinned thread in app: {} - assigning to thread 0".format(args["name"]))
+                thread = 0
+        else:
+            if self.threads == self.pin_threads:
+                raise ValueError("pin_threads must be set lower than threads if unpinned_apps are in use")
+            if self.load_distribution == "load":
+                thread = self.min_q_id()
+            elif self.load_distribution == "random":
+                thread = randint(self.pin_threads, self.threads - 1)
+            else:
+                # Round Robin is the catch all
+                thread = self.next_thread
+                self.next_thread += 1
+                if self.next_thread == self.threads:
+                    self.next_thread = self.pin_threads
+
+        if thread < 0 or thread >= self.threads:
+            raise ValueError("invalid thread id: {} in app {}".format(thread, args["name"]))
+
+        with self.thread_info_lock:
+            id = "thread-{}".format(thread)
+            q = self.thread_info["threads"][id]["q"]
+            q.put_nowait(args)
+
+    #
+    # Pinning
+    #
+
+    def calculate_pin_threads(self):
+
+        if self.pin_threads == 0:
+            return
+
+        thread_pins = [0] * self.pin_threads
+        with self.objects_lock:
+            for name in self.objects:
+                # Looking for apps that already have a thread pin value
+                if self.get_app_pin(name) and self.get_pin_thread(name) != -1:
+                    thread = self.get_pin_thread(name)
+                    if thread >= self.threads:
+                        raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
+                    # Ignore anything outside the pin range as it will have been set by the user
+                    if thread < self.pin_threads:
+                        thread_pins[thread] += 1
+
+            # Now we know the numbers, go fill in the gaps
+
+            for name in self.objects:
+                if self.get_app_pin(name) and self.get_pin_thread(name) == -1:
+                    thread = thread_pins.index(min(thread_pins))
+                    self.set_pin_thread(name, thread)
+                    thread_pins[thread] += 1
+
+    def app_should_be_pinned(self, name):
+        # Check apps.yaml first - allow override
+        app = self.app_config[name]
+        if "pin_app" in app:
+            return app["pin_app"]
+
+        # if not, go with the global default
+        return self.pin_apps
+
+    def get_app_pin(self, name):
+        with self.objects_lock:
+            return self.objects[name]["pin_app"]
+
+    def set_app_pin(self, name, pin):
+        with self.objects_lock:
+            self.objects[name]["pin_app"] = pin
+        if pin is True:
+            # May need to set this app up with a pinned thread
+            self.calculate_pin_threads()
+
+    def get_pin_thread(self, name):
+        with self.objects_lock:
+            return self.objects[name]["pin_thread"]
+
+    def set_pin_thread(self, name, thread):
+        with self.objects_lock:
+            self.objects[name]["pin_thread"] = thread
 
     def update_thread_info(self, thread_id, callback, type = None):
         if self.log_thread_actions:
@@ -474,10 +735,15 @@ class AppDaemon:
                 self.diag("INFO",
                          "{} done".format(thread_id, type, callback))
             else:
-                    self.diag("INFO",
-                             "{} calling {} callback {}".format(thread_id, type, callback))
+                self.diag("INFO",
+                         "{} calling {} callback {}".format(thread_id, type, callback))
+
         with self.thread_info_lock:
             ts = self.now
+            if callback == "idle":
+                start = self.thread_info["threads"][thread_id]["time_called"]
+                if ts - start >= self.thread_duration_warning_threshold:
+                    self.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
             self.thread_info["threads"][thread_id]["callback"] = callback
             self.thread_info["threads"][thread_id]["time_called"] = ts
             if callback == "idle":
@@ -495,14 +761,20 @@ class AppDaemon:
     def worker(self):
         while True:
             thread_id = threading.current_thread().name
-            args = self.q.get()
+            with self.thread_info_lock:
+                q = self.thread_info["threads"][thread_id]["q"]
+            args = q.get()
             _type = args["type"]
             funcref = args["function"]
             _id = args["id"]
             name = args["name"]
+            args["kwargs"]["__thread_id"] = thread_id
             callback = "{}() in {}".format(funcref.__name__, name)
-            if name in self.objects and self.objects[name]["id"] == _id:
-                app = self.objects[name]["object"]
+            app = None
+            with self.objects_lock:
+                if name in self.objects and self.objects[name]["id"] == _id:
+                    app = self.objects[name]["object"]
+            if app is not None:
                 try:
                     if _type == "timer":
                         self.update_thread_info(thread_id, callback, _type)
@@ -520,25 +792,25 @@ class AppDaemon:
                     elif _type == "event":
                         data = args["data"]
                         self.update_thread_info(thread_id, callback, _type)
-                        funcref(args["event"], data, args["kwargs"])
+                        if args["event"] == "AD_LOG_EVENT":
+                            funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
+                        else:
+                            funcref(args["event"], data, args["kwargs"])
                         self.update_thread_info(thread_id, "idle")
 
                 except:
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name))
-                    self.err("WARNING", "Worker Ags: {}".format(args))
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", traceback.format_exc())
-                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", '-' * 60, name=name)
+                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
+                    self.err("WARNING", "Worker Ags: {}".format(args), name=name)
+                    self.err("WARNING", '-' * 60, name=name)
+                    self.err("WARNING", traceback.format_exc(), name=name)
+                    self.err("WARNING", '-' * 60, name=name)
                     if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile), name=name)
             else:
-                self.log("WARNING", "Found stale callback for {} - discarding".format(name))
+                self.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
 
-            if self.inits.get(name):
-                self.inits.pop(name)
-
-            self.q.task_done()
+            q.task_done()
 
     #
     # State
@@ -551,43 +823,73 @@ class AppDaemon:
             else:
                 return False
 
+    def validate_pin(self, name, kwargs):
+        if "pin_thread" in kwargs:
+            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threads:
+                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
+                return False
+        else:
+            return True
 
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
-        with self.callbacks_lock:
-            if name not in self.callbacks:
-                self.callbacks[name] = {}
-            handle = uuid.uuid4()
-            self.callbacks[name][handle] = {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "type": "state",
-                "function": cb,
-                "entity": entity,
-                "namespace": namespace,
-                "kwargs": kwargs
-            }
+        if self.validate_pin(name, kwargs) is True:
+            with self.objects_lock:
+                if "pin" in kwargs:
+                    pin_app = kwargs["pin"]
+                else:
+                    pin_app = self.objects[name]["pin_app"]
 
-        #
-        # In the case of a quick_start parameter,
-        # start the clock immediately if the device is already in the new state
-        #
-        if "immediate" in kwargs and kwargs["immediate"] is True:
-            if entity is not None and "new" in kwargs and "duration" in kwargs:
-                with self.state_lock:
-                    if self.state[namespace][entity]["state"] == kwargs["new"]:
-                        exec_time = self.get_now_ts() + int(kwargs["duration"])
-                        kwargs["handle"] = self.insert_schedule(
-                            name, exec_time, cb, False, None,
-                            entity=entity,
-                            attribute=None,
-                            old_state=None,
-                            new_state=kwargs["new"], **kwargs
-                    )
+                if "pin_thread" in kwargs:
+                    pin_thread = kwargs["pin_thread"]
+                    pin_app = True
+                else:
+                    pin_thread = self.objects[name]["pin_thread"]
 
-        return handle
+
+            with self.callbacks_lock:
+                if name not in self.callbacks:
+                    self.callbacks[name] = {}
+
+                handle = uuid.uuid4()
+                with self.objects_lock:
+                    self.callbacks[name][handle] = {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "state",
+                        "function": cb,
+                        "entity": entity,
+                        "namespace": namespace,
+                        "pin_app": pin_app,
+                        "pin_thread": pin_thread,
+                        "kwargs": kwargs
+                    }
+
+            #
+            # In the case of a quick_start parameter,
+            # start the clock immediately if the device is already in the new state
+            #
+            if "immediate" in kwargs and kwargs["immediate"] is True:
+                if entity is not None and "new" in kwargs and "duration" in kwargs:
+                    with self.state_lock:
+                        if self.state[namespace][entity]["state"] == kwargs["new"]:
+                            exec_time = self.get_now_ts() + int(kwargs["duration"])
+                            kwargs["_duration"] = self.insert_schedule(
+                                name, exec_time, cb, False, None,
+                                entity=entity,
+                                attribute=None,
+                                old_state=None,
+                                new_state=kwargs["new"], **kwargs
+                        )
+
+            return handle
+        else:
+            return None
 
     def cancel_state_callback(self, handle, name):
         with self.callbacks_lock:
+            if name not in self.callbacks or handle not in self.callbacks[name]:
+                self.log("WARNING", "Invalid callback in cancel_state_callback() from app {}".format(name))
+
             if name in self.callbacks and handle in self.callbacks[name]:
                 del self.callbacks[name][handle]
             if name in self.callbacks and self.callbacks[name] == {}:
@@ -597,12 +899,13 @@ class AppDaemon:
         with self.callbacks_lock:
             if name in self.callbacks and handle in self.callbacks[name]:
                 callback = self.callbacks[name][handle]
-                return (
-                    callback["namespace"],
-                    callback["entity"],
-                    callback["kwargs"].get("attribute", None),
-                    self.sanitize_state_kwargs(self.objects[name]["object"], callback["kwargs"])
-                )
+                with self.objects_lock:
+                    return (
+                        callback["namespace"],
+                        callback["entity"],
+                        callback["kwargs"].get("attribute", None),
+                        self.sanitize_state_kwargs(self.objects[name]["object"], callback["kwargs"])
+                    )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
 
@@ -638,51 +941,79 @@ class AppDaemon:
                     entity_id = "{}.{}".format(device, entity)
                     if attribute == "all":
                         if entity_id in self.state[namespace]:
-                            return deepcopy(self.state[namespace][entity_id]["attributes"])
+                            return deepcopy(self.state[namespace][entity_id])
                         else:
                             return None
                     else:
-                        if attribute in self.state[namespace][entity_id]:
-                            return deepcopy(self.state[namespace][entity_id][attribute])
-                        elif attribute in self.state[namespace][entity_id]["attributes"]:
+                        if attribute in self.state[namespace][entity_id]["attributes"]:
                             return deepcopy(self.state[namespace][entity_id]["attributes"][
                                 attribute])
+                        elif attribute in self.state[namespace][entity_id]:
+                            return deepcopy(self.state[namespace][entity_id][attribute])
                         else:
-                            return None
+                                return None
 
     def set_state(self, namespace, entity, state):
         with self.state_lock:
             self.state[namespace][entity] = state
 
-    def set_app_state(self, entity_id, state):
+    #
+    # App State
+    #
+
+    async def appstate_loop(self):
+        while not self.stopping:
+            args = await self.appq.get()
+            namespace = args["namespace"]
+            await self.state_update(namespace, args)
+            self.appq.task_done()
+
+    def set_app_state(self, namespace, entity_id, state):
         self.log("DEBUG", "set_app_state: {}".format(entity_id))
+        #print(state)
         if entity_id is not None and "." in entity_id:
             with self.state_lock:
-                if entity_id in self.state:
-                    old_state = self.state[entity_id]
+                if entity_id in self.state[namespace]:
+                    old_state = self.state[namespace][entity_id]
                 else:
                     old_state = None
                 data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
-                args = {"event_type": "state_changed", "data": data}
+                args = {"namespace": namespace, "event_type": "state_changed", "data": data}
+                self.state[namespace][entity_id] = state
                 self.appq.put_nowait(args)
 
     #
     # Events
     #
-    def add_event_callback(self, name, namespace, cb, event, **kwargs):
+    def add_event_callback(self, _name, namespace, cb, event, **kwargs):
+        with self.objects_lock:
+            if "pin" in kwargs:
+                pin_app = kwargs["pin_app"]
+            else:
+                pin_app = self.objects[_name]["pin_app"]
+
+            if "pin_thread" in kwargs:
+                pin_thread = kwargs["pin_thread"]
+                pin_app = True
+            else:
+                pin_thread = self.objects[_name]["pin_thread"]
+
         with self.callbacks_lock:
-            if name not in self.callbacks:
-                self.callbacks[name] = {}
+            if _name not in self.callbacks:
+                self.callbacks[_name] = {}
             handle = uuid.uuid4()
-            self.callbacks[name][handle] = {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "type": "event",
-                "function": cb,
-                "namespace": namespace,
-                "event": event,
-                "kwargs": kwargs
-            }
+            with self.objects_lock:
+                self.callbacks[_name][handle] = {
+                    "name": _name,
+                    "id": self.objects[_name]["id"],
+                    "type": "event",
+                    "function": cb,
+                    "namespace": namespace,
+                    "event": event,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
+                    "kwargs": kwargs
+                }
         return handle
 
     def cancel_event_callback(self, name, handle):
@@ -719,30 +1050,35 @@ class AppDaemon:
             if "inactive" in args:
                 return
             # Call function
-            if "entity" in args["kwargs"]:
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "attr",
-                    "function": args["callback"],
-                    "attribute": args["kwargs"]["attribute"],
-                    "entity": args["kwargs"]["entity"],
-                    "new_state": args["kwargs"]["new_state"],
-                    "old_state": args["kwargs"]["old_state"],
-                    "kwargs": args["kwargs"],
-                })
-            else:
-                self.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "type": "timer",
-                    "function": args["callback"],
-                    "kwargs": args["kwargs"],
-                })
+            with self.objects_lock:
+                if "entity" in args["kwargs"]:
+                    self.dispatch_worker(name, {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "attr",
+                        "function": args["callback"],
+                        "attribute": args["kwargs"]["attribute"],
+                        "entity": args["kwargs"]["entity"],
+                        "new_state": args["kwargs"]["new_state"],
+                        "old_state": args["kwargs"]["old_state"],
+                        "pin_app": args["pin_app"],
+                        "pin_thread": args["pin_thread"],
+                        "kwargs": args["kwargs"],
+                    })
+                else:
+                    self.dispatch_worker(name, {
+                        "name": name,
+                        "id": self.objects[name]["id"],
+                        "type": "timer",
+                        "function": args["callback"],
+                        "pin_app": args["pin_app"],
+                        "pin_thread": args["pin_thread"],
+                        "kwargs": args["kwargs"],
+                    })
             # If it is a repeating entry, rewrite with new timestamp
             if args["repeat"]:
                 if args["type"] == "next_rising" or args["type"] == "next_setting":
-                    # Its sunrise or sunset - if the offset is negative we
+                    # It's sunrise or sunset - if the offset is negative we
                     # won't know the next rise or set time yet so mark as inactive
                     # So we can adjust with a scan at sun rise/set
                     if args["offset"] < 0:
@@ -834,8 +1170,11 @@ class AppDaemon:
         ))
 
     def update_sun(self):
-        # now = datetime.datetime.now(self.tz)
+        #now = datetime.datetime.now(self.tz)
+        #now = pytz.utc.localize(self.get_now())
+
         now = self.tz.localize(self.get_now())
+
         mod = -1
         while True:
             try:
@@ -893,6 +1232,18 @@ class AppDaemon:
         return offset
 
     def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
+        with self.objects_lock:
+            if "pin" in kwargs:
+                pin_app = kwargs["pin"]
+            else:
+                pin_app = self.objects[name]["pin_app"]
+
+            if "pin_thread" in kwargs:
+                pin_thread = kwargs["pin_thread"]
+                pin_app = True
+            else:
+                pin_thread = self.objects[name]["pin_thread"]
+
         with self.schedule_lock:
             if name not in self.schedule:
                 self.schedule[name] = {}
@@ -902,19 +1253,22 @@ class AppDaemon:
             ts = utc + c_offset
             interval = kwargs.get("interval", 0)
 
-            self.schedule[name][handle] = {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "callback": callback,
-                "timestamp": ts,
-                "interval": interval,
-                "basetime": utc,
-                "repeat": repeat,
-                "offset": c_offset,
-                "type": type_,
-                "kwargs": kwargs
-            }
-            # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
+            with self.objects_lock:
+                self.schedule[name][handle] = {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "callback": callback,
+                    "timestamp": ts,
+                    "interval": interval,
+                    "basetime": utc,
+                    "repeat": repeat,
+                    "offset": c_offset,
+                    "type": type_,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
+                    "kwargs": kwargs
+                }
+                # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
         return handle
 
     def get_scheduler_entries(self):
@@ -930,10 +1284,10 @@ class AppDaemon:
                 schedule[name][entry]["type"] = self.schedule[name][entry]["type"]
                 schedule[name][entry]["name"] = self.schedule[name][entry]["name"]
                 schedule[name][entry]["basetime"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["repeat"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["offset"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["interval"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["basetime"]
+                schedule[name][entry]["repeat"] = self.schedule[name][entry]["repeat"]
+                schedule[name][entry]["offset"] = self.schedule[name][entry]["offset"]
+                schedule[name][entry]["interval"] = self.schedule[name][entry]["interval"]
+                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["kwargs"]
                 schedule[name][entry]["callback"] = self.schedule[name][entry]["callback"]
         return schedule
 
@@ -1053,6 +1407,12 @@ class AppDaemon:
                     )
             self.diag("INFO", "--------------------------------------------------")
 
+    def myround(self, x, base=1, prec=10):
+        if base == 0:
+            return x
+        else:
+            return round(base * round(float(x) / base), prec)
+
     async def do_every(self, period, f):
         #
         # We already set self.now for DST calculation and initial sunset,
@@ -1063,17 +1423,18 @@ class AppDaemon:
         else:
             self.now = datetime.datetime.now().timestamp()
 
-        t = math.floor(self.now)
+        t = self.myround(self.now, base=period)
         count = 0
-        t_ = math.floor(time.time())
+        t_ = self.myround(time.time(), base=period)
+        #print(t, t_, period)
         while not self.stopping:
             count += 1
             delay = max(t_ + count * period - time.time(), 0)
             await asyncio.sleep(delay)
-            t += self.interval
+            t = self.myround(t + self.interval, base=period)
             r = await f(t)
             if r is not None and r != t:
-                # print("r: {}, t: {}".format(r,t))
+                #print("r: {}, t: {}".format(r,t))
                 t = r
                 t_ = r
                 count = 0
@@ -1088,6 +1449,8 @@ class AppDaemon:
         try:
             start_time = datetime.datetime.now().timestamp()
             self.now = utc
+
+            #print("tick - {}".format(utc))
 
             # If we have reached endtime bail out
 
@@ -1104,7 +1467,7 @@ class AppDaemon:
             if self.realtime:
                 real_now = datetime.datetime.now().timestamp()
                 delta = abs(utc - real_now)
-                if delta > self.max_skew:
+                if delta > self.max_clock_skew:
                     self.log("WARNING",
                               "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                     return real_now
@@ -1125,7 +1488,7 @@ class AppDaemon:
                 )
                 # dump_schedule()
                 self.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
+                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, "__ALL__")
                 # dump_schedule()
             self.was_dst = now_dst
 
@@ -1187,7 +1550,17 @@ class AppDaemon:
                         # We have a value so override
                         setattr(self, key, meta[key])
 
-    async def notify_plugin_started(self, namespace, first_time=False):
+    def get_plugin_from_namespace(self, namespace):
+        if self.plugins is not None:
+            for name in self.plugins:
+                if "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
+                    return name
+                if "namespace" not in self.plugins[name] and namespace == "default":
+                    return name
+        else:
+            return None
+
+    async def notify_plugin_started(self, name, namespace, first_time=False):
 
         try:
             self.last_plugin_state[namespace] = datetime.datetime.now()
@@ -1201,14 +1574,14 @@ class AppDaemon:
                 state = await self.plugin_objs[namespace].get_complete_state()
 
                 with self.state_lock:
-                    self.state[namespace] = state
+                    self.state[namespace]= state
 
                 if not first_time:
-                    await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
+                    await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, self.get_plugin_from_namespace(namespace))
                 else:
                     self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
-                self.process_event("global", {"event_type": "plugin_started".format(namespace), "data": {"name": namespace}})
+                self.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.err("WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error during notify_plugin_started()")
@@ -1223,9 +1596,9 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errfile)
                 )
 
-    def notify_plugin_stopped(self, namespace):
+    def notify_plugin_stopped(self, name, namespace):
 
-        self.process_event("global", {"event_type": "plugin_stopped".format(namespace), "data": {"name": namespace}})
+        self.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
 
     #
@@ -1238,7 +1611,7 @@ class AppDaemon:
         # Wait for all plugins to initialize
         #
         initialized = False
-        while not initialized:
+        while not initialized and self.stopping is False:
             initialized = True
             for plugin in self.plugin_objs:
                 if not self.plugin_objs[plugin].active():
@@ -1262,13 +1635,25 @@ class AppDaemon:
             # All plugins are loaded and we have initial state
             #
 
+            tt = None
             if self.starttime:
-                new_now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
-                self.log("INFO", "Starting time travel ...")
-                self.log("INFO", "Setting clocks to {}".format(new_now))
-                self.now = new_now.timestamp()
+                tt = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
+                self.now = tt.timestamp()
             else:
-                self.now = datetime.datetime.now().timestamp()
+                new_now = datetime.datetime.now()
+                self.now = new_now.timestamp()
+                if self.tick != self.interval:
+                    tt = new_now
+
+            if tt != None:
+                self.log("INFO", "Starting time travel ...")
+                self.log("INFO", "Setting clocks to {}".format(tt))
+                if self.tick == 0:
+                    self.log("INFO", "Time displacement factor infinite")
+                else:
+                    self.log("INFO", "Time displacement factor {}".format(self.interval/self.tick))
+            else:
+                self.log("INFO", "Scheduler tick set to {}s".format(self.tick))
 
             self.thread_info["max_used"] = 0
             self.thread_info["max_used_time"] = self.now
@@ -1283,17 +1668,10 @@ class AppDaemon:
 
             self.update_sun()
 
-            # Create timer loop
-
-            self.log("DEBUG", "Starting timer loop")
-
-            self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
-
-            if self.apps:
+            if self.apps is True:
                 self.log("DEBUG", "Reading Apps")
 
-                self.app_config_file_modified = datetime.datetime.now().timestamp()
-                await utils.run_in_executor(self.loop, self.executor, self.read_app_files, True)
+                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
 
                 self.log("INFO", "App initialization complete")
                 #
@@ -1301,17 +1679,26 @@ class AppDaemon:
                 #
                 self.process_event("global", {"event_type": "appd_started", "data": {}})
 
+            # Create timer loop
+
+            self.log("DEBUG", "Starting timer loop")
+
+            self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
+
+            warning_step = 0
+
             while not self.stopping:
+
                 start_time = datetime.datetime.now().timestamp()
 
                 try:
 
-                    if self.apps:
-                        await utils.run_in_executor(self.loop, self.executor, self.read_app_files)
+                    if self.apps is True:
 
-                        # Check to see if config has changed
+                        if self.production_mode is False:
+                            # Check to see if config has changed
+                            await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
 
-                        await utils.run_in_executor(self.loop, self.executor, self.check_config)
 
                     # Call me suspicious, but lets update state from the plugins periodically
                     # in case we miss events for whatever reason
@@ -1327,8 +1714,9 @@ class AppDaemon:
 
                                     state = await self.plugin_objs[plugin].get_complete_state()
 
-                                    with self.state_lock:
-                                        self.state[plugin] = state
+                                    if state is not None:
+                                        with self.state_lock:
+                                            self.state[plugin].update(state)
 
                                     self.last_plugin_state[plugin] = datetime.datetime.now()
                                 except:
@@ -1337,11 +1725,26 @@ class AppDaemon:
 
                     # Check for thread starvation
 
-                    qsize = self.q.qsize()
-                    if qsize > 0 and qsize % 10 == 0:
-                        self.log("WARNING", "Queue size is {}, suspect thread starvation".format(self.q.qsize()))
+                    qinfo = self.q_info()
+                    if qinfo["qsize"] > self.qsize_warning_threshold:
+                        if warning_step == 0:
+                            self.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
+                            self.dump_threads(qinfo)
+                        warning_step += 1
+                        if warning_step >= self.qsize_warning_step:
+                            warning_step = 0
+                    else:
+                        warning_step = 0
 
-                        self.dump_threads()
+                    # Check for any overdue threads
+
+                    if self.thread_duration_warning_threshold != 0:
+                        for thread_id in self.thread_info["threads"]:
+                            if self.thread_info["threads"][thread_id]["callback"] != "idle":
+                                start = self.thread_info["threads"][thread_id]["time_called"]
+                                dur = self.now - start
+                                if dur >= self.thread_duration_warning_threshold and dur % self.thread_duration_warning_threshold == 0:
+                                    self.log("WARNING", "Excessive time spent in callback: {} - {}s".format(self.thread_info["threads"][thread_id]["callback"], dur))
 
                     # Run utility for each plugin
 
@@ -1367,12 +1770,19 @@ class AppDaemon:
                 loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
 
                 self.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
-
-                if loop_duration > (self.utility_delay * 1000 * 0.9):
+                if loop_duration > (self.max_utility_skew * 1000):
                     self.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+                    if self.check_app_updates_profile is True:
+                        self.diag("INFO", "Profile information for Utility Loop")
+                        self.diag("INFO", self.check_app_updates_profile_stats)
 
                 await asyncio.sleep(self.utility_delay)
 
+            #
+            # Stopping, so terminate apps.
+            #
+
+            self.check_app_updates(exit=True)
     #
     # AppDaemon API
     #
@@ -1398,62 +1808,99 @@ class AppDaemon:
     #
 
     def get_app(self, name):
-        if name in self.objects:
-            return self.objects[name]["object"]
-        else:
-            return None
+        with self.objects_lock:
+            if name in self.objects:
+                return self.objects[name]["object"]
+            else:
+                return None
 
-    def term_file(self, name):
-        for key in self.app_config:
-            if "module" in self.app_config[key] and self.app_config[key]["module"] == name:
-                self.term_object(key)
+    def initialize_app(self, name):
+        with self.objects_lock:
+            if name in self.objects:
+                init = self.objects[name]["object"].initialize
+            else:
+                self.log("WARNING", "Unable to find module {} - initialize() skipped".format(name))
+                return
+        # Call its initialize function
 
-    def clear_file(self, name):
-        for key in self.app_config:
-            if "module" in self.app_config[key] and self.app_config[key]["module"] == name:
-                self.clear_object(key)
-                if key in self.objects:
-                    del self.objects[key]
-
-    def clear_object(self, object_):
-        self.log("DEBUG", "Clearing callbacks for {}".format(object_))
-        with self.callbacks_lock:
-            if object_ in self.callbacks:
-                del self.callbacks[object_]
-        with self.schedule_lock:
-            if object_ in self.schedule:
-                del self.schedule[object_]
-        with self.endpoints_lock:
-            if object_ in self.endpoints:
-                del self.endpoints[object_]
+        try:
+            init()
+        except:
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", "Unexpected error running initialize() for {}".format(name))
+            self.err("WARNING", '-' * 60)
+            self.err("WARNING", traceback.format_exc())
+            self.err("WARNING", '-' * 60)
+            if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
     def term_object(self, name):
-        if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
-            self.log("INFO", "Terminating Object {}".format(name))
-            # Call terminate directly rather than via worker thread
-            # so we know terminate has completed before we move on
-            self.objects[name]["object"].terminate()
+        with self.objects_lock:
+            term = None
+            if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
+                self.log("INFO", "Calling terminate() for {}".format(name))
+                # Call terminate directly rather than via worker thread
+                # so we know terminate has completed before we move on
 
-    def reinit_app(self, name, app_args):
-        self.term_object(name)
-        self.clear_object(name)
-        self.init_object(name, app_args)
+                term = self.objects[name]["object"].terminate
 
-    def init_object(self, name, app_args):
+        if term is not None:
+            try:
+                term()
+            except:
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", "Unexpected error running terminate() for {}".format(name))
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", traceback.format_exc())
+                self.err("WARNING", '-' * 60)
+                if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                    self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+        with self.objects_lock:
+            if name in self.objects:
+                del self.objects[name]
+
+        self.log("DEBUG", "Clearing callbacks for {}".format(name))
+        with self.callbacks_lock:
+            if name in self.callbacks:
+                del self.callbacks[name]
+        with self.schedule_lock:
+            if name in self.schedule:
+                del self.schedule[name]
+        with self.endpoints_lock:
+            if name in self.endpoints:
+                del self.endpoints[name]
+
+    def init_object(self, name):
+        app_args = self.app_config[name]
         self.log("INFO",
-                  "Loading Object {} using class {} from module {}".format(name, app_args["class"], app_args["module"]))
-        modname = __import__(app_args["module"])
-        app_class = getattr(modname, app_args["class"])
-        self.objects[name] = {
-            "object": app_class(
-                self, name, self.logger, self.err, app_args, self.config, app_args, self.global_vars
-            ),
-            "id": uuid.uuid4()
-        }
+                  "Initializing app {} using class {} from module {}".format(name, app_args["class"], app_args["module"]))
 
-        # Call it's initialize function
+        if self.get_file_from_module(app_args["module"]) is not None:
 
-        self.objects[name]["object"].initialize()
+            with self.objects_lock:
+                if "pin_thread" in app_args:
+                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.threads:
+                        self.log("WARNING", "pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
+                        return
+                    else:
+                        pin = app_args["pin_thread"]
+                else:
+                    pin = -1
+
+                modname = __import__(app_args["module"])
+                app_class = getattr(modname, app_args["class"])
+                self.objects[name] = {
+                    "object": app_class(
+                        self, name, self.logger, self.error, app_args, self.config, self.app_config, self.global_vars
+                    ),
+                    "id": uuid.uuid4(),
+                    "pin_app": self.app_should_be_pinned(name),
+                    "pin_thread": pin
+                }
+
+        else:
+            self.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
 
     def read_config(self):
 
@@ -1473,12 +1920,15 @@ class AppDaemon:
                             valid_apps = {}
                             if type(config).__name__ == "dict":
                                 for app in config:
-                                    if "class" in config[app] and "module" in config[app]:
-                                        valid_apps[app] = config[app]
-                                    else:
-                                        if self.invalid_yaml_warnings:
-                                            self.log("WARNING",
-                                                     "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
+                                    if config[app] is not None:
+                                        if app == "global_modules":
+                                            valid_apps[app] = config[app]
+                                        elif "class" in config[app] and "module" in config[app]:
+                                            valid_apps[app] = config[app]
+                                        else:
+                                            if self.invalid_yaml_warnings:
+                                                self.log("WARNING",
+                                                         "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
                             else:
                                 if self.invalid_yaml_warnings:
                                     self.log("WARNING",
@@ -1501,17 +1951,34 @@ class AppDaemon:
             return {"latest": ts, "files": [{"name": self.app_config_file, "ts": os.path.getmtime(self.app_config_file)}]}
         else:
             later_files = {}
+            app_config_files = []
             later_files["files"] = []
-            later_files["latest"] = 0
+            later_files["latest"] = last_latest
+            later_files["deleted"] = []
             for root, subdirs, files in os.walk(self.app_dir):
                 subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
-                            ts = os.path.getmtime(os.path.join(root, file))
+                            path = os.path.join(root, file)
+                            app_config_files.append(path)
+                            ts = os.path.getmtime(path)
                             if ts > last_latest:
+                                later_files["files"].append(path)
+                            if ts > later_files["latest"]:
                                 later_files["latest"] = ts
-                                later_files["files"].append({"name": os.path.join(root, file), "ts": ts})
+
+            for file in self.app_config_files:
+                if file not in app_config_files:
+                    later_files["deleted"].append(file)
+
+            if self.app_config_files != {}:
+                for file in app_config_files:
+                    if file not in self.app_config_files:
+                        later_files["files"].append(file)
+
+            self.app_config_files = app_config_files
+
             return later_files
 
     def read_config_file(self, file):
@@ -1550,36 +2017,46 @@ class AppDaemon:
     # noinspection PyBroadException
     def check_config(self):
 
+        terminate_apps = {}
+        initialize_apps = {}
+
         try:
             latest = self.check_later_app_configs(self.app_config_file_modified)
-            for later in latest["files"]:
-                filename = later["name"]
-                modified = later["ts"]
-                self.log("INFO", "{} added or modified".format(filename))
-                self.app_config_file_modified = modified
-                new_config = self.read_config()
+            self.app_config_file_modified = latest["latest"]
 
+            if latest["files"] or latest["deleted"]:
+                self.log("INFO", "Reading config")
+                new_config = self.read_config()
                 if new_config is None:
                     self.log("WARNING", "New config not applied")
                     return
 
+                for file in latest["deleted"]:
+                    self.log("INFO", "{} deleted".format(file))
+
+                for file in latest["files"]:
+                    self.log("INFO", "{} added or modified".format(file))
+
                 # Check for changes
 
                 for name in self.app_config:
-                    # if name == "DEFAULT" or name == "AppDaemon" or name == "HADashboard":
-                    #    continue
                     if name in new_config:
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
 
-                            self.log("INFO", "App '{}' changed - reloading".format(name))
-                            self.reinit_app(name, new_config[name])
+                            self.log("INFO", "App '{}' changed".format(name))
+                            terminate_apps[name] = 1
+                            initialize_apps[name] = 1
                     else:
 
                         # Section has been deleted, clear it out
 
-                        self.log("INFO", "App '{}' deleted - removing".format(name))
-                        self.clear_object(name)
+                        self.log("INFO", "App '{}' deleted".format(name))
+                        #
+                        # Since the entry has been deleted we can't sensibly determine dependencies
+                        # So just immediately terminate it
+                        #
+                        self.term_object(name)
 
                 for name in new_config:
                     if name not in self.app_config:
@@ -1587,13 +2064,19 @@ class AppDaemon:
                         # New section added!
                         #
                         if "class" in new_config[name] and "module" in new_config[name]:
-                            self.log("INFO", "App '{}' added - running".format(name))
-                            self.init_object(name, new_config[name])
+                            self.log("INFO", "App '{}' added".format(name))
+                            initialize_apps[name] = 1
+                        elif name == "global_modules":
+                            pass
                         else:
                             if self.invalid_yaml_warnings:
                                 self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
+
+                self.log("INFO", "Running {} apps".format(len(new_config)))
+
+            return {"init": initialize_apps, "term": terminate_apps}
         except:
             self.err("WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error:")
@@ -1606,7 +2089,7 @@ class AppDaemon:
     def get_app_from_file(self, file):
         module = self.get_module_from_path(file)
         for app in self.app_config:
-            if self.app_config[app]["module"] == module:
+            if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
                 return app
         return None
 
@@ -1615,110 +2098,46 @@ class AppDaemon:
         name = os.path.basename(file)
         module_name = os.path.splitext(name)[0]
         # Import the App
-        try:
-            if reload:
-                self.log("INFO", "Reloading Module: {}".format(file))
+        if reload:
+            self.log("INFO", "Reloading Module: {}".format(file))
 
-                file, ext = os.path.splitext(name)
-
-                #
-                # Clear out callbacks and remove objects
-                #
-                self.term_file(file)
-                self.clear_file(file)
-                #
-                # Reload
-                #
-                try:
-                    importlib.reload(self.modules[module_name])
-                except KeyError:
-                    if name not in sys.modules:
-                        # Probably failed to compile on initial load
-                        # so we need to re-import
-                        self.read_app(file)
-                    else:
-                        # A real KeyError!
-                        raise
-            else:
-                app = self.get_app_from_file(file)
-                if app is not None:
-                    self.log("INFO", "Loading Module: {}".format(file))
+            file, ext = os.path.splitext(name)
+            #
+            # Reload
+            #
+            try:
+                importlib.reload(self.modules[module_name])
+            except KeyError:
+                if name not in sys.modules:
+                    # Probably failed to compile on initial load
+                    # so we need to re-import not reload
+                    self.read_app(file)
+                else:
+                    # A real KeyError!
+                    raise
+        else:
+            app = self.get_app_from_file(file)
+            if app is not None:
+                self.log("INFO", "Loading App Module: {}".format(file))
+                if module_name not in self.modules:
                     self.modules[module_name] = importlib.import_module(module_name)
                 else:
-                    if self.missing_app_warnings:
-                        self.log("WARNING", "No app description found for: {} - ignoring".format(file))
+                    # We previously imported it so we need to reload to pick up any potential changes
+                    importlib.reload(self.modules[module_name])
 
+            elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
+                self.log("INFO", "Loading Global Module: {}".format(file))
+                self.modules[module_name] = importlib.import_module(module_name)
+            else:
+                if self.missing_app_warnings:
+                    self.log("WARNING", "No app description found for: {} - ignoring".format(file))
 
-            # Instantiate class and Run initialize() function
-
-            if self.app_config is not None:
-                for name in self.app_config:
-                    if module_name == self.app_config[name]["module"]:
-                        app_config = self.app_config[name]
-                        self.init_object(name, app_config)
-        except:
-            self.err( "WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during loading of {}:".format(name))
-            self.err( "WARNING", '-' * 60)
-            self.err( "WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
-            if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                self.log("WARNING", "Logged an error to {}".format(self.errfile))
-
-    def get_module_dependencies(self, file):
-        module_name = self.get_module_from_path(file)
-        if self.app_config is not None:
-            for key in self.app_config:
-                if "module" in self.app_config[key] and self.app_config[key]["module"] == module_name:
-                    if "dependencies" in self.app_config[key]:
-                        return self.app_config[key]["dependencies"]
-                    else:
-                        return None
-
-        return None
-
-    def in_previous_dependencies(self, dependencies, load_order):
-        for dependency in dependencies:
-            dependency_found = False
-            for batch in load_order:
-                for mod in batch:
-                    module_name = self.get_module_from_path(mod["name"])
-                    # print(dependency, module_name)
-                    if dependency == module_name:
-                        # print("found {}".format(module_name))
-                        dependency_found = True
-            if not dependency_found:
-                return False
-
-        return True
-
-    def dependencies_are_satisfied(self, _module, load_order):
-        dependencies = self.get_module_dependencies(_module)
-
-        if dependencies is None:
-            return None
-
-        if self.in_previous_dependencies(dependencies, load_order):
-            return True
-
-        return False
 
     @staticmethod
     def get_module_from_path(path):
         name = os.path.basename(path)
         module_name = os.path.splitext(name)[0]
         return module_name
-
-    def find_dependent_modules(self, mod):
-        module_name = self.get_module_from_path(mod["name"])
-        dependents = []
-        if self.app_config is not None:
-            for mod in self.app_config:
-                if "dependencies" in self.app_config[mod]:
-                    for dep in self.app_config[mod]["dependencies"]:
-                        if dep == module_name:
-                            dependents.append(self.app_config[mod]["module"])
-        return dependents
 
     def get_file_from_module(self, mod):
         for file in self.monitored_files:
@@ -1728,6 +2147,51 @@ class AppDaemon:
 
         return None
 
+    def process_filters(self):
+        if "filters" in self.config:
+            for filter in self.config["filters"]:
+
+                for root, subdirs, files in os.walk(self.app_dir, topdown=True):
+                    # print(root, subdirs, files)
+                    #
+                    # Prune dir list
+                    #
+                    subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
+
+                    ext = filter["input_ext"]
+                    extlen = len(ext) * -1
+
+                    for file in files:
+                        run = False
+                        if file[extlen:] == ext:
+                            infile = os.path.join(root, file)
+                            modified = os.path.getmtime(infile)
+                            if infile in self.filter_files:
+                                if self.filter_files[infile] < modified:
+                                    run = True
+                            else:
+                                self.log("INFO", "Found new filter file {}".format(infile))
+                                run = True
+
+                            if run is True:
+                                filtered = True
+                                self.log("INFO", "Running filter on {}".format(infile))
+                                self.filter_files[infile] = modified
+
+                                # Run the filter
+
+                                outfile = utils.rreplace(infile, ext, filter["output_ext"], 1)
+                                command_line = filter["command_line"].replace("$1", infile)
+                                command_line = command_line.replace("$2", outfile)
+                                try:
+                                    p = subprocess.Popen(command_line, shell=True)
+                                except:
+                                    self.log("WARNING", '-' * 60)
+                                    self.log("WARNING", "Unexpected running filter on: {}:".format(infile))
+                                    self.log("WARNING", '-' * 60)
+                                    self.log("WARNING", traceback.format_exc())
+                                    self.log("WARNING", '-' * 60)
+
     @staticmethod
     def file_in_modules(file, modules):
         for mod in modules:
@@ -1735,38 +2199,40 @@ class AppDaemon:
                 return True
         return False
 
-    def get_app_priority(self, file):
-        # Set to highest priority
-        prio = sys.float_info.max
-        mod = self.get_module_from_path(file)
-        for name in self.app_config:
-            if "module" in self.app_config[name] and self.app_config[name]["module"] == mod:
-                if "priority" in self.app_config[name]:
-                    modprio = float(self.app_config[name]["priority"])
-                    # if any apps have this file at a lower priority set it accordingly
-                    if modprio < prio:
-                        prio = modprio
+    #@_timeit
+    def check_app_updates(self, plugin=None, exit=False):
 
-        # If priority is still at 100, this app has no priority so set it to the middle
-        if prio == sys.float_info.max:
-            prio = float(50.0)
-
-        return prio
-
-    # noinspection PyBroadException
-    def read_app_files(self, all_=False, forcefile=None):
-        # Check if the apps are disabled in config
-        if not self.apps:
+        if self.apps is False:
             return
+
+        # Lets add some profiling
+        pr = None
+        if self.check_app_updates_profile is True:
+            pr = cProfile.Profile()
+            pr.enable()
+
+        # Process filters
+
+        self.process_filters()
+
+        # Get list of apps we need to terminate and/or initialize
+
+        apps = self.check_config()
 
         found_files = []
         modules = []
         for root, subdirs, files in os.walk(self.app_dir, topdown=True):
-            #print(root, subdirs, files)
+            # print(root, subdirs, files)
             #
             # Prune dir list
             #
             subdirs[:] = [d for d in subdirs if d not in self.exclude_dirs]
+
+            if root[-11:] != "__pycache__":
+                if root not in self.module_dirs:
+                    self.log("INFO", "Adding {} to module import path".format(root))
+                    sys.path.insert(0, root)
+                    self.module_dirs.append(root)
 
             for file in files:
                 if file[-3:] == ".py":
@@ -1777,129 +2243,288 @@ class AppDaemon:
                 continue
             try:
 
-                #check we can actually open the file the first time
-                if all_ is True:
-                    fh = open(file)
-                    fh.close()
+                # check we can actually open the file
+
+                fh = open(file)
+                fh.close()
 
                 modified = os.path.getmtime(file)
                 if file in self.monitored_files:
-                    if self.monitored_files[file] < modified or all_ or file == forcefile:
-                        # read_app(file, True)
-                        thismod = {"name": file, "reload": True, "load": True}
-                        modules.append(thismod)
+                    if self.monitored_files[file] < modified:
+                        modules.append({"name": file, "reload": True})
                         self.monitored_files[file] = modified
                 else:
-                    # read_app(file)
-                    modules.append({"name": file, "reload": False, "load": True})
-                    self.monitored_files[file] = modified
+                    self.log("DEBUG", "Found module {}".format(file))
+                    modules.append({"name": file, "reload": False})
+                    self. monitored_files[file] = modified
             except IOError as err:
                 self.log("WARNING",
                          "Unable to read app {}: {} - skipping".format(file, err))
 
-        # Add any required dependent files to the list
-        if modules:
-            more_modules = True
-            while more_modules:
-                module_list = modules.copy()
-                for mod in module_list:
-                    dependent_modules = self.find_dependent_modules(mod)
-                    if not dependent_modules:
-                        more_modules = False
-                    else:
-                        for thismod in dependent_modules:
-                            file = self.get_file_from_module(thismod)
-                            if file is None:
-                                self.log( "ERROR",
-                                          "Unable to resolve dependencies due missing app file for module: {}".format(thismod))
-                                raise ValueError("Missing file")
-
-                            mod_def = {"name": file, "reload": True, "load": True}
-                            if not self.file_in_modules(file, modules):
-                                # Give each dependency tree module an incremented priority to maintain order for later sort
-                                # This will break if anyone has more than 99,999,999 apps that depend on other apps :(
-                                # print("Appending {} ({})".format(mod, file))
-                                modules.append(mod_def)
-
-        # Loading order algorithm requires full population of modules
-        # so we will add in any missing modules but mark them for not loading
-
+        # Check for deleted modules and add them to the terminate list
+        deleted_modules = []
         for file in self.monitored_files:
-            if not self.file_in_modules(file, modules):
-                name = self.get_module_from_path(file)
-                modules.append({"name": file, "reload": False, "load": False, "priority": self.get_app_priority(file)})
+            if file not in found_files or exit is True:
+                deleted_modules.append(file)
+                self.log("INFO", "Removing module {}".format(file))
 
-        # Figure out loading order
+        for file in deleted_modules:
+            del self.monitored_files[file]
+            for app in self.apps_per_module(self.get_module_from_path(file)):
+                apps["term"][app] = 1
 
-        # for mod in modules:
-        #  print(mod["name"], mod["load"])
+        # Add any apps we need to reload because of file changes
 
-        depends_load_order = []
+        for module in modules:
+            for app in self.apps_per_module(self.get_module_from_path(module["name"])):
+                if module["reload"]:
+                    apps["term"][app] = 1
+                apps["init"][app] = 1
 
+            if "global_modules" in self.app_config:
+                for gm in utils.single_or_list(self.app_config["global_modules"]):
+                    if gm == self.get_module_from_path(module["name"]):
+                        for app in self.apps_per_global_module(gm):
+                            if module["reload"]:
+                                apps["term"][app] = 1
+                            apps["init"][app] = 1
+
+        if plugin is not None:
+            self.log("INFO", "Processing restart for {}".format(plugin))
+            # This is a restart of one of the plugins so check which apps need to be restarted
+            for app in self.app_config:
+                reload = False
+                if app == "global_modules":
+                    continue
+                if "plugin" in self.app_config[app]:
+                    for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
+                        if this_plugin == plugin:
+                            # We got a match so do the reload
+                            reload = True
+                            break
+                        elif plugin == "__ALL__":
+                            reload = True
+                            break
+                else:
+                    # No plugin dependency specified, reload to err on the side of caution
+                    reload = True
+
+                if reload is True:
+                    apps["term"][app] = 1
+                    apps["init"][app] = 1
+
+        # Terminate apps
+
+        if apps is not None and apps["term"]:
+
+            prio_apps = self.get_app_deps_and_prios(apps["term"])
+
+            for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
+                try:
+                    self.log("INFO", "Terminating {}".format(app))
+                    self.term_object(app)
+                except:
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected error terminating app: {}:".format(app))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+
+        # Load/reload modules
+
+        for mod in modules:
+            try:
+                self.read_app(mod["name"], mod["reload"])
+            except:
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                self.err("WARNING", '-' * 60)
+                self.err("WARNING", traceback.format_exc())
+                self.err("WARNING", '-' * 60)
+                if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                    self.log("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                self.log("WARNING", "Removing associated apps:")
+                module = self.get_module_from_path(mod["name"])
+                for app in self.app_config:
+                    if self.app_config[app]["module"] == module:
+                        if apps["init"] and app in apps["init"]:
+                            del apps["init"][app]
+                            self.log("WARNING", "{}".format(app))
+
+        if apps is not None and apps["init"]:
+
+            prio_apps = self.get_app_deps_and_prios(apps["init"])
+
+            # Load Apps
+
+            for app in sorted(prio_apps, key=prio_apps.get):
+                try:
+                    self.init_object(app)
+                except:
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", "Unexpected error initializing app: {}:".format(app))
+                    self.err("WARNING", '-' * 60)
+                    self.err("WARNING", traceback.format_exc())
+                    self.err("WARNING", '-' * 60)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile))
+
+            self.calculate_pin_threads()
+
+            # Call initialize() for apps
+
+            for app in sorted(prio_apps, key=prio_apps.get):
+                self.initialize_app(app)
+
+        if self.check_app_updates_profile is True:
+            pr.disable()
+
+        s = io.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        self.check_app_updates_profile_stats = s.getvalue()
+
+    def get_app_deps_and_prios(self, applist):
+
+        # Build a list of modules and their dependencies
+
+        deplist = []
+        for app in applist:
+            if app not in deplist:
+                deplist.append(app)
+            self.get_dependent_apps(app, deplist)
+
+        # Need to gove the topological sort a full list of apps or it will fail
+        full_list = list(self.app_config.keys())
+
+        deps = []
+
+        for app in full_list:
+            dependees = []
+            if "dependencies" in self.app_config[app]:
+                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
+                    if dep in self.app_config:
+                        dependees.append(dep)
+                    else:
+                        self.log("WARNING", "Unable to find app {} in dependencies for {}".format(dep, app))
+                        self.log("WARNING", "Ignoring app {}".format(app))
+            deps.append((app, dependees))
+
+        prio_apps = {}
         prio = float(50.1)
-        while modules:
-            batch = []
-            module_list = modules.copy()
-            for mod in module_list:
-                if self.dependencies_are_satisfied(mod["name"], depends_load_order) is True:
-                    prio += float(0.0001)
-                    mod ["priority"] = prio
-                    batch.append(mod)
-                    modules.remove(mod)
-                elif self.dependencies_are_satisfied(mod["name"], depends_load_order) is None:
-                    mod["priority"] = self.get_app_priority(mod["name"])
-                    batch.append(mod)
-                    modules.remove(mod)
-
-            if not batch:
-                self.log("ERROR",
-                          "Unable to resolve dependencies due to incorrect or circular references")
-                self.log("ERROR", "The following modules have unresolved dependencies:")
-                for mod in modules:
-                    module_name = self.get_module_from_path(mod["name"])
-                    self.log("ERROR", module_name)
-                raise ValueError("Unresolved dependencies")
-
-            depends_load_order.append(batch)
-
-        final_load_order = []
-
-        for batch in depends_load_order:
-            for mod in batch:
-                final_load_order.append(mod)
-
-        final_load_order.sort(key = lambda mod: mod["priority"])
-
         try:
-            for mod in final_load_order:
-                if mod["load"]:
-                    self.read_app(mod["name"], mod["reload"])
+            for app in self.topological_sort(deps):
+                if "dependencies" in self.app_config[app] or self.app_has_dependents(app):
+                    prio_apps[app] = prio
+                    prio += float(0.0001)
+                else:
+                    if "priority" in self.app_config[app]:
+                        prio_apps[app] = float(self.app_config[app]["priority"])
+                    else:
+                        prio_apps[app] = float(50)
+        except ValueError:
+            pass
 
-        except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error loading file")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
+        # now we remove the ones we aren't interested in
 
+        final_apps = {}
+        for app in prio_apps:
+            if app in deplist:
+                final_apps[app] = prio_apps[app]
+
+        return final_apps
+
+    def app_has_dependents(self, name):
+        for app in self.app_config:
+            if "dependencies" in self.app_config[app]:
+                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
+                    if dep == name:
+                        return True
+        return False
+
+    def get_dependent_apps(self, dependee, deps):
+        for app in self.app_config:
+            if "dependencies" in self.app_config[app]:
+                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
+                    #print("app= {} dep = {}, dependee = {} deps = {}".format(app, dep, dependee, deps))
+                    if dep == dependee and app not in deps:
+                        deps.append(app)
+                        new_deps = self.get_dependent_apps(app, deps)
+                        if new_deps is not None:
+                            deps.append(new_deps)
+
+    def topological_sort(self, source):
+
+        pending = [(name, set(deps)) for name, deps in source]  # copy deps so we can modify set in-place
+        emitted = []
+        while pending:
+            next_pending = []
+            next_emitted = []
+            for entry in pending:
+                name, deps = entry
+                deps.difference_update(emitted)  # remove deps we emitted last pass
+                if deps:  # still has deps? recheck during next pass
+                    next_pending.append(entry)
+                else:  # no more deps? time to emit
+                    yield name
+                    emitted.append(name)  # <-- not required, but helps preserve original ordering
+                    next_emitted.append(name)  # remember what we emitted for difference_update() in next pass
+            if not next_emitted:
+                # all entries have unmet deps, we have cyclic redundancies
+                # since we already know all deps are correct
+                self.log("WARNING", "Cyclic or missing app dependencies detected")
+                for pend in next_pending:
+                    deps = ""
+                    for dep in pend[1]:
+                        deps += "{} ".format(dep)
+                    self.log("WARNING", "{} depends on {}".format(pend[0], deps))
+                raise ValueError("cyclic dependancy detected")
+            pending = next_pending
+            emitted = next_emitted
+
+    def apps_per_module(self, module):
+        apps = []
+        for app in self.app_config:
+            if app != "global_modules" and self.app_config[app]["module"] == module:
+                apps.append(app)
+
+        return apps
+
+    def apps_per_global_module(self, module):
+        apps = []
+        for app in self.app_config:
+            if "global_dependencies" in self.app_config[app]:
+                for gm in utils.single_or_list(self.app_config[app]["global_dependencies"]):
+                    if gm == module:
+                        apps.append(app)
+
+        return apps
     #
     # State Updates
     #
 
     def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
-                            old_state, cold, cnew, kwargs):
+                            old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
+        kwargs["handle"] = uuid_
         if attribute == "all":
-            self.dispatch_worker(name, {
-                "name": name,
-                "id": self.objects[name]["id"],
-                "type": "attr",
-                "function": funcref,
-                "attribute": attribute,
-                "entity": entity,
-                "new_state": new_state,
-                "old_state": old_state,
-                "kwargs": kwargs
-            })
+            with self.objects_lock:
+                self.dispatch_worker(name, {
+                    "name": name,
+                    "id": self.objects[name]["id"],
+                    "type": "attr",
+                    "function": funcref,
+                    "attribute": attribute,
+                    "entity": entity,
+                    "new_state": new_state,
+                    "old_state": old_state,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
+                    "kwargs": kwargs,
+                })
         else:
             if old_state is None:
                 old = None
@@ -1924,7 +2549,7 @@ class AppDaemon:
                 if "duration" in kwargs:
                     # Set a timer
                     exec_time = self.get_now_ts() + int(kwargs["duration"])
-                    kwargs["handle"] = self.insert_schedule(
+                    kwargs["_duration"] = self.insert_schedule(
                         name, exec_time, funcref, False, None,
                         entity=entity,
                         attribute=attribute,
@@ -1933,21 +2558,24 @@ class AppDaemon:
                     )
                 else:
                     # Do it now
-                    self.dispatch_worker(name, {
-                        "name": name,
-                        "id": self.objects[name]["id"],
-                        "type": "attr",
-                        "function": funcref,
-                        "attribute": attribute,
-                        "entity": entity,
-                        "new_state": new,
-                        "old_state": old,
-                        "kwargs": kwargs
-                    })
+                    with self.objects_lock:
+                        self.dispatch_worker(name, {
+                            "name": name,
+                            "id": self.objects[name]["id"],
+                            "type": "attr",
+                            "function": funcref,
+                            "attribute": attribute,
+                            "entity": entity,
+                            "new_state": new,
+                            "old_state": old,
+                            "pin_app": pin_app,
+                            "pin_thread": pin_thread,
+                            "kwargs": kwargs
+                        })
             else:
-                if "handle" in kwargs:
+                if "_duration" in kwargs:
                     # cancel timer
-                    self.cancel_timer(name, kwargs["handle"])
+                    self.cancel_timer(name, kwargs["_duration"])
 
     def process_state_change(self, namespace, state):
         data = state["data"]
@@ -1957,6 +2585,7 @@ class AppDaemon:
 
         # Process state callbacks
 
+        removes = []
         with self.callbacks_lock:
             for name in self.callbacks.keys():
                 for uuid_ in self.callbacks[name]:
@@ -1985,7 +2614,10 @@ class AppDaemon:
                                 data['new_state'],
                                 data['old_state'],
                                 cold, cnew,
-                                callback["kwargs"]
+                                callback["kwargs"],
+                                uuid_,
+                                callback["pin_app"],
+                                callback["pin_thread"]
                             )
                         elif centity is None:
                             if device == cdevice:
@@ -1995,7 +2627,10 @@ class AppDaemon:
                                     data['new_state'],
                                     data['old_state'],
                                     cold, cnew,
-                                    callback["kwargs"]
+                                    callback["kwargs"],
+                                    uuid_,
+                                    callback["pin_app"],
+                                    callback["pin_thread"]
                                 )
                         elif device == cdevice and entity == centity:
                             self.check_and_disapatch(
@@ -2004,10 +2639,24 @@ class AppDaemon:
                                 data['new_state'],
                                 data['old_state'], cold,
                                 cnew,
-                                callback["kwargs"]
+                                callback["kwargs"],
+                                uuid_,
+                                callback["pin_app"],
+                                callback["pin_thread"]
                             )
 
-    def state_update(self, namespace, data):
+                        # Remove the callback if appropriate
+                        remove = callback["kwargs"].get("oneshot", False)
+                        if remove:
+                            #print(callback["kwargs"])
+                            #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
+                            removes.append({"name": callback["name"], "uuid": uuid_})
+
+            for remove in removes:
+                #print(remove)
+                self.cancel_state_callback(remove["uuid"], remove["name"])
+
+    async def state_update(self, namespace, data):
         try:
             self.log(
                 "DEBUG",
@@ -2033,16 +2682,14 @@ class AppDaemon:
             # Update dashboards
 
             if self.dashboard is not None:
-                self.dashboard.ws_update(namespace, data)
+                await self.dashboard.ws_update(namespace, data)
 
         except:
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during state_update()")
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
-            if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                self.log("WARNING", "Logged an error to {}".format(self.errfile))
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", "Unexpected error during state_update()")
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", traceback.format_exc())
+            self.log("WARNING", '-' * 60)
 
 
     #
@@ -2065,15 +2712,19 @@ class AppDaemon:
                                         data["data"][key]:
                                     _run = False
                             if _run:
-                                self.dispatch_worker(name, {
-                                    "name": name,
-                                    "id": self.objects[name]["id"],
-                                    "type": "event",
-                                    "event": data['event_type'],
-                                    "function": callback["function"],
-                                    "data": data["data"],
-                                    "kwargs": callback["kwargs"]
-                                })
+                                with self.objects_lock:
+                                    if name in self.objects:
+                                        self.dispatch_worker(name, {
+                                            "name": name,
+                                            "id": self.objects[name]["id"],
+                                            "type": "event",
+                                            "event": data['event_type'],
+                                            "function": callback["function"],
+                                            "data": data["data"],
+                                            "pin_app": callback["pin_app"],
+                                            "pin_thread": callback["pin_thread"],
+                                            "kwargs": callback["kwargs"]
+                                        })
 
     #
     # Plugin Management
@@ -2091,8 +2742,8 @@ class AppDaemon:
                 return self.plugin_meta[namespace]
             elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
                 return self.plugin_meta[namespace]
-            else:
-                return None
+                
+        return None
 
 
     #
@@ -2103,13 +2754,14 @@ class AppDaemon:
         kwargs_copy = kwargs.copy()
         return self._sanitize_kwargs(kwargs_copy, [
             "old", "new", "attribute", "duration", "state",
-            "entity", "handle", "old_state", "new_state",
+            "entity", "_duration", "old_state", "new_state",
+            "oneshot", "pin_app", "pin_thread"
         ] + app.list_constraints())
 
     def sanitize_timer_kwargs(self, app, kwargs):
         kwargs_copy = kwargs.copy()
         return self._sanitize_kwargs(kwargs_copy, [
-            "interval", "constrain_days", "constrain_input_boolean",
+            "interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"
         ] + app.list_constraints())
 
     def _sanitize_kwargs(self, kwargs, keys):
@@ -2122,15 +2774,19 @@ class AppDaemon:
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.logger, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts, "log")
 
     def err(self, level, message, name="AppDaemon"):
         if not self.realtime:
             ts = self.get_now()
         else:
-            ts = None
+            ts = datetime.datetime.now()
         utils.log(self.error, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts, "error")
 
     def diag(self, level, message, name="AppDaemon"):
         if not self.realtime:
@@ -2138,6 +2794,47 @@ class AppDaemon:
         else:
             ts = None
         utils.log(self.diagnostic, level, message, name, ts)
+
+        self.process_log_callback(level, message, name, ts, "diag")
+
+    def process_log_callback(self, level, message, name, ts, type):
+        # Need to check if this log callback belongs to an app that is accepting log events
+        # If so, don't generate the event to avoid loops
+        has_log_callback = False
+        with self.callbacks_lock:
+            for callback in self.callbacks:
+                for uuid in self.callbacks[callback]:
+                    cb = self.callbacks[callback][uuid]
+                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "AD_LOG_EVENT":
+                        has_log_callback = True
+
+        if has_log_callback is False:
+            self.process_event("global", {"event_type": "AD_LOG_EVENT",
+                                          "data": {
+                                              "level": level,
+                                              "app_name": name,
+                                              "message": message,
+                                              "ts": ts,
+                                              "type": type
+                                          }})
+#        with self.log_callbacks_lock:
+#            for thisname in self.log_callbacks:
+#                if thisname != name:
+#                    if utils.log_levels[level] >= utils.log_levels[self.log_callbacks[thisname]["level"]]:
+#                        self.log_callbacks[thisname]["callback"](name, ts, level, message)
+
+    def add_log_callback(self, namespace, name, cb, level, **kwargs):
+        # Add a separate callback for each log level
+        handle = []
+        for thislevel in utils.log_levels:
+            if utils.log_levels[thislevel] >= utils.log_levels[level] :
+                handle.append(self.add_event_callback(name, namespace, cb, "AD_LOG_EVENT", level=thislevel, **kwargs))
+
+        return handle
+
+    def cancel_log_callback(self, name, handle):
+        for h in handle:
+            self.cancel_event_callback(name, h)
 
     def register_dashboard(self, dash):
         self.dashboard = dash

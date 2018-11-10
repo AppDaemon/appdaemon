@@ -3,9 +3,7 @@ Writing AppDaemon Apps
 
 AppDaemon is a loosely coupled, sandboxed, multi-threaded Python
 execution environment for writing automation apps for `Home
-Assistant <https://home-assistant.io/>`__ home automation software. It
-is intended to complement the Automation and Script components that Home
-Assistant currently offers.
+Assistant <https://home-assistant.io/>`__, `MQTT <http://mqtt.org/>`__ event broker and other home automation software.
 
 Examples
 --------
@@ -18,7 +16,7 @@ AppDaemon repository:
 Anatomy of an App
 -----------------
 
-Automations in AppDaemon are performed by creating a piece of code
+Actions in AppDaemon are performed by creating a piece of code
 (essentially a Python Class) and then instantiating it as an Object one
 or more times by configuring it as an App in the configuration file. The
 App is given a chance to register itself for whatever events it wants to
@@ -30,15 +28,22 @@ The first step is to create a unique file within the apps directory (as
 defined in the ``appdaemon`` section of configuration file - see `The
 Installation Page <INSTALL.html>`__ for further information on the
 configuration of AppDaemon itself). This file is in fact a Python
-module, and is expected to contain one or more classes derived from the
-supplied ``appdaemon`` class, imported from the supplied
-``appdaemon.plugins.hass.hassapi`` module. The start of an app might look like this:
+module, and is expected to contain one or more classes derived from a
+supplied ``appdaemon`` class or a custom plugin. For instance, hass support can be used by importing from the supplied``hassapi`` module. The start of an app might look like this:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class OutsideLights(hass.Hass):
+
+For MQTT you would use the mqttapi module:
+
+.. code:: python
+
+    import mqttapi as mqtt
+
+    class OutsideLights(mqtt.Mqtt):
 
 When configured as an app in the config file (more on that later) the
 lifecycle of the App begins. It will be instantiated as an object by
@@ -63,7 +68,7 @@ called:
 -  Following a change to the module parameters
 -  Following initial configuration of an app
 -  Following a change in the status of Daylight Saving Time
--  Following a restart of Home Assistant
+-  Following a restart of a plugin or underlying subsystem such as Home Assistant
 
 In every case, the App is responsible for recreating any state it might
 need as if it were the first time it was ever started. If
@@ -79,11 +84,12 @@ that might have been left on by mistake when the app was restarted).
 After the ``initialize()`` function is in place, the rest of the app
 consists of functions that are called by the various callback
 mechanisms, and any additional functions the user wants to add as part
-of the program logic. Apps are able to subscribe to two main classes of
+of the program logic. Apps are able to subscribe to three main classes of
 events:
 
 -  Scheduled Events
 -  State Change Events
+-  Other Events
 
 These, along with their various subscription calls and helper functions,
 will be described in detail in later sections.
@@ -99,12 +105,12 @@ reloaded. This means that any significant delays in the ``terminate()``
 code could have the effect of hanging AppDaemon for the duration of that
 code - this should be avoided.
 
-To wrap up this section, here is a complete functioning App (with
+To wrap up this section, here is a complete functioning HASS App (with
 comments):
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
     import datetime
 
     # Declare Class
@@ -179,7 +185,7 @@ AppDir will pick one of them but the exact choice it will make is
 undefined.
 
 When starting the system for the first time or when reloading an App or
-Module, the system will log the fact in it's main log. It is often the
+Module, the system will log the fact in its main log. It is often the
 case that there is a problem with the class, maybe a syntax error or
 some other problem. If that is the case, details will be output to the
 error log allowing the user to remedy the problem and reload.
@@ -209,9 +215,8 @@ new app has been added, or if one has been removed, and it will act
 appropriately, starting the new app immediately and removing all
 callbacks for the removed app.
 
-The suggested order for creating a new App is to add the module code
-first and work until it compiles cleanly, and only then add an entry in
-the configuration file to actually run it. A good workflow is to
+The suggested order for creating a new App is to first add the apps.yaml entry
+then the module code and work until it compiles cleanly. A good workflow is to
 continuously monitor the error file (using ``tail -f`` on Linux for
 instance) to ensure that errors are seen and can be remedied.
 
@@ -266,7 +271,7 @@ like this:
       sensor: binary_sensor.garage
       light: light.garage
 
-Apps can use arbitrarily complex structures within argumens, e.g.:
+Apps can use arbitrarily complex structures within arguments, e.g.:
 
 .. code:: yaml
 
@@ -297,29 +302,26 @@ required:
         warning_level: 100
         units: %
 
-Module Dependencies
--------------------
+App Dependencies
+----------------
 
-It is possible for modules to be dependant upon other modules. Some
+It is possible for apps to be dependant upon other apps. Some
 examples where this might be the case are:
 
--  A Global module that defines constants for use in other modules
--  A module that provides a service for other modules, e.g. a TTS module
--  A Module that provides part of an object hierarchy to other modules
+-  A global app that defines constants for use in other apps
+-  An app that provides a service for other modules, e.g. a TTS app
 
-In these cases, when changes are made to one of these modules, we also
-want the modules that depend upon them to be reloaded. Furthermore, we
-also want to guarantee that they are loaded in order so that the modules
+In these cases, when changes are made to one of these apps, we also
+want the apps that depend upon them to be reloaded. Furthermore, we
+also want to guarantee that they are loaded in order so that the apps
 depended upon by other modules are loaded first.
 
 AppDaemon fully supports this through the use of the dependency
 directive in the App configuration. Using this directive, each App
-identifies modules that it depends upon. Note that the dependency is at
-the module level, not the App level, since a change to the module will
-force a reload of all apps using it anyway. The dependency directive
-will identify the module name of the App it cares about, and AppDaemon
-will see to it that the dependency is loaded before the module depending
-on it, and that the dependent module will be reloaded if it changes.
+identifies other apps that it depends upon. The dependency directive
+will identify the name of the App it cares about, and AppDaemon
+will see to it that the dependency is loaded before the app depending
+on it, and that the dependent app will be reloaded if it changes.
 
 For example, an App ``Consumer``, uses another app ``Sound`` to play
 sound files. ``Sound`` in turn uses ``Global`` to store some global
@@ -334,14 +336,12 @@ values. We can represent these dependencies as follows:
     Sound
       module: sound
       class: Sound
-      dependencies:
-        - global # Note - module name not App name
+      dependencies: Global
 
     Consumer:
       module: sound
       class: Sound
-      dependencies:
-        - sound
+      dependencies: Sound
 
 It is also possible to have multiple dependencies, added as a yaml list
 
@@ -351,14 +351,14 @@ It is also possible to have multiple dependencies, added as a yaml list
       module: sound
       class: Sound
       dependencies:
-        - sound
-        - global
+        - Sound
+        - Global
 
 AppDaemon will write errors to the log if a dependency is missing and it
-should also detect circular dependencies.
+will also detect circular dependencies.
 
-Loading Priority
-----------------
+App Loading Priority
+--------------------
 
 It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an app, simply add a ``priority`` entry to its paremeters. e.g.:
 
@@ -380,7 +380,103 @@ The priority system is complimentary to the dependency system, although they are
 
 To accommodate both systems, dependency trees are assigned priorities in the range 50 - 51, again allowing apps to set priorities such that they will be loaded before or after specific sets of dependent apps.
 
-Note that apps that are dependent upon other apps will ignore any priority setting in their configuration.
+Note that apps that are dependent upon other apps, and apps that are depended upon by other apps will ignore any priority setting in their configuration.
+
+Global Module Dependencies
+--------------------------
+
+The previously described dependencies and load order have all been at the app level. It is however sometimes convenient to have global modules that have no apps in them, that nonetheless require dependency tracking. For instance, a global module might have a number of useful variables in it. When they change, a number of apps may need to be restarted. To configure this dependency tracking, it is first necessary to define which modules are going to be tracked. This is done in any apps.yaml file, although it should only be in one place. We use the ``global_modules`` directive:
+
+.. code:: yaml
+
+    global_modules: global
+
+This means that the file ``globals.py`` anywhere with in the apps directory hierarchy is marked as a global module. Any app may simply import ``globals`` and use its variables and functions. Marking multiple modules as global can be achieved using standard YAML list format:
+
+.. code:: yaml
+
+    global_modules:
+      - global1
+      - global2
+      - global3
+
+Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding a ``global_dependencies`` field to the app description, e.g.:
+
+.. code:: yaml
+
+    app1:
+      class: App
+      module: app
+      global_dependencies: global
+
+Or for multiple dependencies:
+
+.. code:: yaml
+
+    app1:
+      class: App
+      module: app
+      global_dependencies:
+        - global1
+        - global2
+
+With this in place, whenever a global module is changes that apps depend upon, all dependant apps will be reloaded. This also works well with the app level dependencies. If a change to a global module forces an app to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
+
+Plugin Reloads
+--------------
+
+When a plugin reloads e.g. due to the underlying system restarting, or a network issue, AppDaemon's default assumption is that all apps could potentially be dependant on that system, and it will force a restart of every app. It is possible to modify this behavior at the individual app level, using the ``plugin`` parameter in apps.yaml. Specifying a specific plugin or list of plugins will force the app to reload after the named plugin restarts.
+
+For a simple AppDaemon install, the appdaemon.yaml file might look something like this:
+
+.. code:: yaml
+
+     appdaemon:
+       threads: 10
+       plugins:
+         HASS:
+           type: hass
+           ha_url: <some_url>
+           ha_key: <some_key>
+
+In this setup, there is only one plugin and it is called ``HASS`` - this will be the case for most AppDaemon users.
+
+To make an app explicitly reload when only this plugin and no other is restarted (e.g. in the case when HASS restarts or when AppDaemon loses connectivity to HASS), use the ``plugin`` parameter like so:
+
+.. code:: yaml
+
+    appname:
+        module: some_module
+        class: some_class
+        plugin: HASS
+
+If you have more than one plugin, you can make an app dependent on more than one plgin by specifying a YAML list:
+
+.. code:: yaml
+
+    appname:
+        module: some_module
+        class: some_class
+        plugin:
+          - HASS
+          - OTHERPLUGIN
+
+If you want to prevent the app from reloading at all, just set the ``plugin`` parameter to some value that doesn't match any plugin name, e.g.:
+
+.. code:: yaml
+
+    appname:
+        module: some_module
+        class: some_class
+        plugin: NONE
+
+Note, that this only effects reloading at plugin restart time:
+
+- apps will be reloaded if the module they use changes
+- apps will be reloaded if their apps.yaml changes
+- apps will be reloaded when a change to or from DST occurs
+- apps will be reloaded if an app they depend upon is reloaded as part of a plugin restart
+- apps will be reloaded if changes are made to a global module that they depend upon
 
 Callback Constraints
 --------------------
@@ -397,28 +493,22 @@ execution that can be applied to an individual App. An App's callbacks
 will only be executed if all of the constraints are met. If a constraint
 is absent it will not be checked for.
 
-For example, the presence callback constraint can be added to an App by
-adding a parameter to it's configuration like this:
+For example, a time callback constraint can be added to an App by
+adding a parameter to its configuration like this:
 
 .. code:: yaml
 
     some_app:
       module: some_module
       class: SomeClass
-      constrain_presence: noone
+      constrain_start_time: sunrise
+      constrain_end_time: sunset
 
 Now, although the ``initialize()`` function will be called for
 SomeClass, and it will have a chance to register as many callbacks as it
-desires, none of the callbacks will execute, in this case, until
-everyone has left. This could be useful for an interior motion detector
-App for instance. There are several different types of constraints:
+desires, none of the callbacks will execute, in this case, unless it is between sunrise and sunset.
 
--  input\_boolean
--  input\_select
--  presence
--  time
-
-An App can have as many or as few as are required. When more than one
+An App can have as many or as few constraints as are required. When more than one
 constraint is present, they must all evaluate to true to allow the
 callbacks to be called. Constraints becoming true are not an event in
 their own right, but if they are all true at a point in time, the next
@@ -426,10 +516,55 @@ callback that would otherwise been blocked due to constraint failure
 will now be called. Similarly, if one of the constraints becomes false,
 the next callback that would otherwise have been called will be blocked.
 
+AppDeamon itself supplies the time constraint:
+
+time
+~~~~
+
+The time constraint consists of 2 variables, ``constrain_start_time``
+and ``constrain_end_time``. Callbacks will only be executed if the
+current time is between the start and end times. - If both are absent no
+time constraint will exist - If only start is present, end will default
+to 1 second before midnight - If only end is present, start will default
+to midnight
+
+The times are specified in a string format with one of the following
+formats:
+
+- HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
+- ``sunrise``\ \|\ ``sunset`` [+\|- HH:MM:SS]- time of the next sunrise or sunset with an optional positive or negative offset in Hours Minutes and seconds
+
+The time based constraint system correctly interprets start and end
+times that span midnight.
+
+.. code:: yaml
+
+    # Run between 8am and 10pm
+    constrain_start_time: "08:00:00"
+    constrain_end_time: "22:00:00"
+    # Run between sunrise and sunset
+    constrain_start_time: sunrise
+    constrain_end_time: sunset
+    # Run between 45 minutes before sunset and 45 minutes after sunrise the next day
+    constrain_start_time: sunset - 00:45:00
+    constrain_end_time: sunrise + 00:45:00
+
+Other constraints may be supplied by the plugin in use.
+
+HASS Plugin Constraints
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The HASS plugin supplies several additional different types of constraints:
+
+-  input\_boolean
+-  input\_select
+-  presence
+-  time
+
 They are described individually below.
 
 input\_boolean
-~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^
 
 By default, the input\_boolean constraint prevents callbacks unless the
 specified input\_boolean is set to "on". This is useful to allow certain
@@ -454,7 +589,7 @@ the input\_boolean is off, use the optional state parameter by appending
       constrain_input_boolean: input_boolean.enable_motion_detection,off
 
 input\_select
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 The input\_select constraint prevents callbacks unless the specified
 input\_select is set to one or more of the nominated (comma separated)
@@ -469,55 +604,25 @@ according to some flag, e.g. a house mode flag.
     constrain_input_select: input_select.house_mode,Day,Evening,Night
 
 presence
-~~~~~~~~
+^^^^^^^^
 
 The presence constraint will constrain based on presence of device
-trackers. It takes 3 possible values: - ``noone`` - only allow callback
-execution when no one is home - ``anyone`` - only allow callback
-execution when one or more person is home - ``everyone`` - only allow
-callback execution when everyone is home
+trackers. It takes 3 possible values:
+
+- ``noone`` - only allow callback execution when no one is home
+- ``anyone`` - only allow callback execution when one or more person is home
+- ``everyone`` - only allow callback execution when everyone is home
 
 .. code:: yaml
 
     constrain_presence: anyone
-     or
+    # or
     constrain_presence: someone
-     or
+    # or
     constrain_presence: noone
 
-time
-~~~~
-
-The time constraint consists of 2 variables, ``constrain_start_time``
-and ``constrain_end_time``. Callbacks will only be executed if the
-current time is between the start and end times. - If both are absent no
-time constraint will exist - If only start is present, end will default
-to 1 second before midnight - If only end is present, start will default
-to midnight
-
-The times are specified in a string format with one of the following
-formats: - HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour
-format. - ``sunrise``\ \|\ ``sunset`` [+\|- HH:MM:SS]- time of the next
-sunrise or sunset with an optional positive or negative offset in Hours
-Minutes and seconds
-
-The time based constraint system correctly interprets start and end
-times that span midnight.
-
-.. code:: yaml
-
-    # Run between 8am and 10pm
-    constrain_start_time: "08:00:00"
-    constrain_end_time: "22:00:00"
-    # Run between sunrise and sunset
-    constrain_start_time: sunrise
-    constrain_end_time: sunset
-    # Run between 45 minutes before sunset and 45 minutes after sunrise the next day
-    constrain_start_time: sunset - 00:45:00
-    constrain_end_time: sunrise + 00:45:00
-
 days
-~~~~
+^^^^
 
 The day constraint consists of as list of days for which the callbacks
 will fire, e.g.
@@ -530,24 +635,17 @@ Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
 
-A Note on Threading
--------------------
+AppDaemon and Threading
+-----------------------
 
 AppDaemon is multi-threaded. This means that any time code within an App
 is executed, it is executed by one of many threads. This is generally
 not a particularly important consideration for this application; in
 general, the execution time of callbacks is expected to be far quicker
-than the frequency of events causing them. However, it should be noted
-for completeness, that it is certainly possible for different pieces of
-code within the App to be executed concurrently, so some care may be
-necessary if different callback for instance inspect and change shared
-variables. This is a fairly standard caveat with concurrent programming,
-and if you know enough to want to do this, then you should know enough
-to put appropriate safeguards in place. For the average user however
-this shouldn't be an issue. If there are sufficient use cases to warrant
-it, I will consider adding locking to the function invocations to make
-the entire infrastructure threadsafe, but I am not convinced that it is
-necessary.
+than the frequency of events causing them. By default, AppDaemon protects Apps from threading considerations by pinning each app to a specific thread which means it is not possible for an app to br running in more than one thread at a time. In extremely busy systems this may cause a reduction in performance but this is unlikely. For most users, threading should be left at the defaults and things will behave sensibly. If however, you understand concurrency, locking and re-entrant code, read on for some additional advanced options.
+
+Thread Hygiene
+~~~~~~~~~~~~~~
 
 An additional caveat of a threaded worker pool environment is that it is
 the expectation that none of the callbacks tie threads up for a
@@ -562,8 +660,271 @@ thread for the period of the sleep. Instead use the scheduler's
 ``run_in()`` function which will allow you to delay without blocking any
 threads.
 
+Disabling App Pinning
+~~~~~~~~~~~~~~~~~~~~~
+
+If you know what you are doing and understand the risks, you can disable AppDaemon's App Pinning, partially or totally. AppDaemon gives you a huge amount of control allowing you to enable or disable pinning of individual apps, all apps of a certain class, or even down to the callback level. AppDaemon also lets you explicitly choose which thread apps or callbacks run on, resulting in extremely fine grained control.
+
+To disable App Pinning globally within AppDaemon set the Appdaemon directive ``pin_apps`` to ``false`` within the AppDaemon.yaml file and app pinning will be disabled for all apps. At this point, it is possible for different pieces of
+code within the App to be executed concurrently, so some care may be necessary if different callback for instance inspect and change shared
+variables. This is a fairly standard caveat with concurrent programming, and AppDaemon supplies a simple locking mechanism to help avoid this.
+
+Simple Callback Level Locking
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The real issue here is that callbacks in an unpinned app can be called at the same time, and even have multiple threads running through them at the same time. To add locking and avoid this, AppDaemon supplies a decorator called ``ad.app_lock``. If you use this with any callbacks that manipulate instance variables you will ensure that there will only be one thread accessing the variables at one time.
+
+Consider the following App which schedules 1000 callbacks all to run at the exact same time, and manipulate the value of ``self.important_var``:
+
+.. code:: python
+
+    import adbase as ad
+    import datetime
+
+    class Locking(ad.ADBase):
+
+        def initialize(self):
+            hass = self.get_plugin_api("HASS")
+            self.important_var = 0
+
+            now = datetime.datetime.now()
+            target = now + datetime.timedelta(seconds=2)
+            for i in range (1000):
+                self.run_at(self.hass_cb, target)
+
+        def hass_cb(self, kwargs):
+            self.important_var += 1
+            self.log(self.important_var)
+
+As it is, it will result in unexpected results because ``self.important_var`` can be manipulated by multiple threads at once - for instance a thread could get the value, add one to it and be just about to write it when another thread jumps in with a different value, which is immediately overwritten. Indeed, when this is run, the output shows just that:
+
+.. code::
+
+    2018-11-04 16:07:01.615683 INFO lock: 981
+    2018-11-04 16:07:01.616150 INFO lock: 982
+    2018-11-04 16:07:01.616640 INFO lock: 983
+    2018-11-04 16:07:01.617781 INFO lock: 986
+    2018-11-04 16:07:01.584471 INFO lock: 914
+    2018-11-04 16:07:01.621809 INFO lock: 995
+    2018-11-04 16:07:01.614406 INFO lock: 978
+    2018-11-04 16:07:01.622616 INFO lock: 997
+    2018-11-04 16:07:01.619447 INFO lock: 990
+    2018-11-04 16:07:01.586680 INFO lock: 919
+    2018-11-04 16:07:01.619926 INFO lock: 991
+    2018-11-04 16:07:01.620401 INFO lock: 992
+    2018-11-04 16:07:01.620897 INFO lock: 993
+    2018-11-04 16:07:01.622156 INFO lock: 996
+    2018-11-04 16:07:01.603427 INFO lock: 954
+    2018-11-04 16:07:01.621381 INFO lock: 994
+    2018-11-04 16:07:01.618622 INFO lock: 988
+    2018-11-04 16:07:01.623005 INFO lock: 998
+    2018-11-04 16:07:01.623968 INFO lock: 1000
+    2018-11-04 16:07:01.623519 INFO lock: 999
+
+However, if we add the decorator to the callback function like so:
+
+.. code:: python
+
+    import adbase as ad
+    import datetime
+
+    class Locking(ad.ADBase):
+
+        def initialize(self):
+            hass = self.get_plugin_api("HASS")
+            self.important_var = 0
+
+            now = datetime.datetime.now()
+            target = now + datetime.timedelta(seconds=2)
+            for i in range (1000):
+                self.run_at(self.hass_cb, target)
+
+        @ad.app_lock
+        def hass_cb(self, kwargs):
+            self.important_var += 1
+            self.log(self.important_var)
+
+The result is what we would hope for since self.important_var is only being accessed by one thread at a time:
+
+.. code::
+
+    2018-11-04 16:08:54.545795 INFO lock: 981
+    2018-11-04 16:08:54.546202 INFO lock: 982
+    2018-11-04 16:08:54.546567 INFO lock: 983
+    2018-11-04 16:08:54.546976 INFO lock: 984
+    2018-11-04 16:08:54.547563 INFO lock: 985
+    2018-11-04 16:08:54.547938 INFO lock: 986
+    2018-11-04 16:08:54.548407 INFO lock: 987
+    2018-11-04 16:08:54.548815 INFO lock: 988
+    2018-11-04 16:08:54.549306 INFO lock: 989
+    2018-11-04 16:08:54.549671 INFO lock: 990
+    2018-11-04 16:08:54.550133 INFO lock: 991
+    2018-11-04 16:08:54.550476 INFO lock: 992
+    2018-11-04 16:08:54.550811 INFO lock: 993
+    2018-11-04 16:08:54.551170 INFO lock: 994
+    2018-11-04 16:08:54.551684 INFO lock: 995
+    2018-11-04 16:08:54.552022 INFO lock: 996
+    2018-11-04 16:08:54.552651 INFO lock: 997
+    2018-11-04 16:08:54.553033 INFO lock: 998
+    2018-11-04 16:08:54.553474 INFO lock: 999
+    2018-11-04 16:08:54.553890 INFO lock: 1000
+
+The above scenario is only an issue when thread pinning is disabled, however another issue with threading arises  when apps call each other and modify variables using the ``get_app()`` call, regardless of whether or not apps are pinned. If a particular app is called at the same time from several different apps using ``get_app()``, the app in question will potentially be running on many threads at the same time, and any local resources such as instance variables that are updated could be corrupted. ``@ad.app_lock`` will also work well to address this situation, if it is applied to the function in the app that is being called. This will force the function to lock using the local lock of the app being called and will enable thread safe operation.
+
+app1:
+
+.. code:: python
+
+    my_app = get_app("app2")
+    my_app.myfunction()
+
+app2:
+
+.. code:: python
+
+    @ad.app_lock
+    def my_function()
+        self.variable + = 1
+
+Global Locking
+~~~~~~~~~~~~~~~~~
+
+The above style of locking works well for protection of variables within a single app and across apps using ``get_app()``. However, another area where threading might be of concern is if apps are accessing and modifying the global variables dictionary which has no locking.
+
+The solution is a global locking decorator called ``@ad.global_lock``:
+
+.. code:: python
+
+    @ad.global_lock
+    def so_something_with_global_vars()
+        self.global_vars += 1
+
+Per-App Pinning
+~~~~~~~~~~~~~~~
+
+Individual apps can be set to override the global AppDaemon setting for App Pinning by use of the ``pin_app`` directive in apps.yaml:
+
+.. code:: yaml
+
+    module: test
+    class: Test
+    pin_app: false
+
+So if for instance AppDaemon is set to globally pin apps, the above example will override that and make the app unpinned.
+
+Likewise, if the default is to globally unpin apps, setting ``pin_app`` to ``true`` will pin the app.
+
+In addition to controlling pinning, it is also possible to specify the exact thread an app's callbacks will run on, using the ``pin_thread`` directive:
+
+.. code:: yaml
+
+    module: test
+    class: Test
+    pin_app: true
+    pin_thread: 6
+
+This will result in all callbacks for this app being run by thread 6. The ``pin_thread`` directive will be ignored if ``pin_app`` is set to false, or if ``pin_app`` is not specified and the global setting is to not pin apps.
+
+Per Class Pinning
+~~~~~~~~~~~~~~~~~
+
+In addition to per-app pinning, it is possible to pin an entire class so that all apps running that code can be pinned or not. This is achieved using an API call, usually in the ``initialize()`` function that will control whether or not the app is pinned, which will also apply to all apps of the same type since they share the code. Pinning can be enabled or disabled, and thread selected using the pinning api calls:
+
+- ``set_app_pin()``
+- ``get_app_pin()``
+- ``set_pin_thread()``
+- ``get_pin_thread()``
+
+These API calls are dynamic, so it is possible to pin and unpin an app as required as well as select the thread it will run on at any point in the Apps lifetime. Callbacks for the scheduler, events or state changes will inherit the values currently set at the time the callback is registered:
+
+.. code:: python
+
+    # Turn on app pinning
+    self.set_app_pin(True)
+    # Select a thread
+    self.set_pin_thread(5)
+    # Set a scheduler callback for an hour hence
+    self.run_in(my_callback, 3600)
+    # Change the thread
+    self.set_pin_thread(3)
+    # Set a scheduler callback for 2 hours hence
+    self.run_in(my_callback, 7200)
+
+The code above will result in 2 callbacks, the first will run on thread 5, the second will run on thread 3.
+
+Per Callback Pinning
+~~~~~~~~~~~~~~~~~~~~
+
+Per Class Pinning described above, despite it's dynamic nature is really intended to be a set and forget setup activity in the apps ``initialize()`` function. For more dynamic use, it is possible to set the pinning and thread at the callback level, using the ``pin`` and ``pin_thread`` parameters to scheduler calls and ``listen_state()`` and ``listen_event()``. These parameters will override the default settings for the App as set in apps.yaml or via the API calls above, but just for the callback in question.
+
+.. code:: python
+
+    # Turn off app pinning
+    self.set_app_pin(True)
+    # Select a thread
+    self.set_pin_thread(5)
+    # Set a scheduler callback for an hour hence
+    self.run_in(my_callback, 3600, pin=False)
+
+The above callback will not be pinned.
+
+.. code:: python
+
+    # Turn off app pinning
+    set_app_pin(True)
+    # Select a thread
+    set_pin_thread(5)
+    # Set a scheduler callback for an hour hence
+    run_in(my_callback, 3600, pin_thread=9)
+
+The above callback will be run on thread 9, overriding the call to ``set_pin_thread()``.
+
+.. code:: python
+
+    # Set a scheduler callback for an hour hence
+    run_in(my_callback, 3600, pin=True)
+
+The above code is an edge case, if the global or app default is set to not pin. In this case, there won't be an obvious thread to use since it isn't specified, so the callback will default to run on thread 0.
+
+Restricting Threads for Pinned Apps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For some usages in mixed pinned and non-pinned environments it may be desirable to reserve a block of thread specifically for pinned apps. This can be achieved by setting the ``pin_threads`` directive in AppDamon.yaml:
+
+.. code:: YAML
+
+    pin_threads: 5
+
+In the above example, 5 threads will be reserved for pinned apps, meaning that pinned apps will only run on threads 0 - 4, and will be distributed among them evenly. If the system has 10 threads total, threads 5 - 9 will have no pinned apps running on them, representing spare capacity. In order to utilize the spare threads, you can code apps to explicitly run on them, or set them in the apps.yaml, perhaps reserving threads for specific high priority apps, while the rest of the apps share the lower priority threads. Another way to manage this is via selection of an appropriate scheduler algorithm.
+
+``pin_threads`` will default to the actual number of threads, if app pinning is turned on globally, and it will default to 0 if app pinning is turned off globally. In a mixed setting, if you have any unpinned apps at all you must ensure that ``pin_threads`` is set to a value less than threads.
+
+Scheduler Algorithms
+~~~~~~~~~~~~~~~~~~~~
+
+When apps are pinned, there is no choice necessary as to which thread will run a given callback. It will either be selected by AppDaemon, or explicitly specified by the user for each app. For the remainder of unpinned Apps, AppDaemon must make a choice as to which thread to use, in an attempt to keep the load balanced. There is a choice of 3 strategies, set by the ``load_distribution`` directive in appdaemon.yaml:
+
+- ``roundrobin`` (default) - distribute callbacks to threads in a sequential fashion, one thread after another, starting at the beginning when all threads have had their turn. Round Robin scheduling will honor the ``pin_threads`` directive and only use threads not reserved for pinned apps.
+- ``random`` - distribute callbacks to available threads in a random fashion. Random will also honor the ``pin_threads`` directive
+- ``load`` - distribute callbacks to the least busy threads (measured by their Q size). Since Load based scheduling is dynamically responding to load, it will take all threads into consideration including those reserved for pinned apps.
+
+For example:
+
+.. code:: YAML
+
+    load_distribution: random
+
+A Final Thought on Threading and Pinning
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Although pinning and scheduling has been thoroughly tested, in current real world applications for AppDaemon, very few of these considerations matter, since in most cases AppDaemon will be able to respond to a callback immediately, and it is unlikely that any significant scheduler queueing will occur unless there are problems with apps blocking threads. At the rate that most people are using AppDaemon, events come in a few times a second, and modern hardware can usually handle the load pretty easily. The considerations above will start to matter more when event rates become a lot faster, by at least an order of magnitude. That is now a possibility with the recent upgrade to the scheduler allowing sub-second tick times, so the ability to lock and pin apps was added in anticipation of new applications for AppDaemon that may require more robust management of apps and much higher event rates.
+
 State Operations
 ----------------
+
+AppDaemon maintains a master state list segmented by namespace. As state changes are notified by the various plugins, AppDaemon takes not and stores the updated state locally.
+
+The MQTT plugin does not use state at all, and relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
 
 A note on Home Assistant State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -594,7 +955,7 @@ calls and callbacks will implicitly return the value of state unless
 told to do otherwise.
 
 Although the use of ``get_state()`` (below) is still supported, as of
-AppDaemon 2.0.9 it is easier to access HASS state directly as an
+AppDaemon 2.0.9 it is possible to access HASS state directly as an
 attribute of the App itself, under the ``entities`` attribute.
 
 For instance, to access the state of a binary sensor, you could use:
@@ -614,7 +975,7 @@ About Callbacks
 
 A large proportion of home automation revolves around waiting for
 something to happen and then reacting to it; a light level drops, the
-sun rises, a door opens etc. Home Assistant keeps track of every state
+sun rises, a door opens etc. The various plugins keep track of every state
 change that occurs within the system and streams that information to
 AppDaemon almost immediately.
 
@@ -667,7 +1028,7 @@ constraints and have identical functionality. For instance, adding:
 
 ``constrain_presence="everyone"``
 
-to a callback registration will ensure that the callback is only run if
+to a HASS callback registration will ensure that the callback is only run if
 the callback conditions are met and in addition everyone is present
 although any other callbacks might run whenever their event fires if
 they have no constraints.
@@ -756,10 +1117,12 @@ The value of the state after the state change.
 callback.
 
 \*\*kwargs
-^^^^^^^^^^
+^^^^^^^^
 
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
+
+The kwargs dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
 
 Publishing State from an App
 ----------------------------
@@ -839,11 +1202,11 @@ For example:
 
 .. code:: python
 
-     Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
+    # Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
     self.handle = self.run_in(callback, 120, random_start = -60, **kwargs)
-     Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
+    # Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
     self.handle = self.run_in(callback, 120, random_end = 60, **kwargs)
-     Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
+    # Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
     self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60, **kwargs)
 
 Sunrise and Sunset
@@ -853,13 +1216,13 @@ AppDaemon has a number of features to allow easy tracking of sunrise and
 sunset as well as a couple of scheduler functions. Note that the
 scheduler functions also support the randomization parameters described
 above, but they cannot be used in conjunction with the ``offset``
-parameter\`.
+parameter.
 
 Calling Services
 ----------------
 
-About Services
-~~~~~~~~~~~~~~
+About Home Assistant Services
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Services within Home Assistant are how changes are made to the system
 and its devices. Services can be used to turn lights on and off, set
@@ -870,18 +1233,26 @@ into Home Assistant and run a service. In addition, it also provides
 convenience functions for some of the more common services making
 calling them a little easier.
 
+Other plugins may or may not support the notion of services
+
 Events
 ------
 
 About Events
 ~~~~~~~~~~~~
 
-Events are a fundamental part of how Home Assistant works under the
-covers. HA has an event bus that all components can read and write to,
-enabling components to inform other components when important events
-take place. We have already seen how state changes can be propagated to
-AppDaemon - a state change however is merely an example of an event
-within Home Assistant. There are several other event types, among them
+Events are a fundamental part of how AppDaemon works under the
+covers. AD receives important events from all of its plugins and communicates them to apps as required. FOr instance, the MQTT plugin will generate an event when a message is recieved; The HASS plugin will generate an event when a service is called, or when it starts or stops.
+
+Events and MQTT
+~~~~~~~~~~~~~~~
+
+The MQTT plugin uses events as itsd primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. APps are able to subscribe to this event and process it appropriately.
+
+Events and Home Assistant
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them
 are:
 
 -  ``homeassistant_start``
@@ -893,10 +1264,13 @@ are:
 -  ``platform_discovered``
 -  ``component_loaded``
 
-Using AppDaemon, it is possible to subscribe to specific events as well
+Using the HASS plugin, it is possible to subscribe to specific events as well
 as fire off events.
 
-In addition to the Home Assistant supplied events, AppDaemon adds 2 more
+AppDaemon Specific Events
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
 Assistant bus:
 
@@ -974,8 +1348,8 @@ The function to be called when the event is fired.
 event
 '''''
 
-Name of the event to subscribe to. Can be a standard Home Assistant
-event such as ``service_registered`` or an arbitrary custom event such
+Name of the event to subscribe to. Can be a standard HASS or MQTT plugin
+event such as ``service_registered`` or in the case of HASS, an arbitrary custom event such
 as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
 subscribe to all events.
 
@@ -1038,7 +1412,7 @@ The custom event ``MODE_CHANGE`` would be subscribed to with:
 
 Home Assistant can send these events in a variety of other places -
 within automations, and also directly from Alexa intents. Home Assistant
-can also listen for custom events with it's automation component. This
+can also listen for custom events with its automation component. This
 can be used to signal from AppDaemon code back to home assistant. Here
 is a sample automation:
 
@@ -1067,8 +1441,8 @@ information see the ` Dashboard configuration pages <DASHBOARD.html>`__
 
 AppDaemon provides convenience functions to assist with this.
 
-Presence
---------
+HASS Presence
+~~~~~~~~~~~~~
 
 Presence in Home Assistant is tracked using Device Trackers. The state
 of all device trackers can be found using the ``get_state()`` call,
@@ -1106,7 +1480,7 @@ Sharing information between different Apps is very simple if required.
 Each app gets access to a global dictionary stored in a class attribute
 called ``self.global_vars``. Any App can add or read any key as
 required. This operation is not however threadsafe so some care is
-needed.
+needed - see the section on threading for more details.
 
 In addition, Apps have access to the entire configuration if required,
 meaning they can access AppDaemon configuration items as well as
@@ -1128,33 +1502,42 @@ a python Dictionary with an entry for each app, keyed on the App's name.
     other_apps_arg = self.app_config["some_app"]["some_parameter"].
 
 
-AppDaemon also exposes configuration from Home Assistant such as the
+AppDaemon also exposes the configurations from configured plugins. For example that of the HA plugin,
+allows to access configurations from Home Assistant such as the
 Latitude and Longitude configured in HA. All of the information
 available from the Home Assistant ``/api/config`` endpoint is available
-using the ``get_hass_config()`` call. E.g.:
+using the ``get_config()`` call. E.g.:
 
 .. code:: python
 
-    config = self.get_hass_config()
+    config = self.get_config()
     self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
+
+Using this method, it is also possible to use this function to access configurations of other plugins,
+from within apps in a different namespace. This is done by simply passing in the ``namespace`` parameter. E.g.:
+
+.. code:: python
+    ## from within a HASS app, and wanting to access the client Id of the MQTT Plugin
+    
+    config = self.get_config(namespace = 'mqtt')
+    self.log("The Mqtt Client ID is ".format(config["client_id"]))
 
 And finally, it is also possible to use ``config`` as a global area
 for sharing parameters across Apps. Simply add the required parameters
-to the top level of the appdaemon.yaml file:
+inside the appdaemon section in the appdaemon.yaml file:
 
 .. code:: yaml
 
     logs:
     ...
     appdaemon:
-    ...
-    global_var: hello world
+      global_var: hello world
 
 Then access it as follows:
 
 .. code:: python
 
-    my_global_var = conf.config["global_var"]
+    my_global_var = self.config["global_var"]
 
 Development Workflow
 --------------------
@@ -1182,6 +1565,15 @@ directed to the ``error.log`` file to enable you to see the error and
 correct it. When an error occurs, there will also be a warning message
 in ``appdaemon.log`` to tell you to check the error log.
 
+Scheduler Speed
+---------------
+
+By default, AppDaemon fires its scheduler once a second. For most applications this is more than often enough - it means that worst case, a scheduled activity will happen within a second of the scheduled time. For some applications however, this may not be fast enough. AppDaemon is capable of running it's scheduler at any speed by use of the ``-t`` (tick) commandline flag. If you set it to a value of ``0.1`` for instance, the scheduler will fire every 10th of a second. This means that you can set sub-second callbacks using ``run_every())`` which may be useful for some applications. Bear in mind that a ``run_every()`` callback can never fire more often that the tick value specifies, so if you specify ``run_every()`` with a 0.1 second delay, but the tick value is set to 1, that callback will only fire every second. If the tick value is set to 0.1, that same callback will fire every 0.1 seconds.
+
+Extremely low values for the tick will place a huge strain on the hardware and as you get to the lower values you may start to see clock skew errors, or excessive time spent in the utility loop as CPU becomes the limiting factor. This is unavoidable and is a function of the power of your hardware. In testing on low powered PC style hardware, a tick value of 100th of a second worked well, but 1000th of a second started to give problems. A raspberry PI had a similar response.
+
+The ``tick`` flag in ``appdaemon.yaml`` is an alternative way of changing the tick speed, and will override the ``-t`` command line setting.
+
 Time Travel
 -----------
 
@@ -1194,7 +1586,7 @@ can.
 Choosing a Start Time
 ~~~~~~~~~~~~~~~~~~~~~
 
-Internally, AppDaemon keeps track of it's own time relative to when it
+Internally, AppDaemon keeps track of its own time relative to when it
 was started. This make is possible to start AppDaemon with a different
 start time and date to the current time. For instance to test that
 sunset App, start AppDaemon at a time just before sunset and see if it
@@ -1215,33 +1607,29 @@ before sunset and will process any callbacks appropriately.
 Speeding things up
 ~~~~~~~~~~~~~~~~~~
 
-Some Apps need to run for periods of a day or two for you to test all
-aspects. This can be time consuming, but Time Travel can also help here
-in two ways. The first is by speeding up time. To do this, simply use
-the ``-t`` option on the command line. This specifies the amount of time
-a second lasts while time travelling. The default of course is 1 second,
-but if you change it to ``0.1`` for instance, AppDaemon will work 10x
-faster. If you set it to ``0``, AppDaemon will work as fast as possible
-and, depending in your hardware, may be able to get through an entire
-day in a matter of minutes. Bear in mind however, due to the threaded
-nature of AppDaemon, when you are running with ``-t 0`` you may see
+Some Apps need to run for periods of a day or two for you to test all aspects. This can be time consuming, but Time Travel can also help here by speeding up time. To do this, simply use the ``-t`` option on the command line coupled with the ``-i`` option. The ``-t`` option specifies how often the scheduler fires, and defaults to 1 second, but if you change it to ``0.1`` for instance, AppDaemon will run its scheduler 10x faster. If you set it to ``0`` , AppDaemon will work as fast as possible and, depending in your hardware, may be able to get through an entire day in a matter of minutes. In order to tell appdaemon to actually speed up time, we also need to tell it that every scheduler tick is longer than it is and we do this by setting the interval flag (``-i``). If the flag is set to 1 for instance, each tick of the scheduler will jump the time forward by 1 seconds. If this is coupled with ``-t 0.1``, AD will be running 10x faster than usual. If you use large values for ``-i`` you can jump through large amounts of time very quickly but bear in mind accuracy of events will suffer. Also bear in mind that due to the threaded nature of AppDaemon, when you are running with ``-t 0`` you may see
 actual events firing a little later than expected as the rest of the
-system tries to keep up with the timer. To set the tick time, start
-AppDaemon as follows:
+system tries to keep up with the timer. A few examples:
+
+Set appdaemon to run 10x faster than normal:
 
 .. code:: bash
 
-    $ appdaemon -t 0.1
+    $ appdaemon -t 0.1 -i 1
 
-AppDaemon also has an interval flag - think of this as a second
-multiplier. If the flag is set to 3600 for instance, each tick of the
-scheduler will jump the time forward by an hour. This is good for
-covering vast amounts of time quickly but event firing accuracy will
-suffer as a result. For example:
+Set appdaemon to run as fast as possible, with each tick being equal to 1 second
 
 .. code:: bash
 
-    $ appdaemon -i 3600
+    $ appdaemon -t 0 -i 1
+
+Set appdaemon to run as fast as possible, with each tick being equal to 1 hour
+
+.. code:: bash
+
+    $ appdaemon -t 0 -i 3600
+
+The ``interval`` flag in ``appdaemon.yaml`` is an alternative way of changing the tick speed, and will override the ``-i`` command line setting.
 
 Automatically stopping
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -1265,7 +1653,7 @@ before sunset, for an hour, as fast as possible:
 
 .. code:: bash
 
-    $ appdaemon -s "2016-06-06 19:16:00" -e "2016-06-06 20:16:00" -t 0
+    $ appdaemon -s "2016-06-06 19:16:00" -e "2016-06-06 20:16:00" -t 0 -i 1
 
 A Note On Times
 ~~~~~~~~~~~~~~~
@@ -1290,24 +1678,24 @@ which may be useful for some applications. The functions:
 Return the internal data structures, but do not allow them to be
 modified directly. Their format may change.
 
-About HASS Disconnections
-~~~~~~~~~~~~~~~~~~~~~~~~
+About Plugin Disconnections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When AppDaemon is unable to connect initially with Home Assistant, it
-will hold all Apps in statsis until it initially connects, nothing else
+When a plugin is unable to connect initially with the underlying system, e.g. Home Assistant, it
+will hold all Apps in stasis until it initially connects, nothing else
 will happen and no initialization routines will be called. If AppDaemon
-has been running connected to Home Assitant for a while and the
+has been running connected to Home Assistant for a while and the
 connection is unexpectedly lost, the following will occur:
 
--  When HASS first goes down or becomes disconnected, an event called
-   ``ha_disconnected`` will fire
--  While disconnected from HASS, Apps will continue to run
+-  When the plugin first goes down or becomes disconnected, an event called
+   ``plugin_disconnected`` will fire
+-  While disconnected from the plugin, Apps will continue to run
 -  Schedules will continue to be honored
 -  Any operation reading locally cached state will succeed
--  Any operation requiring a call to HASS will log a warning and return
+-  Any operation requiring a call to the plugin will log a warning and return
    without attempting to contact hass
 
-When a connection to HASS is reestablished, all Apps will be restarted
+When a connection to the plugin is reestablished, all Apps will be restarted
 and their ``initialize()`` routines will be called.
 
 RESTFul API Support
@@ -1317,7 +1705,7 @@ AppDaemon supports a simple RESTFul API to enable arbitary HTTP
 connections to pass data to Apps and trigger actions. API Calls must use
 a content type of ``application/json``, and the response will be JSON
 encoded. The RESTFul API is disabled by default, but is enabled by
-adding an ``ad_port`` directive to the AppDaemon section of the
+adding an ``api_port`` directive to the AppDaemon section of the
 configuration file. The API can run http or https if desired, separately
 from the dashboard.
 
@@ -1347,12 +1735,12 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class API(hass.Hass):
 
         def initialize(self):
-            self.register_endpoint(my_callback, test_endpoint)
+            self.register_endpoint(my_callback, "test_endpoint")
 
         def my_callback(self, data):
 
@@ -1466,7 +1854,7 @@ different port, by adding something like this to the config:
 Here we see the default port being remapped to port 5000 which is where
 AppDamon is listening in my setup.
 
-Since each individual Skill has it's own URL it is possible to have
+Since each individual Skill has its own URL it is possible to have
 different skills for Home Assitant and AppDaemon.
 
 Putting it together in an App
@@ -1482,7 +1870,7 @@ want to configure.
 
 .. code:: python
 
-    import import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
     import random
     import globals
 
@@ -1590,7 +1978,7 @@ Similarly, Google's API.AI for Google home is supported - here is the Google ver
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
     import random
     import globals
 
@@ -1695,9 +2083,8 @@ Plugins
 -------
 
 As of version 3.0, AppDaemon has been rewritten to use a pluggable architecture for connection to the systems it monitors.
-At the time of writing, only one real plugin exists, the homeassistant plugin, and this works the same way that it always has. (There is also an experimental dummy plugin used for testing purposes).
 
-In future it will be possible to create plugins that interface with other systems for instance other home automation systems, or anything else for that matter, and expose their operation to AppDaemon and write Apps to monitor and control them.
+It is possible to create plugins that interface with other systems for instance MQTT support was recently added and it would also be possible to connect to other home automation systems, or anything else for that matter, and expose their operation to AppDaemon and write Apps to monitor and control them.
 
 An interesting caveat of this is that the architecture has been designed so that multiple instances of each plugin can be configured, meaning for instance that it is possible to connect AppDaemon to 2 or more instances of Home Assistant.
 
@@ -1735,7 +2122,7 @@ Namespaces
 
 A critical piece of this is the concept of ``namespaces``. Each plugin has an optional``namespace`` directive. If you have more than 1 plugin of any type, their state is separated into namespaces, and you need to name those namespaces using the ``namespace`` parameter. If you don't supply a namespace, the namespace defaults to ``default`` and this is the default for all areas of AppDaemon meaning that if you only have one plugin you don't need to worry about namespace at all.
 
-In the case above, the first instance had no namespace so it's namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
+In the case above, the first instance had no namespace so its namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
 
 These namespaces can be accessed separately by the various API calls to keep things separate, but individual Apps can switch between namespaces at will as well as monitor all namespaces in certain calls like ``listen_state()`` or ``listen_event()`` by setting the namespace to ``global``.
 
@@ -1798,10 +2185,55 @@ Similarly:
 This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
 
 
+Using Multiple APIs From One App
+--------------------------------
+
+The way apps are constructed, they inherit from a superclass that contains all the methods needed to access a particular plugin. This is convenient as it hides a lot of the complexity by automatically selecting the right configuration information based on namespaces. One drawback of this approach is that an App cannot inherently speak to multiple plugin types as the API required is different and the App can only choose one api to inherit from.
+
+To get around this, a function called ``get_plugin_api()`` is provided to instantiate API objects to handle multiple plugins, as a distinct objects, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly.
+
+In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. Without access to an API object supplied by ``get_plugin_api()``, the App will have access to scheduler calls and a few other common calls as documented in the AppDaemon API reference.
+
+As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to access both HASS and MQTT.
+
+.. code:: python
+
+    import adbase as ad
+
+    class GetAPI(ad.ADBase):
+
+      def initialize(self):
+
+        # Grab an object for the HASS API
+        hass = self.get_plugin_api("HASS")
+        # Hass API Call
+        hass.turn_on("light.office")
+
+        # Grab an object for the MQTT API
+        mqtt = self.get_plugin_api("MQTT")
+        # Make MQTT API Call
+        mqtt.mqtt_publish("topic", "Payload"):
+
+        # Make a scheduler call using the ADBase class
+        handle = self.run_in(callback, 20)
+
+By default, each plugin api object has it's namespace correctly set for that plugin, which makes it much more convenient to handle calls and callbacks form that plugin. This way of working can often be more convenient and clearer than changing namespaces within apps or on the individual calls, so is the recommended way to handle multiple plugins of the same or even different types:
+
+.. code:: python
+
+    # Listen for state changes specific to the "HASS" plugin
+    hass.listen_state(hass_callback, "light.office")
+    # Listen for state changes specific to the "MQTT" plugin
+    mqtt.listen_state(mqtt_callback, "light.office")
+    # Listen for global state changes
+    self.listen_state(global_callback, namespace="global")
+
+API objects are fairly lightweight and can be created and discarded at will. There may be a slight performance increase by creating an object for each API in the initialize function and using it throughout the app, but this is likely to be minimal.
+
 Custom Constraints
 ------------------
 
-An App can also register it's own custom constraints which can then be used in exactly the same way as
+An App can also register its own custom constraints which can then be used in exactly the same way as
 App level or callback level constraints. A custom constraint is simply a python function that returns ``True`` or ``False`` when presented with the constraint argument. If it returns ``True``, the constraint is regarded as satisfied and the callback will be made (subject to any other constraints also evaluating to ``True``. Likewise, a False return means that the callback won't fire. Custom constraints are a handy way to control multiple callbacks that have some complex logic and enable you to avoid duplicating code in all callbacks.
 
 To use a custom constraint, it is first necessary to register the function to be used to evaluate it using the ``register_constraint()`` api call. Constraints can also be unregistered using the ``deregister_constraint()`` call, and the ``list_constraints()`` call will return a list of currently registered constraints.

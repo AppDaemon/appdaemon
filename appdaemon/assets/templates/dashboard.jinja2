@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
 	<link rel="shortcut icon" href="images/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/docs/images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32">
     <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16">
     <link rel="manifest" href="images/manifest.json">
+    {% if scalable is sameas false%}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    {%  else %}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    {% endif %}
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
@@ -24,15 +29,17 @@
 		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">  
 	{%else%}
 	<title>{{ title }}</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="apple-mobile-web-app-capable" content="yes">	
+	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-web-app-capable" content="yes">	
     <meta name='mobile-web-app-capable' content='yes'>
 	<link rel="stylesheet" type="text/css" href="compiled_css/{{skin}}/{{name}}_application.css">
 	<link rel="stylesheet" type="text/css" href="css/jquery.gridster.css">
 	<link rel="stylesheet" type="text/css" href="css/climacons-font.css">
-	<link rel="stylesheet" type="text/css" href="css/font-awesome.css">
-	<link rel="stylesheet" type="text/css" href="css/materialdesignicons.min.css" media="all" />
+	<link rel="stylesheet" type="text/css" href="css/all.css">
+    {% if fa4compatibility == True %}
+	<link rel="stylesheet" type="text/css" href="css/v4-shims.min.css">
+	{%endif%}
+    <link rel="stylesheet" type="text/css" href="css/materialdesignicons.min.css" media="all" />
 	<link rel="stylesheet" type="text/css" href="css/jquery-ui.css"/>
 	<link rel="stylesheet" type="text/css" href="css/rickshaw.min.css"/>
     <link rel="stylesheet" href="css/fonts.css">

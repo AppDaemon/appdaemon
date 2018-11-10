@@ -1,33 +1,74 @@
 <h1 class="title" data-bind="text: title, attr:{ style: title_style}"></h1>
 <div data-bind="attr: {style: main_style}">
-	<p class="primary-climacon" data-bind="html: dark_sky_icon"></p>
-	<p class="primary-info" data-bind="text: dark_sky_temperature"></p>
-	<p class="primary-unit" data-bind="html: unit, attr: {style: unit_style}"></p>
+<p class="primary-climacon" data-bind="css: icon"></p>
+<p class="primary-info" data-bind="text: temperature"></p>
+<p class="primary-unit" data-bind="html: unit, attr: {style: unit_style}"></p>
 <br>
+</div>
 <div data-bind="attr: {style: sub_style}">
-	<p class="secondary-info">Humidity:&nbsp;</p>
-	<p class="secondary-info" data-bind="text: dark_sky_humidity"></p>
-	<p class="secondary-info">%</p>
-	<br>
-	<p class="secondary-info">Apparent Temp:&nbsp;</p>
-	<p class="secondary-info" data-bind="html: dark_sky_apparent_temperature"></p>
-	<p class="secondary-info" data-bind="html: unit"></p>
-	<br>
-	<p class="secondary-info">Rain:&nbsp;</p>
-	<p class="secondary-info" data-bind="text: dark_sky_precip_probability"></p>
-	<p class="secondary-info">&nbsp;%</p>
-	<p class="secondary-info">&nbsp;/&nbsp;</p>
-	<p class="secondary-info" data-bind="text: dark_sky_precip_intensity"></p>
-	<p class="secondary-info">in</p>
-	<br>
-	<p class="secondary-info">Wind:&nbsp;</p>
-	<p class="secondary-info" data-bind="text: dark_sky_wind_speed"></p>
-	<p class="secondary-info">&nbsp;Mph</p>
-	<p class="secondary-info">&nbsp;/&nbsp;</p>
-	<p class="secondary-info" data-bind="html: dark_sky_wind_bearing"></p>
-	<p class="secondary-info">&nbsp;&deg;</p>
-	<br>
-	<p class="secondary-info">Pressure:&nbsp;</p>
-	<p class="secondary-info" data-bind="text: dark_sky_pressure"></p>
-	<p class="secondary-info">&nbsp;Mbar</p>
+<p class="secondary-detail" data-bind="visible: apparent_temperature">
+<span class="secondary-icon mdi mdi-thermometer-lines" title="Apparent Temp" data-bind="visible: prefer_icons"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Apparent Temp:&nbsp;</span>
+<span class="secondary-info" data-bind="html: apparent_temperature"></span>
+<span class="secondary-info" data-bind="html: unit, attr: {style: sub_unit_style}"></span>
+</p>
+<p class="secondary-detail" data-bind="visible: humidity">
+<span class="secondary-icon mdi mdi-water-percent" title="Humidity" data-bind="visible: prefer_icons"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Humidity:&nbsp;</span>
+<span class="secondary-info" data-bind="text: humidity"></span>
+<span class="secondary-unit" data-bind="attr: {style: sub_unit_style}">%</span>
+<br>
+</p>
+<p class="secondary-detail"  data-bind="visible: precip_probability() || precip_intensity()">
+<span data-bind="visible: precip_probability">
+<span class="secondary-icon mdi" title="Rain" data-bind="visible: prefer_icons, css: precip_type_icon"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Rain:&nbsp;</span>
+<span class="secondary-info" data-bind="text: precip_probability"></span>
+<span class="secondary-unit" data-bind="attr: {style: sub_unit_style}">%</span>
+</span>
+<span data-bind="visible: precip_intensity">
+<span class="secondary-info" data-bind="visible: precip_intensity() && precip_probability()">
+&nbsp;/&nbsp;
+</span>
+<span class="secondary-info" data-bind="text: precip_intensity"></span>
+<span class="secondary-unit" data-bind="text: rain_unit, attr: {style: sub_unit_style}"></span>
+</span>
+</p>
+<p class="secondary-detail" data-bind="visible: wind_speed">
+<span class="secondary-icon mdi mdi-weather-windy" data-bind="visible: prefer_icons, css: bearing_icon, attr: {title: wind_bearing() + '&deg;'}"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Wind:&nbsp;</span>
+<span class="secondary-info" data-bind="text: wind_speed"></span>
+<span class="secondary-unit" data-bind="text: wind_unit, attr: {style: sub_unit_style}"></span>
+</p>
+<p class="secondary-detail" data-bind="visible: wind_bearing() && !prefer_icons()">
+<span class="secondary-info" data-bind="html: wind_bearing"></span>
+<span class="secondary-unit" data-bind="attr: {style: sub_unit_style}">&deg;</span>
+</p>
+<p class="secondary-detail" data-bind="visible: pressure() != ''">
+<span class="secondary-icon mdi mdi-gauge" data-bind="visible: prefer_icons"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Pressure:&nbsp;</span>
+<span class="secondary-info" data-bind="text: pressure"></span>
+<span class="secondary-info" data-bind="text: pressure_unit, attr: {style: sub_unit_style}"></span>
+</p>
+<div data-bind="visible: show_forecast"> 
+<hr>
+<h1 class="title" data-bind="text: forecast_title, attr:{ style: title_style}, visible: show_forecast"></h1>
+<p class="secondary-detail" data-bind="visible: forecast_temperature_min">
+<span class="secondary-climacon" data-bind="css: forecast_icon"></span>
+</p>
+<p class="secondary-detail" data-bind="visible: forecast_temperature_min">
+<span class="secondary-info" data-bind="text: forecast_temperature_min"></span>
+<span class="secondary-info" data-bind="visible: forecast_temperature_max">
+<span>/</span>
+<span class="secondary-info" data-bind="text: forecast_temperature_max"></span>
+</span>
+</p>
+<p class="secondary-detail" data-bind="visible: forecast_precip_probability">
+<span class="secondary-icon mdi" title="Rain" data-bind="visible: prefer_icons, css: forecast_precip_type_icon"></span>
+<span class="secondary-info" data-bind="visible: !prefer_icons()">Rain:&nbsp;</span>
+<span class="secondary-info" data-bind="text: forecast_precip_probability">
+</span>
+<span class="secondary-icon" data-bind="attr: {style: sub_unit_style}">%</span>
+</p>
+</div>
 </div>

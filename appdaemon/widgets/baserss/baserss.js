@@ -73,6 +73,17 @@ function baserss(widget_id, url, skin, parameters)
     {
         var stories = self.entity_state[parameters.entity].feed.entries;
         self.set_field(self, "text", stories[self.story].title)
+        if ("show_description" in self.parameters && self.parameters.show_description === 1)
+        {
+            if ("summary" in stories[self.story])
+            {
+                self.set_field(self, "description", stories[self.story].summary)
+            }
+            if ("description" in stories[self.story])
+            {
+                self.set_field(self, "description", stories[self.story].description)
+            }
+        }
         self.story = self.story + 1;
         if ((self.story >= stories.length) || ("recent" in parameters && self.story >= parameters.recent))
         {

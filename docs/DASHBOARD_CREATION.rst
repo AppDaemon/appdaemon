@@ -60,6 +60,7 @@ These are all fairly self explanatory:
 -  ``rows`` - the total number of rows in the dashboard. This will help
    with spacing, but is optional for dashboards with fewer than 15 rows
 -  ``columns`` - the number of columns the dasboard will have.
+-  ``scalable`` - if set to ``False`` this parameter will disable resizing and double tap zooming on iOS devices, default is to not disable zooming.
 -  ``global_parameters`` - a list of parameters that will be applied to
    every widget. If the widget does not accept that parameter it will be
    ignored. Global parameters can be overriden at the widget definition
@@ -83,7 +84,7 @@ to place them. Here is an example:
 
 As you can see, here we are refering directly to native Home Assistant
 entities. From this, HADashboard is able to figure out the right widget
-type and grab it's friendly name and add it to the dasboard. For the
+type and grab its friendly name and add it to the dasboard. For the
 ``clock`` and ``weather`` widgets there is no associated entity id so
 just your ``clock.clock`` or ``weather.weather``.
 
@@ -97,7 +98,7 @@ the widget in columns and the height of the widget in rows. For
 instance, ``(2x1)`` would refer to a widget 2 cells wide and 1 cell
 high. If you leave of the sizing information, the widget will use the
 ``widget_size`` dashboard parameter if specified, or default to
-``(1x1)`` if not. HADasboard will do it's best to calculate the right
+``(1x1)`` if not. HADasboard will do its best to calculate the right
 layout from what you give it but expect strange behavior if you add too
 many widgets on a line.
 
@@ -220,8 +221,8 @@ Lets look at a couple more examples of widget definitions:
         widget_type: switch
         title: Garage
         entity: switch.garage_door
-        icon_on: fa-car
-        icon_off: fa-car
+        icon_on: fas-car
+        icon_off: fas-car
         warn: 1
 
 Now, instead of an entity id we refer to the name of the widgets we just
@@ -286,7 +287,7 @@ This will look for a file called ``top_panel.yaml`` in the dashboards
 directory, then include it. There are a couple of different ways this
 can be used.
 
--  If the yaml file includes it's own layouts directive, the widgets
+-  If the yaml file includes its own layouts directive, the widgets
    from that file will be placed as a block, in the way described by its
    layout, making it reusable. You can change the order of the blocks
    inclusion by moving where in the original layout directive you
@@ -373,8 +374,8 @@ contained sub modules (mode\_panel.yaml):
         widget_type: switch
         title: Garage
         entity: switch.garage_door
-        icon_on: fa-car
-        icon_off: fa-car
+        icon_on: fas-car
+        icon_off: fas-car
         warn: 1
 
     layout:
@@ -505,6 +506,7 @@ also text of the state itself. The following widgets allow this:
 
 -  scene
 -  binary\_sensor
+-  icon
 -  switch
 -  device\_tracker
 -  script
@@ -543,12 +545,11 @@ Icons
 Widgets that allow the specification of icons have access to both `Font
 Awesome <http://fontawesome.io/cheatsheet/>`__ and `Material
 Design <https://materialdesignicons.com/>`__ Icons. To specify an icon
-simply use the prefix ``fa-`` for Font Aweesome and ``mdi-`` for
-Material Design. e,g,:
+simply use the prefix ``mdi-`` for Material Design, and the appropriate style prefix for Font Awesome Icons
 
 .. code:: yaml
 
-    icon_on: fa-alert
+    icon_on: fas-bell
     icon_off: mdi-cancel
 
 In addition, the widget can be configured to use whatever icon is
@@ -571,7 +572,7 @@ through a variety of means:
 -  HASS Automations/Scripts
 -  Alexa Intents
 
-The mechanism used for this is HASS custom events. AppDaemon has it's own
+The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
 `AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
 dashboard will respond to various commands with associated data.
@@ -709,18 +710,31 @@ Style Arguments:
 weather
 ~~~~~~~
 
-Up to date weather reports. Requires dark sky to be configured in Home
-Assistant with at minimum the following sensors:
+Up to date weather reports. By default it's configured to work with dark sky
+sensor. To use all the features you need to add these sensors to
+monitored_conditions:
 
 -  temperature
+-  apparent\_temperature
+-  temperature_min
+-  temperature_max
 -  humidity
 -  precip\_probability
 -  precip\_intensity
+-  precip\_type
 -  wind\_speed
--  pressure
 -  wind\_bearing
--  apparent\_temperature
+-  pressure
 -  icon
+
+To have the forecast displayed set ``show_forecast`` to 1. For it to work you
+additionally need to add the forecast option in dark_sky Home Assistant
+configuration.
+
+.. code:: yaml
+
+    forecast:
+      - 1
 
 Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^^
@@ -730,7 +744,41 @@ None
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
-None
+- ``title``
+- ``show_forecast`` - show the forecast
+- ``prefer_icons`` - use icons instead of text
+- ``forecast_title`` - title of the forecast if enabled
+- ``sensors`` - list of sensors used by the widget
+
+You can change the entities used by the widget by overwriting their values
+in the ``sensors`` key in configuration.
+
+Example with default values:
+
+.. code:: yaml
+
+    sample_weather:
+      widget_type: weather
+      title: Today
+      show_forecast: 1
+      prefer_icons: 1
+      forecast_title: Tomorrow
+      sensors:
+        icon: sensor.dark_sky_icon
+        temperature: sensor.dark_sky_temperature
+        apparent_temperature: sensor.dark_sky_apparent_temperature
+        humidity: sensor.dark_sky_humidity
+        precip_probability: sensor.dark_sky_precip_probability
+        precip_intensity: sensor.dark_sky_precip_intensity
+        precip_type: sensor.dark_sky_precip
+        pressure: sensor.dark_sky_pressure
+        wind_speed: sensor.dark_sky_wind_speed
+        wind_bearing: sensor.dark_sky_wind_bearing
+        forecast_icon: sensor.dark_sky_icon_1
+        forecast_temperature_min: sensor.dark_sky_daily_low_temperature_1
+        forecast_temperature_max: sensor.dark_sky_daily_high_temperature_1
+        forecast_precip_probability: sensor.dark_sky_precip_probability_1
+        forecast_precip_type: sensor.dark_sky_precip_1
 
 Cosmetic Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -739,6 +787,8 @@ Cosmetic Arguments:
 -  ``main_style``
 -  ``unit_style``
 -  ``sub_style``
+-  ``sub_unit_style``
+-  ``title_style``
 
 weather_summary
 ~~~~~~~~~~~~~~~
@@ -878,6 +928,7 @@ Style Arguments:
 -  ``text_style``
 -  ``unit_style``
 -  ``container_style``
+-  ``state_text_style`` (used for styling of ``sub_entity``)
 
 input_select
 ~~~~~~~~~~~~
@@ -913,7 +964,7 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 
 .. code:: yaml
 
-    AppDaemon:
+    hadashboard:
 
       rss_feeds:
         - feed: <feed_url>
@@ -928,7 +979,7 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 -  ``feed_url`` - fully qualified path to rss feed, e.g.
    ``http://rss.cnn.com/rss/cnn_topstories.rss``
 -  ``target name`` - the entity of the target RSS widget in the
-   dashboard definition file
+   dashboard definition file. This must be an arbitary name prepended by ``rss.`` - e.g. ``rss.cnn_news``
 -  ``feed_refresh_interval`` - how often AppDaemon will refresh the RSS
    feeds
 
@@ -942,7 +993,7 @@ Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the name of the configured feed - this must match the
-   ``target_name`` configured in the AppDaemon configuration
+   ``target_name`` full target name configured in the AppDaemon configuration e.g. `rss.cnn_news`
 -  ``interval`` - the period between display of different items within
    the feed
 
@@ -951,8 +1002,9 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
--  ``recent`` - the number of most recent stories that will be shown. If
-   not specified, all stories in the feed will be shown.
+-  ``recent`` - the number of most recent stories that will be shown. If not specified, all stories in the feed will be shown.
+-  ``show_description`` - if set to ``1`` the widget will show a short description of the story as well as the title. Default is ``0``
+
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^
@@ -1189,6 +1241,8 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``state_text``
 -  ``state_map``
+-  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
+-  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button) 
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
@@ -1325,6 +1379,59 @@ Cosmetic Arguments
 -  ``icon_style_inactive``
 -  ``title_style``
 -  ``title2_style``
+-  ``state_text_style``
+
+icon
+~~~~
+
+A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured in a similar manner to the following:
+
+.. code:: yaml
+
+   icon:
+     title: icon
+     widget_type: icon
+     entity: binary_sensor.basement_door_sensor
+     state_text: 1
+     icons:
+       "active":
+         icon: fas-glass
+         style: "color: green"
+       "inactive":
+         icon: fas-repeat
+         style: "color: blue"
+       "idle":
+         icon: fas-frown
+         style: "color: red"
+       "default":
+         icon: fas-rocket
+         style: "color: cyan"
+
+The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+
+The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the binary\_sensor
+-  ``icons`` - a list of icons and styles to be applied for various states.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
 
 light
 ~~~~~
@@ -1579,16 +1686,18 @@ navigate
 ~~~~~~~~
 
 A widget to navgigate to a new URL, intended to be used for switching
-between dashboards
+between dashboards.
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
+None, but either ``url`` or ``dashboard`` must be specified.
+
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``url`` - a url to navigate to. Use a full URL including the "http"
-   part.
+-  ``url`` - a url to navigate to. Use a full URL including the "http://"
+   or "https://" part.
 -  ``dashboard`` - a dashboard to navigate to e.g. ``MainPanel``
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.
@@ -1597,13 +1706,13 @@ Optional Arguments:
 For an arbitary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
 
-``timeout`` - length of time to stay on the new dashboard
-``return`` - dashboard to return to after the timeout has elapsed.
-``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+-  ``timeout`` - length of time to stay on the new dashboard
+-  ``return`` - dashboard to return to after the timeout has elapsed.
+-  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Both ``timeout`` and ``return`` must be specified.
 
-If adding arguments use the args variable do not append them to the URL
+If adding arguments, use the args variable. Do not append them to the URL
 or you may break skinning. Add arguments like this:
 
 .. code:: yaml
@@ -1715,7 +1824,7 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 -  ``refresh`` - (seconds) if set, the iframe widget will progress down
-   it's list every refresh period, returning to the beginning when it
+   its list every refresh period, returning to the beginning when it
    hits the end. Use this in conjunction with a single entry in the
    ``url_list`` to have a single url refresh at a set interval.
 
@@ -1732,7 +1841,7 @@ Example:
         refresh: 60
         url_list: 
           - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
-          - https://www.pexels.com/photo/eyes-cat-coach-sofa-96938/
+          - https://www.pexels.com/photo/eyes-cat-coach-sofas-96938/
           - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
           - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
           - https://www.pexels.com/photo/grey-fur-kitten-127028/
@@ -1760,6 +1869,49 @@ Cosmetic Arguments
 
 -  ``widget_style``
 -  ``title_style``
+
+entitypicture
+~~~~~~
+
+A widget to display entity picture
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to display entity_picture attribute
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile.
+-  ``base_url`` - URL to prepend before content of entity_picture.
+
+Example:
+
+.. code:: yaml
+
+    entitypicture1:
+        widget_type: entitypicture
+        title: Weather by YR
+        entity: sensor.yr_symbol
+
+Example showing artwork of just playing album on media player: (tested with Google Home)
+
+.. code:: yaml
+
+    entitypicture2:
+        widget_type: entitypicture
+        entity: media_player.bedroom
+        base_url: https://my_domain.duckdns.org:8123
+        image_style: "top: 0; bottom: 0; left: 0; right: 0;"
+
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``image_style``
 
 camera
 ~~~~~~
@@ -1994,10 +2146,10 @@ All entries are required but can be left blank by using double quotes.
 
 .. code:: yaml
 
-    light_icon_on: fa-circle
-    light_icon_off: fa-circle-thin
-    light_icon_up: fa-plus
-    light_icon_down: fa-minus
+    light_icon_on: fas-circle
+    light_icon_off: fas-circle-thin
+    light_icon_up: fas-plus
+    light_icon_down: fas-minus
     light_title_style: $style_title
     light_title2_style: $style_title2
     light_icon_style_active: $style_active
@@ -2049,3 +2201,18 @@ Example Dashboards
 Some example dashboards are available in the AppDaemon repository:
 
 `Dashboards <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_dashboards>`__
+
+A Note on Font Awesome Upgrade
+------------------------------
+
+As of AppDaemon 3.0.2, Font Awesome icons have been upgraded form version 4 to version 5. FA Introduced a lot of breaking changes with this upgrade. While all of HADashboard's included skins have been updated to reflect this, any custom skins may need changes, as will any custom icons used within dashboard config files. FA have provided a table of changed icons `here <https://fontawesome.com/how-to-use/on-the-web/setup/upgrading-from-version-4>`__.
+
+To ease the transition further, a legacy mode has been included in HADashboard. This is not enabled by default, but can be turned on by specifying the following in the hadashboard section of ``appdaemon.cfg``:
+
+.. code:: yaml
+
+    fa4compatibility: 1
+
+This is not intended as a permanent fix and may be removed at some point, but for now, this will enable existing skins and icons to work correctly, giving you an opportunity to work through your configurations and fix things.
+
+While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.

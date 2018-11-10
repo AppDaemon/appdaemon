@@ -1,7 +1,7 @@
 import requests
 import inspect
 
-import appdaemon.appapi as appapi
+import appdaemon.adbase as appapi
 import appdaemon.utils as utils
 
 
@@ -24,16 +24,15 @@ def hass_check(func):
     return (func_wrapper)
 
 
-class Hass(appapi.AppDaemon):
+class Hass(appapi.ADBase):
     #
     # Internal
     #
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
-
         super(Hass, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
-        self.namespace = "default"
+        #self.namespace = "default"
         self.AD = ad
         self.name = name
         self._logger = logger
@@ -42,6 +41,7 @@ class Hass(appapi.AppDaemon):
         self.global_vars = global_vars
         self.config = config
         self.app_config = app_config
+
         #
         # Register specific constraints
         #
@@ -50,152 +50,43 @@ class Hass(appapi.AppDaemon):
         self.register_constraint("constrain_input_select")
         self.register_constraint("constrain_days")
 
-    def _sub_stack(self, msg):
-        # If msg is a data structure of some type, don't sub
-        if type(msg) is str:
-            stack = inspect.stack()
-            if msg.find("__module__") != -1:
-                msg = msg.replace("__module__", stack[2][1])
-            if msg.find("__line__") != -1:
-                msg = msg.replace("__line__", str(stack[2][2]))
-            if msg.find("__function__") != -1:
-                msg = msg.replace("__function__", stack[2][3])
-        return msg
-
-    def set_namespace(self, namespace):
-        self.namespace = namespace
-
-    def _get_namespace(self, **kwargs):
-        if "namespace" in kwargs:
-            namespace = kwargs["namespace"]
-            del kwargs["namespace"]
-        else:
-            namespace = self.namespace
-
-        return namespace
-
-
     #
-    # Listen state stub here as super class doesn't know the namespace
+    # State
     #
-
-    def listen_state(self, cb, entity=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Hass, self).listen_state(namespace, cb, entity, **kwargs)
-
-    #
-    # Likewise with get and set state
-    #
-
-    def get_state(self, entity=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Hass, self).get_state(namespace, entity, **kwargs)
 
     def set_state(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        self._check_entity(namespace, entity_id)
-        self.AD.log(
-            "DEBUG",
-            "set_state: {}, {}".format(entity_id, kwargs)
-        )
 
-        if entity_id in self.get_state():
-            new_state = self.get_state()[entity_id]
+        new_state = super(Hass, self).parse_state(entity_id, namespace, **kwargs)
+
+        config = self.AD.get_plugin(namespace).config
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
         else:
-            # Its a new state entry
-            new_state = {}
-            new_state["attributes"] = {}
+            cert_path = False
 
-        if "state" in kwargs:
-            new_state["state"] = kwargs["state"]
-
-        if "attributes" in kwargs:
-            new_state["attributes"].update(kwargs["attributes"])
-
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
-        if "certpath" in config:
-            certpath = config["certpath"]
-        else:
-            certpath = None
-
-        if "ha_key" in config and config["ha_key"] != "":
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key"  in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
+
         apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
 
-
         r = requests.post(
-            apiurl, headers=headers, json=new_state, verify=certpath
+            apiurl, headers=headers, json=new_state, verify=cert_path
         )
         r.raise_for_status()
-        state= r.json()
+        state = r.json()
 
         # Update AppDaemon's copy
 
         self.AD.set_state(namespace, entity_id, state)
 
         return state
-
-    def entity_exists(self, entity_id, **kwargs):
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        namespace = self._get_namespace(**kwargs)
-        return self.AD.entity_exists(namespace, entity_id)
-
-    #
-    # Events
-    #
-    def listen_event(self, cb, event=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Hass, self).listen_event(namespace, cb, event, **kwargs)
-
-
-    #
-    # Utility
-    #
-
-
-    def split_entity(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
-        return entity_id.split(".")
-
-    def split_device_list(self, list_):
-        return list_.split(",")
-
-    def log(self, msg, level="INFO"):
-        msg = self._sub_stack(msg)
-        self.AD.log(level, msg, self.name)
-
-    def error(self, msg, level="WARNING"):
-        msg = self._sub_stack(msg)
-        self.AD.err(level, msg, self.name)
-
-    def get_ha_config(self, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        return self.AD.get_plugin_meta(namespace)
-
-    #
-    #
-    #
-
-    def friendly_name(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
-        state = self.get_state(**kwargs)
-        if entity_id in state:
-            if "friendly_name" in state[entity_id]["attributes"]:
-                return state[entity_id]["attributes"]["friendly_name"]
-            else:
-                return entity_id
-        return None
 
     #
     # Device Trackers
@@ -293,23 +184,34 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def turn_on(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
+            
+        rargs["namespace"] = namespace
         self.call_service("homeassistant/turn_on", **rargs)
 
     @hass_check
     def turn_off(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-        
+
+        rargs["namespace"] = namespace
         device, entity = self.split_entity(entity_id)
         if device == "scene":
             self.call_service("homeassistant/turn_on", **rargs)
@@ -318,35 +220,68 @@ class Hass(appapi.AppDaemon):
 
     @hass_check
     def toggle(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-
+            
+        rargs["namespace"] = namespace
         self.call_service("homeassistant/toggle", **rargs)
 
     @hass_check
     def set_value(self, entity_id, value, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
+        rargs["namespace"] = namespace
         self.call_service("input_number/set_value", **rargs)
 
     @hass_check
+    def set_textvalue(self, entity_id, value, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
+        if kwargs == {}:
+            rargs = {"entity_id": entity_id, "value": value}
+        else:
+            rargs = kwargs
+            rargs["entity_id"] = entity_id
+            rargs["value"] = value
+            
+        rargs["namespace"] = namespace
+        self.call_service("input_text/set_value", **rargs)
+
+    @hass_check
     def select_option(self, entity_id, option, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "option": option}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["option"] = option
+            
+        rargs["namespace"] = namespace
         self.call_service("input_select/select_option", **rargs)
 
     @hass_check
@@ -370,7 +305,6 @@ class Hass(appapi.AppDaemon):
             kwargs["notification_id"] = id
         self.call_service("persistent_notification/create", **kwargs)
 
-
     #
     # Event
     #
@@ -379,18 +313,28 @@ class Hass(appapi.AppDaemon):
     def fire_event(self, event, **kwargs):
         self.AD.log("DEBUG",
                   "fire_event: {}, {}".format(event, kwargs))
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
-        if "certpath" in config:
-            certpath = config["certpath"]
+        
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        config = self.AD.get_plugin(namespace).config        
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
         else:
-            certpath = None
-        if "ha_key" in config and config["ha_key"] != "":
+            cert_path = False
+
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key"  in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
+
+
         apiurl = "{}/api/events/{}".format(config["ha_url"], event)
         r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=certpath
+            apiurl, headers=headers, json=kwargs, verify=cert_path
         )
         r.raise_for_status()
         return r.json()
@@ -411,21 +355,27 @@ class Hass(appapi.AppDaemon):
             "DEBUG",
             "call_service: {}/{}, {}".format(d, s, kwargs)
         )
+        
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
 
-        config = self.AD.get_plugin(self._get_namespace(**kwargs)).config
-        if "certpath" in config:
-            certpath = config["certpath"]
+        config = self.AD.get_plugin(namespace).config
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
         else:
-            certpath = None
+            cert_path = False
 
-        if "ha_key" in config and config["ha_key"] != "":
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key"  in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
+
         apiurl = "{}/api/services/{}/{}".format(config["ha_url"], d, s)
         r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=certpath
+            apiurl, headers=headers, json=kwargs, verify=cert_path
         )
         r.raise_for_status()
         return r.json()
-

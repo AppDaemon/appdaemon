@@ -1,7 +1,7 @@
-AppDaemon Tutorial
-=================
+AppDaemon Tutorial for HASS Users
+=================================
 
-I have been working on a new subsystem to complement Home Assistant's
+AppDaemon is a subsystem to complement Home Assistant's
 Automation and Scripting components. ``AppDaemon`` is a python daemon
 that consumes events from Home Assistant and feeds them to snippets of
 python code called "Apps". An App is a Python class that is instantiated
@@ -44,7 +44,7 @@ ease of accomplishing a few basic but representative tasks:
 -  Does it run locally without any reliance on the cloud?
 
 In my opinion, Home Assistant accomplishes the majority of these very
-well with a combination of Automations, Scripts and Templates, and it's
+well with a combination of Automations, Scripts and Templates, and its
 Restful API.
 
 So why ``AppDaemon``? AppDaemon is not meant to replace Home Assistant
@@ -70,7 +70,7 @@ the table:
    the config file
 -  Dynamic - AppDaemon has been designed from the start to enable the
    user to make changes without requiring a restart of Home Assistant,
-   thanks to it's loose coupling. However, it is better than that - the
+   thanks to its loose coupling. However, it is better than that - the
    user can make changes to code and AppDaemon will automatically reload
    the code, figure out which Apps were using it and restart them to use
    the new code with out the need to restart ``AppDaemon`` itself. It is
@@ -131,7 +131,7 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class OutsideLights(hass.Hass):
 
@@ -169,9 +169,9 @@ terms:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
-    class FlashyMotionLights(hass.Hass):
+    class MotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
@@ -200,9 +200,9 @@ activated and bales out after 10 iterations.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
-    class MotionLights(hass.Hass):
+    class FlashyMotionLights(hass.Hass):
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")

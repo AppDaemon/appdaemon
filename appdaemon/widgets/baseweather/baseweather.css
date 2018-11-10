@@ -1,73 +1,104 @@
 .widget-baseweather-{{id}} {
-	color: white;
+    color: white;
 }
 
 .widget-baseweather-{{id}} h1 {
-	margin-bottom: 0px;
+    margin-bottom: 0px;
 }
 
 .widget-baseweather-{{id}} [class^="primary"] {
-	display: inline-block;
-	vertical-align: middle;
-	padding: 0;
-	margin-left: 10px;
-	margin-right: 10px;
-	margin-top: 0px;
-	margin-bottom: 0px;
-}
-
-.widget-baseweather-{{id}} [class^="secondary"] {
-	display: inline-block;
-	vertical-align: middle;
-	padding: 0;
-	margin-left: 0px;
-	margin-right: 0px;
-	margin-top: 0px;
-	margin-bottom: 0px;
+    display: inline-block;
+    vertical-align: middle;
+    padding: 0;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-top: 0px;
+    margin-bottom: 0px;
 }
 
 .widget-baseweather-{{id}} .primary-climacon {
-	font-family: "Climacons-Font";
-	font-size: 70px;
+    font-family: "Climacons-Font";
+    font-size: 70px;
 }
 
 .widget-baseweather-{{id}} .primary-info {
-	font-size: 300%;
-	font-weight: 400;
+    font-size: 300%;
+    font-weight: 400;
 }
 
 .widget-baseweather-{{id}} .primary-unit {
-	font-size: 100%;
-	font-weight: 400;
-	margin-left: 0;
-	margin-top: 20px;
-	vertical-align: top;
+    font-size: 100%;
+    font-weight: 400;
+    margin-left: 0;
+    margin-top: 20px;
+    vertical-align: top;
 }
 
-.widget-baseweather-{{id}} .secondary-icon {
-	font-family: "Climacons-Font";
-	font-size: 40px;
-	margin-left: 10px;
-	margin-right: 0px;
+.widget-baseweather-{{id}} [class^="secondary-"] {
+    padding: 0;
+    margin: 0px;
+}
+
+.widget-baseweather-{{id}} .secondary-detail {
+    display: inline-block;
+    font-size: 125%;
+    font-weight: 200;
+    vertical-align: middle;
+    padding: 2px 4px;
 }
 
 .widget-baseweather-{{id}} .secondary-climacon {
-	font-family: "Climacons-Font";
-	font-size: 55px;
-	margin-left: 10px;
-	margin-right: 10px;
+    font-family: "Climacons-Font";
+    font-size: 40px;
+    margin-left: 10px;
+    margin-right: 0px;
 }
 
-.widget-baseweather-{{id}} .secondary-info {
-	font-size: 125%;
-	font-weight: 200;
+.widget-baseweather-{{id}} .rain:before{
+    content: "\e009";
+}
+
+.widget-baseweather-{{id}} .snow:before{
+    content: "\e036";
+}
+
+.widget-baseweather-{{id}} .sleet:before{
+    content: "\e003";
+}
+
+.widget-baseweather-{{id}} .wind:before{
+    content: "\e021";
+}
+
+.widget-baseweather-{{id}} .fog:before{
+    content: "\e01b";
+}
+
+.widget-baseweather-{{id}} .cloudy:before{
+    content: "\e000";
+}
+
+.widget-baseweather-{{id}} .clear-day:before{
+    content: "\e028";
+}
+
+.widget-baseweather-{{id}} .clear-night:before{
+    content: "\e02d";
+}
+
+.widget-baseweather-{{id}} .partly-cloudy-day:before{
+    content: "\e001";
+}
+
+.widget-baseweather-{{id}} .partly-cloudy-night:before{
+    content: "\e002";
 }
 
 .widget-baseweather-{{id}} hr {
-	width: 90%;
-	border: 0;
-	height: 1px;
-	background: rgba(255, 255, 255, 0.25);
-	margin-top: 15px;
-	margin-bottom: 15px;
+    width: 90%;
+    border: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.25);
+    margin-top: 15px;
+    margin-bottom: 15px;
 }

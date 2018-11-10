@@ -1,5 +1,5 @@
 widget_type: baseswitch
-entity: {{entity}}
+entity: "{{entity}}"
 state_inactive: "off"
 state_active: "on"
 enable: 1
@@ -7,13 +7,13 @@ momentary: 1000
 ignore_state: 1
 post_service_active:
     service: homeassistant/turn_on
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_inactive:
     service: homeassistant/turn_off
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   icon: ""
   icon_style: ""
   state_text: ""

@@ -11,13 +11,13 @@ import signal
 import platform
 import yaml
 import asyncio
+import traceback
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.adapi as api
 import appdaemon.rundash as rundash
-
-# Windows does not have Daemonize package so disallow
+import appdaemon.runadmin as runadmin
 
 class ADMain():
 
@@ -27,25 +27,40 @@ class ADMain():
         self.diag = None
         self.AD = None
         self.rundash = None
+        self.runadmin = None
+
+    def init_signals(self):
+        # Windows does not support SIGUSR1 or SIGUSR2
+        if platform.system() != "Windows":
+            signal.signal(signal.SIGUSR1, self.handle_sig)
+            signal.signal(signal.SIGINT, self.handle_sig)
+            signal.signal(signal.SIGHUP, self.handle_sig)
+            signal.signal(signal.SIGTERM, self.handle_sig)
 
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
         if signum == signal.SIGUSR1:
             self.AD.dump_schedule()
             self.AD.dump_callbacks()
-            self.AD.dump_threads()
+            qinfo = self.AD.q_info()
+            self.AD.dump_threads(qinfo)
             self.AD.dump_objects()
-            self.AD.dump_queue()
             self.AD.dump_sun()
         if signum == signal.SIGHUP:
-            self.AD.read_app_files(True)
+            self.AD.check_app_updates(True)
         if signum == signal.SIGINT:
             self.log(self.logger, "INFO", "Keyboard interrupt")
+            self.stop()
+        if signum == signal.SIGTERM:
+            self.log(self.logger, "INFO", "SIGTERM Recieved")
             self.stop()
 
     def stop(self):
         self.AD.stop()
-        self.rundash.stop()
+        if self.rundash is not None:
+            self.rundash.stop()
+        if self.runadmin is not None:
+            self.runadmin.stop()
 
     def log(self, logger, level, msg, name=""):
         utils.log(logger, level, msg, name)
@@ -53,31 +68,47 @@ class ADMain():
     # noinspection PyBroadException,PyBroadException
     def run(self, appdaemon, hadashboard):
 
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
 
-        # Initialize AppDaemon
+            # Initialize AppDaemon
 
-        self.AD = ad.AppDaemon(self.logger, self.error, self.diag, loop, **appdaemon)
+            self.AD = ad.AppDaemon(self.logger, self.error, self.diag, loop, **appdaemon)
 
-        # Initialize Dashboard/API
+            # Initialize Dashboard/API
 
-        if hadashboard["dashboard"] is True:
-            self.log(self.logger, "INFO", "Starting Dashboards")
-            self.rundash = rundash.RunDash(self.AD, loop, self.logger, self.access, **hadashboard)
-            self.AD.register_dashboard(self.rundash)
-        else:
-            self.log(self.logger, "INFO", "Dashboards are disabled")
+            if hadashboard["dashboard"] is True:
+                self.log(self.logger, "INFO", "Starting Dashboards")
+                self.rundash = rundash.RunDash(self.AD, loop, self.logger, self.access, **hadashboard)
+                self.AD.register_dashboard(self.rundash)
+            else:
+                self.log(self.logger, "INFO", "Dashboards are disabled")
 
-        if "api_port" in appdaemon:
-            self.log(self.logger, "INFO", "Starting API")
-            self.api = api.ADAPI(self.AD, loop, self.logger, **appdaemon)
-        else:
-            self.log(self.logger, "INFO", "API is disabled")
+            if "api_port" in appdaemon:
+                self.log(self.logger, "INFO", "Starting API")
+                self.api = api.ADAPI(self.AD, loop, self.logger, self.access, **appdaemon)
+            else:
+                self.log(self.logger, "INFO", "API is disabled")
 
-        self.log(self.logger, "DEBUG", "Start Loop")
 
-        pending = asyncio.Task.all_tasks()
-        loop.run_until_complete(asyncio.gather(*pending))
+            # Lets hide the admin interface for now
+
+            #if "admin_port" in appdaemon:
+            #    self.log(self.logger, "INFO", "Starting Admin Interface")
+            #    self.runadmin = runadmin.RunAdmin(self.AD, loop, self.logger, self.access, **appdaemon)
+            #else:
+            #    self.log(self.logger, "INFO", "Admin Interface is disabled")
+
+            self.log(self.logger, "DEBUG", "Start Loop")
+
+            pending = asyncio.Task.all_tasks()
+            loop.run_until_complete(asyncio.gather(*pending))
+        except:
+            self.log(self.logger, "WARNING", '-' * 60)
+            self.log(self.logger, "WARNING", "Unexpected error during run()")
+            self.log(self.logger, "WARNING", '-' * 60)
+            self.log(self.logger, "WARNING", traceback.format_exc())
+            self.log(self.logger, "WARNING", '-' * 60)
 
         self.log(self.logger, "DEBUG", "End Loop")
 
@@ -91,11 +122,7 @@ class ADMain():
         # import appdaemon.stacktracer
         # appdaemon.stacktracer.trace_start("/tmp/trace.html")
 
-        # Windows does not support SIGUSR1 or SIGUSR2
-        if platform.system() != "Windows":
-            signal.signal(signal.SIGUSR1, self.handle_sig)
-            signal.signal(signal.SIGINT, self.handle_sig)
-            signal.signal(signal.SIGHUP, self.handle_sig)
+        self.init_signals()
 
         # Get command line args
 
@@ -106,7 +133,7 @@ class ADMain():
         parser.add_argument("-t", "--tick", help="time that a tick in the schedular lasts (seconds)", default=1, type=float)
         parser.add_argument("-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str)
         parser.add_argument("-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None)
-        parser.add_argument("-i", "--interval", help="multiplier for scheduler tick", type=float, default=1)
+        parser.add_argument("-i", "--interval", help="multiplier for scheduler tick", type=float, default=None)
         parser.add_argument("-D", "--debug", help="debug level", default="INFO", choices=
                             [
                                 "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
@@ -217,8 +244,12 @@ class ADMain():
         if args.endtime is not None:
             appdaemon["endtime"] = args.endtime
 
-        appdaemon["tick"] = args.tick
-        appdaemon["interval"] = args.interval
+        if "tick" not in appdaemon:
+            appdaemon["tick"] = args.tick
+
+        if "interval" not in appdaemon:
+            appdaemon["interval"] = args.interval
+
         appdaemon["loglevel"] = args.debug
 
         appdaemon["config_dir"] = os.path.dirname(config_file_yaml)
@@ -348,6 +379,8 @@ class ADMain():
         self.log(self.logger, "INFO", "Configuration read from: {}".format(config_file_yaml))
         self.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
         self.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
+
+        utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
 
         if isdaemon:
             keep_fds = [fh.stream.fileno(), efh.stream.fileno()]

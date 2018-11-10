@@ -4,13 +4,14 @@ import os
 import re
 import time
 import traceback
-import concurrent
+import concurrent.futures
 from urllib.parse import urlparse
 import aiohttp
 import feedparser
 from aiohttp import web
 import ssl
 import bcrypt
+import socket
 
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
@@ -57,13 +58,15 @@ def secure(myfunc):
                     return await myfunc(*args)
                 else:
                     return await self.forcelogon(args[1])
+            elif "dash_password" in args[1].query and args[1].query["dash_password"] == self.dash_password:
+                return await myfunc(*args)
             else:
                 return await self.forcelogon(args[1])
 
     return wrapper
 
 
-class RunDash():
+class RunDash:
 
     def __init__(self, ad, loop, logger, access, **config):
 
@@ -103,6 +106,17 @@ class RunDash():
 
         self.rss_feeds = None
         self._process_arg("rss_feeds", config)
+
+        self.fa4compatibility = False
+        self._process_arg("fa4compatibility", config)
+
+        if "rss_feeds" in config:
+            self.rss_feeds = []
+            for feed in config["rss_feeds"]:
+                if feed["target"].count('.') != 1:
+                    self.log("WARNING", "Invalid RSS feed target: {}".format(feed["target"]))
+                else:
+                    self.rss_feeds.append(feed)
 
         self.rss_update = None
         self._process_arg("rss_update", config)
@@ -155,6 +169,7 @@ class RunDash():
                                                  dash_force_compile=self.dash_force_compile,
                                                  profile_dashboard=self.profile_dashboard,
                                                  dashboard_dir = self.dashboard_dir,
+                                                 fa4compatibility=self.fa4compatibility
                                                      )
             self.setup_routes()
 
@@ -167,6 +182,10 @@ class RunDash():
             handler = self.app.make_handler()
 
             f = loop.create_server(handler, "0.0.0.0", int(self.dash_port), ssl=context)
+
+            #print((([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [
+             #   [(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in
+             #    [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + ["no IP found"])[0])
 
             loop.create_task(f)
             loop.create_task(self.update_rss())
@@ -191,16 +210,14 @@ class RunDash():
             if arg in kwargs:
                 setattr(self, arg, kwargs[arg])
 
-    def check_password(self, password, hash):
+    @staticmethod
+    def check_password(password, hash):
         return bcrypt.checkpw, str.encode(password), str.encode(hash)
-
-
 
     async def forcelogon(self, request):
         response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list,
                                                     {"logon": 1})
         return web.Response(text=response, content_type="text/html")
-
 
     async def logon(self, request):
         data = await request.post()
@@ -217,7 +234,7 @@ class RunDash():
             response.set_cookie("adcreds", hashed.decode("utf-8"))
 
         else:
-            self.access("WARNING", "Unsuccesful logon from {}".format(request.host))
+            self.access("WARNING", "Unsuccessful logon from {}".format(request.host))
             response = await self.list_dash(request)
 
         return response
@@ -229,11 +246,10 @@ class RunDash():
     # noinspection PyUnusedLocal
     @secure
     async def list_dash(self, request):
-        return (await self._list_dash(request))
-
+        return await self._list_dash(request)
 
     async def list_dash_no_secure(self, request):
-        return (await self._list_dash(request))
+        return await self._list_dash(request)
 
     async def _list_dash(self, request):
         response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list)
@@ -264,15 +280,18 @@ class RunDash():
                         for feed_data in self.rss_feeds:
                             feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
-                            new_state = {"feed": feed}
+                            if "bozo_exception" in feed:
+                                self.log("WARNING", "Error in RSS feed {}: {}".format(feed_data["feed"], feed["bozo_exception"]))
+                            else:
+                                new_state = {"feed": feed}
 
-                            # RSS Feeds always live in the default namespace
-                            self.AD.set_state("default", feed_data["target"], new_state)
+                                # RSS Feeds always live in the default namespace
+                                self.AD.set_state("default", feed_data["target"], new_state)
 
-                            data = {"event_type": "state_changed",
-                                    "data": {"entity_id": feed_data["target"], "new_state": new_state}}
+                                data = {"event_type": "state_changed",
+                                        "data": {"entity_id": feed_data["target"], "new_state": new_state}}
 
-                            self.ws_update("default", data)
+                                await self.ws_update("default", data)
 
                     await asyncio.sleep(1)
                 except:
@@ -306,33 +325,45 @@ class RunDash():
     # noinspection PyUnusedLocal
     @securedata
     async def call_service(self, request):
-        data = await request.post()
-        args = {}
-        service = data["service"]
-        namespace = data["namespace"]
-        for key in data:
-            if key == "service" or key == "namespace":
-                pass
-            elif key == "rgb_color":
-                m = re.search('\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', data[key])
-                if m:
-                    r = m.group(1)
-                    g = m.group(2)
-                    b = m.group(3)
-                    args["rgb_color"] = [r, g, b]
-            elif key == "xy_color":
-                m = re.search('\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)', data[key])
-                if m:
-                    x = m.group(1)
-                    y = m.group(2)
-                    args["xy_color"] = [x, y]
-            else:
-                args[key] = data[key]
+        try:
+            data = await request.post()
+            args = {}
+            service = data["service"]
+            namespace = data["namespace"]
+            for key in data:
+                if key == "service" or key == "namespace":
+                    pass
+                elif key == "rgb_color":
+                    m = re.search('\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', data[key])
+                    if m:
+                        r = m.group(1)
+                        g = m.group(2)
+                        b = m.group(3)
+                        args["rgb_color"] = [r, g, b]
+                elif key == "xy_color":
+                    m = re.search('\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)', data[key])
+                    if m:
+                        x = m.group(1)
+                        y = m.group(2)
+                        args["xy_color"] = [x, y]
+                elif key == "json_args":
+                      json_args = json.loads(data[key])
+                      for k in json_args.keys():
+                         args[k] = json_args[k]
+                else:
+                    args[key] = data[key]
 
-        plugin = self.AD.get_plugin(namespace)
-        await plugin.call_service (service, **args)
-        return web.Response(status=200)
+            plugin = self.AD.get_plugin(namespace)
+            await plugin.call_service (service, **args)
+            return web.Response(status=200)
 
+        except:
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", "Unexpected error in call_service()")
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", traceback.format_exc())
+            self.log("WARNING", '-' * 60)
+            return web.Response(status=500)
 
     # noinspection PyUnusedLocal
     async def not_found(self, request):
@@ -376,7 +407,7 @@ class RunDash():
 
         return ws
 
-    def ws_update(self, namespace, jdata):
+    async def ws_update(self, namespace, jdata):
         if len(self.app['websockets']) > 0:
             self.log("DEBUG",
                    "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
@@ -389,7 +420,7 @@ class RunDash():
                 self.log(
                        "DEBUG",
                        "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
-                ws.send_str(data)
+                await ws.send_str(data)
 
 
     # Routes, Status and Templates
@@ -423,6 +454,9 @@ class RunDash():
 
         # Add static path for fonts
         self.app.router.add_static('/fonts', self.dashboard_obj.fonts_dir)
+
+        # Add static path for webfonts
+        self.app.router.add_static('/webfonts', self.dashboard_obj.webfonts_dir)
 
         # Add static path for images
         self.app.router.add_static('/images', self.dashboard_obj.images_dir)

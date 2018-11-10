@@ -1,22 +1,58 @@
 widget_type: baseweather
 fields:
   title: ""
+  show_forecast: 0
+  prefer_icons: 0
   unit: ""
-  dark_sky_temperature: ""
-  dark_sky_humidity: ""
-  dark_sky_precip_probability: ""
-  dark_sky_precip_intensity: ""
-  dark_sky_wind_speed: ""
-  dark_sky_pressure: ""
-  dark_sky_wind_bearing: ""
-  dark_sky_apparent_temperature: ""
-  dark_sky_icon: ""
+  wind_unit: ""
+  pressure_unit: ""
+  rain_unit: ""
+  temperature: ""
+  humidity: ""
+  precip_probability: ""
+  precip_intensity: ""
+  precip_type: ""
+  wind_speed: ""
+  pressure: ""
+  wind_bearing: ""
+  apparent_temperature: ""
+  icon: ""
+  bearing_icon: "mdi-rotate-0"
+  precip_type_icon: "mdi-umbrella"
+  forecast_title: ""
+  forecast_temperature_min: ""
+  forecast_temperature_max: ""
+  forecast_icon: ""
+  forecast_precip_probability: ""
+  forecast_precip_type: ""
+  forecast_precip_type_icon: "mdi-umbrella"
+entities:
+  icon: sensor.dark_sky_icon
+  temperature: sensor.dark_sky_temperature
+  apparent_temperature: sensor.dark_sky_apparent_temperature
+  humidity: sensor.dark_sky_humidity
+  precip_probability: sensor.dark_sky_precip_probability
+  precip_intensity: sensor.dark_sky_precip_intensity
+  precip_type: sensor.dark_sky_precip
+  pressure: sensor.dark_sky_pressure
+  wind_speed: sensor.dark_sky_wind_speed
+  wind_bearing: sensor.dark_sky_wind_bearing
+  forecast_icon: sensor.dark_sky_icon_1
+  forecast_temperature_min: sensor.dark_sky_daily_low_temperature_1
+  forecast_temperature_max: sensor.dark_sky_daily_high_temperature_1
+  forecast_precip_probability: sensor.dark_sky_precip_probability_1
+  forecast_precip_type: sensor.dark_sky_precip_1
 css: []
 static_css:
   title_style: $weather_sub_style
   unit_style: $weather_unit_style
   main_style: $weather_main_style
   sub_style: $weather_sub_style
+  sub_unit_style: $weather_sub_style
   widget_style: $weather_widget_style
-icons: []
+icons:
+  snow: mdi-snowflake
+  rain: mdi-umbrella
+  sleet: mdi-weather-snowy-rainy
+  unknown: mdi-umbrella
 static_icons: []

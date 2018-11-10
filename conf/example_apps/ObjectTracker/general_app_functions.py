@@ -15,7 +15,7 @@
 #                                                                                         #
 ###########################################################################################
 
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 import datetime as datetime
 import platform
 

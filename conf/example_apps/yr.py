@@ -1,4 +1,4 @@
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta

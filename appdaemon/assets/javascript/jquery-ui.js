@@ -6563,7 +6563,7 @@ $.widget( "ui.checkboxradio", [ $.ui.formResetMixin, {
 		var options = this._super() || {};
 
 		// We read the type here, because it makes more sense to throw a element type error first,
-		// rather then the error for lack of a label. Often if its the wrong type, it
+		// rather then the error for lack of a label. Often if it's the wrong type, it
 		// won't have a label (e.g. calling on a div, btn, etc)
 		this._readType();
 
@@ -6864,7 +6864,7 @@ $.widget( "ui.button", {
 
 		this.hasTitle = !!this.element.attr( "title" );
 
-		// Check to see if the label needs to be set or if its already correct
+		// Check to see if the label needs to be set or if it's already correct
 		if ( this.options.label && this.options.label !== this.originalLabel ) {
 			if ( this.isInput ) {
 				this.element.val( this.options.label );
@@ -7046,7 +7046,7 @@ $.widget( "ui.button", {
 
 	refresh: function() {
 
-		// Make sure to only check disabled if its an element that supports this otherwise
+		// Make sure to only check disabled if it's an element that supports this otherwise
 		// check for the disabled class to determine state
 		var isDisabled = this.element.is( "input, button" ) ?
 			this.element[ 0 ].disabled : this.element.hasClass( "ui-button-disabled" );
@@ -9945,7 +9945,7 @@ $.widget( "ui.draggable", $.ui.mouse, {
 
 		// This is a special case where we need to modify a offset calculated on start, since the
 		// following happened:
-		// 1. The position of the helper is absolute, so it's position is calculated based on the
+		// 1. The position of the helper is absolute, so its position is calculated based on the
 		// next positioned parent
 		// 2. The actual offset parent is a child of the scroll parent, and the scroll parent isn't
 		// the document, which means that the scroll is included in the initial calculation of the
@@ -13953,7 +13953,7 @@ var widgetsSelectmenu = $.widget( "ui.selectmenu", [ $.ui.formResetMixin, {
 				focus: function( event, ui ) {
 					var item = ui.item.data( "ui-selectmenu-item" );
 
-					// Prevent inital focus from firing and check if its a newly focused item
+					// Prevent inital focus from firing and check if it's a newly focused item
 					if ( that.focusIndex != null && item.index !== that.focusIndex ) {
 						that._trigger( "focus", event, { item: item } );
 						if ( !that.isOpen ) {
@@ -16310,7 +16310,7 @@ var widgetsSortable = $.widget( "ui.sortable", $.ui.mouse, {
 
 		// This is a special case where we need to modify a offset calculated on start, since the
 		// following happened:
-		// 1. The position of the helper is absolute, so it's position is calculated based on the
+		// 1. The position of the helper is absolute, so its position is calculated based on the
 		// next positioned parent
 		// 2. The actual offset parent is a child of the scroll parent, and the scroll parent isn't
 		// the document, which means that the scroll is included in the initial calculation of the

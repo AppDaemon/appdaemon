@@ -15,7 +15,7 @@ fi
 
 # if apps file doesn't exist, copy the default
 if [ ! -f $CONF/apps/apps.yaml ]; then
-  cp $CONF_SRC/apps.yaml.example $CONF/apps/apps.yaml
+  cp $CONF_SRC/apps/apps.yaml.example $CONF/apps/apps.yaml
 fi
 
 # if dashboards folder doesn't exist, copy the default
@@ -25,12 +25,12 @@ fi
 
 # if ENV HA_URL is set, change the value in appdaemon.yaml
 if [ -n "$HA_URL" ]; then
-  sed -i "s/^  ha_url:.*/  ha_url: $(echo $HA_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+  sed -i "s/^      ha_url:.*/      ha_url: $(echo $HA_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
 # if ENV HA_KEY is set, change the value in appdaemon.yaml
-if [ -n "$HA_KEY" ]; then
-  sed -i "s/^  ha_key:.*/  ha_key: $(echo $HA_KEY | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+if [ -n "$TOKEN" ]; then
+  sed -i "s/^      token:.*/      token: $(echo $TOKEN | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
 # if ENV DASH_URL is set, change the value in appdaemon.yaml
@@ -42,5 +42,8 @@ if [ -n "$DASH_URL" ]; then
   fi
 fi
 
+#check recursively under CONF for additional python dependencies defined in requirements.txt
+find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
+
 # Lets run it!
-appdaemon -c $CONF "$@"
+exec appdaemon -c $CONF "$@"
