@@ -31,7 +31,7 @@ class Mqtt(appapi.ADBase):
         self.loop = self.AD.loop
 
     #
-    # Listen event stub here as super class doesn't know the namespace
+    # Override listen_state()
     #
 
     def listen_event(self, cb, event=None, **kwargs):
