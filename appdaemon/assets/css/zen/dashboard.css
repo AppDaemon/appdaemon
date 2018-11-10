@@ -8,7 +8,7 @@ html {
 
 body {
   margin: 20;
-  background-image: url("/css/zen/img/zen_bg.jpg"); 
+  background-image: url("/css/zen/img/zen_bg.jpg");
   background-repeat: repeat;
   font-size: 14px;
   color: #fff;
@@ -82,16 +82,16 @@ h3 {
 
 
 /*Base widget styles*/
- 
+
 
 .dashboard_main {
   margin: 0px auto;
-  
+
 }
 
 .gridster {
   margin: 0px auto;
-  
+
 }
 
 .icon-background {
@@ -123,12 +123,12 @@ h3 {
 }
 .gs-w:hover {
   background-color: rgba(0, 0, 0, 0.5);
-  color: inherit; 
+  color: inherit;
 }
 
 .iframe {
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
   -webkit-border-radius: 6px;
   -moz-border-radius: 6px;
   border-radius: 6px;
@@ -214,3 +214,24 @@ h3 {
 }
 
 .modalDialogCloseButton:hover { background: #ce9863 }
+
+.loader {
+  display: none;
+  border: 3px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 3px solid #ff0055;
+  width: 15px;
+  height: 15px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

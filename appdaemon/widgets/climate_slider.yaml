@@ -1,0 +1,30 @@
+widget_type: baseclimateslider
+entity: {{entity}}
+post_service:
+    service: climate/set_temperature
+    entity_id: {{entity}}
+fields:
+  title: {{title}}
+  title2: {{title2}}
+  target: ""
+  current: ""
+  unit: {{unit}}
+  SliderValue: ""
+  MinValue: ""
+  MaxValue: ""
+  minValue: ""
+  maxValue: ""
+  StepValue: ""
+icons: []
+css: []
+static_icons: []
+static_css:
+  title_style: $input_number_title_style
+  title2_style: $input_number_title2_style
+  current_style: $climate_level_style
+  target_style: $climate_level2_style
+  slider_style: $input_number_slider_style
+  slidercontainer_style: $input_number_container_style
+  widget_style: $input_number_widget_style
+  unit_style: $climate_unit_style
+  unit2_style: $climate_unit2_style

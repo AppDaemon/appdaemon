@@ -1,0 +1,78 @@
+.widget-baseclimateslider-{{id}} {
+	position: relative;
+}
+.widget-baseclimateslider-{{id}} .title {
+    position: absolute;
+    top: 5px;
+    width: 100%;
+}
+.widget-baseclimateslider-{{id}} .title2 {
+    position: absolute;
+    top: 23px;
+    width: 100%;
+}
+
+.widget-baseclimateslider-{{id}} .current {
+  font-size: 250%;
+  display: inline-block;
+}
+
+.widget-baseclimateslider-{{id}} .unit {
+  font-size: 100%;
+  font-weight: 400;
+  display: inline-block;
+  vertical-align: top;
+  margin-left: 5px;
+  margin-top: 5px;
+}
+.widget-baseclimateslider-{{id}} .unit2 {
+  font-size: 65%;
+  font-weight: 400;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.widget-baseclimateslider-{{id}} .loader {
+  position: absolute;
+  bottom: 45px;
+  right: 5px;
+}
+
+.widget-baseclimateslider-{{id}} .levelunit {
+  position: absolute;
+  top: 43px;
+  width: 100%;
+}
+
+.widget-baseclimateslider-{{id}} .state_text {
+    position: absolute;
+    top: 38px;
+    width: 100%;
+}
+
+.widget-baseclimateslider-{{id}} .target {
+    display: inline-block;
+}
+
+.widget-baseclimateslider-{{id}} .levelunit2 {
+  position: absolute;
+  bottom: 45px;
+  width: 100%;
+}
+
+.widget-baseclimateslider-{{id}} .slidercontainer {
+   position: absolute;
+   top: 125px;
+   height: 29px;
+   overflow: hidden;
+   width: 100%;
+   horizontal-align: center;
+   margin:auto;
+}
+
+.widget-baseclimateslider-{{id}} input[type=range] {
+  -webkit-appearance: slider-horizontal;
+  border: 1px solid white;
+  height: 24px;
+  width: 90%;
+}
