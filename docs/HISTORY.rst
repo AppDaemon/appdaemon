@@ -22,6 +22,7 @@ Change Log
 - Refactored plugin APIS to remove duplication
 - added checking for overdue threads
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
+- Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
 
 **Fixes**
 
