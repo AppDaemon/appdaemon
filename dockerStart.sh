@@ -46,4 +46,4 @@ fi
 find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
 
 # Lets run it!
-exec appdaemon -c $CONF $EXTRA_CMD
+exec appdaemon -c $CONF "$@"
