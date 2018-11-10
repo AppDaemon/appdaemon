@@ -1,11 +1,11 @@
 widget_type: baseinputnumber
-entity: {{entity}}
+entity: "{{entity}}"
 post_service:
     service: input_number/set_value
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   SliderValue: ""
   MinValue: ""
   MaxValue: ""
