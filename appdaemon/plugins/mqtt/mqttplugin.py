@@ -171,9 +171,8 @@ class MqttPlugin:
         self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
         topic = msg.topic
 
-        if self.mqtt_wildcards != [] and any(list(map(lambda x: x in topic, self.mqtt_wildcards))): #check if any of the wildcards belong
-            index = list(map(lambda x: x in topic, self.mqtt_wildcards)).index(True)
-            wildcard = self.mqtt_wildcards[index] + '#'
+        if self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []: #check if any of the wildcards belong
+            wildcard = list(filter(lambda x: x in topic, self.mqtt_wildcards))[0] + '#'
 
             data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': wildcard}}
 
