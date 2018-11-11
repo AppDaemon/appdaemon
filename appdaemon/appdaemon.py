@@ -22,10 +22,9 @@ import cProfile
 import io
 import pstats
 from random import randint
-import hashlib
+import inspect
 
 import appdaemon.utils as utils
-
 
 def _timeit(func):
     @functools.wraps(func)
@@ -780,26 +779,32 @@ class AppDaemon:
             if app is not None:
                 try:
                     if _type == "timer":
-                        self.update_thread_info(thread_id, callback, _type)
-                        funcref(self.sanitize_timer_kwargs(app, args["kwargs"]))
-                        self.update_thread_info(thread_id, "idle")
+                        if self.validate_callback_sig(name, "timer", funcref):
+                            self.update_thread_info(thread_id, callback, _type)
+                            funcref(self.sanitize_timer_kwargs(app, args["kwargs"]))
+                            self.update_thread_info(thread_id, "idle")
                     elif _type == "attr":
-                        entity = args["entity"]
-                        attr = args["attribute"]
-                        old_state = args["old_state"]
-                        new_state = args["new_state"]
-                        self.update_thread_info(thread_id, callback, _type)
-                        funcref(entity, attr, old_state, new_state,
-                                self.sanitize_state_kwargs(app, args["kwargs"]))
-                        self.update_thread_info(thread_id, "idle")
+                        if self.validate_callback_sig(name, "attr", funcref):
+                            entity = args["entity"]
+                            attr = args["attribute"]
+                            old_state = args["old_state"]
+                            new_state = args["new_state"]
+                            self.update_thread_info(thread_id, callback, _type)
+                            funcref(entity, attr, old_state, new_state,
+                                    self.sanitize_state_kwargs(app, args["kwargs"]))
+                            self.update_thread_info(thread_id, "idle")
                     elif _type == "event":
                         data = args["data"]
-                        self.update_thread_info(thread_id, callback, _type)
-                        if args["event"] == "AD_LOG_EVENT":
-                            funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
+                        if args["event"] == "__AD_LOG_EVENT":
+                            if self.validate_callback_sig(name, "log_event", funcref):
+                                self.update_thread_info(thread_id, callback, _type)
+                                funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
+                                self.update_thread_info(thread_id, "idle")
                         else:
-                            funcref(args["event"], data, args["kwargs"])
-                        self.update_thread_info(thread_id, "idle")
+                            if self.validate_callback_sig(name, "event", funcref):
+                                self.update_thread_info(thread_id, callback, _type)
+                                funcref(args["event"], data, args["kwargs"])
+                                self.update_thread_info(thread_id, "idle")
 
                 except:
                     self.err("WARNING", '-' * 60, name=name)
@@ -815,6 +820,28 @@ class AppDaemon:
 
             q.task_done()
 
+    def validate_callback_sig(self, name, type, funcref):
+
+        callback_args = {
+            "timer": {"count": 1, "signature": "f(self, kwargs)"},
+            "attr": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
+            "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
+            "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
+            "initialize": {"count": 0, "signature": "initialize()"}
+        }
+
+        sig = inspect.signature(funcref)
+
+        if type in callback_args:
+            if len(sig.parameters) != callback_args[type]["count"]:
+                self.log("WARNING", "Incorrect signature type for callback {}(), should be {} - discarding".format(funcref.__name__, callback_args[type]["signature"]), name=name)
+                return False
+            else:
+                return True
+        else:
+            self.log("ERROR", "Unknown callback type: {}".format(type), name=name)
+
+        return False
     #
     # State
     #
@@ -1823,14 +1850,18 @@ class AppDaemon:
     def initialize_app(self, name):
         with self.objects_lock:
             if name in self.objects:
-                init = self.objects[name]["object"].initialize
+                init = getattr(self.objects[name]["object"], "initialize", None)
+                if init == None:
+                    self.log("WARNING", "Unable to find initialize function in module {} - skipped".format(name))
+                    return
             else:
                 self.log("WARNING", "Unable to find module {} - initialize() skipped".format(name))
                 return
         # Call its initialize function
 
         try:
-            init()
+            if self.validate_callback_sig(name, "initialize", init):
+                init()
         except:
             self.err("WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error running initialize() for {}".format(name))
@@ -2713,10 +2744,19 @@ class AppDaemon:
                 for uuid_ in self.callbacks[name]:
                     callback = self.callbacks[name][uuid_]
                     if callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global":
+                        #
+                        # Check for either a blank event (for all events)
+                        # Or the event is a mtch
+                        # But don't allow a global listen for any system events (events that start with __)
+                        #
                         if "event" in callback and (
-                                        callback["event"] is None
+                                (callback["event"] is None and data['event_type'][:2] != "__")
                                 or data['event_type'] == callback["event"]):
+
+                            # Filter out log events to general listens
+
                             # Check any filters
+
                             _run = True
                             for key in callback["kwargs"]:
                                 if key in data["data"] and callback["kwargs"][key] != \
@@ -2816,11 +2856,11 @@ class AppDaemon:
             for callback in self.callbacks:
                 for uuid in self.callbacks[callback]:
                     cb = self.callbacks[callback][uuid]
-                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "AD_LOG_EVENT":
+                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
                         has_log_callback = True
 
         if has_log_callback is False:
-            self.process_event("global", {"event_type": "AD_LOG_EVENT",
+            self.process_event("global", {"event_type": "__AD_LOG_EVENT",
                                           "data": {
                                               "level": level,
                                               "app_name": name,
@@ -2839,7 +2879,7 @@ class AppDaemon:
         handle = []
         for thislevel in utils.log_levels:
             if utils.log_levels[thislevel] >= utils.log_levels[level] :
-                handle.append(self.add_event_callback(name, namespace, cb, "AD_LOG_EVENT", level=thislevel, **kwargs))
+                handle.append(self.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
 
         return handle
 
