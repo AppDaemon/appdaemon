@@ -103,9 +103,6 @@ class AppDaemon:
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
 
-        #self.log_callbacks = {}
-        #self.log_callbacks_lock = threading.RLock()
-
         self.thread_info = {}
         self.thread_info_lock = threading.RLock()
         self.thread_info["threads"] = {}
@@ -1553,11 +1550,12 @@ class AppDaemon:
 
             end_time = datetime.datetime.now().timestamp()
 
-            loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
-            self.log("DEBUG", "Scheduler loop compute time: {}ms".format(loop_duration))
+            loop_duration = end_time - start_time
+            self.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
 
-            if loop_duration > 900:
-                self.log("WARNING", "Excessive time spent in scheduler loop: {}ms".format(loop_duration))
+            #if loop_duration > 900:
+            if loop_duration > self.tick * 0.9:
+                self.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
 
             return utc
 
