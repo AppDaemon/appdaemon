@@ -948,7 +948,7 @@ class AppDaemon:
                         else:
                             return None
                     else:
-                        if namespace in self.state and entity_id in self.state["namespace"]:
+                        if namespace in self.state and entity_id in self.state[namespace]:
                             if attribute in self.state[namespace][entity_id]["attributes"]:
                                 return deepcopy(self.state[namespace][entity_id]["attributes"][
                                     attribute])
