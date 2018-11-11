@@ -26,6 +26,7 @@ import inspect
 
 import appdaemon.utils as utils
 
+
 def _timeit(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
@@ -903,9 +904,9 @@ class AppDaemon:
                     with self.state_lock:
                         if self.state[namespace][entity]["state"] == kwargs["new"]:
                             exec_time = self.get_now_ts() + int(kwargs["duration"])
-                            kwargs["_duration"] = self.insert_schedule(
+                            kwargs["__duration"] = self.insert_schedule(
                                 name, exec_time, cb, False, None,
-                                entity=entity,
+                                __entity=entity,
                                 attribute=None,
                                 old_state=None,
                                 new_state=kwargs["new"], **kwargs
@@ -1084,14 +1085,14 @@ class AppDaemon:
                 return
             # Call function
             with self.objects_lock:
-                if "entity" in args["kwargs"]:
+                if "__entity" in args["kwargs"]:
                     self.dispatch_worker(name, {
                         "name": name,
                         "id": self.objects[name]["id"],
                         "type": "attr",
                         "function": args["callback"],
                         "attribute": args["kwargs"]["attribute"],
-                        "entity": args["kwargs"]["entity"],
+                        "entity": args["kwargs"]["__entity"],
                         "new_state": args["kwargs"]["new_state"],
                         "old_state": args["kwargs"]["old_state"],
                         "pin_app": args["pin_app"],
@@ -1852,7 +1853,7 @@ class AppDaemon:
             if name in self.objects:
                 init = getattr(self.objects[name]["object"], "initialize", None)
                 if init == None:
-                    self.log("WARNING", "Unable to find initialize function in module {} - skipped".format(name))
+                    self.log("WARNING", "Unable to find initialize() function in module {} - skipped".format(name))
                     return
             else:
                 self.log("WARNING", "Unable to find module {} - initialize() skipped".format(name))
@@ -2587,9 +2588,9 @@ class AppDaemon:
                 if "duration" in kwargs:
                     # Set a timer
                     exec_time = self.get_now_ts() + int(kwargs["duration"])
-                    kwargs["_duration"] = self.insert_schedule(
+                    kwargs["__duration"] = self.insert_schedule(
                         name, exec_time, funcref, False, None,
-                        entity=entity,
+                        __entity=entity,
                         attribute=attribute,
                         old_state=old,
                         new_state=new, **kwargs
@@ -2611,9 +2612,9 @@ class AppDaemon:
                             "kwargs": kwargs
                         })
             else:
-                if "_duration" in kwargs:
+                if "__duration" in kwargs:
                     # cancel timer
-                    self.cancel_timer(name, kwargs["_duration"])
+                    self.cancel_timer(name, kwargs["__duration"])
 
         return executed
 
@@ -2793,7 +2794,7 @@ class AppDaemon:
                 return self.plugin_meta[namespace]
             elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
                 return self.plugin_meta[namespace]
-                
+
         return None
 
 
@@ -2805,7 +2806,7 @@ class AppDaemon:
         kwargs_copy = kwargs.copy()
         return self._sanitize_kwargs(kwargs_copy, [
             "old", "new", "attribute", "duration", "state",
-            "entity", "_duration", "old_state", "new_state",
+            "entity", "__duration", "old_state", "new_state",
             "oneshot", "pin_app", "pin_thread"
         ] + app.list_constraints())
 
