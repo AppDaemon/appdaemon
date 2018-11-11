@@ -1,7 +1,10 @@
 import os
 import datetime
 import asyncio
-import pwd
+import platform
+
+if platform.system() != "Windows":
+    import pwd
 
 __version__ = "3.1.0"
 secrets = None
@@ -170,6 +173,10 @@ def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
 def check_path(type, logger, path, pathtype="directory", permissions=None):
+    #disable checks for windows platform
+    if platform.system() == "Windows":
+        return
+
     try:
         perms = permissions
         if pathtype == "file":
