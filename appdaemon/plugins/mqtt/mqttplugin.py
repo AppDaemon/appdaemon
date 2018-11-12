@@ -19,6 +19,7 @@ class MqttPlugin:
         self.config = args
         self.name = name
         self.initialized = False
+        self.mqtt_connected = False
         self.state = {}
 
         self.AD.log("INFO", "{}: MQTT Plugin Initializing".format(self.name))
@@ -141,7 +142,7 @@ class MqttPlugin:
                     else:
                         self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
 
-            self.initialized = True
+            self.mqtt_connected = True
 
         elif rc == 1:
             err_msg = "Connection was refused due to Incorrect Protocol Version"
@@ -164,6 +165,7 @@ class MqttPlugin:
     def mqtt_on_disconnect(self,  client, userdata, rc):
         if rc != 0 and not self.stopping: #unexpected disconnection
             self.initialized = False
+            self.mqtt_connected = False
             self.AD.log("CRITICAL", "{}: MQTT Client Disconnected Abruptly. Will attempt reconnection".format(self.name))
         return
 
@@ -280,11 +282,12 @@ class MqttPlugin:
 
                     first_time_service = False
 
-                if self.initialized : #meaning the plugin started as expected
+                if self.mqtt_connected : #meaning the client has connected to the broker
                     await self.AD.notify_plugin_started(self.name, self.namespace, first_time)
                     already_notified = False
                     already_initialized = True
                     self.AD.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
+                    self.initialized = True
                 else:
                     if not already_notified and already_initialized:
                         self.AD.notify_plugin_stopped(self.name, self.namespace)
