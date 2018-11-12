@@ -49,6 +49,9 @@ class ADBase:
     entities = Entities()
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
+
+        # Store args
+
         self.AD = ad
         self.name = name
         self._logger = logger
@@ -57,6 +60,9 @@ class ADBase:
         self.app_config = app_config
         self.args = args
         self.global_vars = global_vars
+
+        # Some initial Setup
+
         self.constraints = []
         self.lock = threading.RLock()
         self.namespace = "default"

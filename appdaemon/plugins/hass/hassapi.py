@@ -30,17 +30,9 @@ class Hass(appapi.ADBase):
     #
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
-        super(Hass, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
-        #self.namespace = "default"
-        self.AD = ad
-        self.name = name
-        self._logger = logger
-        self._error = error
-        self.args = args
-        self.global_vars = global_vars
-        self.config = config
-        self.app_config = app_config
+        # Call Super Class
+        super(Hass, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
 
         #
         # Register specific constraints

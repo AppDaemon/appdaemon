@@ -18,17 +18,8 @@ class Mqtt(appapi.ADBase):
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars,):
 
+        # Call Super Class
         super(Mqtt, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
-
-        self.AD = ad
-        self.name = name
-        self._logger = logger
-        self._error = error
-        self.args = args
-        self.config = config
-        self.app_config = app_config
-        self.global_vars = global_vars
-        self.loop = self.AD.loop
 
     #
     # Override listen_state()

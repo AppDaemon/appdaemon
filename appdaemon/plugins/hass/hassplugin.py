@@ -13,15 +13,17 @@ class HassPlugin:
 
     def __init__(self, ad, name, logger, error, loglevel, args):
 
+        #Store args
         self.AD = ad
         self.logger = logger
         self.error = error
-        self.stopping = False
         self.config = args
         self.loglevel = loglevel
+        self.name = name
+
+        self.stopping = False
         self.ws = None
         self.reading_messages = False
-        self.name = name
         self.metadata = None
         self.oath = False
 
