@@ -1355,57 +1355,78 @@ class AppDaemon:
     def sunrise(self):
         return datetime.datetime.fromtimestamp(self.calc_sun("next_rising"))
 
+
     def parse_time(self, time_str, name=None):
+        return self._parse_time(time_str, name)["datetime"].time()
+
+    def _parse_time(self, time_str, name=None):
         parsed_time = None
+        sun = None
+        offset = 0
         parts = re.search('^(\d+):(\d+):(\d+)', time_str)
         if parts:
-            parsed_time = datetime.time(
+            today = datetime.datetime.now()
+            time = datetime.time(
                 int(parts.group(1)), int(parts.group(2)), int(parts.group(3))
             )
+            parsed_time = today.replace(hour=time.hour, minute=time.minute, second=time.second, microsecond=0)
+
         else:
             if time_str == "sunrise":
-                parsed_time = self.sunrise().time()
+                parsed_time = self.sunrise()
+                sun = "sunrise"
+                offset = 0
             elif time_str == "sunset":
-                parsed_time = self.sunset().time()
+                parsed_time = self.sunset()
+                sun = "sunset"
+                offset = 0
             else:
                 parts = re.search(
                     '^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
                 )
                 if parts:
+                    sun = "sunrise"
                     if parts.group(1) == "+":
-                        parsed_time = (self.sunrise() + datetime.timedelta(
+                        td = datetime.timedelta(
                             hours=int(parts.group(2)), minutes=int(parts.group(3)),
                             seconds=int(parts.group(4))
-                        )).time()
+                        )
+                        offset = td.total_seconds()
+                        parsed_time = (self.sunrise() + td)
                     else:
-                        parsed_time = (self.sunrise() - datetime.timedelta(
+                        td = datetime.timedelta(
                             hours=int(parts.group(2)), minutes=int(parts.group(3)),
                             seconds=int(parts.group(4))
-                        )).time()
+                        )
+                        offset = td.total_seconds()
+                        parsed_time = (self.sunrise() - td)
                 else:
                     parts = re.search(
                         '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
                     )
                     if parts:
+                        sun = "sunset"
                         if parts.group(1) == "+":
-                            parsed_time = (self.sunset() + datetime.timedelta(
-                                hours=int(parts.group(2)),
-                                minutes=int(parts.group(3)),
+                            td = datetime.timedelta(
+                                hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                 seconds=int(parts.group(4))
-                            )).time()
+                            )
+                            offset = td.total_seconds()
+                            parsed_time = (self.sunset() + td)
                         else:
-                            parsed_time = (self.sunset() - datetime.timedelta(
-                                hours=int(parts.group(2)),
-                                minutes=int(parts.group(3)),
+                            td = datetime.timedelta(
+                                hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                 seconds=int(parts.group(4))
-                            )).time()
+                            )
+                            offset = td.total_seconds()
+                            parsed_time = (self.sunset() - td)
         if parsed_time is None:
             if name is not None:
                 raise ValueError(
                     "{}: invalid time string: {}".format(name, time_str))
             else:
                 raise ValueError("invalid time string: {}".format(time_str))
-        return parsed_time
+        return {"datetime": parsed_time, "sun": sun, "offset": offset}
 
     def dump_sun(self):
         self.diag("INFO", "--------------------------------------------------")
