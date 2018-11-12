@@ -495,8 +495,7 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 time
 ''''
 
-A Python ``time`` object that specifies when the callback will occur. If
-the time specified is in the past, the callback will occur the next day
+Either a Python ``time`` object or a ``parse_time()`` formatted string that specifies when the callback will occur. If the time specified is in the past, the callback will occur the next day
 at the specified time.
 
 pin = (optional)
@@ -524,11 +523,19 @@ Examples
 
 .. code:: python
 
-     Run at 4pm today, or 4pm tomorrow if it is already after 4pm
+    # Run at 4pm today, or 4pm tomorrow if it is already after 4pm
     import datetime
     ...
     runtime = datetime.time(16, 0, 0)
     handle = self.run_once(self.run_once_c, runtime)
+
+    # With parse_time() formatting
+    # run at 10:30
+    handle = self.run_once(self.run_once_c, "10:30:00")
+    # run at sunset
+    handle = self.run_once(self.run_once_c, "sunset")
+    # run an hour after sunrise
+    handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
 
 run\_at()
 ~~~~~~~~~
@@ -560,7 +567,7 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 datetime
 ''''''''
 
-A Python ``datetime`` object that specifies when the callback will
+Either a Python ``datetime`` object or a ``parse_datetime()`` formatted string that specifies when the callback will
 occur.
 
 pin = (optional)
@@ -588,13 +595,23 @@ Examples
 
 .. code:: python
 
-     Run at 4pm today
+    # Run at 4pm today
     import datetime
     ...
     runtime = datetime.time(16, 0, 0)
     today = datetime.date.today()
     event = datetime.datetime.combine(today, runtime)
-    handle = self.run_once(self.run_once_c, event)
+    handle = self.at(self.run_at_c, event)
+
+    # With parse_time() formatting
+    # run at 10:30 today
+    handle = self.at(self.run_at_c, "10:30:00")
+    # Run on a specific date and time
+    handle = self.at(self.run_at_c, "2018-12-11 10:30:00")
+    # run at the next sunset
+    handle = self.at(self.run_at_c, "sunset")
+    # run an hour after the next sunrise
+    handle = self.at(self.run_at_c, "sunrise + 01:00:00")
 
 run\_daily()
 ~~~~~~~~~~~~
@@ -627,9 +644,11 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 start
 '''''
 
-A Python ``time`` object that specifies when the callback will occur. If
+A Python ``time`` object  or a ``parse_datetime()`` formatted string that specifies when the callback will occur. If
 the time specified is in the past, the callback will occur the next day
 at the specified time.
+
+When specifying sunrise or sunset relative times using the ``parse_datetime()`` format, the time of the callback will be adjusted every day to track the actual value of sunrise or sunset.
 
 pin = (optional)
 ''''''''''''''''
@@ -656,11 +675,19 @@ Examples
 
 .. code:: python
 
-     Run daily at 7pm
+    # Run daily at 7pm
     import datetime
     ...
     time = datetime.time(19, 0, 0)
     self.run_daily(self.run_daily_c, runtime)
+
+    # With parse_time() formatting
+    # run at 10:30 every day
+    handle = self.run_daily(self.run_daily_c, "10:30:00")
+    # Run every day at sunrise
+    handle = self.run_daily(self.run_daily_c, "sunrise")
+    # Run every day an hour after sunset
+    handle = self.run_daily(self.run_daily_c, "sunset + 01:00:00")
 
 run\_hourly()
 ~~~~~~~~~~~~~
@@ -1546,6 +1573,53 @@ Example
 
 .. code:: python
 
+    time = self.parse_time("17:30:00")
+    time = self.parse_time("sunrise")
+    time = self.parse_time("sunset + 00:30:00")
+    time = self.parse_time("sunrise + 01:00:00")
+
+parse\_datetime()
+~~~~~~~~~~~~~
+
+Takes a string representation of a date and time, or sunrise or sunset offset and
+converts it to a ``datetime.datetime`` object.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    parse_time(time_string)
+
+Returns
+^^^^^^^
+
+A ``datetime.datetimetime`` object, representing the time and date given in the
+``time_string`` argument.
+
+Parameters
+^^^^^^^^^^
+
+time\_string
+''''''''''''
+
+A representation of the time in a string format with one of the
+following formats:
+
+-  YY-MM-DD HH:MM:SS - the date and time in Year, Month, Day, Hours Minutes and Seconds, 24 hour format.
+-  HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
+-  sunrise\|sunset [+\|- HH:MM:SS]- time of the next sunrise or sunset
+   with an optional positive or negative offset in Hours Minutes and
+   seconds
+
+If the ``HH:MM:SS`` format is used, the resulting datetime object will have today's date.
+
+Example
+^^^^^^^
+
+.. code:: python
+
+    time = self.parse_time("2018-08-09 17:30:00")
     time = self.parse_time("17:30:00")
     time = self.parse_time("sunrise")
     time = self.parse_time("sunset + 00:30:00")

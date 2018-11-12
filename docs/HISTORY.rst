@@ -19,9 +19,11 @@ Change Log
 - added the ``run_in_thread()`` api call
 - added ``fire_app_event()`` api call
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
-- Refactored plugin APIS to remove duplication
+- Refactored plugin APIs to remove duplication
 - added checking for overdue threads
 - added error checking for callback signatures
+- added ``parse_datetime()``
+- ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 - Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
 - Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__

@@ -438,6 +438,12 @@ class ADBase:
     def parse_time(self, time_str, name=None):
         return self.AD.parse_time(time_str, name)
 
+    def parse_datetime(self, time_str, name=None):
+        return self.AD.parse_datetime(time_str, name)
+
+    def _parse_time(self, time_str, name):
+        return self.AD._parse_time(time_str, name)
+
     def get_now(self):
         return self.AD.get_now()
 
@@ -488,10 +494,16 @@ class ADBase:
         return handle
 
     def run_once(self, callback, start, **kwargs):
+        if type(start) == datetime.time:
+            when = start
+        elif type(start) == str:
+            when = self._parse_time(start, self.name)["datetime"].time()
+        else:
+            raise ValueError("Invalid type for start")
         name = self.name
         now = self.get_now()
         today = now.date()
-        event = datetime.datetime.combine(today, start)
+        event = datetime.datetime.combine(today, when)
         if event < now:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
@@ -502,26 +514,50 @@ class ADBase:
         return handle
 
     def run_at(self, callback, start, **kwargs):
+        if type(start) == datetime.datetime:
+            when = start
+        elif type(start) == str:
+            when = self._parse_time(start, self.name)["datetime"]
+        else:
+            raise ValueError("Invalid type for start")
         name = self.name
         now = self.get_now()
-        if start < now:
+        if when < now:
             raise ValueError(
                 "{}: run_at() Start time must be "
                 "in the future".format(self.name)
             )
-        exec_time = start.timestamp()
+        exec_time = when.timestamp()
         handle = self.AD.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
 
     def run_daily(self, callback, start, **kwargs):
-        now = self.get_now()
-        today = now.date()
-        event = datetime.datetime.combine(today, start)
-        if event < now:
-            event = event + datetime.timedelta(days=1)
-        handle = self.run_every(callback, event, 24 * 60 * 60, **kwargs)
+        info = None
+        when = None
+        if type(start) == datetime.time:
+            when = start
+        elif type(start) == str:
+            info = self._parse_time(start, self.name)
+        else:
+            raise ValueError("Invalid type for start")
+
+        if info is None or info["sun"] is None:
+            if when is None:
+                when = info["datetime"].time()
+            now = self.get_now()
+            today = now.date()
+            event = datetime.datetime.combine(today, when)
+            if event < now:
+                event = event + datetime.timedelta(days=1)
+            handle = self.run_every(callback, event, 24 * 60 * 60, **kwargs)
+        elif info["sun"] == "sunrise":
+            kwargs["offset"] = info["offset"]
+            handle = self.run_at_sunrise(callback, **kwargs)
+        else:
+            kwargs["offset"] = info["offset"]
+            handle = self.run_at_sunset(callback, **kwargs)
         return handle
 
     def run_hourly(self, callback, start, **kwargs):

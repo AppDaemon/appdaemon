@@ -1359,67 +1359,74 @@ class AppDaemon:
     def parse_time(self, time_str, name=None):
         return self._parse_time(time_str, name)["datetime"].time()
 
+    def parse_datetime(self, time_str, name=None):
+        return self._parse_time(time_str, name)["datetime"]
+
     def _parse_time(self, time_str, name=None):
         parsed_time = None
         sun = None
         offset = 0
-        parts = re.search('^(\d+):(\d+):(\d+)', time_str)
+        parts = re.search('^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)', time_str)
         if parts:
-            today = datetime.datetime.now()
-            time = datetime.time(
-                int(parts.group(1)), int(parts.group(2)), int(parts.group(3))
-            )
-            parsed_time = today.replace(hour=time.hour, minute=time.minute, second=time.second, microsecond=0)
-
+            parsed_time = datetime.datetime(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), int(parts.group(4)), int(parts.group(5)), int(parts.group(6)), 0)
         else:
-            if time_str == "sunrise":
-                parsed_time = self.sunrise()
-                sun = "sunrise"
-                offset = 0
-            elif time_str == "sunset":
-                parsed_time = self.sunset()
-                sun = "sunset"
-                offset = 0
-            else:
-                parts = re.search(
-                    '^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
+            parts = re.search('^(\d+):(\d+):(\d+)', time_str)
+            if parts:
+                today = datetime.datetime.fromtimestamp(self.get_now_ts())
+                time = datetime.time(
+                    int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), 0
                 )
-                if parts:
+                parsed_time = today.replace(hour=time.hour, minute=time.minute, second=time.second, microsecond=0)
+
+            else:
+                if time_str == "sunrise":
+                    parsed_time = self.sunrise()
                     sun = "sunrise"
-                    if parts.group(1) == "+":
-                        td = datetime.timedelta(
-                            hours=int(parts.group(2)), minutes=int(parts.group(3)),
-                            seconds=int(parts.group(4))
-                        )
-                        offset = td.total_seconds()
-                        parsed_time = (self.sunrise() + td)
-                    else:
-                        td = datetime.timedelta(
-                            hours=int(parts.group(2)), minutes=int(parts.group(3)),
-                            seconds=int(parts.group(4))
-                        )
-                        offset = td.total_seconds()
-                        parsed_time = (self.sunrise() - td)
+                    offset = 0
+                elif time_str == "sunset":
+                    parsed_time = self.sunset()
+                    sun = "sunset"
+                    offset = 0
                 else:
                     parts = re.search(
-                        '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
+                        '^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
                     )
                     if parts:
-                        sun = "sunset"
+                        sun = "sunrise"
                         if parts.group(1) == "+":
                             td = datetime.timedelta(
                                 hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                 seconds=int(parts.group(4))
                             )
                             offset = td.total_seconds()
-                            parsed_time = (self.sunset() + td)
+                            parsed_time = (self.sunrise() + td)
                         else:
                             td = datetime.timedelta(
                                 hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                 seconds=int(parts.group(4))
                             )
-                            offset = td.total_seconds()
-                            parsed_time = (self.sunset() - td)
+                            offset = td.total_seconds() * -1
+                            parsed_time = (self.sunrise() - td)
+                    else:
+                        parts = re.search(
+                            '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
+                        )
+                        if parts:
+                            sun = "sunset"
+                            if parts.group(1) == "+":
+                                td = datetime.timedelta(
+                                    hours=int(parts.group(2)), minutes=int(parts.group(3)),
+                                    seconds=int(parts.group(4))
+                                )
+                                offset = td.total_seconds()
+                                parsed_time = (self.sunset() + td)
+                            else:
+                                td = datetime.timedelta(
+                                    hours=int(parts.group(2)), minutes=int(parts.group(3)),
+                                    seconds=int(parts.group(4))
+                                )
+                                offset = td.total_seconds() * -1
+                                parsed_time = (self.sunset() - td)
         if parsed_time is None:
             if name is not None:
                 raise ValueError(
