@@ -667,7 +667,7 @@ Specify which thread from the worker pool the callback will be run by.
 \*\*kwargs
 ''''''''''
 
-Arbitary keyword parameters to be provided to the callback function when
+Arbitrary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
