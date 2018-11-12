@@ -15,7 +15,7 @@ import traceback
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
-import appdaemon.adapi as api
+import appdaemon.rest_api as api
 import appdaemon.rundash as rundash
 import appdaemon.runadmin as runadmin
 

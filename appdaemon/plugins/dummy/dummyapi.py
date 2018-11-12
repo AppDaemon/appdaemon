@@ -1,10 +1,14 @@
-import appdaemon.adbase as appapi
+import appdaemon.adbase as adbase
+import appdaemon.adapi as adapi
 
-class Dummy(appapi.ADBase):
+class Dummy(adbase.ADBase, adapi.ADAPI):
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars,):
 
-        super(Dummy, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
+        # Call Super Classes
+        adbase.ADBase.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+        adapi.ADAPI.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+
 
         self.AD = ad
         self.name = name

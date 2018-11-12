@@ -1,18 +1,15 @@
-import appdaemon.adbase as appapi
-import appdaemon.utils as utils
-import asyncio
-import inspect
-import traceback
+import appdaemon.adbase as adbase
+import appdaemon.adapi as adapi
 
 
-class Mqtt(appapi.ADBase):
-
-    entities = Entities()
+class Mqtt(adbase.ADBase, adapi.ADAPI):
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars,):
 
-        # Call Super Class
-        super(Mqtt, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
+        # Call Super Classes
+        adbase.ADBase.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+        adapi.ADAPI.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+
 
     #
     # Override listen_state()

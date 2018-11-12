@@ -1,6 +1,7 @@
 import requests
 
-import appdaemon.adbase as appapi
+import appdaemon.adbase as adbase
+import appdaemon.adapi as adapi
 import appdaemon.utils as utils
 
 
@@ -23,15 +24,16 @@ def hass_check(func):
     return (func_wrapper)
 
 
-class Hass(appapi.ADBase):
+class Hass(adbase.ADBase, adapi.ADAPI):
     #
     # Internal
     #
 
     def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
 
-        # Call Super Class
-        super(Hass, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
+        # Call Super Classes
+        adbase.ADBase.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+        adapi.ADAPI.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
 
         #
         # Register specific constraints
