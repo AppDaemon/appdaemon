@@ -678,13 +678,12 @@ Consider the following App which schedules 1000 callbacks all to run at the exac
 
 .. code:: python
 
-    import adbase as ad
+    import hassapi as hass
     import datetime
 
-    class Locking(ad.ADBase):
+    class Locking(hass.Hass):
 
         def initialize(self):
-            hass = self.get_plugin_api("HASS")
             self.important_var = 0
 
             now = datetime.datetime.now()
@@ -725,13 +724,12 @@ However, if we add the decorator to the callback function like so:
 
 .. code:: python
 
-    import adbase as ad
+    import hassapi as hass
     import datetime
 
-    class Locking(ad.ADBase):
+    class Locking(hass.Hass):
 
         def initialize(self):
-            hass = self.get_plugin_api("HASS")
             self.important_var = 0
 
             now = datetime.datetime.now()
@@ -743,6 +741,7 @@ However, if we add the decorator to the callback function like so:
         def hass_cb(self, kwargs):
             self.important_var += 1
             self.log(self.important_var)
+
 
 The result is what we would hope for since self.important_var is only being accessed by one thread at a time:
 
@@ -2192,13 +2191,14 @@ The way apps are constructed, they inherit from a superclass that contains all t
 
 To get around this, a function called ``get_plugin_api()`` is provided to instantiate API objects to handle multiple plugins, as a distinct objects, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly.
 
-In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. Without access to an API object supplied by ``get_plugin_api()``, the App will have access to scheduler calls and a few other common calls as documented in the AppDaemon API reference.
+In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. The app will also use ``get_ad_api()`` to get access to the AppDaemon api for calls such as ``listen_state()` and the various scheduler calls. ``get_ad_api()`` requires the import of ``adapi``.
 
-As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to access both HASS and MQTT.
+As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to access both HASS and MQTT, as well as ``get_ad_api()`` to access the AppDaemon base functions.
 
 .. code:: python
 
     import adbase as ad
+    import adapi as adapi
 
     class GetAPI(ad.ADBase):
 
@@ -2215,9 +2215,10 @@ As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to 
         mqtt.mqtt_publish("topic", "Payload"):
 
         # Make a scheduler call using the ADBase class
-        handle = self.run_in(callback, 20)
+        adbase = self.get_ad_api()
+        handle = self.adbase.run_in(callback, 20)
 
-By default, each plugin api object has it's namespace correctly set for that plugin, which makes it much more convenient to handle calls and callbacks form that plugin. This way of working can often be more convenient and clearer than changing namespaces within apps or on the individual calls, so is the recommended way to handle multiple plugins of the same or even different types:
+By default, each plugin api object has it's namespace correctly set for that plugin, which makes it much more convenient to handle calls and callbacks form that plugin. This way of working can often be more convenient and clearer than changing namespaces within apps or on the individual calls, so is the recommended way to handle multiple plugins of the same or even different types. The AD base API's namespace defaults to "default":
 
 .. code:: python
 
@@ -2226,7 +2227,7 @@ By default, each plugin api object has it's namespace correctly set for that plu
     # Listen for state changes specific to the "MQTT" plugin
     mqtt.listen_state(mqtt_callback, "light.office")
     # Listen for global state changes
-    self.listen_state(global_callback, namespace="global")
+    adbase.listen_state(global_callback, namespace="global")
 
 API objects are fairly lightweight and can be created and discarded at will. There may be a slight performance increase by creating an object for each API in the initialize function and using it throughout the app, but this is likely to be minimal.
 

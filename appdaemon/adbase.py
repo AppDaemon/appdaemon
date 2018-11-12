@@ -70,10 +70,11 @@ class ADBase:
     # API/Plugin
     #
 
+    def get_ad_api(self):
+        api = adapi.ADAPI(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
+        return api
+
     def get_plugin_api(self, name):
-        if name == "ADAPI":
-            api = adapi.ADAPI(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
-            return api
         if name in self.AD.plugins:
             plugin = self.AD.plugins[name]
             module_name = "{}api".format(plugin["type"])

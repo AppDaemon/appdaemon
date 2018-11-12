@@ -1,7 +1,21 @@
 AppDaemon API Reference
 =======================
 
-A number of api calls are native to AppDaemon and will exist in any App as they are inherited through the plugin API. These calls are documented below.
+A number of api calls are native to AppDaemon and will exist in any App as they are inherited through the plugin API. If the ``get_plugin_api()`` style of declarations is used, these functions will become available via an object created by the ``get_ad_api()`` call:
+
+.. code:: python
+
+    import adbase as ad
+    import adapi as adapi
+
+    class Test(ad.ADBase):
+
+      def initialize(self):
+
+        adbase = self.get_ad_api()
+        handle = self.adbase.run_in(callback, 20)
+
+These calls are documented below.
 
 App Creation
 ------------
@@ -1774,7 +1788,7 @@ Parameters
 ^^^^^^^^^^
 
 plugin
-''''
+''''''
 
 Name of the plugin required. This is the name specified as the top level of the plugin configuration. For instance, with the following configuration:
 
@@ -1813,6 +1827,46 @@ This example shows an App built using the hassapi also using an mqtt api call.
 
         # Make MQTT API Call
         self.mqtt.mqtt_publish("topic", payload = "Payload"):
+
+get\_ad_api()
+~~~~~~~~~~~~~~~~
+
+``get_ad_api()`` will return an object suitable for running AppDaemon base API calls, for instance scheduler or state calls, in fact all the calls documented in this section. This call requires an import of ``adbase``.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_app(self, plugin)
+
+Parameters
+^^^^^^^^^^
+
+None.
+
+Returns
+^^^^^^^
+
+An object reference to the class.
+
+Example
+^^^^^^^
+
+This example shows an App getting an ADAPI object to make a scheduler call.
+
+.. code:: python
+
+    import adbase as ad
+    import adapi as adapi
+
+    class Test(ad.ADBase):
+
+      def initialize(self):
+
+        adbase = self.get_ad_api()
+        handle = self.adbase.run_in(callback, 20)
+
 
 split\_device\_list()
 ~~~~~~~~~~~~~~~~~~~~~
