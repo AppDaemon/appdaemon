@@ -33,6 +33,7 @@ Change Log
 **Fixes**
 
 - Fixes to listen_state() oneshot function
+- Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
 
 **Breaking Changes**
 
