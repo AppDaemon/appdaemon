@@ -324,21 +324,29 @@ class HassPlugin:
             raise ValueError("Invalid Service Name: {}".format(service))
 
     async def call_service(self, service, **kwargs):
-        self._check_service(service)
-        d, s = service.split("/")
-        self.log(
-            "DEBUG",
-            "call_service: {}/{}, {}".format(d, s, kwargs)
-        )
-        if self.token is not None:
-            headers = {'Authorization': "Bearer {}".format(self.token)}
-        elif self.ha_key is not None:
-            headers = {'x-ha-access': self.ha_key}
-        else:
-            headers = {}
+        try:
+            self._check_service(service)
+            d, s = service.split("/")
+            self.log(
+                "DEBUG",
+                "call_service: {}/{}, {}".format(d, s, kwargs)
+            )
+            if self.token is not None:
+                headers = {'Authorization': "Bearer {}".format(self.token)}
+            elif self.ha_key is not None:
+                headers = {'x-ha-access': self.ha_key}
+            else:
+                headers = {}
 
-        apiurl = "{}/api/services/{}/{}".format(self.ha_url, d, s)
+            apiurl = "{}/api/services/{}/{}".format(self.ha_url, d, s)
 
-        r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
-        r.raise_for_status()
-        return r.json()
+            r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
+            r.raise_for_status()
+            response = r.json
+            return response
+        except:
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", "Unexpected error during call_service()")
+            self.log("WARNING", '-' * 60)
+            self.log("WARNING", traceback.format_exc())
+            self.log("WARNING", '-' * 60)
