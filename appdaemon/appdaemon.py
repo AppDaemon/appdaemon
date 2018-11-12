@@ -780,7 +780,6 @@ class AppDaemon:
                         if self.validate_callback_sig(name, "timer", funcref):
                             self.update_thread_info(thread_id, callback, _type)
                             funcref(self.sanitize_timer_kwargs(app, args["kwargs"]))
-                            self.update_thread_info(thread_id, "idle")
                     elif _type == "attr":
                         if self.validate_callback_sig(name, "attr", funcref):
                             entity = args["entity"]
@@ -790,20 +789,16 @@ class AppDaemon:
                             self.update_thread_info(thread_id, callback, _type)
                             funcref(entity, attr, old_state, new_state,
                                     self.sanitize_state_kwargs(app, args["kwargs"]))
-                            self.update_thread_info(thread_id, "idle")
                     elif _type == "event":
                         data = args["data"]
                         if args["event"] == "__AD_LOG_EVENT":
                             if self.validate_callback_sig(name, "log_event", funcref):
                                 self.update_thread_info(thread_id, callback, _type)
                                 funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
-                                self.update_thread_info(thread_id, "idle")
                         else:
                             if self.validate_callback_sig(name, "event", funcref):
                                 self.update_thread_info(thread_id, callback, _type)
                                 funcref(args["event"], data, args["kwargs"])
-                                self.update_thread_info(thread_id, "idle")
-
                 except:
                     self.err("WARNING", '-' * 60, name=name)
                     self.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
@@ -813,6 +808,8 @@ class AppDaemon:
                     self.err("WARNING", '-' * 60, name=name)
                     if self.errfile != "STDERR" and self.logfile != "STDOUT":
                         self.log("WARNING", "Logged an error to {}".format(self.errfile), name=name)
+                finally:
+                    self.update_thread_info(thread_id, "idle")
             else:
                 self.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
 
