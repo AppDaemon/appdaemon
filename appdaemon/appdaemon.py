@@ -904,9 +904,9 @@ class AppDaemon:
                             kwargs["__duration"] = self.insert_schedule(
                                 name, exec_time, cb, False, None,
                                 __entity=entity,
-                                attribute=None,
-                                old_state=None,
-                                new_state=kwargs["new"], **kwargs
+                                __attribute=None,
+                                __old_state=None,
+                                __new_state=kwargs["new"], **kwargs
                         )
 
             return handle
@@ -1088,10 +1088,10 @@ class AppDaemon:
                         "id": self.objects[name]["id"],
                         "type": "attr",
                         "function": args["callback"],
-                        "attribute": args["kwargs"]["attribute"],
+                        "attribute": args["kwargs"]["__attribute"],
                         "entity": args["kwargs"]["__entity"],
-                        "new_state": args["kwargs"]["new_state"],
-                        "old_state": args["kwargs"]["old_state"],
+                        "new_state": args["kwargs"]["__new_state"],
+                        "old_state": args["kwargs"]["__old_state"],
                         "pin_app": args["pin_app"],
                         "pin_thread": args["pin_thread"],
                         "kwargs": args["kwargs"],
@@ -2617,9 +2617,9 @@ class AppDaemon:
                     kwargs["__duration"] = self.insert_schedule(
                         name, exec_time, funcref, False, None,
                         __entity=entity,
-                        attribute=attribute,
-                        old_state=old,
-                        new_state=new, **kwargs
+                        __attribute=attribute,
+                        __old_state=old,
+                        __new_state=new, **kwargs
                     )
                 else:
                     # Do it now
@@ -2831,8 +2831,8 @@ class AppDaemon:
     def sanitize_state_kwargs(self, app, kwargs):
         kwargs_copy = kwargs.copy()
         return self._sanitize_kwargs(kwargs_copy, [
-            "old", "new", "attribute", "duration", "state",
-            "entity", "__duration", "old_state", "new_state",
+            "old", "new", "__attribute", "duration", "state",
+            "__entity", "__duration", "__old_state", "__new_state",
             "oneshot", "pin_app", "pin_thread"
         ] + app.list_constraints())
 

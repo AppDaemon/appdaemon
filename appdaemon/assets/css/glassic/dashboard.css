@@ -12,7 +12,7 @@ body {
   margin: 0;
   background-color: black;
   background-image: url(/css/glassic/img/glassic_bg.jpg);
-  background-repeat: repeat
+  background-repeat: repeat;
   font-size: 15px;
   padding: 0;
   line-height: 1;
@@ -126,7 +126,7 @@ h3 {
 }
 
 .widget {
-  padding: 0px 0px;
+  padding: 0 0;
   text-align: center;
   width: 100%;
   display: table-cell;
@@ -144,7 +144,7 @@ h3 {
    inset 0 0 18px rgba(255, 255, 255, 0.65);
   box-shadow:
    0 0 5px rgba(255, 255, 255, 0.9),
-   inset 0 0 18px rgba(255, 255, 255, 0.65);*/
+   inset 0 0 18px rgba(255, 255, 255, 0.65);
 }
 
 .xwidget:hover {
@@ -175,10 +175,9 @@ h3 {
   .icon-active {
     /*color: #aaff00;*/
   }
-}
 
 #container {
-  padding-top: 0px;
+  padding-top: 0;
 }
 
 .modalDialog {
