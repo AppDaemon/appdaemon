@@ -5,13 +5,6 @@ import inspect
 import traceback
 
 
-class Entities:
-
-    def __get__(self, instance, owner):
-        state = utils.StateAttrs(instance.ad.get_state(instance.namespace, None, None, None))
-        return state
-
-
 class Mqtt(appapi.ADBase):
 
     entities = Entities()
