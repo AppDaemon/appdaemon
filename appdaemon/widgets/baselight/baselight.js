@@ -108,9 +108,7 @@ function baselight(widget_id, url, skin, parameters)
     {
         if (self.state == "off")
         {
-            console.log(args)
             args = jQuery.extend(true, {}, self.parameters.post_service_active)
-            console.log(args)
             if ("on_attributes" in self.parameters)
             {
                 for (var attr in self.parameters.on_attributes)
@@ -118,7 +116,6 @@ function baselight(widget_id, url, skin, parameters)
                     args[attr] = self.parameters.on_attributes[attr]
                 }
             }
-            console.log(args)
         }
         else
         {
