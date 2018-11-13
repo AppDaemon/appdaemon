@@ -297,7 +297,7 @@ class AppDaemon:
 
             if "threads" in kwargs:
                 self.log("WARNING",
-                         "Threads directive is deprecated apps will be pinned. Use total_threads if you want to unpin your apps")
+                         "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps")
 
             if "total_threads" in kwargs:
                 self.total_threads = kwargs["total_threads"]
