@@ -51,6 +51,8 @@ class MqttPlugin:
         
         self.mqtt_will_topic = self.config.get('will_topic', None)
         self.mqtt_on_connect_topic = self.config.get('birth_topic', None)
+        self.mqtt_will_retain = self.config.get('will_retain', True)
+        self.mqtt_on_connect_retain = self.config.get('birth_retain', True)
 
         if self.mqtt_will_topic == None:
             self.mqtt_will_topic = status_topic
@@ -97,8 +99,10 @@ class MqttPlugin:
             "status_topic" : status_topic,
             "will_topic" : self.mqtt_will_topic,
             "will_payload" : self.mqtt_will_payload,
+            "will_retain" : self.mqtt_will_retain,
             "birth_topic" : self.mqtt_on_connect_topic,
             "birth_payload" : self.mqtt_on_connect_payload,
+            "birth_retain" : self.mqtt_on_connect_retain,
             "ca_cert" : self.mqtt_client_tls_ca_cert,
             "client_cert" : self.mqtt_client_tls_client_cert,
             "client_key" : self.mqtt_client_tls_client_key,
@@ -127,7 +131,7 @@ class MqttPlugin:
     def mqtt_on_connect(self, client, userdata, flags, rc):
         err_msg = ""
         if rc == 0: #means connection was successful
-            self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos)
+            self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos, retain=self.mqtt_on_connect_retain)
                 
             self.AD.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
@@ -319,7 +323,7 @@ class MqttPlugin:
                 if not self.mqtt_verify_cert:
                     self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
 
-                self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos)
+                self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
 
             self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
                                         self.mqtt_client_timeout)
