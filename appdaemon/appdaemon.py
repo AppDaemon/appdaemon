@@ -125,6 +125,7 @@ class AppDaemon:
         self.global_lock = threading.RLock()
 
         self.sun = {}
+        self.sun_lock = threading.RLock()
 
         self.config_file_modified = 0
         self.tz = None
@@ -1163,9 +1164,18 @@ class AppDaemon:
                         schedule["timestamp"] = self.calc_sun(action) + c_offset
                         schedule["offset"] = c_offset
 
+    def sun_up(self):
+        with self.sun_lock:
+            return self.sun["next_rising"] > self.sun["next_setting"]
+
+    def sun_down(self):
+        with self.sun_lock:
+            return self.sun["next_rising"] < self.sun["next_setting"]
+
     def calc_sun(self, type_):
         # convert to a localized timestamp
-        return self.sun[type_].timestamp()
+        with self.sun_lock:
+            return self.sun[type_].timestamp()
 
     def info_timer(self, handle, name):
         with self.schedule_lock:
@@ -1227,19 +1237,20 @@ class AppDaemon:
                 pass
             mod += 1
 
-        old_next_rising_dt = self.sun.get("next_rising")
-        old_next_setting_dt = self.sun.get("next_setting")
-        self.sun["next_rising"] = next_rising_dt
-        self.sun["next_setting"] = next_setting_dt
+        with self.sun_lock:
+            old_next_rising_dt = self.sun.get("next_rising")
+            old_next_setting_dt = self.sun.get("next_setting")
+            self.sun["next_rising"] = next_rising_dt
+            self.sun["next_setting"] = next_setting_dt
 
-        if old_next_rising_dt is not None and old_next_rising_dt != self.sun["next_rising"]:
-            # dump_schedule()
-            self.process_sun("next_rising")
-            # dump_schedule()
-        if old_next_setting_dt is not None and old_next_setting_dt != self.sun["next_setting"]:
-            # dump_schedule()
-            self.process_sun("next_setting")
-            # dump_schedule()
+            if old_next_rising_dt is not None and old_next_rising_dt != self.sun["next_rising"]:
+                # dump_schedule()
+                self.process_sun("next_rising")
+                # dump_schedule()
+            if old_next_setting_dt is not None and old_next_setting_dt != self.sun["next_setting"]:
+                # dump_schedule()
+                self.process_sun("next_setting")
+                # dump_schedule()
 
     @staticmethod
     def get_offset(kwargs):
@@ -2852,7 +2863,8 @@ class AppDaemon:
             ts = datetime.datetime.now()
         utils.log(self.logger, level, message, name, ts)
 
-        self.process_log_callback(level, message, name, ts, "log")
+        if level != "DEBUG":
+            self.process_log_callback(level, message, name, ts, "log")
 
     def err(self, level, message, name="AppDaemon"):
         if not self.realtime:
@@ -2861,7 +2873,8 @@ class AppDaemon:
             ts = datetime.datetime.now()
         utils.log(self.error, level, message, name, ts)
 
-        self.process_log_callback(level, message, name, ts, "error")
+        if level != "DEBUG":
+            self.process_log_callback(level, message, name, ts, "error")
 
     def diag(self, level, message, name="AppDaemon"):
         if not self.realtime:
@@ -2870,7 +2883,8 @@ class AppDaemon:
             ts = None
         utils.log(self.diagnostic, level, message, name, ts)
 
-        self.process_log_callback(level, message, name, ts, "diag")
+        if level != "DEBUG":
+            self.process_log_callback(level, message, name, ts, "diag")
 
     def process_log_callback(self, level, message, name, ts, type):
         # Need to check if this log callback belongs to an app that is accepting log events

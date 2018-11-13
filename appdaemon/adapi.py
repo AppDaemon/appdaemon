@@ -394,10 +394,10 @@ class ADAPI:
         return iso8601.parse_date(utc)
 
     def sun_up(self):
-        return self.AD.sun["next_rising"] > self.AD.sun["next_setting"]
+        return self.AD.sun_up()
 
     def sun_down(self):
-        return self.AD.sun["next_rising"] < self.AD.sun["next_setting"]
+        return self.AD.sun_down()
 
     def parse_time(self, time_str, name=None):
         return self.AD.parse_time(time_str, name)
