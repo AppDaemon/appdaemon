@@ -144,23 +144,6 @@ class AppDaemon:
             self.plugin_params = None
 
         # User Supplied/Defaults
-        self.threads = 10
-        self._process_arg("threads", kwargs, int=True)
-
-        self.pin_apps = True
-        self._process_arg("pin_apps", kwargs)
-
-        if self.pin_apps is True:
-            self.pin_threads = self.threads
-        else:
-            self.pin_threads = 0
-        self._process_arg("pin_threads", kwargs, int=True)
-
-        if self.pin_threads > self.threads:
-            raise ValueError("pin_threads cannot be > threads")
-
-        if self.pin_threads < 0:
-            raise ValueError("pin_threads cannot be < 0")
 
         self.load_distribution = "roundrobbin"
         self._process_arg("load_distribution", kwargs)
@@ -276,20 +259,17 @@ class AppDaemon:
         if not kwargs.get("cert_verify", True):
             self.certpath = False
 
-        if kwargs.get("disable_apps") is True:
-            self.apps = False
-            self.log("INFO", "Apps are disabled")
-        else:
-            self.apps = True
-            self.log("INFO", "Starting Apps with {} workers and {} pins".format(self.threads, self.pin_threads))
-
-        self.next_thread = self.pin_threads
-
         # Initialize config file tracking
 
         self.app_config_file_modified = 0
         self.app_config_files = {}
         self.module_dirs = []
+
+        if kwargs.get("disable_apps") is True:
+            self.apps = False
+            self.log("INFO", "Apps are disabled")
+        else:
+            self.apps = True
 
         if self.apps is True:
             if self.app_dir is None:
@@ -311,19 +291,47 @@ class AppDaemon:
 
             self.appq = asyncio.Queue(maxsize=0)
 
+            # threading setup
+
+            self.auto_pin = True
+
+            if "threads" in kwargs:
+                self.log("WARNING",
+                         "Threads directive is deprecated apps will be pinned. Use total_threads if you want to unpin your apps")
+
+            if "total_threads" in kwargs:
+                self.total_threads = kwargs["total_threads"]
+                self.auto_pin = False
+            else:
+                self.total_threads = int(self.check_config(True)["total"])
+
+            self.pin_apps = True
+            self._process_arg("pin_apps", kwargs)
+
+            if self.pin_apps is True:
+                self.pin_threads = self.total_threads
+            else:
+                self.auto_pin = False
+                self.pin_threads = 0
+                if "total_threads" not in kwargs:
+                    self.total_threads = 10
+
+            self._process_arg("pin_threads", kwargs, int=True)
+
+            if self.pin_threads > self.total_threads:
+                raise ValueError("pin_threads cannot be > threads")
+
+            if self.pin_threads < 0:
+                raise ValueError("pin_threads cannot be < 0")
+
+            self.log("INFO", "Starting Apps with {} workers and {} pins".format(self.total_threads, self.pin_threads))
+
+            self.next_thread = self.pin_threads
+
             # Create Worker Threads
-            for i in range(self.threads):
-                t = threading.Thread(target=self.worker)
-                t.daemon = True
-                t.setName("thread-{}".format(i))
-                with self.thread_info_lock:
-                    self.thread_info["threads"][t.getName()] = \
-                        {"callback": "idle",
-                         "time_called": 0,
-                         "q": Queue(maxsize=0),
-                         "id": i,
-                         "thread": t}
-                t.start()
+            self.threads = 0
+            for i in range(self.total_threads):
+                self.add_thread()
 
             if self.apps is True:
                 self.process_filters()
@@ -420,6 +428,22 @@ class AppDaemon:
 
         if self.apps is True:
             loop.create_task(self.appstate_loop())
+
+    def add_thread(self):
+        id = self.threads
+        self.log("INFO", "Adding thread {}".format(id))
+        t = threading.Thread(target=self.worker)
+        t.daemon = True
+        t.setName("thread-{}".format(id))
+        with self.thread_info_lock:
+            self.thread_info["threads"][t.getName()] = \
+                {"callback": "idle",
+                 "time_called": 0,
+                 "q": Queue(maxsize=0),
+                 "id": id,
+                 "thread": t}
+        t.start()
+        self.threads += 1
 
     def _process_arg(self, arg, args, **kwargs):
         if args:
@@ -2087,27 +2111,33 @@ class AppDaemon:
                 self.log("WARNING", "Logged an error to {}".format(self.errfile))
 
     # noinspection PyBroadException
-    def check_config(self):
+    def check_config(self, silent=False):
 
         terminate_apps = {}
         initialize_apps = {}
+        new_config = {}
+        total_apps = len(self.app_config)
 
         try:
             latest = self.check_later_app_configs(self.app_config_file_modified)
             self.app_config_file_modified = latest["latest"]
 
             if latest["files"] or latest["deleted"]:
-                self.log("INFO", "Reading config")
+                if silent is False:
+                    self.log("INFO", "Reading config")
                 new_config = self.read_config()
                 if new_config is None:
-                    self.log("WARNING", "New config not applied")
+                    if silent is False:
+                        self.log("WARNING", "New config not applied")
                     return
 
                 for file in latest["deleted"]:
-                    self.log("INFO", "{} deleted".format(file))
+                    if silent is False:
+                        self.log("INFO", "{} deleted".format(file))
 
                 for file in latest["files"]:
-                    self.log("INFO", "{} added or modified".format(file))
+                    if silent is False:
+                        self.log("INFO", "{} added or modified".format(file))
 
                 # Check for changes
 
@@ -2116,14 +2146,16 @@ class AppDaemon:
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
 
-                            self.log("INFO", "App '{}' changed".format(name))
+                            if silent is False:
+                                self.log("INFO", "App '{}' changed".format(name))
                             terminate_apps[name] = 1
                             initialize_apps[name] = 1
                     else:
 
                         # Section has been deleted, clear it out
 
-                        self.log("INFO", "App '{}' deleted".format(name))
+                        if silent is False:
+                            self.log("INFO", "App '{}' deleted".format(name))
                         #
                         # Since the entry has been deleted we can't sensibly determine dependencies
                         # So just immediately terminate it
@@ -2142,13 +2174,24 @@ class AppDaemon:
                             pass
                         else:
                             if self.invalid_yaml_warnings:
-                                self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
+                                if silent is False:
+                                    self.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
+                total_apps = len(self.app_config)
 
-                self.log("INFO", "Running {} apps".format(len(new_config)))
+                if silent is False:
+                    self.log("INFO", "Running {} apps".format(total_apps))
 
-            return {"init": initialize_apps, "term": terminate_apps}
+            # Now we know if we have any new apps we can create new threads if pinning
+
+            if silent is False and self.auto_pin is True:
+                if total_apps > self.threads:
+                    for i in range(total_apps - self.threads):
+                        self.add_thread()
+                    self.pin_threads = self.threads
+
+            return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}
         except:
             self.err("WARNING", '-' * 60)
             self.err("WARNING", "Unexpected error:")

@@ -642,7 +642,11 @@ AppDaemon is multi-threaded. This means that any time code within an App
 is executed, it is executed by one of many threads. This is generally
 not a particularly important consideration for this application; in
 general, the execution time of callbacks is expected to be far quicker
-than the frequency of events causing them. By default, AppDaemon protects Apps from threading considerations by pinning each app to a specific thread which means it is not possible for an app to br running in more than one thread at a time. In extremely busy systems this may cause a reduction in performance but this is unlikely. For most users, threading should be left at the defaults and things will behave sensibly. If however, you understand concurrency, locking and re-entrant code, read on for some additional advanced options.
+than the frequency of events causing them. By default, AppDaemon protects Apps from threading considerations by pinning each app to a specific thread which means it is not possible for an app to be running in more than one thread at a time. In extremely busy systems this may cause a reduction in performance but this is unlikely.
+
+By default, each app gets its own unique thread to run in. This is generally more threads than are required but it prevents badly behaved apps from blocking other apps pinned to the same thread. This organization can be optimized to use fewer threads if desired by using some of the advanced options below. AppDaemon will dynamically manage the threads for you, creating enough for each app, and adding threads over the lifetime of AppDaemon if new apps are added, to guarantee they all get their own thread.
+
+For most users, threading should be left at the defaults and things will behave sensibly. If however, you understand concurrency, locking and re-entrant code, read on for some additional advanced options.
 
 Thread Hygiene
 ~~~~~~~~~~~~~~
@@ -664,6 +668,8 @@ Disabling App Pinning
 ~~~~~~~~~~~~~~~~~~~~~
 
 If you know what you are doing and understand the risks, you can disable AppDaemon's App Pinning, partially or totally. AppDaemon gives you a huge amount of control allowing you to enable or disable pinning of individual apps, all apps of a certain class, or even down to the callback level. AppDaemon also lets you explicitly choose which thread apps or callbacks run on, resulting in extremely fine grained control.
+
+If you disable app pinning, you will start with a default number of 10 threads, but this can be modified with the ``total_threads`` setting in appdaemon.yaml.
 
 To disable App Pinning globally within AppDaemon set the Appdaemon directive ``pin_apps`` to ``false`` within the AppDaemon.yaml file and app pinning will be disabled for all apps. At this point, it is possible for different pieces of
 code within the App to be executed concurrently, so some care may be necessary if different callback for instance inspect and change shared
