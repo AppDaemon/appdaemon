@@ -318,8 +318,10 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 -  ``client_qos:`` (optional) The quality of service (QOS) level to be used in subscribing to the topics
 -  ``birth_topic:`` (optional) This is the topic other clients can subscribe to, to pick up the data sent by the client, when the plugin connects to the broker. If not specified, one is auto generated
 -  ``birth_payload:`` (optional) This is the payload sent by the plugin when it connects to the broker. If not specified, it defaults to ``online``
+-  ``birth_retain:`` (optional) This tells the broker if it should retain the birth message. If not specified, it defaults to ``True``
 -  ``will_topic:`` (optional) This is the topic other clients can subscribe to, to pick up the data sent by the broker, when the plugin unceremonously disconnects from the broker. If not specified, one is auto generated
 -  ``will_payload:`` (optional) This is the payload sent by the broker when the plugin unceremonously disconnects from the broker. If not specified, it defaults to ``offline``
+-  ``will_retain:`` (optional) This tells the broker if it should retain the will message. If not specified, it defaults to ``True``
 
 All auto-generated data can be picked up within apps, using the ``self.get_plugin_config()`` api
 
