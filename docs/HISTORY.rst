@@ -29,6 +29,7 @@ Change Log
 - Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
 - Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 
 **Fixes**
 
