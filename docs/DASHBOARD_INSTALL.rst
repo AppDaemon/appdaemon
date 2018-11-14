@@ -67,7 +67,14 @@ e.g.:
     hadashboard:
         dashboard_dir: /etc/appdaemon/dashboards
 
-Next, you will need to create the ``dashboards`` directive either under
+HADashboard uses websockets as the default protocol for streaming events from AppDaemon to the dashboard so the dashboard can respond to events in real time. Some older devices, e.g. original iPad models, do not support websockets. IN this case you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws` which means the Websockets protocol will be used:
+
+.. code:: yaml
+
+    hadashboard:
+        transport: socketio
+
+Once initial configuration is complete, you will need to create the ``dashboards`` directive either under
 the conf directory, or wherever you specify with ``dash_dir``. Once that
 is done, for testing purposes, create a file in the dashboards directory
 called ``Hello.dash`` and paste in the following:
