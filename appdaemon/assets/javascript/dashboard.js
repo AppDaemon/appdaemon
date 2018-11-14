@@ -2,54 +2,53 @@
 function ha_status(stream, dash, widgets, transport)
 {
 
-    var websocket= {};
-    //var iosocket = {};
-
-    //if (transport === "ws")
-    //{
+    if (transport === "ws")
+    {
         var webSocket = new ReconnectingWebSocket(stream);
-    //}
-    //else
-    //{
-    //    iosocket = io.connect(stream);
-    //}
-            
-    webSocket.onopen = function (event) 
+
+        webSocket.onopen = function (event)
+        {
+            webSocket.send(dash);
+        };
+
+        webSocket.onmessage = function (event)
+        {
+            var data = JSON.parse(event.data);
+
+            update_dash(data)
+        };
+
+        webSocket.onclose = function (event)
+        {
+            //window.alert("Server closed connection")
+           // window.location.reload(false);
+        };
+
+        webSocket.onerror = function (event)
+        {
+            //window.alert("Error occured")
+            //window.location.reload(true);
+        };
+    }
+    else
     {
-        webSocket.send(dash);
-    };
+        var iosocket = io.connect(stream);
 
-    webSocket.onmessage = function (event) 
+        iosocket.on("connect", function()
+        {
+           iosocket.emit("up", dash);
+        });
+
+        iosocket.on("down", function(msg)
+        {
+            var data = JSON.parse(msg);
+            update_dash(data)
+        });
+
+    }
+
+    this.update_dash = function(data)
     {
-        var data = JSON.parse(event.data);
-
-        update_dash(data)
-    };
-
-    webSocket.onclose = function (event)
-    {
-        //window.alert("Server closed connection")
-       // window.location.reload(false); 
-    };
-
-    webSocket.onerror = function (event)
-    {
-        //window.alert("Error occured")
-        //window.location.reload(true);         
-    };
-
-    //iosocket.on("connect", function()
-    //{
-    //   socket.emit('up',dash);
-    //});
-
-    //iosocket.on("down", function(msg)
-    //{
-    //    var data = JSON.parse(msg);
-    //    update_dash(data)
-    //});
-
-    this.update_dash = function(data) {
         if (data.event_type === "hadashboard")
         {
             if (data.data.command === "navigate")

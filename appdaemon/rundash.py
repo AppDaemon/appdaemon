@@ -416,33 +416,34 @@ class RunDash:
         return ws
 
     async def ws_update(self, namespace, jdata):
-        if len(self.app['websockets']) > 0:
-            self.log("DEBUG",
-                   "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
-        jdata["namespace"] = namespace
-        data = json.dumps(jdata)
+        if jdata["event_type"] == "state_changed":
+            jdata["namespace"] = namespace
+            data = json.dumps(jdata)
+            if self.transport == "ws":
+                if len(self.app['websockets']) > 0:
+                    self.log("DEBUG",
+                           "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
 
-        for ws in self.app['websockets']:
+                for ws in self.app['websockets']:
 
-            if "dashboard" in self.app['websockets'][ws]:
-                self.log(
-                       "DEBUG",
-                       "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
-                await ws.send_str(data)
+                    if "dashboard" in self.app['websockets'][ws]:
+                        self.log(
+                               "DEBUG",
+                               "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
+                        await ws.send_str(data)
+
+            else:
+                await sio.emit('down', data, namespace='/stream')
 
     # socketio handler
 
     @sio.on('connect', namespace='/stream')
-    async def socketio_connect(self, sid, environ):
-        self.log("INFO", "SocketIO Connection")
+    async def socketio_connect(sid, environ):
+        print("INFO", "SocketIO Connection")
 
     @sio.on('up', namespace='/stream')
-    async def socketio_up_message(self, sid, message):
-        self.log("INFO", "SocketIO Dashboard: %s" % message)
-
-    async def socketio_update(self, jdata):
-        data = json.dumps(jdata)
-        await sio.emit('down', data, namespace='/stream')
+    async def socketio_up_message(sid, message):
+        print("INFO", "SocketIO Dashboard: %s" % message)
 
     # Routes, Status and Templates
 
