@@ -117,6 +117,7 @@ class RunDash:
 
         self.transport = "ws"
         self._process_arg("transport", config)
+        self.log("INFO", "Using {} for dashboard event stream".format(self.transport))
 
         if "rss_feeds" in config:
             self.rss_feeds = []
