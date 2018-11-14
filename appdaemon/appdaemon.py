@@ -1233,6 +1233,7 @@ class AppDaemon:
         ))
 
     def update_sun(self):
+
         #now = datetime.datetime.now(self.tz)
         #now = pytz.utc.localize(self.get_now())
 
@@ -1276,6 +1277,13 @@ class AppDaemon:
                 # dump_schedule()
                 self.process_sun("next_setting")
                 # dump_schedule()
+
+        self.log(
+            "DEBUG",
+            "Update sun: next sunrise: {}, next sunset: {}".format(
+                self.sun["next_rising"], self.sun["next_setting"]
+            )
+        )
 
     @staticmethod
     def get_offset(kwargs):
@@ -1654,12 +1662,16 @@ class AppDaemon:
             return None
 
     async def notify_plugin_started(self, name, namespace, first_time=False):
-
+        self.log("DEBUG", "Plugin started: {}".format(name))
         try:
             self.last_plugin_state[namespace] = datetime.datetime.now()
 
             meta = await self.plugin_objs[namespace].get_metadata()
+
+            self.log("DEBUG", "Plugin started meta: {} = {}".format(name, meta))
+
             self.process_meta(meta, namespace)
+
 
             if not self.stopping:
                 self.plugin_meta[namespace] = meta
