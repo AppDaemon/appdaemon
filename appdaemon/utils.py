@@ -147,11 +147,13 @@ def find_path(name):
             return _file
     return None
 
+
 def single_or_list(field):
     if isinstance(field, list):
         return field
     else:
         return [field]
+
 
 def log(logger, level, msg, name="", ts=None, ascii_encode=True):
     if name != "":
@@ -237,6 +239,7 @@ def check_path(type, logger, path, pathtype="directory", permissions=None):
         # getpwuid() errors out with a KeyError
         # We just have to skip most of these tests
         pass
+
 
 def path_log(logger, msg):
     if logger is None:

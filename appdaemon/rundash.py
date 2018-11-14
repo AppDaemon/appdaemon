@@ -17,6 +17,7 @@ import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
 
 sio = socketio.AsyncServer(async_mode='aiohttp')
+AD = None
 
 def securedata(myfunc):
     """
@@ -73,6 +74,8 @@ class RunDash:
     def __init__(self, ad, loop, logger, access, **config):
 
         self.AD = ad
+        global AD
+        AD = ad
         self.logger = logger
         self.acc = access
 
@@ -439,11 +442,11 @@ class RunDash:
 
     @sio.on('connect', namespace='/stream')
     async def socketio_connect(sid, environ):
-        print("INFO", "SocketIO Connection")
+        pass
 
-    @sio.on('up', namespace='/stream')
+    @sio.on("up", namespace='/stream')
     async def socketio_up_message(sid, message):
-        print("INFO", "SocketIO Dashboard: %s" % message)
+        AD.log("INFO", "New dashboard connected: {}".format(message))
 
     # Routes, Status and Templates
 
