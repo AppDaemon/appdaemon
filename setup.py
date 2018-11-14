@@ -22,7 +22,8 @@ REQUIRES = [
     'feedparser',
     'iso8601',
     'bcrypt',
-    'paho-mqtt'
+    'paho-mqtt',
+    'python-socketio'
 ]
 
 setup(

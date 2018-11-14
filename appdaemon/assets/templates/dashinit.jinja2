@@ -87,6 +87,8 @@ $(function(){ //DOM Ready
     }
 
     // Start listening for HA Events
+
+    {% if transport == "ws" %}
     if (location.protocol == 'https:')
     {
         wsprot = "wss:"
@@ -96,6 +98,10 @@ $(function(){ //DOM Ready
         wsprot = "ws:"
     }
     var stream_url = wsprot + '//' + location.host + '/stream'
-    ha_status(stream_url, "{{ title }}", widgets);
+    {% else %}
+        var stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
+    {% endif %}
+
+    ha_status(stream_url, "{{ title }}", widgets, "{{ transport }}");
 
 });

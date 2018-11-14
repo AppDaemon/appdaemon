@@ -40,6 +40,7 @@ class Dashboard:
         self.dash_compile_on_start = False
         self.max_include_depth = 10
         self.fa4compatibility = False
+        self.transport = "ws"
         #
         # Process any overrides
         #
@@ -60,6 +61,7 @@ class Dashboard:
         self._process_arg("dash_compile_on_start", kwargs)
         self._process_arg("max_include_depth", kwargs)
         self._process_arg("fa4compatibility", kwargs)
+        self._process_arg("transport", kwargs)
         #
         # Create some dirs
         #
@@ -777,6 +779,7 @@ class Dashboard:
         params["base_url"] = self.base_url
         params["name"] = name.lower()
         params["skin"] = skin
+        params["transport"] = self.transport
 
         #
         # Build dash specific code
@@ -847,7 +850,7 @@ class Dashboard:
             #
             params = {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
                     "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable,
-                    "fa4compatibility": self.fa4compatibility  }
+                    "fa4compatibility": self.fa4compatibility, "transport": self.transport}
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),

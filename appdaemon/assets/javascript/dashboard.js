@@ -1,8 +1,18 @@
 
-function ha_status(stream, dash, widgets)
+function ha_status(stream, dash, widgets, transport)
 {
 
-    var webSocket = new ReconnectingWebSocket(stream);
+    var websocket= {};
+    //var iosocket = {};
+
+    //if (transport === "ws")
+    //{
+        var webSocket = new ReconnectingWebSocket(stream);
+    //}
+    //else
+    //{
+    //    iosocket = io.connect(stream);
+    //}
             
     webSocket.onopen = function (event) 
     {
@@ -11,16 +21,44 @@ function ha_status(stream, dash, widgets)
 
     webSocket.onmessage = function (event) 
     {
-        var data = JSON.parse(event.data)
-        if (data.event_type == "hadashboard")
+        var data = JSON.parse(event.data);
+
+        update_dash(data)
+    };
+
+    webSocket.onclose = function (event)
+    {
+        //window.alert("Server closed connection")
+       // window.location.reload(false); 
+    };
+
+    webSocket.onerror = function (event)
+    {
+        //window.alert("Error occured")
+        //window.location.reload(true);         
+    };
+
+    //iosocket.on("connect", function()
+    //{
+    //   socket.emit('up',dash);
+    //});
+
+    //iosocket.on("down", function(msg)
+    //{
+    //    var data = JSON.parse(msg);
+    //    update_dash(data)
+    //});
+
+    this.update_dash = function(data) {
+        if (data.event_type === "hadashboard")
         {
-            if (data.data.command == "navigate")
+            if (data.data.command === "navigate")
             {
                 var timeout_params = "";
                 if ("timeout" in data.data)
                 {
-                    var timeout = data.data.timeout
-                    if (location.search == "")
+                    var timeout = data.data.timeout;
+                    if (location.search === "")
                     {
                         timeout_params = "?";
                     }
@@ -50,25 +88,14 @@ function ha_status(stream, dash, widgets)
                 window.location.href = data.data.target + location.search + timeout_params;
             }
         }
-        Object.keys(widgets).forEach(function (key)
-        {
+        Object.keys(widgets).forEach(function (key) {
             if ("on_ha_data" in widgets[key])
             {
                 widgets[key].on_ha_data(data);
             }
         })
-    };
-    webSocket.onclose = function (event)
-    {
-        //window.alert("Server closed connection")
-       // window.location.reload(false); 
-    };
-
-    webSocket.onerror = function (event)
-    {
-        //window.alert("Error occured")
-        //window.location.reload(true);         
     }
+
 }
 
 var inheritsFrom = function (child, parent) {
@@ -89,18 +116,15 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.format_number = function(self, value)
     {
+        var precision = 0;
         if ("precision" in self.parameters)
         {
-            var precision = self.parameters.precision
-        }
-        else
-        {
-            var precision = 0
+            precision = self.parameters.precision
         }
         value = parseFloat(value);
         value = value.toFixed(precision);
 
-        if ("shorten" in self.parameters && self.parameters.shorten == 1)
+        if ("shorten" in self.parameters && self.parameters.shorten === 1)
         {
             if (value >= 1E9)
             {
@@ -115,7 +139,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                 value = (value / 1E3).toFixed(1) + "K"
             }
         }
-        if ("use_comma" in self.parameters && self.parameters.use_comma == 1)
+        if ("use_comma" in self.parameters && self.parameters.use_comma === 1)
         {
             value = value.toString().replace(".", ",")
         }
@@ -145,18 +169,18 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 
     this.convert_icon = function(self, value)
     {
-        bits = value.split("-")
+        bits = value.split("-");
         iprefix = bits[0];
-        iname = ""
+        iname = "";
         for (var i = 1; i <  bits.length; i++)
         {
-            if (i!=1)
+            if (i!==1)
             {
                 iname += "-"
             }
             iname += bits[i]
         }
-        if (iprefix == "mdi")
+        if (iprefix === "mdi")
         {
             icon = "mdi" + ' ' + value
         }
@@ -198,15 +222,15 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                         {
                             new_state = data.state;
                             if ("use_hass_icon" in child.parameters &&
-                                parameters.use_hass_icon == 1 &&
-                                "attributes" in new_state && "icon" in new_state.attributes && new_state.attributes.icon != "False")
+                                parameters.use_hass_icon === 1 &&
+                                "attributes" in new_state && "icon" in new_state.attributes && new_state.attributes.icon !== "False")
                             {
-                                icon = new_state.attributes.icon.replace(":", "-")
-                                child.icons.icon_on = icon
+                                icon = new_state.attributes.icon.replace(":", "-");
+                                child.icons.icon_on = icon;
                                 child.icons.icon_off = icon
                             }
                             if ("title_is_friendly_name" in child.parameters 
-                            && child.parameters.title_is_friendly_name == 1
+                            && child.parameters.title_is_friendly_name === 1
                             && "friendly_name" in new_state.attributes)
                             {
                                 child.ViewModel.title(new_state.attributes.friendly_name)
@@ -231,11 +255,11 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         entity = data.data.entity_id;
         elen = monitored_entities.length;
-        if (data.event_type == "state_changed" && data.namespace == parameters.namespace)
+        if (data.event_type === "state_changed" && data.namespace === parameters.namespace)
         {
             for (i = 0; i < elen; i++)
             {
-                if (monitored_entities[i].entity == entity)
+                if (monitored_entities[i].entity === entity)
                 {
                     state = data.data.new_state.state;
                     this.entity_state[entity] = data.data.new_state;
@@ -248,7 +272,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     this.call_service = function(child, args)
     {
         service_url = child.url + "/" + "call_service";
-        args["namespace"] = parameters.namespace
+        args["namespace"] = parameters.namespace;
         $.post(service_url, args);
     };
 

@@ -11,10 +11,12 @@ import feedparser
 from aiohttp import web
 import ssl
 import bcrypt
-import socket
+import socketio
 
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
+
+sio = socketio.AsyncServer(async_mode='aiohttp')
 
 def securedata(myfunc):
     """
@@ -110,6 +112,9 @@ class RunDash:
         self.fa4compatibility = False
         self._process_arg("fa4compatibility", config)
 
+        self.transport = "ws"
+        self._process_arg("transport", config)
+
         if "rss_feeds" in config:
             self.rss_feeds = []
             for feed in config["rss_feeds"]:
@@ -154,11 +159,14 @@ class RunDash:
             else:
                 self.compile_dir = os.path.join(self.config_dir, "compiled")
 
-
-        # Setup WS handler
-
         self.app = web.Application()
-        self.app['websockets'] = {}
+
+        # Setup event stream
+
+        if self.transport == "ws":
+            self.app['websockets'] = {}
+        else:
+            sio.attach(self.app)
 
         self.loop = loop
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
@@ -169,7 +177,8 @@ class RunDash:
                                                  dash_force_compile=self.dash_force_compile,
                                                  profile_dashboard=self.profile_dashboard,
                                                  dashboard_dir = self.dashboard_dir,
-                                                 fa4compatibility=self.fa4compatibility
+                                                 fa4compatibility=self.fa4compatibility,
+                                                 transport = self.transport
                                                      )
             self.setup_routes()
 
@@ -382,7 +391,6 @@ class RunDash:
             await ws.close(code=aiohttp.WSCloseCode.GOING_AWAY,
                                 message='Server shutdown')
 
-
     @securedata
     async def wshandler(self, request):
         ws = web.WebSocketResponse()
@@ -422,14 +430,31 @@ class RunDash:
                        "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
                 await ws.send_str(data)
 
+    # socketio handler
+
+    @sio.on('connect', namespace='/stream')
+    async def socketio_connect(self, sid, environ):
+        self.log("INFO", "SocketIO Connection")
+
+    @sio.on('up', namespace='/stream')
+    async def socketio_up_message(self, sid, message):
+        self.log("INFO", "SocketIO Dashboard: %s" % message)
+
+    async def socketio_update(self, jdata):
+        data = json.dumps(jdata)
+        await sio.emit('down', data, namespace='/stream')
 
     # Routes, Status and Templates
 
     def setup_routes(self):
+        # Websockets
+
+        if self.transport == "ws":
+            self.app.router.add_get('/stream', self.wshandler)
+
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon', self.logon)
-        self.app.router.add_get('/stream', self.wshandler)
         self.app.router.add_post('/call_service', self.call_service)
         self.app.router.add_get('/state/{namespace}/{entity}', self.get_state)
         self.app.router.add_get('/', self.list_dash)
