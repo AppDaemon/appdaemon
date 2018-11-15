@@ -387,7 +387,7 @@ class AppDaemon:
                                                                                           module_name))
                         break
 
-                if full_module_name == None:
+                if full_module_name is None:
                     #
                     # Not a custom plugin, assume it's a built in
                     #
@@ -602,7 +602,8 @@ class AppDaemon:
     #
     # Constraints
     #
-    def check_constraint(self, key, value, app):
+    @staticmethod
+    def check_constraint(key, value, app):
         unconstrained = True
         if key in app.list_constraints():
             method = getattr(app, key)
@@ -2298,7 +2299,6 @@ class AppDaemon:
                                 run = True
 
                             if run is True:
-                                filtered = True
                                 self.log("INFO", "Running filter on {}".format(infile))
                                 self.filter_files[infile] = modified
 
