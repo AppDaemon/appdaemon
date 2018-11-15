@@ -2,10 +2,9 @@ import asyncio
 import json
 import ssl
 from websocket import create_connection
-from pkg_resources import parse_version
-from sseclient import SSEClient
 import traceback
 import aiohttp
+import pytz
 
 import appdaemon.utils as utils
 
@@ -300,6 +299,26 @@ class HassPlugin:
         r.raise_for_status()
         return await r.json()
 
+    def validate_meta(self, meta, key):
+        if key not in meta:
+            self.log("WARNING", "Value for '{}' not found in metadata for plugin {}".format(key, self.name))
+            raise ValueError
+        try:
+            value = float(meta[key])
+        except:
+            self.log("WARNING", "Invalid value for '{}' ('{}') in metadata for plugin {}".format(key, meta[key], self.name))
+            raise
+
+    def validate_tz(self, meta):
+        if "time_zone" not in meta:
+            self.log("WARNING", "Value for 'time_zone' not found in metadata for plugin {}".format( self.name))
+            raise ValueError
+        try:
+            tz = pytz.timezone(meta["time_zone"])
+        except pytz.exceptions.UnknownTimeZoneError:
+            self.log("WARNING", "Invalid value for 'time_zone' ('{}') in metadata for plugin {}".format(meta["time_zone"], self.name))
+            raise
+
     async def get_hass_config(self):
         try:
             self.log("DEBUG", "get_ha_config()")
@@ -314,9 +333,18 @@ class HassPlugin:
             self.log("DEBUG", "get_ha_config: url is {}".format(apiurl))
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
-            return await r.json()
+            meta = await r.json()
+            #
+            # Validate metadata is sane
+            #
+            self.validate_meta(meta, "latitude")
+            self.validate_meta(meta, "longitude")
+            self.validate_meta(meta, "elevation")
+            self.validate_tz(meta)
+
+            return meta
         except:
-            self.log("WARNING", "Error getting metadata")
+            self.log("WARNING", "Error getting metadata - retrying")
             raise
     #
     # Async version of call_service() for the hass proxy for HADashboard
