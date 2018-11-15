@@ -279,9 +279,6 @@ class HassPlugin:
         self.log("DEBUG", "Utility")
         return None
 
-    def active(self):
-        return self.reading_messages
-
     #
     # Home Assistant Interactions
     #

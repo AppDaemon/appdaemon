@@ -85,8 +85,6 @@ class DummyPlugin:
         pass
         #self.log("*** Utility ***".format(self.state))
 
-    def active(self):
-        return True
     #
     # Handle state updates
     #

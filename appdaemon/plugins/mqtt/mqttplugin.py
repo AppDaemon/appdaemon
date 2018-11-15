@@ -258,9 +258,6 @@ class MqttPlugin:
         #self.AD.log('INFO',"utility".format(self.state))
         return
 
-    def active(self):
-        return self.initialized
-
     #
     # Handle state updates
     #
