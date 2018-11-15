@@ -394,43 +394,43 @@ class ADAPI:
         return iso8601.parse_date(utc)
 
     def sun_up(self):
-        return self.AD.sun_up()
+        return self.AD.sched.sun_up()
 
     def sun_down(self):
-        return self.AD.sun_down()
+        return self.AD.sched.sun_down()
 
     def parse_time(self, time_str, name=None):
-        return self.AD.parse_time(time_str, name)
+        return self.AD.sched.parse_time(time_str, name)
 
     def parse_datetime(self, time_str, name=None):
-        return self.AD.parse_datetime(time_str, name)
+        return self.AD.sched.parse_datetime(time_str, name)
 
     def _parse_time(self, time_str, name):
-        return self.AD._parse_time(time_str, name)
+        return self.AD.sched._parse_time(time_str, name)
 
     def get_now(self):
-        return self.AD.get_now()
+        return self.AD.sched.get_now()
 
     def get_now_ts(self):
-        return self.AD.get_now_ts()
+        return self.AD.sched.get_now_ts()
 
     def now_is_between(self, start_time_str, end_time_str, name=None):
-        return self.AD.now_is_between(start_time_str, end_time_str, name)
+        return self.AD.sched.now_is_between(start_time_str, end_time_str, name)
 
     def sunrise(self):
-        return self.AD.sunrise()
+        return self.AD.sched.sunrise()
 
     def sunset(self):
-        return self.AD.sunset()
+        return self.AD.sched.sunset()
 
     def time(self):
-        return datetime.datetime.fromtimestamp(self.get_now_ts()).time()
+        return datetime.datetime.fromtimestamp(self.AD.sched.get_now_ts()).time()
 
     def datetime(self):
-        return datetime.datetime.fromtimestamp(self.get_now_ts())
+        return datetime.datetime.fromtimestamp(self.AD.sched.get_now_ts())
 
     def date(self):
-        return datetime.datetime.fromtimestamp(self.get_now_ts()).date()
+        return datetime.datetime.fromtimestamp(self.AD.sched.get_now_ts()).date()
 
     #
     # Scheduler
@@ -438,10 +438,10 @@ class ADAPI:
 
     def cancel_timer(self, handle):
         name = self.name
-        self.AD.cancel_timer(name, handle)
+        self.AD.sched.cancel_timer(name, handle)
 
     def info_timer(self, handle):
-        return self.AD.info_timer(handle, self.name)
+        return self.AD.sched.info_timer(handle, self.name)
 
     def run_in(self, callback, seconds, **kwargs):
         name = self.name
@@ -452,7 +452,7 @@ class ADAPI:
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
         exec_time = self.get_now_ts() + int(seconds)
-        handle = self.AD.insert_schedule(
+        handle = self.AD.sched.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -472,7 +472,7 @@ class ADAPI:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
         exec_time = event.timestamp()
-        handle = self.AD.insert_schedule(
+        handle = self.AD.sched.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -492,7 +492,7 @@ class ADAPI:
                 "in the future".format(self.name)
             )
         exec_time = when.timestamp()
-        handle = self.AD.insert_schedule(
+        handle = self.AD.sched.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -560,13 +560,13 @@ class ADAPI:
             )
         )
         exec_time = start.timestamp()
-        handle = self.AD.insert_schedule(name, exec_time, callback, True, None,
+        handle = self.AD.sched.insert_schedule(name, exec_time, callback, True, None,
                                          interval=interval, **kwargs)
         return handle
 
     def _schedule_sun(self, name, type_, callback, **kwargs):
-        event = self.calc_sun(type_)
-        handle = self.AD.insert_schedule(
+        event = self.AD.sched.calc_sun(type_)
+        handle = self.AD.sched.insert_schedule(
             name, event, callback, True, type_, **kwargs
         )
         return handle

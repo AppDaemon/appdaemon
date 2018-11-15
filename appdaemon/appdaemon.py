@@ -6,13 +6,10 @@ import os.path
 from queue import Queue
 import datetime
 import uuid
-import astral
-import pytz
 import asyncio
 import yaml
 import concurrent.futures
 import threading
-import random
 import re
 from copy import deepcopy, copy
 import subprocess
@@ -26,6 +23,7 @@ import inspect
 
 import appdaemon.utils as utils
 import appdaemon.scheduler as scheduler
+
 
 def _timeit(func):
     @functools.wraps(func)
@@ -146,7 +144,17 @@ class AppDaemon:
         self.starttime = None
         utils.process_arg(self, "starttime", kwargs)
 
-        utils.process_arg(self, "now", kwargs)
+        self.latitude = None
+        utils.process_arg(self, "latitude", kwargs)
+
+        self.longitude = None
+        utils.process_arg(self, "longitude", kwargs)
+
+        self.elevation = None
+        utils.process_arg(self, "elevation", kwargs)
+
+        self.time_zone = None
+        utils.process_arg(self, "time_zone", kwargs)
 
         self.logfile = None
         utils.process_arg(self, "logfile", kwargs)
@@ -1139,8 +1147,7 @@ class AppDaemon:
             # All plugins are loaded and we have initial state
             #
 
-            self.thread_info["max_used"] = 0
-            self.thread_info["max_used_time"] = self.sched.get_now_ts()
+            self.sched = scheduler.Scheduler(self, self.loop, self.executor, self.latitude, self.longitude, self.elevation, self.time_zone, self.starttime, self.endtime, self.tick, self.interval, self.max_clock_skew, self.stop_function)
 
             if self.apps is True:
                 self.log("DEBUG", "Reading Apps")
@@ -1157,9 +1164,10 @@ class AppDaemon:
 
             self.log("DEBUG", "Starting timer loop")
 
-            self.sched = Schedule(self, self.loop, self.executor, self.latitude, self.longitude, self.elevation, self.time_zone, self.starttime, self.endtime, self.tick, self.interval, self.max_clock_skew, self.stop_function)
-
             self.loop.create_task(self.sched.do_every())
+
+            self.thread_info["max_used"] = 0
+            self.thread_info["max_used_time"] = self.sched.get_now_ts()
 
             warning_step = 0
 
@@ -1218,7 +1226,7 @@ class AppDaemon:
                         for thread_id in self.thread_info["threads"]:
                             if self.thread_info["threads"][thread_id]["callback"] != "idle":
                                 start = self.thread_info["threads"][thread_id]["time_called"]
-                                dur = self.now - start
+                                dur = self.sched.get_now_ts() - start
                                 if dur >= self.thread_duration_warning_threshold and dur % self.thread_duration_warning_threshold == 0:
                                     self.log("WARNING", "Excessive time spent in callback: {} - {}s".format(self.thread_info["threads"][thread_id]["callback"], dur))
 
@@ -1344,9 +1352,9 @@ class AppDaemon:
         with self.callbacks_lock:
             if name in self.callbacks:
                 del self.callbacks[name]
-        with self.schedule_lock:
-            if name in self.schedule:
-                del self.schedule[name]
+
+        self.sched.term_object(name)
+
         with self.endpoints_lock:
             if name in self.endpoints:
                 del self.endpoints[name]
@@ -2047,8 +2055,8 @@ class AppDaemon:
             if (cold is None or cold == old) and (cnew is None or cnew == new):
                 if "duration" in kwargs:
                     # Set a timer
-                    exec_time = self.get_now_ts() + int(kwargs["duration"])
-                    kwargs["__duration"] = self.insert_schedule(
+                    exec_time = self.sched.get_now_ts() + int(kwargs["duration"])
+                    kwargs["__duration"] = self.sched.insert_schedule(
                         name, exec_time, funcref, False, None,
                         __entity=entity,
                         __attribute=attribute,
@@ -2074,7 +2082,7 @@ class AppDaemon:
             else:
                 if "__duration" in kwargs:
                     # cancel timer
-                    self.cancel_timer(name, kwargs["__duration"])
+                    self.sched.cancel_timer(name, kwargs["__duration"])
 
         return executed
 
@@ -2271,8 +2279,8 @@ class AppDaemon:
         ] + app.list_constraints())
 
     def log(self, level, message, name="AppDaemon"):
-        if not self.realtime:
-            ts = self.get_now()
+        if self.sched is not None and not self.sched.is_realtime():
+            ts = self.sched.get_now_ts()
         else:
             ts = datetime.datetime.now()
         utils.log(self.logger, level, message, name, ts)
@@ -2281,8 +2289,8 @@ class AppDaemon:
             self.process_log_callback(level, message, name, ts, "log")
 
     def err(self, level, message, name="AppDaemon"):
-        if not self.realtime:
-            ts = self.get_now()
+        if self.sched is not None and not self.sched.is_realtime():
+            ts = self.sched.get_now_ts()
         else:
             ts = datetime.datetime.now()
         utils.log(self.error, level, message, name, ts)
@@ -2291,8 +2299,8 @@ class AppDaemon:
             self.process_log_callback(level, message, name, ts, "error")
 
     def diag(self, level, message, name="AppDaemon"):
-        if not self.realtime:
-            ts = self.get_now()
+        if self.sched is not None and not self.sched.is_realtime():
+            ts = self.sched.get_now_ts()
         else:
             ts = None
         utils.log(self.diagnostic, level, message, name, ts)

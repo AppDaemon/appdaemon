@@ -17,7 +17,6 @@ import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.runapi as api
 import appdaemon.rundash as rundash
-import appdaemon.runadmin as runadmin
 
 class ADMain():
 

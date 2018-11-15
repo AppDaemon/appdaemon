@@ -11,6 +11,7 @@ import asyncio
 
 import appdaemon.utils as utils
 
+
 class Scheduler:
 
     def __init__(self, ad, loop, executor, latitude, longitude, elevation, time_zone, starttime, endtime, tick, interval, max_clock_skew, stop_function):
@@ -334,6 +335,14 @@ class Scheduler:
                 }
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
         return handle
+
+    def term_object(self, name):
+        with self.schedule_lock:
+            if name in self.schedule:
+                del self.schedule[name]
+
+    def is_realtime(self):
+        return self.realtime
 
     def get_scheduler_entries(self):
         schedule = {}
