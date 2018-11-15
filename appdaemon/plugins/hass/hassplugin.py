@@ -203,6 +203,10 @@ class HassPlugin:
                 #
                 self.metadata = await self.get_hass_config()
                 #
+                # Get State
+                #
+                state = await self.get_complete_state()
+                #
                 # Wait for app delay
                 #
                 if self.app_init_delay > 0:
@@ -216,7 +220,7 @@ class HassPlugin:
                 #
                 # Fire HA_STARTED Events
                 #
-                await self.AD.notify_plugin_started(self.name, self.namespace, first_time)
+                await self.AD.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
                 self.reading_messages = True
 
                 already_notified = False
@@ -272,7 +276,8 @@ class HassPlugin:
     #
 
     def utility(self):
-       return None
+        self.log("DEBUG", "Utility")
+        return None
 
     def active(self):
         return self.reading_messages

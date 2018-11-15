@@ -408,7 +408,7 @@ class AppDaemon:
                     if namespace in self.plugin_objs:
                         raise ValueError("Duplicate namespace: {}".format(namespace))
 
-                    self.plugin_objs[namespace] = plugin
+                    self.plugin_objs[namespace] = {"object": plugin, "active": False}
 
                     loop.create_task(plugin.get_updates())
                 except:
@@ -472,7 +472,7 @@ class AppDaemon:
         if self.apps is True:
             self.appq.put_nowait({"namespace": "global", "event_type": "ha_stop", "data": None})
         for plugin in self.plugin_objs:
-            self.plugin_objs[plugin].stop()
+            self.plugin_objs[plugin]["object"].stop()
 
     #
     # Diagnostics
@@ -1661,22 +1661,17 @@ class AppDaemon:
         else:
             return None
 
-    async def notify_plugin_started(self, name, namespace, first_time=False):
+    async def notify_plugin_started(self, name, namespace, meta, state, first_time=False):
         self.log("DEBUG", "Plugin started: {}".format(name))
         try:
             self.last_plugin_state[namespace] = datetime.datetime.now()
-
-            meta = await self.plugin_objs[namespace].get_metadata()
 
             self.log("DEBUG", "Plugin started meta: {} = {}".format(name, meta))
 
             self.process_meta(meta, namespace)
 
-
             if not self.stopping:
                 self.plugin_meta[namespace] = meta
-
-                state = await self.plugin_objs[namespace].get_complete_state()
 
                 with self.state_lock:
                     self.state[namespace]= state
@@ -1686,6 +1681,7 @@ class AppDaemon:
                 else:
                     self.log("INFO", "Got initial state from namespace {}".format(namespace))
 
+                self.plugin_objs[namespace]["active"] = True
                 self.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.err("WARNING", '-' * 60)
@@ -1702,7 +1698,7 @@ class AppDaemon:
                 )
 
     def notify_plugin_stopped(self, name, namespace):
-
+        self.plugin_objs[namespace]["active"] = False
         self.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
 
@@ -1719,7 +1715,7 @@ class AppDaemon:
         while not initialized and self.stopping is False:
             initialized = True
             for plugin in self.plugin_objs:
-                if not self.plugin_objs[plugin].active():
+                if self.plugin_objs[plugin]["active"] is False:
                     initialized = False
                     break
             await asyncio.sleep(1)
@@ -1810,14 +1806,14 @@ class AppDaemon:
                     # Every 10 minutes seems like a good place to start
 
                     for plugin in self.plugin_objs:
-                        if self.plugin_objs[plugin].active():
+                        if self.plugin_objs[plugin]["active"] is True:
                             if  datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
                             minutes=10):
                                 try:
                                     self.log("DEBUG",
                                              "Refreshing {} state".format(plugin))
 
-                                    state = await self.plugin_objs[plugin].get_complete_state()
+                                    state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                                     if state is not None:
                                         with self.state_lock:
@@ -1854,7 +1850,7 @@ class AppDaemon:
                     # Run utility for each plugin
 
                     for plugin in self.plugin_objs:
-                        self.plugin_objs[plugin].utility()
+                        self.plugin_objs[plugin]["object"].utility()
 
                 except:
                     self.err("WARNING", '-' * 60)
@@ -2874,7 +2870,7 @@ class AppDaemon:
 
     def get_plugin(self, name):
         if name in self.plugin_objs:
-            return self.plugin_objs[name]
+            return self.plugin_objs[name]["object"]
         else:
             return None
 

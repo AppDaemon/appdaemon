@@ -92,7 +92,7 @@ class DummyPlugin:
     #
 
     async def get_updates(self):
-        await self.AD.notify_plugin_started(self.namespace, True)
+        await self.AD.notify_plugin_started(self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True)
         while not self.stopping:
             ret = None
             if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
