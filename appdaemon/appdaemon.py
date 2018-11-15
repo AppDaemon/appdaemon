@@ -1643,6 +1643,10 @@ class AppDaemon:
                     "Logged an error to {}".format(self.errfile)
                 )
 
+    #
+    # Plugin Stuff
+    #
+
     def process_meta(self, meta, namespace):
 
         if meta is not None:
