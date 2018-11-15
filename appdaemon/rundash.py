@@ -16,8 +16,7 @@ import socketio
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
 
-sio = socketio.AsyncServer(async_mode='aiohttp')
-AD = None
+
 
 def securedata(myfunc):
     """
@@ -68,6 +67,22 @@ def secure(myfunc):
 
     return wrapper
 
+
+# socketio handler
+
+class DashStream(socketio.AsyncNamespace):
+
+    def __init__(self, path, AD):
+
+        super().__init__(path)
+
+        self.AD = AD
+
+    async def on_connect(self, sid, data):
+        pass
+
+    async def on_up(self, sid, data):
+        self.AD.log("INFO", "New dashboard connected: {}".format(data))
 
 class RunDash:
 
@@ -170,7 +185,10 @@ class RunDash:
         if self.transport == "ws":
             self.app['websockets'] = {}
         else:
-            sio.attach(self.app)
+            self.dash_stream = DashStream('/stream', self.AD)
+            self.sio = socketio.AsyncServer(async_mode='aiohttp')
+            self.sio.attach(self.app)
+            self.sio.register_namespace(self.dash_stream)
 
         self.loop = loop
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
@@ -437,17 +455,7 @@ class RunDash:
                         await ws.send_str(data)
 
             else:
-                await sio.emit('down', data, namespace='/stream')
-
-    # socketio handler
-
-    @sio.on('connect', namespace='/stream')
-    async def socketio_connect(sid, environ):
-        pass
-
-    @sio.on("up", namespace='/stream')
-    async def socketio_up_message(sid, message):
-        AD.log("INFO", "New dashboard connected: {}".format(message))
+                await self.dash_stream.emit('down', data)
 
     # Routes, Status and Templates
 
