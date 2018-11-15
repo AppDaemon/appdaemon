@@ -154,6 +154,31 @@ def single_or_list(field):
     else:
         return [field]
 
+def _sanitize_kwargs(kwargs, keys):
+    for key in keys:
+        if key in kwargs:
+            del kwargs[key]
+    return kwargs
+
+def process_arg(self, arg, args, **kwargs):
+    if args:
+        if arg in args:
+            value = args[arg]
+            if "int" in kwargs and kwargs["int"] is True:
+                try:
+                    value = int(value)
+                    setattr(self, arg, value)
+                except ValueError:
+                    self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
+            if "float" in kwargs and kwargs["float"] is True:
+                try:
+                    value = float(value)
+                    setattr(self, arg, value)
+                except ValueError:
+                    self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
+            else:
+                setattr(self, arg, value)
+
 
 def log(logger, level, msg, name="", ts=None, ascii_encode=True):
     if name != "":

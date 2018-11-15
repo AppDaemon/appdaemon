@@ -25,7 +25,7 @@ from random import randint
 import inspect
 
 import appdaemon.utils as utils
-
+import appdaemon.scheduler as scheduler
 
 def _timeit(func):
     @functools.wraps(func)
@@ -92,13 +92,8 @@ class AppDaemon:
         self.dashboard = None
         self.running_apps = 0
 
-        self.now = datetime.datetime.now().timestamp()
-
         self.objects = {}
         self.objects_lock = threading.RLock()
-
-        self.schedule = {}
-        self.schedule_lock = threading.RLock()
 
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
@@ -124,19 +119,16 @@ class AppDaemon:
         self.global_vars = {}
         self.global_lock = threading.RLock()
 
-        self.sun = {}
-        self.sun_lock = threading.RLock()
-
         self.config_file_modified = 0
-        self.tz = None
 
-        self.realtime = True
+        self.sched = None
+
         self.version = 0
         self.app_config_file_modified = 0
         self.app_config = {}
 
         self.app_config_file = None
-        self._process_arg("app_config_file", kwargs)
+        utils.process_arg(self, "app_config_file", kwargs)
 
         if "plugins" in kwargs:
             self.plugin_params = kwargs["plugins"]
@@ -146,59 +138,47 @@ class AppDaemon:
         # User Supplied/Defaults
 
         self.load_distribution = "roundrobbin"
-        self._process_arg("load_distribution", kwargs)
+        utils.process_arg(self, "load_distribution", kwargs)
 
         self.app_dir = None
-        self._process_arg("app_dir", kwargs)
+        utils.process_arg(self, "app_dir", kwargs)
 
         self.starttime = None
-        self._process_arg("starttime", kwargs)
+        utils.process_arg(self, "starttime", kwargs)
 
-        self._process_arg("now", kwargs)
+        utils.process_arg(self, "now", kwargs)
 
         self.logfile = None
-        self._process_arg("logfile", kwargs)
+        utils.process_arg(self, "logfile", kwargs)
         if self.logfile is None:
             self.logfile = "STDOUT"
 
-        self.latitude = None
-        self._process_arg("latitude", kwargs)
-
-        self.longitude = None
-        self._process_arg("longitude", kwargs)
-
-        self.elevation = None
-        self._process_arg("elevation", kwargs)
-
-        self.time_zone = None
-        self._process_arg("time_zone", kwargs)
-
         self.errfile = None
-        self._process_arg("error_file", kwargs)
+        utils.process_arg(self, "error_file", kwargs)
         if self.errfile is None:
             self.errfile = "STDERR"
 
         self.config_file = None
-        self._process_arg("config_file", kwargs)
+        utils.process_arg(self, "config_file", kwargs)
 
         self.config_dir = None
-        self._process_arg("config_dir", kwargs)
+        utils.process_arg(self, "config_dir", kwargs)
 
         self.plugins = {}
-        self._process_arg("plugins", kwargs)
+        utils.process_arg(self, "plugins", kwargs)
 
         self.tick = 1
-        self._process_arg("tick", kwargs, float=True)
+        utils.process_arg(self, "tick", kwargs, float=True)
 
         self.max_clock_skew = 1
-        self._process_arg("max_clock_skew", kwargs, int=True)
+        utils.process_arg(self, "max_clock_skew", kwargs, int=True)
 
         self.thread_duration_warning_threshold = 10
-        self._process_arg("thread_duration_warning_threshold", kwargs, float=True)
+        utils.process_arg(self, "thread_duration_warning_threshold", kwargs, float=True)
 
 
         self.threadpool_workers = 10
-        self._process_arg("threadpool_workers", kwargs, int=True)
+        utils.process_arg(self, "threadpool_workers", kwargs, int=True)
 
         self.endtime = None
         if "endtime" in kwargs:
@@ -208,53 +188,47 @@ class AppDaemon:
         if kwargs["interval"] is None:
             self.interval = self.tick
         else:
-            self._process_arg("interval", kwargs, float=True)
+            utils.process_arg(self, "interval", kwargs, float=True)
 
         self.loglevel = "INFO"
-        self._process_arg("loglevel", kwargs)
+        utils.process_arg(self, "loglevel", kwargs)
 
         self.api_port = None
-        self._process_arg("api_port", kwargs)
+        utils.process_arg(self, "api_port", kwargs)
 
         self.utility_delay = 1
-        self._process_arg("utility_delay", kwargs, int=True)
+        utils.process_arg(self, "utility_delay", kwargs, int=True)
 
         self.max_utility_skew = self.utility_delay * 0.9
-        self._process_arg("max_utility_skew", kwargs, float=True)
+        utils.process_arg(self, "max_utility_skew", kwargs, float=True)
 
         self.check_app_updates_profile = False
-        self._process_arg("check_app_updates_profile", kwargs)
+        utils.process_arg(self, "check_app_updates_profile", kwargs)
 
         self.production_mode = False
-        self._process_arg("production_mode", kwargs)
+        utils.process_arg(self, "production_mode", kwargs)
 
         self.invalid_yaml_warnings = True
-        self._process_arg("invalid_yaml_warnings", kwargs)
+        utils.process_arg(self, "invalid_yaml_warnings", kwargs)
 
         self.missing_app_warnings = True
-        self._process_arg("missing_app_warnings", kwargs)
+        utils.process_arg(self, "missing_app_warnings", kwargs)
 
         self.log_thread_actions = False
-        self._process_arg("log_thread_actions", kwargs)
+        utils.process_arg(self, "log_thread_actions", kwargs)
 
         self.qsize_warning_threshold = 50
-        self._process_arg("qsize_warning_threshold", kwargs, int=True)
+        utils.process_arg(self, "qsize_warning_threshold", kwargs, int=True)
 
         self.qsize_warning_step = 60
-        self._process_arg("qsize_warning_step", kwargs, int=True)
+        utils.process_arg(self, "qsize_warning_step", kwargs, int=True)
 
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
             self.exclude_dirs += kwargs["exclude_dirs"]
 
         self.stop_function = None
-        self.stop_function = None
-        self._process_arg("stop_function", kwargs)
-
-        if self.tick != self.interval or self.starttime is not None:
-            self.realtime = False
-
-        #print(self.tick, self.interval, self.realtime)
+        utils.process_arg(self, "stop_function", kwargs)
 
         if not kwargs.get("cert_verify", True):
             self.certpath = False
@@ -306,7 +280,7 @@ class AppDaemon:
                 self.total_threads = int(self.check_config(True, False)["total"])
 
             self.pin_apps = True
-            self._process_arg("pin_apps", kwargs)
+            utils.process_arg(self, "pin_apps", kwargs)
 
             if self.pin_apps is True:
                 self.pin_threads = self.total_threads
@@ -316,7 +290,7 @@ class AppDaemon:
                 if "total_threads" not in kwargs:
                     self.total_threads = 10
 
-            self._process_arg("pin_threads", kwargs, int=True)
+            utils.process_arg(self, "pin_threads", kwargs, int=True)
 
             if self.pin_threads > self.total_threads:
                 raise ValueError("pin_threads cannot be > threads")
@@ -445,25 +419,6 @@ class AppDaemon:
                  "thread": t}
         t.start()
         self.threads += 1
-
-    def _process_arg(self, arg, args, **kwargs):
-        if args:
-            if arg in args:
-                value = args[arg]
-                if "int" in kwargs and kwargs["int"] is True:
-                    try:
-                        value = int(value)
-                        setattr(self, arg, value)
-                    except ValueError:
-                        self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
-                if "float" in kwargs and kwargs["float"] is True:
-                    try:
-                        value = float(value)
-                        setattr(self, arg, value)
-                    except ValueError:
-                        self.log("WARNING", "Invalid value for {}: {}, using default({})".format(arg, value, getattr(self, arg)))
-                else:
-                    setattr(self, arg, value)
 
     def stop(self):
         self.stopping = True
@@ -622,7 +577,7 @@ class AppDaemon:
                 end_time = "23:59:59"
             else:
                 end_time = args["constrain_end_time"]
-            if not self.now_is_between(start_time, end_time, name):
+            if not self.sched.now_is_between(start_time, end_time, name):
                 unconstrained = False
 
         return unconstrained
@@ -766,7 +721,7 @@ class AppDaemon:
                          "{} calling {} callback {}".format(thread_id, type, callback))
 
         with self.thread_info_lock:
-            ts = self.now
+            ts = self.sched.get_now_ts()
             if callback == "idle":
                 start = self.thread_info["threads"][thread_id]["time_called"]
                 if ts - start >= self.thread_duration_warning_threshold:
@@ -806,7 +761,7 @@ class AppDaemon:
                     if _type == "timer":
                         if self.validate_callback_sig(name, "timer", funcref):
                             self.update_thread_info(thread_id, callback, _type)
-                            funcref(self.sanitize_timer_kwargs(app, args["kwargs"]))
+                            funcref(self.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                     elif _type == "attr":
                         if self.validate_callback_sig(name, "attr", funcref):
                             entity = args["entity"]
@@ -924,8 +879,8 @@ class AppDaemon:
                 if entity is not None and "new" in kwargs and "duration" in kwargs:
                     with self.state_lock:
                         if self.state[namespace][entity]["state"] == kwargs["new"]:
-                            exec_time = self.get_now_ts() + int(kwargs["duration"])
-                            kwargs["__duration"] = self.insert_schedule(
+                            exec_time = self.sched.get_now_ts() + int(kwargs["duration"])
+                            kwargs["__duration"] = self.sched.insert_schedule(
                                 name, exec_time, cb, False, None,
                                 __entity=entity,
                                 __attribute=None,
@@ -1087,563 +1042,6 @@ class AppDaemon:
                 raise ValueError("Invalid handle: {}".format(handle))
 
     #
-    # Scheduler
-    #
-
-    def cancel_timer(self, name, handle):
-        self.log("DEBUG", "Canceling timer for {}".format(name))
-        with self.schedule_lock:
-            if name in self.schedule and handle in self.schedule[name]:
-                del self.schedule[name][handle]
-            if name in self.schedule and self.schedule[name] == {}:
-                del self.schedule[name]
-
-    # noinspection PyBroadException
-    def exec_schedule(self, name, entry, args):
-        try:
-            # Locking performed in calling function
-            if "inactive" in args:
-                return
-            # Call function
-            with self.objects_lock:
-                if "__entity" in args["kwargs"]:
-                    self.dispatch_worker(name, {
-                        "name": name,
-                        "id": self.objects[name]["id"],
-                        "type": "attr",
-                        "function": args["callback"],
-                        "attribute": args["kwargs"]["__attribute"],
-                        "entity": args["kwargs"]["__entity"],
-                        "new_state": args["kwargs"]["__new_state"],
-                        "old_state": args["kwargs"]["__old_state"],
-                        "pin_app": args["pin_app"],
-                        "pin_thread": args["pin_thread"],
-                        "kwargs": args["kwargs"],
-                    })
-                else:
-                    self.dispatch_worker(name, {
-                        "name": name,
-                        "id": self.objects[name]["id"],
-                        "type": "timer",
-                        "function": args["callback"],
-                        "pin_app": args["pin_app"],
-                        "pin_thread": args["pin_thread"],
-                        "kwargs": args["kwargs"],
-                    })
-            # If it is a repeating entry, rewrite with new timestamp
-            if args["repeat"]:
-                if args["type"] == "next_rising" or args["type"] == "next_setting":
-                    # It's sunrise or sunset - if the offset is negative we
-                    # won't know the next rise or set time yet so mark as inactive
-                    # So we can adjust with a scan at sun rise/set
-                    if args["offset"] < 0:
-                        args["inactive"] = 1
-                    else:
-                        # We have a valid time for the next sunrise/set so use it
-                        c_offset = self.get_offset(args)
-                        args["timestamp"] = self.calc_sun(args["type"]) + c_offset
-                        args["offset"] = c_offset
-                else:
-                    # Not sunrise or sunset so just increment
-                    # the timestamp with the repeat interval
-                    args["basetime"] += args["interval"]
-                    args["timestamp"] = args["basetime"] + self.get_offset(args)
-            else:  # Otherwise just delete
-                del self.schedule[name][entry]
-
-        except:
-            self.err("WARNING", '-' * 60)
-            self.err(
-                "WARNING",
-                "Unexpected error during exec_schedule() for App: {}".format(name)
-            )
-            self.err("WARNING", "Args: {}".format(args))
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
-            if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.log("WARNING", "Logged an error to {}".format(self.errfile))
-            self.err("WARNING", "Scheduler entry has been deleted")
-            self.err("WARNING", '-' * 60)
-
-            del self.schedule[name][entry]
-
-    def process_sun(self, action):
-        self.log(
-            "DEBUG",
-            "Process sun: {}, next sunrise: {}, next sunset: {}".format(
-                action, self.sun["next_rising"], self.sun["next_setting"]
-            )
-        )
-        with self.schedule_lock:
-            for name in self.schedule.keys():
-                for entry in sorted(
-                        self.schedule[name].keys(),
-                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                ):
-                    schedule = self.schedule[name][entry]
-                    if schedule["type"] == action and "inactive" in schedule:
-                        del schedule["inactive"]
-                        c_offset = self.get_offset(schedule)
-                        schedule["timestamp"] = self.calc_sun(action) + c_offset
-                        schedule["offset"] = c_offset
-
-    def sun_up(self):
-        with self.sun_lock:
-            return self.sun["next_rising"] > self.sun["next_setting"]
-
-    def sun_down(self):
-        with self.sun_lock:
-            return self.sun["next_rising"] < self.sun["next_setting"]
-
-    def calc_sun(self, type_):
-        # convert to a localized timestamp
-        with self.sun_lock:
-            return self.sun[type_].timestamp()
-
-    def info_timer(self, handle, name):
-        with self.schedule_lock:
-            if name in self.schedule and handle in self.schedule[name]:
-                callback = self.schedule[name][handle]
-                return (
-                    datetime.datetime.fromtimestamp(callback["timestamp"]),
-                    callback["interval"],
-                    self.sanitize_timer_kwargs(self.objects[name]["object"], callback["kwargs"])
-                )
-            else:
-                raise ValueError("Invalid handle: {}".format(handle))
-
-    def init_sun(self):
-        latitude = self.latitude
-        longitude = self.longitude
-
-        if -90 > latitude < 90:
-            raise ValueError("Latitude needs to be -90 .. 90")
-
-        if -180 > longitude < 180:
-            raise ValueError("Longitude needs to be -180 .. 180")
-
-        elevation = self.elevation
-
-        self.tz = pytz.timezone(self.time_zone)
-
-        self.location = astral.Location((
-            '', '', latitude, longitude, self.tz.zone, elevation
-        ))
-
-    def update_sun(self):
-
-        #now = datetime.datetime.now(self.tz)
-        #now = pytz.utc.localize(self.get_now())
-
-        now = self.tz.localize(self.get_now())
-
-        mod = -1
-        while True:
-            try:
-                next_rising_dt = self.location.sunrise(
-                    (now + datetime.timedelta(days=mod)).date(), local=False
-                )
-                if next_rising_dt > now:
-                    break
-            except astral.AstralError:
-                pass
-            mod += 1
-
-        mod = -1
-        while True:
-            try:
-                next_setting_dt = self.location.sunset(
-                    (now + datetime.timedelta(days=mod)).date(), local=False
-                )
-                if next_setting_dt > now:
-                    break
-            except astral.AstralError:
-                pass
-            mod += 1
-
-        with self.sun_lock:
-            old_next_rising_dt = self.sun.get("next_rising")
-            old_next_setting_dt = self.sun.get("next_setting")
-            self.sun["next_rising"] = next_rising_dt
-            self.sun["next_setting"] = next_setting_dt
-
-            if old_next_rising_dt is not None and old_next_rising_dt != self.sun["next_rising"]:
-                # dump_schedule()
-                self.process_sun("next_rising")
-                # dump_schedule()
-            if old_next_setting_dt is not None and old_next_setting_dt != self.sun["next_setting"]:
-                # dump_schedule()
-                self.process_sun("next_setting")
-                # dump_schedule()
-
-        self.log(
-            "DEBUG",
-            "Update sun: next sunrise: {}, next sunset: {}".format(
-                self.sun["next_rising"], self.sun["next_setting"]
-            )
-        )
-
-    @staticmethod
-    def get_offset(kwargs):
-        if "offset" in kwargs["kwargs"]:
-            if "random_start" in kwargs["kwargs"] \
-                    or "random_end" in kwargs["kwargs"]:
-                raise ValueError(
-                    "Can't specify offset as well as 'random_start' or "
-                    "'random_end' in 'run_at_sunrise()' or 'run_at_sunset()'"
-                )
-            else:
-                offset = kwargs["kwargs"]["offset"]
-        else:
-            rbefore = kwargs["kwargs"].get("random_start", 0)
-            rafter = kwargs["kwargs"].get("random_end", 0)
-            offset = random.randint(rbefore, rafter)
-        # verbose_log(conf.logger, "INFO", "sun: offset = {}".format(offset))
-        return offset
-
-    def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
-        with self.objects_lock:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin"]
-            else:
-                pin_app = self.objects[name]["pin_app"]
-
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.objects[name]["pin_thread"]
-
-        with self.schedule_lock:
-            if name not in self.schedule:
-                self.schedule[name] = {}
-            handle = uuid.uuid4()
-            utc = int(utc)
-            c_offset = self.get_offset({"kwargs": kwargs})
-            ts = utc + c_offset
-            interval = kwargs.get("interval", 0)
-
-            with self.objects_lock:
-                self.schedule[name][handle] = {
-                    "name": name,
-                    "id": self.objects[name]["id"],
-                    "callback": callback,
-                    "timestamp": ts,
-                    "interval": interval,
-                    "basetime": utc,
-                    "repeat": repeat,
-                    "offset": c_offset,
-                    "type": type_,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs
-                }
-                # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
-        return handle
-
-    def get_scheduler_entries(self):
-        schedule = {}
-        for name in self.schedule.keys():
-            schedule[name] = {}
-            for entry in sorted(
-                    self.schedule[name].keys(),
-                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-            ):
-                schedule[name][entry] = {}
-                schedule[name][entry]["timestamp"] = self.schedule[name][entry]["timestamp"]
-                schedule[name][entry]["type"] = self.schedule[name][entry]["type"]
-                schedule[name][entry]["name"] = self.schedule[name][entry]["name"]
-                schedule[name][entry]["basetime"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["repeat"] = self.schedule[name][entry]["repeat"]
-                schedule[name][entry]["offset"] = self.schedule[name][entry]["offset"]
-                schedule[name][entry]["interval"] = self.schedule[name][entry]["interval"]
-                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["kwargs"]
-                schedule[name][entry]["callback"] = self.schedule[name][entry]["callback"]
-        return schedule
-
-    def is_dst(self):
-        return bool(time.localtime(self.get_now_ts()).tm_isdst)
-
-    def get_now(self):
-        return datetime.datetime.fromtimestamp(self.now)
-
-    def get_now_ts(self):
-        return self.now
-
-    def now_is_between(self, start_time_str, end_time_str, name=None):
-        start_time = self.parse_time(start_time_str, name)
-        end_time = self.parse_time(end_time_str, name)
-        now = self.get_now()
-        start_date = now.replace(
-            hour=start_time.hour, minute=start_time.minute,
-            second=start_time.second
-        )
-        end_date = now.replace(
-            hour=end_time.hour, minute=end_time.minute, second=end_time.second
-        )
-        if end_date < start_date:
-            # Spans midnight
-            if now < start_date and now < end_date:
-                now = now + datetime.timedelta(days=1)
-            end_date = end_date + datetime.timedelta(days=1)
-        return start_date <= now <= end_date
-
-    def sunset(self):
-        return datetime.datetime.fromtimestamp(self.calc_sun("next_setting"))
-
-    def sunrise(self):
-        return datetime.datetime.fromtimestamp(self.calc_sun("next_rising"))
-
-
-    def parse_time(self, time_str, name=None):
-        return self._parse_time(time_str, name)["datetime"].time()
-
-    def parse_datetime(self, time_str, name=None):
-        return self._parse_time(time_str, name)["datetime"]
-
-    def _parse_time(self, time_str, name=None):
-        parsed_time = None
-        sun = None
-        offset = 0
-        parts = re.search('^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)', time_str)
-        if parts:
-            parsed_time = datetime.datetime(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), int(parts.group(4)), int(parts.group(5)), int(parts.group(6)), 0)
-        else:
-            parts = re.search('^(\d+):(\d+):(\d+)', time_str)
-            if parts:
-                today = datetime.datetime.fromtimestamp(self.get_now_ts())
-                time = datetime.time(
-                    int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), 0
-                )
-                parsed_time = today.replace(hour=time.hour, minute=time.minute, second=time.second, microsecond=0)
-
-            else:
-                if time_str == "sunrise":
-                    parsed_time = self.sunrise()
-                    sun = "sunrise"
-                    offset = 0
-                elif time_str == "sunset":
-                    parsed_time = self.sunset()
-                    sun = "sunset"
-                    offset = 0
-                else:
-                    parts = re.search(
-                        '^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
-                    )
-                    if parts:
-                        sun = "sunrise"
-                        if parts.group(1) == "+":
-                            td = datetime.timedelta(
-                                hours=int(parts.group(2)), minutes=int(parts.group(3)),
-                                seconds=int(parts.group(4))
-                            )
-                            offset = td.total_seconds()
-                            parsed_time = (self.sunrise() + td)
-                        else:
-                            td = datetime.timedelta(
-                                hours=int(parts.group(2)), minutes=int(parts.group(3)),
-                                seconds=int(parts.group(4))
-                            )
-                            offset = td.total_seconds() * -1
-                            parsed_time = (self.sunrise() - td)
-                    else:
-                        parts = re.search(
-                            '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
-                        )
-                        if parts:
-                            sun = "sunset"
-                            if parts.group(1) == "+":
-                                td = datetime.timedelta(
-                                    hours=int(parts.group(2)), minutes=int(parts.group(3)),
-                                    seconds=int(parts.group(4))
-                                )
-                                offset = td.total_seconds()
-                                parsed_time = (self.sunset() + td)
-                            else:
-                                td = datetime.timedelta(
-                                    hours=int(parts.group(2)), minutes=int(parts.group(3)),
-                                    seconds=int(parts.group(4))
-                                )
-                                offset = td.total_seconds() * -1
-                                parsed_time = (self.sunset() - td)
-        if parsed_time is None:
-            if name is not None:
-                raise ValueError(
-                    "{}: invalid time string: {}".format(name, time_str))
-            else:
-                raise ValueError("invalid time string: {}".format(time_str))
-        return {"datetime": parsed_time, "sun": sun, "offset": offset}
-
-    def dump_sun(self):
-        self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", "Sun")
-        self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", self.sun)
-        self.diag("INFO", "--------------------------------------------------")
-
-    def dump_schedule(self):
-        if self.schedule == {}:
-            self.diag("INFO", "Schedule is empty")
-        else:
-            self.diag("INFO", "--------------------------------------------------")
-            self.diag("INFO", "Scheduler Table")
-            self.diag("INFO", "--------------------------------------------------")
-            for name in self.schedule.keys():
-                self.diag( "INFO", "{}:".format(name))
-                for entry in sorted(
-                        self.schedule[name].keys(),
-                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                ):
-                    self.diag(
-                        "INFO",
-                        "  Timestamp: {} - data: {}".format(
-                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(
-                                self.schedule[name][entry]["timestamp"]
-                            )),
-                            self.schedule[name][entry]
-                        )
-                    )
-            self.diag("INFO", "--------------------------------------------------")
-
-    def myround(self, x, base=1, prec=10):
-        if base == 0:
-            return x
-        else:
-            return round(base * round(float(x) / base), prec)
-
-    async def do_every(self, period, f):
-        #
-        # We already set self.now for DST calculation and initial sunset,
-        # but lets reset it at the start of the timer loop to avoid an initial clock skew
-        #
-        if self.starttime:
-            self.now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
-        else:
-            self.now = datetime.datetime.now().timestamp()
-
-        t = self.myround(self.now, base=period)
-        count = 0
-        t_ = self.myround(time.time(), base=period)
-        #print(t, t_, period)
-        while not self.stopping:
-            count += 1
-            delay = max(t_ + count * period - time.time(), 0)
-            await asyncio.sleep(delay)
-            t = self.myround(t + self.interval, base=period)
-            r = await f(t)
-            if r is not None and r != t:
-                #print("r: {}, t: {}".format(r,t))
-                t = r
-                t_ = r
-                count = 0
-
-    #
-    # Scheduler Loop
-    #
-
-    # noinspection PyBroadException,PyBroadException
-
-    async def do_every_tick(self, utc):
-        try:
-            start_time = datetime.datetime.now().timestamp()
-            self.now = utc
-
-            #print("tick - {}".format(utc))
-
-            # If we have reached endtime bail out
-
-            if self.endtime is not None and self.get_now() >= self.endtime:
-                self.log("INFO", "End time reached, exiting")
-                if self.stop_function is not None:
-                    self.stop_function()
-                else:
-                    #
-                    # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
-                    #
-                    self.stop()
-
-            if self.realtime:
-                real_now = datetime.datetime.now().timestamp()
-                delta = abs(utc - real_now)
-                if delta > self.max_clock_skew:
-                    self.log("WARNING",
-                              "Scheduler clock skew detected - delta = {} - resetting".format(delta))
-                    return real_now
-
-            # Update sunrise/sunset etc.
-
-            self.update_sun()
-
-            # Check if we have entered or exited DST - if so, reload apps
-            # to ensure all time callbacks are recalculated
-
-            now_dst = self.is_dst()
-            if now_dst != self.was_dst:
-                self.log(
-                    "INFO",
-                    "Detected change in DST from {} to {} -"
-                    " reloading all modules".format(self.was_dst, now_dst)
-                )
-                # dump_schedule()
-                self.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, "__ALL__")
-                # dump_schedule()
-            self.was_dst = now_dst
-
-            # dump_schedule()
-
-            # test code for clock skew
-            # if random.randint(1, 10) == 5:
-            #    time.sleep(random.randint(1,20))
-
-
-            # Process callbacks
-
-            # self.log("DEBUG", "Scheduler invoked at {}".format(now))
-            with self.schedule_lock:
-                for name in self.schedule.keys():
-                    for entry in sorted(
-                            self.schedule[name].keys(),
-                            key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                    ):
-
-                        if self.schedule[name][entry]["timestamp"] <= utc:
-                            self.exec_schedule(name, entry, self.schedule[name][entry])
-                        else:
-                            break
-                for k, v in list(self.schedule.items()):
-                    if v == {}:
-                        del self.schedule[k]
-
-            end_time = datetime.datetime.now().timestamp()
-
-            loop_duration = end_time - start_time
-            self.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
-
-            #if loop_duration > 900:
-            if loop_duration > self.tick * 0.9:
-                self.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
-
-            return utc
-
-        except:
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during do_every_tick()")
-            self.err("WARNING", '-' * 60)
-            self.err( "WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
-            if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.log(
-                    "WARNING",
-                    "Logged an error to {}".format(self.errfile)
-                )
-
-    #
     # Plugin Stuff
     #
 
@@ -1741,38 +1139,8 @@ class AppDaemon:
             # All plugins are loaded and we have initial state
             #
 
-            tt = None
-            if self.starttime:
-                tt = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
-                self.now = tt.timestamp()
-            else:
-                new_now = datetime.datetime.now()
-                self.now = new_now.timestamp()
-                if self.tick != self.interval:
-                    tt = new_now
-
-            if tt != None:
-                self.log("INFO", "Starting time travel ...")
-                self.log("INFO", "Setting clocks to {}".format(tt))
-                if self.tick == 0:
-                    self.log("INFO", "Time displacement factor infinite")
-                else:
-                    self.log("INFO", "Time displacement factor {}".format(self.interval/self.tick))
-            else:
-                self.log("INFO", "Scheduler tick set to {}s".format(self.tick))
-
             self.thread_info["max_used"] = 0
-            self.thread_info["max_used_time"] = self.now
-
-            # Take a note of DST
-
-            self.was_dst = self.is_dst()
-
-            # Setup sun
-
-            self.init_sun()
-
-            self.update_sun()
+            self.thread_info["max_used_time"] = self.sched.get_now_ts()
 
             if self.apps is True:
                 self.log("DEBUG", "Reading Apps")
@@ -1789,7 +1157,9 @@ class AppDaemon:
 
             self.log("DEBUG", "Starting timer loop")
 
-            self.loop.create_task(self.do_every(self.tick, self.do_every_tick))
+            self.sched = Schedule(self, self.loop, self.executor, self.latitude, self.longitude, self.elevation, self.time_zone, self.starttime, self.endtime, self.tick, self.interval, self.max_clock_skew, self.stop_function)
+
+            self.loop.create_task(self.sched.do_every())
 
             warning_step = 0
 
@@ -2894,23 +2264,11 @@ class AppDaemon:
 
     def sanitize_state_kwargs(self, app, kwargs):
         kwargs_copy = kwargs.copy()
-        return self._sanitize_kwargs(kwargs_copy, [
+        return utils._sanitize_kwargs(kwargs_copy, [
             "old", "new", "__attribute", "duration", "state",
             "__entity", "__duration", "__old_state", "__new_state",
             "oneshot", "pin_app", "pin_thread"
         ] + app.list_constraints())
-
-    def sanitize_timer_kwargs(self, app, kwargs):
-        kwargs_copy = kwargs.copy()
-        return self._sanitize_kwargs(kwargs_copy, [
-            "interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"
-        ] + app.list_constraints())
-
-    def _sanitize_kwargs(self, kwargs, keys):
-        for key in keys:
-            if key in kwargs:
-                del kwargs[key]
-        return kwargs
 
     def log(self, level, message, name="AppDaemon"):
         if not self.realtime:
