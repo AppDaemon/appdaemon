@@ -294,7 +294,7 @@ class MqttPlugin:
                     self.initialized = True
                 else:
                     if not already_notified and already_initialized:
-                        self.AD.notify_plugin_stopped(self.name, meta, state, self.namespace)
+                        self.AD.notify_plugin_stopped(self.name, self.namespace)
                         self.AD.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
                         already_notified = True
                         already_initialized = False
