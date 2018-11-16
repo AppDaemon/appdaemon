@@ -14,8 +14,10 @@ import appdaemon.utils as utils
 
 class Scheduler:
 
-    def __init__(self, ad, loop, executor, latitude, longitude, elevation, time_zone, starttime, endtime, tick, interval, max_clock_skew, stop_function):
+    def __init__(self, ad):
         self.AD = ad
+
+        self.time_zone = self.AD.time_zone
 
         self.schedule = {}
         self.schedule_lock = threading.RLock()
@@ -23,22 +25,10 @@ class Scheduler:
         self.sun = {}
         self.sun_lock = threading.RLock()
 
-        self.latitude = latitude
-        self.longitude = longitude
-        self.elevation = elevation
-        self.time_zone = time_zone
-        self.loop = loop
-        self.executor = executor
-        self.starttime = starttime
-        self.endtime = endtime
-        self.tick = tick
-        self.interval = interval
-        self.max_clock_skew = max_clock_skew
-        self.stop_function = stop_function
         self.tz = None
         self.now = datetime.datetime.now().timestamp()
 
-        if self.tick != self.interval or self.starttime is not None:
+        if self.AD.tick != self.AD.interval or self.AD.starttime is not None:
             self.realtime = False
 
         self.stopping = False
@@ -60,24 +50,24 @@ class Scheduler:
         self.update_sun()
 
         tt = None
-        if self.starttime:
-            tt = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S")
+        if self.AD.starttime:
+            tt = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
             self.now = tt.timestamp()
         else:
             new_now = datetime.datetime.now()
             self.now = new_now.timestamp()
-            if self.tick != self.interval:
+            if self.AD.tick != self.AD.interval:
                 tt = new_now
 
         if tt is not None:
             self.log("INFO", "Starting time travel ...")
             self.log("INFO", "Setting clocks to {}".format(tt))
-            if self.tick == 0:
+            if self.AD.tick == 0:
                 self.log("INFO", "Time displacement factor infinite")
             else:
-                self.log("INFO", "Time displacement factor {}".format(self.interval / self.tick))
+                self.log("INFO", "Time displacement factor {}".format(self.AD.interval / self.AD.tick))
         else:
-            self.log("INFO", "Scheduler tick set to {}s".format(self.tick))
+            self.log("INFO", "Scheduler tick set to {}s".format(self.AD.tick))
 
     def stop(self):
         self.stopping = True
@@ -208,8 +198,8 @@ class Scheduler:
                 raise ValueError("Invalid handle: {}".format(handle))
 
     def init_sun(self):
-        latitude = self.latitude
-        longitude = self.longitude
+        latitude = self.AD.latitude
+        longitude = self.AD.longitude
 
         if -90 > latitude < 90:
             raise ValueError("Latitude needs to be -90 .. 90")
@@ -217,9 +207,9 @@ class Scheduler:
         if -180 > longitude < 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        elevation = self.elevation
+        elevation = self.AD.elevation
 
-        self.tz = pytz.timezone(self.time_zone)
+        self.tz = pytz.timezone(self.AD.time_zone)
 
         self.location = astral.Location((
             '', '', latitude, longitude, self.tz.zone, elevation
@@ -525,20 +515,20 @@ class Scheduler:
         # We already set self.now for DST calculation and initial sunset,
         # but lets reset it at the start of the timer loop to avoid an initial clock skew
         #
-        if self.starttime:
-            self.now = datetime.datetime.strptime(self.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
+        if self.AD.starttime:
+            self.now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
         else:
             self.now = datetime.datetime.now().timestamp()
 
-        t = self.myround(self.now, base=self.tick)
+        t = self.myround(self.now, base=self.AD.tick)
         count = 0
-        t_ = self.myround(time.time(), base=self.tick)
+        t_ = self.myround(time.time(), base=self.AD.tick)
         #print(t, t_, period)
         while not self.stopping:
             count += 1
-            delay = max(t_ + count * self.tick - time.time(), 0)
+            delay = max(t_ + count * self.AD.tick - time.time(), 0)
             await asyncio.sleep(delay)
-            t = self.myround(t + self.interval, base=self.tick)
+            t = self.myround(t + self.AD.interval, base=self.AD.tick)
             r = await self.do_every_tick(t)
             if r is not None and r != t:
                 #print("r: {}, t: {}".format(r,t))
@@ -561,10 +551,10 @@ class Scheduler:
 
             # If we have reached endtime bail out
 
-            if self.endtime is not None and self.get_now() >= self.endtime:
+            if self.AD.endtime is not None and self.get_now() >= self.AD.endtime:
                 self.log("INFO", "End time reached, exiting")
-                if self.stop_function is not None:
-                    self.stop_function()
+                if self.AD.stop_function is not None:
+                    self.AD.stop_function()
                 else:
                     #
                     # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
@@ -574,7 +564,7 @@ class Scheduler:
             if self.realtime:
                 real_now = datetime.datetime.now().timestamp()
                 delta = abs(utc - real_now)
-                if delta > self.max_clock_skew:
+                if delta > self.AD.max_clock_skew:
                     self.log("WARNING",
                               "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                     return real_now
@@ -595,7 +585,7 @@ class Scheduler:
                 )
                 # dump_schedule()
                 self.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.loop, self.executor, self.AD.check_app_updates, "__ALL__")
+                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates, "__ALL__")
                 # dump_schedule()
             self.was_dst = now_dst
 
@@ -630,7 +620,7 @@ class Scheduler:
             self.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
 
             #if loop_duration > 900:
-            if loop_duration > self.tick * 0.9:
+            if loop_duration > self.AD.tick * 0.9:
                 self.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
 
             return utc

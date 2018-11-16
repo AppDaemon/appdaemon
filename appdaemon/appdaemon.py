@@ -22,9 +22,8 @@ from random import randint
 import inspect
 
 import appdaemon.utils as utils
-import appdaemon.scheduler as scheduler
 import appdaemon.appq as appq
-
+import appdaemon.utility as utility
 
 def _timeit(func):
     @functools.wraps(func)
@@ -82,6 +81,7 @@ class AppDaemon:
         self.monitored_files = {}
         self.filter_files = {}
         self.modules = {}
+
         self.executor = None
         self.loop = None
         self.srv = None
@@ -120,6 +120,8 @@ class AppDaemon:
         self.config_file_modified = 0
 
         self.sched = None
+        self.appq = None
+        self.utility = None
 
         self.version = 0
         self.app_config_file_modified = 0
@@ -405,7 +407,8 @@ class AppDaemon:
 
         self.log("DEBUG", "Starting utility loop")
 
-        loop.create_task(self.utility())
+        self.utility = utility.Utility(self)
+        loop.create_task(self.utility.loop())
 
     def add_thread(self, silent=False):
         id = self.threads
@@ -428,6 +431,8 @@ class AppDaemon:
         self.stopping = True
         if self.sched is not None:
             self.sched.stop()
+        if self.utility is not None:
+            self.utility.stop()
         if self.appq is not None:
             self.appq.stop()
         for plugin in self.plugin_objs:
@@ -658,6 +663,30 @@ class AppDaemon:
             q = self.thread_info["threads"][id]["q"]
             q.put_nowait(args)
 
+    def check_overdue_threads(self):
+        if self.thread_duration_warning_threshold != 0:
+            for thread_id in self.thread_info["threads"]:
+                if self.thread_info["threads"][thread_id]["callback"] != "idle":
+                    start = self.thread_info["threads"][thread_id]["time_called"]
+                    dur = self.sched.get_now_ts() - start
+                    if dur >= self.thread_duration_warning_threshold and dur % self.thread_duration_warning_threshold == 0:
+                        self.log("WARNING", "Excessive time spent in callback: {} - {}s".format
+                        (self.thread_info["threads"][thread_id]["callback"], dur))
+
+    def check_q_size(self, warning_step):
+        qinfo = self.q_info()
+        if qinfo["qsize"] > self.qsize_warning_threshold:
+            if warning_step == 0:
+                self.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
+                self.dump_threads(qinfo)
+            warning_step += 1
+            if warning_step >= self.qsize_warning_step:
+                warning_step = 0
+        else:
+            warning_step = 0
+
+        return warning_step
+
     #
     # Pinning
     #
@@ -714,6 +743,14 @@ class AppDaemon:
     def set_pin_thread(self, name, thread):
         with self.objects_lock:
             self.objects[name]["pin_thread"] = thread
+
+    def validate_pin(self, name, kwargs):
+        if "pin_thread" in kwargs:
+            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threads:
+                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
+                return False
+        else:
+            return True
 
     def update_thread_info(self, thread_id, callback, type = None):
         if self.log_thread_actions:
@@ -833,14 +870,6 @@ class AppDaemon:
                 return True
             else:
                 return False
-
-    def validate_pin(self, name, kwargs):
-        if "pin_thread" in kwargs:
-            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threads:
-                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
-                return False
-        else:
-            return True
 
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
         if self.validate_pin(name, kwargs) is True:
@@ -1024,6 +1053,10 @@ class AppDaemon:
     # Plugin Stuff
     #
 
+    def run_plugin_utility(self):
+        for plugin in self.plugin_objs:
+            self.plugin_objs[plugin]["object"].utility()
+
     def process_meta(self, meta, namespace):
 
         if meta is not None:
@@ -1084,162 +1117,6 @@ class AppDaemon:
         self.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
 
-    #
-    # Utility Loop
-    #
-
-    async def utility(self):
-
-        #
-        # Wait for all plugins to initialize
-        #
-        initialized = False
-        while not initialized and self.stopping is False:
-            initialized = True
-            for plugin in self.plugin_objs:
-                if self.plugin_objs[plugin]["active"] is False:
-                    initialized = False
-                    break
-            await asyncio.sleep(1)
-
-        # Check if we need to bail due to missing metadata
-
-        for key in self.required_meta:
-            if getattr(self, key) == None:
-               # No value so bail
-                self.err("ERROR", "Required attribute not set or obtainable from any plugin: {}".format(key))
-                if self.stop_function is not None:
-                    self.stop_function()
-                else:
-                    self.stop()
-
-
-        if not self.stopping:
-
-            #
-            # All plugins are loaded and we have initial state
-            #
-
-            self.sched = scheduler.Scheduler(self, self.loop, self.executor, self.latitude, self.longitude, self.elevation, self.time_zone, self.starttime, self.endtime, self.tick, self.interval, self.max_clock_skew, self.stop_function)
-
-            if self.apps is True:
-                self.log("DEBUG", "Reading Apps")
-
-                await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
-
-                self.log("INFO", "App initialization complete")
-                #
-                # Fire APPD Started Event
-                #
-                self.process_event("global", {"event_type": "appd_started", "data": {}})
-
-            # Create timer loop
-
-            self.log("DEBUG", "Starting timer loop")
-
-            self.loop.create_task(self.sched.do_every())
-
-            self.thread_info["max_used"] = 0
-            self.thread_info["max_used_time"] = self.sched.get_now_ts()
-
-            warning_step = 0
-
-            while not self.stopping:
-
-                start_time = datetime.datetime.now().timestamp()
-
-                try:
-
-                    if self.apps is True:
-
-                        if self.production_mode is False:
-                            # Check to see if config has changed
-                            await utils.run_in_executor(self.loop, self.executor, self.check_app_updates)
-
-
-                    # Call me suspicious, but lets update state from the plugins periodically
-                    # in case we miss events for whatever reason
-                    # Every 10 minutes seems like a good place to start
-
-                    for plugin in self.plugin_objs:
-                        if self.plugin_objs[plugin]["active"] is True:
-                            if  datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
-                            minutes=10):
-                                try:
-                                    self.log("DEBUG",
-                                             "Refreshing {} state".format(plugin))
-
-                                    state = await self.plugin_objs[plugin]["object"].get_complete_state()
-
-                                    if state is not None:
-                                        with self.state_lock:
-                                            self.state[plugin].update(state)
-
-                                    self.last_plugin_state[plugin] = datetime.datetime.now()
-                                except:
-                                    self.log("WARNING",
-                                          "Unexpected error refreshing {} state - retrying in 10 minutes".format(plugin))
-
-                    # Check for thread starvation
-
-                    qinfo = self.q_info()
-                    if qinfo["qsize"] > self.qsize_warning_threshold:
-                        if warning_step == 0:
-                            self.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
-                            self.dump_threads(qinfo)
-                        warning_step += 1
-                        if warning_step >= self.qsize_warning_step:
-                            warning_step = 0
-                    else:
-                        warning_step = 0
-
-                    # Check for any overdue threads
-
-                    if self.thread_duration_warning_threshold != 0:
-                        for thread_id in self.thread_info["threads"]:
-                            if self.thread_info["threads"][thread_id]["callback"] != "idle":
-                                start = self.thread_info["threads"][thread_id]["time_called"]
-                                dur = self.sched.get_now_ts() - start
-                                if dur >= self.thread_duration_warning_threshold and dur % self.thread_duration_warning_threshold == 0:
-                                    self.log("WARNING", "Excessive time spent in callback: {} - {}s".format(self.thread_info["threads"][thread_id]["callback"], dur))
-
-                    # Run utility for each plugin
-
-                    for plugin in self.plugin_objs:
-                        self.plugin_objs[plugin]["object"].utility()
-
-                except:
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", "Unexpected error during utility()")
-                    self.err("WARNING", '-' * 60)
-                    self.err("WARNING", traceback.format_exc())
-                    self.err("WARNING", '-' * 60)
-                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                        # When explicitly logging to stdout and stderr, suppress
-                        # verbose_log messages about writing an error (since they show up anyway)
-                        self.log(
-                            "WARNING",
-                            "Logged an error to {}".format(self.errfile)
-                        )
-
-                end_time = datetime.datetime.now().timestamp()
-
-                loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
-
-                self.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
-                if loop_duration > (self.max_utility_skew * 1000):
-                    self.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
-                    if self.check_app_updates_profile is True:
-                        self.diag("INFO", "Profile information for Utility Loop")
-                        self.diag("INFO", self.check_app_updates_profile_stats)
-
-                await asyncio.sleep(self.utility_delay)
-
-            #
-            # Stopping, so terminate apps.
-            #
-
-            self.check_app_updates(exit=True)
     #
     # AppDaemon API
     #
@@ -2238,6 +2115,46 @@ class AppDaemon:
 
         return None
 
+    async def wait_for_plugins(self):
+        initialized = False
+        while not initialized and self.stopping is False:
+            initialized = True
+            for plugin in self.plugin_objs:
+                if self.plugin_objs[plugin]["active"] is False:
+                    initialized = False
+                    break
+            await asyncio.sleep(1)
+
+    async def update_plugin_state(self):
+        for plugin in self.plugin_objs:
+            if self.plugin_objs[plugin]["active"] is True:
+                if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
+                        minutes=10):
+                    try:
+                        self.log("DEBUG",
+                                 "Refreshing {} state".format(plugin))
+
+                        state = await self.plugin_objs[plugin]["object"].get_complete_state()
+
+                        if state is not None:
+                            with self.state_lock:
+                                self.state[plugin].update(state)
+
+                        self.last_plugin_state[plugin] = datetime.datetime.now()
+                    except:
+                        self.log("WARNING",
+                                 "Unexpected error refreshing {} state - retrying in 10 minutes".format(plugin))
+
+    def required_meta_check(self):
+        OK = True
+        for key in self.required_meta:
+            if getattr(self, key) == None:
+                # No value so bail
+                self.err("ERROR", "Required attribute not set or obtainable from any plugin: {}".format(key))
+                OK = False
+        return OK
+
+
 
     #
     # Utilities
@@ -2301,11 +2218,6 @@ class AppDaemon:
                                               "ts": ts,
                                               "type": type
                                           }})
-#        with self.log_callbacks_lock:
-#            for thisname in self.log_callbacks:
-#                if thisname != name:
-#                    if utils.log_levels[level] >= utils.log_levels[self.log_callbacks[thisname]["level"]]:
-#                        self.log_callbacks[thisname]["callback"](name, ts, level, message)
 
     def add_log_callback(self, namespace, name, cb, level, **kwargs):
         # Add a separate callback for each log level

@@ -18,7 +18,7 @@ class AppQ:
     def stop(self):
         self.stopping = True
         # Queue a fake event to make the loop wake up and exit
-        self.appq.put_nowait({"namespace": "global", "event_type": "ha_stop", "data": None})
+        self.appq.put_nowait({"namespace": "global", "event_type": "ad_stop", "data": None})
 
     async def loop(self):
         while not self.stopping:
