@@ -58,10 +58,15 @@ class Utility:
 
             self.AD.loop.create_task(self.AD.sched.do_every())
 
+            # Initialize some thread stuff
+
             self.AD.thread_info["max_used"] = 0
             self.AD.thread_info["max_used_time"] = self.AD.sched.get_now_ts()
 
             warning_step = 0
+
+
+            # Start the loop proper
 
             while not self.stopping:
 
