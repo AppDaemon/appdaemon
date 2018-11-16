@@ -430,6 +430,8 @@ class AppDaemon:
 
     def stop(self):
         self.stopping = True
+        if self.sched is not None:
+            self.sched.stop()
         # if ws is not None:
         #    ws.close()
         if self.apps is True:
@@ -565,8 +567,8 @@ class AppDaemon:
     #
     # Constraints
     #
-    @staticmethod
-    def check_constraint(key, value, app):
+
+    def check_constraint(self, key, value, app):
         unconstrained = True
         if key in app.list_constraints():
             method = getattr(app, key)
@@ -1137,8 +1139,10 @@ class AppDaemon:
             if getattr(self, key) == None:
                # No value so bail
                 self.err("ERROR", "Required attribute not set or obtainable from any plugin: {}".format(key))
-                self.err("ERROR", "AppDaemon is terminating")
-                self.stop()
+                if self.stop_function is not None:
+                    self.stop_function()
+                else:
+                    self.stop()
 
 
         if not self.stopping:

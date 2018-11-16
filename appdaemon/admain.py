@@ -39,12 +39,12 @@ class ADMain():
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
         if signum == signal.SIGUSR1:
-            self.AD.dump_schedule()
+            self.AD.sched.dump_schedule()
             self.AD.dump_callbacks()
             qinfo = self.AD.q_info()
             self.AD.dump_threads(qinfo)
             self.AD.dump_objects()
-            self.AD.dump_sun()
+            self.AD.sched.dump_sun()
         if signum == signal.SIGHUP:
             self.AD.check_app_updates(True)
         if signum == signal.SIGINT:
