@@ -438,7 +438,7 @@ class RunDash:
         return ws
 
     async def ws_update(self, namespace, jdata):
-        if jdata["event_type"] == "state_changed":
+        if jdata["event_type"] == "state_changed" or jdata["event_type"] == "hadashboard":
             jdata["namespace"] = namespace
             data = json.dumps(jdata)
             if self.transport == "ws":

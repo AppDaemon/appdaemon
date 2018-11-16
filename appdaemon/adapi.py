@@ -294,7 +294,7 @@ class ADAPI:
         self._check_entity(namespace, entity_id)
         self.AD.log(
             "DEBUG",
-            "set_app_state: {}, {}".format(entity_id, kwargs)
+            "parse_state: {}, {}".format(entity_id, kwargs)
         )
 
         if entity_id in self.get_state(namespace = namespace):
@@ -322,7 +322,7 @@ class ADAPI:
         new_state = self.parse_state(entity_id, namespace, **kwargs)
         # Update AppDaemon's copy
 
-        self.AD.set_app_state(namespace, entity_id, new_state)
+        self.AD.appq.set_app_state(namespace, entity_id, new_state)
 
         return new_state
 
@@ -363,7 +363,7 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        self.AD.process_event(namespace, {"event_type": event, "data": kwargs})
+        self.AD.appq.fire_app_event(namespace, {"event_type": event, "data": kwargs})
 
     #
     # Time

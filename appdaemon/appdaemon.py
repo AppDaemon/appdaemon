@@ -23,6 +23,7 @@ import inspect
 
 import appdaemon.utils as utils
 import appdaemon.scheduler as scheduler
+import appdaemon.appq as appq
 
 
 def _timeit(func):
@@ -81,7 +82,6 @@ class AppDaemon:
         self.monitored_files = {}
         self.filter_files = {}
         self.modules = {}
-        self.appq = None
         self.executor = None
         self.loop = None
         self.srv = None
@@ -267,11 +267,6 @@ class AppDaemon:
             #    self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
             #    return
 
-            #
-            # Initial Setup
-            #
-
-            self.appq = asyncio.Queue(maxsize=0)
 
             # threading setup
 
@@ -400,16 +395,17 @@ class AppDaemon:
                     self.log("WARNING", '-' * 60)
 
 
+        # Create appq Loop
+
+        if self.apps is True:
+            self.appq = appq.AppQ(self)
+            loop.create_task(self.appq.loop())
+
         # Create utility loop
 
         self.log("DEBUG", "Starting utility loop")
 
         loop.create_task(self.utility())
-
-        # Create AppState Loop
-
-        if self.apps is True:
-            loop.create_task(self.appstate_loop())
 
     def add_thread(self, silent=False):
         id = self.threads
@@ -432,10 +428,8 @@ class AppDaemon:
         self.stopping = True
         if self.sched is not None:
             self.sched.stop()
-        # if ws is not None:
-        #    ws.close()
-        if self.apps is True:
-            self.appq.put_nowait({"namespace": "global", "event_type": "ha_stop", "data": None})
+        if self.appq is not None:
+            self.appq.stop()
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin]["object"].stop()
 
@@ -976,31 +970,6 @@ class AppDaemon:
     def set_state(self, namespace, entity, state):
         with self.state_lock:
             self.state[namespace][entity] = state
-
-    #
-    # App State
-    #
-
-    async def appstate_loop(self):
-        while not self.stopping:
-            args = await self.appq.get()
-            namespace = args["namespace"]
-            await self.state_update(namespace, args)
-            self.appq.task_done()
-
-    def set_app_state(self, namespace, entity_id, state):
-        self.log("DEBUG", "set_app_state: {}".format(entity_id))
-        #print(state)
-        if entity_id is not None and "." in entity_id:
-            with self.state_lock:
-                if entity_id in self.state[namespace]:
-                    old_state = self.state[namespace][entity_id]
-                else:
-                    old_state = None
-                data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
-                args = {"namespace": namespace, "event_type": "state_changed", "data": data}
-                self.state[namespace][entity_id] = state
-                self.appq.put_nowait(args)
 
     #
     # Events
