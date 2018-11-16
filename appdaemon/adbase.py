@@ -1,6 +1,7 @@
 import threading
 import appdaemon.utils as utils
 import appdaemon.adapi as adapi
+from functools import wraps
 
 class Entities:
 
@@ -12,31 +13,33 @@ class Entities:
 # Locking decorator
 #
 
-def app_lock(myFunc):
+def app_lock(f):
     """ Synchronization decorator. """
 
-    def wrap(*args, **kw):
+    @wraps(f)
+    def f_app_lock(*args, **kw):
         self = args[0]
 
         self.lock.acquire()
         try:
-            return myFunc(*args, **kw)
+            return f(*args, **kw)
         finally:
             self.lock.release()
-    return wrap
+    return f_app_lock
 
-def global_lock(myFunc):
+def global_lock(f):
     """ Synchronization decorator. """
 
-    def wrap(*args, **kw):
+    @wraps(f)
+    def f_global_lock(*args, **kw):
         self = args[0]
 
         self.AD.global_lock.acquire()
         try:
-            return myFunc(*args, **kw)
+            return f(*args, **kw)
         finally:
             self.AD.global_lock.release()
-    return wrap
+    return f_global_lock
 
 class ADBase:
     #
