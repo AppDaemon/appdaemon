@@ -34,11 +34,6 @@ class Scheduler:
         self.stopping = False
         self.realtime = True
 
-        # Setup Logging
-        self.log = self.AD.log
-        self.err = self.AD.err
-        self.diag = self.AD.diag
-
         # Take a note of DST
 
         self.was_dst = self.is_dst()
@@ -60,20 +55,20 @@ class Scheduler:
                 tt = new_now
 
         if tt is not None:
-            self.log("INFO", "Starting time travel ...")
-            self.log("INFO", "Setting clocks to {}".format(tt))
+            self.AD.log("INFO", "Starting time travel ...")
+            self.AD.log("INFO", "Setting clocks to {}".format(tt))
             if self.AD.tick == 0:
-                self.log("INFO", "Time displacement factor infinite")
+                self.AD.log("INFO", "Time displacement factor infinite")
             else:
-                self.log("INFO", "Time displacement factor {}".format(self.AD.interval / self.AD.tick))
+                self.AD.log("INFO", "Time displacement factor {}".format(self.AD.interval / self.AD.tick))
         else:
-            self.log("INFO", "Scheduler tick set to {}s".format(self.AD.tick))
+            self.AD.log("INFO", "Scheduler tick set to {}s".format(self.AD.tick))
 
     def stop(self):
         self.stopping = True
 
     def cancel_timer(self, name, handle):
-        self.log("DEBUG", "Canceling timer for {}".format(name))
+        self.AD.log("DEBUG", "Canceling timer for {}".format(name))
         with self.schedule_lock:
             if name in self.schedule and handle in self.schedule[name]:
                 del self.schedule[name][handle]
@@ -134,26 +129,26 @@ class Scheduler:
                 del self.schedule[name][entry]
 
         except:
-            self.err("WARNING", '-' * 60)
-            self.err(
+            self.AD.err("WARNING", '-' * 60)
+            self.AD.err(
                 "WARNING",
                 "Unexpected error during exec_schedule() for App: {}".format(name)
             )
-            self.err("WARNING", "Args: {}".format(args))
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
+            self.AD.err("WARNING", "Args: {}".format(args))
+            self.AD.err("WARNING", '-' * 60)
+            self.AD.err("WARNING", traceback.format_exc())
+            self.AD.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
                 # verbose_log messages about writing an error (since they show up anyway)
-                self.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
-            self.err("WARNING", "Scheduler entry has been deleted")
-            self.err("WARNING", '-' * 60)
+                self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+            self.AD.err("WARNING", "Scheduler entry has been deleted")
+            self.AD.err("WARNING", '-' * 60)
 
             del self.schedule[name][entry]
 
     def process_sun(self, action):
-        self.log(
+        self.AD.log(
             "DEBUG",
             "Process sun: {}, next sunrise: {}, next sunset: {}".format(
                 action, self.sun["next_rising"], self.sun["next_setting"]
@@ -261,7 +256,7 @@ class Scheduler:
                 self.process_sun("next_setting")
                 # dump_schedule()
 
-        self.log(
+        self.AD.log(
             "DEBUG",
             "Update sun: next sunrise: {}, next sunset: {}".format(
                 self.sun["next_rising"], self.sun["next_setting"]
@@ -474,26 +469,26 @@ class Scheduler:
         ] + app.list_constraints())
 
     def dump_sun(self):
-        self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", "Sun")
-        self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", self.sun)
-        self.diag("INFO", "--------------------------------------------------")
+        self.AD.diag("INFO", "--------------------------------------------------")
+        self.AD.diag("INFO", "Sun")
+        self.AD.diag("INFO", "--------------------------------------------------")
+        self.AD.diag("INFO", self.sun)
+        self.AD.diag("INFO", "--------------------------------------------------")
 
     def dump_schedule(self):
         if self.schedule == {}:
-            self.diag("INFO", "Schedule is empty")
+            self.AD.diag("INFO", "Schedule is empty")
         else:
-            self.diag("INFO", "--------------------------------------------------")
-            self.diag("INFO", "Scheduler Table")
-            self.diag("INFO", "--------------------------------------------------")
+            self.AD.diag("INFO", "--------------------------------------------------")
+            self.AD.diag("INFO", "Scheduler Table")
+            self.AD.diag("INFO", "--------------------------------------------------")
             for name in self.schedule.keys():
-                self.diag( "INFO", "{}:".format(name))
+                self.AD.diag( "INFO", "{}:".format(name))
                 for entry in sorted(
                         self.schedule[name].keys(),
                         key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
                 ):
-                    self.diag(
+                    self.AD.diag(
                         "INFO",
                         "  Timestamp: {} - data: {}".format(
                             time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(
@@ -502,7 +497,7 @@ class Scheduler:
                             self.schedule[name][entry]
                         )
                     )
-            self.diag("INFO", "--------------------------------------------------")
+            self.AD.diag("INFO", "--------------------------------------------------")
 
     def myround(self, x, base=1, prec=10):
         if base == 0:
@@ -552,7 +547,7 @@ class Scheduler:
             # If we have reached endtime bail out
 
             if self.AD.endtime is not None and self.get_now() >= self.AD.endtime:
-                self.log("INFO", "End time reached, exiting")
+                self.AD.log("INFO", "End time reached, exiting")
                 if self.AD.stop_function is not None:
                     self.AD.stop_function()
                 else:
@@ -565,7 +560,7 @@ class Scheduler:
                 real_now = datetime.datetime.now().timestamp()
                 delta = abs(utc - real_now)
                 if delta > self.AD.max_clock_skew:
-                    self.log("WARNING",
+                    self.AD.log("WARNING",
                               "Scheduler clock skew detected - delta = {} - resetting".format(delta))
                     return real_now
 
@@ -578,13 +573,13 @@ class Scheduler:
 
             now_dst = self.is_dst()
             if now_dst != self.was_dst:
-                self.log(
+                self.AD.log(
                     "INFO",
                     "Detected change in DST from {} to {} -"
                     " reloading all modules".format(self.was_dst, now_dst)
                 )
                 # dump_schedule()
-                self.log("INFO", "-" * 40)
+                self.AD.log("INFO", "-" * 40)
                 await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates, "__ALL__")
                 # dump_schedule()
             self.was_dst = now_dst
@@ -617,24 +612,24 @@ class Scheduler:
             end_time = datetime.datetime.now().timestamp()
 
             loop_duration = end_time - start_time
-            self.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
+            self.AD.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
 
             #if loop_duration > 900:
             if loop_duration > self.AD.tick * 0.9:
-                self.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
+                self.AD.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
 
             return utc
 
         except:
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during do_every_tick()")
-            self.err("WARNING", '-' * 60)
-            self.err( "WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
+            self.AD.err("WARNING", '-' * 60)
+            self.AD.err("WARNING", "Unexpected error during do_every_tick()")
+            self.AD.err("WARNING", '-' * 60)
+            self.AD.err( "WARNING", traceback.format_exc())
+            self.AD.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
                 # verbose_log messages about writing an error (since they show up anyway)
-                self.log(
+                self.AD.log(
                     "WARNING",
                     "Logged an error to {}".format(self.AD.errfile)
                 )
