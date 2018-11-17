@@ -84,7 +84,7 @@ class Scheduler:
             # Call function
             with self.AD.app_management.objects_lock:
                 if "__entity" in args["kwargs"]:
-                    self.AD.dispatch_worker(name, {
+                    self.AD.threading.dispatch_worker(name, {
                         "name": name,
                         "id": self.AD.app_management.objects[name]["id"],
                         "type": "attr",
@@ -98,7 +98,7 @@ class Scheduler:
                         "kwargs": args["kwargs"],
                     })
                 else:
-                    self.AD.dispatch_worker(name, {
+                    self.AD.threading.dispatch_worker(name, {
                         "name": name,
                         "id": self.AD.app_management.objects[name]["id"],
                         "type": "timer",
