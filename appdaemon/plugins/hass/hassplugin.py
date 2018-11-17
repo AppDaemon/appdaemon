@@ -219,7 +219,7 @@ class HassPlugin:
                 #
                 # Fire HA_STARTED Events
                 #
-                await self.AD.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
+                await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
                 self.reading_messages = True
 
                 already_notified = False
@@ -250,7 +250,7 @@ class HassPlugin:
                 self.reading_messages = False
                 first_time = False
                 if not already_notified:
-                    self.AD.notify_plugin_stopped(self.name, self.namespace)
+                    self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True
                 if not self.stopping:
                     self.log(

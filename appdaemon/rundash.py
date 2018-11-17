@@ -384,7 +384,7 @@ class RunDash:
                 else:
                     args[key] = data[key]
 
-            plugin = self.AD.get_plugin(namespace)
+            plugin = self.AD.plugins.get_plugin(namespace)
             await plugin.call_service (service, **args)
             return web.Response(status=200)
 

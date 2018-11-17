@@ -22,11 +22,11 @@ class Utility:
         # Wait for all plugins to initialize
         #
 
-        await self.AD.wait_for_plugins()
+        await self.AD.plugins.wait_for_plugins()
 
         # Check if we need to bail due to missing metadata
 
-        if self.AD.required_meta_check() is False:
+        if self.AD.plugins.required_meta_check() is False:
             if self.AD.stop_function is not None:
                 self.AD.stop_function()
             else:
@@ -80,7 +80,7 @@ class Utility:
                     # in case we miss events for whatever reason
                     # Every 10 minutes seems like a good place to start
 
-                    await self.AD.update_plugin_state()
+                    await self.AD.plugins.update_plugin_state()
 
                     # Check for thread starvation
 
@@ -92,7 +92,7 @@ class Utility:
 
                     # Run utility for each plugin
 
-                    self.AD.run_plugin_utility()
+                    self.AD.plugins.run_plugin_utility()
 
                 except:
                     self.AD.err("WARNING", '-' * 60)

@@ -15,7 +15,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
-        if not self.AD.get_plugin(self._get_namespace(**kwargs)).reading_messages:
+        if not self.AD.plugins.get_plugin(self._get_namespace(**kwargs)).reading_messages:
             self.AD.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
             return lambda *args: None
         else:
@@ -54,7 +54,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         new_state = super(Hass, self).parse_state(entity_id, namespace, **kwargs)
 
-        config = self.AD.get_plugin(namespace).config
+        config = self.AD.plugins.get_plugin(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -311,7 +311,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        config = self.AD.get_plugin(namespace).config        
+        config = self.AD.plugins.get_plugin(namespace).config        
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -353,7 +353,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        config = self.AD.get_plugin(namespace).config
+        config = self.AD.plugins.get_plugin(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:

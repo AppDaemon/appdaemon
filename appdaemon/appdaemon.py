@@ -5,7 +5,6 @@ import os
 import os.path
 import datetime
 import uuid
-import asyncio
 import yaml
 import concurrent.futures
 import threading
@@ -21,6 +20,7 @@ import pstats
 import appdaemon.utils as utils
 import appdaemon.appq as appq
 import appdaemon.utility as utility
+import appdaemon.plugin_management as plugins
 import appdaemon.threading
 
 def _timeit(func):
@@ -59,8 +59,6 @@ def _profile_this(fn):
 
 class AppDaemon:
 
-    required_meta = ["latitude", "longitude", "elevation", "time_zone"]
-
     def __init__(self, logger, error, diag, loop, **kwargs):
 
         self.logger = logger
@@ -74,7 +72,6 @@ class AppDaemon:
         self.was_dst = False
 
         self.last_state = None
-        self.last_plugin_state = {}
 
         self.monitored_files = {}
         self.filter_files = {}
@@ -101,9 +98,6 @@ class AppDaemon:
         self.endpoints = {}
         self.endpoints_lock = threading.RLock()
 
-        self.plugin_meta = {}
-        self.plugin_objs = {}
-
         self.global_vars = {}
         self.global_lock = threading.RLock()
 
@@ -113,17 +107,11 @@ class AppDaemon:
         self.appq = None
         self.utility = None
 
-        self.version = 0
         self.app_config_file_modified = 0
         self.app_config = {}
 
         self.app_config_file = None
         utils.process_arg(self, "app_config_file", kwargs)
-
-        if "plugins" in kwargs:
-            self.plugin_params = kwargs["plugins"]
-        else:
-            self.plugin_params = None
 
         # User Supplied/Defaults
 
@@ -163,9 +151,6 @@ class AppDaemon:
 
         self.config_dir = None
         utils.process_arg(self, "config_dir", kwargs)
-
-        self.plugins = {}
-        utils.process_arg(self, "plugins", kwargs)
 
         self.tick = 1
         utils.process_arg(self, "tick", kwargs, float=True)
@@ -268,8 +253,6 @@ class AppDaemon:
 
         self.stopping = False
 
-        self.log("DEBUG", "Entering run()")
-
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         # Load Plugins
@@ -278,71 +261,10 @@ class AppDaemon:
 
         sys.path.insert(0, os.path.dirname(__file__))
 
-        # Add built in plugins to path
+        # Initialize Plugins
 
-        moddir = "{}/plugins".format(os.path.dirname(__file__))
-
-        plugins = [f.path for f in os.scandir(moddir) if f.is_dir(follow_symlinks=True)]
-
-        for plugin in plugins:
-            sys.path.insert(0, plugin)
-
-        # Now custom plugins
-
-        plugins = []
-
-        if os.path.isdir(os.path.join(self.config_dir, "custom_plugins")):
-            plugins = [f.path for f in os.scandir(os.path.join(self.config_dir, "custom_plugins")) if f.is_dir(follow_symlinks=True)]
-
-            for plugin in plugins:
-                sys.path.insert(0, plugin)
-
-        if self.plugins is not None:
-            for name in self.plugins:
-                basename = self.plugins[name]["type"]
-                type = self.plugins[name]["type"]
-                module_name = "{}plugin".format(basename)
-                class_name = "{}Plugin".format(basename.capitalize())
-
-                full_module_name = None
-                for plugin in plugins:
-                    if os.path.basename(plugin) == type:
-                        full_module_name = "{}".format(module_name)
-                        self.log("INFO",
-                                 "Loading Custom Plugin {} using class {} from module {}".format(name, class_name,
-                                                                                          module_name))
-                        break
-
-                if full_module_name is None:
-                    #
-                    # Not a custom plugin, assume it's a built in
-                    #
-                    full_module_name = "{}".format(module_name)
-                    self.log("INFO",
-                                "Loading Plugin {} using class {} from module {}".format(name, class_name,
-                                                                                         module_name))
-                try:
-
-                    mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
-
-                    app_class = getattr(mod, class_name)
-
-                    plugin = app_class(self, name, self.logger, self.err, self.loglevel, self.plugins[name])
-
-                    namespace = plugin.get_namespace()
-
-                    if namespace in self.plugin_objs:
-                        raise ValueError("Duplicate namespace: {}".format(namespace))
-
-                    self.plugin_objs[namespace] = {"object": plugin, "active": False}
-
-                    loop.create_task(plugin.get_updates())
-                except:
-                    self.log("WARNING", "error loading plugin: {} - ignoring".format(name))
-                    self.log("WARNING", '-' * 60)
-                    self.log("WARNING", traceback.format_exc())
-                    self.log("WARNING", '-' * 60)
-
+        if "plugins" in kwargs:
+            self.plugins = plugins.Plugins(self, kwargs["plugins"])
 
         # Create appq Loop
 
@@ -365,9 +287,8 @@ class AppDaemon:
             self.utility.stop()
         if self.appq is not None:
             self.appq.stop()
-        for plugin in self.plugin_objs:
-            self.plugin_objs[plugin]["object"].stop()
-
+        if self.plugins is not None:
+            self.plugins.stop()
     #
     # Diagnostics
     #
@@ -580,6 +501,14 @@ class AppDaemon:
         with self.state_lock:
             self.state[namespace][entity] = state
 
+    def set_namespace_state(self, namespace, state):
+        with self.state_lock:
+            self.state[namespace] = state
+
+    def update_namespace_state(self, namespace, state):
+        with self.state_lock:
+            self.state[namespace].update(state)
+
     #
     # Events
     #
@@ -628,74 +557,6 @@ class AppDaemon:
                 return callback["event"], callback["kwargs"].copy()
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
-
-    #
-    # Plugin Stuff
-    #
-
-    def run_plugin_utility(self):
-        for plugin in self.plugin_objs:
-            self.plugin_objs[plugin]["object"].utility()
-
-    def process_meta(self, meta, namespace):
-
-        if meta is not None:
-            for key in self.required_meta:
-                if getattr(self, key) == None:
-                    if key in meta:
-                        # We have a value so override
-                        setattr(self, key, meta[key])
-
-    def get_plugin_from_namespace(self, namespace):
-        if self.plugins is not None:
-            for name in self.plugins:
-                if "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
-                    return name
-                if "namespace" not in self.plugins[name] and namespace == "default":
-                    return name
-        else:
-            return None
-
-    async def notify_plugin_started(self, name, namespace, meta, state, first_time=False):
-        self.log("DEBUG", "Plugin started: {}".format(name))
-        try:
-            self.last_plugin_state[namespace] = datetime.datetime.now()
-
-            self.log("DEBUG", "Plugin started meta: {} = {}".format(name, meta))
-
-            self.process_meta(meta, namespace)
-
-            if not self.stopping:
-                self.plugin_meta[namespace] = meta
-
-                with self.state_lock:
-                    self.state[namespace]= state
-
-                if not first_time:
-                    await utils.run_in_executor(self.loop, self.executor, self.check_app_updates, self.get_plugin_from_namespace(namespace))
-                else:
-                    self.log("INFO", "Got initial state from namespace {}".format(namespace))
-
-                self.plugin_objs[namespace]["active"] = True
-                self.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
-        except:
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", "Unexpected error during notify_plugin_started()")
-            self.err("WARNING", '-' * 60)
-            self.err("WARNING", traceback.format_exc())
-            self.err("WARNING", '-' * 60)
-            if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.log(
-                    "WARNING",
-                    "Logged an error to {}".format(self.errfile)
-                )
-
-    def notify_plugin_stopped(self, name, namespace):
-        self.plugin_objs[namespace]["active"] = False
-        self.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
-
 
     #
     # AppDaemon API
@@ -1859,66 +1720,6 @@ class AppDaemon:
                                             "pin_thread": callback["pin_thread"],
                                             "kwargs": callback["kwargs"]
                                         })
-
-    #
-    # Plugin Management
-    #
-
-    def get_plugin(self, name):
-        if name in self.plugin_objs:
-            return self.plugin_objs[name]["object"]
-        else:
-            return None
-
-    def get_plugin_meta(self, namespace):
-        for name in self.plugins:
-            if "namespace" not in self.plugins[name] and namespace == "default":
-                return self.plugin_meta[namespace]
-            elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
-                return self.plugin_meta[namespace]
-
-        return None
-
-    async def wait_for_plugins(self):
-        initialized = False
-        while not initialized and self.stopping is False:
-            initialized = True
-            for plugin in self.plugin_objs:
-                if self.plugin_objs[plugin]["active"] is False:
-                    initialized = False
-                    break
-            await asyncio.sleep(1)
-
-    async def update_plugin_state(self):
-        for plugin in self.plugin_objs:
-            if self.plugin_objs[plugin]["active"] is True:
-                if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
-                        minutes=10):
-                    try:
-                        self.log("DEBUG",
-                                 "Refreshing {} state".format(plugin))
-
-                        state = await self.plugin_objs[plugin]["object"].get_complete_state()
-
-                        if state is not None:
-                            with self.state_lock:
-                                self.state[plugin].update(state)
-
-                        self.last_plugin_state[plugin] = datetime.datetime.now()
-                    except:
-                        self.log("WARNING",
-                                 "Unexpected error refreshing {} state - retrying in 10 minutes".format(plugin))
-
-    def required_meta_check(self):
-        OK = True
-        for key in self.required_meta:
-            if getattr(self, key) == None:
-                # No value so bail
-                self.err("ERROR", "Required attribute not set or obtainable from any plugin: {}".format(key))
-                OK = False
-        return OK
-
-
 
     #
     # Utilities

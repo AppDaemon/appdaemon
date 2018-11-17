@@ -287,14 +287,14 @@ class MqttPlugin:
                 meta = await self.get_metadata()
 
                 if self.mqtt_connected : #meaning the client has connected to the broker
-                    await self.AD.notify_plugin_started(self.name, self.namespace, meta, state, first_time)
+                    await self.AD.plugins.notify_plugin_started(self.name, self.namespace, meta, state, first_time)
                     already_notified = False
                     already_initialized = True
                     self.AD.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
                     self.initialized = True
                 else:
                     if not already_notified and already_initialized:
-                        self.AD.notify_plugin_stopped(self.name, meta, state, self.namespace)
+                        self.AD.plugins.notify_plugin_stopped(self.name, meta, state, self.namespace)
                         self.AD.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
                         already_notified = True
                         already_initialized = False

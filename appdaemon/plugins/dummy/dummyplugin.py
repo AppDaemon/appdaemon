@@ -90,7 +90,7 @@ class DummyPlugin:
     #
 
     async def get_updates(self):
-        await self.AD.notify_plugin_started(self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True)
+        await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True)
         while not self.stopping:
             ret = None
             if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
@@ -128,11 +128,11 @@ class DummyPlugin:
 
                 elif "disconnect" in event:
                     self.log("*** Disconnected ***".format(ret))
-                    self.AD.notify_plugin_stopped(self.namespace)
+                    self.AD.plugins.notify_plugin_stopped(self.namespace)
 
                 elif "connect" in event:
                     self.log("*** Connected ***".format(ret))
-                    await self.AD.notify_plugin_started(self.namespace)
+                    await self.AD.plugins.notify_plugin_started(self.namespace)
 
                 self.current_event += 1
                 if self.current_event >= len(self.config["sequence"]["events"]) and "loop" in self.config["sequence"] and self.config["sequence"]["loop"] == 1:

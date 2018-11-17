@@ -75,8 +75,8 @@ class ADBase:
         return api
 
     def get_plugin_api(self, name):
-        if name in self.AD.plugins:
-            plugin = self.AD.plugins[name]
+        if name in self.AD.plugin.plugins:
+            plugin = self.AD.plugin.plugins[name]
             module_name = "{}api".format(plugin["type"])
             mod = __import__(module_name, globals(), locals(), [module_name], 0)
             app_class = getattr(mod, plugin["type"].title())

@@ -136,7 +136,7 @@ class ADAPI:
 
     def get_plugin_config(self, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        return self.AD.get_plugin_meta(namespace)
+        return self.AD.plugins.get_plugin_meta(namespace)
 
     def friendly_name(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
