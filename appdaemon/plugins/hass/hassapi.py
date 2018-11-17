@@ -16,7 +16,7 @@ def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
         if not self.AD.plugins.get_plugin(self._get_namespace(**kwargs)).reading_messages:
-            self.AD.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
+            self.AD.logging.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
             return lambda *args: None
         else:
             return func(*args, **kwargs)
@@ -304,7 +304,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @hass_check
     def fire_event(self, event, **kwargs):
-        self.AD.log("DEBUG",
+        self.AD.logging.log("DEBUG",
                   "fire_event: {}, {}".format(event, kwargs))
         
         namespace = self._get_namespace(**kwargs)
@@ -344,7 +344,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     def call_service(self, service, **kwargs):
         self._check_service(service)
         d, s = service.split("/")
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "call_service: {}/{}, {}".format(d, s, kwargs)
         )

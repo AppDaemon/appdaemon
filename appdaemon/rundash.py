@@ -82,7 +82,7 @@ class DashStream(socketio.AsyncNamespace):
         pass
 
     async def on_up(self, sid, data):
-        self.AD.log("INFO", "New dashboard connected: {}".format(data))
+        self.AD.logging.log("INFO", "New dashboard connected: {}".format(data))
 
 class RunDash:
 

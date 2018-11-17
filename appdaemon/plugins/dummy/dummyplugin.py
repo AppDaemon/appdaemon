@@ -16,7 +16,7 @@ class DummyPlugin:
         self.config = args
         self.name = name
 
-        self.AD.log("INFO", "Dummy Plugin Initializing", "DUMMY")
+        self.AD.logging.log("INFO", "Dummy Plugin Initializing", "DUMMY")
 
         self.name = name
 
@@ -35,25 +35,25 @@ class DummyPlugin:
         try:
             self.config = yaml.load(config_file_contents)
         except yaml.YAMLError as exc:
-            self.AD.log("WARNING", "Error loading configuration")
+            self.AD.logging.log("WARNING", "Error loading configuration")
             if hasattr(exc, 'problem_mark'):
                 if exc.context is not None:
-                    self.AD.log("WARNING", "parser says")
-                    self.AD.log("WARNING", str(exc.problem_mark))
-                    self.AD.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                    self.AD.logging.log("WARNING", "parser says")
+                    self.AD.logging.log("WARNING", str(exc.problem_mark))
+                    self.AD.logging.log("WARNING", str(exc.problem) + " " + str(exc.context))
                 else:
-                    self.AD.log("WARNING", "parser says")
-                    self.AD.log("WARNING", str(exc.problem_mark))
-                    self.AD.log("WARNING", str(exc.problem))
+                    self.AD.logging.log("WARNING", "parser says")
+                    self.AD.logging.log("WARNING", str(exc.problem_mark))
+                    self.AD.logging.log("WARNING", str(exc.problem))
 
         self.state = self.config["initial_state"]
         self.current_event = 0
 
-        self.AD.log("INFO", "Dummy Plugin initialization complete")
+        self.AD.logging.log("INFO", "Dummy Plugin initialization complete")
 
     def log(self, text):
         if self.verbose:
-            self.AD.log("INFO", "{}: {}".format(self.name, text))
+            self.AD.logging.log("INFO", "{}: {}".format(self.name, text))
 
 
     def stop(self):

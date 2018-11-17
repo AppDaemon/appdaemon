@@ -89,7 +89,7 @@ class HassPlugin:
         self.log("INFO", "HASS Plugin initialization complete")
 
     def log(self, level, message):
-        self.AD.log(level, "{}: {}".format(self.name, message))
+        self.AD.logging.log(level, "{}: {}".format(self.name, message))
 
     def verbose_log(self, text):
         if self.verbose:

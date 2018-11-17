@@ -16,16 +16,16 @@ class Callbacks:
 
     def dump_callbacks(self):
         if self.callbacks == {}:
-            self.AD.diag("INFO", "No callbacks")
+            self.AD.logging.diag("INFO", "No callbacks")
         else:
-            self.AD.diag("INFO", "--------------------------------------------------")
-            self.AD.diag("INFO", "Callbacks")
-            self.AD.diag("INFO", "--------------------------------------------------")
+            self.AD.logging.diag("INFO", "--------------------------------------------------")
+            self.AD.logging.diag("INFO", "Callbacks")
+            self.AD.logging.diag("INFO", "--------------------------------------------------")
             for name in self.callbacks.keys():
-                self.AD.diag("INFO", "{}:".format(name))
+                self.AD.logging.diag("INFO", "{}:".format(name))
                 for uuid_ in self.callbacks[name]:
-                    self.AD.diag( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
-            self.AD.diag("INFO", "--------------------------------------------------")
+                    self.AD.logging.diag( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
+            self.AD.logging.diag("INFO", "--------------------------------------------------")
 
     def get_callback_entries(self):
         callbacks = {}
@@ -46,7 +46,7 @@ class Callbacks:
         return callbacks
 
     def clear_callbacks(self, name):
-        self.AD.log("DEBUG", "Clearing callbacks for {}".format(name))
+        self.AD.logging.log("DEBUG", "Clearing callbacks for {}".format(name))
         with self.callbacks_lock:
             if name in self.callbacks:
                 del self.callbacks[name]

@@ -42,11 +42,11 @@ class Utility:
             self.AD.sched = scheduler.Scheduler(self.AD)
 
             if self.AD.apps is True:
-                self.AD.log("DEBUG", "Reading Apps")
+                self.AD.logging.log("DEBUG", "Reading Apps")
 
                 await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates)
 
-                self.AD.log("INFO", "App initialization complete")
+                self.AD.logging.log("INFO", "App initialization complete")
                 #
                 # Fire APPD Started Event
                 #
@@ -54,7 +54,7 @@ class Utility:
 
             # Create timer loop
 
-            self.AD.log("DEBUG", "Starting timer loop")
+            self.AD.logging.log("DEBUG", "Starting timer loop")
 
             self.AD.loop.create_task(self.AD.sched.do_every())
 
@@ -95,15 +95,15 @@ class Utility:
                     self.AD.plugins.run_plugin_utility()
 
                 except:
-                    self.AD.err("WARNING", '-' * 60)
-                    self.AD.err("WARNING", "Unexpected error during utility()")
-                    self.AD.err("WARNING", '-' * 60)
-                    self.AD.err("WARNING", traceback.format_exc())
-                    self.AD.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", "Unexpected error during utility()")
+                    self.AD.logging.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", traceback.format_exc())
+                    self.AD.logging.err("WARNING", '-' * 60)
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
                         # When explicitly logging to stdout and stderr, suppress
                         # verbose_log messages about writing an error (since they show up anyway)
-                        self.AD.log(
+                        self.AD.logging.log(
                             "WARNING",
                             "Logged an error to {}".format(self.AD.errfile)
                         )
@@ -112,12 +112,12 @@ class Utility:
 
                 loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
 
-                self.AD.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
+                self.AD.logging.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
                 if loop_duration > (self.AD.max_utility_skew * 1000):
-                    self.AD.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+                    self.AD.logging.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
                     if self.AD.check_app_updates_profile is True:
-                        self.AD.diag("INFO", "Profile information for Utility Loop")
-                        self.AD.diag("INFO", self.AD.check_app_updates_profile_stats)
+                        self.AD.logging.diag("INFO", "Profile information for Utility Loop")
+                        self.AD.logging.diag("INFO", self.AD.check_app_updates_profile_stats)
 
                 await asyncio.sleep(self.AD.utility_delay)
 

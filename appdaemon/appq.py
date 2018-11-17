@@ -5,8 +5,6 @@ class AppQ:
     def __init__(self, ad):
 
         self.AD = ad
-        self.log = self.AD.log
-
         self.stopping = False
 
         #
@@ -28,12 +26,12 @@ class AppQ:
             self.appq.task_done()
 
     def fire_app_event(self, namespace, event):
-        self.log("DEBUG", "fire_app_event: {}".format(event["event_type"]))
+        self.AD.logging.log("DEBUG", "fire_app_event: {}".format(event["event_type"]))
         event["namespace"] = namespace
         self.appq.put_nowait(event)
 
     def set_app_state(self, namespace, entity_id, state):
-        self.log("DEBUG", "set_app_state: {}".format(entity_id))
+        self.AD.logging.log("DEBUG", "set_app_state: {}".format(entity_id))
         #print(state)
         if entity_id is not None and "." in entity_id:
             if self.AD.state.entity_exists(namespace, entity_id):

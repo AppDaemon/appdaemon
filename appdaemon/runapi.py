@@ -1,4 +1,6 @@
 import json
+import threading
+import uuid
 
 from aiohttp import web
 import ssl
@@ -27,6 +29,9 @@ class ADAPI():
 
         self.api_port = 0
         self._process_arg("api_port", config)
+
+        self.endpoints = {}
+        self.endpoints_lock = threading.RLock()
 
         try:
             self.setup_api()
@@ -115,3 +120,39 @@ class ADAPI():
 
     def setup_api(self):
         app.router.add_post('/api/appdaemon/{app}', self.call_api)
+
+
+    def register_endpoint(self, cb, name):
+
+        handle = uuid.uuid4()
+
+        with self.endpoints_lock:
+            if name not in self.endpoints:
+                self.endpoints[name] = {}
+            self.endpoints[name][handle] = {"callback": cb, "name": name}
+
+        return handle
+
+    def unregister_endpoint(self, handle, name):
+        with self.endpoints_lock:
+            if name in self.endpoints and handle in self.endpoints[name]:
+                del self.endpoints[name][handle]
+
+
+    async def dispatch_app_by_name(self, name, args):
+        with self.endpoints_lock:
+            callback = None
+            for app in self.endpoints:
+                for handle in self.endpoints[app]:
+                    if self.endpoints[app][handle]["name"] == name:
+                        callback = self.endpoints[app][handle]["callback"]
+        if callback is not None:
+            return await utils.run_in_executor(self.AD.loop, self.AD.executor, callback, args)
+        else:
+            return '', 404
+
+    def term_object(self, name):
+        with self.endpoints_lock:
+            if name in self.endpoints:
+                del self.endpoints[name]
+

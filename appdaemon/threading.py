@@ -30,7 +30,7 @@ class Threading:
         self.auto_pin = True
 
         if "threads" in kwargs:
-            self.AD.log("WARNING",
+            self.AD.logging.log("WARNING",
                      "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps")
 
         if "total_threads" in kwargs:
@@ -58,7 +58,7 @@ class Threading:
         if self.pin_threads < 0:
             raise ValueError("pin_threads cannot be < 0")
 
-        self.AD.log("INFO", "Starting Apps with {} workers and {} pins".format(self.total_threads, self.pin_threads))
+        self.AD.logging.log("INFO", "Starting Apps with {} workers and {} pins".format(self.total_threads, self.pin_threads))
 
         self.next_thread = self.pin_threads
 
@@ -73,7 +73,7 @@ class Threading:
     def add_thread(self, silent=False):
         id = self.threads
         if silent is False:
-            self.AD.log("INFO", "Adding thread {}".format(id))
+            self.AD.logging.log("INFO", "Adding thread {}".format(id))
         t = threading.Thread(target=self.worker)
         t.daemon = True
         t.setName("thread-{}".format(id))
@@ -138,19 +138,19 @@ class Threading:
 
     def dump_threads(self, qinfo):
         thread_info = qinfo["thread_info"]
-        self.AD.diag("INFO", "--------------------------------------------------")
-        self.AD.diag("INFO", "Threads")
-        self.AD.diag("INFO", "--------------------------------------------------")
+        self.AD.logging.diag("INFO", "--------------------------------------------------")
+        self.AD.logging.diag("INFO", "Threads")
+        self.AD.logging.diag("INFO", "--------------------------------------------------")
         max_ts = datetime.datetime.fromtimestamp(thread_info["max_busy_time"])
         last_ts = datetime.datetime.fromtimestamp(thread_info["last_action_time"])
-        self.AD.diag("INFO", "Currently busy threads: {}".format(thread_info["current_busy"]))
-        self.AD.diag("INFO", "Most used threads: {} at {}".format(thread_info["max_busy"], max_ts))
-        self.AD.diag("INFO", "Last activity: {}".format(last_ts))
-        self.AD.diag("INFO", "Total Q Entries: {}".format(qinfo["qsize"]))
-        self.AD.diag("INFO", "--------------------------------------------------")
+        self.AD.logging.diag("INFO", "Currently busy threads: {}".format(thread_info["current_busy"]))
+        self.AD.logging.diag("INFO", "Most used threads: {} at {}".format(thread_info["max_busy"], max_ts))
+        self.AD.logging.diag("INFO", "Last activity: {}".format(last_ts))
+        self.AD.logging.diag("INFO", "Total Q Entries: {}".format(qinfo["qsize"]))
+        self.AD.logging.diag("INFO", "--------------------------------------------------")
         for thread in sorted(thread_info["threads"], key=self.natural_keys):
             ts = datetime.datetime.fromtimestamp(thread_info["threads"][thread]["time_called"])
-            self.AD.diag("INFO",
+            self.AD.logging.diag("INFO",
                      "{} - qsize: {} | current callback: {} | since {}, | alive: {}, | pinned apps: {}".format(
                          thread,
                          thread_info["threads"][thread]["qsize"],
@@ -159,7 +159,7 @@ class Threading:
                          thread_info["threads"][thread]["is_alive"],
                          self.AD.get_pinned_apps(thread)
                      ))
-        self.AD.diag("INFO", "--------------------------------------------------")
+        self.AD.logging.diag("INFO", "--------------------------------------------------")
 
     #
     # Thread Management
@@ -180,7 +180,7 @@ class Threading:
             # Handle the case where an App is unpinned but selects a pinned callback without specifying a thread
             # If this happens a lot, thread 0 might get congested but the alternatives are worse!
             if thread == -1:
-                self.AD.log("WARNING", "Invalid thread ID for pinned thread in app: {} - assigning to thread 0".format(args["name"]))
+                self.AD.logging.log("WARNING", "Invalid thread ID for pinned thread in app: {} - assigning to thread 0".format(args["name"]))
                 thread = 0
         else:
             if self.threads == self.pin_threads:
@@ -211,14 +211,14 @@ class Threading:
                     start = self.thread_info["threads"][thread_id]["time_called"]
                     dur = self.AD.sched.get_now_ts() - start
                     if dur >= self.AD.thread_duration_warning_threshold and dur % self.AD.thread_duration_warning_threshold == 0:
-                        self.AD.log("WARNING", "Excessive time spent in callback: {} - {}s".format
+                        self.AD.logging.log("WARNING", "Excessive time spent in callback: {} - {}s".format
                         (self.thread_info["threads"][thread_id]["callback"], dur))
 
     def check_q_size(self, warning_step):
         qinfo = self.q_info()
         if qinfo["qsize"] > self.AD.qsize_warning_threshold:
             if warning_step == 0:
-                self.AD.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
+                self.AD.logging.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
                 self.dump_threads(qinfo)
             warning_step += 1
             if warning_step >= self.AD.qsize_warning_step:
@@ -231,10 +231,10 @@ class Threading:
     def update_thread_info(self, thread_id, callback, type = None):
         if self.AD.log_thread_actions:
             if callback == "idle":
-                self.AD.diag("INFO",
+                self.AD.logging.diag("INFO",
                          "{} done".format(thread_id, type, callback))
             else:
-                self.AD.diag("INFO",
+                self.AD.logging.diag("INFO",
                          "{} calling {} callback {}".format(thread_id, type, callback))
 
         with self.thread_info_lock:
@@ -242,7 +242,7 @@ class Threading:
             if callback == "idle":
                 start = self.thread_info["threads"][thread_id]["time_called"]
                 if ts - start >= self.AD.thread_duration_warning_threshold:
-                    self.AD.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
+                    self.AD.logging.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
             self.thread_info["threads"][thread_id]["callback"] = callback
             self.thread_info["threads"][thread_id]["time_called"] = ts
             if callback == "idle":
@@ -509,18 +509,18 @@ class Threading:
                                 self.update_thread_info(thread_id, callback, _type)
                                 funcref(args["event"], data, args["kwargs"])
                 except:
-                    self.AD.err("WARNING", '-' * 60, name=name)
-                    self.AD.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
-                    self.AD.err("WARNING", "Worker Ags: {}".format(args), name=name)
-                    self.AD.err("WARNING", '-' * 60, name=name)
-                    self.AD.err("WARNING", traceback.format_exc(), name=name)
-                    self.AD.err("WARNING", '-' * 60, name=name)
+                    self.AD.logging.err("WARNING", '-' * 60, name=name)
+                    self.AD.logging.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
+                    self.AD.logging.err("WARNING", "Worker Ags: {}".format(args), name=name)
+                    self.AD.logging.err("WARNING", '-' * 60, name=name)
+                    self.AD.logging.err("WARNING", traceback.format_exc(), name=name)
+                    self.AD.logging.err("WARNING", '-' * 60, name=name)
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile), name=name)
+                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile), name=name)
                 finally:
                     self.update_thread_info(thread_id, "idle")
             else:
-                self.AD.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
+                self.AD.logging.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
 
             q.task_done()
 
@@ -538,12 +538,12 @@ class Threading:
 
         if type in callback_args:
             if len(sig.parameters) != callback_args[type]["count"]:
-                self.AD.log("WARNING", "Incorrect signature type for callback {}(), should be {} - discarding".format(funcref.__name__, callback_args[type]["signature"]), name=name)
+                self.AD.logging.log("WARNING", "Incorrect signature type for callback {}(), should be {} - discarding".format(funcref.__name__, callback_args[type]["signature"]), name=name)
                 return False
             else:
                 return True
         else:
-            self.AD.log("ERROR", "Unknown callback type: {}".format(type), name=name)
+            self.AD.logging.log("ERROR", "Unknown callback type: {}".format(type), name=name)
 
         return False
 

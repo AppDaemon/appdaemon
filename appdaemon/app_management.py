@@ -43,13 +43,13 @@ class AppManagement:
         self.process_filters()
 
     def dump_objects(self):
-        self.AD.diag("INFO", "--------------------------------------------------")
-        self.AD.diag("INFO", "Objects")
-        self.AD.diag("INFO", "--------------------------------------------------")
+        self.AD.logging.diag("INFO", "--------------------------------------------------")
+        self.AD.logging.diag("INFO", "Objects")
+        self.AD.logging.diag("INFO", "--------------------------------------------------")
         with self.objects_lock:
             for object_ in self.objects.keys():
-                self.AD.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
-        self.AD.diag("INFO", "--------------------------------------------------")
+                self.AD.logging.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
+        self.AD.logging.diag("INFO", "--------------------------------------------------")
 
     def get_app(self, name):
         with self.objects_lock:
@@ -63,10 +63,10 @@ class AppManagement:
             if name in self.objects:
                 init = getattr(self.objects[name]["object"], "initialize", None)
                 if init == None:
-                    self.AD.log("WARNING", "Unable to find initialize() function in module {} - skipped".format(name))
+                    self.AD.logging.log("WARNING", "Unable to find initialize() function in module {} - skipped".format(name))
                     return
             else:
-                self.AD.log("WARNING", "Unable to find module {} - initialize() skipped".format(name))
+                self.AD.logging.log("WARNING", "Unable to find module {} - initialize() skipped".format(name))
                 return
         # Call its initialize function
 
@@ -74,19 +74,19 @@ class AppManagement:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 init()
         except:
-            self.AD.err("WARNING", '-' * 60)
-            self.AD.err("WARNING", "Unexpected error running initialize() for {}".format(name))
-            self.AD.err("WARNING", '-' * 60)
-            self.AD.err("WARNING", traceback.format_exc())
-            self.AD.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", "Unexpected error running initialize() for {}".format(name))
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", traceback.format_exc())
+            self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
     def term_object(self, name):
         with self.objects_lock:
             term = None
             if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
-                self.AD.log("INFO", "Calling terminate() for {}".format(name))
+                self.AD.logging.log("INFO", "Calling terminate() for {}".format(name))
                 # Call terminate directly rather than via worker thread
                 # so we know terminate has completed before we move on
 
@@ -96,13 +96,13 @@ class AppManagement:
             try:
                 term()
             except:
-                self.AD.err("WARNING", '-' * 60)
-                self.AD.err("WARNING", "Unexpected error running terminate() for {}".format(name))
-                self.AD.err("WARNING", '-' * 60)
-                self.AD.err("WARNING", traceback.format_exc())
-                self.AD.err("WARNING", '-' * 60)
+                self.AD.logging.err("WARNING", '-' * 60)
+                self.AD.logging.err("WARNING", "Unexpected error running terminate() for {}".format(name))
+                self.AD.logging.err("WARNING", '-' * 60)
+                self.AD.logging.err("WARNING", traceback.format_exc())
+                self.AD.logging.err("WARNING", '-' * 60)
                 if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                    self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                    self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
         with self.objects_lock:
             if name in self.objects:
@@ -112,15 +112,11 @@ class AppManagement:
 
         self.AD.sched.term_object(name)
 
-        #TODO: Move
-
-        with self.AD.endpoints_lock:
-            if name in self.AD.endpoints:
-                del self.AD.endpoints[name]
+        self.AD.api.term_object(name)
 
     def init_object(self, name):
         app_args = self.app_config[name]
-        self.AD.log("INFO",
+        self.AD.logging.log("INFO",
                   "Initializing app {} using class {} from module {}".format(name, app_args["class"], app_args["module"]))
 
         if self.get_file_from_module(app_args["module"]) is not None:
@@ -128,7 +124,7 @@ class AppManagement:
             with self.objects_lock:
                 if "pin_thread" in app_args:
                     if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.threads:
-                        self.AD.log("WARNING", "pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
+                        self.AD.logging.log("WARNING", "pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
                         return
                     else:
                         pin = app_args["pin_thread"]
@@ -147,14 +143,14 @@ class AppManagement:
                 }
 
         else:
-            self.AD.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
+            self.AD.logging.log("WARNING", "Unable to find module module {} - {} is not initialized".format(app_args["module"], name))
 
     def read_config(self):
 
         new_config = None
 
         if os.path.isfile(self.app_config_file):
-            self.AD.log("WARNING", "apps.yaml in the Config directory is deprecated. Please move apps.yaml to the apps directory.")
+            self.AD.logging.log("WARNING", "apps.yaml in the Config directory is deprecated. Please move apps.yaml to the apps directory.")
             new_config = self.read_config_file(self.app_config_file)
         else:
             for root, subdirs, files in os.walk(self.AD.app_dir):
@@ -162,7 +158,7 @@ class AppManagement:
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml":
-                            self.AD.log("DEBUG", "Reading {}".format(os.path.join(root, file)))
+                            self.AD.logging.log("DEBUG", "Reading {}".format(os.path.join(root, file)))
                             config = self.read_config_file(os.path.join(root, file))
                             valid_apps = {}
                             if type(config).__name__ == "dict":
@@ -174,18 +170,18 @@ class AppManagement:
                                             valid_apps[app] = config[app]
                                         else:
                                             if self.AD.invalid_yaml_warnings:
-                                                self.AD.log("WARNING",
+                                                self.AD.logging.log("WARNING",
                                                          "App '{}' missing 'class' or 'module' entry - ignoring".format(app))
                             else:
                                 if self.AD.invalid_yaml_warnings:
-                                    self.AD.log("WARNING",
+                                    self.AD.logging.log("WARNING",
                                              "File '{}' invalid structure - ignoring".format(os.path.join(root, file)))
 
                             if new_config is None:
                                 new_config = {}
                             for app in valid_apps:
                                 if app in new_config:
-                                    self.AD.log("WARNING",
+                                    self.AD.logging.log("WARNING",
                                              "File '{}' duplicate app: {} - ignoring".format(os.path.join(root, file), app))
                                 else:
                                     new_config[app] = valid_apps[app]
@@ -239,27 +235,27 @@ class AppManagement:
                 new_config = yaml.load(config_file_contents)
 
             except yaml.YAMLError as exc:
-                self.AD.log("WARNING", "Error loading configuration")
+                self.AD.logging.log("WARNING", "Error loading configuration")
                 if hasattr(exc, 'problem_mark'):
                     if exc.context is not None:
-                        self.AD.log("WARNING", "parser says")
-                        self.AD.log("WARNING", str(exc.problem_mark))
-                        self.AD.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                        self.AD.logging.log("WARNING", "parser says")
+                        self.AD.logging.log("WARNING", str(exc.problem_mark))
+                        self.AD.logging.log("WARNING", str(exc.problem) + " " + str(exc.context))
                     else:
-                        self.AD.log("WARNING", "parser says")
-                        self.AD.log("WARNING", str(exc.problem_mark))
-                        self.AD.log("WARNING", str(exc.problem))
+                        self.AD.logging.log("WARNING", "parser says")
+                        self.AD.logging.log("WARNING", str(exc.problem_mark))
+                        self.AD.logging.log("WARNING", str(exc.problem))
 
             return new_config
 
         except:
-            self.AD.err("WARNING", '-' * 60)
-            self.AD.err("WARNING", "Unexpected error loading config file: {}".format(file))
-            self.AD.err("WARNING", '-' * 60)
-            self.AD.err("WARNING", traceback.format_exc())
-            self.AD.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", "Unexpected error loading config file: {}".format(file))
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", traceback.format_exc())
+            self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
     # noinspection PyBroadException
     def check_config(self, silent=False, add_threads=True):
@@ -275,20 +271,20 @@ class AppManagement:
 
             if latest["files"] or latest["deleted"]:
                 if silent is False:
-                    self.AD.log("INFO", "Reading config")
+                    self.AD.logging.log("INFO", "Reading config")
                 new_config = self.read_config()
                 if new_config is None:
                     if silent is False:
-                        self.AD.log("WARNING", "New config not applied")
+                        self.AD.logging.log("WARNING", "New config not applied")
                     return
 
                 for file in latest["deleted"]:
                     if silent is False:
-                        self.AD.log("INFO", "{} deleted".format(file))
+                        self.AD.logging.log("INFO", "{} deleted".format(file))
 
                 for file in latest["files"]:
                     if silent is False:
-                        self.AD.log("INFO", "{} added or modified".format(file))
+                        self.AD.logging.log("INFO", "{} added or modified".format(file))
 
                 # Check for changes
 
@@ -298,7 +294,7 @@ class AppManagement:
                             # Something changed, clear and reload
 
                             if silent is False:
-                                self.AD.log("INFO", "App '{}' changed".format(name))
+                                self.AD.logging.log("INFO", "App '{}' changed".format(name))
                             terminate_apps[name] = 1
                             initialize_apps[name] = 1
                     else:
@@ -306,7 +302,7 @@ class AppManagement:
                         # Section has been deleted, clear it out
 
                         if silent is False:
-                            self.AD.log("INFO", "App '{}' deleted".format(name))
+                            self.AD.logging.log("INFO", "App '{}' deleted".format(name))
                         #
                         # Since the entry has been deleted we can't sensibly determine dependencies
                         # So just immediately terminate it
@@ -319,20 +315,20 @@ class AppManagement:
                         # New section added!
                         #
                         if "class" in new_config[name] and "module" in new_config[name]:
-                            self.AD.log("INFO", "App '{}' added".format(name))
+                            self.AD.logging.log("INFO", "App '{}' added".format(name))
                             initialize_apps[name] = 1
                         elif name == "global_modules":
                             pass
                         else:
                             if self.AD.invalid_yaml_warnings:
                                 if silent is False:
-                                    self.AD.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
+                                    self.AD.logging.log("WARNING", "App '{}' missing 'class' or 'module' entry - ignoring".format(name))
 
                 self.app_config = new_config
                 total_apps = len(self.app_config)
 
                 if silent is False:
-                    self.AD.log("INFO", "Running {} apps".format(total_apps))
+                    self.AD.logging.log("INFO", "Running {} apps".format(total_apps))
 
             # Now we know if we have any new apps we can create new threads if pinning
 
@@ -344,13 +340,13 @@ class AppManagement:
 
             return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}
         except:
-            self.AD.err("WARNING", '-' * 60)
-            self.AD.err("WARNING", "Unexpected error:")
-            self.AD.err("WARNING", '-' * 60)
-            self.AD.err("WARNING", traceback.format_exc())
-            self.AD.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", "Unexpected error:")
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", traceback.format_exc())
+            self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
     def get_app_from_file(self, file):
         module = self.get_module_from_path(file)
@@ -365,7 +361,7 @@ class AppManagement:
         module_name = os.path.splitext(name)[0]
         # Import the App
         if reload:
-            self.AD.log("INFO", "Reloading Module: {}".format(file))
+            self.AD.logging.log("INFO", "Reloading Module: {}".format(file))
 
             file, ext = os.path.splitext(name)
             #
@@ -384,7 +380,7 @@ class AppManagement:
         else:
             app = self.get_app_from_file(file)
             if app is not None:
-                self.AD.log("INFO", "Loading App Module: {}".format(file))
+                self.AD.logging.log("INFO", "Loading App Module: {}".format(file))
                 if module_name not in self.modules:
                     self.modules[module_name] = importlib.import_module(module_name)
                 else:
@@ -392,11 +388,11 @@ class AppManagement:
                     importlib.reload(self.modules[module_name])
 
             elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
-                self.AD.log("INFO", "Loading Global Module: {}".format(file))
+                self.AD.logging.log("INFO", "Loading Global Module: {}".format(file))
                 self.modules[module_name] = importlib.import_module(module_name)
             else:
                 if self.AD.missing_app_warnings:
-                    self.AD.log("WARNING", "No app description found for: {} - ignoring".format(file))
+                    self.AD.logging.log("WARNING", "No app description found for: {} - ignoring".format(file))
 
 
     @staticmethod
@@ -436,11 +432,11 @@ class AppManagement:
                                 if self.filter_files[infile] < modified:
                                     run = True
                             else:
-                                self.AD.log("INFO", "Found new filter file {}".format(infile))
+                                self.AD.logging.log("INFO", "Found new filter file {}".format(infile))
                                 run = True
 
                             if run is True:
-                                self.AD.log("INFO", "Running filter on {}".format(infile))
+                                self.AD.logging.log("INFO", "Running filter on {}".format(infile))
                                 self.filter_files[infile] = modified
 
                                 # Run the filter
@@ -451,11 +447,11 @@ class AppManagement:
                                 try:
                                     p = subprocess.Popen(command_line, shell=True)
                                 except:
-                                    self.AD.log("WARNING", '-' * 60)
-                                    self.AD.log("WARNING", "Unexpected running filter on: {}:".format(infile))
-                                    self.AD.log("WARNING", '-' * 60)
-                                    self.AD.log("WARNING", traceback.format_exc())
-                                    self.AD.log("WARNING", '-' * 60)
+                                    self.AD.logging.log("WARNING", '-' * 60)
+                                    self.AD.logging.log("WARNING", "Unexpected running filter on: {}:".format(infile))
+                                    self.AD.logging.log("WARNING", '-' * 60)
+                                    self.AD.logging.log("WARNING", traceback.format_exc())
+                                    self.AD.logging.log("WARNING", '-' * 60)
 
     @staticmethod
     def file_in_modules(file, modules):
@@ -495,7 +491,7 @@ class AppManagement:
 
             if root[-11:] != "__pycache__":
                 if root not in self.module_dirs:
-                    self.AD.log("INFO", "Adding {} to module import path".format(root))
+                    self.AD.logging.log("INFO", "Adding {} to module import path".format(root))
                     sys.path.insert(0, root)
                     self.module_dirs.append(root)
 
@@ -519,11 +515,11 @@ class AppManagement:
                         modules.append({"name": file, "reload": True})
                         self.monitored_files[file] = modified
                 else:
-                    self.AD.log("DEBUG", "Found module {}".format(file))
+                    self.AD.logging.log("DEBUG", "Found module {}".format(file))
                     modules.append({"name": file, "reload": False})
                     self. monitored_files[file] = modified
             except IOError as err:
-                self.AD.log("WARNING",
+                self.AD.logging.log("WARNING",
                          "Unable to read app {}: {} - skipping".format(file, err))
 
         # Check for deleted modules and add them to the terminate list
@@ -531,7 +527,7 @@ class AppManagement:
         for file in self.monitored_files:
             if file not in found_files or exit is True:
                 deleted_modules.append(file)
-                self.AD.log("INFO", "Removing module {}".format(file))
+                self.AD.logging.log("INFO", "Removing module {}".format(file))
 
         for file in deleted_modules:
             del self.monitored_files[file]
@@ -555,7 +551,7 @@ class AppManagement:
                             apps["init"][app] = 1
 
         if plugin is not None:
-            self.AD.log("INFO", "Processing restart for {}".format(plugin))
+            self.AD.logging.log("INFO", "Processing restart for {}".format(plugin))
             # This is a restart of one of the plugins so check which apps need to be restarted
             for app in self.app_config:
                 reload = False
@@ -586,16 +582,16 @@ class AppManagement:
 
             for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
                 try:
-                    self.AD.log("INFO", "Terminating {}".format(app))
+                    self.AD.logging.log("INFO", "Terminating {}".format(app))
                     self.term_object(app)
                 except:
-                    self.AD.err("WARNING", '-' * 60)
-                    self.AD.err("WARNING", "Unexpected error terminating app: {}:".format(app))
-                    self.AD.err("WARNING", '-' * 60)
-                    self.AD.err("WARNING", traceback.format_exc())
-                    self.AD.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", "Unexpected error terminating app: {}:".format(app))
+                    self.AD.logging.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", traceback.format_exc())
+                    self.AD.logging.err("WARNING", '-' * 60)
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
 
         # Load/reload modules
@@ -604,20 +600,20 @@ class AppManagement:
             try:
                 self.read_app(mod["name"], mod["reload"])
             except:
-                self.AD.err("WARNING", '-' * 60)
-                self.AD.err("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
-                self.AD.err("WARNING", '-' * 60)
-                self.AD.err("WARNING", traceback.format_exc())
-                self.AD.err("WARNING", '-' * 60)
+                self.AD.logging.err("WARNING", '-' * 60)
+                self.AD.logging.err("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                self.AD.logging.err("WARNING", '-' * 60)
+                self.AD.logging.err("WARNING", traceback.format_exc())
+                self.AD.logging.err("WARNING", '-' * 60)
                 if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                    self.AD.log("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
-                self.AD.log("WARNING", "Removing associated apps:")
+                    self.AD.logging.log("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                self.AD.logging.log("WARNING", "Removing associated apps:")
                 module = self.get_module_from_path(mod["name"])
                 for app in self.app_config:
                     if self.app_config[app]["module"] == module:
                         if apps["init"] and app in apps["init"]:
                             del apps["init"][app]
-                            self.AD.log("WARNING", "{}".format(app))
+                            self.AD.logging.log("WARNING", "{}".format(app))
 
         if apps is not None and apps["init"]:
 
@@ -629,13 +625,13 @@ class AppManagement:
                 try:
                     self.init_object(app)
                 except:
-                    self.AD.err("WARNING", '-' * 60)
-                    self.AD.err("WARNING", "Unexpected error initializing app: {}:".format(app))
-                    self.AD.err("WARNING", '-' * 60)
-                    self.AD.err("WARNING", traceback.format_exc())
-                    self.AD.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", "Unexpected error initializing app: {}:".format(app))
+                    self.AD.logging.err("WARNING", '-' * 60)
+                    self.AD.logging.err("WARNING", traceback.format_exc())
+                    self.AD.logging.err("WARNING", '-' * 60)
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
             self.AD.threading.calculate_pin_threads()
 
@@ -675,8 +671,8 @@ class AppManagement:
                     if dep in self.app_config:
                         dependees.append(dep)
                     else:
-                        self.AD.log("WARNING", "Unable to find app {} in dependencies for {}".format(dep, app))
-                        self.AD.log("WARNING", "Ignoring app {}".format(app))
+                        self.AD.logging.log("WARNING", "Unable to find app {} in dependencies for {}".format(dep, app))
+                        self.AD.logging.log("WARNING", "Ignoring app {}".format(app))
             deps.append((app, dependees))
 
         prio_apps = {}
@@ -741,12 +737,12 @@ class AppManagement:
             if not next_emitted:
                 # all entries have unmet deps, we have cyclic redundancies
                 # since we already know all deps are correct
-                self.AD.log("WARNING", "Cyclic or missing app dependencies detected")
+                self.AD.logging.log("WARNING", "Cyclic or missing app dependencies detected")
                 for pend in next_pending:
                     deps = ""
                     for dep in pend[1]:
                         deps += "{} ".format(dep)
-                    self.AD.log("WARNING", "{} depends on {}".format(pend[0], deps))
+                    self.AD.logging.log("WARNING", "{} depends on {}".format(pend[0], deps))
                 raise ValueError("cyclic dependancy detected")
             pending = next_pending
             emitted = next_emitted

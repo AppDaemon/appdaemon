@@ -72,7 +72,7 @@ class State:
     def cancel_state_callback(self, handle, name):
         with self.AD.callbacks.callbacks_lock:
             if name not in self.AD.callbacks.callbacks or handle not in self.AD.callbacks.callbacks[name]:
-                self.AD.log("WARNING", "Invalid callback in cancel_state_callback() from app {}".format(name))
+                self.AD.logging.log("WARNING", "Invalid callback in cancel_state_callback() from app {}".format(name))
 
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
@@ -97,7 +97,7 @@ class State:
     def process_state_change(self, namespace, state):
         data = state["data"]
         entity_id = data['entity_id']
-        self.AD.log("DEBUG", data)
+        self.AD.logging.log("DEBUG", data)
         device, entity = entity_id.split(".")
 
         # Process state callbacks
@@ -178,11 +178,11 @@ class State:
 
     async def state_update(self, namespace, data):
         try:
-            self.AD.log(
+            self.AD.logging.log(
                 "DEBUG",
                 "Event type:{}:".format(data['event_type'])
             )
-            self.AD.log("DEBUG", data["data"])
+            self.AD.logging.log("DEBUG", data["data"])
 
             if data['event_type'] == "state_changed":
                 entity_id = data['data']['entity_id']
@@ -205,11 +205,11 @@ class State:
                 await self.AD.dashboard.ws_update(namespace, data)
 
         except:
-            self.AD.log("WARNING", '-' * 60)
-            self.AD.log("WARNING", "Unexpected error during state_update()")
-            self.AD.log("WARNING", '-' * 60)
-            self.AD.log("WARNING", traceback.format_exc())
-            self.AD.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", "Unexpected error during state_update()")
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", traceback.format_exc())
+            self.AD.logging.log("WARNING", '-' * 60)
 
     def entity_exists(self, namespace, entity):
         with self.state_lock:
@@ -226,7 +226,7 @@ class State:
                 else:
                     return None
             else:
-                self.AD.log("WARNING", "Unknown namespace: {}".format(namespace))
+                self.AD.logging.log("WARNING", "Unknown namespace: {}".format(namespace))
                 return None
 
     def get_state(self, namespace, device, entity, attribute):

@@ -1,7 +1,6 @@
 import os
 import os.path
 import datetime
-import uuid
 import concurrent.futures
 import threading
 import functools
@@ -19,6 +18,7 @@ import appdaemon.app_management as apps
 import appdaemon.callbacks as callbacks
 import appdaemon.state as state
 import appdaemon.events as events
+import appdaemon.logging as logging
 
 
 def _timeit(func):
@@ -77,10 +77,8 @@ class AppDaemon:
         self.appd = None
         self.stopping = False
         self.dashboard = None
+        self.api = None
         self.running_apps = 0
-
-        self.endpoints = {}
-        self.endpoints_lock = threading.RLock()
 
         self.global_vars = {}
         self.global_lock = threading.RLock()
@@ -197,9 +195,14 @@ class AppDaemon:
 
         if kwargs.get("disable_apps") is True:
             self.apps = False
-            self.log("INFO", "Apps are disabled")
+            self.logging.log("INFO", "Apps are disabled")
         else:
             self.apps = True
+
+        #
+        # Setup logging
+        #
+        self.logging = logging.Logging(self)
 
         #
         # Set up events
@@ -256,7 +259,7 @@ class AppDaemon:
 
         # Create utility loop
 
-        self.log("DEBUG", "Starting utility loop")
+        self.logging.log("DEBUG", "Starting utility loop")
 
         self.utility = utility.Utility(self)
         loop.create_task(self.utility.loop())
@@ -272,103 +275,14 @@ class AppDaemon:
         if self.plugins is not None:
             self.plugins.stop()
 
-    def register_endpoint(self, cb, name):
-
-        handle = uuid.uuid4()
-
-        with self.endpoints_lock:
-            if name not in self.endpoints:
-                self.endpoints[name] = {}
-            self.endpoints[name][handle] = {"callback": cb, "name": name}
-
-        return handle
-
-    def unregister_endpoint(self, handle, name):
-        with self.endpoints_lock:
-            if name in self.endpoints and handle in self.endpoints[name]:
-                del self.endpoints[name][handle]
-
 
     #
     # Utilities
     #
 
-    def log(self, level, message, name="AppDaemon"):
-        if self.sched is not None and not self.sched.is_realtime():
-            ts = self.sched.get_now_ts()
-        else:
-            ts = datetime.datetime.now()
-        utils.log(self.logger, level, message, name, ts)
-
-        if level != "DEBUG":
-            self.process_log_callback(level, message, name, ts, "log")
-
-    def err(self, level, message, name="AppDaemon"):
-        if self.sched is not None and not self.sched.is_realtime():
-            ts = self.sched.get_now_ts()
-        else:
-            ts = datetime.datetime.now()
-        utils.log(self.error, level, message, name, ts)
-
-        if level != "DEBUG":
-            self.process_log_callback(level, message, name, ts, "error")
-
-    def diag(self, level, message, name="AppDaemon"):
-        if self.sched is not None and not self.sched.is_realtime():
-            ts = self.sched.get_now_ts()
-        else:
-            ts = None
-        utils.log(self.diagnostic, level, message, name, ts)
-
-        if level != "DEBUG":
-            self.process_log_callback(level, message, name, ts, "diag")
-
-    def process_log_callback(self, level, message, name, ts, type):
-        # Need to check if this log callback belongs to an app that is accepting log events
-        # If so, don't generate the event to avoid loops
-        has_log_callback = False
-        with self.callbacks.callbacks_lock:
-            for callback in self.callbacks.callbacks:
-                for uuid in self.callbacks.callbacks[callback]:
-                    cb = self.callbacks.callbacks[callback][uuid]
-                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
-                        has_log_callback = True
-
-        if has_log_callback is False:
-            self.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
-                                          "data": {
-                                              "level": level,
-                                              "app_name": name,
-                                              "message": message,
-                                              "ts": ts,
-                                              "type": type
-                                          }})
-
-    def add_log_callback(self, namespace, name, cb, level, **kwargs):
-        # Add a separate callback for each log level
-        handle = []
-        for thislevel in utils.log_levels:
-            if utils.log_levels[thislevel] >= utils.log_levels[level] :
-                handle.append(self.events.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
-
-        return handle
-
-    def cancel_log_callback(self, name, handle):
-        for h in handle:
-            self.events.cancel_event_callback(name, h)
-
     def register_dashboard(self, dash):
         self.dashboard = dash
 
-    async def dispatch_app_by_name(self, name, args):
-        with self.endpoints_lock:
-            callback = None
-            for app in self.endpoints:
-                for handle in self.endpoints[app]:
-                    if self.endpoints[app][handle]["name"] == name:
-                        callback = self.endpoints[app][handle]["callback"]
-        if callback is not None:
-            return await utils.run_in_executor(self.loop, self.executor, callback, args)
-        else:
-            return '', 404
+    def register_api(self, api):
+        self.api = api
 

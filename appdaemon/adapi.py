@@ -69,11 +69,11 @@ class ADAPI:
 
     def log(self, msg, level="INFO"):
         msg = self._sub_stack(msg)
-        self.AD.log(level, msg, self.name)
+        self.AD.logging.log(level, msg, self.name)
 
     def error(self, msg, level="WARNING"):
         msg = self._sub_stack(msg)
-        self.AD.err(level, msg, self.name)
+        self.AD.logging.err(level, msg, self.name)
 
     def listen_log(self, cb, level="INFO", **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -82,7 +82,7 @@ class ADAPI:
         return self.AD.add_log_callback(namespace, self.name, cb, level, **kwargs)
 
     def cancel_listen_log(self, handle):
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Canceling listen_log for {}".format(self.name)
         )
@@ -110,7 +110,7 @@ class ADAPI:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
         if not self.AD.state.entity_exists(namespace, entity):
-            self.AD.log("WARNING",
+            self.AD.logging.log("WARNING",
                       "{}: Entity {} not found in AppDaemon".format(
                           self.name, entity))
 
@@ -235,10 +235,10 @@ class ADAPI:
             ep = self.name
         else:
             ep = name
-        return self.AD.register_endpoint(cb, ep)
+        return self.AD.api.register_endpoint(cb, ep)
 
     def unregister_endpoint(self, handle):
-        self.AD.unregister_endpoint(handle, self.name)
+        self.AD.api.unregister_endpoint(handle, self.name)
 
     #
     # State
@@ -254,14 +254,14 @@ class ADAPI:
         return self.AD.state.add_state_callback(name, namespace, entity, cb, kwargs)
 
     def cancel_listen_state(self, handle):
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Canceling listen_state for {}".format(self.name)
         )
         self.AD.state.cancel_state_callback(handle, self.name)
 
     def info_listen_state(self, handle):
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Calling info_listen_state for {}".format(self.name)
         )
@@ -271,7 +271,7 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        self.AD.log("DEBUG",
+        self.AD.logging.log("DEBUG",
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
         entity = None
@@ -292,7 +292,7 @@ class ADAPI:
 
     def parse_state(self, entity_id, namespace, **kwargs):
         self._check_entity(namespace, entity_id)
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "parse_state: {}, {}".format(entity_id, kwargs)
         )
@@ -337,21 +337,21 @@ class ADAPI:
             del kwargs["namespace"]
 
         _name = self.name
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Calling listen_event for {}".format(self.name)
         )
         return self.AD.events.add_event_callback(_name, namespace, cb, event, **kwargs)
 
     def cancel_listen_event(self, handle):
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Canceling listen_event for {}".format(self.name)
         )
         self.AD.events.cancel_event_callback(self.name, handle)
 
     def info_listen_event(self, handle):
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Calling info_listen_event for {}".format(self.name)
         )
@@ -445,7 +445,7 @@ class ADAPI:
 
     def run_in(self, callback, seconds, **kwargs):
         name = self.name
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Registering run_in in {} seconds for {}".format(seconds, name)
         )
@@ -553,7 +553,7 @@ class ADAPI:
         now = self.get_now()
         if start < now:
             raise ValueError("start cannot be in the past")
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Registering run_every starting {} in {}s intervals for {}".format(
                 start, interval, name
@@ -573,7 +573,7 @@ class ADAPI:
 
     def run_at_sunset(self, callback, **kwargs):
         name = self.name
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "Registering run_at_sunset with kwargs = {} for {}".format(
                 kwargs, name
@@ -584,7 +584,7 @@ class ADAPI:
 
     def run_at_sunrise(self, callback, **kwargs):
         name = self.name
-        self.AD.log("DEBUG",
+        self.AD.logging.log("DEBUG",
                   "Registering run_at_sunrise with kwargs = {} for {}".format(
                       kwargs, name))
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
