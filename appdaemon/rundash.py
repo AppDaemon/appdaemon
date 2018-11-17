@@ -340,7 +340,7 @@ class RunDash:
         entity_id = request.match_info.get('entity')
         namespace = request.match_info.get('namespace')
 
-        state = self.AD.get_entity(namespace, entity_id)
+        state = self.AD.state.get_entity(namespace, entity_id)
 
         return web.json_response({"state": state})
 

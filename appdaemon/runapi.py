@@ -96,7 +96,7 @@ class ADAPI():
             return web.Response(body = res, status = code)
 
         try:
-            ret, code = await self.AD.dispatch_app_by_name(app, args)
+            ret, code = await self.AD.api.dispatch_app_by_name(app, args)
         except:
             self.log("WARNING", '-' * 60)
             self.log("WARNING", "Unexpected error during API call")
