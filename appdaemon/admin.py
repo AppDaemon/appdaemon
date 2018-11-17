@@ -65,7 +65,7 @@ class Admin:
         params["appdaemon"]["booted"] = self.AD.booted
 
         params["apps"] = {}
-        for obj in self.AD.objects:
+        for obj in self.AD.app_management.objects:
             params["apps"][obj] = {}
 
         params["plugins"] = {}

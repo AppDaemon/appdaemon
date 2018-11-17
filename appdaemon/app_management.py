@@ -71,7 +71,7 @@ class AppManagement:
         # Call its initialize function
 
         try:
-            if self.AD.validate_callback_sig(name, "initialize", init):
+            if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 init()
         except:
             self.AD.err("WARNING", '-' * 60)
@@ -143,7 +143,7 @@ class AppManagement:
                         self.AD, name, self.AD.logger, self.AD.error, app_args, self.AD.config, self.app_config, self.AD.global_vars
                     ),
                     "id": uuid.uuid4(),
-                    "pin_app": self.AD.app_should_be_pinned(name),
+                    "pin_app": self.AD.threading.app_should_be_pinned(name),
                     "pin_thread": pin
                 }
 
@@ -638,7 +638,7 @@ class AppManagement:
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
                         self.AD.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
-            self.AD.calculate_pin_threads()
+            self.AD.threading.calculate_pin_threads()
 
             # Call initialize() for apps
 

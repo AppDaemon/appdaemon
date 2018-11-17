@@ -82,11 +82,11 @@ class Scheduler:
             if "inactive" in args:
                 return
             # Call function
-            with self.AD.objects_lock:
+            with self.AD.app_management.objects_lock:
                 if "__entity" in args["kwargs"]:
                     self.AD.dispatch_worker(name, {
                         "name": name,
-                        "id": self.AD.objects[name]["id"],
+                        "id": self.AD.app_management.objects[name]["id"],
                         "type": "attr",
                         "function": args["callback"],
                         "attribute": args["kwargs"]["__attribute"],
@@ -100,7 +100,7 @@ class Scheduler:
                 else:
                     self.AD.dispatch_worker(name, {
                         "name": name,
-                        "id": self.AD.objects[name]["id"],
+                        "id": self.AD.app_management.objects[name]["id"],
                         "type": "timer",
                         "function": args["callback"],
                         "pin_app": args["pin_app"],
@@ -187,7 +187,7 @@ class Scheduler:
                 return (
                     datetime.datetime.fromtimestamp(callback["timestamp"]),
                     callback["interval"],
-                    self.sanitize_timer_kwargs(self.AD.objects[name]["object"], callback["kwargs"])
+                    self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"])
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
@@ -282,17 +282,17 @@ class Scheduler:
         return offset
 
     def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
-        with self.AD.objects_lock:
+        with self.AD.app_management.objects_lock:
             if "pin" in kwargs:
                 pin_app = kwargs["pin"]
             else:
-                pin_app = self.AD.objects[name]["pin_app"]
+                pin_app = self.AD.app_management.objects[name]["pin_app"]
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
                 pin_app = True
             else:
-                pin_thread = self.AD.objects[name]["pin_thread"]
+                pin_thread = self.AD.app_management.objects[name]["pin_thread"]
 
         with self.schedule_lock:
             if name not in self.schedule:
@@ -303,10 +303,10 @@ class Scheduler:
             ts = utc + c_offset
             interval = kwargs.get("interval", 0)
 
-            with self.AD.objects_lock:
+            with self.AD.app_management.objects_lock:
                 self.schedule[name][handle] = {
                     "name": name,
-                    "id": self.AD.objects[name]["id"],
+                    "id": self.AD.app_management.objects[name]["id"],
                     "callback": callback,
                     "timestamp": ts,
                     "interval": interval,

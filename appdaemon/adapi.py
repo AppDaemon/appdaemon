@@ -52,16 +52,16 @@ class ADAPI:
     #
 
     def set_app_pin(self, pin):
-        self.AD.set_app_pin(self.name, pin)
+        self.AD.threading.set_app_pin(self.name, pin)
 
     def get_app_pin(self):
-        return self.AD.get_app_pin(self.name)
+        return self.AD.threading.get_app_pin(self.name)
 
     def set_pin_thread(self, thread):
-        self.AD.set_pin_thread(self.name, thread)
+        self.AD.threading.set_pin_thread(self.name, thread)
 
     def get_pin_thread(self):
-        return self.AD.get_pin_thread(self.name)
+        return self.AD.threading.get_pin_thread(self.name)
 
     #
     # Logging
@@ -103,7 +103,7 @@ class ADAPI:
     #
 
     def get_app(self, name):
-        return self.AD.get_app(name)
+        return self.AD.app_management.get_app(name)
 
     def _check_entity(self, namespace, entity):
         if "." not in entity:

@@ -5,7 +5,6 @@ import datetime
 import uuid
 import concurrent.futures
 import threading
-import inspect
 from copy import deepcopy
 import functools
 import time
@@ -299,34 +298,6 @@ class AppDaemon:
         return callbacks
 
     #
-    # Constraints
-    #
-
-    def check_constraint(self, key, value, app):
-        unconstrained = True
-        if key in app.list_constraints():
-            method = getattr(app, key)
-            unconstrained = method(value)
-
-        return unconstrained
-
-    def check_time_constraint(self, args, name):
-        unconstrained = True
-        if "constrain_start_time" in args or "constrain_end_time" in args:
-            if "constrain_start_time" not in args:
-                start_time = "00:00:00"
-            else:
-                start_time = args["constrain_start_time"]
-            if "constrain_end_time" not in args:
-                end_time = "23:59:59"
-            else:
-                end_time = args["constrain_end_time"]
-            if not self.sched.now_is_between(start_time, end_time, name):
-                unconstrained = False
-
-        return unconstrained
-
-    #
     # State
     #
 
@@ -338,7 +309,7 @@ class AppDaemon:
                 return False
 
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
-        if self.validate_pin(name, kwargs) is True:
+        if self.threading.validate_pin(name, kwargs) is True:
             with self.app_management.objects_lock:
                 if "pin" in kwargs:
                     pin_app = kwargs["pin"]
@@ -543,189 +514,6 @@ class AppDaemon:
             if name in self.endpoints and handle in self.endpoints[name]:
                 del self.endpoints[name][handle]
 
-    #
-    # Pinning
-    #
-
-    def calculate_pin_threads(self):
-
-        if self.threading.pin_threads == 0:
-            return
-
-        thread_pins = [0] * self.threading.pin_threads
-        with self.app_management.objects_lock:
-            for name in self.app_management.objects:
-                # Looking for apps that already have a thread pin value
-                if self.get_app_pin(name) and self.get_pin_thread(name) != -1:
-                    thread = self.get_pin_thread(name)
-                    if thread >= self.threading.threads:
-                        raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
-                    # Ignore anything outside the pin range as it will have been set by the user
-                    if thread < self.threading.pin_threads:
-                        thread_pins[thread] += 1
-
-            # Now we know the numbers, go fill in the gaps
-
-            for name in self.app_management.objects:
-                if self.get_app_pin(name) and self.get_pin_thread(name) == -1:
-                    thread = thread_pins.index(min(thread_pins))
-                    self.set_pin_thread(name, thread)
-                    thread_pins[thread] += 1
-
-    def app_should_be_pinned(self, name):
-        # Check apps.yaml first - allow override
-        app = self.app_management.app_config[name]
-        if "pin_app" in app:
-            return app["pin_app"]
-
-        # if not, go with the global default
-        return self.threading.pin_apps
-
-    def get_app_pin(self, name):
-        with self.app_management.objects_lock:
-            return self.app_management.objects[name]["pin_app"]
-
-    def set_app_pin(self, name, pin):
-        with self.app_management.objects_lock:
-            self.app_management.objects[name]["pin_app"] = pin
-        if pin is True:
-            # May need to set this app up with a pinned thread
-            self.calculate_pin_threads()
-
-    def get_pin_thread(self, name):
-        with self.app_management.objects_lock:
-            return self.app_management.objects[name]["pin_thread"]
-
-    def set_pin_thread(self, name, thread):
-        with self.app_management.objects_lock:
-            self.app_management.objects[name]["pin_thread"] = thread
-
-    def validate_pin(self, name, kwargs):
-        if "pin_thread" in kwargs:
-            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threading.threads:
-                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
-                return False
-        else:
-            return True
-
-
-    def get_pinned_apps(self, thread):
-        id = int(thread.split("-")[1])
-        apps = []
-        with self.app_management.objects_lock:
-            for obj in self.app_management.objects:
-                if self.app_management.objects[obj]["pin_thread"] == id:
-                    apps.append(obj)
-        return apps
-
-    def dispatch_worker(self, name, args):
-        with self.app_management.objects_lock:
-            unconstrained = True
-            #
-            # Argument Constraints
-            #
-            for arg in self.app_management.app_config[name].keys():
-                constrained = self.check_constraint(arg, self.app_management.app_config[name][arg], self.app_management.objects[name]["object"])
-                if not constrained:
-                    unconstrained = False
-            if not self.check_time_constraint(self.app_management.app_config[name], name):
-                unconstrained = False
-            #
-            # Callback level constraints
-            #
-            if "kwargs" in args:
-                for arg in args["kwargs"].keys():
-                    constrained = self.check_constraint(arg, args["kwargs"][arg], self.app_management.objects[name]["object"])
-                    if not constrained:
-                        unconstrained = False
-                if not self.check_time_constraint(args["kwargs"], name):
-                    unconstrained = False
-
-        if unconstrained:
-            self.threading.select_q(args)
-            return True
-        else:
-            return False
-
-    # noinspection PyBroadException
-    def worker(self):
-        thread_id = threading.current_thread().name
-        q = self.threading.get_q(thread_id)
-        while True:
-            args = q.get()
-            _type = args["type"]
-            funcref = args["function"]
-            _id = args["id"]
-            name = args["name"]
-            args["kwargs"]["__thread_id"] = thread_id
-            callback = "{}() in {}".format(funcref.__name__, name)
-            app = None
-            with self.app_management.objects_lock:
-                if name in self.app_management.objects and self.app_management.objects[name]["id"] == _id:
-                    app = self.app_management.objects[name]["object"]
-            if app is not None:
-                try:
-                    if _type == "timer":
-                        if self.validate_callback_sig(name, "timer", funcref):
-                            self.threading.update_thread_info(thread_id, callback, _type)
-                            funcref(self.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                    elif _type == "attr":
-                        if self.validate_callback_sig(name, "attr", funcref):
-                            entity = args["entity"]
-                            attr = args["attribute"]
-                            old_state = args["old_state"]
-                            new_state = args["new_state"]
-                            self.threading.update_thread_info(thread_id, callback, _type)
-                            funcref(entity, attr, old_state, new_state,
-                                    self.sanitize_state_kwargs(app, args["kwargs"]))
-                    elif _type == "event":
-                        data = args["data"]
-                        if args["event"] == "__AD_LOG_EVENT":
-                            if self.validate_callback_sig(name, "log_event", funcref):
-                                self.threading.update_thread_info(thread_id, callback, _type)
-                                funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
-                        else:
-                            if self.validate_callback_sig(name, "event", funcref):
-                                self.threading.update_thread_info(thread_id, callback, _type)
-                                funcref(args["event"], data, args["kwargs"])
-                except:
-                    self.err("WARNING", '-' * 60, name=name)
-                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
-                    self.err("WARNING", "Worker Ags: {}".format(args), name=name)
-                    self.err("WARNING", '-' * 60, name=name)
-                    self.err("WARNING", traceback.format_exc(), name=name)
-                    self.err("WARNING", '-' * 60, name=name)
-                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                        self.log("WARNING", "Logged an error to {}".format(self.errfile), name=name)
-                finally:
-                    self.threading.update_thread_info(thread_id, "idle")
-            else:
-                self.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
-
-            q.task_done()
-
-    def validate_callback_sig(self, name, type, funcref):
-
-        callback_args = {
-            "timer": {"count": 1, "signature": "f(self, kwargs)"},
-            "attr": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
-            "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
-            "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
-            "initialize": {"count": 0, "signature": "initialize()"}
-        }
-
-        sig = inspect.signature(funcref)
-
-        if type in callback_args:
-            if len(sig.parameters) != callback_args[type]["count"]:
-                self.log("WARNING", "Incorrect signature type for callback {}(), should be {} - discarding".format(funcref.__name__, callback_args[type]["signature"]), name=name)
-                return False
-            else:
-                return True
-        else:
-            self.log("ERROR", "Unknown callback type: {}".format(type), name=name)
-
-        return False
 
     #
     # State Updates
@@ -737,7 +525,7 @@ class AppDaemon:
         kwargs["handle"] = uuid_
         if attribute == "all":
             with self.app_management.objects_lock:
-                executed = self.dispatch_worker(name, {
+                executed = self.threading.dispatch_worker(name, {
                     "name": name,
                     "id": self.app_management.objects[name]["id"],
                     "type": "attr",
@@ -784,7 +572,7 @@ class AppDaemon:
                 else:
                     # Do it now
                     with self.app_management.objects_lock:
-                        executed = self.dispatch_worker(name, {
+                        executed = self.threading.dispatch_worker(name, {
                             "name": name,
                             "id": self.app_management.objects[name]["id"],
                             "type": "attr",
@@ -952,7 +740,7 @@ class AppDaemon:
                             if _run:
                                 with self.app_management.objects_lock:
                                     if name in self.app_management.objects:
-                                        self.dispatch_worker(name, {
+                                        self.threading.dispatch_worker(name, {
                                             "name": name,
                                             "id": self.app_management.objects[name]["id"],
                                             "type": "event",
