@@ -24,7 +24,7 @@ class AppQ:
         while not self.stopping:
             args = await self.appq.get()
             namespace = args["namespace"]
-            await self.AD.state_update(namespace, args)
+            await self.AD.state.state_update(namespace, args)
             self.appq.task_done()
 
     def fire_app_event(self, namespace, event):
@@ -36,8 +36,8 @@ class AppQ:
         self.log("DEBUG", "set_app_state: {}".format(entity_id))
         #print(state)
         if entity_id is not None and "." in entity_id:
-            if self.AD.entity_exists(namespace, entity_id):
-                old_state = self.AD.state[namespace][entity_id]
+            if self.AD.state.entity_exists(namespace, entity_id):
+                old_state = self.AD.state.get_entity(namespace, entity_id)
             else:
                 old_state = None
             data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}

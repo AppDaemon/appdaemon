@@ -1,11 +1,9 @@
-import traceback
 import os
 import os.path
 import datetime
 import uuid
 import concurrent.futures
 import threading
-from copy import deepcopy
 import functools
 import time
 import cProfile
@@ -18,6 +16,9 @@ import appdaemon.utility as utility
 import appdaemon.plugin_management as plugins
 import appdaemon.threading
 import appdaemon.app_management as apps
+import appdaemon.callbacks as callbacks
+import appdaemon.state as state
+import appdaemon.events as events
 
 
 def _timeit(func):
@@ -77,13 +78,6 @@ class AppDaemon:
         self.stopping = False
         self.dashboard = None
         self.running_apps = 0
-
-        self.callbacks = {}
-        self.callbacks_lock = threading.RLock()
-
-        self.state = {}
-        self.state["default"] = {}
-        self.state_lock = threading.RLock()
 
         self.endpoints = {}
         self.endpoints_lock = threading.RLock()
@@ -207,6 +201,22 @@ class AppDaemon:
         else:
             self.apps = True
 
+        #
+        # Set up events
+        #
+        self.events = events.Events(self)
+
+        #
+        # Set up callbacks
+        #
+        self.callbacks = callbacks.Callbacks(self)
+
+        #
+        # Set up state
+        #
+        self.state = state.State(self)
+
+
         if self.apps is True:
             if self.app_dir is None:
                 if self.config_dir is None:
@@ -226,7 +236,6 @@ class AppDaemon:
 
             self.threading = appdaemon.threading.Threading(self, kwargs)
             self.threading.create_initial_threads()
-
 
         self.loop = loop
 
@@ -262,241 +271,6 @@ class AppDaemon:
             self.appq.stop()
         if self.plugins is not None:
             self.plugins.stop()
-    #
-    # Diagnostics
-    #
-
-    def dump_callbacks(self):
-        if self.callbacks == {}:
-            self.diag("INFO", "No callbacks")
-        else:
-            self.diag("INFO", "--------------------------------------------------")
-            self.diag("INFO", "Callbacks")
-            self.diag("INFO", "--------------------------------------------------")
-            for name in self.callbacks.keys():
-                self.diag("INFO", "{}:".format(name))
-                for uuid_ in self.callbacks[name]:
-                    self.diag( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
-            self.diag("INFO", "--------------------------------------------------")
-
-    def get_callback_entries(self):
-        callbacks = {}
-        for name in self.callbacks.keys():
-            callbacks[name] = {}
-            for uuid_ in self.callbacks[name]:
-                callbacks[name][uuid_] = {}
-                if "entity" in callbacks[name][uuid_]:
-                    callbacks[name][uuid_]["entity"] = self.callbacks[name][uuid_]["entity"]
-                else:
-                    callbacks[name][uuid_]["entity"] = None
-                callbacks[name][uuid_]["type"] = self.callbacks[name][uuid_]["type"]
-                callbacks[name][uuid_]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
-                callbacks[name][uuid_]["function"] = self.callbacks[name][uuid_]["function"]
-                callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
-                callbacks[name][uuid_]["pin_app"] = self.callbacks[name][uuid_]["pin_app"]
-                callbacks[name][uuid_]["Pin_thread"] = self.callbacks[name][uuid_]["pin_thread"]
-        return callbacks
-
-    #
-    # State
-    #
-
-    def entity_exists(self, namespace, entity):
-        with self.state_lock:
-            if namespace in self.state and entity in self.state[namespace]:
-                return True
-            else:
-                return False
-
-    def add_state_callback(self, name, namespace, entity, cb, kwargs):
-        if self.threading.validate_pin(name, kwargs) is True:
-            with self.app_management.objects_lock:
-                if "pin" in kwargs:
-                    pin_app = kwargs["pin"]
-                else:
-                    pin_app = self.app_management.objects[name]["pin_app"]
-
-                if "pin_thread" in kwargs:
-                    pin_thread = kwargs["pin_thread"]
-                    pin_app = True
-                else:
-                    pin_thread = self.app_management.objects[name]["pin_thread"]
-
-
-            with self.callbacks_lock:
-                if name not in self.callbacks:
-                    self.callbacks[name] = {}
-
-                handle = uuid.uuid4()
-                with self.app_management.objects_lock:
-                    self.callbacks[name][handle] = {
-                        "name": name,
-                        "id": self.app_management.objects[name]["id"],
-                        "type": "state",
-                        "function": cb,
-                        "entity": entity,
-                        "namespace": namespace,
-                        "pin_app": pin_app,
-                        "pin_thread": pin_thread,
-                        "kwargs": kwargs
-                    }
-
-            #
-            # In the case of a quick_start parameter,
-            # start the clock immediately if the device is already in the new state
-            #
-            if "immediate" in kwargs and kwargs["immediate"] is True:
-                if entity is not None and "new" in kwargs and "duration" in kwargs:
-                    with self.state_lock:
-                        if self.state[namespace][entity]["state"] == kwargs["new"]:
-                            exec_time = self.sched.get_now_ts() + int(kwargs["duration"])
-                            kwargs["__duration"] = self.sched.insert_schedule(
-                                name, exec_time, cb, False, None,
-                                __entity=entity,
-                                __attribute=None,
-                                __old_state=None,
-                                __new_state=kwargs["new"], **kwargs
-                        )
-
-            return handle
-        else:
-            return None
-
-    def cancel_state_callback(self, handle, name):
-        with self.callbacks_lock:
-            if name not in self.callbacks or handle not in self.callbacks[name]:
-                self.log("WARNING", "Invalid callback in cancel_state_callback() from app {}".format(name))
-
-            if name in self.callbacks and handle in self.callbacks[name]:
-                del self.callbacks[name][handle]
-            if name in self.callbacks and self.callbacks[name] == {}:
-                del self.callbacks[name]
-
-    def info_state_callback(self, handle, name):
-        with self.callbacks_lock:
-            if name in self.callbacks and handle in self.callbacks[name]:
-                callback = self.callbacks[name][handle]
-                with self.app_management.objects_lock:
-                    return (
-                        callback["namespace"],
-                        callback["entity"],
-                        callback["kwargs"].get("attribute", None),
-                        self.sanitize_state_kwargs(self.app_management.objects[name]["object"], callback["kwargs"])
-                    )
-            else:
-                raise ValueError("Invalid handle: {}".format(handle))
-
-    def get_entity(self, namespace, entity_id):
-            with self.state_lock:
-                if namespace in self.state:
-                    if entity_id in self.state[namespace]:
-                        return self.state[namespace][entity_id]
-                    else:
-                        return None
-                else:
-                    self.log("WARNING", "Unknown namespace: {}".format(namespace))
-                    return None
-
-    def get_state(self, namespace, device, entity, attribute):
-            with self.state_lock:
-                if device is None:
-                    return deepcopy(self.state[namespace])
-                elif entity is None:
-                    devices = {}
-                    for entity_id in self.state[namespace].keys():
-                        thisdevice, thisentity = entity_id.split(".")
-                        if device == thisdevice:
-                            devices[entity_id] = self.state[namespace][entity_id]
-                    return deepcopy(devices)
-                elif attribute is None:
-                    entity_id = "{}.{}".format(device, entity)
-                    if entity_id in self.state[namespace]:
-                        return deepcopy(self.state[namespace][entity_id]["state"])
-                    else:
-                        return None
-                else:
-                    entity_id = "{}.{}".format(device, entity)
-                    if attribute == "all":
-                        if entity_id in self.state[namespace]:
-                            return deepcopy(self.state[namespace][entity_id])
-                        else:
-                            return None
-                    else:
-                        if namespace in self.state and entity_id in self.state[namespace]:
-                            if attribute in self.state[namespace][entity_id]["attributes"]:
-                                return deepcopy(self.state[namespace][entity_id]["attributes"][
-                                    attribute])
-                            elif attribute in self.state[namespace][entity_id]:
-                                return deepcopy(self.state[namespace][entity_id][attribute])
-                            else:
-                                    return None
-                        else:
-                            return None
-
-    def set_state(self, namespace, entity, state):
-        with self.state_lock:
-            self.state[namespace][entity] = state
-
-    def set_namespace_state(self, namespace, state):
-        with self.state_lock:
-            self.state[namespace] = state
-
-    def update_namespace_state(self, namespace, state):
-        with self.state_lock:
-            self.state[namespace].update(state)
-
-    #
-    # Events
-    #
-    def add_event_callback(self, _name, namespace, cb, event, **kwargs):
-        with self.app_management.objects_lock:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin_app"]
-            else:
-                pin_app = self.app_management.objects[_name]["pin_app"]
-
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.app_management.objects[_name]["pin_thread"]
-
-        with self.callbacks_lock:
-            if _name not in self.callbacks:
-                self.callbacks[_name] = {}
-            handle = uuid.uuid4()
-            with self.app_management.objects_lock:
-                self.callbacks[_name][handle] = {
-                    "name": _name,
-                    "id": self.app_management.objects[_name]["id"],
-                    "type": "event",
-                    "function": cb,
-                    "namespace": namespace,
-                    "event": event,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs
-                }
-        return handle
-
-    def cancel_event_callback(self, name, handle):
-        with self.callbacks_lock:
-            if name in self.callbacks and handle in self.callbacks[name]:
-                del self.callbacks[name][handle]
-            if name in self.callbacks and self.callbacks[name] == {}:
-                del self.callbacks[name]
-
-    def info_event_callback(self, name, handle):
-        with self.callbacks_lock:
-            if name in self.callbacks and handle in self.callbacks[name]:
-                callback = self.callbacks[name][handle]
-                return callback["event"], callback["kwargs"].copy()
-            else:
-                raise ValueError("Invalid handle: {}".format(handle))
-
-    #
-    # AppDaemon API
-    #
 
     def register_endpoint(self, cb, name):
 
@@ -516,253 +290,8 @@ class AppDaemon:
 
 
     #
-    # State Updates
-    #
-
-    def check_and_disapatch(self, name, funcref, entity, attribute, new_state,
-                            old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
-        executed = False
-        kwargs["handle"] = uuid_
-        if attribute == "all":
-            with self.app_management.objects_lock:
-                executed = self.threading.dispatch_worker(name, {
-                    "name": name,
-                    "id": self.app_management.objects[name]["id"],
-                    "type": "attr",
-                    "function": funcref,
-                    "attribute": attribute,
-                    "entity": entity,
-                    "new_state": new_state,
-                    "old_state": old_state,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs,
-                })
-        else:
-            if old_state is None:
-                old = None
-            else:
-                if attribute in old_state:
-                    old = old_state[attribute]
-                elif 'attributes' in old_state and attribute in old_state['attributes']:
-                    old = old_state['attributes'][attribute]
-                else:
-                    old = None
-            if new_state is None:
-                new = None
-            else:
-                if attribute in new_state:
-                    new = new_state[attribute]
-                elif 'attributes' in new_state and attribute in new_state['attributes']:
-                    new = new_state['attributes'][attribute]
-                else:
-                    new = None
-
-            if (cold is None or cold == old) and (cnew is None or cnew == new):
-                if "duration" in kwargs:
-                    # Set a timer
-                    exec_time = self.sched.get_now_ts() + int(kwargs["duration"])
-                    kwargs["__duration"] = self.sched.insert_schedule(
-                        name, exec_time, funcref, False, None,
-                        __entity=entity,
-                        __attribute=attribute,
-                        __old_state=old,
-                        __new_state=new, **kwargs
-                    )
-                else:
-                    # Do it now
-                    with self.app_management.objects_lock:
-                        executed = self.threading.dispatch_worker(name, {
-                            "name": name,
-                            "id": self.app_management.objects[name]["id"],
-                            "type": "attr",
-                            "function": funcref,
-                            "attribute": attribute,
-                            "entity": entity,
-                            "new_state": new,
-                            "old_state": old,
-                            "pin_app": pin_app,
-                            "pin_thread": pin_thread,
-                            "kwargs": kwargs
-                        })
-            else:
-                if "__duration" in kwargs:
-                    # cancel timer
-                    self.sched.cancel_timer(name, kwargs["__duration"])
-
-        return executed
-
-    def process_state_change(self, namespace, state):
-        data = state["data"]
-        entity_id = data['entity_id']
-        self.log("DEBUG", data)
-        device, entity = entity_id.split(".")
-
-        # Process state callbacks
-
-        removes = []
-        with self.callbacks_lock:
-            for name in self.callbacks.keys():
-                for uuid_ in self.callbacks[name]:
-                    callback = self.callbacks[name][uuid_]
-                    if callback["type"] == "state" and (callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"):
-                        cdevice = None
-                        centity = None
-                        if callback["entity"] is not None:
-                            if "." not in callback["entity"]:
-                                cdevice = callback["entity"]
-                                centity = None
-                            else:
-                                cdevice, centity = callback["entity"].split(".")
-                        if callback["kwargs"].get("attribute") is None:
-                            cattribute = "state"
-                        else:
-                            cattribute = callback["kwargs"].get("attribute")
-
-                        cold = callback["kwargs"].get("old")
-                        cnew = callback["kwargs"].get("new")
-
-                        executed = False
-                        if cdevice is None:
-                            executed = self.check_and_disapatch(
-                                name, callback["function"], entity_id,
-                                cattribute,
-                                data['new_state'],
-                                data['old_state'],
-                                cold, cnew,
-                                callback["kwargs"],
-                                uuid_,
-                                callback["pin_app"],
-                                callback["pin_thread"]
-                            )
-                        elif centity is None:
-                            if device == cdevice:
-                                executed = self.check_and_disapatch(
-                                    name, callback["function"], entity_id,
-                                    cattribute,
-                                    data['new_state'],
-                                    data['old_state'],
-                                    cold, cnew,
-                                    callback["kwargs"],
-                                    uuid_,
-                                    callback["pin_app"],
-                                    callback["pin_thread"]
-                                )
-
-                        elif device == cdevice and entity == centity:
-                            executed = self.check_and_disapatch(
-                                name, callback["function"], entity_id,
-                                cattribute,
-                                data['new_state'],
-                                data['old_state'], cold,
-                                cnew,
-                                callback["kwargs"],
-                                uuid_,
-                                callback["pin_app"],
-                                callback["pin_thread"]
-                            )
-
-                        # Remove the callback if appropriate
-                        if executed is True:
-                            remove = callback["kwargs"].get("oneshot", False)
-                            if remove is True:
-                                #print(callback["kwargs"])
-                                #removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
-                                removes.append({"name": callback["name"], "uuid": uuid_})
-
-            for remove in removes:
-                self.cancel_state_callback(remove["uuid"], remove["name"])
-
-    async def state_update(self, namespace, data):
-        try:
-            self.log(
-                "DEBUG",
-                "Event type:{}:".format(data['event_type'])
-            )
-            self.log( "DEBUG", data["data"])
-
-            if data['event_type'] == "state_changed":
-                entity_id = data['data']['entity_id']
-
-                # First update our global state
-                with self.state_lock:
-                    self.state[namespace][entity_id] = data['data']['new_state']
-
-            if self.apps is True:
-                # Process state changed message
-                if data['event_type'] == "state_changed":
-                    self.process_state_change(namespace, data)
-                else:
-                    # Process non-state callbacks
-                    self.process_event(namespace, data)
-
-            # Update dashboards
-
-            if self.dashboard is not None:
-                await self.dashboard.ws_update(namespace, data)
-
-        except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error during state_update()")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
-
-
-    #
-    # Event Update
-    #
-
-    def process_event(self, namespace, data):
-        with self.callbacks_lock:
-            for name in self.callbacks.keys():
-                for uuid_ in self.callbacks[name]:
-                    callback = self.callbacks[name][uuid_]
-                    if callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global":
-                        #
-                        # Check for either a blank event (for all events)
-                        # Or the event is a mtch
-                        # But don't allow a global listen for any system events (events that start with __)
-                        #
-                        if "event" in callback and (
-                                (callback["event"] is None and data['event_type'][:2] != "__")
-                                or data['event_type'] == callback["event"]):
-
-                            # Filter out log events to general listens
-
-                            # Check any filters
-
-                            _run = True
-                            for key in callback["kwargs"]:
-                                if key in data["data"] and callback["kwargs"][key] != \
-                                        data["data"][key]:
-                                    _run = False
-                            if _run:
-                                with self.app_management.objects_lock:
-                                    if name in self.app_management.objects:
-                                        self.threading.dispatch_worker(name, {
-                                            "name": name,
-                                            "id": self.app_management.objects[name]["id"],
-                                            "type": "event",
-                                            "event": data['event_type'],
-                                            "function": callback["function"],
-                                            "data": data["data"],
-                                            "pin_app": callback["pin_app"],
-                                            "pin_thread": callback["pin_thread"],
-                                            "kwargs": callback["kwargs"]
-                                        })
-
-    #
     # Utilities
     #
-
-    def sanitize_state_kwargs(self, app, kwargs):
-        kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(kwargs_copy, [
-            "old", "new", "__attribute", "duration", "state",
-            "__entity", "__duration", "__old_state", "__new_state",
-            "oneshot", "pin_app", "pin_thread"
-        ] + app.list_constraints())
 
     def log(self, level, message, name="AppDaemon"):
         if self.sched is not None and not self.sched.is_realtime():
@@ -798,15 +327,15 @@ class AppDaemon:
         # Need to check if this log callback belongs to an app that is accepting log events
         # If so, don't generate the event to avoid loops
         has_log_callback = False
-        with self.callbacks_lock:
-            for callback in self.callbacks:
-                for uuid in self.callbacks[callback]:
-                    cb = self.callbacks[callback][uuid]
+        with self.callbacks.callbacks_lock:
+            for callback in self.callbacks.callbacks:
+                for uuid in self.callbacks.callbacks[callback]:
+                    cb = self.callbacks.callbacks[callback][uuid]
                     if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
                         has_log_callback = True
 
         if has_log_callback is False:
-            self.process_event("global", {"event_type": "__AD_LOG_EVENT",
+            self.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
                                           "data": {
                                               "level": level,
                                               "app_name": name,
@@ -820,13 +349,13 @@ class AppDaemon:
         handle = []
         for thislevel in utils.log_levels:
             if utils.log_levels[thislevel] >= utils.log_levels[level] :
-                handle.append(self.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
+                handle.append(self.events.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
 
         return handle
 
     def cancel_log_callback(self, name, handle):
         for h in handle:
-            self.cancel_event_callback(name, h)
+            self.events.cancel_event_callback(name, h)
 
     def register_dashboard(self, dash):
         self.dashboard = dash

@@ -126,7 +126,7 @@ class Plugins:
 
             if not self.stopping:
                 self.plugin_meta[namespace] = meta
-                self.AD.set_namespace_state(namespace, state)
+                self.AD.state.set_namespace_state(namespace, state)
 
                 if not first_time:
                     await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates, self.get_plugin_from_namespace(namespace))
@@ -134,7 +134,7 @@ class Plugins:
                     self.AD.log("INFO", "Got initial state from namespace {}".format(namespace))
 
                 self.plugin_objs[namespace]["active"] = True
-                self.AD.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
+                self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.AD.err("WARNING", '-' * 60)
             self.AD.err("WARNING", "Unexpected error during notify_plugin_started()")
@@ -151,7 +151,7 @@ class Plugins:
 
     def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False
-        self.AD.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
+        self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
     def get_plugin(self, name):
         if name in self.plugin_objs:
@@ -190,7 +190,7 @@ class Plugins:
                         state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
-                            self.AD.update_namespace_state(plugin, state)
+                            self.AD.state.update_namespace_state(plugin, state)
 
                     except:
                         self.AD.log("WARNING",

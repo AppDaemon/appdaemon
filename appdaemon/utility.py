@@ -50,7 +50,7 @@ class Utility:
                 #
                 # Fire APPD Started Event
                 #
-                self.AD.process_event("global", {"event_type": "appd_started", "data": {}})
+                self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
 
             # Create timer loop
 

@@ -109,7 +109,7 @@ class ADAPI:
         if "." not in entity:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
-        if not self.AD.entity_exists(namespace, entity):
+        if not self.AD.state.entity_exists(namespace, entity):
             self.AD.log("WARNING",
                       "{}: Entity {} not found in AppDaemon".format(
                           self.name, entity))
@@ -125,7 +125,7 @@ class ADAPI:
 
     def entity_exists(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        return self.AD.entity_exists(namespace, entity_id)
+        return self.AD.state.entity_exists(namespace, entity_id)
 
     def split_entity(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
@@ -251,21 +251,21 @@ class ADAPI:
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
-        return self.AD.add_state_callback(name, namespace, entity, cb, kwargs)
+        return self.AD.state.add_state_callback(name, namespace, entity, cb, kwargs)
 
     def cancel_listen_state(self, handle):
         self.AD.log(
             "DEBUG",
             "Canceling listen_state for {}".format(self.name)
         )
-        self.AD.cancel_state_callback(handle, self.name)
+        self.AD.state.cancel_state_callback(handle, self.name)
 
     def info_listen_state(self, handle):
         self.AD.log(
             "DEBUG",
             "Calling info_listen_state for {}".format(self.name)
         )
-        return self.AD.info_state_callback(handle, self.name)
+        return self.AD.state.info_state_callback(handle, self.name)
 
     def get_state(self, entity_id=None, attribute=None, **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -276,7 +276,7 @@ class ADAPI:
         device = None
         entity = None
         if entity_id is not None and "." in entity_id:
-            if not self.AD.entity_exists(namespace, entity_id):
+            if not self.AD.state.entity_exists(namespace, entity_id):
                 return None
         if entity_id is not None:
             if "." not in entity_id:
@@ -288,7 +288,7 @@ class ADAPI:
             else:
                 device, entity = entity_id.split(".")
 
-        return self.AD.get_state(namespace, device, entity, attribute)
+        return self.AD.state.get_state(namespace, device, entity, attribute)
 
     def parse_state(self, entity_id, namespace, **kwargs):
         self._check_entity(namespace, entity_id)
@@ -341,21 +341,21 @@ class ADAPI:
             "DEBUG",
             "Calling listen_event for {}".format(self.name)
         )
-        return self.AD.add_event_callback(_name, namespace, cb, event, **kwargs)
+        return self.AD.events.add_event_callback(_name, namespace, cb, event, **kwargs)
 
     def cancel_listen_event(self, handle):
         self.AD.log(
             "DEBUG",
             "Canceling listen_event for {}".format(self.name)
         )
-        self.AD.cancel_event_callback(self.name, handle)
+        self.AD.events.cancel_event_callback(self.name, handle)
 
     def info_listen_event(self, handle):
         self.AD.log(
             "DEBUG",
             "Calling info_listen_event for {}".format(self.name)
         )
-        return self.AD.info_event_callback(self.name, handle)
+        return self.AD.events.info_event_callback(self.name, handle)
 
     def fire_app_event(self, event, **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -370,7 +370,7 @@ class ADAPI:
     #
 
     def calc_sun(self, type_):
-        return self.AD.calc_sun(type_)
+        return self.AD.sched.calc_sun(type_)
 
     def parse_utc_string(self, s):
         return datetime.datetime(*map(
@@ -605,13 +605,13 @@ class ADAPI:
         self.run_in(callback, 0, pin=False, pin_thread=thread)
 
     def get_thread_info(self):
-        return self.AD.get_thread_info()
+        return self.AD.threading.get_thread_info()
 
     def get_scheduler_entries(self):
-        return self.AD.get_scheduler_entries()
+        return self.AD.sched.get_scheduler_entries()
 
     def get_callback_entries(self):
-        return self.AD.get_callback_entries()
+        return self.AD.callback.get_callback_entries()
 
     @staticmethod
     def get_alexa_slot_value(data, slot=None):

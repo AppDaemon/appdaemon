@@ -242,7 +242,7 @@ class HassPlugin:
                             "Unexpected result from Home Assistant"
                         )
 
-                    await self.AD.state_update(self.namespace, result["event"])
+                    await self.AD.state.state_update(self.namespace, result["event"])
 
                 self.reading_messages = False
 

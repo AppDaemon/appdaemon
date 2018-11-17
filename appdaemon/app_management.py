@@ -108,12 +108,11 @@ class AppManagement:
             if name in self.objects:
                 del self.objects[name]
 
-        self.AD.log("DEBUG", "Clearing callbacks for {}".format(name))
-        with self.AD.callbacks_lock:
-            if name in self.AD.callbacks:
-                del self.AD.callbacks[name]
+        self.AD.callbacks.clear_callbacks(name)
 
         self.AD.sched.term_object(name)
+
+        #TODO: Move
 
         with self.AD.endpoints_lock:
             if name in self.AD.endpoints:

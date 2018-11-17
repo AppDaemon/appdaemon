@@ -317,7 +317,7 @@ class RunDash:
                                 new_state = {"feed": feed}
 
                                 # RSS Feeds always live in the default namespace
-                                self.AD.set_state("default", feed_data["target"], new_state)
+                                self.AD.state.set_state("default", feed_data["target"], new_state)
 
                                 data = {"event_type": "state_changed",
                                         "data": {"entity_id": feed_data["target"], "new_state": new_state}}

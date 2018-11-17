@@ -359,6 +359,84 @@ class Threading:
 
         return unconstrained
 
+    #
+    # Workers
+    #
+
+    def check_and_dispatch(self, name, funcref, entity, attribute, new_state,
+                            old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
+        executed = False
+        kwargs["handle"] = uuid_
+        if attribute == "all":
+            with self.AD.app_management.objects_lock:
+                executed = self.dispatch_worker(name, {
+                    "name": name,
+                    "id": self.AD.app_management.objects[name]["id"],
+                    "type": "attr",
+                    "function": funcref,
+                    "attribute": attribute,
+                    "entity": entity,
+                    "new_state": new_state,
+                    "old_state": old_state,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
+                    "kwargs": kwargs,
+                })
+        else:
+            if old_state is None:
+                old = None
+            else:
+                if attribute in old_state:
+                    old = old_state[attribute]
+                elif 'attributes' in old_state and attribute in old_state['attributes']:
+                    old = old_state['attributes'][attribute]
+                else:
+                    old = None
+            if new_state is None:
+                new = None
+            else:
+                if attribute in new_state:
+                    new = new_state[attribute]
+                elif 'attributes' in new_state and attribute in new_state['attributes']:
+                    new = new_state['attributes'][attribute]
+                else:
+                    new = None
+
+            if (cold is None or cold == old) and (cnew is None or cnew == new):
+                if "duration" in kwargs:
+                    # Set a timer
+                    exec_time = self.AD.sched.get_now_ts() + int(kwargs["duration"])
+                    kwargs["__duration"] = self.AD.sched.insert_schedule(
+                        name, exec_time, funcref, False, None,
+                        __entity=entity,
+                        __attribute=attribute,
+                        __old_state=old,
+                        __new_state=new, **kwargs
+                    )
+                else:
+                    # Do it now
+                    with self.AD.app_management.objects_lock:
+                        executed = self.dispatch_worker(name, {
+                            "name": name,
+                            "id": self.AD.app_management.objects[name]["id"],
+                            "type": "attr",
+                            "function": funcref,
+                            "attribute": attribute,
+                            "entity": entity,
+                            "new_state": new,
+                            "old_state": old,
+                            "pin_app": pin_app,
+                            "pin_thread": pin_thread,
+                            "kwargs": kwargs
+                        })
+            else:
+                if "__duration" in kwargs:
+                    # cancel timer
+                    self.AD.sched.cancel_timer(name, kwargs["__duration"])
+
+        return executed
+
+
 
     def dispatch_worker(self, name, args):
         with self.AD.app_management.objects_lock:
@@ -419,7 +497,7 @@ class Threading:
                             new_state = args["new_state"]
                             self.update_thread_info(thread_id, callback, _type)
                             funcref(entity, attr, old_state, new_state,
-                                    self.AD.sanitize_state_kwargs(app, args["kwargs"]))
+                                    self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
                     elif _type == "event":
                         data = args["data"]
                         if args["event"] == "__AD_LOG_EVENT":
@@ -468,3 +546,4 @@ class Threading:
             self.AD.log("ERROR", "Unknown callback type: {}".format(type), name=name)
 
         return False
+

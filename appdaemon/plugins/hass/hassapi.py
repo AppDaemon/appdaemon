@@ -77,7 +77,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         # Update AppDaemon's copy
 
-        self.AD.set_state(namespace, entity_id, state)
+        self.AD.state.set_state(namespace, entity_id, state)
 
         return state
 
