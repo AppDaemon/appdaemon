@@ -36,7 +36,7 @@ class Threading:
             self.total_threads = kwargs["total_threads"]
             self.auto_pin = False
         else:
-            self.total_threads = int(self.AD.check_config(True, False)["total"])
+            self.total_threads = int(self.AD.app_management.check_config(True, False)["total"])
 
         self.pin_apps = True
         utils.process_arg(self, "pin_apps", kwargs)

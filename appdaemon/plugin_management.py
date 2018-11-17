@@ -190,12 +190,13 @@ class Plugins:
                         state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
-                            self.AD.update_namespace_state(plugin)
+                            self.AD.update_namespace_state(plugin, state)
 
-                        self.last_plugin_state[plugin] = datetime.datetime.now()
                     except:
                         self.AD.log("WARNING",
                                  "Unexpected error refreshing {} state - retrying in 10 minutes".format(plugin))
+                    finally:
+                        self.last_plugin_state[plugin] = datetime.datetime.now()
 
     def required_meta_check(self):
         OK = True

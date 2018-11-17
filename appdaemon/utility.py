@@ -44,7 +44,7 @@ class Utility:
             if self.AD.apps is True:
                 self.AD.log("DEBUG", "Reading Apps")
 
-                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates)
+                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates)
 
                 self.AD.log("INFO", "App initialization complete")
                 #
@@ -73,7 +73,7 @@ class Utility:
 
                         if self.AD.production_mode is False:
                             # Check to see if config has changed
-                            await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates)
+                            await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates)
 
 
                     # Call me suspicious, but lets update state from the plugins periodically
@@ -125,4 +125,4 @@ class Utility:
             # Stopping, so terminate apps.
             #
 
-            self.AD.check_app_updates(exit=True)
+            self.AD.app_management.check_app_updates(exit=True)
