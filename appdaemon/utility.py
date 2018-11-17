@@ -58,11 +58,6 @@ class Utility:
 
             self.AD.loop.create_task(self.AD.sched.do_every())
 
-            # Initialize some thread stuff
-
-            self.AD.thread_info["max_used"] = 0
-            self.AD.thread_info["max_used_time"] = self.AD.sched.get_now_ts()
-
             warning_step = 0
 
 
@@ -89,11 +84,11 @@ class Utility:
 
                     # Check for thread starvation
 
-                    warning_step = self.AD.check_q_size(warning_step)
+                    warning_step = self.AD.threading.check_q_size(warning_step)
 
                     # Check for any overdue threads
 
-                    self.AD.check_overdue_threads()
+                    self.AD.threading.check_overdue_threads()
 
                     # Run utility for each plugin
 

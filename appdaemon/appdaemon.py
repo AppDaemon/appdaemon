@@ -3,27 +3,25 @@ import importlib
 import traceback
 import os
 import os.path
-from queue import Queue
 import datetime
 import uuid
 import asyncio
 import yaml
 import concurrent.futures
 import threading
-import re
-from copy import deepcopy, copy
+import inspect
+from copy import deepcopy
 import subprocess
 import functools
 import time
 import cProfile
 import io
 import pstats
-from random import randint
-import inspect
 
 import appdaemon.utils as utils
 import appdaemon.appq as appq
 import appdaemon.utility as utility
+import appdaemon.threading
 
 def _timeit(func):
     @functools.wraps(func)
@@ -95,14 +93,6 @@ class AppDaemon:
 
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
-
-        self.thread_info = {}
-        self.thread_info_lock = threading.RLock()
-        self.thread_info["threads"] = {}
-        self.thread_info["current_busy"] = 0
-        self.thread_info["max_busy"] = 0
-        self.thread_info["max_busy_time"] = 0
-        self.thread_info["last_action_time"] = 0
 
         self.state = {}
         self.state["default"] = {}
@@ -186,7 +176,6 @@ class AppDaemon:
         self.thread_duration_warning_threshold = 10
         utils.process_arg(self, "thread_duration_warning_threshold", kwargs, float=True)
 
-
         self.threadpool_workers = 10
         utils.process_arg(self, "threadpool_workers", kwargs, int=True)
 
@@ -265,57 +254,15 @@ class AppDaemon:
 
             utils.check_path("config_dir", logger, self.config_dir, permissions="rwx")
             utils.check_path("appdir", logger, self.app_dir)
-            #if os.path.isdir(self.app_dir) is False:
-            #    self.log("ERROR", "Invalid value for app_dir: {}".format(self.app_dir))
-            #    return
-
 
             # threading setup
 
-            self.auto_pin = True
+            self.threading = appdaemon.threading.Threading(self, kwargs)
+            self.threading.create_initial_threads()
 
-            if "threads" in kwargs:
-                self.log("WARNING",
-                         "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps")
+            # Initialize Filters
 
-            if "total_threads" in kwargs:
-                self.total_threads = kwargs["total_threads"]
-                self.auto_pin = False
-            else:
-                self.total_threads = int(self.check_config(True, False)["total"])
-
-            self.pin_apps = True
-            utils.process_arg(self, "pin_apps", kwargs)
-
-            if self.pin_apps is True:
-                self.pin_threads = self.total_threads
-            else:
-                self.auto_pin = False
-                self.pin_threads = 0
-                if "total_threads" not in kwargs:
-                    self.total_threads = 10
-
-            utils.process_arg(self, "pin_threads", kwargs, int=True)
-
-            if self.pin_threads > self.total_threads:
-                raise ValueError("pin_threads cannot be > threads")
-
-            if self.pin_threads < 0:
-                raise ValueError("pin_threads cannot be < 0")
-
-            self.log("INFO", "Starting Apps with {} workers and {} pins".format(self.total_threads, self.pin_threads))
-
-            self.next_thread = self.pin_threads
-
-            # Create Worker Threads
-            self.threads = 0
-            for i in range(self.total_threads):
-                self.add_thread(True)
-
-            if self.apps is True:
-                self.process_filters()
-
-            self.log("DEBUG", "Done")
+            self.process_filters()
 
         self.loop = loop
 
@@ -410,23 +357,6 @@ class AppDaemon:
         self.utility = utility.Utility(self)
         loop.create_task(self.utility.loop())
 
-    def add_thread(self, silent=False):
-        id = self.threads
-        if silent is False:
-            self.log("INFO", "Adding thread {}".format(id))
-        t = threading.Thread(target=self.worker)
-        t.daemon = True
-        t.setName("thread-{}".format(id))
-        with self.thread_info_lock:
-            self.thread_info["threads"][t.getName()] = \
-                {"callback": "idle",
-                 "time_called": 0,
-                 "q": Queue(maxsize=0),
-                 "id": id,
-                 "thread": t}
-        t.start()
-        self.threads += 1
-
     def stop(self):
         self.stopping = True
         if self.sched is not None:
@@ -462,87 +392,6 @@ class AppDaemon:
         with self.objects_lock:
             for object_ in self.objects.keys():
                 self.diag("INFO", "{}: {}".format(object_, self.objects[object_]))
-        self.diag("INFO", "--------------------------------------------------")
-
-    def q_info(self):
-        qsize = 0
-        with self.thread_info_lock:
-            thread_info = self.get_thread_info()
-
-        for thread in thread_info["threads"]:
-            qsize += self.thread_info["threads"][thread]["q"].qsize()
-        return {"qsize": qsize, "thread_info": thread_info}
-
-    def min_q_id(self):
-        id = 0
-        i = 0
-        qsize = sys.maxsize
-        with self.thread_info_lock:
-            for thread in self.thread_info["threads"]:
-                if self.thread_info["threads"][thread]["q"].qsize() < qsize:
-                    qsize = self.thread_info["threads"][thread]["q"].qsize()
-                    id = i
-                i += 1
-        return id
-
-    @staticmethod
-    def atoi(text):
-        return int(text) if text.isdigit() else text
-
-    def natural_keys(self, text):
-        return [self.atoi(c) for c in re.split('(\d+)', text)]
-
-    def get_pinned_apps(self, thread):
-        id = int(thread.split("-")[1])
-        apps = []
-        with self.objects_lock:
-            for obj in self.objects:
-                if self.objects[obj]["pin_thread"] == id:
-                    apps.append(obj)
-        return apps
-
-    def get_thread_info(self):
-        info = {}
-        # Make a copy without the thread objects
-        with self.thread_info_lock:
-            info["max_busy_time"] = copy(self.thread_info["max_busy_time"])
-            info["last_action_time"] = copy(self.thread_info["last_action_time"])
-            info["current_busy"] = copy(self.thread_info["current_busy"])
-            info["max_busy"] = copy(self.thread_info["max_busy"])
-            info["threads"] = {}
-            for thread in self.thread_info["threads"]:
-                if thread not in info["threads"]:
-                    info["threads"][thread] = {}
-                info["threads"][thread]["time_called"] = copy(self.thread_info["threads"][thread]["time_called"])
-                info["threads"][thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
-                info["threads"][thread]["is_alive"] = copy(self.thread_info["threads"][thread]["thread"].is_alive())
-                info["threads"][thread]["pinned_apps"] = copy(self.get_pinned_apps(thread))
-                info["threads"][thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
-        return info
-
-    def dump_threads(self, qinfo):
-        thread_info = qinfo["thread_info"]
-        self.diag("INFO", "--------------------------------------------------")
-        self.diag("INFO", "Threads")
-        self.diag("INFO", "--------------------------------------------------")
-        max_ts = datetime.datetime.fromtimestamp(thread_info["max_busy_time"])
-        last_ts = datetime.datetime.fromtimestamp(thread_info["last_action_time"])
-        self.diag("INFO", "Currently busy threads: {}".format(thread_info["current_busy"]))
-        self.diag("INFO", "Most used threads: {} at {}".format(thread_info["max_busy"], max_ts))
-        self.diag("INFO", "Last activity: {}".format(last_ts))
-        self.diag("INFO", "Total Q Entries: {}".format(qinfo["qsize"]))
-        self.diag("INFO", "--------------------------------------------------")
-        for thread in sorted(thread_info["threads"], key=self.natural_keys):
-            ts = datetime.datetime.fromtimestamp(thread_info["threads"][thread]["time_called"])
-            self.diag("INFO",
-                     "{} - qsize: {} | current callback: {} | since {}, | alive: {}, | pinned apps: {}".format(
-                         thread,
-                         thread_info["threads"][thread]["qsize"],
-                         thread_info["threads"][thread]["callback"],
-                         ts,
-                         thread_info["threads"][thread]["is_alive"],
-                         self.get_pinned_apps(thread)
-                     ))
         self.diag("INFO", "--------------------------------------------------")
 
     def get_callback_entries(self):
@@ -591,275 +440,6 @@ class AppDaemon:
 
         return unconstrained
 
-    #
-    # Thread Management
-    #
-
-    def dispatch_worker(self, name, args):
-        with self.objects_lock:
-            unconstrained = True
-            #
-            # Argument Constraints
-            #
-            for arg in self.app_config[name].keys():
-                constrained = self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"])
-                if not constrained:
-                    unconstrained = False
-            if not self.check_time_constraint(self.app_config[name], name):
-                unconstrained = False
-            #
-            # Callback level constraints
-            #
-            if "kwargs" in args:
-                for arg in args["kwargs"].keys():
-                    constrained = self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"])
-                    if not constrained:
-                        unconstrained = False
-                if not self.check_time_constraint(args["kwargs"], name):
-                    unconstrained = False
-
-        if unconstrained:
-            self.select_q(args)
-            return True
-        else:
-            return False
-
-    def select_q(self, args):
-        #
-        # Select Q based on distribution method:
-        #   Round Robin
-        #   Random
-        #   Load distribution
-        #
-
-        # Check for pinned app and if so figure correct thread for app
-
-        if args["pin_app"] is True:
-            thread = args["pin_thread"]
-            # Handle the case where an App is unpinned but selects a pinned callback without specifying a thread
-            # If this happens a lot, thread 0 might get congested but the alternatives are worse!
-            if thread == -1:
-                self.log("WARNING", "Invalid thread ID for pinned thread in app: {} - assigning to thread 0".format(args["name"]))
-                thread = 0
-        else:
-            if self.threads == self.pin_threads:
-                raise ValueError("pin_threads must be set lower than threads if unpinned_apps are in use")
-            if self.load_distribution == "load":
-                thread = self.min_q_id()
-            elif self.load_distribution == "random":
-                thread = randint(self.pin_threads, self.threads - 1)
-            else:
-                # Round Robin is the catch all
-                thread = self.next_thread
-                self.next_thread += 1
-                if self.next_thread == self.threads:
-                    self.next_thread = self.pin_threads
-
-        if thread < 0 or thread >= self.threads:
-            raise ValueError("invalid thread id: {} in app {}".format(thread, args["name"]))
-
-        with self.thread_info_lock:
-            id = "thread-{}".format(thread)
-            q = self.thread_info["threads"][id]["q"]
-            q.put_nowait(args)
-
-    def check_overdue_threads(self):
-        if self.thread_duration_warning_threshold != 0:
-            for thread_id in self.thread_info["threads"]:
-                if self.thread_info["threads"][thread_id]["callback"] != "idle":
-                    start = self.thread_info["threads"][thread_id]["time_called"]
-                    dur = self.sched.get_now_ts() - start
-                    if dur >= self.thread_duration_warning_threshold and dur % self.thread_duration_warning_threshold == 0:
-                        self.log("WARNING", "Excessive time spent in callback: {} - {}s".format
-                        (self.thread_info["threads"][thread_id]["callback"], dur))
-
-    def check_q_size(self, warning_step):
-        qinfo = self.q_info()
-        if qinfo["qsize"] > self.qsize_warning_threshold:
-            if warning_step == 0:
-                self.log("WARNING", "Queue size is {}, suspect thread starvation".format(qinfo["qsize"]))
-                self.dump_threads(qinfo)
-            warning_step += 1
-            if warning_step >= self.qsize_warning_step:
-                warning_step = 0
-        else:
-            warning_step = 0
-
-        return warning_step
-
-    #
-    # Pinning
-    #
-
-    def calculate_pin_threads(self):
-
-        if self.pin_threads == 0:
-            return
-
-        thread_pins = [0] * self.pin_threads
-        with self.objects_lock:
-            for name in self.objects:
-                # Looking for apps that already have a thread pin value
-                if self.get_app_pin(name) and self.get_pin_thread(name) != -1:
-                    thread = self.get_pin_thread(name)
-                    if thread >= self.threads:
-                        raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
-                    # Ignore anything outside the pin range as it will have been set by the user
-                    if thread < self.pin_threads:
-                        thread_pins[thread] += 1
-
-            # Now we know the numbers, go fill in the gaps
-
-            for name in self.objects:
-                if self.get_app_pin(name) and self.get_pin_thread(name) == -1:
-                    thread = thread_pins.index(min(thread_pins))
-                    self.set_pin_thread(name, thread)
-                    thread_pins[thread] += 1
-
-    def app_should_be_pinned(self, name):
-        # Check apps.yaml first - allow override
-        app = self.app_config[name]
-        if "pin_app" in app:
-            return app["pin_app"]
-
-        # if not, go with the global default
-        return self.pin_apps
-
-    def get_app_pin(self, name):
-        with self.objects_lock:
-            return self.objects[name]["pin_app"]
-
-    def set_app_pin(self, name, pin):
-        with self.objects_lock:
-            self.objects[name]["pin_app"] = pin
-        if pin is True:
-            # May need to set this app up with a pinned thread
-            self.calculate_pin_threads()
-
-    def get_pin_thread(self, name):
-        with self.objects_lock:
-            return self.objects[name]["pin_thread"]
-
-    def set_pin_thread(self, name, thread):
-        with self.objects_lock:
-            self.objects[name]["pin_thread"] = thread
-
-    def validate_pin(self, name, kwargs):
-        if "pin_thread" in kwargs:
-            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threads:
-                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
-                return False
-        else:
-            return True
-
-    def update_thread_info(self, thread_id, callback, type = None):
-        if self.log_thread_actions:
-            if callback == "idle":
-                self.diag("INFO",
-                         "{} done".format(thread_id, type, callback))
-            else:
-                self.diag("INFO",
-                         "{} calling {} callback {}".format(thread_id, type, callback))
-
-        with self.thread_info_lock:
-            ts = self.sched.get_now_ts()
-            if callback == "idle":
-                start = self.thread_info["threads"][thread_id]["time_called"]
-                if ts - start >= self.thread_duration_warning_threshold:
-                    self.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
-            self.thread_info["threads"][thread_id]["callback"] = callback
-            self.thread_info["threads"][thread_id]["time_called"] = ts
-            if callback == "idle":
-                self.thread_info["current_busy"] -= 1
-            else:
-                self.thread_info["current_busy"] += 1
-
-            if self.thread_info["current_busy"] > self.thread_info["max_busy"]:
-                self.thread_info["max_busy"] = self.thread_info["current_busy"]
-                self.thread_info["max_busy_time"] = ts
-
-            self.thread_info["last_action_time"] = ts
-
-    # noinspection PyBroadException
-    def worker(self):
-        while True:
-            thread_id = threading.current_thread().name
-            with self.thread_info_lock:
-                q = self.thread_info["threads"][thread_id]["q"]
-            args = q.get()
-            _type = args["type"]
-            funcref = args["function"]
-            _id = args["id"]
-            name = args["name"]
-            args["kwargs"]["__thread_id"] = thread_id
-            callback = "{}() in {}".format(funcref.__name__, name)
-            app = None
-            with self.objects_lock:
-                if name in self.objects and self.objects[name]["id"] == _id:
-                    app = self.objects[name]["object"]
-            if app is not None:
-                try:
-                    if _type == "timer":
-                        if self.validate_callback_sig(name, "timer", funcref):
-                            self.update_thread_info(thread_id, callback, _type)
-                            funcref(self.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                    elif _type == "attr":
-                        if self.validate_callback_sig(name, "attr", funcref):
-                            entity = args["entity"]
-                            attr = args["attribute"]
-                            old_state = args["old_state"]
-                            new_state = args["new_state"]
-                            self.update_thread_info(thread_id, callback, _type)
-                            funcref(entity, attr, old_state, new_state,
-                                    self.sanitize_state_kwargs(app, args["kwargs"]))
-                    elif _type == "event":
-                        data = args["data"]
-                        if args["event"] == "__AD_LOG_EVENT":
-                            if self.validate_callback_sig(name, "log_event", funcref):
-                                self.update_thread_info(thread_id, callback, _type)
-                                funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
-                        else:
-                            if self.validate_callback_sig(name, "event", funcref):
-                                self.update_thread_info(thread_id, callback, _type)
-                                funcref(args["event"], data, args["kwargs"])
-                except:
-                    self.err("WARNING", '-' * 60, name=name)
-                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
-                    self.err("WARNING", "Worker Ags: {}".format(args), name=name)
-                    self.err("WARNING", '-' * 60, name=name)
-                    self.err("WARNING", traceback.format_exc(), name=name)
-                    self.err("WARNING", '-' * 60, name=name)
-                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
-                        self.log("WARNING", "Logged an error to {}".format(self.errfile), name=name)
-                finally:
-                    self.update_thread_info(thread_id, "idle")
-            else:
-                self.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
-
-            q.task_done()
-
-    def validate_callback_sig(self, name, type, funcref):
-
-        callback_args = {
-            "timer": {"count": 1, "signature": "f(self, kwargs)"},
-            "attr": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
-            "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
-            "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
-            "initialize": {"count": 0, "signature": "initialize()"}
-        }
-
-        sig = inspect.signature(funcref)
-
-        if type in callback_args:
-            if len(sig.parameters) != callback_args[type]["count"]:
-                self.log("WARNING", "Incorrect signature type for callback {}(), should be {} - discarding".format(funcref.__name__, callback_args[type]["signature"]), name=name)
-                return False
-            else:
-                return True
-        else:
-            self.log("ERROR", "Unknown callback type: {}".format(type), name=name)
-
-        return False
     #
     # State
     #
@@ -1138,8 +718,192 @@ class AppDaemon:
                 del self.endpoints[name][handle]
 
     #
+    # Pinning
+    #
+
+    def calculate_pin_threads(self):
+
+        if self.threading.pin_threads == 0:
+            return
+
+        thread_pins = [0] * self.threading.pin_threads
+        with self.objects_lock:
+            for name in self.objects:
+                # Looking for apps that already have a thread pin value
+                if self.get_app_pin(name) and self.get_pin_thread(name) != -1:
+                    thread = self.get_pin_thread(name)
+                    if thread >= self.threading.threads:
+                        raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
+                    # Ignore anything outside the pin range as it will have been set by the user
+                    if thread < self.threading.pin_threads:
+                        thread_pins[thread] += 1
+
+            # Now we know the numbers, go fill in the gaps
+
+            for name in self.objects:
+                if self.get_app_pin(name) and self.get_pin_thread(name) == -1:
+                    thread = thread_pins.index(min(thread_pins))
+                    self.set_pin_thread(name, thread)
+                    thread_pins[thread] += 1
+
+    def app_should_be_pinned(self, name):
+        # Check apps.yaml first - allow override
+        app = self.app_config[name]
+        if "pin_app" in app:
+            return app["pin_app"]
+
+        # if not, go with the global default
+        return self.threading.pin_apps
+
+    def get_app_pin(self, name):
+        with self.objects_lock:
+            return self.objects[name]["pin_app"]
+
+    def set_app_pin(self, name, pin):
+        with self.objects_lock:
+            self.objects[name]["pin_app"] = pin
+        if pin is True:
+            # May need to set this app up with a pinned thread
+            self.calculate_pin_threads()
+
+    def get_pin_thread(self, name):
+        with self.objects_lock:
+            return self.objects[name]["pin_thread"]
+
+    def set_pin_thread(self, name, thread):
+        with self.objects_lock:
+            self.objects[name]["pin_thread"] = thread
+
+    def validate_pin(self, name, kwargs):
+        if "pin_thread" in kwargs:
+            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threading.threads:
+                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
+                return False
+        else:
+            return True
+
+
+    def get_pinned_apps(self, thread):
+        id = int(thread.split("-")[1])
+        apps = []
+        with self.objects_lock:
+            for obj in self.objects:
+                if self.objects[obj]["pin_thread"] == id:
+                    apps.append(obj)
+        return apps
+
+    #
     # App Management
     #
+
+    def dispatch_worker(self, name, args):
+        with self.objects_lock:
+            unconstrained = True
+            #
+            # Argument Constraints
+            #
+            for arg in self.app_config[name].keys():
+                constrained = self.check_constraint(arg, self.app_config[name][arg], self.objects[name]["object"])
+                if not constrained:
+                    unconstrained = False
+            if not self.check_time_constraint(self.app_config[name], name):
+                unconstrained = False
+            #
+            # Callback level constraints
+            #
+            if "kwargs" in args:
+                for arg in args["kwargs"].keys():
+                    constrained = self.check_constraint(arg, args["kwargs"][arg], self.objects[name]["object"])
+                    if not constrained:
+                        unconstrained = False
+                if not self.check_time_constraint(args["kwargs"], name):
+                    unconstrained = False
+
+        if unconstrained:
+            self.threading.select_q(args)
+            return True
+        else:
+            return False
+
+    # noinspection PyBroadException
+    def worker(self):
+        thread_id = threading.current_thread().name
+        q = self.threading.get_q(thread_id)
+        while True:
+            args = q.get()
+            _type = args["type"]
+            funcref = args["function"]
+            _id = args["id"]
+            name = args["name"]
+            args["kwargs"]["__thread_id"] = thread_id
+            callback = "{}() in {}".format(funcref.__name__, name)
+            app = None
+            with self.objects_lock:
+                if name in self.objects and self.objects[name]["id"] == _id:
+                    app = self.objects[name]["object"]
+            if app is not None:
+                try:
+                    if _type == "timer":
+                        if self.validate_callback_sig(name, "timer", funcref):
+                            self.threading.update_thread_info(thread_id, callback, _type)
+                            funcref(self.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                    elif _type == "attr":
+                        if self.validate_callback_sig(name, "attr", funcref):
+                            entity = args["entity"]
+                            attr = args["attribute"]
+                            old_state = args["old_state"]
+                            new_state = args["new_state"]
+                            self.threading.update_thread_info(thread_id, callback, _type)
+                            funcref(entity, attr, old_state, new_state,
+                                    self.sanitize_state_kwargs(app, args["kwargs"]))
+                    elif _type == "event":
+                        data = args["data"]
+                        if args["event"] == "__AD_LOG_EVENT":
+                            if self.validate_callback_sig(name, "log_event", funcref):
+                                self.threading.update_thread_info(thread_id, callback, _type)
+                                funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
+                        else:
+                            if self.validate_callback_sig(name, "event", funcref):
+                                self.threading.update_thread_info(thread_id, callback, _type)
+                                funcref(args["event"], data, args["kwargs"])
+                except:
+                    self.err("WARNING", '-' * 60, name=name)
+                    self.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
+                    self.err("WARNING", "Worker Ags: {}".format(args), name=name)
+                    self.err("WARNING", '-' * 60, name=name)
+                    self.err("WARNING", traceback.format_exc(), name=name)
+                    self.err("WARNING", '-' * 60, name=name)
+                    if self.errfile != "STDERR" and self.logfile != "STDOUT":
+                        self.log("WARNING", "Logged an error to {}".format(self.errfile), name=name)
+                finally:
+                    self.threading.update_thread_info(thread_id, "idle")
+            else:
+                self.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
+
+            q.task_done()
+
+    def validate_callback_sig(self, name, type, funcref):
+
+        callback_args = {
+            "timer": {"count": 1, "signature": "f(self, kwargs)"},
+            "attr": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
+            "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
+            "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
+            "initialize": {"count": 0, "signature": "initialize()"}
+        }
+
+        sig = inspect.signature(funcref)
+
+        if type in callback_args:
+            if len(sig.parameters) != callback_args[type]["count"]:
+                self.log("WARNING", "Incorrect signature type for callback {}(), should be {} - discarding".format(funcref.__name__, callback_args[type]["signature"]), name=name)
+                return False
+            else:
+                return True
+        else:
+            self.log("ERROR", "Unknown callback type: {}".format(type), name=name)
+
+        return False
 
     def get_app(self, name):
         with self.objects_lock:
@@ -1218,7 +982,7 @@ class AppDaemon:
 
             with self.objects_lock:
                 if "pin_thread" in app_args:
-                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.threads:
+                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.threading.threads:
                         self.log("WARNING", "pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
                         return
                     else:
@@ -1427,11 +1191,11 @@ class AppDaemon:
 
             # Now we know if we have any new apps we can create new threads if pinning
 
-            if add_threads is True and self.auto_pin is True:
-                if total_apps > self.threads:
-                    for i in range(total_apps - self.threads):
-                        self.add_thread(False)
-                    self.pin_threads = self.threads
+            if add_threads is True and self.threading.auto_pin is True:
+                if total_apps > self.threading.threads:
+                    for i in range(total_apps - self.threading.threads):
+                        self.threading.add_thread(False)
+                    self.pin_threads = self.threading.threads
 
             return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}
         except:

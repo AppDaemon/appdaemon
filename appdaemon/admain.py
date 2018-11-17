@@ -41,8 +41,8 @@ class ADMain():
         if signum == signal.SIGUSR1:
             self.AD.sched.dump_schedule()
             self.AD.dump_callbacks()
-            qinfo = self.AD.q_info()
-            self.AD.dump_threads(qinfo)
+            qinfo = self.AD.threading.q_info()
+            self.AD.threading.dump_threads(qinfo)
             self.AD.dump_objects()
             self.AD.sched.dump_sun()
         if signum == signal.SIGHUP:
