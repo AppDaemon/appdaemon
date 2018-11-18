@@ -11,6 +11,7 @@ class AppDaemon:
         #
         # Import various AppDaemon bits and pieces now to avoid circular import
         #
+
         import appdaemon.utils as utils
         import appdaemon.appq as appq
         import appdaemon.utility as utility
