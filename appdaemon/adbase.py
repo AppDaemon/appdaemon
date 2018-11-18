@@ -1,13 +1,17 @@
 import threading
+from functools import wraps
+
 import appdaemon.utils as utils
 import appdaemon.adapi as adapi
-from functools import wraps
+from appdaemon.appdaemon import AppDaemon
+
 
 class Entities:
 
     def __get__(self, instance, owner):
         stateattrs = utils.StateAttrs(instance.get_state())
         return stateattrs
+
 
 #
 # Locking decorator
@@ -48,7 +52,7 @@ class ADBase:
 
     entities = Entities()
 
-    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, name, logger, error, args, config, app_config, global_vars):
 
         # Store args
 
@@ -78,8 +82,8 @@ class ADBase:
         return api
 
     def get_plugin_api(self, name):
-        if name in self.AD.plugins:
-            plugin = self.AD.plugins[name]
+        if name in self.AD.plugins.plugins:
+            plugin = self.AD.plugins.plugins[name]
             module_name = "{}api".format(plugin["type"])
             mod = __import__(module_name, globals(), locals(), [module_name], 0)
             app_class = getattr(mod, plugin["type"].title())
@@ -91,7 +95,7 @@ class ADBase:
             return api
 
         else:
-            self.AD.log("WARNING", "Unknown Plugin Configuration in get_plugin_api()")
+            self.AD.logging.log("WARNING", "Unknown Plugin Configuration in get_plugin_api()")
             return None
     #
     # Constraints

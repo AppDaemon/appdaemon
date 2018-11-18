@@ -4,6 +4,7 @@ import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
 import appdaemon.utils as utils
 
+from appdaemon.appdaemon import AppDaemon
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -15,8 +16,8 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
-        if not self.AD.get_plugin(self._get_namespace(**kwargs)).reading_messages:
-            self.AD.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
+        if not self.AD.plugins.get_plugin(self._get_namespace(**kwargs)).reading_messages:
+            self.AD.logging.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func))
             return lambda *args: None
         else:
             return func(*args, **kwargs)
@@ -29,11 +30,13 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Internal
     #
 
-    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, name, logger, error, args, config, app_config, global_vars):
 
         # Call Super Classes
         adbase.ADBase.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
         adapi.ADAPI.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+
+        self.AD = ad
 
         #
         # Register specific constraints
@@ -54,7 +57,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         new_state = super(Hass, self).parse_state(entity_id, namespace, **kwargs)
 
-        config = self.AD.get_plugin(namespace).config
+        config = self.AD.plugins.get_plugin(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -77,7 +80,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         # Update AppDaemon's copy
 
-        self.AD.set_state(namespace, entity_id, state)
+        self.AD.state.set_state(namespace, entity_id, state)
 
         return state
 
@@ -304,14 +307,14 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @hass_check
     def fire_event(self, event, **kwargs):
-        self.AD.log("DEBUG",
+        self.AD.logging.log("DEBUG",
                   "fire_event: {}, {}".format(event, kwargs))
         
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        config = self.AD.get_plugin(namespace).config        
+        config = self.AD.plugins.get_plugin(namespace).config        
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -344,7 +347,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     def call_service(self, service, **kwargs):
         self._check_service(service)
         d, s = service.split("/")
-        self.AD.log(
+        self.AD.logging.log(
             "DEBUG",
             "call_service: {}/{}, {}".format(d, s, kwargs)
         )
@@ -353,7 +356,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        config = self.AD.get_plugin(namespace).config
+        config = self.AD.plugins.get_plugin(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -361,7 +364,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
-        elif "ha_key"  in config:
+        elif "ha_key" in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}

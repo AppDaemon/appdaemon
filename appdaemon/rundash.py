@@ -15,7 +15,7 @@ import socketio
 
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
-
+from appdaemon.appdaemon import AppDaemon
 
 
 def securedata(myfunc):
@@ -82,15 +82,13 @@ class DashStream(socketio.AsyncNamespace):
         pass
 
     async def on_up(self, sid, data):
-        self.AD.log("INFO", "New dashboard connected: {}".format(data))
+        self.AD.logging.log("INFO", "New dashboard connected: {}".format(data))
 
 class RunDash:
 
-    def __init__(self, ad, loop, logger, access, **config):
+    def __init__(self, ad: AppDaemon, loop, logger, access, **config):
 
         self.AD = ad
-        global AD
-        AD = ad
         self.logger = logger
         self.acc = access
 
@@ -317,7 +315,7 @@ class RunDash:
                                 new_state = {"feed": feed}
 
                                 # RSS Feeds always live in the default namespace
-                                self.AD.set_state("default", feed_data["target"], new_state)
+                                self.AD.state.set_state("default", feed_data["target"], new_state)
 
                                 data = {"event_type": "state_changed",
                                         "data": {"entity_id": feed_data["target"], "new_state": new_state}}
@@ -340,7 +338,7 @@ class RunDash:
         entity_id = request.match_info.get('entity')
         namespace = request.match_info.get('namespace')
 
-        state = self.AD.get_entity(namespace, entity_id)
+        state = self.AD.state.get_entity(namespace, entity_id)
 
         return web.json_response({"state": state})
 
@@ -384,7 +382,7 @@ class RunDash:
                 else:
                     args[key] = data[key]
 
-            plugin = self.AD.get_plugin(namespace)
+            plugin = self.AD.plugins.get_plugin(namespace)
             await plugin.call_service (service, **args)
             return web.Response(status=200)
 
@@ -438,7 +436,7 @@ class RunDash:
         return ws
 
     async def ws_update(self, namespace, jdata):
-        if jdata["event_type"] == "state_changed":
+        if jdata["event_type"] == "state_changed" or jdata["event_type"] == "hadashboard":
             jdata["namespace"] = namespace
             data = json.dumps(jdata)
             if self.transport == "ws":

@@ -183,12 +183,6 @@ class RunAdmin:
         response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.plugins, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
 
-    @secure
-    async def oauth(self, request):
-        #response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.index, request.url)
-        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.oauth, request.query["code"])
-        #return web.Response(text=response, content_type="text/html")
-        raise web.HTTPFound('/plugins')
 
     # noinspection PyUnusedLocal
     async def not_found(self, request):
@@ -204,7 +198,6 @@ class RunAdmin:
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon', self.show_logon)
-        self.app.router.add_get('/oauth', self.oauth)
         self.app.router.add_get('/', self.index)
         self.app.router.add_get('/appdaemon', self.appdaemon)
         self.app.router.add_get('/apps', self.apps)

@@ -7,12 +7,14 @@ import aiohttp
 import pytz
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
+
 
 class HassPlugin:
 
-    def __init__(self, ad, name, logger, error, loglevel, args):
+    def __init__(self, ad: AppDaemon, name, logger, error, loglevel, args):
 
-        #Store args
+        # Store args
         self.AD = ad
         self.logger = logger
         self.error = error
@@ -89,7 +91,7 @@ class HassPlugin:
         self.log("INFO", "HASS Plugin initialization complete")
 
     def log(self, level, message):
-        self.AD.log(level, "{}: {}".format(self.name, message))
+        self.AD.logging.log(level, "{}: {}".format(self.name, message))
 
     def verbose_log(self, text):
         if self.verbose:
@@ -219,7 +221,7 @@ class HassPlugin:
                 #
                 # Fire HA_STARTED Events
                 #
-                await self.AD.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
+                await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
                 self.reading_messages = True
 
                 already_notified = False
@@ -242,7 +244,7 @@ class HassPlugin:
                             "Unexpected result from Home Assistant"
                         )
 
-                    await self.AD.state_update(self.namespace, result["event"])
+                    await self.AD.state.state_update(self.namespace, result["event"])
 
                 self.reading_messages = False
 
@@ -250,7 +252,7 @@ class HassPlugin:
                 self.reading_messages = False
                 first_time = False
                 if not already_notified:
-                    self.AD.notify_plugin_stopped(self.name, self.namespace)
+                    self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True
                 if not self.stopping:
                     self.log(

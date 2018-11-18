@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from pkg_resources import parse_version
 import sys
 import argparse
 import logging
@@ -15,9 +14,8 @@ import traceback
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
-import appdaemon.rest_api as api
+import appdaemon.runapi as api
 import appdaemon.rundash as rundash
-import appdaemon.runadmin as runadmin
 
 class ADMain():
 
@@ -40,12 +38,12 @@ class ADMain():
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
         if signum == signal.SIGUSR1:
-            self.AD.dump_schedule()
+            self.AD.sched.dump_schedule()
             self.AD.dump_callbacks()
-            qinfo = self.AD.q_info()
-            self.AD.dump_threads(qinfo)
+            qinfo = self.AD.threading.q_info()
+            self.AD.threading.dump_threads(qinfo)
             self.AD.dump_objects()
-            self.AD.dump_sun()
+            self.AD.sched.dump_sun()
         if signum == signal.SIGHUP:
             self.AD.check_app_updates(True)
         if signum == signal.SIGINT:
@@ -87,6 +85,7 @@ class ADMain():
             if "api_port" in appdaemon:
                 self.log(self.logger, "INFO", "Starting API")
                 self.api = api.ADAPI(self.AD, loop, self.logger, self.access, **appdaemon)
+                self.AD.register_api(self.api)
             else:
                 self.log(self.logger, "INFO", "API is disabled")
 

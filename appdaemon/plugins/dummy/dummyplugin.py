@@ -2,11 +2,11 @@ import yaml
 import asyncio
 import copy
 
-import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class DummyPlugin:
 
-    def __init__(self, ad, name, logger, error, loglevel,args):
+    def __init__(self, ad: AppDaemon, name, logger, error, loglevel,args):
 
         self.AD = ad
         self.logger = logger
@@ -16,7 +16,7 @@ class DummyPlugin:
         self.config = args
         self.name = name
 
-        self.AD.log("INFO", "Dummy Plugin Initializing", "DUMMY")
+        self.AD.logging.log("INFO", "Dummy Plugin Initializing", "DUMMY")
 
         self.name = name
 
@@ -35,25 +35,25 @@ class DummyPlugin:
         try:
             self.config = yaml.load(config_file_contents)
         except yaml.YAMLError as exc:
-            self.AD.log("WARNING", "Error loading configuration")
+            self.AD.logging.log("WARNING", "Error loading configuration")
             if hasattr(exc, 'problem_mark'):
                 if exc.context is not None:
-                    self.AD.log("WARNING", "parser says")
-                    self.AD.log("WARNING", str(exc.problem_mark))
-                    self.AD.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                    self.AD.logging.log("WARNING", "parser says")
+                    self.AD.logging.log("WARNING", str(exc.problem_mark))
+                    self.AD.logging.log("WARNING", str(exc.problem) + " " + str(exc.context))
                 else:
-                    self.AD.log("WARNING", "parser says")
-                    self.AD.log("WARNING", str(exc.problem_mark))
-                    self.AD.log("WARNING", str(exc.problem))
+                    self.AD.logging.log("WARNING", "parser says")
+                    self.AD.logging.log("WARNING", str(exc.problem_mark))
+                    self.AD.logging.log("WARNING", str(exc.problem))
 
         self.state = self.config["initial_state"]
         self.current_event = 0
 
-        self.AD.log("INFO", "Dummy Plugin initialization complete")
+        self.AD.logging.log("INFO", "Dummy Plugin initialization complete")
 
     def log(self, text):
         if self.verbose:
-            self.AD.log("INFO", "{}: {}".format(self.name, text))
+            self.AD.logging.log("INFO", "{}: {}".format(self.name, text))
 
 
     def stop(self):
@@ -90,7 +90,7 @@ class DummyPlugin:
     #
 
     async def get_updates(self):
-        await self.AD.notify_plugin_started(self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True)
+        await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True)
         while not self.stopping:
             ret = None
             if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
@@ -116,7 +116,7 @@ class DummyPlugin:
                                 }
                         }
                     self.log("*** State Update: {} ***".format(ret))
-                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
+                    self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = \
                         {
@@ -124,15 +124,15 @@ class DummyPlugin:
                             "data": event["event"]["data"],
                         }
                     self.log("*** Event: {} ***".format(ret))
-                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
+                    self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
 
                 elif "disconnect" in event:
                     self.log("*** Disconnected ***".format(ret))
-                    self.AD.notify_plugin_stopped(self.namespace)
+                    self.AD.plugins.notify_plugin_stopped(self.namespace)
 
                 elif "connect" in event:
                     self.log("*** Connected ***".format(ret))
-                    await self.AD.notify_plugin_started(self.namespace)
+                    await self.AD.plugins.notify_plugin_started(self.namespace)
 
                 self.current_event += 1
                 if self.current_event >= len(self.config["sequence"]["events"]) and "loop" in self.config["sequence"] and self.config["sequence"]["loop"] == 1:

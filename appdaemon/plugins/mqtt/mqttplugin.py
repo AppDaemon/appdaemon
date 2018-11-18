@@ -6,10 +6,12 @@ import traceback
 import json
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class MqttPlugin:
 
-    def __init__(self, ad, name, logger, error, loglevel, args):
+    def __init__(self, ad: AppDaemon, name, logger, error, loglevel, args):
+
         """Initialize MQTT Plugin."""
         self.AD = ad
         self.logger = logger
@@ -22,7 +24,7 @@ class MqttPlugin:
         self.mqtt_connected = False
         self.state = {}
 
-        self.AD.log("INFO", "{}: MQTT Plugin Initializing".format(self.name))
+        self.AD.logging.log("INFO", "{}: MQTT Plugin Initializing".format(self.name))
 
         self.name = name
 
@@ -56,11 +58,11 @@ class MqttPlugin:
 
         if self.mqtt_will_topic == None:
             self.mqtt_will_topic = status_topic
-            self.AD.log("INFO", "{}: Using {!r} as Will Topic".format(self.name, status_topic))
+            self.AD.logging.log("INFO", "{}: Using {!r} as Will Topic".format(self.name, status_topic))
         
         if self.mqtt_on_connect_topic == None:
             self.mqtt_on_connect_topic = status_topic
-            self.AD.log("INFO", "{}: Using {!r} as Birth Topic".format(self.name, status_topic))
+            self.AD.logging.log("INFO", "{}: Using {!r} as Birth Topic".format(self.name, status_topic))
 
         self.mqtt_will_payload = self.config.get('will_payload', 'offline')
         self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
@@ -74,7 +76,7 @@ class MqttPlugin:
 
         if mqtt_client_id == None:
             mqtt_client_id = 'appdaemon_{}_client'.format(self.name.lower())
-            self.AD.log("INFO", "{}: Using {!r} as Client ID".format(self.name, mqtt_client_id))
+            self.AD.logging.log("INFO", "{}: Using {!r} as Client ID".format(self.name, mqtt_client_id))
 
         self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport= mqtt_transport)
         self.mqtt_client.on_connect = self.mqtt_on_connect
@@ -113,7 +115,7 @@ class MqttPlugin:
     def stop(self):
         self.stopping = True
         if self.initialized:
-            self.AD.log("INFO", "{}: Stopping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
+            self.AD.logging.log("INFO", "{}: Stopping MQTT Plugin and Unsubcribing from URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
                 self.log("{}: Unsubscribing from Topic: {}".format(self.name, topic))
                 result = self.mqtt_client.unsubscribe(topic)
@@ -126,14 +128,14 @@ class MqttPlugin:
     def log(self, text, **kwargs):
         level = kwargs.get('level', 'INFO')
         if self.verbose:
-            self.AD.log(level, "{}".format(text))
+            self.AD.logging.log(level, "{}".format(text))
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
         err_msg = ""
         if rc == 0: #means connection was successful
             self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos, retain=self.mqtt_on_connect_retain)
                 
-            self.AD.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
+            self.AD.logging.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
                 self.log("{}: Subscribing to Topic: {}".format(self.name, topic))
                 result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
@@ -141,7 +143,7 @@ class MqttPlugin:
                     self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
                 else:
                     if topic == self.mqtt_metadata['plugin_topic']:
-                        self.AD.log("CRITICAL", 
+                        self.AD.logging.log("CRITICAL",
                                 "{}: Subscription to Plugin Internal Topic Unsucessful. Please check Broker and Restart AD".format(self.name))
                     else:
                         self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
@@ -162,7 +164,7 @@ class MqttPlugin:
             err_msg = "Connection was refused. Please check configuration settings"
         
         if err_msg != "": #means there was an error
-            self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, for {}".format(self.name, err_msg))
+            self.AD.logging.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, for {}".format(self.name, err_msg))
 
         self.mqtt_connect_event.set() # continue processing
 
@@ -170,7 +172,7 @@ class MqttPlugin:
         if rc != 0 and not self.stopping: #unexpected disconnection
             self.initialized = False
             self.mqtt_connected = False
-            self.AD.log("CRITICAL", "{}: MQTT Client Disconnected Abruptly. Will attempt reconnection".format(self.name))
+            self.AD.logging.log("CRITICAL", "{}: MQTT Client Disconnected Abruptly. Will attempt reconnection".format(self.name))
         return
 
     def mqtt_on_message(self, client, userdata, msg):
@@ -194,7 +196,7 @@ class MqttPlugin:
         qos = int(kwargs.get('qos', self.mqtt_qos))
 
         if service == 'publish':
-            self.AD.log("DEBUG", 
+            self.AD.logging.log("DEBUG",
                 "{}: Publish Payload: {} to Topic: {}".format(self.name, payload, topic))
 
             result = self.mqtt_client.publish(topic, payload, qos, retain)
@@ -203,7 +205,7 @@ class MqttPlugin:
                 self.log("{}: Publishing Payload {} to Topic {} Successful".format(self.name, payload, topic))
 
         elif service == 'subscribe':
-            self.AD.log("DEBUG", 
+            self.AD.logging.log("DEBUG",
                 "{}: Subscribe to Topic: {}".format(self.name, topic))
 
             result = self.mqtt_client.subscribe(topic, qos)
@@ -214,7 +216,7 @@ class MqttPlugin:
                     self.mqtt_client_topics.append(topic)
 
         elif service == 'unsubscribe':
-            self.AD.log("DEBUG", 
+            self.AD.logging.log("DEBUG",
                 "{}: Unsubscribe from Topic: {}".format(self.name, topic))
 
             result = self.mqtt_client.unsubscribe(topic)
@@ -234,7 +236,7 @@ class MqttPlugin:
             self.mqtt_wildcards.append(wildcard.rstrip('#'))
     
     async def send_ad_event(self, data):
-        await self.AD.state_update(self.namespace, data)
+        await self.AD.state.state_update(self.namespace, data)
 
     #
     # Get initial state
@@ -255,7 +257,7 @@ class MqttPlugin:
     #
 
     def utility(self):
-        #self.AD.log('INFO',"utility".format(self.state))
+        #self.AD.logging.log('INFO',"utility".format(self.state))
         return
 
     #
@@ -275,7 +277,7 @@ class MqttPlugin:
                         await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
                         await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
-                        self.AD.log(
+                        self.AD.logging.log(
                             "CRITICAL", 
                                 "{}: Could not Complete Connection to Broker, please Ensure Broker at URL {}:{} is correct or broker not down and restart Appdaemon".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
                         self.mqtt_client.loop_stop()
@@ -287,22 +289,22 @@ class MqttPlugin:
                 meta = await self.get_metadata()
 
                 if self.mqtt_connected : #meaning the client has connected to the broker
-                    await self.AD.notify_plugin_started(self.name, self.namespace, meta, state, first_time)
+                    await self.AD.plugins.notify_plugin_started(self.name, self.namespace, meta, state, first_time)
                     already_notified = False
                     already_initialized = True
-                    self.AD.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
+                    self.AD.logging.log("INFO", "{}: MQTT Plugin initialization complete".format(self.name))
                     self.initialized = True
                 else:
                     if not already_notified and already_initialized:
-                        self.AD.notify_plugin_stopped(self.name, self.namespace)
-                        self.AD.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
+                        self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
+                        self.AD.logging.log("CRITICAL", "{}: MQTT Plugin Stopped Unexpectedly".format(self.name))
                         already_notified = True
                         already_initialized = False
                         first_time = False
                     if not already_initialized and not already_notified:
-                        self.AD.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, trying again in 5 seconds".format(self.name))
+                        self.AD.logging.log("CRITICAL", "{}: Could not complete MQTT Plugin initialization, trying again in 5 seconds".format(self.name))
                     else:
-                        self.AD.log("CRITICAL", "{}: Unable to reinitialize MQTT Plugin, will keep trying again until complete".format(self.name))
+                        self.AD.logging.log("CRITICAL", "{}: Unable to reinitialize MQTT Plugin, will keep trying again until complete".format(self.name))
                     await asyncio.sleep(5)
             await asyncio.sleep(5)
 
@@ -329,11 +331,11 @@ class MqttPlugin:
                                         self.mqtt_client_timeout)
             self.mqtt_client.loop_start()
         except Exception as e:
-            self.AD.log("CRITICAL", "{}: There was an error while trying to setup the Mqtt Service. Error was: {}".format(self.name, e))
-            self.AD.log("DEBUG", "{}: There was an error while trying to setup the MQTT Service. Error: {}, with Traceback: {}".format(self.name, e, traceback.format_exc()))
+            self.AD.logging.log("CRITICAL", "{}: There was an error while trying to setup the Mqtt Service. Error was: {}".format(self.name, e))
+            self.AD.logging.log("DEBUG", "{}: There was an error while trying to setup the MQTT Service. Error: {}, with Traceback: {}".format(self.name, e, traceback.format_exc()))
             self.log('{}: There was an error while trying to setup the MQTT Service, with Traceback: {}'.format(self.name, traceback.format_exc()), level = 'CRITICAL')
         except:
-            self.AD.log("CRITICAL", "{}: There was an error while trying to setup the Mqtt Service".format(self.name))
+            self.AD.logging.log("CRITICAL", "{}: There was an error while trying to setup the Mqtt Service".format(self.name))
             self.log('{}: There was an error while trying to setup the MQTT Service, with Traceback: {}'.format(self.name, traceback.format_exc()), level = 'CRITICAL')
         
         return
