@@ -10,12 +10,15 @@ import re
 import asyncio
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 
 class Scheduler:
 
-    def __init__(self, ad):
+    def __init__(self, ad: AppDaemon):
         self.AD = ad
+
+        self.time_zone = self.AD.time_zone
 
         self.schedule = {}
         self.schedule_lock = threading.RLock()
@@ -23,9 +26,8 @@ class Scheduler:
         self.sun = {}
         self.sun_lock = threading.RLock()
 
-        self.tz = pytz.timezone(self.AD.time_zone)
-
-        self.now = pytz.utc.localize(datetime.datetime.utcnow())
+        self.tz = None
+        self.now = datetime.datetime.now().timestamp()
 
         if self.AD.tick != self.AD.interval or self.AD.starttime is not None:
             self.realtime = False
@@ -46,7 +48,6 @@ class Scheduler:
         tt = None
         if self.AD.starttime:
             tt = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
-            print(tt)
             self.now = tt.timestamp()
         else:
             new_now = datetime.datetime.now()
@@ -178,6 +179,8 @@ class Scheduler:
             raise ValueError("Longitude needs to be -180 .. 180")
 
         elevation = self.AD.elevation
+
+        self.tz = pytz.timezone(self.AD.time_zone)
 
         self.location = astral.Location((
             '', '', latitude, longitude, self.tz.zone, elevation
@@ -380,7 +383,7 @@ class Scheduler:
                 )
 
                 self.AD.logging.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates, "__ALL__")
+                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates, "__ALL__")
             self.was_dst = now_dst
 
             # Process callbacks
@@ -476,7 +479,6 @@ class Scheduler:
         return schedule
 
     def is_dst(self):
-        local_time = self.now.astimezone(self.tz)
         return bool(time.localtime(self.get_now_ts()).tm_isdst)
 
     def get_now(self):

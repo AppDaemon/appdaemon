@@ -9,10 +9,11 @@ import traceback
 import inspect
 
 from appdaemon import utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class Threading:
 
-    def __init__(self, ad, kwargs):
+    def __init__(self, ad: AppDaemon, kwargs):
 
         self.AD = ad
 
@@ -157,7 +158,7 @@ class Threading:
                          thread_info["threads"][thread]["callback"],
                          ts,
                          thread_info["threads"][thread]["is_alive"],
-                         self.AD.get_pinned_apps(thread)
+                         self.AD.threading.get_pinned_apps(thread)
                      ))
         self.AD.logging.diag("INFO", "--------------------------------------------------")
 
@@ -316,7 +317,7 @@ class Threading:
     def validate_pin(self, name, kwargs):
         if "pin_thread" in kwargs:
             if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.threads:
-                self.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
+                self.AD.logging.log("WARNING", "Invalid value for pin_thread ({}) in app: {} - discarding callback".format(kwargs["pin_thread"], name))
                 return False
         else:
             return True

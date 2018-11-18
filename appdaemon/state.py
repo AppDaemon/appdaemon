@@ -4,10 +4,11 @@ import traceback
 import threading
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class State:
 
-    def __init__(self, ad):
+    def __init__(self, ad: AppDaemon):
 
         self.AD = ad
 
