@@ -19,6 +19,7 @@ class Scheduler:
         self.AD = ad
 
         self.time_zone = self.AD.time_zone
+        self.tz = pytz.timezone(self.AD.time_zone)
 
         self.schedule = {}
         self.schedule_lock = threading.RLock()
@@ -26,7 +27,6 @@ class Scheduler:
         self.sun = {}
         self.sun_lock = threading.RLock()
 
-        self.tz = None
         self.now = datetime.datetime.now().timestamp()
 
         if self.AD.tick != self.AD.interval or self.AD.starttime is not None:
@@ -179,8 +179,6 @@ class Scheduler:
             raise ValueError("Longitude needs to be -180 .. 180")
 
         elevation = self.AD.elevation
-
-        self.tz = pytz.timezone(self.AD.time_zone)
 
         self.location = astral.Location((
             '', '', latitude, longitude, self.tz.zone, elevation
