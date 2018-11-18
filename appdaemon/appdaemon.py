@@ -4,20 +4,23 @@ import datetime
 import concurrent.futures
 import threading
 
-import appdaemon.utils as utils
-import appdaemon.appq as appq
-import appdaemon.utility as utility
-import appdaemon.plugin_management as plugins
-import appdaemon.threading
-import appdaemon.app_management as apps
-import appdaemon.callbacks as callbacks
-import appdaemon.state as state
-import appdaemon.events as events
-import appdaemon.logging as logging
-
 class AppDaemon:
 
     def __init__(self, logger, error, diag, loop, **kwargs):
+
+        #
+        # Import various AppDaemon bits and pieces now to avoid circular import
+        #
+        import appdaemon.utils as utils
+        import appdaemon.appq as appq
+        import appdaemon.utility as utility
+        import appdaemon.plugin_management as plugins
+        import appdaemon.threading
+        import appdaemon.app_management as apps
+        import appdaemon.callbacks as callbacks
+        import appdaemon.state as state
+        import appdaemon.events as events
+        import appdaemon.logging as logging
 
         self.logger = logger
         self.error = error
@@ -179,7 +182,6 @@ class AppDaemon:
         #
         self.state = state.State(self)
 
-
         if self.apps is True:
             if self.app_dir is None:
                 if self.config_dir is None:
@@ -235,7 +237,6 @@ class AppDaemon:
         if self.plugins is not None:
             self.plugins.stop()
 
-
     #
     # Utilities
     #
@@ -245,4 +246,3 @@ class AppDaemon:
 
     def register_api(self, api):
         self.api = api
-

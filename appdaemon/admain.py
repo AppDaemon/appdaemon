@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from pkg_resources import parse_version
 import sys
 import argparse
 import logging

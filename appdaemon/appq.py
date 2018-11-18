@@ -2,6 +2,7 @@ import asyncio
 
 from appdaemon.appdaemon import AppDaemon
 
+
 class AppQ:
 
     def __init__(self, ad: AppDaemon):
@@ -34,7 +35,6 @@ class AppQ:
 
     def set_app_state(self, namespace, entity_id, state):
         self.AD.logging.log("DEBUG", "set_app_state: {}".format(entity_id))
-        #print(state)
         if entity_id is not None and "." in entity_id:
             if self.AD.state.entity_exists(namespace, entity_id):
                 old_state = self.AD.state.get_entity(namespace, entity_id)
