@@ -212,7 +212,11 @@ class AppDaemon:
         # Initialize Plugins
 
         if "plugins" in kwargs:
-            self.plugins = plugins.Plugins(self, kwargs["plugins"])
+            args = kwargs["plugins"]
+        else:
+            args = None
+
+        self.plugins = plugins.Plugins(self, args)
 
         # Create appq Loop
 

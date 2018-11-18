@@ -17,16 +17,15 @@ class Scheduler:
     def __init__(self, ad):
         self.AD = ad
 
-        self.time_zone = self.AD.time_zone
-
         self.schedule = {}
         self.schedule_lock = threading.RLock()
 
         self.sun = {}
         self.sun_lock = threading.RLock()
 
-        self.tz = None
-        self.now = datetime.datetime.now().timestamp()
+        self.tz = pytz.timezone(self.AD.time_zone)
+
+        self.now = pytz.utc.localize(datetime.datetime.utcnow())
 
         if self.AD.tick != self.AD.interval or self.AD.starttime is not None:
             self.realtime = False
@@ -47,6 +46,7 @@ class Scheduler:
         tt = None
         if self.AD.starttime:
             tt = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
+            print(tt)
             self.now = tt.timestamp()
         else:
             new_now = datetime.datetime.now()
@@ -178,8 +178,6 @@ class Scheduler:
             raise ValueError("Longitude needs to be -180 .. 180")
 
         elevation = self.AD.elevation
-
-        self.tz = pytz.timezone(self.AD.time_zone)
 
         self.location = astral.Location((
             '', '', latitude, longitude, self.tz.zone, elevation
@@ -478,6 +476,7 @@ class Scheduler:
         return schedule
 
     def is_dst(self):
+        local_time = self.now.astimezone(self.tz)
         return bool(time.localtime(self.get_now_ts()).tm_isdst)
 
     def get_now(self):
