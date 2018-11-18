@@ -167,31 +167,6 @@ class Scheduler:
                         schedule["timestamp"] = self.calc_sun(action) + c_offset
                         schedule["offset"] = c_offset
 
-    def sun_up(self):
-        with self.sun_lock:
-            return self.sun["next_rising"] > self.sun["next_setting"]
-
-    def sun_down(self):
-        with self.sun_lock:
-            return self.sun["next_rising"] < self.sun["next_setting"]
-
-    def calc_sun(self, type_):
-        # convert to a localized timestamp
-        with self.sun_lock:
-            return self.sun[type_].timestamp()
-
-    def info_timer(self, handle, name):
-        with self.schedule_lock:
-            if name in self.schedule and handle in self.schedule[name]:
-                callback = self.schedule[name][handle]
-                return (
-                    datetime.datetime.fromtimestamp(callback["timestamp"]),
-                    callback["interval"],
-                    self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"])
-                )
-            else:
-                raise ValueError("Invalid handle: {}".format(handle))
-
     def init_sun(self):
         latitude = self.AD.latitude
         longitude = self.AD.longitude
@@ -263,6 +238,7 @@ class Scheduler:
             )
         )
 
+
     @staticmethod
     def get_offset(kwargs):
         if "offset" in kwargs["kwargs"]:
@@ -329,6 +305,158 @@ class Scheduler:
     def is_realtime(self):
         return self.realtime
 
+    #
+    # Timer
+    #
+    async def do_every(self):
+        #
+        # We already set self.now for DST calculation and initial sunset,
+        # but lets reset it at the start of the timer loop to avoid an initial clock skew
+        #
+        if self.AD.starttime:
+            self.now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
+        else:
+            self.now = datetime.datetime.now().timestamp()
+
+        t = self.myround(self.now, base=self.AD.tick)
+        count = 0
+        t_ = self.myround(time.time(), base=self.AD.tick)
+        #print(t, t_, period)
+        while not self.stopping:
+            count += 1
+            delay = max(t_ + count * self.AD.tick - time.time(), 0)
+            await asyncio.sleep(delay)
+            t = self.myround(t + self.AD.interval, base=self.AD.tick)
+            r = await self.do_every_tick(t)
+            if r is not None and r != t:
+                #print("r: {}, t: {}".format(r,t))
+                t = r
+                t_ = r
+                count = 0
+
+
+    #
+    # Scheduler Loop
+    #
+
+    # noinspection PyBroadException,PyBroadException
+
+    async def do_every_tick(self, utc):
+        try:
+            start_time = datetime.datetime.now().timestamp()
+            self.now = utc
+
+            # If we have reached endtime bail out
+
+            if self.AD.endtime is not None and self.get_now() >= self.AD.endtime:
+                self.AD.logging.log("INFO", "End time reached, exiting")
+                if self.AD.stop_function is not None:
+                    self.AD.stop_function()
+                else:
+                    #
+                    # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
+                    #
+                    self.stop()
+
+            if self.realtime:
+                real_now = datetime.datetime.now().timestamp()
+                delta = abs(utc - real_now)
+                if delta > self.AD.max_clock_skew:
+                    self.AD.logging.log("WARNING",
+                              "Scheduler clock skew detected - delta = {} - resetting".format(delta))
+                    return real_now
+
+            # Update sunrise/sunset etc.
+
+            self.update_sun()
+
+            # Check if we have entered or exited DST - if so, reload apps
+            # to ensure all time callbacks are recalculated
+
+            now_dst = self.is_dst()
+            if now_dst != self.was_dst:
+                self.AD.logging.log(
+                    "INFO",
+                    "Detected change in DST from {} to {} -"
+                    " reloading all modules".format(self.was_dst, now_dst)
+                )
+
+                self.AD.logging.log("INFO", "-" * 40)
+                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates, "__ALL__")
+            self.was_dst = now_dst
+
+            # Process callbacks
+
+            with self.schedule_lock:
+                for name in self.schedule.keys():
+                    for entry in sorted(
+                            self.schedule[name].keys(),
+                            key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+                    ):
+
+                        if self.schedule[name][entry]["timestamp"] <= utc:
+                            self.exec_schedule(name, entry, self.schedule[name][entry])
+                        else:
+                            break
+                for k, v in list(self.schedule.items()):
+                    if v == {}:
+                        del self.schedule[k]
+
+            end_time = datetime.datetime.now().timestamp()
+
+            loop_duration = end_time - start_time
+            self.AD.logging.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
+
+            if loop_duration > self.AD.tick * 0.9:
+                self.AD.logging.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
+
+            return utc
+
+        except:
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err("WARNING", "Unexpected error during do_every_tick()")
+            self.AD.logging.err("WARNING", '-' * 60)
+            self.AD.logging.err( "WARNING", traceback.format_exc())
+            self.AD.logging.err("WARNING", '-' * 60)
+            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
+                # When explicitly logging to stdout and stderr, suppress
+                # verbose_log messages about writing an error (since they show up anyway)
+                self.AD.logging.log(
+                    "WARNING",
+                    "Logged an error to {}".format(self.AD.errfile)
+                )
+
+
+    #
+    # App API Calls
+    #
+
+    def sun_up(self):
+        with self.sun_lock:
+            return self.sun["next_rising"] > self.sun["next_setting"]
+
+    def sun_down(self):
+        with self.sun_lock:
+            return self.sun["next_rising"] < self.sun["next_setting"]
+
+    def calc_sun(self, type_):
+        # convert to a localized timestamp
+        with self.sun_lock:
+            return self.sun[type_].timestamp()
+
+    def info_timer(self, handle, name):
+        with self.schedule_lock:
+            if name in self.schedule and handle in self.schedule[name]:
+                callback = self.schedule[name][handle]
+                return (
+                    datetime.datetime.fromtimestamp(callback["timestamp"]),
+                    callback["interval"],
+                    self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"])
+                )
+            else:
+                raise ValueError("Invalid handle: {}".format(handle))
+
+
     def get_scheduler_entries(self):
         schedule = {}
         for name in self.schedule.keys():
@@ -381,7 +509,6 @@ class Scheduler:
 
     def sunrise(self):
         return datetime.datetime.fromtimestamp(self.calc_sun("next_rising"))
-
 
     def parse_time(self, time_str, name=None):
         return self._parse_time(time_str, name)["datetime"].time()
@@ -462,11 +589,9 @@ class Scheduler:
                 raise ValueError("invalid time string: {}".format(time_str))
         return {"datetime": parsed_time, "sun": sun, "offset": offset}
 
-    def sanitize_timer_kwargs(self, app, kwargs):
-        kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(kwargs_copy, [
-            "interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"
-        ] + app.list_constraints())
+    #
+    # Diagnostics
+    #
 
     def dump_sun(self):
         self.AD.logging.diag("INFO", "--------------------------------------------------")
@@ -499,138 +624,21 @@ class Scheduler:
                     )
             self.AD.logging.diag("INFO", "--------------------------------------------------")
 
+    #
+    # Utilities
+    #
+
+    def sanitize_timer_kwargs(self, app, kwargs):
+        kwargs_copy = kwargs.copy()
+        return utils._sanitize_kwargs(kwargs_copy, [
+            "interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"
+        ] + app.list_constraints())
+
+
     def myround(self, x, base=1, prec=10):
         if base == 0:
             return x
         else:
             return round(base * round(float(x) / base), prec)
 
-    async def do_every(self):
-        #
-        # We already set self.now for DST calculation and initial sunset,
-        # but lets reset it at the start of the timer loop to avoid an initial clock skew
-        #
-        if self.AD.starttime:
-            self.now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
-        else:
-            self.now = datetime.datetime.now().timestamp()
-
-        t = self.myround(self.now, base=self.AD.tick)
-        count = 0
-        t_ = self.myround(time.time(), base=self.AD.tick)
-        #print(t, t_, period)
-        while not self.stopping:
-            count += 1
-            delay = max(t_ + count * self.AD.tick - time.time(), 0)
-            await asyncio.sleep(delay)
-            t = self.myround(t + self.AD.interval, base=self.AD.tick)
-            r = await self.do_every_tick(t)
-            if r is not None and r != t:
-                #print("r: {}, t: {}".format(r,t))
-                t = r
-                t_ = r
-                count = 0
-
-    #
-    # Scheduler Loop
-    #
-
-    # noinspection PyBroadException,PyBroadException
-
-    async def do_every_tick(self, utc):
-        try:
-            start_time = datetime.datetime.now().timestamp()
-            self.now = utc
-
-            #print("tick - {}".format(utc))
-
-            # If we have reached endtime bail out
-
-            if self.AD.endtime is not None and self.get_now() >= self.AD.endtime:
-                self.AD.logging.log("INFO", "End time reached, exiting")
-                if self.AD.stop_function is not None:
-                    self.AD.stop_function()
-                else:
-                    #
-                    # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
-                    #
-                    self.stop()
-
-            if self.realtime:
-                real_now = datetime.datetime.now().timestamp()
-                delta = abs(utc - real_now)
-                if delta > self.AD.max_clock_skew:
-                    self.AD.logging.log("WARNING",
-                              "Scheduler clock skew detected - delta = {} - resetting".format(delta))
-                    return real_now
-
-            # Update sunrise/sunset etc.
-
-            self.update_sun()
-
-            # Check if we have entered or exited DST - if so, reload apps
-            # to ensure all time callbacks are recalculated
-
-            now_dst = self.is_dst()
-            if now_dst != self.was_dst:
-                self.AD.logging.log(
-                    "INFO",
-                    "Detected change in DST from {} to {} -"
-                    " reloading all modules".format(self.was_dst, now_dst)
-                )
-                # dump_schedule()
-                self.AD.logging.log("INFO", "-" * 40)
-                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates, "__ALL__")
-                # dump_schedule()
-            self.was_dst = now_dst
-
-            # dump_schedule()
-
-            # test code for clock skew
-            # if random.randint(1, 10) == 5:
-            #    time.sleep(random.randint(1,20))
-
-
-            # Process callbacks
-
-            # self.log("DEBUG", "Scheduler invoked at {}".format(now))
-            with self.schedule_lock:
-                for name in self.schedule.keys():
-                    for entry in sorted(
-                            self.schedule[name].keys(),
-                            key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                    ):
-
-                        if self.schedule[name][entry]["timestamp"] <= utc:
-                            self.exec_schedule(name, entry, self.schedule[name][entry])
-                        else:
-                            break
-                for k, v in list(self.schedule.items()):
-                    if v == {}:
-                        del self.schedule[k]
-
-            end_time = datetime.datetime.now().timestamp()
-
-            loop_duration = end_time - start_time
-            self.AD.logging.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
-
-            #if loop_duration > 900:
-            if loop_duration > self.AD.tick * 0.9:
-                self.AD.logging.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
-
-            return utc
-
-        except:
-            self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err("WARNING", "Unexpected error during do_every_tick()")
-            self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err( "WARNING", traceback.format_exc())
-            self.AD.logging.err("WARNING", '-' * 60)
-            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.AD.logging.log(
-                    "WARNING",
-                    "Logged an error to {}".format(self.AD.errfile)
-                )
 
