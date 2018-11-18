@@ -5,13 +5,14 @@ import datetime
 import asyncio
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 
 class Plugins:
 
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
 
-    def __init__(self, ad, kwargs):
+    def __init__(self, ad: AppDaemon, kwargs):
 
         self.AD = ad
         self.plugins = kwargs
@@ -129,7 +130,7 @@ class Plugins:
                 self.AD.state.set_namespace_state(namespace, state)
 
                 if not first_time:
-                    await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.check_app_updates, self.get_plugin_from_namespace(namespace))
+                    await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates, self.get_plugin_from_namespace(namespace))
                 else:
                     self.AD.logging.log("INFO", "Got initial state from namespace {}".format(namespace))
 

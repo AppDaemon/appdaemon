@@ -7,12 +7,14 @@ import ssl
 import traceback
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
+
 
 app = web.Application()
 
 class ADAPI():
 
-    def __init__(self, ad, loop, logger, access, **config):
+    def __init__(self, ad: AppDaemon, loop, logger, access, **config):
 
         self.AD = ad
         self.logger = logger

@@ -15,7 +15,7 @@ import socketio
 
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
-
+from appdaemon.appdaemon import AppDaemon
 
 
 def securedata(myfunc):
@@ -86,11 +86,9 @@ class DashStream(socketio.AsyncNamespace):
 
 class RunDash:
 
-    def __init__(self, ad, loop, logger, access, **config):
+    def __init__(self, ad: AppDaemon, loop, logger, access, **config):
 
         self.AD = ad
-        global AD
-        AD = ad
         self.logger = logger
         self.acc = access
 

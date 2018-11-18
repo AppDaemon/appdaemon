@@ -1,10 +1,12 @@
 import datetime
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
+
 
 class Logging:
 
-    def __init__(self, ad):
+    def __init__(self, ad: AppDaemon):
 
         self.AD = ad
 

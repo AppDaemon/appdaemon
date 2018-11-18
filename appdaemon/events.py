@@ -1,8 +1,11 @@
 import uuid
 
+from appdaemon.appdaemon import AppDaemon
+
+
 class Events:
 
-    def __init__(self, ad):
+    def __init__(self, ad: AppDaemon):
 
         self.AD = ad
 

@@ -2,16 +2,16 @@ import datetime
 import inspect
 import iso8601
 import re
-import threading
-import appdaemon.utils as utils
 
+import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class ADAPI:
     #
     # Internal
     #
 
-    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, name, logger, error, args, config, app_config, global_vars):
 
         # Store args
 
@@ -79,14 +79,14 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        return self.AD.add_log_callback(namespace, self.name, cb, level, **kwargs)
+        return self.AD.logging.add_log_callback(namespace, self.name, cb, level, **kwargs)
 
     def cancel_listen_log(self, handle):
         self.AD.logging.log(
             "DEBUG",
             "Canceling listen_log for {}".format(self.name)
         )
-        self.AD.cancel_log_callback(self.name, handle)
+        self.AD.logging.cancel_log_callback(self.name, handle)
 
     #
     # Namespace
@@ -611,7 +611,7 @@ class ADAPI:
         return self.AD.sched.get_scheduler_entries()
 
     def get_callback_entries(self):
-        return self.AD.callback.get_callback_entries()
+        return self.AD.callbacks.get_callback_entries()
 
     @staticmethod
     def get_alexa_slot_value(data, slot=None):

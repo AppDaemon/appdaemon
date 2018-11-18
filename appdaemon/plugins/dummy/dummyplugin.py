@@ -2,11 +2,11 @@ import yaml
 import asyncio
 import copy
 
-import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class DummyPlugin:
 
-    def __init__(self, ad, name, logger, error, loglevel,args):
+    def __init__(self, ad: AppDaemon, name, logger, error, loglevel,args):
 
         self.AD = ad
         self.logger = logger
@@ -116,7 +116,7 @@ class DummyPlugin:
                                 }
                         }
                     self.log("*** State Update: {} ***".format(ret))
-                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
+                    self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = \
                         {
@@ -124,7 +124,7 @@ class DummyPlugin:
                             "data": event["event"]["data"],
                         }
                     self.log("*** Event: {} ***".format(ret))
-                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
+                    self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
 
                 elif "disconnect" in event:
                     self.log("*** Disconnected ***".format(ret))

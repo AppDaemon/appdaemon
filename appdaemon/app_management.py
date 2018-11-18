@@ -11,10 +11,11 @@ import io
 import pstats
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class AppManagement:
 
-    def __init__(self, ad, config):
+    def __init__(self, ad: AppDaemon, config):
 
         self.AD = ad
 

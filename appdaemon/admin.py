@@ -6,15 +6,17 @@ import datetime
 
 import appdaemon.utils as ha
 
+from appdaemon.appdaemon import AppDaemon
+
 
 class Admin:
 
-    def __init__(self, config_dir, logger, AD, **kwargs):
+    def __init__(self, config_dir, logger, ad: AppDaemon, **kwargs):
         #
         # Set Defaults
         #
         self.config_dir = config_dir
-        self.AD = AD
+        self.AD = ad
         self.logger = logger
         self.dash_install_dir = os.path.dirname(__file__)
         self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
@@ -69,12 +71,12 @@ class Admin:
             params["apps"][obj] = {}
 
         params["plugins"] = {}
-        for plug in self.AD.plugin_objs:
+        for plug in self.AD.plugins.plugin_objs:
             params["plugins"][plug] = \
                 {
-                    "name": self.AD.plugin_objs[plug].name,
-                    "type": self.AD.plugin_objs[plug].__class__.__name__,
-                    "namespace": self.AD.plugin_objs[plug].namespace,
+                    "name": self.AD.plugins.plugin_objs[plug].name,
+                    "type": self.AD.plugins.plugin_objs[plug].__class__.__name__,
+                    "namespace": self.AD.plugins.plugin_objs[plug].namespace,
                 }
 
         env = Environment(

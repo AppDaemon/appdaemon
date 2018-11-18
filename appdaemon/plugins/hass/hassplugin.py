@@ -7,12 +7,14 @@ import aiohttp
 import pytz
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
+
 
 class HassPlugin:
 
-    def __init__(self, ad, name, logger, error, loglevel, args):
+    def __init__(self, ad: AppDaemon, name, logger, error, loglevel, args):
 
-        #Store args
+        # Store args
         self.AD = ad
         self.logger = logger
         self.error = error

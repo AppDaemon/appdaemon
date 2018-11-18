@@ -1,15 +1,15 @@
 import copy
-import string
 import paho.mqtt.client as mqtt
 import asyncio
 import traceback
-import json
 
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 class MqttPlugin:
 
-    def __init__(self, ad, name, logger, error, loglevel, args):
+    def __init__(self, ad: AppDaemon, name, logger, error, loglevel, args):
+
         """Initialize MQTT Plugin."""
         self.AD = ad
         self.logger = logger

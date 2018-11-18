@@ -4,6 +4,7 @@ import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
 import appdaemon.utils as utils
 
+from appdaemon.appdaemon import AppDaemon
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -29,11 +30,13 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Internal
     #
 
-    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, name, logger, error, args, config, app_config, global_vars):
 
         # Call Super Classes
         adbase.ADBase.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
         adapi.ADAPI.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+
+        self.AD = ad
 
         #
         # Register specific constraints
@@ -361,7 +364,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
-        elif "ha_key"  in config:
+        elif "ha_key" in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}

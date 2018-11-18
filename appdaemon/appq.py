@@ -1,8 +1,10 @@
 import asyncio
 
+from appdaemon.appdaemon import AppDaemon
+
 class AppQ:
 
-    def __init__(self, ad):
+    def __init__(self, ad: AppDaemon):
 
         self.AD = ad
         self.stopping = False

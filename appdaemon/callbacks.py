@@ -1,8 +1,10 @@
 import threading
 
+from appdaemon.appdaemon import AppDaemon
+
 class Callbacks:
 
-    def __init__(self, ad):
+    def __init__(self, ad: AppDaemon):
 
         self.AD = ad
 

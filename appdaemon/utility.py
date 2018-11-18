@@ -4,11 +4,12 @@ import traceback
 
 import appdaemon.scheduler as scheduler
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 
 class Utility:
 
-    def __init__(self, ad):
+    def __init__(self, ad: AppDaemon):
 
         self.AD = ad
         self.stopping = False
@@ -117,7 +118,7 @@ class Utility:
                     self.AD.logging.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
                     if self.AD.check_app_updates_profile is True:
                         self.AD.logging.diag("INFO", "Profile information for Utility Loop")
-                        self.AD.logging.diag("INFO", self.AD.check_app_updates_profile_stats)
+                        self.AD.logging.diag("INFO", self.AD.app_management.check_app_updates_profile_stats)
 
                 await asyncio.sleep(self.AD.utility_delay)
 

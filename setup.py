@@ -10,6 +10,7 @@ from appdaemon.utils import (__version__)
 REQUIRES = [
     'daemonize',
     'astral',
+    'pytz',
     'requests>=2.6.0',
     'sseclient',
     'websocket-client',
