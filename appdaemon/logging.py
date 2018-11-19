@@ -139,16 +139,16 @@ class Logging:
         if level != "DEBUG":
             self.process_log_callback(level, message, name, ts, "log")
 
-    def log(self, level, message, name="AppDaemon", ascii_encode=False):
+    def log(self, level, message, name="AppDaemon", ascii_encode=True):
         self._log(self.logger, level, message, name, ascii_encode)
 
-    def err(self, level, message, name="AppDaemon", ascii_encode=False):
+    def err(self, level, message, name="AppDaemon", ascii_encode=True):
         self._log(self.error, level, message, name, ascii_encode)
 
-    def diag(self, level, message, name="AppDaemon", ascii_encode=False):
+    def diag(self, level, message, name="AppDaemon", ascii_encode=True):
         self._log(self.diagnostic, level, message, name, ascii_encode)
 
-    def access(self, level, message, name="AppDaemon", ascii_encode=False):
+    def access(self, level, message, name="AppDaemon", ascii_encode=True):
         self._log(self.acc, level, message, name, ascii_encode)
 
     def get_error(self):

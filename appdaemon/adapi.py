@@ -67,13 +67,13 @@ class ADAPI:
     # Logging
     #
 
-    def log(self, msg, level="INFO"):
+    def log(self, msg, level="INFO", ascii_encode=True):
         msg = self._sub_stack(msg)
-        self.AD.logging.log(level, msg, self.name)
+        self.AD.logging.log(level, msg, self.name, ascii_encode)
 
-    def error(self, msg, level="WARNING"):
+    def error(self, msg, level="WARNING", ascii_encode=True):
         msg = self._sub_stack(msg)
-        self.AD.logging.err(level, msg, self.name)
+        self.AD.logging.err(level, msg, self.name, ascii_encode)
 
     def listen_log(self, cb, level="INFO", **kwargs):
         namespace = self._get_namespace(**kwargs)
