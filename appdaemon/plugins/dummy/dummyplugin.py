@@ -6,13 +6,10 @@ from appdaemon.appdaemon import AppDaemon
 
 class DummyPlugin:
 
-    def __init__(self, ad: AppDaemon, name, logger, error, loglevel,args):
+    def __init__(self, ad: AppDaemon, name, args):
 
         self.AD = ad
-        self.logger = logger
-        self.error = error
         self.stopping = False
-        self.loglevel = loglevel
         self.config = args
         self.name = name
 

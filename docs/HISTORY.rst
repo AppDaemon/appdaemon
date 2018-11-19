@@ -47,6 +47,7 @@ Change Log
 - Apps are no longer concurrent or re-entrant by default. This is most likely a good thing.
 - Changed the signature of ``listen_log()`` callbacks
 - ``cancel_listen_log()`` now requires a handle supplied by the initial ``listen_log()``
+- Removed Daemonize support - please use sysctl instead
 
 3.0.2 10/31/2018
 ----------------

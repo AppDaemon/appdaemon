@@ -71,7 +71,7 @@ class Plugins:
 
                     app_class = getattr(mod, class_name)
 
-                    plugin = app_class(self.AD, name, self.AD.logger, self.AD.error, self.AD.loglevel, self.plugins[name])
+                    plugin = app_class(self.AD, name, self.plugins[name])
 
                     namespace = plugin.get_namespace()
 

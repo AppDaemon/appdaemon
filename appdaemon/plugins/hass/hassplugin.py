@@ -12,14 +12,11 @@ from appdaemon.appdaemon import AppDaemon
 
 class HassPlugin:
 
-    def __init__(self, ad: AppDaemon, name, logger, error, loglevel, args):
+    def __init__(self, ad: AppDaemon, name, args):
 
         # Store args
         self.AD = ad
-        self.logger = logger
-        self.error = error
         self.config = args
-        self.loglevel = loglevel
         self.name = name
 
         self.stopping = False
@@ -259,7 +256,7 @@ class HassPlugin:
                         "WARNING",
                         "Disconnected from Home Assistant, retrying in 5 seconds"
                     )
-                    if self.loglevel == "DEBUG":
+                    if self.AD.logging.log_level == "DEBUG":
                         self.log( "WARNING", '-' * 60)
                         self.log( "WARNING", "Unexpected error:")
                         self.log("WARNING", '-' * 60)

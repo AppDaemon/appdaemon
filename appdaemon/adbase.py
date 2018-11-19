@@ -52,14 +52,13 @@ class ADBase:
 
     entities = Entities()
 
-    def __init__(self, ad: AppDaemon, name, logger, error, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, name, logging,  args, config, app_config, global_vars):
 
         # Store args
 
         self.AD = ad
         self.name = name
-        self._logger = logger
-        self._error = error
+        self.logging = logging
         self.config = config
         self.app_config = app_config
         self.args = args
@@ -78,7 +77,7 @@ class ADBase:
     #
 
     def get_ad_api(self):
-        api = adapi.ADAPI(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
+        api = adapi.ADAPI(self.AD, self.name, self.logging, self.args, self.config, self.app_config, self.global_vars)
         return api
 
     def get_plugin_api(self, name):
@@ -87,7 +86,7 @@ class ADBase:
             module_name = "{}api".format(plugin["type"])
             mod = __import__(module_name, globals(), locals(), [module_name], 0)
             app_class = getattr(mod, plugin["type"].title())
-            api = app_class(self.AD, self.name, self._logger, self._error, self.args, self.config, self.app_config, self.global_vars)
+            api = app_class(self.AD, self.name, self.logging, self.args, self.config, self.app_config, self.global_vars)
             if "namespace" in plugin:
                 api.set_namespace(plugin["namespace"])
             else:

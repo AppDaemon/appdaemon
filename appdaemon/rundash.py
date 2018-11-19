@@ -86,11 +86,10 @@ class DashStream(socketio.AsyncNamespace):
 
 class RunDash:
 
-    def __init__(self, ad: AppDaemon, loop, logger, access, **config):
+    def __init__(self, ad: AppDaemon, loop, logging, **config):
 
         self.AD = ad
-        self.logger = logger
-        self.acc = access
+        self.logging = logging
 
         self.dashboard_dir = None
         self._process_arg("dashboard_dir", config)
@@ -192,7 +191,7 @@ class RunDash:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
         try:
-            self.dashboard_obj = dashboard.Dashboard(self.config_dir, access,
+            self.dashboard_obj = dashboard.Dashboard(self.config_dir, self.logging,
                                                  dash_compile_on_start=self.dash_compile_on_start,
                                                  dash_force_compile=self.dash_force_compile,
                                                  profile_dashboard=self.profile_dashboard,
@@ -229,10 +228,10 @@ class RunDash:
         self.stopping = True
 
     def log(self, level, message):
-        utils.log(self.logger, level, message, "HADasboard")
+        self.AD.logging.log (level, message, "HADasboard")
 
     def access(self, level, message):
-        utils.log(self.acc, level, message, "HADashboard")
+        self.AD.logging.access (level, message, "HADasboard")
 
     def _process_arg(self, arg, kwargs):
         if kwargs:

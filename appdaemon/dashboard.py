@@ -16,12 +16,12 @@ import appdaemon.utils as ha
 
 class Dashboard:
 
-    def __init__(self, config_dir, logger, **kwargs):
+    def __init__(self, config_dir, logging, **kwargs):
         #
         # Set Defaults
         #
         self.config_dir = config_dir
-        self.logger = logger
+        self.logging = logging
         self.dash_install_dir = os.path.dirname(__file__)
         self.dashboard_dir = os.path.join(config_dir, "dashboards")
         self.profile_dashboard = False
@@ -77,16 +77,16 @@ class Dashboard:
             if not os.path.isdir(os.path.join(self.compile_dir, "css")):
                 os.makedirs(css)
 
-            ha.check_path("css", self.logger, css, permissions="rwx")
-            ha.check_path("javascript", self.logger, js, permissions="rwx")
+            ha.check_path("css", self.logging, css, permissions="rwx")
+            ha.check_path("javascript", self.logging, js, permissions="rwx")
 
 
         except:
-            ha.log(self.logger, "WARNING", '-' * 60)
-            ha.log(self.logger, "WARNING", "Unexpected error during HADashboard initialization")
-            ha.log(self.logger, "WARNING", '-' * 60)
-            ha.log(self.logger, "WARNING", traceback.format_exc())
-            ha.log(self.logger, "WARNING", '-' * 60)
+            self.logging.log("WARNING", '-' * 60)
+            self.logging.log("WARNING", "Unexpected error during HADashboard initialization")
+            self.logging.log("WARNING", '-' * 60)
+            self.logging.log("WARNING", traceback.format_exc())
+            self.logging.log("WARNING", '-' * 60)
 
         #
         # Set a start time
@@ -99,7 +99,7 @@ class Dashboard:
             start_time = time.time()
             result = func(self, *args, **kwargs)
             elapsed_time = time.time() - start_time
-            ha.log(self.logger, "INFO", 'function [{}] finished in {} ms'.format(
+            self.logging.log("INFO", 'function [{}] finished in {} ms'.format(
                 func.__name__, int(elapsed_time * 1000)))
             return result
 
@@ -139,7 +139,7 @@ class Dashboard:
             try:
                 css = self._load_yaml(css_text)
             except yaml.YAMLError as exc:
-                ha.log(self.logger, "WARNING", "Error loading CSS variables")
+                self.logging.log("WARNING", "Error loading CSS variables")
                 self._log_yaml_error(exc)
                 return None
             if css is None:
@@ -147,7 +147,7 @@ class Dashboard:
             else:
                 return self._resolve_css_params(css, css)
         else:
-            ha.log(self.logger, "WARNING", "Error loading variables.yaml for skin '{}'".format(skin))
+            self.logging.log("WARNING", "Error loading variables.yaml for skin '{}'".format(skin))
             return None
 
     def _resolve_css_params(self, fields, subs):
@@ -168,12 +168,12 @@ class Dashboard:
                             done = False
                             fields[varline] = fields[varline].replace(var.group(), subs[subvar], 1)
                         else:
-                            ha.log(self.logger, "WARNING",
+                            self.logging.log("WARNING",
                                    "Variable definition not found in CSS Skin variables: ${}".format(subvar))
                             fields[varline] = ""
 
         if index == 100:
-            ha.log(self.logger, "WARNING", "Unable to resolve CSS Skin variables, check for circular references")
+            self.logging.log("WARNING", "Unable to resolve CSS Skin variables, check for circular references")
 
         return fields
 
@@ -269,7 +269,7 @@ class Dashboard:
                 parts = name.split(".")
                 instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
             else:
-                ha.log(self.logger, "WARNING", "Unable to find widget definition for '{}'".format(name))
+                self.logging.log("WARNING", "Unable to find widget definition for '{}'".format(name))
                 # Return some valid data so the browser will render a blank widget
                 return self.error_widget("Widget definition not found")
 
@@ -284,7 +284,7 @@ class Dashboard:
             widget_type = instantiated_widget["widget_type"]
 
             if widget_type == "text_sensor":
-                ha.log(self.logger, "WARNING",
+                self.logging.log("WARNING",
                        "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '{}'".format(name))
 
             # Check for custom base widgets first
@@ -367,8 +367,8 @@ class Dashboard:
             return final_widget
 
         except FileNotFoundError:
-            ha.log(self.logger, "WARNING", "Unable to find widget type '{}'".format(widget_type))
-            ha.log(self.logger, "WARNING", traceback.format_exc())
+            self.logging.log("WARNING", "Unable to find widget type '{}'".format(widget_type))
+            self.logging.log("WARNING", traceback.format_exc())
             # Return some valid data so the browser will render a blank widget
             return self.error_widget("Unable to find widget type '{}'".format(widget_type))
 
@@ -413,7 +413,7 @@ class Dashboard:
                 widget["id"] = "{}-{}".format(page, sanitized_name)
 
                 if self._widget_exists(dash["widgets"], widget["id"]):
-                    ha.log(self.logger, "WARNING", "Duplicate widget name '{}' - ignored".format(name))
+                    self.logging.log("WARNING", "Duplicate widget name '{}' - ignored".format(name))
                 else:
                     widget["position"] = [column, layout]
                     widget["size"] = [xsize, ysize]
@@ -440,11 +440,11 @@ class Dashboard:
 
     def _log_error(self, dash, name, error):
         dash["errors"].append("{}: {}".format(os.path.basename(name), error))
-        ha.log(self.logger, "WARNING", error)
+        self.logging.log("WARNING", error)
 
     def _log_yaml_error(self, exc):
         for line in self._yaml_error_lines(exc):
-            ha.log(self.logger, "WARNING", line)
+            self.logging.log("WARNING", line)
 
     def _log_yaml_dash_error(self, dash, name, exc):
         for line in self._yaml_error_lines(exc):
@@ -506,7 +506,7 @@ class Dashboard:
                 if extension == "dash":
                     global_parameters = dash_params["global_parameters"]
                 else:
-                    ha.log(self.logger, "WARNING",
+                    self.logging.log("WARNING",
                            "global_parameters dashboard directive illegal in imported dashboard '{}.{}'".
                            format(name, extension))
 
@@ -524,7 +524,7 @@ class Dashboard:
                     if extension == "dash":
                         dash[param] = dash_params[param]
                     else:
-                        ha.log(self.logger, "WARNING",
+                        self.logging.log("WARNING",
                                "Top level dashboard directive illegal in imported dashboard '{}.{}': {}: {}".
                                format(name, extension, param, dash_params[param]))
                 else:
@@ -576,7 +576,7 @@ class Dashboard:
             if dash is None:
                 return None
         else:
-            ha.log(self.logger, "WARNING", "Dashboard '{}' not found".format(name))
+            self.logging.log("WARNING", "Dashboard '{}' not found".format(name))
             return None
 
         if "head_includes" in css_vars and css_vars["head_includes"] is not None:
@@ -602,7 +602,7 @@ class Dashboard:
             # Base CSS template and compile
             #
             if not os.path.isfile(os.path.join(skindir, "dashboard.css")):
-                ha.log(self.logger, "WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
+                self.logging.log("WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
             else:
                 template = os.path.join(skindir, "dashboard.css")
                 with open(template, 'r') as cssfd:
@@ -625,18 +625,18 @@ class Dashboard:
                 js = js + widgets[widget]["js"] + "\n"
 
         except KeyError:
-            ha.log(self.logger, "WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
+            self.logging.log("WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
             return None
         except:
-            ha.log(self.logger, "WARNING", '-' * 60)
-            ha.log(self.logger, "WARNING", "Unexpected error in CSS file")
-            ha.log(self.logger, "WARNING", '-' * 60)
-            ha.log(self.logger, "WARNING", traceback.format_exc())
-            ha.log(self.logger, "WARNING", '-' * 60)
+            self.logging.log("WARNING", '-' * 60)
+            self.logging.log("WARNING", "Unexpected error in CSS file")
+            self.logging.log("WARNING", '-' * 60)
+            self.logging.log("WARNING", traceback.format_exc())
+            self.logging.log("WARNING", '-' * 60)
             if rendered_css is not None:
-                ha.log(self.logger, "WARNING", "Rendered CSS:")
-                ha.log(self.logger, "WARNING", rendered_css)
-                ha.log(self.logger, "WARNING", '-' * 60)
+                self.logging.log("WARNING", "Rendered CSS:")
+                self.logging.log("WARNING", rendered_css)
+                self.logging.log("WARNING", '-' * 60)
             return None
 
         if not os.path.exists(os.path.join(self.compiled_css_dir, skin)):
@@ -676,7 +676,7 @@ class Dashboard:
                 widget_dirs = os.listdir(path=widget_dir)
                 for widget in widget_dirs:
                     if widget_dir == os.path.join(self.config_dir, "custom_widgets"):
-                        ha.log(self.logger, "INFO", "Loading custom widget '{}'".format(widget))
+                        self.logging.log("INFO", "Loading custom widget '{}'".format(widget))
                     if os.path.isdir(os.path.join(widget_dir, widget)):
                         jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
                         csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
@@ -716,12 +716,12 @@ class Dashboard:
         #
         skindir = os.path.join(self.config_dir, "custom_css", skin)
         if os.path.isdir(skindir):
-            ha.log(self.logger, "INFO", "Loading custom skin '{}'".format(skin))
+            self.logging.log("INFO", "Loading custom skin '{}'".format(skin))
         else:
             # Not a custom skin, try product skins
             skindir = os.path.join(self.css_dir, skin)
             if not os.path.isdir(skindir):
-                ha.log(self.logger, "WARNING", "Skin '{}' does not exist".format(skin))
+                self.logging.log("WARNING", "Skin '{}' does not exist".format(skin))
                 skin = "default"
                 skindir = os.path.join(self.css_dir, "default")
 
@@ -768,7 +768,7 @@ class Dashboard:
             if do_compile is False:
                 return {"errors": []}
 
-        ha.log(self.logger, "INFO", "Compiling dashboard '{}'".format(name))
+                self.logging.log("INFO", "Compiling dashboard '{}'".format(name))
 
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
@@ -863,11 +863,11 @@ class Dashboard:
             return(rendered_template)
 
         except:
-            ha.log(self.logger, "WARNING", '-' * 60)
-            ha.log(self.logger, "WARNING", "Unexpected error during DASH creation")
-            ha.log(self.logger, "WARNING", '-' * 60)
-            ha.log(self.logger, "WARNING", traceback.format_exc())
-            ha.log(self.logger, "WARNING", '-' * 60)
+            self.logging.log("WARNING", '-' * 60)
+            self.logging.log("WARNING", "Unexpected error during DASH creation")
+            self.logging.log("WARNING", '-' * 60)
+            self.logging.log("WARNING", traceback.format_exc())
+            self.logging.log("WARNING", '-' * 60)
             return self.html_error()
 
     def html_error(self):

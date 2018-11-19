@@ -136,7 +136,7 @@ class AppManagement:
                 app_class = getattr(modname, app_args["class"])
                 self.objects[name] = {
                     "object": app_class(
-                        self.AD, name, self.AD.logger, self.AD.error, app_args, self.AD.config, self.app_config, self.AD.global_vars
+                        self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars
                     ),
                     "id": uuid.uuid4(),
                     "pin_app": self.AD.threading.app_should_be_pinned(name),

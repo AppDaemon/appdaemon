@@ -59,11 +59,10 @@ def secure(myfunc):
 
 class RunAdmin:
 
-    def __init__(self, ad, loop, logger, access, **config):
+    def __init__(self, ad, loop, logging, **config):
 
         self.AD = ad
-        self.logger = logger
-        self.acc = access
+        self.logging = logging
 
         self.admin_password = None
         self._process_arg("admin_password", config)
@@ -95,7 +94,7 @@ class RunAdmin:
 
         try:
 
-            self.admin_obj = admin.Admin(self.config_dir, access, self.AD)
+            self.admin_obj = admin.Admin(self.config_dir, logging, self.AD)
 
             self.setup_routes()
 
@@ -121,10 +120,10 @@ class RunAdmin:
         self.stopping = True
 
     def log(self, level, message):
-        utils.log(self.logger, level, message, "ADAdmin")
+        self.logging.log(level, message, "ADAdmin")
 
     def access(self, level, message):
-        utils.log(self.acc, level, message, "ADAdmin")
+        self.logging.access(level, message, "ADAdmin")
 
     def _process_arg(self, arg, kwargs):
         if kwargs:

@@ -7,7 +7,7 @@ import pytz
 
 class AppDaemon:
 
-    def __init__(self, logger, error, diag, loop, **kwargs):
+    def __init__(self, logging, loop, **kwargs):
 
         #
         # Import various AppDaemon bits and pieces now to avoid circular import
@@ -22,11 +22,10 @@ class AppDaemon:
         import appdaemon.callbacks as callbacks
         import appdaemon.state as state
         import appdaemon.events as events
-        import appdaemon.logging as logging
 
-        self.logger = logger
-        self.error = error
-        self.diagnostic = diag
+        self.logging = logging
+        self.logging.register_ad(self)
+
         self.config = kwargs
         self.booted = datetime.datetime.now()
         self.config["ad_version"] = utils.__version__
@@ -166,11 +165,6 @@ class AppDaemon:
             self.apps = True
 
         #
-        # Setup logging
-        #
-        self.logging = logging.Logging(self)
-
-        #
         # Set up events
         #
         self.events = events.Events(self)
@@ -193,8 +187,8 @@ class AppDaemon:
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
-            utils.check_path("config_dir", logger, self.config_dir, permissions="rwx")
-            utils.check_path("appdir", logger, self.app_dir)
+            utils.check_path("config_dir", logging, self.config_dir, permissions="rwx")
+            utils.check_path("appdir", logging, self.app_dir)
 
             # Initialize Apps
 

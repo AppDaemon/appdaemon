@@ -14,11 +14,10 @@ app = web.Application()
 
 class ADAPI():
 
-    def __init__(self, ad: AppDaemon, loop, logger, access, **config):
+    def __init__(self, ad: AppDaemon, loop, logging, **config):
 
         self.AD = ad
-        self.logger = logger
-        self.access = access
+        self.logging = logging
 
         self.api_key = None
         self._process_arg("api_key", config)
@@ -61,10 +60,10 @@ class ADAPI():
                 setattr(self, arg, kwargs[arg])
 
     def log(self, level, message):
-        utils.log(self.logger, level, message, "AppDaemon")
+        self.logging.log(level, message, "AppDaemon")
 
     def log_access(self, level, message):
-        utils.log(self.access, level, message, "AppDaemon")
+        self.logging.access(level, message, "AppDaemon")
 
     @staticmethod
     def get_response(code, error):

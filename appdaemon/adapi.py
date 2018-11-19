@@ -12,14 +12,13 @@ class ADAPI:
     # Internal
     #
 
-    def __init__(self, ad: AppDaemon, name, logger, error, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
 
         # Store args
 
         self.AD = ad
         self.name = name
-        self._logger = logger
-        self._error = error
+        self.logging = logging
         self.config = config
         self.app_config = app_config
         self.args = args
@@ -116,10 +115,10 @@ class ADAPI:
                           self.name, entity))
 
     def get_main_log(self):
-        return self._logger
+        return self.logging.get_logger()
 
     def get_error_log(self):
-        return self._error
+        return self.logging.get_error()
 
     def get_ad_version(self):
         return utils.__version__

@@ -14,15 +14,6 @@ if platform.system() != "Windows":
 __version__ = "3.1.0"
 secrets = None
 
-log_levels = {
-    "CRITICAL": 50,
-    "ERROR": 40,
-    "WARNING": 30,
-    "INFO": 20,
-    "DEBUG": 10,
-    "NOTSET": 0
-}
-
 class Formatter(object):
     def __init__(self):
         self.types = {}
@@ -217,27 +208,10 @@ def process_arg(self, arg, args, **kwargs):
             else:
                 setattr(self, arg, value)
 
-
-def log(logger, level, msg, name="", ts=None, ascii_encode=True):
-    if name != "":
-        name = " {}:".format(name)
-
-    if ts == None:
-        timestamp = datetime.datetime.now()
-    else:
-        timestamp = ts
-
-    if ascii_encode is True:
-        safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
-        name = safe_enc(name)
-        msg = safe_enc(msg)
-
-    logger.log(log_levels[level], "{} {}{} {}".format(timestamp, level, name, msg))
-
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
-def check_path(type, logger, path, pathtype="directory", permissions=None):
+def check_path(type, logging, path, pathtype="directory", permissions=None):
     #disable checks for windows platform
     if platform.system() == "Windows":
         return
@@ -264,48 +238,41 @@ def check_path(type, logger, path, pathtype="directory", permissions=None):
         fullpath = True
         for directory in reversed(dirs):
             if not os.access(directory, os.F_OK):
-                path_log(logger, "{}: {} does not exist exist".format(type, directory))
+                logging.log("{}: {} does not exist exist".format(type, directory))
                 fullpath = False
             elif not os.path.isdir(directory):
                 if os.path.isfile(directory):
-                    path_log(logger, "{}: {} exists, but is a file instead of a directory".format(type,
+                    logging.log("WARNING", "{}: {} exists, but is a file instead of a directory".format(type,
     directory))
                     fullpath = False
             else:
                 owner = find_owner(directory)
                 if "r" in perms and not os.access(directory, os.R_OK):
-                    path_log(logger, "{}: {} exists, but is not readable, owner: {}".format(type, directory, owner))
+                    logging.log("WARNING", "{}: {} exists, but is not readable, owner: {}".format(type, directory, owner))
                     fullpath = False
                 if "w" in perms and not os.access(directory, os.W_OK):
-                    path_log(logger, "{}: {} exists, but is not writeable, owner: {}".format(type, directory, owner))
+                    logging.log("WARNING", "{}: {} exists, but is not writeable, owner: {}".format(type, directory, owner))
                     fullpath = False
                 if "x" in perms and not os.access(directory, os.X_OK):
-                    path_log(logger, "{}: {} exists, but is not executable, owner: {}".format(type, directory, owner))
+                    logging.log("WARNING", "{}: {} exists, but is not executable, owner: {}".format(type, directory, owner))
                     fullpath = False
         if fullpath is True:
             owner = find_owner(path)
             user = pwd.getpwuid(os.getuid()).pw_name
             if owner != user:
-                path_log(logger, "{}: {} is owned by {} but appdaemon is running as {}".format(type, path, owner, user))
+                logging.log("WARNING", "{}: {} is owned by {} but appdaemon is running as {}".format(type, path, owner, user))
 
         if file is not None:
             owner = find_owner(file)
             if "r" in perms and not os.access(file, os.R_OK):
-                path_log(logger, "{}: {} exists, but is not readable, owner: {}".format(type, file, owner))
+                logging.log("WARNING", "{}: {} exists, but is not readable, owner: {}".format(type, file, owner))
             if "w" in perms and not os.access(file, os.W_OK):
-                path_log(logger, "{}: {} exists, but is not writeable, owner: {}".format(type, file, owner))
+                logging.log("WARNING", "{}: {} exists, but is not writeable, owner: {}".format(type, file, owner))
             if "x" in perms and not os.access(file, os.X_OK):
-                path_log(logger, "{}: {} exists, but is not executable, owner: {}".format(type, file, owner))
+                logging.log("WARNING", "{}: {} exists, but is not executable, owner: {}".format(type, file, owner))
     except KeyError:
         #
         # User ID is not properly set up with a username in docker variants
         # getpwuid() errors out with a KeyError
         # We just have to skip most of these tests
         pass
-
-
-def path_log(logger, msg):
-    if logger is None:
-        print(msg)
-    else:
-        log(logger, "WARNING", msg)

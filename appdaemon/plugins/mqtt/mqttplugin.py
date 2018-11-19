@@ -1,23 +1,18 @@
 import copy
-import string
 import paho.mqtt.client as mqtt
 import asyncio
 import traceback
-import json
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 class MqttPlugin:
 
-    def __init__(self, ad: AppDaemon, name, logger, error, loglevel, args):
+    def __init__(self, ad: AppDaemon, name, args):
 
         """Initialize MQTT Plugin."""
         self.AD = ad
-        self.logger = logger
-        self.error = error
         self.stopping = False
-        self.loglevel = loglevel
         self.config = args
         self.name = name
         self.initialized = False
@@ -226,7 +221,7 @@ class MqttPlugin:
                     self.mqtt_client_topics.remove(topic)
         
         else:
-            self.error("{}: Wrong Service Call {} for MQTT".format(self.name, service))
+            self.AD.logging.err("{}: Wrong Service Call {} for MQTT".format(self.name, service))
             result = 'ERR'
 
         return result

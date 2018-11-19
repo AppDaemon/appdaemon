@@ -1,11 +1,8 @@
 #!/usr/bin/python3
 import sys
 import argparse
-import logging
 import os
 import os.path
-from logging.handlers import RotatingFileHandler
-import time
 import signal
 import platform
 import yaml
@@ -16,11 +13,12 @@ import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.runapi as api
 import appdaemon.rundash as rundash
+import appdaemon.logging as logging
 
 class ADMain():
 
     def __init__(self):
-        self.logger = None
+        self.logging = None
         self.error = None
         self.diag = None
         self.AD = None
@@ -47,10 +45,10 @@ class ADMain():
         if signum == signal.SIGHUP:
             self.AD.app_management.check_app_updates(True)
         if signum == signal.SIGINT:
-            self.log(self.logger, "INFO", "Keyboard interrupt")
+            self.AD.logging.log("INFO", "Keyboard interrupt")
             self.stop()
         if signum == signal.SIGTERM:
-            self.log(self.logger, "INFO", "SIGTERM Recieved")
+            self.AD.logging.log("INFO", "SIGTERM Recieved")
             self.stop()
 
     def stop(self):
@@ -60,9 +58,6 @@ class ADMain():
         if self.runadmin is not None:
             self.runadmin.stop()
 
-    def log(self, logger, level, msg, name=""):
-        utils.log(logger, level, msg, name)
-
     # noinspection PyBroadException,PyBroadException
     def run(self, appdaemon, hadashboard):
 
@@ -71,47 +66,47 @@ class ADMain():
 
             # Initialize AppDaemon
 
-            self.AD = ad.AppDaemon(self.logger, self.error, self.diag, loop, **appdaemon)
+            self.AD = ad.AppDaemon(self.logging, loop, **appdaemon)
 
             # Initialize Dashboard/API
 
             if hadashboard["dashboard"] is True:
-                self.log(self.logger, "INFO", "Starting Dashboards")
-                self.rundash = rundash.RunDash(self.AD, loop, self.logger, self.access, **hadashboard)
+                self.AD.logging.log("INFO", "Starting Dashboards")
+                self.rundash = rundash.RunDash(self.AD, loop, self.logging, **hadashboard)
                 self.AD.register_dashboard(self.rundash)
             else:
-                self.log(self.logger, "INFO", "Dashboards are disabled")
+                self.AD.logging.log("INFO", "Dashboards are disabled")
 
             if "api_port" in appdaemon:
-                self.log(self.logger, "INFO", "Starting API")
-                self.api = api.ADAPI(self.AD, loop, self.logger, self.access, **appdaemon)
+                self.AD.logging.log("INFO", "Starting API")
+                self.api = api.ADAPI(self.AD, loop, self.logging, **appdaemon)
                 self.AD.register_api(self.api)
             else:
-                self.log(self.logger, "INFO", "API is disabled")
+                self.AD.logging.log("INFO", "API is disabled")
 
 
             # Lets hide the admin interface for now
 
             #if "admin_port" in appdaemon:
-            #    self.log(self.logger, "INFO", "Starting Admin Interface")
-            #    self.runadmin = runadmin.RunAdmin(self.AD, loop, self.logger, self.access, **appdaemon)
+            #    self.AD.logging.log("INFO", "Starting Admin Interface")
+            #    self.runadmin = runadmin.RunAdmin(self.AD, loop, self.logging, **appdaemon)
             #else:
-            #    self.log(self.logger, "INFO", "Admin Interface is disabled")
+            #    self.AD.logging.log("INFO", "Admin Interface is disabled")
 
-            self.log(self.logger, "DEBUG", "Start Loop")
+            self.AD.logging.log("DEBUG", "Start Loop")
 
             pending = asyncio.Task.all_tasks()
             loop.run_until_complete(asyncio.gather(*pending))
         except:
-            self.log(self.logger, "WARNING", '-' * 60)
-            self.log(self.logger, "WARNING", "Unexpected error during run()")
-            self.log(self.logger, "WARNING", '-' * 60)
-            self.log(self.logger, "WARNING", traceback.format_exc())
-            self.log(self.logger, "WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", "Unexpected error during run()")
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", traceback.format_exc())
+            self.AD.logging.log("WARNING", '-' * 60)
 
-        self.log(self.logger, "DEBUG", "End Loop")
+        self.AD.logging.log("DEBUG", "End Loop")
 
-        self.log(self.logger, "INFO", "AppDeamon Exited")
+        self.AD.logging.log("INFO", "AppDeamon Exited")
 
 
 
@@ -140,21 +135,9 @@ class ADMain():
         parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + utils.__version__)
         parser.add_argument('--profiledash', help=argparse.SUPPRESS, action='store_true')
 
-        # Windows does not have Daemonize package so disallow
-        if platform.system() != "Windows":
-            parser.add_argument("-d", "--daemon", help="run as a background process", action="store_true")
-
         args = parser.parse_args()
 
         config_dir = args.config
-
-        if platform.system() != "Windows":
-            from daemonize import Daemonize
-
-        if platform.system() != "Windows":
-            isdaemon = args.daemon
-        else:
-            isdaemon = False
 
         if config_dir is None:
             config_file_yaml = utils.find_path("appdaemon.yaml")
@@ -270,127 +253,21 @@ class ADMain():
         else:
             hadashboard = {"dashboard": False}
 
-        if "log" not in config:
-            logfile = "STDOUT"
-            errorfile = "STDERR"
-            diagfile = "STDOUT"
-            log_size = 1000000
-            log_generations = 3
-            accessfile = None
-        else:
-            logfile = config['log'].get("logfile", "STDOUT")
-            errorfile = config['log'].get("errorfile", "STDERR")
-            diagfile = config['log'].get("diagfile", "NONE")
-            if diagfile == "NONE":
-                diagfile = logfile
-            log_size = config['log'].get("log_size", 1000000)
-            log_generations = config['log'].get("log_generations", 3)
-            accessfile = config['log'].get("accessfile")
+        # Setup logging
 
-        if isdaemon and (
-                            logfile == "STDOUT" or errorfile == "STDERR"
-                            or logfile == "STDERR" or errorfile == "STDOUT"
-                        ):
-            print("ERROR", "STDOUT and STDERR not allowed with -d")
-            sys.exit()
+        self.logging = logging.Logging(config, args.debug)
 
-        # Setup Logging
-
-        self.logger = logging.getLogger("log1")
-        numeric_level = getattr(logging, args.debug, None)
-        self.logger.setLevel(numeric_level)
-        self.logger.propagate = False
-        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-
-        # Send to file if we are daemonizing, else send to console
-
-        fh = None
-        if logfile != "STDOUT":
-            fh = RotatingFileHandler(logfile, maxBytes=log_size, backupCount=log_generations)
-            fh.setLevel(numeric_level)
-            # fh.setFormatter(formatter)
-            self.logger.addHandler(fh)
-        else:
-            # Default for StreamHandler() is sys.stderr
-            ch = logging.StreamHandler(stream=sys.stdout)
-            ch.setLevel(numeric_level)
-            # ch.setFormatter(formatter)
-            self.logger.addHandler(ch)
-
-        # Setup compile output
-
-        self.error = logging.getLogger("log2")
-        numeric_level = getattr(logging, args.debug, None)
-        self.error.setLevel(numeric_level)
-        self.error.propagate = False
-        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-
-        if errorfile != "STDERR":
-            efh = RotatingFileHandler(
-                errorfile, maxBytes=log_size, backupCount=log_generations
-            )
-        else:
-            efh = logging.StreamHandler()
-
-        efh.setLevel(numeric_level)
-        # efh.setFormatter(formatter)
-        self.error.addHandler(efh)
-
-        # setup diag output
-
-        self.diag = logging.getLogger("log3")
-        numeric_level = getattr(logging, args.debug, None)
-        self.diag.setLevel(numeric_level)
-        self.diag.propagate = False
-        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-
-        if diagfile != "STDOUT":
-            dfh = RotatingFileHandler(
-                diagfile, maxBytes=log_size, backupCount=log_generations
-            )
-        else:
-            dfh = logging.StreamHandler()
-
-        dfh.setLevel(numeric_level)
-        # dfh.setFormatter(formatter)
-        self.diag.addHandler(dfh)
-
-        # Setup dash output
-        if accessfile is not None:
-            self.access = logging.getLogger("log4")
-            numeric_level = getattr(logging, args.debug, None)
-            self.access.setLevel(numeric_level)
-            self.access.propagate = False
-            # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-            efh = RotatingFileHandler(
-                config['log'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
-            )
-
-            efh.setLevel(numeric_level)
-            # efh.setFormatter(formatter)
-            self.access.addHandler(efh)
-        else:
-            self.access = self.logger
 
         # Startup message
 
-        self.log(self.logger, "INFO", "AppDaemon Version {} starting".format(utils.__version__))
-        self.log(self.logger, "INFO", "Configuration read from: {}".format(config_file_yaml))
-        self.log(self.logger, "DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
-        self.log(self.logger, "DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
+        self.logging.log("INFO", "AppDaemon Version {} starting".format(utils.__version__))
+        self.logging.log("INFO", "Configuration read from: {}".format(config_file_yaml))
+        self.logging.log("DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
+        self.logging.log("DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
 
-        utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
+        utils.check_path("config_file", self.logging, config_file_yaml, pathtype="file")
 
-        if isdaemon:
-            keep_fds = [fh.stream.fileno(), efh.stream.fileno()]
-            pid = args.pidfile
-            daemon = Daemonize(app="appdaemon", pid=pid, action=self.run,
-                               keep_fds=keep_fds)
-            daemon.start()
-            while True:
-                time.sleep(1)
-        else:
-            self.run(appdaemon, hadashboard)
+        self.run(appdaemon, hadashboard)
 
 def main():
     admain = ADMain()
