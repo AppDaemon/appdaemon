@@ -34,11 +34,6 @@ class Scheduler:
         self.stopping = False
         self.realtime = True
 
-        # Take a note of DST
-        #print(self.is_dst())
-
-        self.was_dst = self.is_dst()
-
         tt = self.set_start_time()
 
         if self.AD.endtime is not None:
@@ -58,6 +53,10 @@ class Scheduler:
                 self.AD.logging.log("INFO", "Time displacement factor {}".format(self.AD.interval / self.AD.tick))
         else:
             self.AD.logging.log("INFO", "Scheduler tick set to {}s".format(self.AD.tick))
+
+        # Take a note of DST
+
+        self.was_dst = self.is_dst()
 
         # Setup sun
 
@@ -135,7 +134,7 @@ class Scheduler:
                     else:
                         # We have a valid time for the next sunrise/set so use it
                         c_offset = self.get_offset(args)
-                        args["timestamp"] = self.sun[args["type"]] + c_offset
+                        args["timestamp"] = self.sun[args["type"]] + timedelta(c_offset)
                         args["offset"] = c_offset
                 else:
                     # Not sunrise or sunset so just increment
@@ -336,16 +335,15 @@ class Scheduler:
         t = self.myround(self.get_now_ts(), base=self.AD.tick)
         count = 0
         t_ = self.myround(time.time(), base=self.AD.tick)
-        t_ = time.time()
         #print(t, t_, period)
         while not self.stopping:
             count += 1
             delay = max(t_ + count * self.AD.tick - time.time(), 0)
             await asyncio.sleep(delay)
             t = self.myround(t + self.AD.interval, base=self.AD.tick)
-            utc = self.tz.localize(datetime.datetime.fromtimestamp(t)).astimezone(pytz.utc)
+            utc = datetime.datetime.fromtimestamp(t, pytz.utc)
             r = await self.do_every_tick(utc)
-            #TODO FIXME
+            #print("utc: {} r: {} t:{}".format(utc.timestamp(), r.timestamp(), t))
             if r is not None and r.timestamp() != t:
                 t = r.timestamp()
                 t_ = r.timestamp()
