@@ -105,8 +105,7 @@ class AppDaemon:
         utils.process_arg(self, "threadpool_workers", kwargs, int=True)
 
         self.endtime = None
-        if "endtime" in kwargs:
-            self.endtime = datetime.datetime.strptime(kwargs["endtime"], "%Y-%m-%d %H:%M:%S")
+        utils.process_arg(self, "endtime", kwargs)
 
         self.interval = 1
         if kwargs["interval"] is None:

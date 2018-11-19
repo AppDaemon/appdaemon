@@ -39,13 +39,13 @@ class ADMain():
     def handle_sig(self, signum, frame):
         if signum == signal.SIGUSR1:
             self.AD.sched.dump_schedule()
-            self.AD.dump_callbacks()
+            self.AD.callbacks.dump_callbacks()
             qinfo = self.AD.threading.q_info()
             self.AD.threading.dump_threads(qinfo)
-            self.AD.dump_objects()
+            self.AD.app_management.dump_objects()
             self.AD.sched.dump_sun()
         if signum == signal.SIGHUP:
-            self.AD.check_app_updates(True)
+            self.AD.app_management.check_app_updates(True)
         if signum == signal.SIGINT:
             self.log(self.logger, "INFO", "Keyboard interrupt")
             self.stop()

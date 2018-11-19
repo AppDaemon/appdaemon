@@ -2,6 +2,7 @@ import datetime
 import inspect
 import iso8601
 import re
+from datetime import timedelta
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -369,9 +370,6 @@ class ADAPI:
     # Time
     #
 
-    def calc_sun(self, type_):
-        return self.AD.sched.calc_sun(type_)
-
     def parse_utc_string(self, s):
         return datetime.datetime(*map(
             int, re.split('[^\d]', s)[:-1]
@@ -399,14 +397,11 @@ class ADAPI:
     def sun_down(self):
         return self.AD.sched.sun_down()
 
-    def parse_time(self, time_str, name=None):
-        return self.AD.sched.parse_time(time_str, name)
+    def parse_time(self, time_str, name=None, aware=False):
+        return self.AD.sched.parse_time(time_str, name, aware)
 
-    def parse_datetime(self, time_str, name=None):
-        return self.AD.sched.parse_datetime(time_str, name)
-
-    def _parse_time(self, time_str, name):
-        return self.AD.sched._parse_time(time_str, name)
+    def parse_datetime(self, time_str, name=None, aware=False):
+        return self.AD.sched.parse_datetime(time_str, name, aware)
 
     def get_now(self):
         return self.AD.sched.get_now()
@@ -417,11 +412,11 @@ class ADAPI:
     def now_is_between(self, start_time_str, end_time_str, name=None):
         return self.AD.sched.now_is_between(start_time_str, end_time_str, name)
 
-    def sunrise(self):
-        return self.AD.sched.sunrise()
+    def sunrise(self, aware=False):
+        return self.AD.sched.sunrise(aware)
 
-    def sunset(self):
-        return self.AD.sched.sunset()
+    def sunset(self, aware=False):
+        return self.AD.sched.sunset(aware)
 
     def time(self):
         return datetime.datetime.fromtimestamp(self.AD.sched.get_now_ts()).time()
@@ -451,7 +446,7 @@ class ADAPI:
         )
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
-        exec_time = self.get_now_ts() + int(seconds)
+        exec_time = self.get_now() + timedelta(seconds=int(seconds))
         handle = self.AD.sched.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
@@ -461,13 +456,14 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = self._parse_time(start, self.name)["datetime"].time()
+            when = self.AD.sched._parse_time(start, self.name, True)["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
+        aware_when = self.AD.sched.convert_naive(when)
         name = self.name
         now = self.get_now()
         today = now.date()
-        event = datetime.datetime.combine(today, when)
+        event = datetime.datetime.combine(today, aware_when)
         if event < now:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
@@ -481,19 +477,19 @@ class ADAPI:
         if type(start) == datetime.datetime:
             when = start
         elif type(start) == str:
-            when = self._parse_time(start, self.name)["datetime"]
+            when = self.AD.sched._parse_time(start, self.name)["datetime"]
         else:
             raise ValueError("Invalid type for start")
+        aware_when = self.AD.sched.convert_naive(when)
         name = self.name
         now = self.get_now()
-        if when < now:
+        if aware_when < now:
             raise ValueError(
                 "{}: run_at() Start time must be "
                 "in the future".format(self.name)
             )
-        exec_time = when.timestamp()
         handle = self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs
+            name, aware_when, callback, False, None, **kwargs
         )
         return handle
 
@@ -503,14 +499,14 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            info = self._parse_time(start, self.name)
+            info = self.AD.sched._parse_time(start, self.name)
         else:
             raise ValueError("Invalid type for start")
 
         if info is None or info["sun"] is None:
             if when is None:
                 when = info["datetime"].time()
-            now = self.get_now()
+            now = self.AD.sched.make_naive(self.get_now())
             today = now.date()
             event = datetime.datetime.combine(today, when)
             if event < now:
@@ -551,21 +547,22 @@ class ADAPI:
     def run_every(self, callback, start, interval, **kwargs):
         name = self.name
         now = self.get_now()
-        if start < now:
+        aware_start = self.AD.sched.convert_naive(start)
+        if aware_start < now:
             raise ValueError("start cannot be in the past")
         self.AD.logging.log(
             "DEBUG",
             "Registering run_every starting {} in {}s intervals for {}".format(
-                start, interval, name
+                aware_start, interval, name
             )
         )
-        exec_time = start.timestamp()
-        handle = self.AD.sched.insert_schedule(name, exec_time, callback, True, None,
+
+        handle = self.AD.sched.insert_schedule(name, aware_start, callback, True, None,
                                          interval=interval, **kwargs)
         return handle
 
     def _schedule_sun(self, name, type_, callback, **kwargs):
-        event = self.AD.sched.calc_sun(type_)
+        event = self.AD.sched.sun[type_]
         handle = self.AD.sched.insert_schedule(
             name, event, callback, True, type_, **kwargs
         )
@@ -589,6 +586,10 @@ class ADAPI:
                       kwargs, name))
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
+
+    #
+    # Dashboard
+    #
 
     def dash_navigate(self, target, timeout=-1, ret=None, sticky=0):
         kwargs = {"command": "navigate", "target": target, "sticky": sticky}

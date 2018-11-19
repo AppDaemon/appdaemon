@@ -1,6 +1,7 @@
 import threading
 import traceback
 import datetime
+from datetime import timedelta
 import pytz
 import astral
 import random
@@ -8,6 +9,7 @@ import uuid
 import time
 import re
 import asyncio
+import math
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -27,17 +29,35 @@ class Scheduler:
         self.sun = {}
         self.sun_lock = threading.RLock()
 
-        self.now = datetime.datetime.now().timestamp()
-
-        if self.AD.tick != self.AD.interval or self.AD.starttime is not None:
-            self.realtime = False
+        self.now = pytz.utc.localize(datetime.datetime.utcnow())
 
         self.stopping = False
         self.realtime = True
 
         # Take a note of DST
+        #print(self.is_dst())
 
         self.was_dst = self.is_dst()
+
+        tt = self.set_start_time()
+
+        if self.AD.endtime is not None:
+            unaware_end = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
+            aware_end = self.tz.localize(unaware_end)
+            self.endtime = aware_end.astimezone(pytz.utc)
+        else:
+            self.endtime = None
+
+        if tt is True:
+            self.realtime = False
+            self.AD.logging.log("INFO", "Starting time travel ...")
+            self.AD.logging.log("INFO", "Setting clocks to {}".format(self.get_now_naive()))
+            if self.AD.tick == 0:
+                self.AD.logging.log("INFO", "Time displacement factor infinite")
+            else:
+                self.AD.logging.log("INFO", "Time displacement factor {}".format(self.AD.interval / self.AD.tick))
+        else:
+            self.AD.logging.log("INFO", "Scheduler tick set to {}s".format(self.AD.tick))
 
         # Setup sun
 
@@ -45,25 +65,21 @@ class Scheduler:
 
         self.update_sun()
 
-        tt = None
-        if self.AD.starttime:
-            tt = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
-            self.now = tt.timestamp()
+    def set_start_time(self):
+        tt = False
+        if self.AD.starttime is not None:
+            tt = True
+            unaware_now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
+            aware_now = self.tz.localize(unaware_now)
+            self.now = aware_now.astimezone(pytz.utc)
         else:
-            new_now = datetime.datetime.now()
-            self.now = new_now.timestamp()
-            if self.AD.tick != self.AD.interval:
-                tt = new_now
+            self.now = pytz.utc.localize(datetime.datetime.utcnow())
 
-        if tt is not None:
-            self.AD.logging.log("INFO", "Starting time travel ...")
-            self.AD.logging.log("INFO", "Setting clocks to {}".format(tt))
-            if self.AD.tick == 0:
-                self.AD.logging.log("INFO", "Time displacement factor infinite")
-            else:
-                self.AD.logging.log("INFO", "Time displacement factor {}".format(self.AD.interval / self.AD.tick))
-        else:
-            self.AD.logging.log("INFO", "Scheduler tick set to {}s".format(self.AD.tick))
+        if self.AD.tick != self.AD.interval:
+            tt = True
+
+        return tt
+
 
     def stop(self):
         self.stopping = True
@@ -119,13 +135,13 @@ class Scheduler:
                     else:
                         # We have a valid time for the next sunrise/set so use it
                         c_offset = self.get_offset(args)
-                        args["timestamp"] = self.calc_sun(args["type"]) + c_offset
+                        args["timestamp"] = self.sun[args["type"]] + c_offset
                         args["offset"] = c_offset
                 else:
                     # Not sunrise or sunset so just increment
                     # the timestamp with the repeat interval
-                    args["basetime"] += args["interval"]
-                    args["timestamp"] = args["basetime"] + self.get_offset(args)
+                    args["basetime"] += timedelta(seconds = args["interval"])
+                    args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
             else:  # Otherwise just delete
                 del self.schedule[name][entry]
 
@@ -165,7 +181,7 @@ class Scheduler:
                     if schedule["type"] == action and "inactive" in schedule:
                         del schedule["inactive"]
                         c_offset = self.get_offset(schedule)
-                        schedule["timestamp"] = self.calc_sun(action) + c_offset
+                        schedule["timestamp"] = self.sun[action] + c_offset
                         schedule["offset"] = c_offset
 
     def init_sun(self):
@@ -186,18 +202,13 @@ class Scheduler:
 
     def update_sun(self):
 
-        #now = datetime.datetime.now(self.tz)
-        #now = pytz.utc.localize(self.get_now())
-
-        now = self.tz.localize(self.get_now())
-
         mod = -1
         while True:
             try:
                 next_rising_dt = self.location.sunrise(
-                    (now + datetime.timedelta(days=mod)).date(), local=False
+                    (self.now + datetime.timedelta(days=mod)).date(), local=False
                 )
-                if next_rising_dt > now:
+                if next_rising_dt > self.now:
                     break
             except astral.AstralError:
                 pass
@@ -207,9 +218,9 @@ class Scheduler:
         while True:
             try:
                 next_setting_dt = self.location.sunset(
-                    (now + datetime.timedelta(days=mod)).date(), local=False
+                    (self.now + datetime.timedelta(days=mod)).date(), local=False
                 )
-                if next_setting_dt > now:
+                if next_setting_dt > self.now:
                     break
             except astral.AstralError:
                 pass
@@ -256,7 +267,15 @@ class Scheduler:
         # verbose_log(conf.logger, "INFO", "sun: offset = {}".format(offset))
         return offset
 
-    def insert_schedule(self, name, utc, callback, repeat, type_, **kwargs):
+    def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
+
+        #aware_dt will include a timezone of some sort - convert to utc timezone
+        utc = aware_dt.astimezone(pytz.utc)
+
+        # Round to nearest tick
+
+        utc = self.my_dt_round(utc, base=self.AD.tick)
+
         with self.AD.app_management.objects_lock:
             if "pin" in kwargs:
                 pin_app = kwargs["pin"]
@@ -273,9 +292,8 @@ class Scheduler:
             if name not in self.schedule:
                 self.schedule[name] = {}
             handle = uuid.uuid4()
-            utc = int(utc)
             c_offset = self.get_offset({"kwargs": kwargs})
-            ts = utc + c_offset
+            ts = utc + timedelta(seconds=c_offset)
             interval = kwargs.get("interval", 0)
 
             with self.AD.app_management.objects_lock:
@@ -312,25 +330,25 @@ class Scheduler:
         # We already set self.now for DST calculation and initial sunset,
         # but lets reset it at the start of the timer loop to avoid an initial clock skew
         #
-        if self.AD.starttime:
-            self.now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S").timestamp()
-        else:
-            self.now = datetime.datetime.now().timestamp()
 
-        t = self.myround(self.now, base=self.AD.tick)
+        self.set_start_time()
+
+        t = self.myround(self.get_now_ts(), base=self.AD.tick)
         count = 0
         t_ = self.myround(time.time(), base=self.AD.tick)
+        t_ = time.time()
         #print(t, t_, period)
         while not self.stopping:
             count += 1
             delay = max(t_ + count * self.AD.tick - time.time(), 0)
             await asyncio.sleep(delay)
             t = self.myround(t + self.AD.interval, base=self.AD.tick)
-            r = await self.do_every_tick(t)
-            if r is not None and r != t:
-                #print("r: {}, t: {}".format(r,t))
-                t = r
-                t_ = r
+            utc = self.tz.localize(datetime.datetime.fromtimestamp(t)).astimezone(pytz.utc)
+            r = await self.do_every_tick(utc)
+            #TODO FIXME
+            if r is not None and r.timestamp() != t:
+                t = r.timestamp()
+                t_ = r.timestamp()
                 count = 0
 
 
@@ -347,7 +365,7 @@ class Scheduler:
 
             # If we have reached endtime bail out
 
-            if self.AD.endtime is not None and self.get_now() >= self.AD.endtime:
+            if self.endtime is not None and self.now >= self.AD.endtime:
                 self.AD.logging.log("INFO", "End time reached, exiting")
                 if self.AD.stop_function is not None:
                     self.AD.stop_function()
@@ -358,8 +376,8 @@ class Scheduler:
                     self.stop()
 
             if self.realtime:
-                real_now = datetime.datetime.now().timestamp()
-                delta = abs(utc - real_now)
+                real_now = pytz.utc.localize(datetime.datetime.utcnow())
+                delta = abs((utc - real_now).total_seconds())
                 if delta > self.AD.max_clock_skew:
                     self.AD.logging.log("WARNING",
                               "Scheduler clock skew detected - delta = {} - resetting".format(delta))
@@ -406,7 +424,7 @@ class Scheduler:
             loop_duration = end_time - start_time
             self.AD.logging.log("DEBUG", "Scheduler loop compute time: {}s".format(loop_duration))
 
-            if loop_duration > self.AD.tick * 0.9:
+            if self.realtime is True and loop_duration > self.AD.tick * 0.9:
                 self.AD.logging.log("WARNING", "Excessive time spent in scheduler loop: {}s".format(loop_duration))
 
             return utc
@@ -438,17 +456,12 @@ class Scheduler:
         with self.sun_lock:
             return self.sun["next_rising"] < self.sun["next_setting"]
 
-    def calc_sun(self, type_):
-        # convert to a localized timestamp
-        with self.sun_lock:
-            return self.sun[type_].timestamp()
-
     def info_timer(self, handle, name):
         with self.schedule_lock:
             if name in self.schedule and handle in self.schedule[name]:
                 callback = self.schedule[name][handle]
                 return (
-                    datetime.datetime.fromtimestamp(callback["timestamp"]),
+                    self.make_naive(callback["timestamp"]),
                     callback["interval"],
                     self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"])
                 )
@@ -477,18 +490,21 @@ class Scheduler:
         return schedule
 
     def is_dst(self):
-        return bool(time.localtime(self.get_now_ts()).tm_isdst)
+        return self.now.astimezone(self.tz).dst() != datetime.timedelta(0)
 
     def get_now(self):
-        return datetime.datetime.fromtimestamp(self.now)
-
-    def get_now_ts(self):
         return self.now
 
+    def get_now_ts(self):
+        return self.now.timestamp()
+
+    def get_now_naive(self):
+        return self.make_naive(self.now)
+
     def now_is_between(self, start_time_str, end_time_str, name=None):
-        start_time = self.parse_time(start_time_str, name)
-        end_time = self.parse_time(end_time_str, name)
-        now = self.get_now()
+        start_time = self._parse_time(start_time_str, name)["datetime"]
+        end_time = self._parse_time(end_time_str, name)["datetime"]
+        now = self.get_now().astimezone(self.tz)
         start_date = now.replace(
             hour=start_time.hour, minute=start_time.minute,
             second=start_time.second
@@ -503,29 +519,43 @@ class Scheduler:
             end_date = end_date + datetime.timedelta(days=1)
         return start_date <= now <= end_date
 
-    def sunset(self):
-        return datetime.datetime.fromtimestamp(self.calc_sun("next_setting"))
+    def sunset(self, aware):
+        if aware is True:
+            return self.sun["next_setting"].astimezone(self.tz)
+        else:
+            return self.make_naive(self.sun["next_setting"].astimezone(self.tz))
 
-    def sunrise(self):
-        return datetime.datetime.fromtimestamp(self.calc_sun("next_rising"))
+    def sunrise(self, aware):
+        if aware is True:
+            return self.sun["next_rising"].astimezone(self.tz)
+        else:
+            return self.make_naive(self.sun["next_rising"].astimezone(self.tz))
 
-    def parse_time(self, time_str, name=None):
-        return self._parse_time(time_str, name)["datetime"].time()
+    def parse_time(self, time_str, name=None, aware=False):
+        if aware is True:
+            return self._parse_time(time_str, name)["datetime"].astimezone(self.tz).time()
+        else:
+            return self.make_naive(self._parse_time(time_str, name)["datetime"]).time()
 
-    def parse_datetime(self, time_str, name=None):
-        return self._parse_time(time_str, name)["datetime"]
+    def parse_datetime(self, time_str, name=None, aware=False):
+        if aware is True:
+            return self._parse_time(time_str, name)["datetime"].astimezone(self.tz)
+        else:
+            return self.make_naive(self._parse_time(time_str, name)["datetime"])
+
 
     def _parse_time(self, time_str, name=None):
         parsed_time = None
         sun = None
         offset = 0
-        parts = re.search('^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)', time_str)
+        parts = re.search('^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)$', time_str)
         if parts:
-            parsed_time = datetime.datetime(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), int(parts.group(4)), int(parts.group(5)), int(parts.group(6)), 0)
+            this_time = datetime.datetime(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), int(parts.group(4)), int(parts.group(5)), int(parts.group(6)), 0)
+            parsed_time = self.tz.localize(this_time)
         else:
-            parts = re.search('^(\d+):(\d+):(\d+)', time_str)
+            parts = re.search('^(\d+):(\d+):(\d+)$', time_str)
             if parts:
-                today = datetime.datetime.fromtimestamp(self.get_now_ts())
+                today = self.now.astimezone(self.tz)
                 time = datetime.time(
                     int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), 0
                 )
@@ -533,16 +563,16 @@ class Scheduler:
 
             else:
                 if time_str == "sunrise":
-                    parsed_time = self.sunrise()
+                    parsed_time = self.sunrise(True)
                     sun = "sunrise"
                     offset = 0
                 elif time_str == "sunset":
-                    parsed_time = self.sunset()
+                    parsed_time = self.sunset(True)
                     sun = "sunset"
                     offset = 0
                 else:
                     parts = re.search(
-                        '^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
+                        '^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)$', time_str
                     )
                     if parts:
                         sun = "sunrise"
@@ -552,17 +582,17 @@ class Scheduler:
                                 seconds=int(parts.group(4))
                             )
                             offset = td.total_seconds()
-                            parsed_time = (self.sunrise() + td)
+                            parsed_time = (self.sunrise(True) + td)
                         else:
                             td = datetime.timedelta(
                                 hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                 seconds=int(parts.group(4))
                             )
                             offset = td.total_seconds() * -1
-                            parsed_time = (self.sunrise() - td)
+                            parsed_time = (self.sunrise(True) - td)
                     else:
                         parts = re.search(
-                            '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)', time_str
+                            '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)$', time_str
                         )
                         if parts:
                             sun = "sunset"
@@ -572,14 +602,14 @@ class Scheduler:
                                     seconds=int(parts.group(4))
                                 )
                                 offset = td.total_seconds()
-                                parsed_time = (self.sunset() + td)
+                                parsed_time = (self.sunset(True) + td)
                             else:
                                 td = datetime.timedelta(
                                     hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                     seconds=int(parts.group(4))
                                 )
                                 offset = td.total_seconds() * -1
-                                parsed_time = (self.sunset() - td)
+                                parsed_time = (self.sunset(True) - td)
         if parsed_time is None:
             if name is not None:
                 raise ValueError(
@@ -601,7 +631,7 @@ class Scheduler:
 
     def dump_schedule(self):
         if self.schedule == {}:
-            self.AD.logging.diag("INFO", "Schedule is empty")
+            self.AD.logging.diag("INFO", "Scheduler Table is empty")
         else:
             self.AD.logging.diag("INFO", "--------------------------------------------------")
             self.AD.logging.diag("INFO", "Scheduler Table")
@@ -614,10 +644,8 @@ class Scheduler:
                 ):
                     self.AD.logging.diag(
                         "INFO",
-                        "  Timestamp: {} - data: {}".format(
-                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(
-                                self.schedule[name][entry]["timestamp"]
-                            )),
+                        " Next Event Time: {} - data: {}".format(
+                            self.make_naive(self.schedule[name][entry]["timestamp"]),
                             self.schedule[name][entry]
                         )
                     )
@@ -640,4 +668,28 @@ class Scheduler:
         else:
             return round(base * round(float(x) / base), prec)
 
+    def my_dt_round(self, dt, base=1, prec=10):
+        if base == 0:
+            return dt
+        else:
+            ts = dt.timestamp()
+            rounded = round(base * round(float(ts) / base), prec)
+            result = datetime.datetime.utcfromtimestamp(rounded)
+            aware_result = pytz.utc.localize(result)
+            return aware_result
 
+
+    def convert_naive(self, dt):
+        # Is it naive?
+        result = None
+        if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+            #Localize with the configured timezone
+            result = self.tz.localize(dt)
+        else:
+            result = dt
+
+        return result
+
+    def make_naive(self, dt):
+        local = dt.astimezone(self.tz)
+        return datetime.datetime(local.year, local.month, local.day,local.hour, local.minute, local.second, local.microsecond)

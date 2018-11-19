@@ -10,35 +10,25 @@ class Logging:
 
         self.AD = ad
 
-    def log(self, level, message, name="AppDaemon"):
+    def _log(self, logger, level, message, name):
         if self.AD.sched is not None and not self.AD.sched.is_realtime():
-            ts = self.AD.sched.get_now_ts()
+            ts = self.AD.sched.get_now_naive()
         else:
             ts = datetime.datetime.now()
-        utils.log(self.AD.logger, level, message, name, ts)
+
+        utils.log(logger, level, message, name, ts)
 
         if level != "DEBUG":
             self.process_log_callback(level, message, name, ts, "log")
 
-    def err(self, level, message, name="AppDaemon"):
-        if self.AD.sched is not None and not self.AD.sched.is_realtime():
-            ts = self.AD.sched.get_now_ts()
-        else:
-            ts = datetime.datetime.now()
-        utils.log(self.AD.error, level, message, name, ts)
+    def log(self, level, message, name="AppDaemon"):
+        self._log(self.AD.logger, level, message, name)
 
-        if level != "DEBUG":
-            self.process_log_callback(level, message, name, ts, "error")
+    def err(self, level, message, name="AppDaemon"):
+        self._log(self.AD.error, level, message, name)
 
     def diag(self, level, message, name="AppDaemon"):
-        if self.AD.sched is not None and not self.AD.sched.is_realtime():
-            ts = self.AD.sched.get_now_ts()
-        else:
-            ts = None
-        utils.log(self.AD.diagnostic, level, message, name, ts)
-
-        if level != "DEBUG":
-            self.process_log_callback(level, message, name, ts, "diag")
+        self._log(self.AD.diagnostic, level, message, name)
 
     def process_log_callback(self, level, message, name, ts, type):
         # Need to check if this log callback belongs to an app that is accepting log events
