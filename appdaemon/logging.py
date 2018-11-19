@@ -2,7 +2,6 @@ import datetime
 import pytz
 import sys
 
-import appdaemon.utils as utils
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -21,8 +20,7 @@ class Logging:
     def __init__(self, config, debug):
 
         self.AD = None
-        self.tz = pytz.timezone(config["appdaemon"]["time_zone"])
-
+        self.tz = None
 
         if "log" not in config:
             logfile = "STDOUT"
@@ -118,23 +116,28 @@ class Logging:
         else:
             self.access = self.logger
 
+    def set_tz(self, tz):
+        self.tz = tz
+
     def register_ad(self, ad):
         self.AD = ad
 
     def _log(self, logger, level, message, name, ascii_encode):
         if self.AD is not None and self.AD.sched is not None and not self.AD.sched.is_realtime():
             ts = self.AD.sched.get_now()
-        else:
+        elif self.tz is not None:
             ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(self.tz)
+        else:
+            ts = datetime.datetime.now()
 
-            name = " {}:".format(name)
+        name = " {}:".format(name)
 
-            if ascii_encode is True:
-                safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
-                name = safe_enc(name)
-                message = safe_enc(message)
+        if ascii_encode is True:
+            safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+            name = safe_enc(name)
+            message = safe_enc(message)
 
-            logger.log(self.log_levels[level], "{} {}{} {}".format(ts, level, name, message))
+        logger.log(self.log_levels[level], "{} {}{} {}".format(ts, level, name, message))
 
         if level != "DEBUG":
             self.process_log_callback(level, message, name, ts, "log")

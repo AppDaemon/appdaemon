@@ -8,6 +8,7 @@ import platform
 import yaml
 import asyncio
 import traceback
+import pytz
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
@@ -256,6 +257,9 @@ class ADMain():
         # Setup logging
 
         self.logging = logging.Logging(config, args.debug)
+
+        if "time_zone" in config["appdaemon"]:
+            self.logging.set_tz(pytz.timezone(config["appdaemon"]["time_zone"]))
 
 
         # Startup message

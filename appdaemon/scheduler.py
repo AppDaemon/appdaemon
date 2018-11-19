@@ -9,7 +9,6 @@ import uuid
 import time
 import re
 import asyncio
-import math
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -20,7 +19,6 @@ class Scheduler:
     def __init__(self, ad: AppDaemon):
         self.AD = ad
 
-        self.time_zone = self.AD.time_zone
         self.schedule = {}
         self.schedule_lock = threading.RLock()
 
@@ -28,6 +26,13 @@ class Scheduler:
         self.sun_lock = threading.RLock()
 
         self.now = pytz.utc.localize(datetime.datetime.utcnow())
+
+        #
+        # If we were waiting for a timezone from metadata, we have it now.
+        #
+        tz = pytz.timezone(self.AD.time_zone)
+        self.AD.tz = tz
+        self.AD.logging.set_tz(tz)
 
         self.stopping = False
         self.realtime = True
