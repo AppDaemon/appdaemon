@@ -114,7 +114,7 @@ class Utility:
                 loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
 
                 self.AD.logging.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
-                if loop_duration > (self.AD.max_utility_skew * 1000):
+                if self.AD.sched.realtime is True and loop_duration > (self.AD.max_utility_skew * 1000):
                     self.AD.logging.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
                     if self.AD.check_app_updates_profile is True:
                         self.AD.logging.diag("INFO", "Profile information for Utility Loop")

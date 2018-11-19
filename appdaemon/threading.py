@@ -206,7 +206,7 @@ class Threading:
             q.put_nowait(args)
 
     def check_overdue_threads(self):
-        if self.AD.thread_duration_warning_threshold != 0:
+        if self.AD.sched.realtime is True and self.AD.thread_duration_warning_threshold != 0:
             for thread_id in self.thread_info["threads"]:
                 if self.thread_info["threads"][thread_id]["callback"] != "idle":
                     start = self.thread_info["threads"][thread_id]["time_called"]
@@ -230,6 +230,7 @@ class Threading:
         return warning_step
 
     def update_thread_info(self, thread_id, callback, type = None):
+
         if self.AD.log_thread_actions:
             if callback == "idle":
                 self.AD.logging.diag("INFO",
@@ -242,7 +243,7 @@ class Threading:
             ts = self.AD.sched.get_now_ts()
             if callback == "idle":
                 start = self.thread_info["threads"][thread_id]["time_called"]
-                if ts - start >= self.AD.thread_duration_warning_threshold:
+                if self.AD.sched.realtime is True and ts - start >= self.AD.thread_duration_warning_threshold:
                     self.AD.logging.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
             self.thread_info["threads"][thread_id]["callback"] = callback
             self.thread_info["threads"][thread_id]["time_called"] = ts
