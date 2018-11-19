@@ -23,7 +23,6 @@ log_levels = {
     "NOTSET": 0
 }
 
-
 class Formatter(object):
     def __init__(self):
         self.types = {}

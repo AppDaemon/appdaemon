@@ -3,6 +3,7 @@ import os.path
 import datetime
 import concurrent.futures
 import threading
+import pytz
 
 class AppDaemon:
 
@@ -75,6 +76,8 @@ class AppDaemon:
 
         self.time_zone = None
         utils.process_arg(self, "time_zone", kwargs)
+
+        self.tz = pytz.timezone(self.time_zone)
 
         self.logfile = None
         utils.process_arg(self, "logfile", kwargs)

@@ -21,8 +21,6 @@ class Scheduler:
         self.AD = ad
 
         self.time_zone = self.AD.time_zone
-        self.tz = pytz.timezone(self.AD.time_zone)
-
         self.schedule = {}
         self.schedule_lock = threading.RLock()
 
@@ -38,7 +36,7 @@ class Scheduler:
 
         if self.AD.endtime is not None:
             unaware_end = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
-            aware_end = self.tz.localize(unaware_end)
+            aware_end = self.AD.tz.localize(unaware_end)
             self.endtime = aware_end.astimezone(pytz.utc)
         else:
             self.endtime = None
@@ -69,7 +67,7 @@ class Scheduler:
         if self.AD.starttime is not None:
             tt = True
             unaware_now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
-            aware_now = self.tz.localize(unaware_now)
+            aware_now = self.AD.tz.localize(unaware_now)
             self.now = aware_now.astimezone(pytz.utc)
         else:
             self.now = pytz.utc.localize(datetime.datetime.utcnow())
@@ -196,7 +194,7 @@ class Scheduler:
         elevation = self.AD.elevation
 
         self.location = astral.Location((
-            '', '', latitude, longitude, self.tz.zone, elevation
+            '', '', latitude, longitude, self.AD.tz.zone, elevation
         ))
 
     def update_sun(self):
@@ -488,7 +486,7 @@ class Scheduler:
         return schedule
 
     def is_dst(self):
-        return self.now.astimezone(self.tz).dst() != datetime.timedelta(0)
+        return self.now.astimezone(self.AD.tz).dst() != datetime.timedelta(0)
 
     def get_now(self):
         return self.now
@@ -502,7 +500,7 @@ class Scheduler:
     def now_is_between(self, start_time_str, end_time_str, name=None):
         start_time = self._parse_time(start_time_str, name)["datetime"]
         end_time = self._parse_time(end_time_str, name)["datetime"]
-        now = self.get_now().astimezone(self.tz)
+        now = self.get_now().astimezone(self.AD.tz)
         start_date = now.replace(
             hour=start_time.hour, minute=start_time.minute,
             second=start_time.second
@@ -519,25 +517,25 @@ class Scheduler:
 
     def sunset(self, aware):
         if aware is True:
-            return self.sun["next_setting"].astimezone(self.tz)
+            return self.sun["next_setting"].astimezone(self.AD.tz)
         else:
-            return self.make_naive(self.sun["next_setting"].astimezone(self.tz))
+            return self.make_naive(self.sun["next_setting"].astimezone(self.AD.tz))
 
     def sunrise(self, aware):
         if aware is True:
-            return self.sun["next_rising"].astimezone(self.tz)
+            return self.sun["next_rising"].astimezone(self.AD.tz)
         else:
-            return self.make_naive(self.sun["next_rising"].astimezone(self.tz))
+            return self.make_naive(self.sun["next_rising"].astimezone(self.AD.tz))
 
     def parse_time(self, time_str, name=None, aware=False):
         if aware is True:
-            return self._parse_time(time_str, name)["datetime"].astimezone(self.tz).time()
+            return self._parse_time(time_str, name)["datetime"].astimezone(self.AD.tz).time()
         else:
             return self.make_naive(self._parse_time(time_str, name)["datetime"]).time()
 
     def parse_datetime(self, time_str, name=None, aware=False):
         if aware is True:
-            return self._parse_time(time_str, name)["datetime"].astimezone(self.tz)
+            return self._parse_time(time_str, name)["datetime"].astimezone(self.AD.tz)
         else:
             return self.make_naive(self._parse_time(time_str, name)["datetime"])
 
@@ -549,11 +547,11 @@ class Scheduler:
         parts = re.search('^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)$', time_str)
         if parts:
             this_time = datetime.datetime(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), int(parts.group(4)), int(parts.group(5)), int(parts.group(6)), 0)
-            parsed_time = self.tz.localize(this_time)
+            parsed_time = self.AD.tz.localize(this_time)
         else:
             parts = re.search('^(\d+):(\d+):(\d+)$', time_str)
             if parts:
-                today = self.now.astimezone(self.tz)
+                today = self.now.astimezone(self.AD.tz)
                 time = datetime.time(
                     int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), 0
                 )
@@ -682,12 +680,12 @@ class Scheduler:
         result = None
         if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
             #Localize with the configured timezone
-            result = self.tz.localize(dt)
+            result = self.AD.tz.localize(dt)
         else:
             result = dt
 
         return result
 
     def make_naive(self, dt):
-        local = dt.astimezone(self.tz)
+        local = dt.astimezone(self.AD.tz)
         return datetime.datetime(local.year, local.month, local.day,local.hour, local.minute, local.second, local.microsecond)

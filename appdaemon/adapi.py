@@ -419,13 +419,20 @@ class ADAPI:
         return self.AD.sched.sunset(aware)
 
     def time(self):
-        return datetime.datetime.fromtimestamp(self.AD.sched.get_now_ts()).time()
+        return self.AD.sched.get_now().astimezone(self.AD.tz).time()
 
-    def datetime(self):
-        return datetime.datetime.fromtimestamp(self.AD.sched.get_now_ts())
+
+    def datetime(self, aware=False):
+        if aware is True:
+            return self.AD.sched.get_now().astimezone(self.AD.tz)
+        else:
+            return self.AD.sched.get_now_naive()
 
     def date(self):
-        return datetime.datetime.fromtimestamp(self.AD.sched.get_now_ts()).date()
+        return self.AD.sched.get_now().astimezone(self.AD.tz).date()
+
+    def get_timezone(self):
+        return self.AD.time_zone
 
     #
     # Scheduler

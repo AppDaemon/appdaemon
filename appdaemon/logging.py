@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -12,9 +13,9 @@ class Logging:
 
     def _log(self, logger, level, message, name):
         if self.AD.sched is not None and not self.AD.sched.is_realtime():
-            ts = self.AD.sched.get_now_naive()
+            ts = self.AD.sched.get_now()
         else:
-            ts = datetime.datetime.now()
+            ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(self.AD.tz)
 
         utils.log(logger, level, message, name, ts)
 
