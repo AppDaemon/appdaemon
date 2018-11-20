@@ -109,4 +109,7 @@ class ADBase:
     def list_constraints(self):
         return self.constraints
 
+    # Logging
 
+    def log(self, message):
+        self.AD.logging.log("INFO", message)
