@@ -11,7 +11,7 @@ import pstats
 if platform.system() != "Windows":
     import pwd
 
-__version__ = "3.1.0"
+__version__ = "4.0.0b1"
 secrets = None
 
 class Formatter(object):
