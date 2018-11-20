@@ -4,11 +4,11 @@ from appdaemon.appdaemon import AppDaemon
 
 class Mqtt(adbase.ADBase, adapi.ADAPI):
 
-    def __init__(self, ad: AppDaemon, name, logger, error, args, config, app_config, global_vars,):
+    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars,):
 
         # Call Super Classes
-        adbase.ADBase.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
-        adapi.ADAPI.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
+        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
+        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
 
 
     #
@@ -23,7 +23,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
             if wildcard[-2:] == '/#' and len(wildcard.split('/')[0]) >= 1:
                 self.AD.plugins.get_plugin(namespace).process_mqtt_wildcard(kwargs['wildcard'])
             else:
-                self.log("Using {!r} as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered".format(wildcard), level="WARNING")
+                self.AD.logging.log("Using {!r} as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered".format(wildcard), level="WARNING")
                 return
 
         return super(Mqtt, self).listen_event(cb, event, **kwargs)
@@ -60,7 +60,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         if 'topic' in kwargs:
             if not self.AD.plugins.get_plugin(namespace).initialized: #ensure mqtt plugin is connected
-                self.log("Attempt to call Mqtt Service while disconnected: {!r}".format(service), level="WARNING")
+                self.AD.logging.log("Attempt to call Mqtt Service while disconnected: {!r}".format(service), level="WARNING")
                 return None
 
             try:

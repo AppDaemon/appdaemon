@@ -99,7 +99,7 @@ class Dashboard:
             start_time = time.time()
             result = func(self, *args, **kwargs)
             elapsed_time = time.time() - start_time
-            self.logging.log("INFO", 'function [{}] finished in {} ms'.format(
+            self.logging.access("INFO", 'function [{}] finished in {} ms'.format(
                 func.__name__, int(elapsed_time * 1000)))
             return result
 
