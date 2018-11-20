@@ -111,5 +111,6 @@ class ADBase:
 
     # Logging
 
-    def log(self, message):
-        self.AD.logging.log("INFO", message)
+    def log(self, text, **kwargs):
+        level = kwargs.get('level', 'INFO')
+        self.AD.logging.log(level, "{}".format(text))

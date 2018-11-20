@@ -12,7 +12,7 @@ import pytz
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
-import appdaemon.runapi as api
+import appdaemon.runrestapi as api
 import appdaemon.rundash as rundash
 import appdaemon.logging as logging
 

@@ -229,12 +229,12 @@ class AppDaemon:
 
     def stop(self):
         self.stopping = True
+        if self.appq is not None:
+            self.appq.stop()
         if self.sched is not None:
             self.sched.stop()
         if self.utility is not None:
             self.utility.stop()
-        if self.appq is not None:
-            self.appq.stop()
         if self.plugins is not None:
             self.plugins.stop()
 
