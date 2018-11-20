@@ -2195,9 +2195,9 @@ Using Multiple APIs From One App
 
 The way apps are constructed, they inherit from a superclass that contains all the methods needed to access a particular plugin. This is convenient as it hides a lot of the complexity by automatically selecting the right configuration information based on namespaces. One drawback of this approach is that an App cannot inherently speak to multiple plugin types as the API required is different and the App can only choose one api to inherit from.
 
-To get around this, a function called ``get_plugin_api()`` is provided to instantiate API objects to handle multiple plugins, as a distinct objects, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly.
+To get around this, a function called ``get_plugin_api()`` is provided to instantiate API objects to handle multiple plugins, as a distinct objects, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly, as well as call ``listen_state()`` on it to listen for state changes specific to that plugin.
 
-In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. The app will also use ``get_ad_api()`` to get access to the AppDaemon api for calls such as ``listen_state()` and the various scheduler calls. ``get_ad_api()`` requires the import of ``adapi``.
+In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. The app will also use ``get_ad_api()`` to get access to the AppDaemon api for the various scheduler calls. ``get_ad_api()`` requires the import of ``adapi``.
 
 As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to access both HASS and MQTT, as well as ``get_ad_api()`` to access the AppDaemon base functions.
 
@@ -2214,6 +2214,8 @@ As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to 
         hass = self.get_plugin_api("HASS")
         # Hass API Call
         hass.turn_on("light.office")
+        # Listen for state changes for this plugin only
+        hass.listen_state(my_callback, "light.kitchen")
 
         # Grab an object for the MQTT API
         mqtt = self.get_plugin_api("MQTT")
