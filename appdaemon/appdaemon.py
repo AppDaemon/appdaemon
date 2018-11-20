@@ -15,7 +15,7 @@ class AppDaemon:
 
         import appdaemon.utils as utils
         import appdaemon.appq as appq
-        import appdaemon.utility as utility
+        import appdaemon.utility_loop as utility
         import appdaemon.plugin_management as plugins
         import appdaemon.threading
         import appdaemon.app_management as apps
