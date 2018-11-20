@@ -62,7 +62,7 @@ To run the cloned version of AppDaemon, make sure you are in the ``appdaemon`` s
 
 .. code:: bash
 
-    $ python3 -m appdaemon.admain -c <PATH To CONFIG DIRECTORY>
+    $ python3 -m appdaemon.main -c <PATH To CONFIG DIRECTORY>
 
 In most cases it is possible to share config directories with other AppDaemon instances, but beware of apps that use new features as they will likely cause errors for the stable version. If you prefer, you can create an entirely new conf directory for your dev environment.
 
