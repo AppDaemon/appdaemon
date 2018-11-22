@@ -67,13 +67,15 @@ class ADAPI:
     # Logging
     #
 
-    def log(self, msg, level="INFO", **kwargs):
+    def log(self, msg, **kwargs):
         msg = self._sub_stack(msg)
+        level = kwargs.get("level", "INFO")
         ascii_encode = kwargs.get("ascii_encode", True)
         self.AD.logging.log(level, msg, self.name, ascii_encode)
 
-    def error(self, msg, level="WARNING", **kwargs):
+    def error(self, msg, **kwargs):
         msg = self._sub_stack(msg)
+        level = kwargs.get("level", "WARNING")
         ascii_encode = kwargs.get("ascii_encode", True)
         self.AD.logging.err(level, msg, self.name, ascii_encode)
 
