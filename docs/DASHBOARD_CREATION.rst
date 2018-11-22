@@ -1601,8 +1601,10 @@ Cosmetic Arguments
 -  ``icon_down``
 -  ``title_style``
 -  ``title2_style``
--  ``text_style``
 -  ``level_style``
+-  ``level2_style``
+-  ``unit_style``
+-  ``unit2_style``
 -  ``level_up_style``
 -  ``level_down_style``
 
