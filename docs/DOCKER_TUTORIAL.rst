@@ -44,7 +44,7 @@ Before you start, you need to know the following:
 * TOKEN: If your Home Assistant is using Long Lived Tokens you will need to use TOKEN
 
 Now, on your Docker host, for Linux users, run the following command,
-substituting the values above in the quotes below. (Note, if you do not
+substituting the values above in the quotes below. (Note: to create a long lived token, click your user icon in the HA front end and look for the Long-Lived Access Tokens card. If you do not
 need a TOKEN, you can omit the entire -e TOKEN line)
 
 ::
