@@ -8,6 +8,8 @@
     <link rel="manifest" href="images/manifest.json">
     <link rel="stylesheet" type="text/css" href="css/admin.css">
 	<script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
+	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
+    <script type="text/javascript" src="javascript/socket.io.js"></script>
 	<script type="text/javascript" src="javascript/admin.js"></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
@@ -22,8 +24,30 @@
 </head>
 <body>
             <script>
-                $( document ).ready(function() {
-                    document.getElementById("{{tab}}").click();
+$(function(){ //DOM Ready
+
+    // Open the default tab
+
+    document.getElementById("appdaemon").click();
+
+    // Start listening for Events
+
+    {% if transport == "ws" %}
+    if (location.protocol === 'https:')
+    {
+        wsprot = "wss:"
+    }
+    else
+    {
+        wsprot = "ws:"
+    }
+    var stream_url = wsprot + '//' + location.host + '/stream'
+    {% else %}
+        var stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
+    {% endif %}
+
+    admin_stream(stream_url, "{{ transport }}");
+
 });
 
             </script>
@@ -49,14 +73,20 @@
 <!-- Tab links -->
 <div class="tab">
   <button class="tablinks" onclick="openTab(event, 'AppDaemon')" id="appdaemon">AppDaemon</button>
-  <button class="tablinks" onclick="openTab(event, 'Apps')" id="apps">Apps</button>
   <button class="tablinks" onclick="openTab(event, 'Plugins')" id="plugins">Plugins</button>
+  <button class="tablinks" onclick="openTab(event, 'Modules')" id="plugins">Modules</button>
+  <button class="tablinks" onclick="openTab(event, 'Apps')" id="apps">Apps</button>
+  <button class="tablinks" onclick="openTab(event, 'Threads')" id="apps">Threads</button>
+  <button class="tablinks" onclick="openTab(event, 'Scheduler')" id="apps">Scheduler</button>
+  <button class="tablinks" onclick="openTab(event, 'Callbacks')" id="apps">Callbacks</button>
+  <button class="tablinks" onclick="openTab(event, 'Logs')" id="apps">Logs</button>
 </div>
 
 <!-- Tab content -->
 <div id="AppDaemon" class="tabcontent">
     <h3>AppDaemon</h3>
-    <br>Running since: {{ appdaemon["booted"] }}</br>
+    <br>Version: {{ appdaemon["version"] }}
+    <br>Running since: {{ appdaemon["booted"] }}
 </div>
 
 <div id="Apps" class="tabcontent">
@@ -67,6 +97,47 @@
 
 </div>
 
+<div id="Modules" class="tabcontent">
+
+</div>
+
+<div id="Threads" class="tabcontent">
+    <h3>Summary</h3>
+    <table>
+        <tr><td>Current Busy</td><td>{{ threads["current_busy"] }}</td></tr>
+        <tr><td>Maximum Busy</td><td>{{ threads["max_busy"] }}</td></tr>
+    </table>
+    <h3>Details</h3>
+    <table>
+            {% for thread in threads["threads"] %}
+            <tr><td>{{ thread }}</td>
+                <td>Queue Size: {{ threads["threads"][thread]["qsize"] }}</td>
+                <td>Callback: {{ threads["threads"][thread]["callback"] }}</td>
+                <td>Time Called: {{ threads["threads"][thread]["time_called"] }}</td>
+                <td>Alive: {{ threads["threads"][thread]["is_alive"] }}</td>
+                <td>Pinned Apps: {{ threads["threads"][thread]["pinned_apps"] }}</td>
+            </tr>
+            {% endfor %}
+    </table>
+</div>
+
+<div id="Scheduler" class="tabcontent">
+
+</div>
+
+<div id="Callbacks" class="tabcontent">
+    <h3>Summary</h3>
+    <table>
+        <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callbacks["total_callbacks_fired"] }}</td><td id="avg_callbacks_fired_per_sec">{{ callbacks["avg_callbacks_fired_per_sec"] }}</td></tr>
+        <tr><td>Total Callbacks Executed</td><td id="total_callbacks_executed">{{ callbacks["total_callbacks_executed"] }}</td><td id="avg_callbacks_executed_per_sec">{{ callbacks["avg_callbacks_executed_per_sec"] }}</td></tr>
+    </table>
+
+</div>
+
+<div id="Logs" class="tabcontent">
+
+</div>
+
 <div id="Plugins" class="tabcontent">
   <h3>Plugins</h3>
     <table>
@@ -74,7 +145,6 @@
             <th>Name</th>
             <th>Type</th>
             <th>Namespace</th>
-            <th>Authorization</th>
         </tr>
     {% for plugin in plugins %}
         <tr>

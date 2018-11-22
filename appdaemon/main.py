@@ -15,6 +15,7 @@ import appdaemon.appdaemon as ad
 import appdaemon.run_restapi as api
 import appdaemon.run_dash as rundash
 import appdaemon.logging as logging
+import appdaemon.run_admin as run_admin
 
 class ADMain():
 
@@ -79,20 +80,19 @@ class ADMain():
                 self.AD.logging.log("INFO", "Dashboards are disabled")
 
             if "api_port" in appdaemon:
-                self.AD.logging.log("INFO", "Starting API")
+                self.AD.logging.log("INFO", "Starting API on port {}".format(appdaemon["api_port"]))
                 self.api = api.ADAPI(self.AD, loop, self.logging, **appdaemon)
                 self.AD.register_api(self.api)
             else:
                 self.AD.logging.log("INFO", "API is disabled")
 
-
-            # Lets hide the admin interface for now
-
-            #if "admin_port" in appdaemon:
-            #    self.AD.logging.log("INFO", "Starting Admin Interface")
-            #    self.runadmin = runadmin.RunAdmin(self.AD, loop, self.logging, **appdaemon)
-            #else:
-            #    self.AD.logging.log("INFO", "Admin Interface is disabled")
+            if "admin" in appdaemon and "port" in appdaemon["admin"]:
+                self.AD.logging.log("INFO", "Starting Admin Interface on port {}".format(appdaemon["admin"]["port"]))
+                admin = appdaemon["admin"]
+                self.runadmin = run_admin.RunAdmin(self.AD, loop, self.logging, **admin)
+                self.AD.register_admin(self.runadmin)
+            else:
+                self.AD.logging.log("INFO", "Admin Interface is disabled")
 
             self.AD.logging.log("DEBUG", "Start Loop")
 

@@ -91,6 +91,11 @@ class Utility:
 
                     self.AD.threading.check_overdue_threads()
 
+                    # Update Admin Perf Stats
+
+                    if self.AD.admin is not None and self.AD.admin.stats_update != "none":
+                        await self.AD.admin.admin_update(self.AD.threading.get_callback_info())
+
                     # Run utility for each plugin
 
                     self.AD.plugins.run_plugin_utility()

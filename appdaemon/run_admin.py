@@ -6,6 +6,9 @@ import bcrypt
 
 import appdaemon.admin as admin
 import appdaemon.utils as utils
+import appdaemon.stream as stream
+
+from appdaemon.appdaemon import AppDaemon
 
 def securedata(myfunc):
     """
@@ -59,7 +62,7 @@ def secure(myfunc):
 
 class RunAdmin:
 
-    def __init__(self, ad, loop, logging, **config):
+    def __init__(self, ad: AppDaemon, loop, logging, **config):
 
         self.AD = ad
         self.logging = logging
@@ -76,25 +79,30 @@ class RunAdmin:
         self.admin_port = 5002
         self._process_arg("admin_port", config)
 
+        self.transport = "ws"
+        self._process_arg("transport", config)
+
         self.dash_ssl_certificate = None
         self._process_arg("dash_ssl_certificate", config)
 
         self.dash_ssl_key = None
         self._process_arg("dash_ssl_key", config)
 
+        self.stats_update = "realtime"
+        self._process_arg("stats_update", config)
+
         self.stopping = False
 
-        # Setup WS handler
-
         self.app = web.Application()
-        self.app['websockets'] = {}
+
+        self.stream = stream.ADStream(self.AD, self.app, self.transport, self.on_connect, self.on_message)
 
         self.loop = loop
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
         try:
 
-            self.admin_obj = admin.Admin(self.config_dir, logging, self.AD)
+            self.admin_obj = admin.Admin(self.config_dir, logging, self.AD, **config)
 
             self.setup_routes()
 
@@ -115,6 +123,18 @@ class RunAdmin:
             self.log("WARNING", '-' * 60)
             self.log("WARNING", traceback.format_exc())
             self.log("WARNING", '-' * 60)
+
+
+    # Stream Handling
+
+    async def admin_update(self, data):
+        await self.stream.send_update(data)
+
+    async def on_message(self, data):
+        self.AD.logging.log("INFO", "New admin browser connection")
+
+    async def on_connect(self):
+        pass
 
     def stop(self):
         self.stopping = True

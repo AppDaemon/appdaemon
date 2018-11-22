@@ -1,4 +1,56 @@
-function openTab(evt, cityName) {
+function admin_stream(stream, transport)
+{
+
+    if (transport === "ws")
+    {
+        var webSocket = new ReconnectingWebSocket(stream);
+
+        webSocket.onopen = function (event) {
+            webSocket.send("Admin Browser");
+        };
+
+        webSocket.onmessage = function (event) {
+            var data = JSON.parse(event.data);
+            update_admin(data)
+        };
+
+        webSocket.onclose = function (event) {
+            //window.alert("Server closed connection")
+            // window.location.reload(false);
+        };
+
+        webSocket.onerror = function (event) {
+            //window.alert("Error occured")
+            //window.location.reload(true);
+        };
+    }
+    else
+    {
+        var iosocket = io.connect(stream);
+
+        iosocket.on("connect", function () {
+            iosocket.emit("up", "Admin Browser");
+        });
+
+        iosocket.on("down", function (msg) {
+            var data = JSON.parse(msg);
+            update_admin(data)
+        });
+
+    }
+
+    this.update_admin = function (data)
+    {
+        // console.log(data);
+        var id;
+        for (id in data)
+        {
+            document.getElementById(id).innerText = data[id];
+        }
+    }
+}
+
+function openTab(evt, tabname) {
     // Declare all variables
     var i, tabcontent, tablinks;
 
@@ -15,7 +67,7 @@ function openTab(evt, cityName) {
     }
 
     // Show the current tab, and add an "active" class to the button that opened the tab
-    document.getElementById(cityName).style.display = "block";
+    document.getElementById(tabname).style.display = "block";
     evt.currentTarget.className += " active";
 }
 

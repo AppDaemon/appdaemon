@@ -128,7 +128,7 @@ class State:
 
                         executed = False
                         if cdevice is None:
-                            executed = self.AD.threading.check_and_dispatch(
+                            executed = self.AD.threading.check_and_dispatch_state(
                                 name, callback["function"], entity_id,
                                 cattribute,
                                 data['new_state'],
@@ -141,7 +141,7 @@ class State:
                             )
                         elif centity is None:
                             if device == cdevice:
-                                executed = self.AD.threading.check_and_dispatch(
+                                executed = self.AD.threading.check_and_dispatch_state(
                                     name, callback["function"], entity_id,
                                     cattribute,
                                     data['new_state'],
@@ -154,7 +154,7 @@ class State:
                                 )
 
                         elif device == cdevice and entity == centity:
-                            executed = self.AD.threading.check_and_dispatch(
+                            executed = self.AD.threading.check_and_dispatch_state(
                                 name, callback["function"], entity_id,
                                 cattribute,
                                 data['new_state'],

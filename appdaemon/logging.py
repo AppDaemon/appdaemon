@@ -114,7 +114,7 @@ class Logging:
             # efh.setFormatter(formatter)
             self.acc.addHandler(efh)
         else:
-            self.access = self.logger
+            self.acc = self.logger
 
     def set_tz(self, tz):
         self.tz = tz

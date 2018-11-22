@@ -2,9 +2,7 @@ import os
 
 from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
 
-import datetime
-
-import appdaemon.utils as ha
+import appdaemon.utils as utils
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -28,15 +26,14 @@ class Admin:
         #
         # Process any overrides
         #
-        self._process_arg("dashboard_dir", kwargs)
         self._process_arg("javascript_dir", kwargs)
         self._process_arg("template_dir", kwargs)
         self._process_arg("css_dir", kwargs)
         self._process_arg("fonts_dir", kwargs)
         self._process_arg("images_dir", kwargs)
-        #
-        # Create some dirs
-        #
+
+        self.transport = "ws"
+        self._process_arg("transport", kwargs)
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
@@ -62,9 +59,11 @@ class Admin:
         params = {}
 
         params["tab"] = tab
+        params["transport"] = self.transport
 
         params["appdaemon"] = {}
         params["appdaemon"]["booted"] = self.AD.booted
+        params["appdaemon"]["version"] = utils.__version__
 
         params["apps"] = {}
         for obj in self.AD.app_management.objects:
@@ -74,10 +73,18 @@ class Admin:
         for plug in self.AD.plugins.plugin_objs:
             params["plugins"][plug] = \
                 {
-                    "name": self.AD.plugins.plugin_objs[plug].name,
-                    "type": self.AD.plugins.plugin_objs[plug].__class__.__name__,
-                    "namespace": self.AD.plugins.plugin_objs[plug].namespace,
+                    "name": self.AD.plugins.plugin_objs[plug]["object"].name,
+                    "type": self.AD.plugins.plugin_objs[plug]["object"].__class__.__name__,
+                    "namespace": self.AD.plugins.plugin_objs[plug]["object"].namespace,
                 }
+
+        params["threads"] = self.AD.threading.get_thread_info()
+
+        params["callbacks"] = self.AD.threading.get_callback_info()
+
+        #
+        # Render Page
+        #
 
         env = Environment(
             loader=FileSystemLoader(self.template_dir),

@@ -30,6 +30,13 @@ class Threading:
 
         self.auto_pin = True
 
+        self.total_callbacks_fired = 0
+        self.total_callbacks_executed = 0
+        self.current_callbacks_fired = 0
+        self.current_callbacks_executed = 0
+        self.last_stats_time = datetime.datetime.now()
+        self.callback_list = []
+
         if "threads" in kwargs:
             self.AD.logging.log("WARNING",
                      "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps")
@@ -62,6 +69,50 @@ class Threading:
         self.AD.logging.log("INFO", "Starting Apps with {} workers and {} pins".format(self.total_threads, self.pin_threads))
 
         self.next_thread = self.pin_threads
+
+    def get_callback_info(self):
+        now = datetime.datetime.now()
+        duration = (now - self.last_stats_time).total_seconds()
+        executed_rate = self.current_callbacks_executed / duration
+        fired_rate = self.current_callbacks_fired / duration
+        self.callback_list.append(
+            {
+                "fired": fired_rate,
+                "executed": executed_rate,
+                "ts": now
+            })
+
+        if len(self.callback_list) > 60:
+            self.callback_list.pop(0)
+
+        fired_sum = 0
+        executed_sum = 0
+        for item in self.callback_list:
+            fired_sum += item["fired"]
+            executed_sum += item["executed"]
+
+        total_duration = (self.callback_list[len(self.callback_list) -1]["ts"] - self.callback_list[0]["ts"]).total_seconds()
+
+        if total_duration == 0:
+            fired_avg = 0
+            executed_avg = 0
+        else:
+            fired_avg = round(fired_sum / total_duration, 1)
+            executed_avg = round(executed_sum / total_duration, 1)
+
+        stats = \
+        {
+            "total_callbacks_executed": self.total_callbacks_executed,
+            "total_callbacks_fired": self.total_callbacks_fired,
+            "avg_callbacks_executed_per_sec": fired_avg,
+            "avg_callbacks_fired_per_sec": executed_avg,
+        }
+
+        self.last_stats_time = now
+        self.current_callbacks_executed = 0
+        self.current_callbacks_fired = 0
+
+        return stats
 
     def create_initial_threads(self):
         self.threads = 0
@@ -365,8 +416,8 @@ class Threading:
     # Workers
     #
 
-    def check_and_dispatch(self, name, funcref, entity, attribute, new_state,
-                            old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
+    def check_and_dispatch_state(self, name, funcref, entity, attribute, new_state,
+                                 old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
         executed = False
         kwargs["handle"] = uuid_
         if attribute == "all":
@@ -438,8 +489,6 @@ class Threading:
 
         return executed
 
-
-
     def dispatch_worker(self, name, args):
         with self.AD.app_management.objects_lock:
             unconstrained = True
@@ -464,6 +513,14 @@ class Threading:
                     unconstrained = False
 
         if unconstrained:
+            #
+            # It's gonna happen - so lets update stats
+            #
+            self.total_callbacks_fired += 1
+            self.current_callbacks_fired += 1
+            #
+            # And Q
+            #
             self.select_q(args)
             return True
         else:
@@ -521,6 +578,9 @@ class Threading:
                         self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile), name=name)
                 finally:
                     self.update_thread_info(thread_id, "idle")
+                    self.total_callbacks_executed += 1
+                    self.current_callbacks_executed += 1
+
             else:
                 self.AD.logging.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
 

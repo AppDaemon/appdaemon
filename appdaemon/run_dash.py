@@ -6,15 +6,15 @@ import time
 import traceback
 import concurrent.futures
 from urllib.parse import urlparse
-import aiohttp
 import feedparser
 from aiohttp import web
 import ssl
 import bcrypt
-import socketio
 
 import appdaemon.dashboard as dashboard
 import appdaemon.utils as utils
+import appdaemon.stream as stream
+
 from appdaemon.appdaemon import AppDaemon
 
 
@@ -68,22 +68,6 @@ def secure(myfunc):
     return wrapper
 
 
-# socketio handler
-
-class DashStream(socketio.AsyncNamespace):
-
-    def __init__(self, path, AD):
-
-        super().__init__(path)
-
-        self.AD = AD
-
-    async def on_connect(self, sid, data):
-        pass
-
-    async def on_up(self, sid, data):
-        self.AD.logging.log("INFO", "New dashboard connected: {}".format(data))
-
 class RunDash:
 
     def __init__(self, ad: AppDaemon, loop, logging, **config):
@@ -129,13 +113,13 @@ class RunDash:
 
         self.transport = "ws"
         self._process_arg("transport", config)
-        self.log("INFO", "Using {} for dashboard event stream".format(self.transport))
+        self.AD.logging.log("INFO", "Using {} for dashboard event stream".format(self.transport))
 
         if "rss_feeds" in config:
             self.rss_feeds = []
             for feed in config["rss_feeds"]:
                 if feed["target"].count('.') != 1:
-                    self.log("WARNING", "Invalid RSS feed target: {}".format(feed["target"]))
+                    self.AD.logging.log("WARNING", "Invalid RSS feed target: {}".format(feed["target"]))
                 else:
                     self.rss_feeds.append(feed)
 
@@ -179,13 +163,7 @@ class RunDash:
 
         # Setup event stream
 
-        if self.transport == "ws":
-            self.app['websockets'] = {}
-        else:
-            self.dash_stream = DashStream('/stream', self.AD)
-            self.sio = socketio.AsyncServer(async_mode='aiohttp')
-            self.sio.attach(self.app)
-            self.sio.register_namespace(self.dash_stream)
+        self.stream = stream.ADStream(self.AD, self.app, self.transport, self.on_connect, self.on_message)
 
         self.loop = loop
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
@@ -210,28 +188,17 @@ class RunDash:
             handler = self.app.make_handler()
 
             f = loop.create_server(handler, "0.0.0.0", int(self.dash_port), ssl=context)
-
-            #print((([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [
-             #   [(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in
-             #    [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + ["no IP found"])[0])
-
             loop.create_task(f)
             loop.create_task(self.update_rss())
         except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error in dashboard thread")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", "Unexpected error in dashboard thread")
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", traceback.format_exc())
+            self.AD.logging.log("WARNING", '-' * 60)
 
     def stop(self):
         self.stopping = True
-
-    def log(self, level, message):
-        self.AD.logging.log (level, message, "HADasboard")
-
-    def access(self, level, message):
-        self.AD.logging.access (level, message, "HADasboard")
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
@@ -253,7 +220,7 @@ class RunDash:
         password = data["password"]
 
         if password == self.dash_password:
-            self.access("INFO", "Succesful logon from {}".format(request.host))
+            self.AD.logging.access("INFO", "Succesful logon from {}".format(request.host))
             hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt(self.work_factor))
 
             # utils.verbose_log(conf.dash, "INFO", hashed)
@@ -262,7 +229,7 @@ class RunDash:
             response.set_cookie("adcreds", hashed.decode("utf-8"))
 
         else:
-            self.access("WARNING", "Unsuccessful logon from {}".format(request.host))
+            self.AD.logging.access("WARNING", "Unsuccessful logon from {}".format(request.host))
             response = await self.list_dash(request)
 
         return response
@@ -309,7 +276,7 @@ class RunDash:
                             feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
                             if "bozo_exception" in feed:
-                                self.log("WARNING", "Error in RSS feed {}: {}".format(feed_data["feed"], feed["bozo_exception"]))
+                                self.AD.logging.log("WARNING", "Error in RSS feed {}: {}".format(feed_data["feed"], feed["bozo_exception"]))
                             else:
                                 new_state = {"feed": feed}
 
@@ -323,11 +290,11 @@ class RunDash:
 
                     await asyncio.sleep(1)
                 except:
-                    self.log("WARNING", '-' * 60)
-                    self.log("WARNING", "Unexpected error in dashboard thread")
-                    self.log("WARNING", '-' * 60)
-                    self.log("WARNING", traceback.format_exc())
-                    self.log("WARNING", '-' * 60)
+                    self.AD.logging.log("WARNING", '-' * 60)
+                    self.AD.logging.log("WARNING", "Unexpected error in dashboard thread")
+                    self.AD.logging.log("WARNING", '-' * 60)
+                    self.AD.logging.log("WARNING", traceback.format_exc())
+                    self.AD.logging.log("WARNING", '-' * 60)
 
 
 
@@ -386,11 +353,11 @@ class RunDash:
             return web.Response(status=200)
 
         except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error in call_service()")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", "Unexpected error in call_service()")
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", traceback.format_exc())
+            self.AD.logging.log("WARNING", '-' * 60)
             return web.Response(status=500)
 
     # noinspection PyUnusedLocal
@@ -403,65 +370,25 @@ class RunDash:
         return web.Response(status=401)
 
 
-    # Websockets Handler
+    # Stream Handling
 
-    async def on_shutdown(self, application):
-        for ws in application['websockets']:
-            await ws.close(code=aiohttp.WSCloseCode.GOING_AWAY,
-                                message='Server shutdown')
+    async def ws_update(self, namespace, data):
 
-    @securedata
-    async def wshandler(self, request):
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
+        if data["event_type"] == "state_changed" or data["event_type"] == "hadashboard":
+            data["namespace"] = namespace
 
-        request.app['websockets'][ws] = {}
-        # noinspection PyBroadException
-        try:
-            while True:
-                msg = await ws.receive()
-                if msg.type == aiohttp.WSMsgType.TEXT:
-                    self.access("INFO",
-                           "New dashboard connected: {}".format(msg.data))
-                    request.app['websockets'][ws]["dashboard"] = msg.data
-                elif msg.type == aiohttp.WSMsgType.ERROR:
-                    self.access("INFO",
-                           "ws connection closed with exception {}".format(ws.exception()))
-        except:
-            self.access("INFO", "Dashboard disconnected")
-        finally:
-            request.app['websockets'].pop(ws, None)
+            await self.stream.send_update(data)
 
-        return ws
 
-    async def ws_update(self, namespace, jdata):
-        if jdata["event_type"] == "state_changed" or jdata["event_type"] == "hadashboard":
-            jdata["namespace"] = namespace
-            data = json.dumps(jdata)
-            if self.transport == "ws":
-                if len(self.app['websockets']) > 0:
-                    self.log("DEBUG",
-                           "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
+    async def on_message(self, data):
+        self.AD.logging.log("INFO", "New dashboard connected: {}".format(data))
 
-                for ws in self.app['websockets']:
-
-                    if "dashboard" in self.app['websockets'][ws]:
-                        self.log(
-                               "DEBUG",
-                               "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
-                        await ws.send_str(data)
-
-            else:
-                await self.dash_stream.emit('down', data)
+    async def on_connect(self):
+        pass
 
     # Routes, Status and Templates
 
     def setup_routes(self):
-        # Websockets
-
-        if self.transport == "ws":
-            self.app.router.add_get('/stream', self.wshandler)
-
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon', self.logon)

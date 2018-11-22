@@ -41,6 +41,7 @@ class AppDaemon:
         self.appd = None
         self.stopping = False
         self.dashboard = None
+        self.admin = None
         self.api = None
         self.running_apps = 0
 
@@ -244,6 +245,9 @@ class AppDaemon:
 
     def register_dashboard(self, dash):
         self.dashboard = dash
+
+    def register_admin(self, admin):
+        self.admin = admin
 
     def register_api(self, api):
         self.api = api
