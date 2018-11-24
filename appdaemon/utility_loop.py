@@ -101,18 +101,11 @@ class Utility:
                     self.AD.plugins.run_plugin_utility()
 
                 except:
-                    self.AD.logging.err("WARNING", '-' * 60)
-                    self.AD.logging.err("WARNING", "Unexpected error during utility()")
-                    self.AD.logging.err("WARNING", '-' * 60)
-                    self.AD.logging.err("WARNING", traceback.format_exc())
-                    self.AD.logging.err("WARNING", '-' * 60)
-                    if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        # When explicitly logging to stdout and stderr, suppress
-                        # verbose_log messages about writing an error (since they show up anyway)
-                        self.AD.logging.log(
-                            "WARNING",
-                            "Logged an error to {}".format(self.AD.errfile)
-                        )
+                    self.AD.logging.log("WARNING", '-' * 60)
+                    self.AD.logging.log("WARNING", "Unexpected error during utility()")
+                    self.AD.logging.log("WARNING", '-' * 60)
+                    self.AD.logging.log("WARNING", traceback.format_exc())
+                    self.AD.logging.log("WARNING", '-' * 60)
 
                 end_time = datetime.datetime.now().timestamp()
 

@@ -128,8 +128,8 @@ $(function(){ //DOM Ready
 <div id="Callbacks" class="tabcontent">
     <h3>Summary</h3>
     <table>
-        <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callbacks["total_callbacks_fired"] }}</td><td id="avg_callbacks_fired_per_sec">{{ callbacks["avg_callbacks_fired_per_sec"] }}</td></tr>
-        <tr><td>Total Callbacks Executed</td><td id="total_callbacks_executed">{{ callbacks["total_callbacks_executed"] }}</td><td id="avg_callbacks_executed_per_sec">{{ callbacks["avg_callbacks_executed_per_sec"] }}</td></tr>
+        <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callbacks["total_callbacks_fired"] }}</td><td>Average <span id="avg_callbacks_fired_per_sec">{{ callbacks["avg_callbacks_fired_per_sec"] }}</span> Callbacks/s</td></tr>
+        <tr><td>Total Callbacks Executed</td><td id="total_callbacks_executed">{{ callbacks["total_callbacks_executed"] }}</td><td>Average <span id="avg_callbacks_executed_per_sec">{{ callbacks["avg_callbacks_executed_per_sec"] }}</span> Callbacks/s</td></tr>
     </table>
 
 </div>
