@@ -41,13 +41,58 @@ function admin_stream(stream, transport)
 
     this.update_admin = function (data)
     {
+        // Process any updates
         // console.log(data);
         var id;
-        for (id in data)
+        if ("updates" in data)
         {
-            document.getElementById(id).innerText = data[id];
+            for (id in data["updates"])
+            {
+                document.getElementById(id).innerText = data["updates"][id];
+            }
+        }
+        if ("schedule" in data && data["schedule"].length !== 0)
+        {
+            // console.log(data["schedule"]);
+            document.getElementById("active_scheduler_callbacks").innerHTML = this.get_schedule_table(data["schedule"])
+
+        }
+
+    }
+}
+
+function get_schedule_table(data)
+{
+    html = "<tr><th>App</th><th>Base Time</th><th>Offset</th><th>Repeat</th><th>Callback</th><th>Kwargs</th></tr>"
+
+    for (name in data)
+    {
+        for (id in data[name])
+        {
+            html += "<tr>";
+            html += "<td>" + name + "</td>"
+            html += "<td>" + data[name][id].basetime + "</td>";
+            html += "<td>" + data[name][id].offset + "</td>";
+            html += "<td>" + data[name][id].repeat + "</td>";
+            html += "<td>" + data[name][id].callback + "</td>";
+            if (data[name][id].kwargs.length !== 0)
+            {
+                kwargs = ""
+                for (kwarg in data[name][id].kwargs)
+                {
+                    kwargs += " " + kwarg + "=" + data[name][id].kwargs[kwarg]
+                }
+            }
+            else
+            {
+                kwargs = "None"
+            }
+            html += "<td>" + kwargs + "</td>";
+            html += "</tr>";
         }
     }
+
+    return html
 }
 
 function openTab(evt, tabname) {

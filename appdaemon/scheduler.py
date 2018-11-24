@@ -478,16 +478,16 @@ class Scheduler:
                     self.schedule[name].keys(),
                     key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
             ):
-                schedule[name][entry] = {}
-                schedule[name][entry]["timestamp"] = self.schedule[name][entry]["timestamp"]
-                schedule[name][entry]["type"] = self.schedule[name][entry]["type"]
-                schedule[name][entry]["name"] = self.schedule[name][entry]["name"]
-                schedule[name][entry]["basetime"] = self.schedule[name][entry]["basetime"]
-                schedule[name][entry]["repeat"] = self.schedule[name][entry]["repeat"]
-                schedule[name][entry]["offset"] = self.schedule[name][entry]["offset"]
-                schedule[name][entry]["interval"] = self.schedule[name][entry]["interval"]
-                schedule[name][entry]["kwargs"] = self.schedule[name][entry]["kwargs"]
-                schedule[name][entry]["callback"] = self.schedule[name][entry]["callback"]
+                schedule[name][str(entry)] = {}
+                schedule[name][str(entry)]["timestamp"] = str(self.schedule[name][entry]["timestamp"])
+                schedule[name][str(entry)]["type"] = self.schedule[name][entry]["type"]
+                schedule[name][str(entry)]["name"] = self.schedule[name][entry]["name"]
+                schedule[name][str(entry)]["basetime"] = str(self.schedule[name][entry]["basetime"])
+                schedule[name][str(entry)]["repeat"] = self.schedule[name][entry]["repeat"]
+                schedule[name][str(entry)]["offset"] = self.schedule[name][entry]["offset"]
+                schedule[name][str(entry)]["interval"] = self.schedule[name][entry]["interval"]
+                schedule[name][str(entry)]["kwargs"] = self.schedule[name][entry]["kwargs"]
+                schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
         return schedule
 
     def is_dst(self):

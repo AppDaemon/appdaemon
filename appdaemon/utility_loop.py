@@ -94,7 +94,13 @@ class Utility:
                     # Update Admin Perf Stats
 
                     if self.AD.admin is not None and self.AD.admin.stats_update != "none":
-                        await self.AD.admin.admin_update(self.AD.threading.get_callback_info())
+                        threading = self.AD.threading.get_callback_info()
+                        sched = self.AD.sched.get_scheduler_entries()
+                        update = {
+                            "updates": threading,
+                            "schedule": sched
+                        }
+                        await self.AD.admin.admin_update(update)
 
                     # Run utility for each plugin
 

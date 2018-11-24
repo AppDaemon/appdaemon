@@ -77,7 +77,6 @@ $(function(){ //DOM Ready
   <button class="tablinks" onclick="openTab(event, 'Modules')" id="plugins">Modules</button>
   <button class="tablinks" onclick="openTab(event, 'Apps')" id="apps">Apps</button>
   <button class="tablinks" onclick="openTab(event, 'Threads')" id="apps">Threads</button>
-  <button class="tablinks" onclick="openTab(event, 'Scheduler')" id="apps">Scheduler</button>
   <button class="tablinks" onclick="openTab(event, 'Callbacks')" id="apps">Callbacks</button>
   <button class="tablinks" onclick="openTab(event, 'Logs')" id="apps">Logs</button>
 </div>
@@ -109,20 +108,24 @@ $(function(){ //DOM Ready
     </table>
     <h3>Details</h3>
     <table>
+            <tr>
+                <th>ID</th>
+                <th>Queue Size</th>
+                <th>Callback</th>
+                <th>Time Called</th>
+                <th>Alive</th>
+                <th>Pinned Apps</th>
+            </tr>
             {% for thread in threads["threads"] %}
             <tr><td>{{ thread }}</td>
-                <td>Queue Size: {{ threads["threads"][thread]["qsize"] }}</td>
-                <td>Callback: {{ threads["threads"][thread]["callback"] }}</td>
-                <td>Time Called: {{ threads["threads"][thread]["time_called"] }}</td>
-                <td>Alive: {{ threads["threads"][thread]["is_alive"] }}</td>
-                <td>Pinned Apps: {{ threads["threads"][thread]["pinned_apps"] }}</td>
+                <td>{{ threads["threads"][thread]["qsize"] }}</td>
+                <td>{{ threads["threads"][thread]["callback"] }}</td>
+                <td>{{ threads["threads"][thread]["time_called"] }}</td>
+                <td>{{ threads["threads"][thread]["is_alive"] }}</td>
+                <td>{{ threads["threads"][thread]["pinned_apps"] }}</td>
             </tr>
             {% endfor %}
     </table>
-</div>
-
-<div id="Scheduler" class="tabcontent">
-
 </div>
 
 <div id="Callbacks" class="tabcontent">
@@ -130,6 +133,15 @@ $(function(){ //DOM Ready
     <table>
         <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callbacks["total_callbacks_fired"] }}</td><td>Average <span id="avg_callbacks_fired_per_sec">{{ callbacks["avg_callbacks_fired_per_sec"] }}</span> Callbacks/s</td></tr>
         <tr><td>Total Callbacks Executed</td><td id="total_callbacks_executed">{{ callbacks["total_callbacks_executed"] }}</td><td>Average <span id="avg_callbacks_executed_per_sec">{{ callbacks["avg_callbacks_executed_per_sec"] }}</span> Callbacks/s</td></tr>
+    </table>
+    <h3>Active Scheduler Callbacks</h3>
+    <table id="active_scheduler_callbacks">
+    </table>
+    <h3>Active State Callbacks</h3>
+    <table id="active_state_callbacks">
+    </table>
+    <h3>Active Event Callbacks</h3>
+    <table id="active_event_callbacks">
     </table>
 
 </div>

@@ -26,7 +26,8 @@ class Threading:
         self.thread_info["current_busy"] = 0
         self.thread_info["max_busy"] = 0
         self.thread_info["max_busy_time"] = 0
-        self.thread_info["last_action_time"] = 0
+        # Scheduler isn;t setup so we can't get an accurate localized time
+        self.thread_info["last_action_time"] = datetime.datetime.now()
 
         self.auto_pin = True
 
@@ -72,17 +73,14 @@ class Threading:
 
     def get_callback_info(self):
         now = datetime.datetime.now()
-        duration = (now - self.last_stats_time).total_seconds()
-        executed_rate = self.current_callbacks_executed / duration
-        fired_rate = self.current_callbacks_fired / duration
         self.callback_list.append(
             {
-                "fired": fired_rate,
-                "executed": executed_rate,
+                "fired": self.current_callbacks_fired,
+                "executed": self.current_callbacks_executed,
                 "ts": now
             })
 
-        if len(self.callback_list) > 60:
+        if len(self.callback_list) > 10:
             self.callback_list.pop(0)
 
         fired_sum = 0
@@ -132,7 +130,7 @@ class Threading:
         with self.thread_info_lock:
             self.thread_info["threads"][t.getName()] = \
                 {"callback": "idle",
-                 "time_called": 0,
+                 "time_called": datetime.datetime.now(),
                  "q": Queue(maxsize=0),
                  "id": id,
                  "thread": t}
@@ -193,21 +191,20 @@ class Threading:
         self.AD.logging.diag("INFO", "--------------------------------------------------")
         self.AD.logging.diag("INFO", "Threads")
         self.AD.logging.diag("INFO", "--------------------------------------------------")
-        max_ts = datetime.datetime.fromtimestamp(thread_info["max_busy_time"])
-        last_ts = datetime.datetime.fromtimestamp(thread_info["last_action_time"])
+        max_ts = thread_info["max_busy_time"]
+        last_ts = thread_info["last_action_time"]
         self.AD.logging.diag("INFO", "Currently busy threads: {}".format(thread_info["current_busy"]))
         self.AD.logging.diag("INFO", "Most used threads: {} at {}".format(thread_info["max_busy"], max_ts))
         self.AD.logging.diag("INFO", "Last activity: {}".format(last_ts))
         self.AD.logging.diag("INFO", "Total Q Entries: {}".format(qinfo["qsize"]))
         self.AD.logging.diag("INFO", "--------------------------------------------------")
         for thread in sorted(thread_info["threads"], key=self.natural_keys):
-            ts = datetime.datetime.fromtimestamp(thread_info["threads"][thread]["time_called"])
             self.AD.logging.diag("INFO",
                      "{} - qsize: {} | current callback: {} | since {}, | alive: {}, | pinned apps: {}".format(
                          thread,
                          thread_info["threads"][thread]["qsize"],
                          thread_info["threads"][thread]["callback"],
-                         ts,
+                         thread_info["threads"][thread]["time_called"],
                          thread_info["threads"][thread]["is_alive"],
                          self.AD.threading.get_pinned_apps(thread)
                      ))
@@ -261,7 +258,7 @@ class Threading:
             for thread_id in self.thread_info["threads"]:
                 if self.thread_info["threads"][thread_id]["callback"] != "idle":
                     start = self.thread_info["threads"][thread_id]["time_called"]
-                    dur = self.AD.sched.get_now_ts() - start
+                    dur = (self.AD.sched.get_now() - start).total_seconds()
                     if dur >= self.AD.thread_duration_warning_threshold and dur % self.AD.thread_duration_warning_threshold == 0:
                         self.AD.logging.log("WARNING", "Excessive time spent in callback: {} - {}s".format
                         (self.thread_info["threads"][thread_id]["callback"], dur))
@@ -291,13 +288,13 @@ class Threading:
                          "{} calling {} callback {}".format(thread_id, type, callback))
 
         with self.thread_info_lock:
-            ts = self.AD.sched.get_now_ts()
+            now = self.AD.sched.get_now()
             if callback == "idle":
                 start = self.thread_info["threads"][thread_id]["time_called"]
-                if self.AD.sched.realtime is True and ts - start >= self.AD.thread_duration_warning_threshold:
+                if self.AD.sched.realtime is True and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold:
                     self.AD.logging.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
             self.thread_info["threads"][thread_id]["callback"] = callback
-            self.thread_info["threads"][thread_id]["time_called"] = ts
+            self.thread_info["threads"][thread_id]["time_called"] = now
             if callback == "idle":
                 self.thread_info["current_busy"] -= 1
             else:
@@ -305,9 +302,9 @@ class Threading:
 
             if self.thread_info["current_busy"] > self.thread_info["max_busy"]:
                 self.thread_info["max_busy"] = self.thread_info["current_busy"]
-                self.thread_info["max_busy_time"] = ts
+                self.thread_info["max_busy_time"] = self.AD.sched.get_now()
 
-            self.thread_info["last_action_time"] = ts
+            self.thread_info["last_action_time"] = self.AD.sched.get_now()
 
     #
     # Pinning

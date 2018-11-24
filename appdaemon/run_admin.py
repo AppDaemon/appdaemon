@@ -127,8 +127,8 @@ class RunAdmin:
 
     # Stream Handling
 
-    async def admin_update(self, data):
-        await self.stream.send_update(data)
+    async def admin_update(self, updates):
+        await self.stream.send_update(updates)
 
     async def on_message(self, data):
         self.AD.logging.log("INFO", "New admin browser connection")
