@@ -76,8 +76,8 @@ class RunAdmin:
         self.work_factor = 8
         self._process_arg("work_factor", config)
 
-        self.admin_port = 5002
-        self._process_arg("admin_port", config)
+        self.port = 5002
+        self._process_arg("port", config)
 
         self.transport = "ws"
         self._process_arg("transport", config)
@@ -114,7 +114,7 @@ class RunAdmin:
 
             handler = self.app.make_handler()
 
-            f = loop.create_server(handler, "0.0.0.0", int(self.admin_port), ssl=context)
+            f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
 
             loop.create_task(f)
         except:
