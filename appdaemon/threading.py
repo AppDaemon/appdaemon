@@ -7,6 +7,7 @@ import re
 import sys
 import traceback
 import inspect
+from datetime import timedelta
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -455,7 +456,7 @@ class Threading:
             if (cold is None or cold == old) and (cnew is None or cnew == new):
                 if "duration" in kwargs:
                     # Set a timer
-                    exec_time = self.AD.sched.get_now_ts() + int(kwargs["duration"])
+                    exec_time = self.AD.sched.get_now + timedelta(seconds=int(kwargs["duration"]))
                     kwargs["__duration"] = self.AD.sched.insert_schedule(
                         name, exec_time, funcref, False, None,
                         __entity=entity,
