@@ -93,15 +93,21 @@ class Utility:
 
                     # Update Admin Perf Stats
 
-                    if self.AD.admin is not None and self.AD.admin.stats_update != "none":
-                        threading = self.AD.threading.get_callback_info()
-                        sched = self.AD.sched.get_scheduler_entries()
-                        callbacks = self.AD.callbacks.get_callback_entries()
-                        update = {
-                            "updates": threading,
-                            "schedule": sched,
-                            "callbacks": callbacks
-                        }
+                    if self.AD.admin is not None:
+                        update = {}
+                        if self.AD.admin.stats_update != "none":
+                            callback_update = self.AD.threading.get_callback_update()
+                            sched = self.AD.sched.get_scheduler_entries()
+                            callbacks = self.AD.callbacks.get_callback_entries()
+                            threads = self.AD.threading.get_thread_info()
+                            update["updates"] = callback_update
+                            update["schedule"] = sched
+                            update["callbacks"] = callbacks
+                            update["updates"]["current_busy_threads"] = threads["current_busy"]
+                            update["updates"]["max_busy_threads"] = threads["max_busy"]
+                        if self.AD.admin.stats_update == "batch":
+                            update["threads"] = threads["threads"]
+
                         await self.AD.admin.admin_update(update)
 
                     # Run utility for each plugin

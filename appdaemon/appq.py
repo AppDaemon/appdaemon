@@ -24,9 +24,13 @@ class AppQ:
     async def loop(self):
         while not self.stopping:
             args = await self.appq.get()
-            namespace = args["namespace"]
-            await self.AD.state.state_update(namespace, args)
-            self.appq.task_done()
+            if args["event_type"] == "admin_update":
+                await self.AD.admin.admin_update(args["data"])
+            else:
+                namespace = args["namespace"]
+                await self.AD.state.state_update(namespace, args)
+
+        self.appq.task_done()
 
     def fire_app_event(self, namespace, event):
         self.AD.logging.log("DEBUG", "fire_app_event: {}".format(event["event_type"]))
@@ -43,3 +47,6 @@ class AppQ:
             data = {"entity_id": entity_id, "new_state": state, "old_state": old_state}
             args = {"namespace": namespace, "event_type": "state_changed", "data": data}
             self.appq.put_nowait(args)
+
+    def admin_update(self, data):
+        self.appq.put_nowait({"event_type": "admin_update", "data": data})

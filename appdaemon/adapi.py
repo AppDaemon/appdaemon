@@ -279,7 +279,6 @@ class ADAPI:
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
         entity = None
-        print(self.AD.state.get_state(namespace, None, None, None))
         if entity_id is not None and "." in entity_id:
             if not self.AD.state.entity_exists(namespace, entity_id):
                 return None

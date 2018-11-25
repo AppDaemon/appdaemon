@@ -103,10 +103,11 @@ $(function(){ //DOM Ready
 <div id="Threads" class="tabcontent">
     <h3>Summary</h3>
     <table>
-        <tr><td>Current Busy</td><td>{{ threads["current_busy"] }}</td></tr>
-        <tr><td>Maximum Busy</td><td>{{ threads["max_busy"] }}</td></tr>
+        <tr><td>Current Busy</td><td id="current_busy_threads">{{ threads["current_busy"] }}</td></tr>
+        <tr><td>Maximum Busy</td><td id="max_busy_threads">{{ threads["max_busy"] }}</td></tr>
     </table>
     <h3>Details</h3>
+    <span id="thread_table">
     <table>
             <tr>
                 <th>ID</th>
@@ -118,14 +119,19 @@ $(function(){ //DOM Ready
             </tr>
             {% for thread in threads["threads"] %}
             <tr><td>{{ thread }}</td>
-                <td>{{ threads["threads"][thread]["qsize"] }}</td>
-                <td>{{ threads["threads"][thread]["callback"] }}</td>
-                <td>{{ threads["threads"][thread]["time_called"] }}</td>
-                <td>{{ threads["threads"][thread]["is_alive"] }}</td>
-                <td>{{ threads["threads"][thread]["pinned_apps"] }}</td>
+                <td id="{{thread}}_qsize">{{ threads["threads"][thread]["qsize"] }}</td>
+                <td id="{{thread}}_callback">{{ threads["threads"][thread]["callback"] }}</td>
+                <td id="{{thread}}_time_called">{{ threads["threads"][thread]["time_called"] }}</td>
+                <td id="{{thread}}_is_alive">{{ threads["threads"][thread]["is_alive"] }}</td>
+                <td id="{{thread}}_pinned_apps">
+                    {% for app in threads["threads"][thread]["pinned_apps"] %}
+                        {{ app }}
+                    {% endfor %}
+                </td>
             </tr>
             {% endfor %}
     </table>
+    </span>
 </div>
 
 <div id="Callbacks" class="tabcontent">

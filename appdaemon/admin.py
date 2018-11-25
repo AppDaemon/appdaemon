@@ -45,7 +45,6 @@ class Admin:
     #
 
     def appdaemon(self, scheme, url):
-        print("appdaemon")
         return self.index(scheme, url, "appdaemon")
 
     def apps(self, scheme, url):
@@ -80,7 +79,7 @@ class Admin:
 
         params["threads"] = self.AD.threading.get_thread_info()
 
-        params["callbacks"] = self.AD.threading.get_callback_info()
+        params["callbacks"] = self.AD.threading.get_callback_update()
 
         #
         # Render Page

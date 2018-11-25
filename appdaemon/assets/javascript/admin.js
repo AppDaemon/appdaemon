@@ -42,7 +42,7 @@ function admin_stream(stream, transport)
     this.update_admin = function (data)
     {
         // Process any updates
-        // console.log(data);
+        //console.log(data);
         var id;
         if ("updates" in data)
         {
@@ -63,14 +63,13 @@ function admin_stream(stream, transport)
         {
             // console.log(data["schedule"]);
             document.getElementById("active_state_callbacks").innerHTML = this.get_state_table(data["callbacks"])
+            document.getElementById("active_event_callbacks").innerHTML = this.get_event_table(data["callbacks"])
 
         }
 
-        if ("callbacks" in data)
+        if ("threads" in data)
         {
-            // console.log(data["schedule"]);
-            document.getElementById("active_event_callbacks").innerHTML = this.get_event_table(data["callbacks"])
-
+           document.getElementById("thread_table").innerHTML = this.get_thread_table(data["threads"])
         }
     }
 }
@@ -271,6 +270,31 @@ function get_event_table(data)
 
 
     return result
+}
+
+function get_thread_table(data)
+{
+    html = "<table>"
+    html += "<tr><th>ID</th><th>Queue Size</th><th>Callback</th><th>Time Called</th><th>Alive</th><th>Pinned Apps</th></tr>"
+    for (thread in data)
+    {
+        html += "<tr>";
+        html += "<td>" + thread + "</td>";
+        html += "<td id='" + thread + "_qsize'>" + data[thread].qsize + "</td>";
+        html += "<td id='" + thread + "_callback'>" + data[thread].callback + "</td>";
+        html += "<td id='" + thread + "_time_called'>" + data[thread].time_called + "</td>";
+        html += "<td id='" + thread + "_is_alive'>" + data[thread].is_alive + "</td>";
+        html += "<td id='" + thread + "_pinned_apps'>"
+        for (app in data[thread].pinned_apps)
+        {
+            html += data[thread].pinned_apps[app] + " "
+        }
+        html += "</td>";
+        html += "</tr>";
+    }
+    html += "</table>"
+
+    return html
 }
 
 function secondsToStr (time) {

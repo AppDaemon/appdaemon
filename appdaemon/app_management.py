@@ -115,6 +115,13 @@ class AppManagement:
 
         self.AD.api.term_object(name)
 
+        # Update admin interface
+        if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":
+            update = {"threads": self.AD.threading.get_thread_info()["threads"]}
+            self.AD.appq.admin_update(update)
+
+
+
     def init_object(self, name):
         app_args = self.app_config[name]
         self.AD.logging.log("INFO",

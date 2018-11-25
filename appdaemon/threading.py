@@ -72,7 +72,7 @@ class Threading:
 
         self.next_thread = self.pin_threads
 
-    def get_callback_info(self):
+    def get_callback_update(self):
         now = datetime.datetime.now()
         self.callback_list.append(
             {
@@ -180,7 +180,7 @@ class Threading:
             for thread in self.thread_info["threads"]:
                 if thread not in info["threads"]:
                     info["threads"][thread] = {}
-                info["threads"][thread]["time_called"] = copy(self.thread_info["threads"][thread]["time_called"])
+                info["threads"][thread]["time_called"] = copy(str(self.thread_info["threads"][thread]["time_called"]))
                 info["threads"][thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
                 info["threads"][thread]["is_alive"] = copy(self.thread_info["threads"][thread]["thread"].is_alive())
                 info["threads"][thread]["pinned_apps"] = copy(self.get_pinned_apps(thread))
@@ -307,6 +307,21 @@ class Threading:
 
             self.thread_info["last_action_time"] = self.AD.sched.get_now()
 
+        # Update Admin
+        if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":
+            update = {
+                "updates": {
+                        thread_id + "_qsize": self.thread_info["threads"][thread_id]["q"].qsize(),
+                        thread_id + "_callback": self.thread_info["threads"][thread_id]["callback"],
+                        thread_id + "_time_called": str(self.thread_info["threads"][thread_id]["time_called"]),
+                        thread_id + "_is_alive": self.thread_info["threads"][thread_id]["thread"].is_alive(),
+                        thread_id + "_pinned_apps": self.get_pinned_apps(thread_id),
+
+                    }
+            }
+
+            self.AD.appq.admin_update(update)
+
     #
     # Pinning
     #
@@ -335,6 +350,11 @@ class Threading:
                     thread = thread_pins.index(min(thread_pins))
                     self.set_pin_thread(name, thread)
                     thread_pins[thread] += 1
+
+        # Update admin interface
+        if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":
+            update = {"threads": self.AD.threading.get_thread_info()["threads"]}
+            self.AD.appq.admin_update(update)
 
     def app_should_be_pinned(self, name):
         # Check apps.yaml first - allow override
