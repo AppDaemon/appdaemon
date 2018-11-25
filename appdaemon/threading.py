@@ -289,7 +289,7 @@ class Threading:
                          "{} calling {} callback {}".format(thread_id, type, callback))
 
         with self.thread_info_lock:
-            now = self.AD.sched.get_now()
+            now = self.AD.sched.get_now_naive()
             if callback == "idle":
                 start = self.thread_info["threads"][thread_id]["time_called"]
                 if self.AD.sched.realtime is True and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold:
@@ -456,7 +456,7 @@ class Threading:
             if (cold is None or cold == old) and (cnew is None or cnew == new):
                 if "duration" in kwargs:
                     # Set a timer
-                    exec_time = self.AD.sched.get_now + timedelta(seconds=int(kwargs["duration"]))
+                    exec_time = self.AD.sched.get_now() + timedelta(seconds=int(kwargs["duration"]))
                     kwargs["__duration"] = self.AD.sched.insert_schedule(
                         name, exec_time, funcref, False, None,
                         __entity=entity,

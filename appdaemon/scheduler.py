@@ -479,10 +479,10 @@ class Scheduler:
                     key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
             ):
                 schedule[name][str(entry)] = {}
-                schedule[name][str(entry)]["timestamp"] = str(self.schedule[name][entry]["timestamp"])
+                schedule[name][str(entry)]["timestamp"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["timestamp"]))
                 schedule[name][str(entry)]["type"] = self.schedule[name][entry]["type"]
                 schedule[name][str(entry)]["name"] = self.schedule[name][entry]["name"]
-                schedule[name][str(entry)]["basetime"] = str(self.schedule[name][entry]["basetime"])
+                schedule[name][str(entry)]["basetime"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["basetime"]))
                 schedule[name][str(entry)]["repeat"] = self.schedule[name][entry]["repeat"]
                 schedule[name][str(entry)]["offset"] = self.schedule[name][entry]["offset"]
                 schedule[name][str(entry)]["interval"] = self.schedule[name][entry]["interval"]

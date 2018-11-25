@@ -63,7 +63,7 @@ function admin_stream(stream, transport)
 
 function get_schedule_table(data)
 {
-    html = "<tr><th>App</th><th>Base Time</th><th>Offset</th><th>Repeat</th><th>Callback</th><th>Kwargs</th></tr>"
+    html = "<tr><th>App</th><th>Execution Time</th><th>Repeat</th><th>Callback</th><th>Kwargs</th></tr>"
 
     for (name in data)
     {
@@ -71,8 +71,7 @@ function get_schedule_table(data)
         {
             html += "<tr>";
             html += "<td>" + name + "</td>"
-            html += "<td>" + data[name][id].basetime + "</td>";
-            html += "<td>" + data[name][id].offset + "</td>";
+            html += "<td>" + data[name][id].timestamp + "</td>";
             html += "<td>" + data[name][id].repeat + "</td>";
             html += "<td>" + data[name][id].callback + "</td>";
             if (data[name][id].kwargs.length !== 0)
@@ -80,7 +79,10 @@ function get_schedule_table(data)
                 kwargs = ""
                 for (kwarg in data[name][id].kwargs)
                 {
-                    kwargs += " " + kwarg + "=" + data[name][id].kwargs[kwarg]
+                    if (kwarg.substring(0,2) != "__")
+                    {
+                        kwargs += " " + kwarg + "=" + data[name][id].kwargs[kwarg]
+                    }
                 }
             }
             else
