@@ -96,9 +96,11 @@ class Utility:
                     if self.AD.admin is not None and self.AD.admin.stats_update != "none":
                         threading = self.AD.threading.get_callback_info()
                         sched = self.AD.sched.get_scheduler_entries()
+                        callbacks = self.AD.callbacks.get_callback_entries()
                         update = {
                             "updates": threading,
-                            "schedule": sched
+                            "schedule": sched,
+                            "callbacks": callbacks
                         }
                         await self.AD.admin.admin_update(update)
 

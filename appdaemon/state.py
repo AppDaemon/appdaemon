@@ -16,7 +16,6 @@ class State:
         self.state["default"] = {}
         self.state_lock = threading.RLock()
 
-
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
         if self.AD.threading.validate_pin(name, kwargs) is True:
             with self.AD.app_management.objects_lock:
@@ -170,8 +169,6 @@ class State:
                         if executed is True:
                             remove = callback["kwargs"].get("oneshot", False)
                             if remove is True:
-                                # print(callback["kwargs"])
-                                # removes.append({"name": callback["name"], "uuid": callback["kwargs"]["handle"]})
                                 removes.append({"name": callback["name"], "uuid": uuid_})
 
             for remove in removes:

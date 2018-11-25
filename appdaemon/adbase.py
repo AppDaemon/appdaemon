@@ -108,9 +108,3 @@ class ADBase:
 
     def list_constraints(self):
         return self.constraints
-
-    # Logging
-
-    def log(self, text, **kwargs):
-        level = kwargs.get('level', 'INFO')
-        self.AD.logging.log(level, "{}".format(text))

@@ -488,6 +488,8 @@ class Scheduler:
                 schedule[name][str(entry)]["interval"] = self.schedule[name][entry]["interval"]
                 schedule[name][str(entry)]["kwargs"] = self.schedule[name][entry]["kwargs"]
                 schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
+                schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"]
+                schedule[name][str(entry)]["pin_app"] = self.schedule[name][entry]["pin_app"]
         return schedule
 
     def is_dst(self):

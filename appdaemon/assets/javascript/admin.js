@@ -51,19 +51,34 @@ function admin_stream(stream, transport)
                 document.getElementById(id).innerText = data["updates"][id];
             }
         }
-        if ("schedule" in data && data["schedule"].length !== 0)
+
+        if ("schedule" in data)
         {
             // console.log(data["schedule"]);
             document.getElementById("active_scheduler_callbacks").innerHTML = this.get_schedule_table(data["schedule"])
 
         }
 
+        if ("callbacks" in data)
+        {
+            // console.log(data["schedule"]);
+            document.getElementById("active_state_callbacks").innerHTML = this.get_state_table(data["callbacks"])
+
+        }
+
+        if ("callbacks" in data)
+        {
+            // console.log(data["schedule"]);
+            document.getElementById("active_event_callbacks").innerHTML = this.get_event_table(data["callbacks"])
+
+        }
     }
 }
 
 function get_schedule_table(data)
 {
-    html = "<tr><th>App</th><th>Execution Time</th><th>Repeat</th><th>Callback</th><th>Kwargs</th></tr>"
+    cb = 0;
+    html = "";
 
     for (name in data)
     {
@@ -74,6 +89,16 @@ function get_schedule_table(data)
             html += "<td>" + data[name][id].timestamp + "</td>";
             html += "<td>" + data[name][id].repeat + "</td>";
             html += "<td>" + data[name][id].callback + "</td>";
+            html += "<td>" + data[name][id].pin_app + "</td>";
+            if (data[name][id].pin_thread == "-1")
+            {
+                thread = "None"
+            }
+            else
+            {
+                thread = data[name][id].pin_thread
+            }
+            html += "<td>" + thread + "</td>";
             if (data[name][id].kwargs.length !== 0)
             {
                 kwargs = ""
@@ -81,7 +106,7 @@ function get_schedule_table(data)
                 {
                     if (kwarg.substring(0,2) != "__")
                     {
-                        kwargs += " " + kwarg + "=" + data[name][id].kwargs[kwarg]
+                        kwargs += " " + kwarg + "='" + data[name][id].kwargs[kwarg] + "'"
                     }
                 }
             }
@@ -91,10 +116,153 @@ function get_schedule_table(data)
             }
             html += "<td>" + kwargs + "</td>";
             html += "</tr>";
+            cb++
         }
     }
 
-    return html
+    if (cb > 0)
+    {
+        result = "<table>"
+        result += "<tr><th>App</th><th>Execution Time</th><th>Repeat</th><th>Callback</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>"
+        result += html
+        result += "</table>"
+    }
+    else
+    {
+        result = "No active callbacks"
+    }
+
+    return result
+}
+
+function get_state_table(data)
+{
+    cb = 0;
+    html = "";
+
+    for (name in data)
+    {
+        for (id in data[name])
+        {
+            if (data[name][id].type == "state")
+            {
+
+                html += "<tr>";
+                html += "<td>" + name + "</td>"
+                html += "<td>" + data[name][id].entity + "</td>";
+                html += "<td>" + data[name][id].function + "</td>";
+                html += "<td>" + data[name][id].pin_app + "</td>";
+                if (data[name][id].pin_thread == "-1")
+                {
+                    thread = "None"
+                }
+                else
+                {
+                    thread = data[name][id].pin_thread
+                }
+                html += "<td>" + thread + "</td>";
+
+                if (data[name][id].kwargs.length !== 0)
+                {
+                    kwargs = ""
+                    for (kwarg in data[name][id].kwargs)
+                    {
+                        if (kwarg.substring(0, 2) != "__")
+                        {
+                            kwargs += " " + kwarg + "='" + data[name][id].kwargs[kwarg] + "'"
+                        }
+                    }
+                }
+                else
+                {
+                    kwargs = "None"
+                }
+                html += "<td>" + kwargs + "</td>";
+                html += "</tr>";
+                cb++
+            }
+        }
+    }
+    if (cb > 0)
+    {
+        result = "<table>"
+        result += "<tr><th>App</th><th>Entity</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>"
+        result += html
+        result += "</table>"
+    }
+    else
+    {
+        result = "No active callbacks"
+    }
+
+    return result
+}
+
+function get_event_table(data)
+{
+    cb = 0;
+    html = "";
+
+    for (name in data)
+    {
+        for (id in data[name])
+        {
+            if (data[name][id].type == "event")
+            {
+                html += "<tr>";
+                html += "<td>" + name + "</td>"
+                html += "<td>" + data[name][id].event + "</td>";
+                html += "<td>" + data[name][id].function + "</td>";
+                html += "<td>" + data[name][id].pin_app + "</td>";
+                if (data[name][id].pin_thread == "-1")
+                {
+                    thread = "None"
+                }
+                else
+                {
+                    thread = data[name][id].pin_thread
+                }
+                html += "<td>" + thread + "</td>";
+
+                if (data[name][id].kwargs.length !== 0)
+                {
+                    kwargs = ""
+                    for (kwarg in data[name][id].kwargs)
+                    {
+                        if (kwarg.substring(0, 2) != "__")
+                        {
+                            kwargs += " " + kwarg + "='" + data[name][id].kwargs[kwarg] + "'"
+                        }
+                    }
+                }
+                else
+                {
+                    kwargs = "None"
+                }
+                html += "<td>" + kwargs + "</td>";
+                html += "</tr>";
+                cb++
+            }
+        }
+    }
+
+    if (cb > 0)
+    {
+        result = "<table>"
+        result += "<tr><th>App</th><th>Event Name</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>"
+        result += html
+        result += "</table>"
+    }
+    else
+    {
+        result = "No active callbacks"
+    }
+
+       html += "<tr><th>App</th><th>Event Name</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>"
+
+
+
+    return result
 }
 
 function openTab(evt, tabname) {

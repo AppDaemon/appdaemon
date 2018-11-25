@@ -34,17 +34,24 @@ class Callbacks:
         for name in self.callbacks.keys():
             callbacks[name] = {}
             for uuid_ in self.callbacks[name]:
-                callbacks[name][uuid_] = {}
-                if "entity" in callbacks[name][uuid_]:
-                    callbacks[name][uuid_]["entity"] = self.callbacks[name][uuid_]["entity"]
+                callbacks[name][str(uuid_)] = {}
+                if "entity" in self.callbacks[name][uuid_]:
+                    if self.callbacks[name][uuid_]["entity"] is None:
+                        callbacks[name][str(uuid_)]["entity"] = "None"
+                    else:
+                        callbacks[name][str(uuid_)]["entity"] = self.callbacks[name][uuid_]["entity"]
                 else:
-                    callbacks[name][uuid_]["entity"] = None
-                callbacks[name][uuid_]["type"] = self.callbacks[name][uuid_]["type"]
-                callbacks[name][uuid_]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
-                callbacks[name][uuid_]["function"] = self.callbacks[name][uuid_]["function"]
-                callbacks[name][uuid_]["name"] = self.callbacks[name][uuid_]["name"]
-                callbacks[name][uuid_]["pin_app"] = self.callbacks[name][uuid_]["pin_app"]
-                callbacks[name][uuid_]["Pin_thread"] = self.callbacks[name][uuid_]["pin_thread"]
+                    callbacks[name][str(uuid_)]["entity"] = "None"
+                if "event" in self.callbacks[name][uuid_]:
+                    callbacks[name][str(uuid_)]["event"] = self.callbacks[name][uuid_]["event"]
+                else:
+                    callbacks[name][str(uuid_)]["event"] = "None"
+                callbacks[name][str(uuid_)]["type"] = self.callbacks[name][uuid_]["type"]
+                callbacks[name][str(uuid_)]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
+                callbacks[name][str(uuid_)]["function"] = self.callbacks[name][uuid_]["function"].__name__
+                callbacks[name][str(uuid_)]["name"] = self.callbacks[name][uuid_]["name"]
+                callbacks[name][str(uuid_)]["pin_app"] = self.callbacks[name][uuid_]["pin_app"]
+                callbacks[name][str(uuid_)]["pin_thread"] = self.callbacks[name][uuid_]["pin_thread"]
         return callbacks
 
     def clear_callbacks(self, name):

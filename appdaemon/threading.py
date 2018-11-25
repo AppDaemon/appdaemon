@@ -259,7 +259,7 @@ class Threading:
             for thread_id in self.thread_info["threads"]:
                 if self.thread_info["threads"][thread_id]["callback"] != "idle":
                     start = self.thread_info["threads"][thread_id]["time_called"]
-                    dur = (self.AD.sched.get_now() - start).total_seconds()
+                    dur = (self.AD.sched.get_now_naive() - start).total_seconds()
                     if dur >= self.AD.thread_duration_warning_threshold and dur % self.AD.thread_duration_warning_threshold == 0:
                         self.AD.logging.log("WARNING", "Excessive time spent in callback: {} - {}s".format
                         (self.thread_info["threads"][thread_id]["callback"], dur))
@@ -417,7 +417,7 @@ class Threading:
     def check_and_dispatch_state(self, name, funcref, entity, attribute, new_state,
                                  old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
         executed = False
-        kwargs["handle"] = uuid_
+        #kwargs["handle"] = uuid_
         if attribute == "all":
             with self.AD.app_management.objects_lock:
                 executed = self.dispatch_worker(name, {

@@ -279,6 +279,7 @@ class ADAPI:
                "get_state: {}.{}".format(entity_id, attribute))
         device = None
         entity = None
+        print(self.AD.state.get_state(namespace, None, None, None))
         if entity_id is not None and "." in entity_id:
             if not self.AD.state.entity_exists(namespace, entity_id):
                 return None
@@ -324,7 +325,12 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
         new_state = self.parse_state(entity_id, namespace, **kwargs)
-        # Update AppDaemon's copy
+
+        # Update AD's Copy
+
+        self.AD.state.set_state(namespace, entity_id, new_state)
+
+        # Fire the state update event
 
         self.AD.appq.set_app_state(namespace, entity_id, new_state)
 
