@@ -87,7 +87,15 @@ function get_schedule_table(data)
             html += "<tr>";
             html += "<td>" + name + "</td>"
             html += "<td>" + data[name][id].timestamp + "</td>";
-            html += "<td>" + data[name][id].repeat + "</td>";
+            if (data[name][id].repeat == true)
+            {
+                repeat = this.secondsToStr(data[name][id].kwargs["interval"])
+            }
+            else
+            {
+                repeat = "None"
+            }
+            html += "<td>" + repeat + "</td>";
             html += "<td>" + data[name][id].callback + "</td>";
             html += "<td>" + data[name][id].pin_app + "</td>";
             if (data[name][id].pin_thread == "-1")
@@ -104,7 +112,7 @@ function get_schedule_table(data)
                 kwargs = ""
                 for (kwarg in data[name][id].kwargs)
                 {
-                    if (kwarg.substring(0,2) != "__")
+                    if (kwarg.substring(0,2) != "__" && kwarg != "interval")
                     {
                         kwargs += " " + kwarg + "='" + data[name][id].kwargs[kwarg] + "'"
                     }
@@ -122,9 +130,9 @@ function get_schedule_table(data)
 
     if (cb > 0)
     {
-        result = "<table>"
+        result = "<table>";
         result += "<tr><th>App</th><th>Execution Time</th><th>Repeat</th><th>Callback</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>"
-        result += html
+        result += html;
         result += "</table>"
     }
     else
@@ -263,6 +271,38 @@ function get_event_table(data)
 
 
     return result
+}
+
+function secondsToStr (time) {
+
+    function numberEnding (number) {
+        return (number > 1) ? 's' : '';
+    }
+
+    var temp = Math.floor(time);
+    var years = Math.floor(temp / 31536000);
+    if (years) {
+        return years + ' year' + numberEnding(years);
+    }
+    //TODO: Months! Maybe weeks?
+    var days = Math.floor((temp %= 31536000) / 86400);
+    if (days) {
+        return days + ' day' + numberEnding(days);
+    }
+    var hours = Math.floor((temp %= 86400) / 3600);
+    if (hours) {
+        return hours + ' hour' + numberEnding(hours);
+    }
+    var minutes = Math.floor((temp %= 3600) / 60);
+    if (minutes) {
+        return minutes + ' minute' + numberEnding(minutes);
+    }
+    var seconds = temp % 60;
+    if (seconds) {
+        return seconds + ' second' + numberEnding(seconds);
+    }
+    //TODO Fix for sunrise and sunset
+    return 'less than a second'; //'just now' //or other string you like;
 }
 
 function openTab(evt, tabname) {
