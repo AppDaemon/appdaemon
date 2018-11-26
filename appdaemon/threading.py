@@ -180,7 +180,7 @@ class Threading:
                     info["threads"][thread] = {}
                 info["threads"][thread]["time_called"] = copy(str(self.thread_info["threads"][thread]["time_called"]))
                 info["threads"][thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
-                info["threads"][thread]["is_alive"] = copy(self.thread_info["threads"][thread]["thread"].is_alive())
+                info["threads"][thread]["is_alive"] = "True" if self.thread_info["threads"][thread]["thread"].is_alive() is True else "False"
                 info["threads"][thread]["pinned_apps"] = copy(self.get_pinned_apps(thread))
                 info["threads"][thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
         return info
