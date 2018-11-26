@@ -13,6 +13,7 @@ class Utility:
 
         self.AD = ad
         self.stopping = False
+        self.old_update = {}
 
     def stop(self):
         self.stopping = True
@@ -108,7 +109,10 @@ class Utility:
                         if self.AD.admin.stats_update == "batch":
                             update["threads"] = threads["threads"]
 
-                        await self.AD.admin.admin_update(update)
+                        if update != self.old_update:
+                            await self.AD.admin.admin_update(update)
+
+                        self.old_update = update
 
                     # Run utility for each plugin
 
