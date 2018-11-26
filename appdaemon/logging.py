@@ -29,7 +29,6 @@ class Logging:
             log_size = 1000000
             log_generations = 3
             accessfile = None
-            self.log_level = debug
         else:
             logfile = config['log'].get("logfile", "STDOUT")
             errorfile = config['log'].get("errorfile", "STDERR")
@@ -40,6 +39,7 @@ class Logging:
             log_generations = config['log'].get("log_generations", 3)
             accessfile = config['log'].get("accessfile")
 
+        self.log_level = debug
         self.logger = logging.getLogger("log1")
         numeric_level = getattr(logging, debug, None)
         self.logger.setLevel(numeric_level)
