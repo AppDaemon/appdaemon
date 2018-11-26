@@ -218,8 +218,8 @@ class HassPlugin:
                 #
                 # Fire HA_STARTED Events
                 #
-                await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
                 self.reading_messages = True
+                await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
 
                 already_notified = False
 
