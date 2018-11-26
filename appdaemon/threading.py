@@ -8,6 +8,7 @@ import sys
 import traceback
 import inspect
 from datetime import timedelta
+from collections import OrderedDict
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -174,18 +175,22 @@ class Threading:
             info["last_action_time"] = copy(str(self.thread_info["last_action_time"]))
             info["current_busy"] = copy(self.thread_info["current_busy"])
             info["max_busy"] = copy(self.thread_info["max_busy"])
-            info["threads"] = {}
+            threads = {}
             for thread in self.thread_info["threads"]:
-                if thread not in info["threads"]:
-                    info["threads"][thread] = {}
-                info["threads"][thread]["time_called"] = self.thread_info["threads"][thread]["time_called"] if self.thread_info["threads"][thread]["time_called"] != datetime.datetime(1970,1,1,0,0,0,0) else "Never"
-                info["threads"][thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
-                info["threads"][thread]["is_alive"] = "True" if self.thread_info["threads"][thread]["thread"].is_alive() is True else "False"
-                info["threads"][thread]["pinned_apps"] = ""
+                if thread not in threads:
+                    threads[thread] = {}
+                    threads[thread]["time_called"] = str(self.thread_info["threads"][thread]["time_called"]) if self.thread_info["threads"][thread]["time_called"] != datetime.datetime(1970,1,1,0,0,0,0) else "Never"
+                    threads[thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
+                    threads[thread]["is_alive"] = "True" if self.thread_info["threads"][thread]["thread"].is_alive() is True else "False"
+                    threads[thread]["pinned_apps"] = ""
                 papps = self.get_pinned_apps(thread)
                 for app in papps:
-                    info["threads"][thread]["pinned_apps"] += "{} ".format(app)
-                info["threads"][thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
+                    threads[thread]["pinned_apps"] += "{} ".format(app)
+                    threads[thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
+
+            ordered_threads = OrderedDict(sorted(threads.items(), key=lambda x : int(x[0][7:])))
+            info["threads"] = ordered_threads
+
         return info
 
     def dump_threads(self, qinfo):

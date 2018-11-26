@@ -9,6 +9,7 @@ import uuid
 import time
 import re
 import asyncio
+from collections import OrderedDict
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -504,7 +505,12 @@ class Scheduler:
                 schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
                 schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"] if self.schedule[name][entry]["pin_thread"] != -1 else "None"
                 schedule[name][str(entry)]["pin_app"] = "True" if self.schedule[name][entry]["pin_app"] is True else "False"
-        return schedule
+
+        # Order it
+
+        ordered_schedule = OrderedDict(sorted(schedule.items(), key=lambda x: x[0]))
+
+        return ordered_schedule
 
     def is_dst(self):
         return self.now.astimezone(self.AD.tz).dst() != datetime.timedelta(0)
