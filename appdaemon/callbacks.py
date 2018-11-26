@@ -1,5 +1,6 @@
 import threading
 
+import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 class Callbacks:
@@ -29,29 +30,33 @@ class Callbacks:
                     self.AD.logging.diag( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
             self.AD.logging.diag("INFO", "--------------------------------------------------")
 
-    def get_callback_entries(self):
+    def get_callback_entries(self, type="all"):
         callbacks = {}
         for name in self.callbacks.keys():
-            callbacks[name] = {}
             for uuid_ in self.callbacks[name]:
-                callbacks[name][str(uuid_)] = {}
-                if "entity" in self.callbacks[name][uuid_]:
-                    if self.callbacks[name][uuid_]["entity"] is None:
-                        callbacks[name][str(uuid_)]["entity"] = "None"
+                if self.callbacks[name][uuid_]["type"] == type or type == "all":
+                    if name not in callbacks:
+                        callbacks[name] = {}
+                    callbacks[name][str(uuid_)] = {}
+                    if "entity" in self.callbacks[name][uuid_]:
+                        if self.callbacks[name][uuid_]["entity"] is None:
+                            callbacks[name][str(uuid_)]["entity"] = "None"
+                        else:
+                            callbacks[name][str(uuid_)]["entity"] = self.callbacks[name][uuid_]["entity"]
                     else:
-                        callbacks[name][str(uuid_)]["entity"] = self.callbacks[name][uuid_]["entity"]
-                else:
-                    callbacks[name][str(uuid_)]["entity"] = "None"
-                if "event" in self.callbacks[name][uuid_]:
-                    callbacks[name][str(uuid_)]["event"] = self.callbacks[name][uuid_]["event"]
-                else:
-                    callbacks[name][str(uuid_)]["event"] = "None"
-                callbacks[name][str(uuid_)]["type"] = self.callbacks[name][uuid_]["type"]
-                callbacks[name][str(uuid_)]["kwargs"] = self.callbacks[name][uuid_]["kwargs"]
-                callbacks[name][str(uuid_)]["function"] = self.callbacks[name][uuid_]["function"].__name__
-                callbacks[name][str(uuid_)]["name"] = self.callbacks[name][uuid_]["name"]
-                callbacks[name][str(uuid_)]["pin_app"] = self.callbacks[name][uuid_]["pin_app"]
-                callbacks[name][str(uuid_)]["pin_thread"] = self.callbacks[name][uuid_]["pin_thread"]
+                        callbacks[name][str(uuid_)]["entity"] = "None"
+                    if "event" in self.callbacks[name][uuid_]:
+                        callbacks[name][str(uuid_)]["event"] = self.callbacks[name][uuid_]["event"]
+                    else:
+                        callbacks[name][str(uuid_)]["event"] = "None"
+                    callbacks[name][str(uuid_)]["type"] = self.callbacks[name][uuid_]["type"]
+                    callbacks[name][str(uuid_)]["kwargs"] = ""
+                    callbacks[name][str(uuid_)]["kwargs"] = utils.get_kwargs(self.callbacks[name][uuid_]["kwargs"])
+
+                    callbacks[name][str(uuid_)]["function"] = self.callbacks[name][uuid_]["function"].__name__
+                    callbacks[name][str(uuid_)]["name"] = self.callbacks[name][uuid_]["name"]
+                    callbacks[name][str(uuid_)]["pin_app"] = "True" if self.callbacks[name][uuid_]["pin_app"] is True else "False"
+                    callbacks[name][str(uuid_)]["pin_thread"] = self.callbacks[name][uuid_]["pin_thread"] if self.callbacks[name][uuid_]["pin_thread"] != -1 else "None"
         return callbacks
 
     def clear_callbacks(self, name):

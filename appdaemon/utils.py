@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import timedelta
 import asyncio
 import platform
 import functools
@@ -134,6 +134,15 @@ def _profile_this(fn):
 
     return profiled_fn
 
+def format_seconds(secs):
+    return str(timedelta(seconds=secs))
+
+def get_kwargs(kwargs):
+    result = ""
+    for kwarg in kwargs:
+        if kwarg[:2] != "__":
+            result += "{}={} ".format(kwarg, kwargs[kwarg])
+    return result
 
 def _dummy_secret(loader, node):
     pass

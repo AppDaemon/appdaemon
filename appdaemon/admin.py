@@ -81,8 +81,11 @@ class Admin:
 
             params["threads"] = self.AD.threading.get_thread_info()
 
-            params["callbacks"] = self.AD.threading.get_callback_update()
+            params["callback_updates"] = self.AD.threading.get_callback_update()
+            params["state_callbacks"] = self.AD.callbacks.get_callback_entries("state")
+            params["event_callbacks"] = self.AD.callbacks.get_callback_entries("event")
 
+            params["sched"] = self.AD.sched.get_scheduler_entries()
             #
             # Render Page
             #

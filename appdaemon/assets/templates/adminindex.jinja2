@@ -144,17 +144,73 @@ $(function(){ //DOM Ready
 <div id="Callbacks" class="tabcontent">
     <h3>Summary</h3>
     <table>
-        <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callbacks["total_callbacks_fired"] }}</td><td>Average <span id="avg_callbacks_fired_per_sec">{{ callbacks["avg_callbacks_fired_per_sec"] }}</span> Callbacks/s</td></tr>
-        <tr><td>Total Callbacks Executed</td><td id="total_callbacks_executed">{{ callbacks["total_callbacks_executed"] }}</td><td>Average <span id="avg_callbacks_executed_per_sec">{{ callbacks["avg_callbacks_executed_per_sec"] }}</span> Callbacks/s</td></tr>
+        <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callback_updates["total_callbacks_fired"] }}</td><td>Average <span id="avg_callbacks_fired_per_sec">{{ callback_updates["avg_callbacks_fired_per_sec"] }}</span> callback_updates/s</td></tr>
+        <tr><td>Total Callbacks Executed</td><td id="total_callbacks_executed">{{ callback_updates["total_callbacks_executed"] }}</td><td>Average <span id="avg_callbacks_executed_per_sec">{{ callback_updates["avg_callbacks_executed_per_sec"] }}</span> Callbacks/s</td></tr>
     </table>
     <h3>Scheduler Callbacks</h3>
     <span id="active_scheduler_callbacks">
+        {% if sched|length == 0 %}
+            No active callbacks
+        {% else %}
+        <table>
+            <tr><th>App</th><th>Execution Time</th><th>Repeat</th><th>Callback</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>
+            {% for entry in sched %}
+                {% for id in sched[entry] %}
+                    <tr>
+                        <td>{{entry}}</td>
+                        <td>{{sched[entry][id]['timestamp'] }}</td>
+                        <td>{{sched[entry][id]['interval'] }}</td>
+                        <td>{{sched[entry][id]['callback'] }}</td>
+                        <td>{{sched[entry][id]['pin_app'] }}</td>
+                        <td>{{sched[entry][id]['pin_thread'] }}</td>
+                        <td>{{sched[entry][id]['kwargs'] }}</td>
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </table>
+        {% endif %}
     </span>
     <h3>State Callbacks</h3>
     <span id="active_state_callbacks">
+        {% if state_callbacks|length == 0 %}
+            No active callbacks
+        {% else %}
+        <table>
+        <tr><th>App</th><th>Entity</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>
+            {% for entry in state_callbacks %}
+                {% for id in state_callbacks[entry] %}
+                    <td>{{ entry }}</td>
+                    <td>{{ state_callbacks[entry][id].entity }}</td>
+                    <td>{{ state_callbacks[entry][id].function }}</td>
+                    <td>{{ state_callbacks[entry][id].pin_app }}</td>
+                    <td>{{ state_callbacks[entry][id].pin_thread }}</td>
+                    <td>{{ state_callbacks[entry][id].kwargs }}</td>
+                {% endfor %}
+            {% endfor %}
+        </table>
+        {% endif %}
     </span>
     <h3>Event Callbacks</h3>
     <span id="active_event_callbacks">
+        {% if event_callbacks|length == 0 %}
+            No active callbacks
+        {% else %}
+        <table>
+        <tr><th>App</th><th>Event Name</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>
+            {% for entry in event_callbacks %}
+                {% for id in event_callbacks[entry] %}
+                    <tr>
+                    <td>{{ entry }}</td>
+                    <td>{{ event_callbacks[entry][id].entity }}</td>
+                    <td>{{ event_callbacks[entry][id].function }}</td>
+                    <td>{{ event_callbacks[entry][id].pin_app }}</td>
+                    <td>{{ event_callbacks[entry][id].pin_thread }}</td>
+                    <td>{{ event_callbacks[entry][id].kwargs }}</td>
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </table>
+        {% endif %}
     </span>
 
 </div>

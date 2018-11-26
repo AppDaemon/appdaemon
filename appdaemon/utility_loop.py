@@ -100,11 +100,13 @@ class Utility:
                         if self.AD.admin.stats_update != "none":
                             callback_update = self.AD.threading.get_callback_update()
                             sched = self.AD.sched.get_scheduler_entries()
-                            callbacks = self.AD.callbacks.get_callback_entries()
+                            state_callbacks = self.AD.callbacks.get_callback_entries("state")
+                            event_callbacks = self.AD.callbacks.get_callback_entries("event")
                             threads = self.AD.threading.get_thread_info()
                             update["updates"] = callback_update
                             update["schedule"] = sched
-                            update["callbacks"] = callbacks
+                            update["state_callbacks"] = state_callbacks
+                            update["event_callbacks"] = event_callbacks
                             update["updates"]["current_busy_threads"] = threads["current_busy"]
                             update["updates"]["max_busy_threads"] = threads["max_busy"]
                             update["updates"]["max_busy_threads_time"] = threads["max_busy_time"]
