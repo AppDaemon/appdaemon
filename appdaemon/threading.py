@@ -312,7 +312,7 @@ class Threading:
                         thread_id + "_qsize": self.thread_info["threads"][thread_id]["q"].qsize(),
                         thread_id + "_callback": self.thread_info["threads"][thread_id]["callback"],
                         thread_id + "_time_called": str(self.thread_info["threads"][thread_id]["time_called"]),
-                        thread_id + "_is_alive": self.thread_info["threads"][thread_id]["thread"].is_alive(),
+                        thread_id + "_is_alive": "True" if self.thread_info["threads"][thread_id]["thread"].is_alive() is True else "False",
                         thread_id + "_pinned_apps": self.get_pinned_apps(thread_id),
 
                     }
