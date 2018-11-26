@@ -2,6 +2,7 @@ import socketio
 import json
 import aiohttp
 from aiohttp import web
+import traceback
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -44,7 +45,15 @@ class ADStream:
             self.sio.register_namespace(self.dash_stream)
 
     async def send_update(self, data):
-            jdata = json.dumps(data)
+            try:
+                jdata = json.dumps(data)
+            except:
+                self.AD.logging.log("WARNING", '-' * 60)
+                self.AD.logging.log("WARNING", "Unexpected error in JSON conversion")
+                self.AD.logging.log("WARNING", "Data is: {}".format(data))
+                self.AD.logging.log("WARNING", '-' * 60)
+                self.AD.logging.log("WARNING", traceback.format_exc())
+                self.AD.logging.log("WARNING", '-' * 60)
             if self.transport == "ws":
                 if len(self.app['websockets']) > 0:
                     self.AD.logging.log("DEBUG",
