@@ -33,11 +33,14 @@ Change Log
 - Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
+- Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
 
 **Fixes**
 
 - Fixes to listen_state() oneshot function
 - Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
+- Fix to Forcast min/max in weather widget -  - contributed by `adipose <https://github.com/adipose>`__
+- Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
 
 **Breaking Changes**
 

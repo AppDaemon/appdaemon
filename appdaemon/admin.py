@@ -1,4 +1,5 @@
 import os
+import traceback
 
 from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
 
@@ -55,45 +56,53 @@ class Admin:
 
     def index(self, scheme, url, tab="appdaemon"):
 
-        params = {}
+        try:
+            params = {}
 
-        params["tab"] = tab
-        params["transport"] = self.transport
+            params["tab"] = tab
+            params["transport"] = self.transport
 
-        params["appdaemon"] = {}
-        params["appdaemon"]["booted"] = self.AD.booted
-        params["appdaemon"]["version"] = utils.__version__
+            params["appdaemon"] = {}
+            params["appdaemon"]["booted"] = self.AD.booted.replace(microsecond=0)
+            params["appdaemon"]["version"] = utils.__version__
 
-        params["apps"] = {}
-        for obj in self.AD.app_management.objects:
-            params["apps"][obj] = {}
+            params["apps"] = {}
+            for obj in self.AD.app_management.objects:
+                params["apps"][obj] = {}
 
-        params["plugins"] = {}
-        for plug in self.AD.plugins.plugin_objs:
-            params["plugins"][plug] = \
-                {
-                    "name": self.AD.plugins.plugin_objs[plug]["object"].name,
-                    "type": self.AD.plugins.plugin_objs[plug]["object"].__class__.__name__,
-                    "namespace": self.AD.plugins.plugin_objs[plug]["object"].namespace,
-                }
+            params["plugins"] = {}
+            for plug in self.AD.plugins.plugin_objs:
+                params["plugins"][plug] = \
+                    {
+                        "name": self.AD.plugins.plugin_objs[plug]["object"].name,
+                        "type": self.AD.plugins.plugin_objs[plug]["object"].__class__.__name__,
+                        "namespace": self.AD.plugins.plugin_objs[plug]["object"].namespace,
+                    }
 
-        params["threads"] = self.AD.threading.get_thread_info()
+            params["threads"] = self.AD.threading.get_thread_info()
 
-        params["callbacks"] = self.AD.threading.get_callback_update()
+            params["callbacks"] = self.AD.threading.get_callback_update()
 
-        #
-        # Render Page
-        #
+            #
+            # Render Page
+            #
 
-        env = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            autoescape=select_autoescape(['html', 'xml'])
-        )
+            env = Environment(
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
 
-        template = env.get_template("adminindex.jinja2")
-        rendered_template = template.render(params)
+            template = env.get_template("adminindex.jinja2")
+            rendered_template = template.render(params)
 
-        return (rendered_template)
+            return (rendered_template)
+
+        except:
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", "Unexpected error in admin thread")
+            self.AD.logging.log("WARNING", '-' * 60)
+            self.AD.logging.log("WARNING", traceback.format_exc())
+            self.AD.logging.log("WARNING", '-' * 60)
 
     def logon(self):
 

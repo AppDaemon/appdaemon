@@ -96,6 +96,7 @@ class Utility:
 
                     if self.AD.admin is not None:
                         update = {}
+                        threads = {}
                         if self.AD.admin.stats_update != "none":
                             callback_update = self.AD.threading.get_callback_update()
                             sched = self.AD.sched.get_scheduler_entries()
@@ -106,6 +107,7 @@ class Utility:
                             update["callbacks"] = callbacks
                             update["updates"]["current_busy_threads"] = threads["current_busy"]
                             update["updates"]["max_busy_threads"] = threads["max_busy"]
+                            update["updates"]["max_busy_threads_time"] = threads["max_busy_time"]
                         if self.AD.admin.stats_update == "batch":
                             update["threads"] = threads["threads"]
 

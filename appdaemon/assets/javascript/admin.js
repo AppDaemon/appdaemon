@@ -48,7 +48,7 @@ function admin_stream(stream, transport)
         {
             for (id in data["updates"])
             {
-                document.getElementById(id).innerText = data["updates"][id];
+                document.getElementById(id).innerText = this.formatStr(data["updates"][id]);
             }
         }
 
@@ -96,7 +96,7 @@ function get_schedule_table(data)
             }
             html += "<td>" + repeat + "</td>";
             html += "<td>" + data[name][id].callback + "</td>";
-            html += "<td>" + data[name][id].pin_app + "</td>";
+            html += "<td>" + this.formatStr(data[name][id].pin_app) + "</td>";
             if (data[name][id].pin_thread == "-1")
             {
                 thread = "None"
@@ -158,7 +158,7 @@ function get_state_table(data)
                 html += "<td>" + name + "</td>"
                 html += "<td>" + data[name][id].entity + "</td>";
                 html += "<td>" + data[name][id].function + "</td>";
-                html += "<td>" + data[name][id].pin_app + "</td>";
+                html += "<td>" + this.formatStr(data[name][id].pin_app) + "</td>";
                 if (data[name][id].pin_thread == "-1")
                 {
                     thread = "None"
@@ -220,7 +220,7 @@ function get_event_table(data)
                 html += "<td>" + name + "</td>"
                 html += "<td>" + data[name][id].event + "</td>";
                 html += "<td>" + data[name][id].function + "</td>";
-                html += "<td>" + data[name][id].pin_app + "</td>";
+                html += "<td>" + this.formatStr(data[name][id].pin_app) + "</td>";
                 if (data[name][id].pin_thread == "-1")
                 {
                     thread = "None"
@@ -282,8 +282,8 @@ function get_thread_table(data)
         html += "<td>" + thread + "</td>";
         html += "<td id='" + thread + "_qsize'>" + data[thread].qsize + "</td>";
         html += "<td id='" + thread + "_callback'>" + data[thread].callback + "</td>";
-        html += "<td id='" + thread + "_time_called'>" + data[thread].time_called + "</td>";
-        html += "<td id='" + thread + "_is_alive'>" + data[thread].is_alive + "</td>";
+        html += "<td id='" + thread + "_time_called'>" + this.formatStr(data[thread].time_called) + "</td>";
+        html += "<td id='" + thread + "_is_alive'>" + this.formatStr(data[thread].is_alive) + "</td>";
         html += "<td id='" + thread + "_pinned_apps'>"
         for (app in data[thread].pinned_apps)
         {
@@ -297,18 +297,34 @@ function get_thread_table(data)
     return html
 }
 
+function formatStr(x)
+{
+    if (x === true)
+    {
+        return "True"
+    }
+    if (x === false)
+    {
+        return "False"
+    }
+    if (x === "1970-01-01 00:00:00")
+    {
+        return "Never"
+    }
+    return x
+}
+
 function secondsToStr (time) {
 
     function numberEnding (number) {
-        return (number > 1) ? 's' : '';
+        return (number > 1 || number < 1) ? 's' : '';
     }
 
-    var temp = Math.floor(time);
+    var temp = time;
     var years = Math.floor(temp / 31536000);
     if (years) {
         return years + ' year' + numberEnding(years);
     }
-    //TODO: Months! Maybe weeks?
     var days = Math.floor((temp %= 31536000) / 86400);
     if (days) {
         return days + ' day' + numberEnding(days);
@@ -322,11 +338,8 @@ function secondsToStr (time) {
         return minutes + ' minute' + numberEnding(minutes);
     }
     var seconds = temp % 60;
-    if (seconds) {
-        return seconds + ' second' + numberEnding(seconds);
-    }
-    //TODO Fix for sunrise and sunset
-    return 'less than a second'; //'just now' //or other string you like;
+    return seconds + ' second' + numberEnding(seconds);
+
 }
 
 function openTab(evt, tabname) {

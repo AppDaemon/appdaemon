@@ -57,6 +57,10 @@ class Scheduler:
         else:
             self.AD.logging.log("INFO", "Scheduler tick set to {}s".format(self.AD.tick))
 
+        #
+
+        self.AD.booted = self.get_now_naive()
+
         # Take a note of DST
 
         self.was_dst = self.is_dst()

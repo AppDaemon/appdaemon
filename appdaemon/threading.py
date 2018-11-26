@@ -21,14 +21,12 @@ class Threading:
         self.thread_info = {}
         self.thread_info_lock = threading.RLock()
 
-        self.thread_info["max_used"] = 0
-        self.thread_info["max_used_time"] = 0
         self.thread_info["threads"] = {}
         self.thread_info["current_busy"] = 0
         self.thread_info["max_busy"] = 0
-        self.thread_info["max_busy_time"] = 0
+        self.thread_info["max_busy_time"] = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
         # Scheduler isn;t setup so we can't get an accurate localized time
-        self.thread_info["last_action_time"] = datetime.datetime.now()
+        self.thread_info["last_action_time"] = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
 
         self.auto_pin = True
 
@@ -36,7 +34,7 @@ class Threading:
         self.total_callbacks_executed = 0
         self.current_callbacks_fired = 0
         self.current_callbacks_executed = 0
-        self.last_stats_time = datetime.datetime.now()
+        self.last_stats_time = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
         self.callback_list = []
 
         if "threads" in kwargs:
@@ -131,7 +129,7 @@ class Threading:
         with self.thread_info_lock:
             self.thread_info["threads"][t.getName()] = \
                 {"callback": "idle",
-                 "time_called": datetime.datetime.now(),
+                 "time_called": datetime.datetime(1970, 1, 1, 0, 0, 0, 0),
                  "q": Queue(maxsize=0),
                  "id": id,
                  "thread": t}
@@ -172,8 +170,8 @@ class Threading:
         info = {}
         # Make a copy without the thread objects
         with self.thread_info_lock:
-            info["max_busy_time"] = copy(self.thread_info["max_busy_time"])
-            info["last_action_time"] = copy(self.thread_info["last_action_time"])
+            info["max_busy_time"] = copy(str(self.thread_info["max_busy_time"]))
+            info["last_action_time"] = copy(str(self.thread_info["last_action_time"]))
             info["current_busy"] = copy(self.thread_info["current_busy"])
             info["max_busy"] = copy(self.thread_info["max_busy"])
             info["threads"] = {}
@@ -295,7 +293,7 @@ class Threading:
                 if self.AD.sched.realtime is True and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold:
                     self.AD.logging.log("WARNING", "callback {} has now completed".format(self.thread_info["threads"][thread_id]["callback"]))
             self.thread_info["threads"][thread_id]["callback"] = callback
-            self.thread_info["threads"][thread_id]["time_called"] = now
+            self.thread_info["threads"][thread_id]["time_called"] = now.replace(microsecond=0)
             if callback == "idle":
                 self.thread_info["current_busy"] -= 1
             else:
@@ -303,9 +301,9 @@ class Threading:
 
             if self.thread_info["current_busy"] > self.thread_info["max_busy"]:
                 self.thread_info["max_busy"] = self.thread_info["current_busy"]
-                self.thread_info["max_busy_time"] = self.AD.sched.get_now()
+                self.thread_info["max_busy_time"] = self.AD.sched.get_now_naive().replace(microsecond=0)
 
-            self.thread_info["last_action_time"] = self.AD.sched.get_now()
+            self.thread_info["last_action_time"] = self.AD.sched.get_now_naive()
 
         # Update Admin
         if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":

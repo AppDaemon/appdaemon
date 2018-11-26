@@ -27,7 +27,7 @@ class AppDaemon:
         self.logging.register_ad(self)
 
         self.config = kwargs
-        self.booted = datetime.datetime.now()
+        self.booted = None
         self.config["ad_version"] = utils.__version__
         self.check_app_updates_profile = ""
 
