@@ -122,19 +122,9 @@ $(function(){ //DOM Ready
             <tr><td>{{ thread }}</td>
                 <td id="{{thread}}_qsize">{{ threads["threads"][thread]["qsize"] }}</td>
                 <td id="{{thread}}_callback">{{ threads["threads"][thread]["callback"] }}</td>
-                <td id="{{thread}}_time_called">
-                    {%  if  threads["threads"][thread]["time_called"] == "1970-01-01 00:00:00"%}
-                    Never
-                    {% else %}
-                    {{ threads["threads"][thread]["time_called"] }}
-                    {% endif %}
-                </td>
+                <td id="{{thread}}_callback">{{ threads["threads"][thread]["time_called"] }}</td>
                 <td id="{{thread}}_is_alive">{{ threads["threads"][thread]["is_alive"] }}</td>
-                <td id="{{thread}}_pinned_apps">
-                    {% for app in threads["threads"][thread]["pinned_apps"] %}
-                        {{ app }}
-                    {% endfor %}
-                </td>
+                <td id="{{thread}}_is_alive">{{ threads["threads"][thread]["pinned_apps"] }}</td>
             </tr>
             {% endfor %}
     </table>

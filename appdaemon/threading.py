@@ -178,10 +178,13 @@ class Threading:
             for thread in self.thread_info["threads"]:
                 if thread not in info["threads"]:
                     info["threads"][thread] = {}
-                info["threads"][thread]["time_called"] = copy(str(self.thread_info["threads"][thread]["time_called"]))
+                info["threads"][thread]["time_called"] = self.thread_info["threads"][thread]["time_called"] if self.thread_info["threads"][thread]["time_called"] != datetime.datetime(1970,1,1,0,0,0,0) else "Never"
                 info["threads"][thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
                 info["threads"][thread]["is_alive"] = "True" if self.thread_info["threads"][thread]["thread"].is_alive() is True else "False"
-                info["threads"][thread]["pinned_apps"] = copy(self.get_pinned_apps(thread))
+                info["threads"][thread]["pinned_apps"] = ""
+                papps = self.get_pinned_apps(thread)
+                for app in papps:
+                    info["threads"][thread]["pinned_apps"] += "{} ".format(app)
                 info["threads"][thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
         return info
 
