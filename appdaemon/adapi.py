@@ -119,10 +119,10 @@ class ADAPI:
         if "." not in entity:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
-        #if not self.AD.state.entity_exists(namespace, entity):
-        #    self.AD.logging.log("WARNING",
-        #              "{}: Entity {} not found in AppDaemon".format(
-        #                  self.name, entity))
+        if not self.AD.state.entity_exists(namespace, entity):
+            self.AD.logging.log("INFO",
+                      "{}: Entity {} not found in namespace: {}".format(
+                          self.name, entity, namespace))
 
     def get_main_log(self):
         return self.logging.get_logger()
