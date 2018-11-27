@@ -474,11 +474,10 @@ class ADAPI:
             when = self.AD.sched._parse_time(start, self.name, True)["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
-        aware_when = self.AD.sched.convert_naive(when)
         name = self.name
         now = self.get_now()
         today = now.date()
-        event = datetime.datetime.combine(today, aware_when)
+        event = datetime.datetime.combine(today, when)
         if event < now:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
