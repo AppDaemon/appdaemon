@@ -87,7 +87,7 @@ class RunDash:
         self.config_dir = None
         self._process_arg("config_dir", config)
 
-        self.dash_compile_on_start = False
+        self.dash_compile_on_start = True
         self._process_arg("dash_compile_on_start", config)
 
         self.dash_force_compile = False
