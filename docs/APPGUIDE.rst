@@ -2216,7 +2216,7 @@ namespaces:
 
 Here we are defining 3 new namespaces - you can have as many as you want. Ther names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
 
-- safe - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible perfoemance impact for systems with slower disks, or that set state on many UDMs at a time.
+- safe - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible performance impact for systems with slower disks, or that set state on many UDMs at a time.
 - performance - the namespace is written when AD exits, meaning that all processing is in memory for the best performance. Although this style of UDM will survive a restart, data may be lost if AppDaemon or the host crashes.
 - hybrid - a compromise setting in which the namespaces are saved periodically (once each time around the utility loop, usually once every second- with this setting a maximum of 1 second of data will be lost if AppDaemon crashes.
 
@@ -2227,14 +2227,13 @@ The way apps are constructed, they inherit from a superclass that contains all t
 
 To get around this, a function called ``get_plugin_api()`` is provided to instantiate API objects to handle multiple plugins, as a distinct objects, not part of the APPs inheritance. Once the new API object is obtained, you can make plugin specific API calls on it directly, as well as call ``listen_state()`` on it to listen for state changes specific to that plugin.
 
-In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. The app will also use ``get_ad_api()`` to get access to the AppDaemon api for the various scheduler calls. ``get_ad_api()`` requires the import of ``adapi``.
+In this case, it is cleaner to not have the App inherit from one or the other specific APIs, and for this reason, the ADBase class is provided to create an app without any specific plugin API. The app will also use ``get_ad_api()`` to get access to the AppDaemon api for the various scheduler calls.
 
 As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to access both HASS and MQTT, as well as ``get_ad_api()`` to access the AppDaemon base functions.
 
 .. code:: python
 
     import adbase as ad
-    import adapi as adapi
 
     class GetAPI(ad.ADBase):
 
@@ -2254,7 +2253,7 @@ As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to 
 
         # Make a scheduler call using the ADBase class
         adbase = self.get_ad_api()
-        handle = self.adbase.run_in(callback, 20)
+        handle = adbase.run_in(callback, 20)
 
 By default, each plugin api object has it's namespace correctly set for that plugin, which makes it much more convenient to handle calls and callbacks form that plugin. This way of working can often be more convenient and clearer than changing namespaces within apps or on the individual calls, so is the recommended way to handle multiple plugins of the same or even different types. The AD base API's namespace defaults to "default":
 
