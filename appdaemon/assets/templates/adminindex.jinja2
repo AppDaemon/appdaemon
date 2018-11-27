@@ -191,7 +191,7 @@ $(function(){ //DOM Ready
                 {% for id in event_callbacks[entry] %}
                     <tr>
                     <td>{{ entry }}</td>
-                    <td>{{ event_callbacks[entry][id].entity }}</td>
+                    <td>{{ event_callbacks[entry][id].event }}</td>
                     <td>{{ event_callbacks[entry][id].function }}</td>
                     <td>{{ event_callbacks[entry][id].pin_app }}</td>
                     <td>{{ event_callbacks[entry][id].pin_thread }}</td>

@@ -68,7 +68,7 @@ function admin_stream(stream, transport)
         if ("event_callbacks" in data)
         {
             // console.log(data["schedule"]);
-            document.getElementById("active_event_callbacks").innerHTML = this.get_state_table(data["event_callbacks"])
+            document.getElementById("active_event_callbacks").innerHTML = this.get_event_table(data["event_callbacks"])
         }
 
         if ("threads" in data)
