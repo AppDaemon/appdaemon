@@ -100,6 +100,17 @@ The following items provide a high level of control over AppDaemon's internal fu
 -  ``interval`` (optional) - equivalent to the command line flag ``-i`` but will take precedence
 -  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
 -  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
+- namespaces (optional) - configure one or more User Defined Namespaces and set their writeback strategy
+
+.. code:: yaml
+    namespaces:
+        andrew:
+          # writeback is safe, performance or hybrid
+          writeback: safe
+        jim:
+          writeback: performance
+        fred:
+          writeback: hybrid
 
 secrets
 ~~~~~~~

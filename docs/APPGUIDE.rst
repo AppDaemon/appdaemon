@@ -2109,14 +2109,14 @@ Here is an example of a plugin section with 2 hass instances and 2 dummy instanc
       type: hass
       ha_key: !secret home_assistant2_key
       ha_url: http://192.168.1.21:8123
-    TEST:
-      namespace: test1
-      type: dummy
-      configuration: /export/hass/appdaemon_test/dummy/test1.yaml
-    TEST2:
-      namespace: test2
-      type: dummy
-      configuration: /export/hass/appdaemon_test/dummy/test2.yaml
+    MQTT:
+      type: mqtt
+      namespace: mqtt
+      client_host: 192.168.1.20
+      client_port: 1883
+      client_id: Fred
+      client_user: homeassistant
+      client_password: my_password
 
 The ``type`` parameter defines which of the plugins are used, and the parameters for each plugin type will be different.
 As you can see, the parameters for both hass instances are similar, and it supports all the parameters described in the
@@ -2189,6 +2189,36 @@ Similarly:
 
 This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
 
+User Defined Namespaces
+-----------------------
+
+Each plugin has it's own uniquer namespace as described above, and they are prteyy much in control of those namespaces. It is possible to set a state in a plugin managed namespace whcih can be used as a temporary variable or even as a way of signalling other apps using ``listen_+state()`` however this is not reccomended:
+
+- Plugin managed namespaces may be overwritten at any time byt the plugin
+- They will likely be overwritten whenthe plugin restarts even if AppDaemon does not
+- They will not survive a restart of AppDaemon because it is regarded as the job of the plugin to reconstruct it's statem and it knows nothing about any additional variables you have added. Although this technique can still be useful, for example to add sensors to Home Assistant, a better alternative for Apps to use are User Defined Namespaces.
+
+
+A User Defined Namespace is a new area of storage for entities that is not managed by a plugin. UDMs are guaranteed not to be changed by any plugin and are available to all apps just the same as a plugin based namespace. UDMs also survive AppDaemon restarts and crashes, creating durable storage for saving information and communicating with other apps via ``listen_state()`` and ``set_state()``.
+
+They are configured in the ``appdaemon.yaml`` file as follows:
+
+.. code:: yaml
+
+namespaces:
+    my_namespace:
+      # writeback is safe, performance or hybrid
+      writeback: safe
+    my_namespace2:
+      writeback: performance
+    my_namespace3:
+      writeback: hybrid
+
+Here we are defining 3 new namespaces - you can have as many as you want. Ther names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
+
+- safe - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible perfoemance impact for systems with slower disks, or that set state on many UDMs at a time.
+- performance - the namespace is written when AD exits, meaning that all processing is in memory for the best performance. Although this style of UDM will survive a restart, data may be lost if AppDaemon or the host crashes.
+- hybrid - a compromise setting in which the namespaces are saved periodically (once each time around the utility loop, usually once every second- with this setting a maximum of 1 second of data will be lost if AppDaemon crashes.
 
 Using Multiple APIs From One App
 --------------------------------

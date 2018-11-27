@@ -2634,91 +2634,6 @@ Examples
 Dashboard Functions
 -------------------
 
-set\_app\_state()
-~~~~~~~~~~~~~~~~~
-
-Publish state information to AppDaemon's internal state and push the
-state changes out to listening Apps and Dashboards.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.set_app_state(entity_id, state)
-
-Returns
-^^^^^^^
-
-None.
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-A name for the new state. It must conform to the standard entity\_id
-format, e.g. ``<device_type>.<name>``. however device type and name can
-be whatever you like as long as you ensure it doesn't conflict with any
-real devices. For clarity, I suggest the convention of using
-``appdaemon`` as the device type. A single App can publish to as many
-entity ids as desired.
-
-state
-'''''
-
-The state to be associated with the entity id. This is a dictionary and
-must contain the entirety of the state information, It will replace the
-old state information, and calls like ``listen_state()`` should work
-correctly reporting the old and the new state information as long as you
-keep the dictionary looking similar to HA status updates, e.g. the main
-state in a state field, and any attributes in an attributes
-sub-dictionary.
-
-attributes
-'''''''''
-
-A sub-dictionary of keys and values, to set the attributes within AppDaemon's internal state object. It is optional to set these
-values. If this parameter is specified, by default it will update the prexisting ``attributes`` if it was existing. If wanting to
-modify the entire attributes for example remove some keys, the best way to do this, is to read the entire ``attributes`` of the entity
-using ``self.get_state("appdaemon.alerts", attribute = "all")``. Then modify the dictionary as needed, and when using the
-``self.set_app_state()`` again for the entity, set the ``replace`` flag to ``True``. By setting this to ``True``, the internal
-dictionary is not just updated with the new set of values but completely replaced with it.
-
-namespace
-'''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this
-parameter. When working with multiple namespaces, it is important to set the namespace of the function, either when reading the
-entity's value, or settingit to certain values. Without specifying the namespace, it will always seekout the entity within its present
-namespace. For example if an app operates within the ``default`` namepace which is Home Assistant, it is possible to modify an entity
-within ``mqtt`` namespace, by specifying the namespace during the call.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.set_app_state("appdaemon.alerts", {"state": number, "attributes": {"unit_of_measurement": ""}})
-
-    # Return state for the entire Appdaemon entities within the namepace
-    state = self.get_state(namepace = "default")
-
-    # though working within default namespace, return state of an entity within mqtt namespace
-    state = self.get_state("mqtt.security_settings", namepace = "mqtt")
-
-    #though working within default namespace, return state of an entity within mqtt namespace,
-    #modify its attributes, and replace with new data
-    all_state = self.get_state("mqtt.security_settings", attribute = "all")
-    state_attribute = all_state["attributes"] #remove keys as required at this point
-    #reload the data with the new values, but this time use the replace flag
-    self.set_app_state("mqtt.security_settings", attributes = state_attribute, replace = True, namepace = "mqtt")
-
-This is an example of a state update that can be used with a sensor
-widget in HADashboard. "state" is the actual value, and the widget also
-expects an attribute called "unit\_of\_measurement" to work correctly.
-
 dash\_navigate()
 ~~~~~~~~~~~~~~~~
 
@@ -2859,6 +2774,35 @@ Examples
 
 Namespace
 ---------
+
+list_namespaces()
+~~~~~~~~~~~~~~~~
+
+List all namespaces curently available
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    set_namespace(self)
+
+Returns
+^^^^^^^
+
+A list of available namespaces.
+
+Parameters
+^^^^^^^^^^
+
+None
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.list_namespaces()
 
 set\_namespace()
 ~~~~~~~~~~~~~~~~
