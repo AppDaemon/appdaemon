@@ -10,6 +10,17 @@ import requests
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+def hass_check(func):
+    def func_wrapper(*args, **kwargs):
+        self = args[0]
+        if not self.reading_messages:
+            self.AD.logging.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func.__name__))
+            return lambda *args: None
+        else:
+            return func(*args, **kwargs)
+
+    return (func_wrapper)
+
 
 class HassPlugin:
 
@@ -286,6 +297,7 @@ class HassPlugin:
     # State
     #
 
+    @hass_check
     def set_plugin_state(self, namespace, entity_id, new_state):
         print("set_plugin_state")
         config = self.AD.plugins.get_plugin(namespace).config
@@ -376,6 +388,32 @@ class HassPlugin:
         except:
             self.log("WARNING", "Error getting metadata - retrying")
             raise
+
+    @hass_check
+    def fire_plugin_event(self, event, namespace, **kwargs):
+        self.AD.logging.log("DEBUG",
+                            "fire_event: {}, {} {}".format(event, namespace, kwargs))
+
+        config = self.AD.plugins.get_plugin(namespace).config
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
+        else:
+            cert_path = False
+
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key" in config:
+            headers = {'x-ha-access': config["ha_key"]}
+        else:
+            headers = {}
+
+        apiurl = "{}/api/events/{}".format(config["ha_url"], event)
+        r = requests.post(
+            apiurl, headers=headers, json=kwargs, verify=cert_path
+        )
+        r.raise_for_status()
+        return r.json()
+
     #
     # Async version of call_service() for the hass proxy for HADashboard
     #

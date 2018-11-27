@@ -54,6 +54,7 @@ Change Log
 - ``cancel_listen_log()`` now requires a handle supplied by the initial ``listen_log()``
 - Removed Daemonize support - please use sysctl instead
 - ``set_app_state()`` is deprecated - use ``set_state()`` instead and it should do the right thing
+- ``fire_app_event()`` is deprectaed - use ``fire_event()`` and it should do the right thing
 
 3.0.2 10/31/2018
 ----------------

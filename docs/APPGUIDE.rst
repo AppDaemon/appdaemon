@@ -2190,7 +2190,7 @@ Similarly:
 This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
 
 User Defined Namespaces
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Each plugin has it's own uniquer namespace as described above, and they are prteyy much in control of those namespaces. It is possible to set a state in a plugin managed namespace whcih can be used as a temporary variable or even as a way of signalling other apps using ``listen_+state()`` however this is not reccomended:
 

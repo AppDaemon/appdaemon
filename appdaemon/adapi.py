@@ -120,8 +120,8 @@ class ADAPI:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
         if not self.AD.state.entity_exists(namespace, entity):
-            self.AD.logging.log("INFO",
-                      "{}: Entity {} not found in namespace: {}".format(
+            self.AD.logging.log("WARNING",
+                      "{}: Entity {} not found in namespace {}".format(
                           self.name, entity, namespace))
 
     def get_main_log(self):
@@ -332,6 +332,12 @@ class ADAPI:
 
         new_state = self.parse_state(entity_id, namespace, **kwargs)
 
+        if not self.AD.state.entity_exists(namespace, entity_id):
+            self.AD.logging.log("INFO",
+                      "{}: Entity {} created in namespace: {}".format(
+                          self.name, entity_id, namespace))
+
+
         # Update AD's Copy
 
         self.AD.state.set_state(namespace, entity_id, new_state)
@@ -380,13 +386,23 @@ class ADAPI:
         )
         return self.AD.events.info_event_callback(self.name, handle)
 
-    def fire_app_event(self, event, **kwargs):
+    def fire_event(self, event, **kwargs):
         namespace = self._get_namespace(**kwargs)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        self.AD.appq.fire_app_event(namespace, {"event_type": event, "data": kwargs})
+        # Fire the plugin's state update if it has one
+
+        plugin = self.AD.plugins.get_plugin(namespace)
+
+        if hasattr(plugin, "set_plugin_state"):
+            # We assume that the event will come back to us via the plugin
+            plugin.fire_plugin_event(event, namespace, **kwargs)
+        else:
+            # Just fire the event locally
+            self.AD.appq.fire_app_event(namespace, {"event_type": event, "data": kwargs})
+
 
     #
     # Time
@@ -626,7 +642,7 @@ class ADAPI:
             kwargs["timeout"] = timeout
         if ret is not None:
             kwargs["return"] = ret
-        self.fire_app_event("hadashboard", **kwargs)
+        self.fire_event("hadashboard", **kwargs)
     #
     # Other
     #

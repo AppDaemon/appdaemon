@@ -1372,10 +1372,12 @@ Examples
 
     service, kwargs = self.info_listen_event(handle)
 
-fire\_app\_event()
+fire\_event()
 ~~~~~~~~~~~~~
 
-Fire an event on AppDaemons internal bus for other apps and dashboards to hear.
+Fire an event on the AppDaemon bus, for apps and plugins.
+
+Fire event will propagate the event to whichever namespace is currently active. If a plugin is in use for the namespace, fire_event() will use the plugin to fire the event rather than firing it locally, under the assumption that the event will be returned to AppDamon via the plugin's event monitoring.
 
 Synopsis
 ^^^^^^^^
@@ -1395,7 +1397,9 @@ Parameters
 event
 '''''
 
-Name of the event.
+Name of the event. Can be a standard Home Assistant event such as
+``service_registered`` or an arbitrary custom event such as
+``"MODE_CHANGE"``.
 
 namespace = (optional)
 ''''''''''''''''''''''
@@ -1415,7 +1419,10 @@ Examples
 
 .. code:: python
 
-    self.fire_app_event("MY_CUSTOM_EVENT", jam="true")
+    self.fire_event("MY_CUSTOM_EVENT", jam="true")
+
+
+
 
 Miscellaneous Helper Functions
 ------------------------------
