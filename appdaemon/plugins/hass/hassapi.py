@@ -47,44 +47,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         self.register_constraint("constrain_days")
 
     #
-    # State
-    #
-
-    def set_state(self, entity_id, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
-        new_state = super(Hass, self).parse_state(entity_id, namespace, **kwargs)
-
-        config = self.AD.plugins.get_plugin(namespace).config
-        if "cert_path" in config:
-            cert_path = config["cert_path"]
-        else:
-            cert_path = False
-
-        if "token" in config:
-            headers = {'Authorization': "Bearer {}".format(config["token"])}
-        elif "ha_key"  in config:
-            headers = {'x-ha-access': config["ha_key"]}
-        else:
-            headers = {}
-
-        apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
-
-        r = requests.post(
-            apiurl, headers=headers, json=new_state, verify=cert_path
-        )
-        r.raise_for_status()
-        state = r.json()
-
-        # Update AppDaemon's copy
-
-        self.AD.state.set_state(namespace, entity_id, state)
-
-        return state
-
-    #
     # Device Trackers
     #
 

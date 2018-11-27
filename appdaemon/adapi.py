@@ -102,6 +102,12 @@ class ADAPI:
     def get_namespace(self):
         return self.namespace
 
+    def list_namespaces(self):
+        return self.AD.state.list_namespaces()
+
+    def save_namespace(self, namespace):
+        self.AD.state.save_namespace(namespace)
+
     #
     # Utility
     #
@@ -113,10 +119,10 @@ class ADAPI:
         if "." not in entity:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
-        if not self.AD.state.entity_exists(namespace, entity):
-            self.AD.logging.log("WARNING",
-                      "{}: Entity {} not found in AppDaemon".format(
-                          self.name, entity))
+        #if not self.AD.state.entity_exists(namespace, entity):
+        #    self.AD.logging.log("WARNING",
+        #              "{}: Entity {} not found in AppDaemon".format(
+        #                  self.name, entity))
 
     def get_main_log(self):
         return self.logging.get_logger()
@@ -301,7 +307,7 @@ class ADAPI:
             "parse_state: {}, {}".format(entity_id, kwargs)
         )
 
-        if entity_id in self.get_state(namespace = namespace):
+        if entity_id in self.get_state(namespace=namespace):
             new_state = self.get_state(namespace = namespace)[entity_id]
         else:
             # Its a new state entry
@@ -319,19 +325,27 @@ class ADAPI:
 
         return new_state
 
-    def set_app_state(self, entity_id, **kwargs):
+    def set_state(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
+
         new_state = self.parse_state(entity_id, namespace, **kwargs)
 
         # Update AD's Copy
 
         self.AD.state.set_state(namespace, entity_id, new_state)
 
-        # Fire the state update event
+        # Fire the plugin's state update if it has one
 
-        self.AD.appq.set_app_state(namespace, entity_id, new_state)
+        plugin = self.AD.plugins.get_plugin(namespace)
+
+        if hasattr(plugin, "set_plugin_state"):
+            # We assume that the event will come back to us via the plugin
+            plugin.set_plugin_state(namespace, entity_id, new_state)
+        else:
+            # Just fire the event locally
+            self.AD.appq.set_state_event(namespace, entity_id, new_state)
 
         return new_state
 

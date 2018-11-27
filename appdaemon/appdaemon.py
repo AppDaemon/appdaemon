@@ -149,6 +149,9 @@ class AppDaemon:
         self.qsize_warning_step = 60
         utils.process_arg(self, "qsize_warning_step", kwargs, int=True)
 
+        self.namespaces = {}
+        utils.process_arg(self, "namespaces", kwargs)
+
         self.exclude_dirs = ["__pycache__"]
         if "exclude_dirs" in kwargs:
             self.exclude_dirs += kwargs["exclude_dirs"]
@@ -238,6 +241,8 @@ class AppDaemon:
             self.utility.stop()
         if self.plugins is not None:
             self.plugins.stop()
+        if self.state is not None:
+            self.state.save_all_namespaces()
 
     #
     # Utilities

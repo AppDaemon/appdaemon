@@ -95,7 +95,8 @@ class Plugins:
 
     def run_plugin_utility(self):
         for plugin in self.plugin_objs:
-            self.plugin_objs[plugin]["object"].utility()
+            if hasattr(self.plugin_objs[plugin]["object"].utility(), "utility"):
+                self.plugin_objs[plugin]["object"].utility()
 
     def process_meta(self, meta, namespace):
 
@@ -105,6 +106,9 @@ class Plugins:
                     if key in meta:
                         # We have a value so override
                         setattr(self.AD, key, meta[key])
+
+    def get_plugin(self, plugin):
+        return self.plugins[plugin]
 
     def get_plugin_from_namespace(self, namespace):
         if self.plugins is not None:

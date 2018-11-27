@@ -92,6 +92,10 @@ class Utility:
 
                     self.AD.threading.check_overdue_threads()
 
+                    # Save any hybrid namespaces
+
+                    self.AD.state.save_hybrid_namespaces()
+
                     # Update Admin Perf Stats
 
                     if self.AD.admin is not None:

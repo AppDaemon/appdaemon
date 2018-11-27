@@ -37,7 +37,7 @@ class AppQ:
         event["namespace"] = namespace
         self.appq.put_nowait(event)
 
-    def set_app_state(self, namespace, entity_id, state):
+    def set_state_event(self, namespace, entity_id, state):
         self.AD.logging.log("DEBUG", "set_app_state: {}".format(entity_id))
         if entity_id is not None and "." in entity_id:
             if self.AD.state.entity_exists(namespace, entity_id):

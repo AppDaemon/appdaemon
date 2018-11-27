@@ -7,6 +7,7 @@ import time
 import cProfile
 import io
 import pstats
+import json
 
 if platform.system() != "Windows":
     import pwd
@@ -60,6 +61,46 @@ class Formatter(object):
             for item in value
         ]
         return '(%s)' % (','.join(items) + self.lfchar + self.htchar * indent)
+
+
+class PersistentDict(dict):
+
+    """
+    Persistent Dictionary subclass that uses JSON to persist its contents
+    """
+
+    def __init__(self, filename, safe, *args, **kwargs):
+        self.filename = filename
+        self.safe = safe
+        self._load()
+        #self.update(True, *args, **kwargs)
+
+    def _load(self):
+        if os.path.isfile(self.filename) and os.path.getsize(self.filename) > 0:
+            with open(self.filename, 'r') as fh:
+                self.update(False, json.load(fh))
+
+    def save(self):
+        with open(self.filename, 'w') as fh:
+            json.dump(self, fh)
+
+    def __getitem__(self, key):
+        return dict.__getitem__(self, key)
+
+    def __setitem__(self, key, val):
+        dict.__setitem__(self, key, val)
+        if self.safe is True:
+            self.save()
+
+    def __repr__(self):
+        dictrepr = dict.__repr__(self)
+        return '%s(%s)' % (type(self).__name__, dictrepr)
+
+    def update(self, save=True, *args, **kwargs):
+        for k, v in dict(*args, **kwargs).items():
+            self[k] = v
+            if self.safe is True and save is True:
+                self.save()
 
 
 class AttrDict(dict):

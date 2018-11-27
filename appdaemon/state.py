@@ -2,6 +2,7 @@ import uuid
 from copy import deepcopy
 import traceback
 import threading
+import os
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -15,6 +16,36 @@ class State:
         self.state = {}
         self.state["default"] = {}
         self.state_lock = threading.RLock()
+
+        # Initialize User Defined Namespaces
+
+        nspath = os.path.join(self.AD.config_dir, "namespaces")
+        try:
+            if not os.path.isdir(nspath):
+                os.makedirs(nspath)
+            for ns in self.AD.namespaces:
+                writeback = "safe"
+                if "writeback" in self.AD.namespaces[ns]:
+                    writeback = self.AD.namespaces[ns]["writeback"]
+
+                safe = False
+                if writeback == "safe":
+                    safe = True
+
+                self.state[ns] = utils.PersistentDict(os.path.join(nspath, ns), safe)
+        except:
+                self.AD.logging.log("WARNING", '-' * 60)
+                self.AD.logging.log("WARNING", "Unexpected error in namespace setup")
+                self.AD.logging.log("WARNING", '-' * 60)
+                self.AD.logging.log("WARNING", traceback.format_exc())
+                self.AD.logging.log("WARNING", '-' * 60)
+
+    def list_namespaces(self):
+        ns = []
+        with self.state_lock:
+            for namespace in self.state:
+                ns.append(namespace)
+        return ns
 
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
         if self.AD.threading.validate_pin(name, kwargs) is True:
@@ -230,7 +261,10 @@ class State:
     def get_state(self, namespace, device, entity, attribute):
         with self.state_lock:
             if device is None:
-                return deepcopy(self.state[namespace])
+                if self.state[namespace] == {}:
+                    return {}
+                else:
+                    return deepcopy(dict(self.state[namespace]))
             elif entity is None:
                 devices = {}
                 for entity_id in self.state[namespace].keys():
@@ -274,6 +308,21 @@ class State:
     def update_namespace_state(self, namespace, state):
         with self.state_lock:
             self.state[namespace].update(state)
+
+    def save_namespace(self, namespace):
+        with self.state_lock:
+            self.state[namespace].save()
+
+    def save_all_namespaces(self):
+        with self.state_lock:
+            for ns in self.AD.namespaces:
+                self.state[ns].save()
+
+    def save_hybrid_namespaces(self):
+        with self.state_lock:
+            for ns in self.AD.namespaces:
+                if self.AD.namespaces[ns]["writeback"] == "hybrid":
+                    self.state[ns].save()
 
     #
     # Utilities

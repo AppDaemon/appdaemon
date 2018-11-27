@@ -5,6 +5,7 @@ from websocket import create_connection
 import traceback
 import aiohttp
 import pytz
+import requests
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -280,6 +281,36 @@ class HassPlugin:
     #
     # Home Assistant Interactions
     #
+
+    #
+    # State
+    #
+
+    def set_plugin_state(self, namespace, entity_id, new_state):
+        print("set_plugin_state")
+        config = self.AD.plugins.get_plugin(namespace).config
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
+        else:
+            cert_path = False
+
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key"  in config:
+            headers = {'x-ha-access': config["ha_key"]}
+        else:
+            headers = {}
+
+        apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
+
+        r = requests.post(
+            apiurl, headers=headers, json=new_state, verify=cert_path
+        )
+        r.raise_for_status()
+        state = r.json()
+
+        return state
+
 
     async def get_hass_state(self, entity_id=None):
         if self.token is not None:
