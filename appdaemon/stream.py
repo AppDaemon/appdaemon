@@ -54,19 +54,28 @@ class ADStream:
                 self.AD.logging.log("WARNING", '-' * 60)
                 self.AD.logging.log("WARNING", traceback.format_exc())
                 self.AD.logging.log("WARNING", '-' * 60)
-            if self.transport == "ws":
-                if len(self.app['websockets']) > 0:
-                    self.AD.logging.log("DEBUG",
-                           "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
-                for ws in self.app['websockets']:
-                    if "dashboard" in self.app['websockets'][ws]:
-                        self.AD.logging.log(
-                               "DEBUG",
-                               "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
-                        await ws.send_str(jdata)
 
-            else:
-                await self.dash_stream.emit('down', jdata)
+            try:
+
+                if self.transport == "ws":
+                    if len(self.app['websockets']) > 0:
+                        self.AD.logging.log("DEBUG",
+                               "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
+                    for ws in self.app['websockets']:
+                        if "dashboard" in self.app['websockets'][ws]:
+                            self.AD.logging.log(
+                                   "DEBUG",
+                                   "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
+                            await ws.send_str(jdata)
+
+                else:
+                    await self.dash_stream.emit('down', jdata)
+            except:
+                self.AD.logging.log("WARNING", '-' * 60)
+                self.AD.logging.log("WARNING", "Unexpected sending to admin panel")
+                self.AD.logging.log("WARNING", '-' * 60)
+                self.AD.logging.log("WARNING", traceback.format_exc())
+                self.AD.logging.log("WARNING", '-' * 60)
 
     #@securedata
     async def wshandler(self, request):
