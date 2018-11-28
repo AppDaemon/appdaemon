@@ -6,14 +6,22 @@ import logging
 from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
 
+from appdaemon.appq import AppDaemon
+
 class LogSubscriptionHandler(StreamHandler):
-    def __init__(self, ad, type):
+
+    def __init__(self, ad: AppDaemon):
         StreamHandler.__init__(self)
         self.AD = ad
         self.type = type
 
     def emit(self, record):
-        msg = self.format(record)
+        # Frig the App Name
+        # TODO fix this for all logs
+        name = record.name
+        if "." in record.name:
+            parent, child = record.name.split(".")
+            name = child
         if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None:
             # Need to check if this log callback belongs to an app that is accepting log events
             # If so, don't generate the event to avoid loops
@@ -22,16 +30,17 @@ class LogSubscriptionHandler(StreamHandler):
                 for callback in self.AD.callbacks.callbacks:
                     for uuid in self.AD.callbacks.callbacks[callback]:
                         cb = self.AD.callbacks.callbacks[callback][uuid]
-                        if cb["name"] == self.name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
+                        if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
                             has_log_callback = True
 
             if has_log_callback is False:
+                msg = self.format(record)
                 self.AD.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
                                               "data": {
-                                                  "level": self.level,
-                                                  "app_name": record.name,
+                                                  "level": record.levelname,
+                                                  "app_name": name,
                                                   "message": msg,
-                                                  "type": self.type
+                                                  "type": "log"
                                               }})
 
 
@@ -51,6 +60,11 @@ class Logging:
         self.AD = None
         self.tz = None
 
+        log_format_default = '%(asctime)s %(levelname)s %(name)s %(message)s'
+        error_format_default = '%(asctime)s %(levelname)s %(name)s %(message)s'
+        access_format_default = '%(asctime)s %(levelname)s %(message)s'
+        diag_format_default = '%(asctime)s %(levelname)s %(message)s'
+
         if "log" not in config:
             logfile = "STDOUT"
             errorfile = "STDERR"
@@ -58,6 +72,10 @@ class Logging:
             log_size = 1000000
             log_generations = 3
             accessfile = None
+            log_format = log_format_default
+            error_format = error_format_default
+            access_format = access_format_default
+            diag_format = diag_format_default
         else:
             logfile = config['log'].get("logfile", "STDOUT")
             errorfile = config['log'].get("errorfile", "STDERR")
@@ -67,52 +85,56 @@ class Logging:
             log_size = config['log'].get("log_size", 1000000)
             log_generations = config['log'].get("log_generations", 3)
             accessfile = config['log'].get("accessfile")
+            log_format = config['log'].get("log_format", log_format_default)
+            error_format = config['log'].get("error_format", error_format_default)
+            access_format = config['log'].get("access_format", access_format_default)
+            diag_format = config['log'].get("diag_format", diag_format_default)
 
         self.log_level = debug
-        self.logger = logging.getLogger("AppDaemon")
         numeric_level = getattr(logging, debug, None)
+        log_formatter = logging.Formatter(log_format)
+        #
+        # Add a time formatter that understands time travel
+        #
+        log_formatter.formatTime = self.get_time
+
+        error_formatter = logging.Formatter(error_format)
+        access_formatter = logging.Formatter(access_format)
+        diag_formatter = logging.Formatter(diag_format)
+
+
+        self.logger = logging.getLogger("AppDaemon")
         self.logger.setLevel(numeric_level)
         self.logger.propagate = False
-
-        log_fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
-        log_fmt.formatTime = self.get_time
-        diag_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-
-        fh = None
         if logfile != "STDOUT":
             fh = RotatingFileHandler(logfile, maxBytes=log_size, backupCount=log_generations)
-            fh.setFormatter(log_fmt)
-            self.logger.addHandler(fh)
         else:
-            # Default for StreamHandler() is sys.stderr
-            ch = logging.StreamHandler(stream=sys.stdout)
-            ch.setFormatter(log_fmt)
-            self.logger.addHandler(ch)
+            fh = logging.StreamHandler(stream=sys.stdout)
+
+        fh.setFormatter(log_formatter)
+        self.logger.addHandler(fh)
+        self.log_filehandler = fh
 
         # Setup compile output
 
         self.error = logging.getLogger("Error")
-        numeric_level = getattr(logging, debug, None)
         self.error.setLevel(numeric_level)
         self.error.propagate = False
-
         if errorfile != "STDERR":
             efh = RotatingFileHandler(
-                errorfile, maxBytes=log_size, backupCount=log_generations
-            )
+                errorfile, maxBytes=log_size, backupCount=log_generations)
         else:
             efh = logging.StreamHandler()
 
-        efh.setFormatter(log_fmt)
+        efh.setFormatter(error_formatter)
         self.error.addHandler(efh)
+        self.error_filehandler = efh
 
         # setup diag output
 
         self.diagnostic = logging.getLogger("Diag")
-        numeric_level = getattr(logging, debug, None)
         self.diagnostic.setLevel(numeric_level)
         self.diagnostic.propagate = False
-
         if diagfile != "STDOUT":
             dfh = RotatingFileHandler(
                 diagfile, maxBytes=log_size, backupCount=log_generations
@@ -120,28 +142,25 @@ class Logging:
         else:
             dfh = logging.StreamHandler()
 
-        dfh.setFormatter(diag_format)
+        dfh.setFormatter(diag_formatter)
         self.diagnostic.addHandler(dfh)
+        self.diag_filehandler = dfh
 
         # Setup dash output
         if accessfile is not None:
             self.acc = logging.getLogger("Access")
-            numeric_level = getattr(logging, debug, None)
             self.acc.setLevel(numeric_level)
             self.acc.propagate = False
-            efh = RotatingFileHandler(
+            afh = RotatingFileHandler(
                 config['log'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
             )
 
-            efh.setFormatter(diag_format)
-            self.acc.addHandler(efh)
+            afh.setFormatter(access_formatter)
+            self.acc.addHandler(afh)
+            self.access_filehandler = fh
         else:
             self.acc = self.logger
-
-        # Log Subscriptions
-
-        self.logger.addHandler(LogSubscriptionHandler(self.AD, ""))
-
+            self.access_filehandler = None
 
     def get_time(logger, record, format=None):
         if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
@@ -159,25 +178,36 @@ class Logging:
 
     def register_ad(self, ad):
         self.AD = ad
-        self.logger.AD = ad
-        self.error.AD = ad
-        self.diagnostic.AD = ad
-        self.acc.AD = ad
+
+        # Log Subscriptions
+
+        lh = LogSubscriptionHandler(self.AD)
+        lh.setLevel(logging.INFO)
+        self.logger.addHandler(lh)
+
+        eh = LogSubscriptionHandler(self.AD)
+        eh.setLevel(logging.INFO)
+        self.error.addHandler(eh)
+
+        dh = LogSubscriptionHandler(self.AD)
+        dh.setLevel(logging.INFO)
+        self.acc.addHandler(dh)
+
+        ah = LogSubscriptionHandler(self.AD)
+        ah.setLevel(logging.INFO)
+        self.diagnostic.addHandler(ah)
 
     def _log(self, logger, level, message, name, ascii_encode):
         if level == "INFO":
-            self.logger.info(message)
+            logger.info(message)
         elif level == "WARNING":
-            self.logger.warning(message)
+            logger.warning(message)
         elif level == "ERROR":
-            self.logger.error(message)
+            logger.error(message)
         elif level == "DEBUG":
-            self.logger.debug(message)
+            logger.debug(message)
         else:
-            self.logger.log(self.log_levels[level], message)
-
-        #if level != "DEBUG":
-        #    self.process_log_callback(level, message, name, ts, "log")
+            logger.log(self.log_levels[level], message)
 
     def log(self, level, message, name="AppDaemon", ascii_encode=True):
         self._log(self.logger, level, message, name, ascii_encode)

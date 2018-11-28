@@ -586,7 +586,7 @@ class Threading:
                         if args["event"] == "__AD_LOG_EVENT":
                             if self.validate_callback_sig(name, "log_event", funcref):
                                 self.update_thread_info(thread_id, callback, _type)
-                                funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
+                                funcref(data["app_name"], self.AD.sched.get_now_naive(), data["level"], data["type"], data["message"], args["kwargs"])
                         else:
                             if self.validate_callback_sig(name, "event", funcref):
                                 self.update_thread_info(thread_id, callback, _type)
@@ -606,7 +606,8 @@ class Threading:
                     self.current_callbacks_executed += 1
 
             else:
-                self.AD.logging.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
+                if not self.AD.stopping:
+                    self.AD.logging.log("WARNING", "Found stale callback for {} - discarding".format(name), name=name)
 
             q.task_done()
 

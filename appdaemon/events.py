@@ -60,7 +60,6 @@ class Events:
                 raise ValueError("Invalid handle: {}".format(handle))
 
     def process_event(self, namespace, data):
-        #print(data)
         with self.AD.callbacks.callbacks_lock:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
@@ -72,6 +71,7 @@ class Events:
                         # Or the event is a match
                         # But don't allow a global listen for any system events (events that start with __)
                         #
+
                         if "event" in callback and (
                                 (callback["event"] is None and data['event_type'][:2] != "__")
                                 or data['event_type'] == callback["event"]):
