@@ -41,7 +41,7 @@ Change Log
 
 - Fixes to listen_state() oneshot function
 - Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
-- Fix to Forcast min/max in weather widget -  - contributed by `adipose <https://github.com/adipose>`__
+- Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
 - Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
 
 **Breaking Changes**

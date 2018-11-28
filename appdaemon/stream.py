@@ -47,15 +47,6 @@ class ADStream:
     async def send_update(self, data):
             try:
                 jdata = json.dumps(data)
-            except:
-                self.AD.logging.log("WARNING", '-' * 60)
-                self.AD.logging.log("WARNING", "Unexpected error in JSON conversion")
-                self.AD.logging.log("WARNING", "Data is: {}".format(data))
-                self.AD.logging.log("WARNING", '-' * 60)
-                self.AD.logging.log("WARNING", traceback.format_exc())
-                self.AD.logging.log("WARNING", '-' * 60)
-
-            try:
 
                 if self.transport == "ws":
                     if len(self.app['websockets']) > 0:
@@ -70,9 +61,15 @@ class ADStream:
 
                 else:
                     await self.dash_stream.emit('down', jdata)
+            except TypeError as e:
+                self.AD.logging.log("WARNING", '-' * 60)
+                self.AD.logging.log("WARNING", "Unexpected error in JSON conversion")
+                self.AD.logging.log("WARNING", "Data is: {}".format(data))
+                self.AD.logging.log("WARNING", "Error is: {}".format(e))
+                self.AD.logging.log("WARNING", '-' * 60)
             except:
                 self.AD.logging.log("WARNING", '-' * 60)
-                self.AD.logging.log("WARNING", "Unexpected sending to admin panel")
+                self.AD.logging.log("WARNING", "Unexpected error sending to admin panel")
                 self.AD.logging.log("WARNING", '-' * 60)
                 self.AD.logging.log("WARNING", traceback.format_exc())
                 self.AD.logging.log("WARNING", '-' * 60)

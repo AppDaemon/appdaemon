@@ -125,6 +125,9 @@ class AppDaemon:
         self.utility_delay = 1
         utils.process_arg(self, "utility_delay", kwargs, int=True)
 
+        self.admin_delay = 1
+        utils.process_arg(self, "admin_delay", kwargs, int=True)
+
         self.max_utility_skew = self.utility_delay * 0.9
         utils.process_arg(self, "max_utility_skew", kwargs, float=True)
 

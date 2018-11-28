@@ -1,7 +1,7 @@
 import os
 import traceback
 
-from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import appdaemon.utils as utils
 

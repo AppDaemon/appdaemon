@@ -3,6 +3,7 @@ import concurrent.futures
 from aiohttp import web
 import ssl
 import bcrypt
+import asyncio
 
 import appdaemon.admin as admin
 import appdaemon.utils as utils
@@ -117,6 +118,11 @@ class RunAdmin:
             f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
 
             loop.create_task(f)
+
+            # start update loop
+
+            self.AD.loop.create_task(self.admin_loop())
+
         except:
             self.log("WARNING", '-' * 60)
             self.log("WARNING", "Unexpected error in admin thread")
@@ -138,6 +144,35 @@ class RunAdmin:
 
     def stop(self):
         self.stopping = True
+
+    async def admin_loop(self):
+        while not self.stopping:
+            old_update = {}
+            update = {}
+            threads = {}
+            if self.AD.admin.stats_update != "none" and self.AD.sched is not None:
+                callback_update = self.AD.threading.get_callback_update()
+                sched = self.AD.sched.get_scheduler_entries()
+                state_callbacks = self.AD.callbacks.get_callback_entries("state")
+                event_callbacks = self.AD.callbacks.get_callback_entries("event")
+                threads = self.AD.threading.get_thread_info()
+                update["updates"] = callback_update
+                update["schedule"] = sched
+                update["state_callbacks"] = state_callbacks
+                update["event_callbacks"] = event_callbacks
+                update["updates"]["current_busy_threads"] = threads["current_busy"]
+                update["updates"]["max_busy_threads"] = threads["max_busy"]
+                update["updates"]["max_busy_threads_time"] = threads["max_busy_time"]
+            if self.AD.admin.stats_update == "batch":
+                update["threads"] = threads["threads"]
+
+            if update != old_update:
+                await self.AD.admin.admin_update(update)
+
+            old_update = update
+
+            await asyncio.sleep(self.AD.admin_delay)
+
 
     def log(self, level, message):
         self.logging.log(level, message, "ADAdmin")

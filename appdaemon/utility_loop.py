@@ -13,7 +13,6 @@ class Utility:
 
         self.AD = ad
         self.stopping = False
-        self.old_update = {}
 
     def stop(self):
         self.stopping = True
@@ -62,7 +61,6 @@ class Utility:
 
             warning_step = 0
 
-
             # Start the loop proper
 
             while not self.stopping:
@@ -95,32 +93,6 @@ class Utility:
                     # Save any hybrid namespaces
 
                     self.AD.state.save_hybrid_namespaces()
-
-                    # Update Admin Perf Stats
-
-                    if self.AD.admin is not None:
-                        update = {}
-                        threads = {}
-                        if self.AD.admin.stats_update != "none":
-                            callback_update = self.AD.threading.get_callback_update()
-                            sched = self.AD.sched.get_scheduler_entries()
-                            state_callbacks = self.AD.callbacks.get_callback_entries("state")
-                            event_callbacks = self.AD.callbacks.get_callback_entries("event")
-                            threads = self.AD.threading.get_thread_info()
-                            update["updates"] = callback_update
-                            update["schedule"] = sched
-                            update["state_callbacks"] = state_callbacks
-                            update["event_callbacks"] = event_callbacks
-                            update["updates"]["current_busy_threads"] = threads["current_busy"]
-                            update["updates"]["max_busy_threads"] = threads["max_busy"]
-                            update["updates"]["max_busy_threads_time"] = threads["max_busy_time"]
-                        if self.AD.admin.stats_update == "batch":
-                            update["threads"] = threads["threads"]
-
-                        if update != self.old_update:
-                            await self.AD.admin.admin_update(update)
-
-                        self.old_update = update
 
                     # Run utility for each plugin
 
