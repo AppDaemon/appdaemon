@@ -149,7 +149,7 @@ To force dashboard recompilation of all dashboards after a restart, use:
       dash_compile_on_start: 1
 
 This should not be necessary but may on occasion be required after an
-upgrade to pickup changes.
+upgrade to pickup changes. This is now the default if not otherwise specified.
 
 Dashboard URL Parameters
 ------------------------

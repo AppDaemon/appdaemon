@@ -47,10 +47,10 @@ class ADMain():
         if signum == signal.SIGHUP:
             self.AD.app_management.check_app_updates(True)
         if signum == signal.SIGINT:
-            self.AD.logging.log("INFO", "Keyboard interrupt")
+            self.logger.info("Keyboard interrupt")
             self.stop()
         if signum == signal.SIGTERM:
-            self.AD.logging.log("INFO", "SIGTERM Recieved")
+            self.logger.info("SIGTERM Recieved")
             self.stop()
 
     def stop(self):
@@ -73,41 +73,40 @@ class ADMain():
             # Initialize Dashboard/API
 
             if hadashboard["dashboard"] is True:
-                self.AD.logging.log("INFO", "Starting Dashboards")
+                self.logger.info("Starting Dashboards")
                 self.rundash = rundash.RunDash(self.AD, loop, self.logging, **hadashboard)
                 self.AD.register_dashboard(self.rundash)
             else:
-                self.AD.logging.log("INFO", "Dashboards are disabled")
+                self.logger.info("Dashboards are disabled")
 
             if "api_port" in appdaemon:
-                self.AD.logging.log("INFO", "Starting API on port {}".format(appdaemon["api_port"]))
+                self.logger.info("Starting API on port %s", appdaemon["api_port"])
                 self.api = api.ADAPI(self.AD, loop, self.logging, **appdaemon)
                 self.AD.register_api(self.api)
             else:
-                self.AD.logging.log("INFO", "API is disabled")
+                self.logger.info("API is disabled")
 
             if "admin" in appdaemon and "port" in appdaemon["admin"]:
-                self.AD.logging.log("INFO", "Starting Admin Interface on port {}".format(appdaemon["admin"]["port"]))
+                self.logger.info("Starting Admin Interface on port %s", appdaemon["admin"]["port"])
                 admin = appdaemon["admin"]
                 self.runadmin = run_admin.RunAdmin(self.AD, loop, self.logging, **admin)
                 self.AD.register_admin(self.runadmin)
             else:
-                self.AD.logging.log("INFO", "Admin Interface is disabled")
+                self.logger.info("Admin Interface is disabled")
 
-            self.AD.logging.log("DEBUG", "Start Loop")
+            self.logger.debug("Start Loop")
 
             pending = asyncio.Task.all_tasks()
             loop.run_until_complete(asyncio.gather(*pending))
         except:
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", "Unexpected error during run()")
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", traceback.format_exc())
-            self.AD.logging.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during run()")
+            self.logger.warning('-' * 60, exc_info=True)
+            self.logger.warning('-' * 60)
 
-        self.AD.logging.log("DEBUG", "End Loop")
+            self.logger.debug("End Loop")
 
-        self.AD.logging.log("INFO", "AppDeamon Exited")
+            self.logger.info("AppDeamon Exited")
 
 
 
@@ -257,6 +256,7 @@ class ADMain():
         # Setup logging
 
         self.logging = logging.Logging(config, args.debug)
+        self.logger = self.logging.get_logger()
 
         if "time_zone" in config["appdaemon"]:
             self.logging.set_tz(pytz.timezone(config["appdaemon"]["time_zone"]))
@@ -264,10 +264,10 @@ class ADMain():
 
         # Startup message
 
-        self.logging.log("INFO", "AppDaemon Version {} starting".format(utils.__version__))
-        self.logging.log("INFO", "Configuration read from: {}".format(config_file_yaml))
-        self.logging.log("DEBUG", "AppDaemon Section: {}".format(config.get("AppDaemon")))
-        self.logging.log("DEBUG", "HADashboard Section: {}".format(config.get("HADashboard")))
+        self.logger.info("AppDaemon Version %s starting",utils.__version__)
+        self.logger.info("Configuration read from: %s", config_file_yaml)
+        self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
+        self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
 
         utils.check_path("config_file", self.logging, config_file_yaml, pathtype="file")
 

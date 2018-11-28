@@ -4,6 +4,35 @@ import sys
 
 import logging
 from logging.handlers import RotatingFileHandler
+from logging import StreamHandler
+
+class LogSubscriptionHandler(StreamHandler):
+    def __init__(self, ad, type):
+        StreamHandler.__init__(self)
+        self.AD = ad
+        self.type = type
+
+    def emit(self, record):
+        msg = self.format(record)
+        if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None:
+            # Need to check if this log callback belongs to an app that is accepting log events
+            # If so, don't generate the event to avoid loops
+            has_log_callback = False
+            with self.AD.callbacks.callbacks_lock:
+                for callback in self.AD.callbacks.callbacks:
+                    for uuid in self.AD.callbacks.callbacks[callback]:
+                        cb = self.AD.callbacks.callbacks[callback][uuid]
+                        if cb["name"] == self.name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
+                            has_log_callback = True
+
+            if has_log_callback is False:
+                self.AD.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
+                                              "data": {
+                                                  "level": self.level,
+                                                  "app_name": record.name,
+                                                  "message": msg,
+                                                  "type": self.type
+                                              }})
 
 
 class Logging:
@@ -40,34 +69,32 @@ class Logging:
             accessfile = config['log'].get("accessfile")
 
         self.log_level = debug
-        self.logger = logging.getLogger("log1")
+        self.logger = logging.getLogger("AppDaemon")
         numeric_level = getattr(logging, debug, None)
         self.logger.setLevel(numeric_level)
         self.logger.propagate = False
-        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
-        # Send to file if we are daemonizing, else send to console
+        log_fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+        log_fmt.formatTime = self.get_time
+        diag_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
         fh = None
         if logfile != "STDOUT":
             fh = RotatingFileHandler(logfile, maxBytes=log_size, backupCount=log_generations)
-            fh.setLevel(numeric_level)
-            # fh.setFormatter(formatter)
+            fh.setFormatter(log_fmt)
             self.logger.addHandler(fh)
         else:
             # Default for StreamHandler() is sys.stderr
             ch = logging.StreamHandler(stream=sys.stdout)
-            ch.setLevel(numeric_level)
-            # ch.setFormatter(formatter)
+            ch.setFormatter(log_fmt)
             self.logger.addHandler(ch)
 
         # Setup compile output
 
-        self.error = logging.getLogger("log2")
+        self.error = logging.getLogger("Error")
         numeric_level = getattr(logging, debug, None)
         self.error.setLevel(numeric_level)
         self.error.propagate = False
-        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
         if errorfile != "STDERR":
             efh = RotatingFileHandler(
@@ -76,17 +103,15 @@ class Logging:
         else:
             efh = logging.StreamHandler()
 
-        efh.setLevel(numeric_level)
-        # efh.setFormatter(formatter)
+        efh.setFormatter(log_fmt)
         self.error.addHandler(efh)
 
         # setup diag output
 
-        self.diagnostic = logging.getLogger("log3")
+        self.diagnostic = logging.getLogger("Diag")
         numeric_level = getattr(logging, debug, None)
         self.diagnostic.setLevel(numeric_level)
         self.diagnostic.propagate = False
-        # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
         if diagfile != "STDOUT":
             dfh = RotatingFileHandler(
@@ -95,52 +120,64 @@ class Logging:
         else:
             dfh = logging.StreamHandler()
 
-        dfh.setLevel(numeric_level)
-        # dfh.setFormatter(formatter)
+        dfh.setFormatter(diag_format)
         self.diagnostic.addHandler(dfh)
 
         # Setup dash output
         if accessfile is not None:
-            self.acc = logging.getLogger("log4")
+            self.acc = logging.getLogger("Access")
             numeric_level = getattr(logging, debug, None)
             self.acc.setLevel(numeric_level)
             self.acc.propagate = False
-            # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
             efh = RotatingFileHandler(
                 config['log'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
             )
 
-            efh.setLevel(numeric_level)
-            # efh.setFormatter(formatter)
+            efh.setFormatter(diag_format)
             self.acc.addHandler(efh)
         else:
             self.acc = self.logger
+
+        # Log Subscriptions
+
+        self.logger.addHandler(LogSubscriptionHandler(self.AD, ""))
+
+
+    def get_time(logger, record, format=None):
+        if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
+            ts = logger.AD.sched.get_now().astimezone(logger.tz)
+        else:
+            if logger.tz is not None:
+                ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(logger.tz)
+            else:
+                ts = datetime.datetime.now()
+
+        return str(ts)
 
     def set_tz(self, tz):
         self.tz = tz
 
     def register_ad(self, ad):
         self.AD = ad
+        self.logger.AD = ad
+        self.error.AD = ad
+        self.diagnostic.AD = ad
+        self.acc.AD = ad
 
     def _log(self, logger, level, message, name, ascii_encode):
-        if self.AD is not None and self.AD.sched is not None and not self.AD.sched.is_realtime():
-            ts = self.AD.sched.get_now()
-        elif self.tz is not None:
-            ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(self.tz)
+        if level == "INFO":
+            self.logger.info(message)
+        elif level == "WARNING":
+            self.logger.warning(message)
+        elif level == "ERROR":
+            self.logger.error(message)
+        elif level == "DEBUG":
+            self.logger.debug(message)
         else:
-            ts = datetime.datetime.now()
+            self.logger.log(self.log_levels[level], message)
 
-        name = " {}:".format(name)
-
-        if ascii_encode is True:
-            safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
-            name = safe_enc(name)
-            message = safe_enc(message)
-
-        logger.log(self.log_levels[level], "{} {}{} {}".format(ts, level, name, message))
-
-        if level != "DEBUG":
-            self.process_log_callback(level, message, name, ts, "log")
+        #if level != "DEBUG":
+        #    self.process_log_callback(level, message, name, ts, "log")
 
     def log(self, level, message, name="AppDaemon", ascii_encode=True):
         self._log(self.logger, level, message, name, ascii_encode)
@@ -165,28 +202,6 @@ class Logging:
 
     def get_diag(self):
         return self.error
-
-    def process_log_callback(self, level, message, name, ts, type):
-        if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None:
-            # Need to check if this log callback belongs to an app that is accepting log events
-            # If so, don't generate the event to avoid loops
-            has_log_callback = False
-            with self.AD.callbacks.callbacks_lock:
-                for callback in self.AD.callbacks.callbacks:
-                    for uuid in self.AD.callbacks.callbacks[callback]:
-                        cb = self.AD.callbacks.callbacks[callback][uuid]
-                        if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
-                            has_log_callback = True
-
-            if has_log_callback is False:
-                self.AD.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
-                                              "data": {
-                                                  "level": level,
-                                                  "app_name": name,
-                                                  "message": message,
-                                                  "ts": ts,
-                                                  "type": type
-                                              }})
 
     def add_log_callback(self, namespace, name, cb, level, **kwargs):
         if self.AD.events is not None:
