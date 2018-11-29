@@ -30,7 +30,7 @@ class ADStream:
     def __init__(self, ad: AppDaemon, app, transport, on_connect, on_msg):
 
         self.AD = ad
-        self.logger = ad.logging.get_logger()
+        self.logger.warning = ad.logging.get_logger()
         self.app = app
         self.transport = transport
         self.on_connect = on_connect
@@ -65,17 +65,17 @@ class ADStream:
             except BrokenPipeError:
                 self.AD.logging.log("INFO", "Admin browser disconnected unexpectedly")
             except TypeError as e:
-                self.logger('-' * 60)
-                self.logger("Unexpected error in JSON conversion")
-                self.logger("Data is: %s", data)
-                self.logger("Error is: %s",e)
-                self.logger('-' * 60)
+                self.logger.warning('-' * 60)
+                self.logger.warning("Unexpected error in JSON conversion")
+                self.logger.warning("Data is: %s", data)
+                self.logger.warning("Error is: %s",e)
+                self.logger.warning('-' * 60)
             except:
-                self.logger('-' * 60)
-                self.logger("Unexpected error sending to admin panel")
-                self.logger('-' * 60)
-                self.logger(traceback.format_exc())
-                self.logger('-' * 60)
+                self.logger.warning('-' * 60)
+                self.logger.warning("Unexpected error sending to admin panel")
+                self.logger.warning('-' * 60)
+                self.logger.warning(traceback.format_exc())
+                self.logger.warning('-' * 60)
 
     #@securedata
     async def wshandler(self, request):
