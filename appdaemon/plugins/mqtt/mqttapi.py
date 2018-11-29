@@ -78,6 +78,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                     return 'ERR'
         else:
             self.AD.logging.log('DEBUG', 'Topic not provided for Service Call {!r}.'.format(service))
+            self.log('Topic not provided for Service Call {!r}.'.format(service), level="WARNING")
             raise ValueError("Topic not provided, please provide Topic for Service Call")
 
         return result
