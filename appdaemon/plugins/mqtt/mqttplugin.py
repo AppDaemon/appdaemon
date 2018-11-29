@@ -133,15 +133,18 @@ class MqttPlugin:
             self.AD.logging.log("INFO", "{}: Connected to Broker at URL {}:{}".format(self.name, self.mqtt_client_host, self.mqtt_client_port))
             for topic in self.mqtt_client_topics:
                 self.log("{}: Subscribing to Topic: {}".format(self.name, topic))
+                self.AD.logging.log("DEBUG",
+                                "{}: Subscribing to Topic: {}".format(self.name, topic))
+                
                 result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
                 if result[0] == 0:
                     self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                    self.AD.logging.log("DEBUG",
+                                "{}: Subscription to Topic {} Sucessful".format(self.name, topic))
                 else:
-                    if topic == self.mqtt_metadata['plugin_topic']:
-                        self.AD.logging.log("CRITICAL",
-                                "{}: Subscription to Plugin Internal Topic Unsucessful. Please check Broker and Restart AD".format(self.name))
-                    else:
-                        self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
+                     self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
+                     self.AD.logging.log("DEBUG",
+                                "{}: Subscription to Topic {} Unsucessful, as Client possibly not currently connected".format(self.name, topic))
 
             self.mqtt_connected = True
 
@@ -168,10 +171,12 @@ class MqttPlugin:
             self.initialized = False
             self.mqtt_connected = False
             self.AD.logging.log("CRITICAL", "{}: MQTT Client Disconnected Abruptly. Will attempt reconnection".format(self.name))
+            self.AD.logging.log("DEBUG", "{}: MQTT Client Disconnected Abruptly. Will attempt reconnection".format(self.name))
         return
 
     def mqtt_on_message(self, client, userdata, msg):
         self.log("{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload), level='INFO')
+        self.AD.logging.log("DEBUG", "{}: Message Received: Topic = {}, Payload = {}".format(self.name, msg.topic, msg.payload))
         topic = msg.topic
 
         if self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []: #check if any of the wildcards belong
@@ -198,6 +203,8 @@ class MqttPlugin:
 
             if result[0] == 0:
                 self.log("{}: Publishing Payload {} to Topic {} Successful".format(self.name, payload, topic))
+                self.AD.logging.log("DEBUG",
+                                "{}: Publishing Payload {} to Topic {} Successful".format(self.name, payload, topic))
 
         elif service == 'subscribe':
             self.AD.logging.log("DEBUG",
@@ -207,6 +214,9 @@ class MqttPlugin:
 
             if result[0] == 0:
                 self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                self.AD.logging.log("DEBUG",
+                                "{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                
                 if topic not in self.mqtt_client_topics:
                     self.mqtt_client_topics.append(topic)
 
@@ -217,6 +227,8 @@ class MqttPlugin:
             result = self.mqtt_client.unsubscribe(topic)
             if result[0] == 0:
                 self.log("{}: Unsubscription from Topic {} Successful".format(self.name, topic))
+                self.AD.logging.log("DEBUG",
+                                "{}: Unsubscription from Topic {} Sucessful".format(self.name, topic))
                 if topic in self.mqtt_client_topics:
                     self.mqtt_client_topics.remove(topic)
         
@@ -331,6 +343,6 @@ class MqttPlugin:
             self.log('{}: There was an error while trying to setup the MQTT Service, with Traceback: {}'.format(self.name, traceback.format_exc()), level = 'CRITICAL')
         except:
             self.AD.logging.log("CRITICAL", "{}: There was an error while trying to setup the Mqtt Service".format(self.name))
-            self.log('{}: There was an error while trying to setup the MQTT Service, with Traceback: {}'.format(self.name, traceback.format_exc()), level = 'CRITICAL')
+            self.AD.logging.log('DEBUG', '{}: There was an error while trying to setup the MQTT Service, with Traceback: {}'.format(self.name, traceback.format_exc()))
         
         return
