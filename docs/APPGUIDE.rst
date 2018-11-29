@@ -301,6 +301,28 @@ required:
         type:moisture
         warning_level: 100
         units: %
+        
+secrets
+~~~~~~~
+
+AppDaemon supports the ability to pass sensitive arguments to apps, via the use of secrets in the app config file. This will allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the ``apps.yaml`` file.
+
+An example ``secrets.yaml`` might look like this:
+
+.. code:: yaml
+
+    application_api_key: ABCDEFG
+
+The secrets can then be referred to in the ``apps.yaml`` file as follows:
+
+.. code:: yaml
+
+    appname:
+      class: AppClass
+      module: appmodule
+      application_api_key: !secret application_api_key
+
+In the app, the api_key can be accessed like everyother argument the app can access.
 
 App Dependencies
 ----------------
