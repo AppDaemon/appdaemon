@@ -560,6 +560,8 @@ class Threading:
             funcref = args["function"]
             _id = args["id"]
             name = args["name"]
+            logger = self.AD.app_management.get_app(name).get_main_log()
+            error_logger = self.AD.app_management.get_app(name).get_error_log()
             args["kwargs"]["__thread_id"] = thread_id
             callback = "{}() in {}".format(funcref.__name__, name)
             app = None
@@ -592,14 +594,14 @@ class Threading:
                                 self.update_thread_info(thread_id, callback, _type)
                                 funcref(args["event"], data, args["kwargs"])
                 except:
-                    self.AD.logging.err("WARNING", '-' * 60, name=name)
-                    self.AD.logging.err("WARNING", "Unexpected error in worker for App {}:".format(name), name=name)
-                    self.AD.logging.err("WARNING", "Worker Ags: {}".format(args), name=name)
-                    self.AD.logging.err("WARNING", '-' * 60, name=name)
-                    self.AD.logging.err("WARNING", traceback.format_exc(), name=name)
-                    self.AD.logging.err("WARNING", '-' * 60, name=name)
+                    error_logger.warning('-' * 60,)
+                    error_logger.warning("Unexpected error in worker for App {}:".format(name),)
+                    error_logger.warning( "Worker Ags: {}".format(args))
+                    error_logger.warning('-' * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning('-' * 60)
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile), name=name)
+                        logger.warning("Logged an error to %s", self.AD.errfile)
                 finally:
                     self.update_thread_info(thread_id, "idle")
                     self.total_callbacks_executed += 1

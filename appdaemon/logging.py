@@ -226,7 +226,7 @@ class Logging:
         ah.setLevel(logging.INFO)
         self.diagnostic.addHandler(ah)
 
-    def _log(self, logger, level, message, name, ascii_encode):
+    def _log(self, logger, level, message):
         if level == "INFO":
             logger.info(message)
         elif level == "WARNING":
@@ -239,16 +239,16 @@ class Logging:
             logger.log(self.log_levels[level], message)
 
     def log(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.logger, level, message, name, ascii_encode)
+        self._log(self.logger, level, message)
 
     def err(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.error, level, message, name, ascii_encode)
+        self._log(self.error, level, message)
 
     def diag(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.diagnostic, level, message, name, ascii_encode)
+        self._log(self.diagnostic, level, message)
 
     def access(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.acc, level, message, name, ascii_encode)
+        self._log(self.acc, level, message)
 
     def get_error(self):
         return self.error

@@ -263,7 +263,7 @@ class ADMain():
 
         # Startup message
 
-        self.logger.info("AppDaemon Version %s starting",utils.__version__)
+        self.logger.info("AppDaemon Version %s starting", utils.__version__)
         self.logger.info("Configuration read from: %s", config_file_yaml)
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
