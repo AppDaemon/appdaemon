@@ -253,12 +253,11 @@ class HassPlugin(PluginBase):
                         "WARNING",
                         "Disconnected from Home Assistant, retrying in 5 seconds"
                     )
-                    if self.log_level == "DEBUG":
-                        self.log( "WARNING", '-' * 60)
-                        self.log( "WARNING", "Unexpected error:")
-                        self.log("WARNING", '-' * 60)
-                        self.log( "WARNING", traceback.format_exc())
-                        self.log( "WARNING", '-' * 60)
+                    self.log("DEBUG", '-' * 60)
+                    self.log("DEBUG", "Unexpected error:")
+                    self.log("DEBUG", '-' * 60)
+                    self.log("DEBUG", traceback.format_exc())
+                    self.log("DEBUG", '-' * 60)
                     await asyncio.sleep(5)
 
         self.log("INFO", "Disconnecting from Home Assistant")

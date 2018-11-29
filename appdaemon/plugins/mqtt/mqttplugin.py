@@ -132,13 +132,11 @@ class MqttPlugin(PluginBase):
                 self.log("DEBUG", "Subscribing to Topic: %s", topic)
                 result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
                 if result[0] == 0:
-                    self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
-                    self.AD.logging.log("DEBUG",
-                                "{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                    self.log("DEBUG",
+                                "Subscription to Topic %s Sucessful", topic)
                 else:
-                     self.log("{}: Subscription to Topic {} Unsucessful, as Client not currently connected".format(self.name, topic))
-                     self.AD.logging.log("DEBUG",
-                                "{}: Subscription to Topic {} Unsucessful, as Client possibly not currently connected".format(self.name, topic))
+                     self.log("DEBUG",
+                                "Subscription to Topic %s Unsucessful, as Client possibly not currently connected", topic)
 
             self.mqtt_connected = True
 
@@ -264,7 +262,7 @@ class MqttPlugin(PluginBase):
         first_time_service = True
 
         while not self.stopping: 
-            while not self.initialized or not already_initialized: #continue until initialization is successful
+            while (not self.initialized or not already_initialized) and not self.stopping: #continue until initialization is successful
                 if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time 
                     try:
                         await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
@@ -272,7 +270,7 @@ class MqttPlugin(PluginBase):
                     except asyncio.TimeoutError:
                         self.log(
                             "CRITICAL", 
-                                "Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct or broker not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
+                                "Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
                         self.mqtt_client.loop_stop()
                         self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
 
