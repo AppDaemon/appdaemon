@@ -61,6 +61,8 @@ class ADStream:
 
                 else:
                     await self.dash_stream.emit('down', jdata)
+            except BrokenPipeError:
+                self.AD.logging.log("INFO", "Admin browser disconnected unexpectedly")
             except TypeError as e:
                 self.AD.logging.log("WARNING", '-' * 60)
                 self.AD.logging.log("WARNING", "Unexpected error in JSON conversion")

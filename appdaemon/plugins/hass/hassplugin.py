@@ -1,7 +1,7 @@
 import asyncio
 import json
 import ssl
-from websocket import create_connection
+import websocket
 import traceback
 import aiohttp
 import pytz
@@ -9,12 +9,13 @@ import requests
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.plugin_management import PluginBase
 
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
         if not self.reading_messages:
-            self.AD.logging.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func.__name__))
+            self.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func.__name__))
             return lambda *args: None
         else:
             return func(*args, **kwargs)
@@ -22,9 +23,10 @@ def hass_check(func):
     return (func_wrapper)
 
 
-class HassPlugin:
+class HassPlugin(PluginBase):
 
     def __init__(self, ad: AppDaemon, name, args):
+        super().__init__(ad, name, args)
 
         # Store args
         self.AD = ad
@@ -35,7 +37,6 @@ class HassPlugin:
         self.ws = None
         self.reading_messages = False
         self.metadata = None
-        self.oath = False
 
         self.log("INFO", "HASS Plugin Initializing")
 
@@ -45,11 +46,6 @@ class HassPlugin:
             self.namespace = args["namespace"]
         else:
             self.namespace = "default"
-
-        if "verbose" in args:
-            self.verbose = args["verbose"]
-        else:
-            self.verbose = False
 
         if "ha_key" in args:
             self.ha_key = args["ha_key"]
@@ -99,15 +95,8 @@ class HassPlugin:
 
         self.log("INFO", "HASS Plugin initialization complete")
 
-    def log(self, level, message):
-        self.AD.logging.log(level, "{}: {}".format(self.name, message))
-
-    def verbose_log(self, text):
-        if self.verbose:
-            self.log("INFO", text)
-
     def stop(self):
-        self.verbose_log("*** Stopping ***")
+        self.log("DEBUG", "*** Stopping ***")
         self.stopping = True
         if self.ws is not None:
             self.ws.close()
@@ -122,7 +111,7 @@ class HassPlugin:
         for state in hass_state:
             states[state["entity_id"]] = state
         self.log("DEBUG", "Got state")
-        self.verbose_log("*** Sending Complete State: {} ***".format(hass_state))
+        self.log("DEBUG", "*** Sending Complete State: %s ***", hass_state)
         return states
 
     #
@@ -159,14 +148,13 @@ class HassPlugin:
                     sslopt = {'cert_reqs': ssl.CERT_NONE}
                 if self.cert_path:
                     sslopt['ca_certs'] = self.cert_path
-                self.ws = create_connection(
+                self.ws = websocket.create_connection(
                     "{}/api/websocket".format(url), sslopt=sslopt
                 )
                 res = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                 result = json.loads(res)
                 self.log("INFO",
-                          "Connected to Home Assistant {}".format(
-                              result["ha_version"]))
+                          "Connected to Home Assistant %s", result["ha_version"])
                 #
                 # Check if auth required, if so send password
                 #
@@ -203,8 +191,8 @@ class HassPlugin:
                                 result["success"] is True):
                     self.log(
                         "WARNING",
-                        "Unable to subscribe to HA events, id = {}".format(_id)
-                    )
+                        "Unable to subscribe to HA events, id = %s", _id)
+
                     self.log("WARNING", result)
                     raise ValueError("Error subscribing to HA Events")
 
@@ -222,10 +210,7 @@ class HassPlugin:
                 if self.app_init_delay > 0:
                     self.log(
                         "INFO",
-                        "Delaying app initialization for {} seconds".format(
-                            self.app_init_delay
-                        )
-                    )
+                        "Delaying app initialization for %s seconds", self.app_init_delay)
                     await asyncio.sleep(self.app_init_delay)
                 #
                 # Fire HA_STARTED Events
@@ -268,7 +253,7 @@ class HassPlugin:
                         "WARNING",
                         "Disconnected from Home Assistant, retrying in 5 seconds"
                     )
-                    if self.AD.logging.log_level == "DEBUG":
+                    if self.log_level == "DEBUG":
                         self.log( "WARNING", '-' * 60)
                         self.log( "WARNING", "Unexpected error:")
                         self.log("WARNING", '-' * 60)
@@ -336,29 +321,29 @@ class HassPlugin:
             apiurl = "{}/api/states".format(self.ha_url)
         else:
             apiurl = "{}/api/states/{}".format(self.ha_url, entity_id)
-        self.log("DEBUG", "get_ha_state: url is {}".format(apiurl))
+        self.log("DEBUG", "get_ha_state: url is %s", apiurl)
         r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
         r.raise_for_status()
         return await r.json()
 
     def validate_meta(self, meta, key):
         if key not in meta:
-            self.log("WARNING", "Value for '{}' not found in metadata for plugin {}".format(key, self.name))
+            self.log("WARNING", "Value for '%s' not found in metadata for plugin %s", key, self.name)
             raise ValueError
         try:
             value = float(meta[key])
         except:
-            self.log("WARNING", "Invalid value for '{}' ('{}') in metadata for plugin {}".format(key, meta[key], self.name))
+            self.log("WARNING", "Invalid value for '%s' ('%s') in metadata for plugin %s", key, meta[key], self.name)
             raise
 
     def validate_tz(self, meta):
         if "time_zone" not in meta:
-            self.log("WARNING", "Value for 'time_zone' not found in metadata for plugin {}".format( self.name))
+            self.log("WARNING", "Value for 'time_zone' not found in metadata for plugin %s", self.name)
             raise ValueError
         try:
             tz = pytz.timezone(meta["time_zone"])
         except pytz.exceptions.UnknownTimeZoneError:
-            self.log("WARNING", "Invalid value for 'time_zone' ('{}') in metadata for plugin {}".format(meta["time_zone"], self.name))
+            self.log("WARNING", "Invalid value for 'time_zone' ('%s') in metadata for plugin %s", meta["time_zone"], self.name)
             raise
 
     async def get_hass_config(self):
@@ -372,7 +357,7 @@ class HassPlugin:
                 headers = {}
 
             apiurl = "{}/api/config".format(self.ha_url)
-            self.log("DEBUG", "get_ha_config: url is {}".format(apiurl))
+            self.log("DEBUG", "get_ha_config: url is %s", apiurl)
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             meta = await r.json()
@@ -391,8 +376,7 @@ class HassPlugin:
 
     @hass_check
     def fire_plugin_event(self, event, namespace, **kwargs):
-        self.AD.logging.log("DEBUG",
-                            "fire_event: {}, {} {}".format(event, namespace, kwargs))
+        self.log("DEBUG", "fire_event: %s, %s %s", event, namespace, kwargs)
 
         config = self.AD.plugins.get_plugin(namespace).config
         if "cert_path" in config:
@@ -429,8 +413,7 @@ class HassPlugin:
             d, s = service.split("/")
             self.log(
                 "DEBUG",
-                "call_service: {}/{}, {}".format(d, s, kwargs)
-            )
+                "call_service: %s/%s, %s", d, s, kwargs)
             if self.token is not None:
                 headers = {'Authorization': "Bearer {}".format(self.token)}
             elif self.ha_key is not None:

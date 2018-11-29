@@ -3,6 +3,7 @@ import inspect
 import iso8601
 import re
 from datetime import timedelta
+import logging
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -12,18 +13,26 @@ class ADAPI:
     # Internal
     #
 
-    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
 
         # Store args
 
         self.AD = ad
         self.name = name
-        self.logging = logging
+        self.logging = logging_obj
         self.config = config
         self.app_config = app_config
         self.args = args
         self.global_vars = global_vars
-        self.namespace = "default"
+        self._namespace = "default"
+        self._logger = self.logging.get_logger().getChild(name)
+        self._error = self.logging.get_error().getChild(name)
+        if "log_level" in args:
+            self._logger.setLevel(args["log_level"])
+            self._error.setLevel(args["log_level"])
+        else:
+            self._logger.setLevel("INFO")
+            self._error.setLevel("INFO")
 
     @staticmethod
     def _sub_stack(msg):
@@ -43,7 +52,7 @@ class ADAPI:
             namespace = kwargs["namespace"]
             del kwargs["namespace"]
         else:
-            namespace = self.namespace
+            namespace = self._namespace
 
         return namespace
 
@@ -67,17 +76,25 @@ class ADAPI:
     # Logging
     #
 
-    def log(self, msg, **kwargs):
+    def _log(self, logger, msg, *args, **kwargs):
         msg = self._sub_stack(msg)
-        level = kwargs.get("level", "INFO")
+        if "level" in kwargs:
+            level = kwargs.get("level", "INFO")
+            kwargs.pop("level")
+        else:
+            level = "INFO"
         ascii_encode = kwargs.get("ascii_encode", True)
-        self.AD.logging.log(level, msg, self.name, ascii_encode)
+        if ascii_encode is True:
+            safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+            msg = safe_enc(msg)
 
-    def error(self, msg, **kwargs):
-        msg = self._sub_stack(msg)
-        level = kwargs.get("level", "WARNING")
-        ascii_encode = kwargs.get("ascii_encode", True)
-        self.AD.logging.err(level, msg, self.name, ascii_encode)
+        logger.log(self.logging.log_levels[level], msg, *args, **kwargs)
+
+    def log(self, msg, *args, **kwargs):
+        self._log(self._logger, msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        self._log(self._error, msg, *args, **kwargs)
 
     def listen_log(self, cb, level="INFO", **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -92,15 +109,27 @@ class ADAPI:
         )
         self.AD.logging.cancel_log_callback(self.name, handle)
 
+    def get_main_log(self):
+        return self._logger
+
+    def get_error_log(self):
+        return self._error
+
+    def set_log_level(self, level):
+        self._logger.setLevel(self.logging.log_levels[level])
+
+    def set_error_level(self, level):
+        self._error.setLevel(self.logging.log_levels[level])
+
     #
     # Namespace
     #
 
     def set_namespace(self, namespace):
-        self.namespace = namespace
+        self._namespace = namespace
 
     def get_namespace(self):
-        return self.namespace
+        return self._namespace
 
     def list_namespaces(self):
         return self.AD.state.list_namespaces()
@@ -123,12 +152,6 @@ class ADAPI:
             self.AD.logging.log("WARNING",
                       "{}: Entity {} not found in namespace {}".format(
                           self.name, entity, namespace))
-
-    def get_main_log(self):
-        return self.logging.get_logger()
-
-    def get_error_log(self):
-        return self.logging.get_error()
 
     def get_ad_version(self):
         return utils.__version__
