@@ -203,6 +203,8 @@ class MqttPlugin:
 
             if result[0] == 0:
                 self.log("{}: Publishing Payload {} to Topic {} Successful".format(self.name, payload, topic))
+                self.AD.logging.log("DEBUG",
+                                "{}: Publishing Payload {} to Topic {} Successful".format(self.name, payload, topic))
 
         elif service == 'subscribe':
             self.AD.logging.log("DEBUG",
@@ -212,6 +214,9 @@ class MqttPlugin:
 
             if result[0] == 0:
                 self.log("{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                self.AD.logging.log("DEBUG",
+                                "{}: Subscription to Topic {} Sucessful".format(self.name, topic))
+                
                 if topic not in self.mqtt_client_topics:
                     self.mqtt_client_topics.append(topic)
 
@@ -222,6 +227,8 @@ class MqttPlugin:
             result = self.mqtt_client.unsubscribe(topic)
             if result[0] == 0:
                 self.log("{}: Unsubscription from Topic {} Successful".format(self.name, topic))
+                self.AD.logging.log("DEBUG",
+                                "{}: Unsubscription from Topic {} Sucessful".format(self.name, topic))
                 if topic in self.mqtt_client_topics:
                     self.mqtt_client_topics.remove(topic)
         
