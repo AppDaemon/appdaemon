@@ -8,7 +8,34 @@ from logging import StreamHandler
 
 from appdaemon.appq import AppDaemon
 
+class AppNameFormatter(logging.Formatter):
+
+    """
+    Logger formatter to add 'appname' as an interpolatable field
+    """
+
+    def __init__(self, fmt=None, datefmt=None, style='%'):
+        super().__init__(fmt, datefmt, style)
+
+    def format(self, record):
+        #
+        # Figure out the name of the app and add it to the LogRecord
+        # Each logger is named after the app so split it out form the logger name
+        #
+        name = record.name
+        if "." in record.name:
+            loggers = record.name.split(".")
+            name = loggers[len(loggers) - 1]
+        record.appname = name
+        return super().format(record)
+
+
 class LogSubscriptionHandler(StreamHandler):
+
+    """
+    Handle apps that subscribe to logs
+    This Handler requires that it's formatter is an instance of AppNameFormatter
+    """
 
     def __init__(self, ad: AppDaemon):
         StreamHandler.__init__(self)
@@ -16,29 +43,23 @@ class LogSubscriptionHandler(StreamHandler):
         self.type = type
 
     def emit(self, record):
-        # Frig the App Name
-        # TODO fix this for all logs
-        name = record.name
-        if "." in record.name:
-            parent, child = record.name.split(".")
-            name = child
         if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None:
             # Need to check if this log callback belongs to an app that is accepting log events
             # If so, don't generate the event to avoid loops
             has_log_callback = False
+            msg = self.format(record)
             with self.AD.callbacks.callbacks_lock:
                 for callback in self.AD.callbacks.callbacks:
                     for uuid in self.AD.callbacks.callbacks[callback]:
                         cb = self.AD.callbacks.callbacks[callback][uuid]
-                        if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
+                        if cb["name"] == record.appname and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
                             has_log_callback = True
 
             if has_log_callback is False:
-                msg = self.format(record)
                 self.AD.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
                                               "data": {
                                                   "level": record.levelname,
-                                                  "app_name": name,
+                                                  "app_name": record.appname,
                                                   "message": msg,
                                                   "type": "log"
                                               }})
@@ -60,8 +81,8 @@ class Logging:
         self.AD = None
         self.tz = None
 
-        log_format_default = '%(asctime)s %(levelname)s %(name)s %(message)s'
-        error_format_default = '%(asctime)s %(levelname)s %(name)s %(message)s'
+        log_format_default = '%(asctime)s %(levelname)s %(appname)s: %(message)s'
+        error_format_default = '%(asctime)s %(levelname)s %(appname)s: %(message)s'
         access_format_default = '%(asctime)s %(levelname)s %(message)s'
         diag_format_default = '%(asctime)s %(levelname)s %(message)s'
 
@@ -92,16 +113,20 @@ class Logging:
 
         self.log_level = debug
         numeric_level = getattr(logging, debug, None)
-        log_formatter = logging.Formatter(log_format)
+        log_formatter = AppNameFormatter(log_format)
         #
-        # Add a time formatter that understands time travel
+        # Add a time formatter that understands time travel and formats the log correctly
         #
         log_formatter.formatTime = self.get_time
 
-        error_formatter = logging.Formatter(error_format)
-        access_formatter = logging.Formatter(access_format)
-        diag_formatter = logging.Formatter(diag_format)
+        error_formatter = AppNameFormatter(error_format)
+        error_formatter.formatTime = self.get_time
 
+        access_formatter = AppNameFormatter(access_format)
+        access_formatter.formatTime = self.get_time
+
+        diag_formatter = AppNameFormatter(diag_format)
+        diag_formatter.formatTime = self.get_time
 
         self.logger = logging.getLogger("AppDaemon")
         self.logger.setLevel(numeric_level)
@@ -182,18 +207,22 @@ class Logging:
         # Log Subscriptions
 
         lh = LogSubscriptionHandler(self.AD)
+        lh.setFormatter(AppNameFormatter())
         lh.setLevel(logging.INFO)
         self.logger.addHandler(lh)
 
         eh = LogSubscriptionHandler(self.AD)
+        eh.setFormatter(AppNameFormatter())
         eh.setLevel(logging.INFO)
         self.error.addHandler(eh)
 
         dh = LogSubscriptionHandler(self.AD)
+        dh.setFormatter(AppNameFormatter())
         dh.setLevel(logging.INFO)
         self.acc.addHandler(dh)
 
         ah = LogSubscriptionHandler(self.AD)
+        ah.setFormatter(AppNameFormatter())
         ah.setLevel(logging.INFO)
         self.diagnostic.addHandler(ah)
 

@@ -7,7 +7,6 @@ import signal
 import platform
 import yaml
 import asyncio
-import traceback
 import pytz
 
 import appdaemon.utils as utils
@@ -128,7 +127,7 @@ class ADMain():
         parser.add_argument("-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str)
         parser.add_argument("-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None)
         parser.add_argument("-i", "--interval", help="multiplier for scheduler tick", type=float, default=None)
-        parser.add_argument("-D", "--debug", help="debug level", default="INFO", choices=
+        parser.add_argument("-D", "--debug", help="global debug level", default="INFO", choices=
                             [
                                 "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
                             ])

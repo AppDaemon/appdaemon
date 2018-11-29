@@ -27,6 +27,12 @@ class ADAPI:
         self._namespace = "default"
         self._logger = self.logging.get_logger().getChild(name)
         self._error = self.logging.get_error().getChild(name)
+        if "log_level" in args:
+            self._logger.setLevel(args["log_level"])
+            self._error.setLevel(args["log_level"])
+        else:
+            self._logger.setLevel("INFO")
+            self._error.setLevel("INFO")
 
     @staticmethod
     def _sub_stack(msg):
@@ -70,21 +76,25 @@ class ADAPI:
     # Logging
     #
 
-    def _log(self, logger, msg, **kwargs):
+    def _log(self, logger, msg, *args, **kwargs):
         msg = self._sub_stack(msg)
-        level = kwargs.get("level", "INFO")
+        if "level" in kwargs:
+            level = kwargs.get("level", "INFO")
+            kwargs.pop("level")
+        else:
+            level = "INFO"
         ascii_encode = kwargs.get("ascii_encode", True)
         if ascii_encode is True:
             safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
             msg = safe_enc(msg)
 
-        logger.log(self.logging.log_levels[level], msg)
+        logger.log(self.logging.log_levels[level], msg, *args, **kwargs)
 
-    def log(self, msg, **kwargs):
-        self._log(self._logger, msg, **kwargs)
+    def log(self, msg, *args, **kwargs):
+        self._log(self._logger, msg, *args, **kwargs)
 
-    def error(self, msg, **kwargs):
-        self._log(self._error, msg, **kwargs)
+    def error(self, msg, *args, **kwargs):
+        self._log(self._error, msg, *args, **kwargs)
 
     def listen_log(self, cb, level="INFO", **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -99,10 +109,10 @@ class ADAPI:
         )
         self.AD.logging.cancel_log_callback(self.name, handle)
 
-    def get_logger(self):
+    def get_main_log(self):
         return self._logger
 
-    def get_error(self):
+    def get_error_log(self):
         return self._error
 
     def set_log_level(self, level):
@@ -142,12 +152,6 @@ class ADAPI:
             self.AD.logging.log("WARNING",
                       "{}: Entity {} not found in namespace {}".format(
                           self.name, entity, namespace))
-
-    def get_main_log(self):
-        return self.logging.get_logger()
-
-    def get_error_log(self):
-        return self.logging.get_error()
 
     def get_ad_version(self):
         return utils.__version__

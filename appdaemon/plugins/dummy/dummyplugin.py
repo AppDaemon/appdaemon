@@ -3,17 +3,19 @@ import asyncio
 import copy
 
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.plugin_management import PluginBase
 
-class DummyPlugin:
+class DummyPlugin(PluginBase):
 
     def __init__(self, ad: AppDaemon, name, args):
+        super().__init__(ad, name, args)
 
         self.AD = ad
         self.stopping = False
         self.config = args
         self.name = name
 
-        self.AD.logging.log("INFO", "Dummy Plugin Initializing", "DUMMY")
+        self.log("INFO", "Dummy Plugin Initializing", "DUMMY")
 
         self.name = name
 
@@ -22,39 +24,29 @@ class DummyPlugin:
         else:
             self.namespace = "default"
 
-        if "verbose" in args:
-            self.verbose = args["verbose"]
-        else:
-            self.verbose = False
-
         with open(args["configuration"], 'r') as yamlfd:
             config_file_contents = yamlfd.read()
         try:
             self.config = yaml.load(config_file_contents)
         except yaml.YAMLError as exc:
-            self.AD.logging.log("WARNING", "Error loading configuration")
+            self.log("WARNING", "Error loading configuration")
             if hasattr(exc, 'problem_mark'):
                 if exc.context is not None:
-                    self.AD.logging.log("WARNING", "parser says")
-                    self.AD.logging.log("WARNING", str(exc.problem_mark))
-                    self.AD.logging.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                    self.log("WARNING", "parser says")
+                    self.log("WARNING", str(exc.problem_mark))
+                    self.log("WARNING", str(exc.problem) + " " + str(exc.context))
                 else:
-                    self.AD.logging.log("WARNING", "parser says")
-                    self.AD.logging.log("WARNING", str(exc.problem_mark))
-                    self.AD.logging.log("WARNING", str(exc.problem))
+                    self.log("WARNING", "parser says")
+                    self.log("WARNING", str(exc.problem_mark))
+                    self.log("WARNING", str(exc.problem))
 
         self.state = self.config["initial_state"]
         self.current_event = 0
 
-        self.AD.logging.log("INFO", "Dummy Plugin initialization complete")
-
-    def log(self, text):
-        if self.verbose:
-            self.AD.logging.log("INFO", "{}: {}".format(self.name, text))
-
+        self.log("INFO", "Dummy Plugin initialization complete")
 
     def stop(self):
-        self.log("*** Stopping ***")
+        self.log("DEBUG", "*** Stopping ***")
         self.stopping = True
 
     #
@@ -62,7 +54,7 @@ class DummyPlugin:
     #
 
     async def get_complete_state(self):
-        self.log("*** Sending Complete State: {} ***".format(self.state))
+        self.log("DEBUG", "*** Sending Complete State: {} ***".format(self.state))
         return copy.deepcopy(self.state)
 
     async def get_metadata(self):
@@ -80,7 +72,7 @@ class DummyPlugin:
 
     def utility(self):
         pass
-        #self.log("*** Utility ***".format(self.state))
+        #self.log("DEBUG", "*** Utility ***".format(self.state))
 
     #
     # Handle state updates
@@ -112,7 +104,7 @@ class DummyPlugin:
                                     "old_state": old_state
                                 }
                         }
-                    self.log("*** State Update: {} ***".format(ret))
+                    self.log("DEBUG", "*** State Update: %s ***", ret)
                     self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = \
@@ -120,15 +112,15 @@ class DummyPlugin:
                             "event_type": event["event"]["event_type"],
                             "data": event["event"]["data"],
                         }
-                    self.log("*** Event: {} ***".format(ret))
+                    self.log("DEBUG", "*** Event: %s ***", ret)
                     self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
 
                 elif "disconnect" in event:
-                    self.log("*** Disconnected ***".format(ret))
+                    self.log("DEBUG", "*** Disconnected ***")
                     self.AD.plugins.notify_plugin_stopped(self.namespace)
 
                 elif "connect" in event:
-                    self.log("*** Connected ***".format(ret))
+                    self.log("DEBUG", "*** Connected ***")
                     await self.AD.plugins.notify_plugin_started(self.namespace)
 
                 self.current_event += 1
@@ -139,8 +131,8 @@ class DummyPlugin:
     # Set State
     #
 
-    def set_state(self, entity, state):
-        self.log("*** Setting State: {} = {} ***".format(entity, state))
+    def set_plugin_state(self, entity, state):
+        self.log("DEBUG", "*** Setting State: %s = %s ***", entity, state)
         self.state[entity] = state
 
     def get_namespace(self):

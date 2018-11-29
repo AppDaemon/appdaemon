@@ -7,6 +7,27 @@ import asyncio
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+class PluginBase:
+
+    """
+    Base class for plugins to set up logging
+    """
+
+    def __init__(self, ad: AppDaemon, name, args):
+
+        self.AD = ad
+        self._logger = self.AD.logging.get_logger().getChild(name)
+        if "log_level" in args:
+            self._logger.setLevel(args["log_level"])
+        else:
+            self._logger.setLevel("INFO")
+
+    def log(self, level, msg, *args, **kwargs):
+        self._logger.log(self.AD.logging.log_levels[level], msg, *args, **kwargs)
+
+    def set_log_level(self, level):
+        self._logger.setLevel(self.AD.logging.log_levels[level])
+
 
 class Plugins:
 

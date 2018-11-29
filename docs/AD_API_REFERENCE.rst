@@ -1916,8 +1916,6 @@ Example
 Logfiles
 --------
 
-AppDaemon provides a couple of convenience functions for loggin to bith the main log and the app error log. These will automatically insert the app name for information.
-
 log()
 ~~~~~
 
@@ -1926,7 +1924,7 @@ Synopsis
 
 .. code:: python
 
-    log(message, level = "INFO")
+    log(message, *args, level = "INFO", ascii_encode="True", **kwargs)
 
 Returns
 ^^^^^^^
@@ -1948,7 +1946,7 @@ The log level of the message - takes a string representing the standard
 logger levels.
 
 ascii_encode
-'''''
+''''''''''''
 
 Switch to disable the encoding of all log messages to ascii. Set this to
 true if you want to log UTF-8 characters. (Default: True)
@@ -1961,6 +1959,8 @@ Examples
     self.log("Log Test: Parameter is {}".format(some_variable))
     self.log("Log Test: Parameter is {}".format(some_variable), level = "ERROR")
     self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")
+    self.log("value is %s", some_value)
+    self.log("Stack is", some_value, level="WARNING", stack_info=True)
 
 error()
 ~~~~~~~
@@ -2024,7 +2024,7 @@ Examples
 .. code:: python
 
     log = self.get_main_log()
-    log.log(50, "Log a critical error")
+    log.critical("Log a critical error")
 
 
 get_error_log()
@@ -2049,7 +2049,7 @@ Examples
 .. code:: python
 
     error_log = self.get_error_log()
-    error_log.log(40, "Log an error")
+    error_log.error("Log an error", stack_info=True, exc_info=True)
 
 listen_log()
 ~~~~~~~~~~~~

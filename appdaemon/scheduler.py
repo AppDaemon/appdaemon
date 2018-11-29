@@ -477,34 +477,35 @@ class Scheduler:
 
     def get_scheduler_entries(self):
         schedule = {}
-        for name in self.schedule.keys():
-            schedule[name] = {}
-            for entry in sorted(
-                    self.schedule[name].keys(),
-                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-            ):
-                schedule[name][str(entry)] = {}
-                schedule[name][str(entry)]["timestamp"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["timestamp"]))
-                schedule[name][str(entry)]["type"] = self.schedule[name][entry]["type"]
-                schedule[name][str(entry)]["name"] = self.schedule[name][entry]["name"]
-                schedule[name][str(entry)]["basetime"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["basetime"]))
-                schedule[name][str(entry)]["repeat"] = self.schedule[name][entry]["repeat"]
-                if self.schedule[name][entry]["type"] == "next_rising":
-                    schedule[name][str(entry)]["interval"] = "sunrise:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
-                elif self.schedule[name][entry]["type"] == "next_setting":
-                    schedule[name][str(entry)]["interval"] = "sunset:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
-                elif self.schedule[name][entry]["repeat"] is True:
-                    schedule[name][str(entry)]["interval"] = utils.format_seconds(self.schedule[name][entry]["interval"])
-                else:
-                    schedule[name][str(entry)]["interval"] = "None"
+        with self.schedule_lock:
+            for name in self.schedule.keys():
+                schedule[name] = {}
+                for entry in sorted(
+                        self.schedule[name].keys(),
+                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+                ):
+                    schedule[name][str(entry)] = {}
+                    schedule[name][str(entry)]["timestamp"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["timestamp"]))
+                    schedule[name][str(entry)]["type"] = self.schedule[name][entry]["type"]
+                    schedule[name][str(entry)]["name"] = self.schedule[name][entry]["name"]
+                    schedule[name][str(entry)]["basetime"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["basetime"]))
+                    schedule[name][str(entry)]["repeat"] = self.schedule[name][entry]["repeat"]
+                    if self.schedule[name][entry]["type"] == "next_rising":
+                        schedule[name][str(entry)]["interval"] = "sunrise:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
+                    elif self.schedule[name][entry]["type"] == "next_setting":
+                        schedule[name][str(entry)]["interval"] = "sunset:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
+                    elif self.schedule[name][entry]["repeat"] is True:
+                        schedule[name][str(entry)]["interval"] = utils.format_seconds(self.schedule[name][entry]["interval"])
+                    else:
+                        schedule[name][str(entry)]["interval"] = "None"
 
-                schedule[name][str(entry)]["offset"] = self.schedule[name][entry]["offset"]
-                schedule[name][str(entry)]["kwargs"] = ""
-                for kwarg in self.schedule[name][entry]["kwargs"]:
-                    schedule[name][str(entry)]["kwargs"] = utils.get_kwargs(self.schedule[name][entry]["kwargs"])
-                schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
-                schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"] if self.schedule[name][entry]["pin_thread"] != -1 else "None"
-                schedule[name][str(entry)]["pin_app"] = "True" if self.schedule[name][entry]["pin_app"] is True else "False"
+                    schedule[name][str(entry)]["offset"] = self.schedule[name][entry]["offset"]
+                    schedule[name][str(entry)]["kwargs"] = ""
+                    for kwarg in self.schedule[name][entry]["kwargs"]:
+                        schedule[name][str(entry)]["kwargs"] = utils.get_kwargs(self.schedule[name][entry]["kwargs"])
+                    schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
+                    schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"] if self.schedule[name][entry]["pin_thread"] != -1 else "None"
+                    schedule[name][str(entry)]["pin_app"] = "True" if self.schedule[name][entry]["pin_app"] is True else "False"
 
         # Order it
 
