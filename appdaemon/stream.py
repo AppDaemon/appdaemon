@@ -30,7 +30,7 @@ class ADStream:
     def __init__(self, ad: AppDaemon, app, transport, on_connect, on_msg):
 
         self.AD = ad
-        self.logger.warning = ad.logging.get_logger()
+        self.logger = ad.logging.get_logger()
         self.app = app
         self.transport = transport
         self.on_connect = on_connect
