@@ -13,6 +13,7 @@ class Utility:
 
         self.AD = ad
         self.stopping = False
+        self.logger = ad.logging.get_logger()
 
     def stop(self):
         self.stopping = True
@@ -43,11 +44,11 @@ class Utility:
             self.AD.sched = scheduler.Scheduler(self.AD)
 
             if self.AD.apps is True:
-                self.AD.logging.log("DEBUG", "Reading Apps")
+                self.logger.debug("Reading Apps")
 
                 await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates)
 
-                self.AD.logging.log("INFO", "App initialization complete")
+                self.logger.info("App initialization complete")
                 #
                 # Fire APPD Started Event
                 #
@@ -55,7 +56,7 @@ class Utility:
 
             # Create timer loop
 
-            self.AD.logging.log("DEBUG", "Starting timer loop")
+            self.logger.debug("Starting timer loop")
 
             self.AD.loop.create_task(self.AD.sched.do_every())
 
@@ -99,19 +100,19 @@ class Utility:
                     self.AD.plugins.run_plugin_utility()
 
                 except:
-                    self.AD.logging.log("WARNING", '-' * 60)
-                    self.AD.logging.log("WARNING", "Unexpected error during utility()")
-                    self.AD.logging.log("WARNING", '-' * 60)
-                    self.AD.logging.log("WARNING", traceback.format_exc())
-                    self.AD.logging.log("WARNING", '-' * 60)
+                    self.logger.warning('-' * 60)
+                    self.logger.warning("Unexpected error during utility()")
+                    self.logger.warning('-' * 60)
+                    self.logger.warning(traceback.format_exc())
+                    self.logger.warning('-' * 60)
 
                 end_time = datetime.datetime.now().timestamp()
 
                 loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
 
-                self.AD.logging.log("DEBUG", "Util loop compute time: {}ms".format(loop_duration))
+                self.logger.debug("Util loop compute time: %sms", loop_duration)
                 if self.AD.sched.realtime is True and loop_duration > (self.AD.max_utility_skew * 1000):
-                    self.AD.logging.log("WARNING", "Excessive time spent in utility loop: {}ms".format(loop_duration))
+                    self.logger.warning("Excessive time spent in utility loop: %sms", loop_duration)
                     if self.AD.check_app_updates_profile is True:
                         self.AD.logging.diag("INFO", "Profile information for Utility Loop")
                         self.AD.logging.diag("INFO", self.AD.app_management.check_app_updates_profile_stats)
