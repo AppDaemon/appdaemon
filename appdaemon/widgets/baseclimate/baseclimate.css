@@ -15,7 +15,7 @@
 	display: inline-block;
 }
 
-.widget-baseclimate-{{id}} .unit {
+.widget-baseclimate-{{id}} .units {
 	font-size: 100%;
 	font-weight: 400;
 	display: inline-block;
@@ -24,7 +24,7 @@
 	margin-top: 5px;
 }
 
-.widget-baseclimate-{{id}} .levelunit {
+.widget-baseclimate-{{id}} .levelunits {
 	position: absolute;
 	top: 43px;
 	width: 100%;
@@ -42,7 +42,7 @@
 	display: inline-block;
 }
 
-.widget-baseclimate-{{id}} .unit2 {
+.widget-baseclimate-{{id}} .units2 {
 	font-size: 65%;
 	font-weight: 400;
 	display: inline-block;
@@ -50,7 +50,7 @@
 
 }
 
-.widget-baseclimate-{{id}} .levelunit2 {
+.widget-baseclimate-{{id}} .levelunits2 {
 	position: absolute;
 	bottom: 5px;
 	width: 100%;

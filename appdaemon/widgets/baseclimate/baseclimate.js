@@ -69,11 +69,11 @@ function baseclimate(widget_id, url, skin, parameters)
         self.level = state.attributes.temperature
         if ("units" in self.parameters)
         {
-            self.set_field(self, "unit", self.parameters.unit)
+            self.set_field(self, "units", self.parameters.units)
         }
         else
         {
-            self.set_field(self, "unit", state.attributes["unit_of_measurement"])
+            self.set_field(self, "units", state.attributes["unit_of_measurement"])
         }
         set_view(self, state)
     }
