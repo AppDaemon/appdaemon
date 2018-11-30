@@ -343,8 +343,7 @@ class AppManagement:
             if add_threads is True and self.AD.threading.auto_pin is True:
                 if total_apps > self.AD.threading.threads:
                     for i in range(total_apps - self.AD.threading.threads):
-                        self.AD.threading.add_thread(False)
-                    self.pin_threads = self.AD.threading.threads
+                        self.AD.threading.add_thread(False, True)
 
             return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}
         except:

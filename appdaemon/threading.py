@@ -66,7 +66,7 @@ class Threading:
         utils.process_arg(self, "pin_threads", kwargs, int=True)
 
         if self.pin_threads > self.total_threads:
-            raise ValueError("pin_threads cannot be > threads")
+            raise ValueError("pin_threads cannot be > total_threads")
 
         if self.pin_threads < 0:
             raise ValueError("pin_threads cannot be < 0")
@@ -74,6 +74,8 @@ class Threading:
         self.logger.info("Starting Apps with %s workers and %s pins", self.total_threads, self.pin_threads)
 
         self.next_thread = self.pin_threads
+
+        self.create_initial_threads()
 
     def get_callback_update(self):
         now = datetime.datetime.now()
@@ -124,23 +126,6 @@ class Threading:
     def get_q(self, thread_id):
         return self.thread_info["threads"][thread_id]["q"]
 
-    def add_thread(self, silent=False):
-        id = self.threads
-        if silent is False:
-            self.logger.info("Adding thread %s", id)
-        t = threading.Thread(target=self.worker)
-        t.daemon = True
-        t.setName("thread-{}".format(id))
-        with self.thread_info_lock:
-            self.thread_info["threads"][t.getName()] = \
-                {"callback": "idle",
-                 "time_called": datetime.datetime(1970, 1, 1, 0, 0, 0, 0),
-                 "q": Queue(maxsize=0),
-                 "id": id,
-                 "thread": t}
-        t.start()
-        self.threads += 1
-
     @staticmethod
     def atoi(text):
         return int(text) if text.isdigit() else text
@@ -187,10 +172,10 @@ class Threading:
                     threads[thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
                     threads[thread]["is_alive"] = "True" if self.thread_info["threads"][thread]["thread"].is_alive() is True else "False"
                     threads[thread]["pinned_apps"] = ""
+                    threads[thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
                 papps = self.get_pinned_apps(thread)
                 for app in papps:
                     threads[thread]["pinned_apps"] += "{} ".format(app)
-                    threads[thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
 
             ordered_threads = OrderedDict(sorted(threads.items(), key=lambda x : int(x[0][7:])))
             info["threads"] = ordered_threads
@@ -334,6 +319,25 @@ class Threading:
     #
     # Pinning
     #
+
+    def add_thread(self, silent=False, pinthread=False):
+        id = self.threads
+        if silent is False:
+            self.logger.info("Adding thread %s", id)
+        t = threading.Thread(target=self.worker)
+        t.daemon = True
+        t.setName("thread-{}".format(id))
+        with self.thread_info_lock:
+            self.thread_info["threads"][t.getName()] = \
+                {"callback": "idle",
+                 "time_called": datetime.datetime(1970, 1, 1, 0, 0, 0, 0),
+                 "q": Queue(maxsize=0),
+                 "id": id,
+                 "thread": t}
+        t.start()
+        self.threads += 1
+        if pinthread is True:
+            self.pin_threads += 1
 
     def calculate_pin_threads(self):
 

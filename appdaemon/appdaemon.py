@@ -1,9 +1,7 @@
 import os
 import os.path
-import datetime
 import concurrent.futures
 import threading
-import pytz
 
 class AppDaemon:
 
@@ -25,6 +23,7 @@ class AppDaemon:
 
         self.logging = logging
         self.logging.register_ad(self)
+        self.threading = None
 
         self.config = kwargs
         self.booted = None
@@ -204,7 +203,6 @@ class AppDaemon:
             # threading setup
 
             self.threading = appdaemon.threading.Threading(self, kwargs)
-            self.threading.create_initial_threads()
 
         self.loop = loop
 

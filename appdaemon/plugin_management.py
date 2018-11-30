@@ -128,11 +128,9 @@ class Plugins:
                         setattr(self.AD, key, meta[key])
 
     def get_plugin(self, plugin):
-        print("plugns", self.plugins)
         return self.plugins[plugin]
 
     def get_plugin_object(self, name):
-        print("objects", self.plugin_objs)
         if name in self.plugin_objs:
             return self.plugin_objs[name]["object"]
         else:
