@@ -37,7 +37,7 @@ class State:
                 self.state[ns] = utils.PersistentDict(os.path.join(nspath, ns), safe)
         except:
                 self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error in namespace setup")
+                self.logger.warning("Unexpected err in namespace setup")
                 self.logger.warning('-' * 60)
                 self.logger.warning(traceback.format_exc())
                 self.logger.warning('-' * 60)
@@ -234,7 +234,7 @@ class State:
 
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error during state_update()")
+            self.logger.warning("Unexpected err during state_update()")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)

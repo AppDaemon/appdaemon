@@ -49,7 +49,7 @@ class ADAPI():
             loop.create_task(f)
         except:
             self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error in api thread")
+            self.log("WARNING", "Unexpected err in api thread")
             self.log("WARNING", '-' * 60)
             self.log("WARNING", traceback.format_exc())
             self.log("WARNING", '-' * 60)
@@ -100,7 +100,7 @@ class ADAPI():
             ret, code = await self.AD.api.dispatch_app_by_name(app, args)
         except:
             self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error during API call")
+            self.log("WARNING", "Unexpected err during API call")
             self.log("WARNING", '-' * 60)
             self.log("WARNING", traceback.format_exc())
             self.log("WARNING", '-' * 60)

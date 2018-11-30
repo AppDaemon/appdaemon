@@ -102,7 +102,7 @@ class Admin:
 
         except:
             self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", "Unexpected error in admin thread")
+            self.AD.logging.log("WARNING", "Unexpected err in admin thread")
             self.AD.logging.log("WARNING", '-' * 60)
             self.AD.logging.log("WARNING", traceback.format_exc())
             self.AD.logging.log("WARNING", '-' * 60)

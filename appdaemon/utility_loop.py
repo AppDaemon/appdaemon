@@ -101,7 +101,7 @@ class Utility:
 
                 except:
                     self.logger.warning('-' * 60)
-                    self.logger.warning("Unexpected error during utility()")
+                    self.logger.warning("Unexpected err during utility()")
                     self.logger.warning('-' * 60)
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning('-' * 60)

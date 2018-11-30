@@ -83,7 +83,7 @@ class Dashboard:
 
         except:
             self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", "Unexpected error during HADashboard initialization")
+            self.logging.log("WARNING", "Unexpected err during HADashboard initialization")
             self.logging.log("WARNING", '-' * 60)
             self.logging.log("WARNING", traceback.format_exc())
             self.logging.log("WARNING", '-' * 60)
@@ -373,7 +373,7 @@ class Dashboard:
             return self.error_widget("Unable to find widget type '{}'".format(widget_type))
 
     def error_widget(self, error):
-        return {"widget_type": "baseerror", "fields": {"error": error}, "static_css":{"widget_style": ""}}
+        return {"widget_type": "baseerror", "fields": {"err": error}, "static_css":{"widget_style": ""}}
 
     def _widget_exists(self, widgets, _id):
         for widge in widgets:
@@ -629,7 +629,7 @@ class Dashboard:
             return None
         except:
             self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", "Unexpected error in CSS file")
+            self.logging.log("WARNING", "Unexpected err in CSS file")
             self.logging.log("WARNING", '-' * 60)
             self.logging.log("WARNING", traceback.format_exc())
             self.logging.log("WARNING", '-' * 60)
@@ -864,14 +864,14 @@ class Dashboard:
 
         except:
             self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", "Unexpected error during DASH creation")
+            self.logging.log("WARNING", "Unexpected err during DASH creation")
             self.logging.log("WARNING", '-' * 60)
             self.logging.log("WARNING", traceback.format_exc())
             self.logging.log("WARNING", '-' * 60)
             return self.html_error()
 
     def html_error(self):
-        params = {"errors": ["An unrecoverable error occured fetching dashboard"]}
+        params = {"errors": ["An unrecoverable err occured fetching dashboard"]}
         env = Environment(
             loader=FileSystemLoader(self.template_dir),
             autoescape=select_autoescape(['html', 'xml'])

@@ -125,7 +125,7 @@ class RunAdmin:
 
         except:
             self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error in admin thread")
+            self.log("WARNING", "Unexpected err in admin thread")
             self.log("WARNING", '-' * 60)
             self.log("WARNING", traceback.format_exc())
             self.log("WARNING", '-' * 60)

@@ -156,7 +156,7 @@ class Scheduler:
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err(
                 "WARNING",
-                "Unexpected error during exec_schedule() for App: {}".format(name)
+                "Unexpected err during exec_schedule() for App: {}".format(name)
             )
             self.AD.logging.err("WARNING", "Args: {}".format(args))
             self.AD.logging.err("WARNING", '-' * 60)
@@ -164,8 +164,8 @@ class Scheduler:
             self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                # verbose_log messages about writing an err (since they show up anyway)
+                self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
             self.AD.logging.err("WARNING", "Scheduler entry has been deleted")
             self.AD.logging.err("WARNING", '-' * 60)
 
@@ -437,16 +437,16 @@ class Scheduler:
 
         except:
             self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err("WARNING", "Unexpected error during do_every_tick()")
+            self.AD.logging.err("WARNING", "Unexpected err during do_every_tick()")
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err( "WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
+                # verbose_log messages about writing an err (since they show up anyway)
                 self.AD.logging.log(
                     "WARNING",
-                    "Logged an error to {}".format(self.AD.errfile)
+                    "Logged an err to {}".format(self.AD.errfile)
                 )
 
 

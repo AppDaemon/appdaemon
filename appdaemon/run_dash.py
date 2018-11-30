@@ -192,7 +192,7 @@ class RunDash:
             loop.create_task(self.update_rss())
         except:
             self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", "Unexpected error in dashboard thread")
+            self.AD.logging.log("WARNING", "Unexpected err in dashboard thread")
             self.AD.logging.log("WARNING", '-' * 60)
             self.AD.logging.log("WARNING", traceback.format_exc())
             self.AD.logging.log("WARNING", '-' * 60)
@@ -291,7 +291,7 @@ class RunDash:
                     await asyncio.sleep(1)
                 except:
                     self.AD.logging.log("WARNING", '-' * 60)
-                    self.AD.logging.log("WARNING", "Unexpected error in dashboard thread")
+                    self.AD.logging.log("WARNING", "Unexpected err in dashboard thread")
                     self.AD.logging.log("WARNING", '-' * 60)
                     self.AD.logging.log("WARNING", traceback.format_exc())
                     self.AD.logging.log("WARNING", '-' * 60)
@@ -354,7 +354,7 @@ class RunDash:
 
         except:
             self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", "Unexpected error in call_service()")
+            self.AD.logging.log("WARNING", "Unexpected err in call_service()")
             self.AD.logging.log("WARNING", '-' * 60)
             self.AD.logging.log("WARNING", traceback.format_exc())
             self.AD.logging.log("WARNING", '-' * 60)

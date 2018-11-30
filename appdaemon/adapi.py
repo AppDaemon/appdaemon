@@ -26,13 +26,13 @@ class ADAPI:
         self.global_vars = global_vars
         self._namespace = "default"
         self.logger = self.logging.get_logger().getChild(name)
-        self.error = self.logging.get_error().getChild(name)
+        self.err = self.logging.get_error().getChild(name)
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
-            self.error.setLevel(args["log_level"])
+            self.err.setLevel(args["log_level"])
         else:
             self.logger.setLevel("INFO")
-            self.error.setLevel("INFO")
+            self.err.setLevel("INFO")
 
     @staticmethod
     def _sub_stack(msg):
@@ -94,7 +94,7 @@ class ADAPI:
         self._log(self.logger, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        self._log(self.error, msg, *args, **kwargs)
+        self._log(self.err, msg, *args, **kwargs)
 
     def listen_log(self, cb, level="INFO", **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -113,13 +113,13 @@ class ADAPI:
         return self.logger
 
     def get_error_log(self):
-        return self.error
+        return self.err
 
     def set_log_level(self, level):
         self.logger.setLevel(self.logging.log_levels[level])
 
     def set_error_level(self, level):
-        self.error.setLevel(self.logging.log_levels[level])
+        self.err.setLevel(self.logging.log_levels[level])
 
     #
     # Namespace
@@ -699,8 +699,8 @@ class ADAPI:
 
     @staticmethod
     def get_alexa_error(data):
-        if "request" in data and "error" in data["request"] and "message" in data["request"]["error"]:
-            return data["request"]["error"]["message"]
+        if "request" in data and "err" in data["request"] and "message" in data["request"]["err"]:
+            return data["request"]["err"]["message"]
         else:
             return None
 

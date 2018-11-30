@@ -99,7 +99,7 @@ class ADMain():
             loop.run_until_complete(asyncio.gather(*pending))
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error during run()")
+            self.logger.warning("Unexpected err during run()")
             self.logger.warning('-' * 60, exc_info=True)
             self.logger.warning('-' * 60)
 

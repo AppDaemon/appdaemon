@@ -102,7 +102,7 @@ class Plugins:
 
                         self.AD.loop.create_task(plugin.get_updates())
                     except:
-                        self.logger.warning("error loading plugin: %s - ignoring", name)
+                        self.logger.warning("err loading plugin: %s - ignoring", name)
                         self.logger.warning('-' * 60)
                         self.logger.warning(traceback.format_exc())
                         self.logger.warning('-' * 60)
@@ -170,14 +170,14 @@ class Plugins:
                 self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.error.warning('-' * 60)
-            self.error.warning("WARNING", "Unexpected error during notify_plugin_started()")
+            self.error.warning("WARNING", "Unexpected err during notify_plugin_started()")
             self.error.warning("WARNING", '-' * 60)
             self.error.warning("WARNING", traceback.format_exc())
             self.error.warning("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
                 # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.logger.warning("Logged an error to %s", self.AD.errfile)
+                # verbose_log messages about writing an err (since they show up anyway)
+                self.logger.warning("Logged an err to %s", self.AD.errfile)
 
     def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False
@@ -216,7 +216,7 @@ class Plugins:
                             self.AD.state.update_namespace_state(plugin, state)
 
                     except:
-                        self.logger.warning("Unexpected error refreshing %s state - retrying in 10 minutes", plugin)
+                        self.logger.warning("Unexpected err refreshing %s state - retrying in 10 minutes", plugin)
                     finally:
                         self.last_plugin_state[plugin] = datetime.datetime.now()
 

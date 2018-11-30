@@ -76,12 +76,12 @@ class AppManagement:
                 init()
         except:
             self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err("WARNING", "Unexpected error running initialize() for {}".format(name))
+            self.AD.logging.err("WARNING", "Unexpected err running initialize() for {}".format(name))
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
 
     def term_object(self, name):
         with self.objects_lock:
@@ -98,12 +98,12 @@ class AppManagement:
                 term()
             except:
                 self.AD.logging.err("WARNING", '-' * 60)
-                self.AD.logging.err("WARNING", "Unexpected error running terminate() for {}".format(name))
+                self.AD.logging.err("WARNING", "Unexpected err running terminate() for {}".format(name))
                 self.AD.logging.err("WARNING", '-' * 60)
                 self.AD.logging.err("WARNING", traceback.format_exc())
                 self.AD.logging.err("WARNING", '-' * 60)
                 if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                    self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                    self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
 
         with self.objects_lock:
             if name in self.objects:
@@ -258,12 +258,12 @@ class AppManagement:
 
         except:
             self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err("WARNING", "Unexpected error loading config file: {}".format(file))
+            self.AD.logging.err("WARNING", "Unexpected err loading config file: {}".format(file))
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
 
     # noinspection PyBroadException
     def check_config(self, silent=False, add_threads=True):
@@ -349,12 +349,12 @@ class AppManagement:
             return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}
         except:
             self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err("WARNING", "Unexpected error:")
+            self.AD.logging.err("WARNING", "Unexpected err:")
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
             if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
 
     def get_app_from_file(self, file):
         module = self.get_module_from_path(file)
@@ -594,12 +594,12 @@ class AppManagement:
                     self.term_object(app)
                 except:
                     self.AD.logging.err("WARNING", '-' * 60)
-                    self.AD.logging.err("WARNING", "Unexpected error terminating app: {}:".format(app))
+                    self.AD.logging.err("WARNING", "Unexpected err terminating app: {}:".format(app))
                     self.AD.logging.err("WARNING", '-' * 60)
                     self.AD.logging.err("WARNING", traceback.format_exc())
                     self.AD.logging.err("WARNING", '-' * 60)
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                        self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
 
 
         # Load/reload modules
@@ -609,12 +609,12 @@ class AppManagement:
                 self.read_app(mod["name"], mod["reload"])
             except:
                 self.AD.logging.err("WARNING", '-' * 60)
-                self.AD.logging.err("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                self.AD.logging.err("WARNING", "Unexpected err loading module: {}:".format(mod["name"]))
                 self.AD.logging.err("WARNING", '-' * 60)
                 self.AD.logging.err("WARNING", traceback.format_exc())
                 self.AD.logging.err("WARNING", '-' * 60)
                 if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                    self.AD.logging.log("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
+                    self.AD.logging.log("WARNING", "Unexpected err loading module: {}:".format(mod["name"]))
                 self.AD.logging.log("WARNING", "Removing associated apps:")
                 module = self.get_module_from_path(mod["name"])
                 for app in self.app_config:
@@ -637,12 +637,12 @@ class AppManagement:
                         self.init_object(app)
                 except:
                     self.AD.logging.err("WARNING", '-' * 60)
-                    self.AD.logging.err("WARNING", "Unexpected error initializing app: {}:".format(app))
+                    self.AD.logging.err("WARNING", "Unexpected err initializing app: {}:".format(app))
                     self.AD.logging.err("WARNING", '-' * 60)
                     self.AD.logging.err("WARNING", traceback.format_exc())
                     self.AD.logging.err("WARNING", '-' * 60)
                     if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                        self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
 
             self.AD.threading.calculate_pin_threads()
 

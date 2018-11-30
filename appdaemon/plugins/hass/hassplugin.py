@@ -240,7 +240,7 @@ class HassPlugin(PluginBase):
                 if not self.stopping:
                     self.logger.warning("Disconnected from Home Assistant, retrying in 5 seconds")
                     self.logger.debug('-' * 60)
-                    self.logger.debug("Unexpected error:")
+                    self.logger.debug("Unexpected err:")
                     self.logger.debug('-' * 60)
                     self.logger.debug(traceback.format_exc())
                     self.logger.debug('-' * 60)
@@ -411,7 +411,7 @@ class HassPlugin(PluginBase):
             return response
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error during call_service()")
+            self.logger.warning("Unexpected err during call_service()")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)

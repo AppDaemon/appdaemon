@@ -64,8 +64,8 @@ class ADBase:
         self.args = args
         self.global_vars = global_vars
         self.namespace = "default"
-        self._error = None
-        self._logger = None
+        self.err = None
+        self.logger = None
 
         # Some initial Setup
 

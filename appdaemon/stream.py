@@ -63,13 +63,13 @@ class ADStream:
                 self.AD.logging.log("INFO", "Admin browser disconnected unexpectedly")
             except TypeError as e:
                 self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error in JSON conversion")
+                self.logger.warning("Unexpected err in JSON conversion")
                 self.logger.warning("Data is: %s", data)
                 self.logger.warning("Error is: %s",e)
                 self.logger.warning('-' * 60)
             except:
                 self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error sending to admin panel")
+                self.logger.warning("Unexpected err sending to admin panel")
                 self.logger.warning('-' * 60)
                 self.logger.warning(traceback.format_exc())
                 self.logger.warning('-' * 60)

@@ -152,13 +152,13 @@ class MqttPlugin(PluginBase):
             else:
                 err_msg = "Connection was refused. Please check configuration settings"
 
-            if err_msg != "": #means there was an error
+            if err_msg != "": #means there was an err
                 self.logger.critical("Could not complete MQTT Plugin initialization, for %s", err_msg)
 
             self.mqtt_connect_event.set() # continue processing
         except:
-            self.logger.critical("There was an error while trying to setup the Mqtt Service")
-            self.logger.debug('There was an error while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
+            self.logger.critical("There was an err while trying to setup the Mqtt Service")
+            self.logger.debug('There was an err while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
 
     def mqtt_on_disconnect(self,  client, userdata, rc):
         try:
@@ -168,8 +168,8 @@ class MqttPlugin(PluginBase):
                 self.logger.critical("MQTT Client Disconnected Abruptly. Will attempt reconnection")
             return
         except:
-            self.logger.critical("There was an error while disconnecting from the Mqtt Service")
-            self.logger.debug('There was an error while disconnecting from the MQTT Service, with Traceback: %s', traceback.format_exc())
+            self.logger.critical("There was an err while disconnecting from the Mqtt Service")
+            self.logger.debug('There was an err while disconnecting from the MQTT Service, with Traceback: %s', traceback.format_exc())
 
     def mqtt_on_message(self, client, userdata, msg):
         try:
@@ -186,8 +186,8 @@ class MqttPlugin(PluginBase):
 
             self.loop.create_task(self.send_ad_event(data))
         except:
-            self.logger.critical("There was an error while processing an MQTT message")
-            self.logger.debug('There was an error while processing an MQTT message, with Traceback: %s', traceback.format_exc())
+            self.logger.critical("There was an err while processing an MQTT message")
+            self.logger.debug('There was an err while processing an MQTT message, with Traceback: %s', traceback.format_exc())
 
 
     def mqtt_service(self, service, **kwargs):
@@ -328,8 +328,8 @@ class MqttPlugin(PluginBase):
                                         self.mqtt_client_timeout)
             self.mqtt_client.loop_start()
         except Exception as e:
-            self.logger.critical("There was an error while trying to setup the Mqtt Service. Error was: %s", e)
-            self.logger.debug("There was an error while trying to setup the MQTT Service. Error: %s, with Traceback: %s", e, traceback.format_exc())
-            self.logger.debug('There was an error while trying to setup the MQTT Service, with Traceback: %s',traceback.format_exc())
+            self.logger.critical("There was an err while trying to setup the Mqtt Service. Error was: %s", e)
+            self.logger.debug("There was an err while trying to setup the MQTT Service. Error: %s, with Traceback: %s", e, traceback.format_exc())
+            self.logger.debug('There was an err while trying to setup the MQTT Service, with Traceback: %s',traceback.format_exc())
 
         return
