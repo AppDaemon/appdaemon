@@ -61,7 +61,7 @@ class HassPlugin(PluginBase):
         if "ha_url" in args:
             self.ha_url = args["ha_url"]
         else:
-            self.log("WARN", "ha_url not found in HASS configuration - module not initialized")
+            self.logger.warning("ha_url not found in HASS configuration - module not initialized")
 
         if "cert_path" in args:
             self.cert_path = args["cert_path"]
@@ -153,8 +153,7 @@ class HassPlugin(PluginBase):
                 )
                 res = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
                 result = json.loads(res)
-                self.log("INFO",
-                          "Connected to Home Assistant %s", result["ha_version"])
+                self.logger.info("Connected to Home Assistant %s", result["ha_version"])
                 #
                 # Check if auth required, if so send password
                 #
@@ -175,8 +174,7 @@ class HassPlugin(PluginBase):
                     await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, auth)
                     result = json.loads(self.ws.recv())
                     if result["type"] != "auth_ok":
-                        self.log("WARNING",
-                                  "Error in authentication")
+                        self.logger.warning("Error in authentication")
                         raise ValueError("Error in authentication")
                 #
                 # Subscribe to event stream
@@ -189,10 +187,7 @@ class HassPlugin(PluginBase):
                 result = json.loads(self.ws.recv())
                 if not (result["id"] == _id and result["type"] == "result" and
                                 result["success"] is True):
-                    self.log(
-                        "WARNING",
-                        "Unable to subscribe to HA events, id = %s", _id)
-
+                    self.logger.warning("Unable to subscribe to HA events, id = %s", _id)
                     self.logger.warning(result)
                     raise ValueError("Error subscribing to HA Events")
 
@@ -208,9 +203,7 @@ class HassPlugin(PluginBase):
                 # Wait for app delay
                 #
                 if self.app_init_delay > 0:
-                    self.log(
-                        "INFO",
-                        "Delaying app initialization for %s seconds", self.app_init_delay)
+                    self.logger.info("Delaying app initialization for %s seconds", self.app_init_delay)
                     await asyncio.sleep(self.app_init_delay)
                 #
                 # Fire HA_STARTED Events
@@ -228,11 +221,7 @@ class HassPlugin(PluginBase):
                     result = json.loads(ret)
 
                     if not (result["id"] == _id and result["type"] == "event"):
-                        self.log(
-                            "WARNING",
-                            "Unexpected result from Home Assistant, "
-                            "id = {}".format(_id)
-                        )
+                        self.logger.warning("Unexpected result from Home Assistant, id = %s", _id)
                         self.logger.warning(result)
                         raise ValueError(
                             "Unexpected result from Home Assistant"
@@ -249,10 +238,7 @@ class HassPlugin(PluginBase):
                     self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True
                 if not self.stopping:
-                    self.log(
-                        "WARNING",
-                        "Disconnected from Home Assistant, retrying in 5 seconds"
-                    )
+                    self.logger.warning("Disconnected from Home Assistant, retrying in 5 seconds")
                     self.logger.debug('-' * 60)
                     self.logger.debug("Unexpected error:")
                     self.logger.debug('-' * 60)
@@ -409,9 +395,7 @@ class HassPlugin(PluginBase):
         try:
             self._check_service(service)
             d, s = service.split("/")
-            self.log(
-                "DEBUG",
-                "call_service: %s/%s, %s", d, s, kwargs)
+            self.logger.debug("call_service: %s/%s, %s", d, s, kwargs)
             if self.token is not None:
                 headers = {'Authorization': "Bearer {}".format(self.token)}
             elif self.ha_key is not None:
