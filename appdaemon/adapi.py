@@ -25,14 +25,14 @@ class ADAPI:
         self.args = args
         self.global_vars = global_vars
         self._namespace = "default"
-        self._logger = self.logging.get_logger().getChild(name)
-        self._error = self.logging.get_error().getChild(name)
+        self.logger = self.logging.get_logger().getChild(name)
+        self.error = self.logging.get_error().getChild(name)
         if "log_level" in args:
-            self._logger.setLevel(args["log_level"])
-            self._error.setLevel(args["log_level"])
+            self.logger.setLevel(args["log_level"])
+            self.error.setLevel(args["log_level"])
         else:
-            self._logger.setLevel("INFO")
-            self._error.setLevel("INFO")
+            self.logger.setLevel("INFO")
+            self.error.setLevel("INFO")
 
     @staticmethod
     def _sub_stack(msg):
@@ -91,10 +91,10 @@ class ADAPI:
         logger.log(self.logging.log_levels[level], msg, *args, **kwargs)
 
     def log(self, msg, *args, **kwargs):
-        self._log(self._logger, msg, *args, **kwargs)
+        self._log(self.logger, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        self._log(self._error, msg, *args, **kwargs)
+        self._log(self.error, msg, *args, **kwargs)
 
     def listen_log(self, cb, level="INFO", **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -110,16 +110,16 @@ class ADAPI:
         self.AD.logging.cancel_log_callback(self.name, handle)
 
     def get_main_log(self):
-        return self._logger
+        return self.logger
 
     def get_error_log(self):
-        return self._error
+        return self.error
 
     def set_log_level(self, level):
-        self._logger.setLevel(self.logging.log_levels[level])
+        self.logger.setLevel(self.logging.log_levels[level])
 
     def set_error_level(self, level):
-        self._error.setLevel(self.logging.log_levels[level])
+        self.error.setLevel(self.logging.log_levels[level])
 
     #
     # Namespace

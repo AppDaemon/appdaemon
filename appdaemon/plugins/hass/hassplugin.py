@@ -15,7 +15,7 @@ def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
         if not self.reading_messages:
-            self.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func.__name__))
+            self.logger.warning("Attempt to call Home Assistant while disconnected: {}".format(func.__name__))
             return lambda *args: None
         else:
             return func(*args, **kwargs)
@@ -38,7 +38,7 @@ class HassPlugin(PluginBase):
         self.reading_messages = False
         self.metadata = None
 
-        self.log("INFO", "HASS Plugin Initializing")
+        self.logger.info("HASS Plugin Initializing")
 
         self.name = name
 
@@ -49,7 +49,7 @@ class HassPlugin(PluginBase):
 
         if "ha_key" in args:
             self.ha_key = args["ha_key"]
-            self.log("WARNING", "ha_key is deprecated please use HASS Long Lived Tokens instead")
+            self.logger.warning("ha_key is deprecated please use HASS Long Lived Tokens instead")
         else:
             self.ha_key = None
 
@@ -93,10 +93,10 @@ class HassPlugin(PluginBase):
         conn = aiohttp.TCPConnector()
         self.session = aiohttp.ClientSession(connector=conn)
 
-        self.log("INFO", "HASS Plugin initialization complete")
+        self.logger.info("HASS Plugin initialization complete")
 
     def stop(self):
-        self.log("DEBUG", "*** Stopping ***")
+        self.logger.debug("*** Stopping ***")
         self.stopping = True
         if self.ws is not None:
             self.ws.close()
@@ -110,8 +110,8 @@ class HassPlugin(PluginBase):
         states = {}
         for state in hass_state:
             states[state["entity_id"]] = state
-        self.log("DEBUG", "Got state")
-        self.log("DEBUG", "*** Sending Complete State: %s ***", hass_state)
+        self.logger.debug("Got state")
+        self.logger.debug("*** Sending Complete State: %s ***", hass_state)
         return states
 
     #
@@ -193,7 +193,7 @@ class HassPlugin(PluginBase):
                         "WARNING",
                         "Unable to subscribe to HA events, id = %s", _id)
 
-                    self.log("WARNING", result)
+                    self.logger.warning(result)
                     raise ValueError("Error subscribing to HA Events")
 
                 #
@@ -233,7 +233,7 @@ class HassPlugin(PluginBase):
                             "Unexpected result from Home Assistant, "
                             "id = {}".format(_id)
                         )
-                        self.log("WARNING", result)
+                        self.logger.warning(result)
                         raise ValueError(
                             "Unexpected result from Home Assistant"
                         )
@@ -253,14 +253,14 @@ class HassPlugin(PluginBase):
                         "WARNING",
                         "Disconnected from Home Assistant, retrying in 5 seconds"
                     )
-                    self.log("DEBUG", '-' * 60)
-                    self.log("DEBUG", "Unexpected error:")
-                    self.log("DEBUG", '-' * 60)
-                    self.log("DEBUG", traceback.format_exc())
-                    self.log("DEBUG", '-' * 60)
+                    self.logger.debug('-' * 60)
+                    self.logger.debug("Unexpected error:")
+                    self.logger.debug('-' * 60)
+                    self.logger.debug(traceback.format_exc())
+                    self.logger.debug('-' * 60)
                     await asyncio.sleep(5)
 
-        self.log("INFO", "Disconnecting from Home Assistant")
+        self.logger.info("Disconnecting from Home Assistant")
 
     def get_namespace(self):
         return self.namespace
@@ -270,7 +270,7 @@ class HassPlugin(PluginBase):
     #
 
     def utility(self):
-        self.log("DEBUG", "Utility")
+        self.logger.debug("Utility")
         return None
 
     #
@@ -319,34 +319,34 @@ class HassPlugin(PluginBase):
             apiurl = "{}/api/states".format(self.ha_url)
         else:
             apiurl = "{}/api/states/{}".format(self.ha_url, entity_id)
-        self.log("DEBUG", "get_ha_state: url is %s", apiurl)
+        self.logger.debug("get_ha_state: url is %s", apiurl)
         r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
         r.raise_for_status()
         return await r.json()
 
     def validate_meta(self, meta, key):
         if key not in meta:
-            self.log("WARNING", "Value for '%s' not found in metadata for plugin %s", key, self.name)
+            self.logger.warning("Value for '%s' not found in metadata for plugin %s", key, self.name)
             raise ValueError
         try:
             value = float(meta[key])
         except:
-            self.log("WARNING", "Invalid value for '%s' ('%s') in metadata for plugin %s", key, meta[key], self.name)
+            self.logger.warning("Invalid value for '%s' ('%s') in metadata for plugin %s", key, meta[key], self.name)
             raise
 
     def validate_tz(self, meta):
         if "time_zone" not in meta:
-            self.log("WARNING", "Value for 'time_zone' not found in metadata for plugin %s", self.name)
+            self.logger.warning("Value for 'time_zone' not found in metadata for plugin %s", self.name)
             raise ValueError
         try:
             tz = pytz.timezone(meta["time_zone"])
         except pytz.exceptions.UnknownTimeZoneError:
-            self.log("WARNING", "Invalid value for 'time_zone' ('%s') in metadata for plugin %s", meta["time_zone"], self.name)
+            self.logger.warning("Invalid value for 'time_zone' ('%s') in metadata for plugin %s", meta["time_zone"], self.name)
             raise
 
     async def get_hass_config(self):
         try:
-            self.log("DEBUG", "get_ha_config()")
+            self.logger.debug("get_ha_config()")
             if self.token is not None:
                 headers = {'Authorization': "Bearer {}".format(self.token)}
             elif self.ha_key is not None:
@@ -355,7 +355,7 @@ class HassPlugin(PluginBase):
                 headers = {}
 
             apiurl = "{}/api/config".format(self.ha_url)
-            self.log("DEBUG", "get_ha_config: url is %s", apiurl)
+            self.logger.debug("get_ha_config: url is %s", apiurl)
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             meta = await r.json()
@@ -369,12 +369,12 @@ class HassPlugin(PluginBase):
 
             return meta
         except:
-            self.log("WARNING", "Error getting metadata - retrying")
+            self.logger.warning("Error getting metadata - retrying")
             raise
 
     @hass_check
     def fire_plugin_event(self, event, namespace, **kwargs):
-        self.log("DEBUG", "fire_event: %s, %s %s", event, namespace, kwargs)
+        self.logger.debug("fire_event: %s, %s %s", event, namespace, kwargs)
 
         config = self.AD.plugins.get_plugin_object(namespace).config
         if "cert_path" in config:
@@ -426,8 +426,8 @@ class HassPlugin(PluginBase):
             response = r.json
             return response
         except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected error during call_service()")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during call_service()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
