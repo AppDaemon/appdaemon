@@ -69,7 +69,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                     self.logger.debug('Got the following Error %s, when trying to retrieve Mqtt Plugin' ,e)
                     return str(e)
                 else:
-                    self.logger.critical('Wrong Namespace %s selected for MQTT Service. Please use proper namespace before trying again'.,namespace)
+                    self.logger.critical('Wrong Namespace %s selected for MQTT Service. Please use proper namespace before trying again', namespace)
                     return 'ERR'
         else:
             self.logger.warning('Topic not provided for Service Call {!r}.'.format(service))
