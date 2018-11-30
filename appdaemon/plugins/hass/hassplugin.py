@@ -283,8 +283,7 @@ class HassPlugin(PluginBase):
 
     @hass_check
     def set_plugin_state(self, namespace, entity_id, new_state):
-        print("set_plugin_state")
-        config = self.AD.plugins.get_plugin(namespace).config
+        config = self.AD.plugins.get_plugin_object(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -377,7 +376,7 @@ class HassPlugin(PluginBase):
     def fire_plugin_event(self, event, namespace, **kwargs):
         self.log("DEBUG", "fire_event: %s, %s %s", event, namespace, kwargs)
 
-        config = self.AD.plugins.get_plugin(namespace).config
+        config = self.AD.plugins.get_plugin_object(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:

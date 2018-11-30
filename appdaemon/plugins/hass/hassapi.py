@@ -284,7 +284,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        config = self.AD.plugins.get_plugin(namespace).config
+        config = self.AD.plugins.get_plugin_object(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:

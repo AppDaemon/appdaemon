@@ -349,7 +349,7 @@ class RunDash:
                     args[key] = data[key]
 
             plugin = self.AD.plugins.get_plugin_object(namespace)
-            await plugin.call_service (service, **args)
+            await plugin.call_service(service, **args)
             return web.Response(status=200)
 
         except:

@@ -67,7 +67,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                 result = self.AD.plugins.get_plugin_object(namespace).mqtt_service(service, **kwargs)
                 
             except Exception as e:
-                config = self.AD.plugins.get_plugin(namespace).config
+                config = self.AD.plugins.get_plugin_object(namespace).config
                 if config['type'] == 'mqtt':
                     self.AD.logging.log('DEBUG', 'Got the following Error {}, when trying to retrieve Mqtt Plugin'.format(e))
                     self.error('Got error with the following {}'.format(e))
