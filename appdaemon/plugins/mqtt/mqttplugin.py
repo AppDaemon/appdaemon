@@ -123,63 +123,75 @@ class MqttPlugin(PluginBase):
             self.mqtt_client.disconnect() #disconnect cleanly
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
-        err_msg = ""
-        if rc == 0: #means connection was successful
-            self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos, retain=self.mqtt_on_connect_retain)
-                
-            self.log("INFO", "Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
-            for topic in self.mqtt_client_topics:
-                self.log("DEBUG", "Subscribing to Topic: %s", topic)
-                result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
-                if result[0] == 0:
-                    self.log("DEBUG",
-                                "Subscription to Topic %s Sucessful", topic)
-                else:
-                     self.log("DEBUG",
-                                "Subscription to Topic %s Unsucessful, as Client possibly not currently connected", topic)
+        try:
+            err_msg = ""
+            if rc == 0: #means connection was successful
+                self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos, retain=self.mqtt_on_connect_retain)
 
-            self.mqtt_connected = True
+                self.log("INFO", "Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
+                for topic in self.mqtt_client_topics:
+                    self.log("DEBUG", "Subscribing to Topic: %s", topic)
+                    result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
+                    if result[0] == 0:
+                        self.log("DEBUG", "Subscription to Topic %s Sucessful", topic)
+                    else:
+                         self.log("DEBUG",
+                                    "Subscription to Topic %s Unsucessful, as Client possibly not currently connected", topic)
 
-        elif rc == 1:
-            err_msg = "Connection was refused due to Incorrect Protocol Version"
-        elif rc == 2:
-            err_msg = "Connection was refused due to Invalid Client Identifier"
-        elif rc == 3:
-            err_msg = "Connection was refused due to Server Unavailable"
-        elif rc == 4:
-            err_msg = "Connection was refused due to Bad Username or Password"
-        elif rc == 5:
-            err_msg = "Connection was refused due to Not Authorised"
-        else:
-            err_msg = "Connection was refused. Please check configuration settings"
-        
-        if err_msg != "": #means there was an error
-            self.log("CRITICAL", "Could not complete MQTT Plugin initialization, for %s", err_msg)
+                self.mqtt_connected = True
 
-        self.mqtt_connect_event.set() # continue processing
+            elif rc == 1:
+                err_msg = "Connection was refused due to Incorrect Protocol Version"
+            elif rc == 2:
+                err_msg = "Connection was refused due to Invalid Client Identifier"
+            elif rc == 3:
+                err_msg = "Connection was refused due to Server Unavailable"
+            elif rc == 4:
+                err_msg = "Connection was refused due to Bad Username or Password"
+            elif rc == 5:
+                err_msg = "Connection was refused due to Not Authorised"
+            else:
+                err_msg = "Connection was refused. Please check configuration settings"
+
+            if err_msg != "": #means there was an error
+                self.log("CRITICAL", "Could not complete MQTT Plugin initialization, for %s", err_msg)
+
+            self.mqtt_connect_event.set() # continue processing
+        except:
+            self.log("CRITICAL", "There was an error while trying to setup the Mqtt Service")
+            self.log("DEBUG", 'There was an error while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
 
     def mqtt_on_disconnect(self,  client, userdata, rc):
-        if rc != 0 and not self.stopping: #unexpected disconnection
-            self.initialized = False
-            self.mqtt_connected = False
-            self.log("CRITICAL", "MQTT Client Disconnected Abruptly. Will attempt reconnection")
-        return
+        try:
+            if rc != 0 and not self.stopping: #unexpected disconnection
+                self.initialized = False
+                self.mqtt_connected = False
+                self.log("CRITICAL", "MQTT Client Disconnected Abruptly. Will attempt reconnection")
+            return
+        except:
+            self.log("CRITICAL", "There was an error while disconnecting from the Mqtt Service")
+            self.log("DEBUG", 'There was an error while disconnecting from the MQTT Service, with Traceback: %s', traceback.format_exc())
 
     def mqtt_on_message(self, client, userdata, msg):
-        self.log("DEBUG", "Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
-        topic = msg.topic
+        try:
+            self.log("DEBUG", "Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
+            topic = msg.topic
 
-        if self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []: #check if any of the wildcards belong
-            wildcard = list(filter(lambda x: x in topic, self.mqtt_wildcards))[0] + '#'
+            if self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []: #check if any of the wildcards belong
+                wildcard = list(filter(lambda x: x in topic, self.mqtt_wildcards))[0] + '#'
 
-            data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': wildcard}}
+                data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': wildcard}}
 
-        else:
-            data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': None}}
+            else:
+                data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': None}}
 
-        self.loop.create_task(self.send_ad_event(data))
+            self.loop.create_task(self.send_ad_event(data))
+        except:
+            self.log("CRITICAL", "There was an error while processing an MQTT message")
+            self.log("DEBUG", 'There was an error while processing an MQTT message, with Traceback: %s', traceback.format_exc())
 
-    def mqtt_service(self, service, **kwargs):        
+
+    def mqtt_service(self, service, **kwargs):
         topic = kwargs['topic']
         payload = kwargs.get('payload', None)
         retain = kwargs.get('retain', False)
@@ -215,7 +227,7 @@ class MqttPlugin(PluginBase):
                 self.log("DEBUG", "Unsubscription from Topic %s Successful", topic)
                 if topic in self.mqtt_client_topics:
                     self.mqtt_client_topics.remove(topic)
-        
+
         else:
             self.log("WARNING", "Wrong Service Call %s for MQTT", service)
             result = 'ERR'
@@ -325,8 +337,5 @@ class MqttPlugin(PluginBase):
             self.log("CRITICAL", "There was an error while trying to setup the Mqtt Service. Error was: %s", e)
             self.log("DEBUG", "There was an error while trying to setup the MQTT Service. Error: %s, with Traceback: %s", e, traceback.format_exc())
             self.log("DEBUG", 'There was an error while trying to setup the MQTT Service, with Traceback: %s',traceback.format_exc())
-        except:
-            self.log("CRITICAL", "There was an error while trying to setup the Mqtt Service")
-            self.log("DEBUG", 'There was an error while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
-        
+
         return
