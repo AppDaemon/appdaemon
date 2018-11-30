@@ -30,6 +30,22 @@ class AppNameFormatter(logging.Formatter):
         return super().format(record)
 
 
+class AdminHandler(StreamHandler):
+
+    """
+    Handle sending of logs to the admin interface
+    """
+
+    def __init__(self, ad: AppDaemon, type):
+        StreamHandler.__init__(self)
+        self.AD = ad
+        self.type = type
+
+    def emit(self, record):
+        msg = self.format(record)
+        if self.AD is not None and self.AD.appq is not None:
+            self.AD.appq.admin_update({"log_entry": {"type": self.type, "msg": msg}})
+
 class LogSubscriptionHandler(StreamHandler):
 
     """
@@ -87,25 +103,26 @@ class Logging:
         diag_format_default = '%(asctime)s %(levelname)s %(message)s'
 
         if "log" not in config:
-            logfile = "STDOUT"
-            errorfile = "STDERR"
-            diagfile = "STDOUT"
+            self.logfile = "STDOUT"
+            self.errorfile = "STDERR"
+            self.diagfile = "STDOUT"
+            self.accessfile = None
+
             log_size = 1000000
             log_generations = 3
-            accessfile = None
             log_format = log_format_default
             error_format = error_format_default
             access_format = access_format_default
             diag_format = diag_format_default
         else:
-            logfile = config['log'].get("logfile", "STDOUT")
-            errorfile = config['log'].get("errorfile", "STDERR")
-            diagfile = config['log'].get("diagfile", "NONE")
-            if diagfile == "NONE":
-                diagfile = logfile
+            self.logfile = config['log'].get("logfile", "STDOUT")
+            self.errorfile = config['log'].get("errorfile", "STDERR")
+            self.diagfile = config['log'].get("diagfile", "NONE")
+            if self.diagfile == "NONE":
+                self.diagfile = self.logfile
             log_size = config['log'].get("log_size", 1000000)
             log_generations = config['log'].get("log_generations", 3)
-            accessfile = config['log'].get("accessfile")
+            self.accessfile = config['log'].get("accessfile")
             log_format = config['log'].get("log_format", log_format_default)
             error_format = config['log'].get("error_format", error_format_default)
             access_format = config['log'].get("access_format", access_format_default)
@@ -113,30 +130,30 @@ class Logging:
 
         self.log_level = debug
         numeric_level = getattr(logging, debug, None)
-        log_formatter = AppNameFormatter(log_format)
+        self.log_formatter = AppNameFormatter(log_format)
         #
         # Add a time formatter that understands time travel and formats the log correctly
         #
-        log_formatter.formatTime = self.get_time
+        self.log_formatter.formatTime = self.get_time
 
-        error_formatter = AppNameFormatter(error_format)
-        error_formatter.formatTime = self.get_time
+        self.error_formatter = AppNameFormatter(error_format)
+        self.error_formatter.formatTime = self.get_time
 
-        access_formatter = AppNameFormatter(access_format)
-        access_formatter.formatTime = self.get_time
+        self.access_formatter = AppNameFormatter(access_format)
+        self.access_formatter.formatTime = self.get_time
 
-        diag_formatter = AppNameFormatter(diag_format)
-        diag_formatter.formatTime = self.get_time
+        self.diag_formatter = AppNameFormatter(diag_format)
+        self.diag_formatter.formatTime = self.get_time
 
         self.logger = logging.getLogger("AppDaemon")
         self.logger.setLevel(numeric_level)
         self.logger.propagate = False
-        if logfile != "STDOUT":
-            fh = RotatingFileHandler(logfile, maxBytes=log_size, backupCount=log_generations)
+        if self.logfile != "STDOUT":
+            fh = RotatingFileHandler(self.logfile, maxBytes=log_size, backupCount=log_generations)
         else:
             fh = logging.StreamHandler(stream=sys.stdout)
 
-        fh.setFormatter(log_formatter)
+        fh.setFormatter(self.log_formatter)
         self.logger.addHandler(fh)
         self.log_filehandler = fh
 
@@ -145,13 +162,13 @@ class Logging:
         self.error = logging.getLogger("Error")
         self.error.setLevel(numeric_level)
         self.error.propagate = False
-        if errorfile != "STDERR":
+        if self.errorfile != "STDERR":
             efh = RotatingFileHandler(
-                errorfile, maxBytes=log_size, backupCount=log_generations)
+                self.errorfile, maxBytes=log_size, backupCount=log_generations)
         else:
             efh = logging.StreamHandler()
 
-        efh.setFormatter(error_formatter)
+        efh.setFormatter(self.error_formatter)
         self.error.addHandler(efh)
         self.error_filehandler = efh
 
@@ -160,19 +177,19 @@ class Logging:
         self.diagnostic = logging.getLogger("Diag")
         self.diagnostic.setLevel(numeric_level)
         self.diagnostic.propagate = False
-        if diagfile != "STDOUT":
+        if self.diagfile != "STDOUT":
             dfh = RotatingFileHandler(
-                diagfile, maxBytes=log_size, backupCount=log_generations
+                self.diagfile, maxBytes=log_size, backupCount=log_generations
             )
         else:
             dfh = logging.StreamHandler()
 
-        dfh.setFormatter(diag_formatter)
+        dfh.setFormatter(self.diag_formatter)
         self.diagnostic.addHandler(dfh)
         self.diag_filehandler = dfh
 
         # Setup dash output
-        if accessfile is not None:
+        if self.accessfile is not None:
             self.acc = logging.getLogger("Access")
             self.acc.setLevel(numeric_level)
             self.acc.propagate = False
@@ -180,7 +197,7 @@ class Logging:
                 config['log'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
             )
 
-            afh.setFormatter(access_formatter)
+            afh.setFormatter(self.access_formatter)
             self.acc.addHandler(afh)
             self.access_filehandler = fh
         else:
@@ -207,24 +224,44 @@ class Logging:
         # Log Subscriptions
 
         lh = LogSubscriptionHandler(self.AD)
-        lh.setFormatter(AppNameFormatter())
+        #lh.setFormatter(AppNameFormatter())
         lh.setLevel(logging.INFO)
         self.logger.addHandler(lh)
 
         eh = LogSubscriptionHandler(self.AD)
-        eh.setFormatter(AppNameFormatter())
+        #eh.setFormatter(AppNameFormatter())
         eh.setLevel(logging.INFO)
         self.error.addHandler(eh)
 
         dh = LogSubscriptionHandler(self.AD)
-        dh.setFormatter(AppNameFormatter())
+        #dh.setFormatter(AppNameFormatter())
         dh.setLevel(logging.INFO)
         self.acc.addHandler(dh)
 
         ah = LogSubscriptionHandler(self.AD)
-        ah.setFormatter(AppNameFormatter())
+        #ah.setFormatter(AppNameFormatter())
         ah.setLevel(logging.INFO)
         self.diagnostic.addHandler(ah)
+
+        # Admin Subscriptions
+
+        alh = AdminHandler(self.AD, "main_log")
+        alh.setFormatter(self.log_formatter)
+        self.logger.addHandler(alh)
+
+        elh = AdminHandler(self.AD, "error_log")
+        elh.setFormatter(self.error_formatter)
+        self.error.addHandler(elh)
+
+        dlh = AdminHandler(self.AD, "diag_log")
+        dlh.setFormatter(self.diag_formatter)
+        self.diagnostic.addHandler(dlh)
+
+        if self.accessfile is not None:
+            clh = AdminHandler(self.AD, "access_log")
+            clh.setFormatter(self.access_formatter)
+            self.acc.addHandler(clh)
+
 
     def _log(self, logger, level, message):
         if level == "INFO":
@@ -260,7 +297,29 @@ class Logging:
         return self.acc
 
     def get_diag(self):
-        return self.error
+        return self.diagnostic
+
+    def read_logfile(self):
+        return self._read_logfile(self.logfile)
+
+    def read_errorfile(self):
+        return self._read_logfile(self.errorfile)
+
+    def read_diagfile(self):
+        return self._read_logfile(self.diagfile)
+
+    def read_accessfile(self):
+        if self.accessfile is None:
+            return None
+        return self._read_logfile(self.accessfile)
+
+    def _read_logfile(self, file):
+        if file == "STDOUT" or file == "STDERR" or file is None:
+            return []
+        else:
+            with open(file) as f:
+                lines = f.read().splitlines()
+            return lines
 
     def add_log_callback(self, namespace, name, cb, level, **kwargs):
         if self.AD.threading.validate_pin(name, kwargs) is True:

@@ -331,7 +331,7 @@ class ADAPI:
         )
 
         if entity_id in self.get_state(namespace=namespace):
-            new_state = self.get_state(namespace = namespace)[entity_id]
+            new_state = self.get_state(namespace=namespace)[entity_id]
         else:
             # Its a new state entry
             new_state = {}

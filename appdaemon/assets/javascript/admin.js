@@ -42,7 +42,7 @@ function admin_stream(stream, transport)
     this.update_admin = function (data)
     {
         // Process any updates
-        //console.log(data);
+        // console.log(data);
         var id;
         if ("updates" in data)
         {
@@ -74,6 +74,26 @@ function admin_stream(stream, transport)
         if ("threads" in data)
         {
            document.getElementById("thread_table").innerHTML = this.get_thread_table(data["threads"])
+        }
+
+        if ("log_entry" in data)
+        {
+            if (data["log_entry"]["type"] === "main_log")
+            {
+                $("#main_log_div").prepend(data["log_entry"]["msg"] + "<br>")
+            }
+            if (data["log_entry"]["type"] === "error_log")
+            {
+                $("#error_log_div").prepend(data["log_entry"]["msg"] + "<br>")
+            }
+            if (data["log_entry"]["type"] === "diag_log")
+            {
+                $("#diag_log_div").prepend(data["log_entry"]["msg"] + "<br>")
+            }
+            if (data["log_entry"]["type"] === "access_log")
+            {
+                $("#access_log_div").prepend(data["log_entry"]["msg"] + "<br>")
+            }
         }
     }
 }
@@ -188,7 +208,7 @@ function get_thread_table(data)
         html += "<td id='" + thread + "_callback'>" + data[thread].callback + "</td>";
         html += "<td id='" + thread + "_time_called'>" + data[thread].time_called + "</td>";
         html += "<td id='" + thread + "_is_alive'>" + data[thread].is_alive + "</td>";
-        html += "<td id='" + thread + "_is_pinned_apps'>" + data[thread].pinned_apps + "</td>";
+        html += "<td id='" + thread + "_pinned_apps'>" + data[thread].pinned_apps + "</td>";
         html += "</tr>";
     }
     html += "</table>"
@@ -208,6 +228,27 @@ function openTab(evt, tabname) {
 
     // Get all elements with class="tablinks" and remove the class "active"
     tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(tabname).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+
+function openLogTab(evt, tabname) {
+    // Declare all variables
+    var i, tabcontent, tablinks;
+
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("logtabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("logtablinks");
     for (i = 0; i < tablinks.length; i++) {
         tablinks[i].className = tablinks[i].className.replace(" active", "");
     }

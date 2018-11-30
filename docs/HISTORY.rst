@@ -17,8 +17,6 @@ Change Log
 - Implemented multiple worker Ques to avoid Head of Line blocking
 - API Calls to control app pinning
 - added the ``run_in_thread()`` api call
-- added ``fire_app_event()`` api call
-- As a result of the above, re-implemented ``dash_navigate`` to work without requiring the HASS plugin
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIs to remove duplication
 - added checking for overdue threads
@@ -43,6 +41,7 @@ Change Log
 - Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
 - Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
 - Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 
 **Breaking Changes**
 
@@ -54,7 +53,6 @@ Change Log
 - ``cancel_listen_log()`` now requires a handle supplied by the initial ``listen_log()``
 - Removed Daemonize support - please use sysctl instead
 - ``set_app_state()`` is deprecated - use ``set_state()`` instead and it should do the right thing
-- ``fire_app_event()`` is deprectaed - use ``fire_event()`` and it should do the right thing
 - ``dash_compile_on_start`` now defaults to true
 
 3.0.2 10/31/2018

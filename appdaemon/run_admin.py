@@ -167,7 +167,7 @@ class RunAdmin:
                 update["threads"] = threads["threads"]
 
             if update != old_update:
-                await self.AD.admin.admin_update(update)
+                await self.admin_update(update)
 
             old_update = update
 

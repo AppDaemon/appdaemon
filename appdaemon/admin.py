@@ -86,6 +86,11 @@ class Admin:
             params["event_callbacks"] = self.AD.callbacks.get_callback_entries("event")
 
             params["sched"] = self.AD.sched.get_scheduler_entries()
+
+            params["main_log"] = self.AD.logging.read_logfile()
+            params["error_log"] = self.AD.logging.read_errorfile()
+            params["diag_log"] = self.AD.logging.read_diagfile()
+            params["access_log"] = self.AD.logging.read_accessfile()
             #
             # Render Page
             #

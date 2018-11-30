@@ -35,6 +35,11 @@ a {
    width:100%;
  }
 
+.log_panel{
+    background-color: #d7e8ef;
+    color: #03a9f4;
+}
+
 .main{
    height:320px;
    width:80%;
@@ -90,6 +95,14 @@ input[type="submit"] {
 
 /* Style the tab content */
 .tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+/* Style the tab content */
+.logtabcontent {
     display: none;
     padding: 6px 12px;
     border: 1px solid #ccc;

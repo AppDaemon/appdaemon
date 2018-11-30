@@ -29,6 +29,7 @@ $(function(){ //DOM Ready
     // Open the default tab
 
     document.getElementById("appdaemon").click();
+    document.getElementById("main_log_button").click();
 
     // Start listening for Events
 
@@ -74,7 +75,7 @@ $(function(){ //DOM Ready
 <div class="tab">
   <button class="tablinks" onclick="openTab(event, 'AppDaemon')" id="appdaemon">AppDaemon</button>
   <button class="tablinks" onclick="openTab(event, 'Plugins')" id="plugins">Plugins</button>
-  <button class="tablinks" onclick="openTab(event, 'Modules')" id="plugins">Modules</button>
+  <button class="tablinks" onclick="openTab(event, 'Modules')" id="modules">Modules</button>
   <button class="tablinks" onclick="openTab(event, 'Apps')" id="apps">Apps</button>
   <button class="tablinks" onclick="openTab(event, 'Threads')" id="apps">Threads</button>
   <button class="tablinks" onclick="openTab(event, 'Callbacks')" id="apps">Callbacks</button>
@@ -122,9 +123,9 @@ $(function(){ //DOM Ready
             <tr><td>{{ thread }}</td>
                 <td id="{{thread}}_qsize">{{ threads["threads"][thread]["qsize"] }}</td>
                 <td id="{{thread}}_callback">{{ threads["threads"][thread]["callback"] }}</td>
-                <td id="{{thread}}_callback">{{ threads["threads"][thread]["time_called"] }}</td>
+                <td id="{{thread}}_time_called">{{ threads["threads"][thread]["time_called"] }}</td>
                 <td id="{{thread}}_is_alive">{{ threads["threads"][thread]["is_alive"] }}</td>
-                <td id="{{thread}}_is_alive">{{ threads["threads"][thread]["pinned_apps"] }}</td>
+                <td id="{{thread}}_pinned_apps">{{ threads["threads"][thread]["pinned_apps"] }}</td>
             </tr>
             {% endfor %}
     </table>
@@ -206,7 +207,44 @@ $(function(){ //DOM Ready
 </div>
 
 <div id="Logs" class="tabcontent">
-
+<div class="tab">
+  <button class="logtablinks" onclick="openLogTab(event, 'main_log')" id="main_log_button">Main</button>
+  <button class="logtablinks" onclick="openLogTab(event, 'error_log')" id="error_log_button">Error</button>
+  <button class="logtablinks" onclick="openLogTab(event, 'diag_log')" id="diag_log_button">Diag</button>
+    {%  if access_log != None %}
+  <button class="logtablinks" onclick="openLogTab(event, 'access_log')" id="access_log_button">Access</button>
+    {% endif %}
+        </div>
+<div id="main_log" class="logtabcontent">
+    <div id="main_log_div" class="log_panel">
+        {% for line in main_log | reverse %}
+            {{ line }}<br>
+        {% endfor %}
+    </div>
+</div>
+<div id="error_log" class="logtabcontent">
+    <div id="error_log_div" class="log_panel">
+        {% for line in error_log | reverse %}
+            {{ line }}<br>
+        {% endfor %}
+    </div>
+</div>
+<div id="diag_log" class="logtabcontent">
+    <div id="diag_log_div" class="log_panel">
+        {% for line in diag_log | reverse %}
+            {{ line }}<br>
+        {% endfor %}
+    </div>
+</div>
+    {%  if access_log != None %}
+        <div id="access_log" class="logtabcontent">
+    <div id="access_log_div" class="log_panel">
+        {% for line in access_log | reverse %}
+            {{ line }}<br>
+        {% endfor %}
+    </div>
+</div>
+         {% endif %}
 </div>
 
 <div id="Plugins" class="tabcontent">
