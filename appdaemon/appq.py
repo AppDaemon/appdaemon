@@ -25,7 +25,8 @@ class AppQ:
         while not self.stopping:
             args = await self.appq.get()
             if args["event_type"] == "admin_update":
-                await self.AD.admin.admin_update(args["data"])
+                if self.AD.admin is not None:
+                    await self.AD.admin.admin_update(args["data"])
             else:
                 namespace = args["namespace"]
                 await self.AD.state.state_update(namespace, args)
