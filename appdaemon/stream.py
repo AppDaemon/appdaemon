@@ -51,13 +51,10 @@ class ADStream:
 
                 if self.transport == "ws":
                     if len(self.app['websockets']) > 0:
-                        self.AD.logging.log("DEBUG",
-                               "Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
+                        self.logger.debug("Sending data to {} dashes: {}".format(len(self.app['websockets']), jdata))
                     for ws in self.app['websockets']:
                         if "dashboard" in self.app['websockets'][ws]:
-                            self.AD.logging.log(
-                                   "DEBUG",
-                                   "Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
+                            self.logger.debug("Found dashboard type {}".format(self.app['websockets'][ws]["dashboard"]))
                             await ws.send_str(jdata)
 
                 else:
