@@ -166,7 +166,7 @@ class MqttPlugin(PluginBase):
         return
 
     def mqtt_on_message(self, client, userdata, msg):
-        self.log("Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
+        self.log("DEBUG", "Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
         topic = msg.topic
 
         if self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []: #check if any of the wildcards belong
