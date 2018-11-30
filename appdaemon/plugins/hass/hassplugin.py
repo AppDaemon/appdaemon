@@ -268,7 +268,7 @@ class HassPlugin(PluginBase):
     #
 
     @hass_check
-    def set_plugin_state(self, namespace, entity_id, new_state):
+    def set_plugin_state(self, namespace, entity_id, new_state, **kwargs):
         config = self.AD.plugins.get_plugin_object(namespace).config
         if "cert_path" in config:
             cert_path = config["cert_path"]

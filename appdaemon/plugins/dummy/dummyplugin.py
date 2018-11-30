@@ -15,7 +15,7 @@ class DummyPlugin(PluginBase):
         self.config = args
         self.name = name
 
-        self.log("INFO", "Dummy Plugin Initializing", "DUMMY")
+        self.logger.info("Dummy Plugin Initializing", "DUMMY")
 
         self.name = name
 
@@ -29,24 +29,24 @@ class DummyPlugin(PluginBase):
         try:
             self.config = yaml.load(config_file_contents)
         except yaml.YAMLError as exc:
-            self.log("WARNING", "Error loading configuration")
+            self.logger.warning("Error loading configuration")
             if hasattr(exc, 'problem_mark'):
                 if exc.context is not None:
-                    self.log("WARNING", "parser says")
-                    self.log("WARNING", str(exc.problem_mark))
-                    self.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                    self.logger.warning("parser says")
+                    self.logger.warning(str(exc.problem_mark))
+                    self.logger.warning(str(exc.problem) + " " + str(exc.context))
                 else:
-                    self.log("WARNING", "parser says")
-                    self.log("WARNING", str(exc.problem_mark))
-                    self.log("WARNING", str(exc.problem))
+                    self.logger.warning("parser says")
+                    self.logger.warning(str(exc.problem_mark))
+                    self.logger.warning(str(exc.problem))
 
         self.state = self.config["initial_state"]
         self.current_event = 0
 
-        self.log("INFO", "Dummy Plugin initialization complete")
+        self.logger.info("Dummy Plugin initialization complete")
 
     def stop(self):
-        self.log("DEBUG", "*** Stopping ***")
+        self.logger.debug("*** Stopping ***")
         self.stopping = True
 
     #
@@ -54,7 +54,7 @@ class DummyPlugin(PluginBase):
     #
 
     async def get_complete_state(self):
-        self.log("DEBUG", "*** Sending Complete State: {} ***".format(self.state))
+        self.logger.debug("*** Sending Complete State: {} ***".format(self.state))
         return copy.deepcopy(self.state)
 
     async def get_metadata(self):
@@ -72,7 +72,7 @@ class DummyPlugin(PluginBase):
 
     def utility(self):
         pass
-        #self.log("DEBUG", "*** Utility ***".format(self.state))
+        #self.logger.debug("*** Utility ***".format(self.state))
 
     #
     # Handle state updates
@@ -104,7 +104,7 @@ class DummyPlugin(PluginBase):
                                     "old_state": old_state
                                 }
                         }
-                    self.log("DEBUG", "*** State Update: %s ***", ret)
+                    self.logger.debug("*** State Update: %s ***", ret)
                     self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = \
@@ -112,15 +112,15 @@ class DummyPlugin(PluginBase):
                             "event_type": event["event"]["event_type"],
                             "data": event["event"]["data"],
                         }
-                    self.log("DEBUG", "*** Event: %s ***", ret)
+                    self.logger.debug("*** Event: %s ***", ret)
                     self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
 
                 elif "disconnect" in event:
-                    self.log("DEBUG", "*** Disconnected ***")
+                    self.logger.debug("*** Disconnected ***")
                     self.AD.plugins.notify_plugin_stopped(self.namespace)
 
                 elif "connect" in event:
-                    self.log("DEBUG", "*** Connected ***")
+                    self.logger.debug("*** Connected ***")
                     await self.AD.plugins.notify_plugin_started(self.namespace)
 
                 self.current_event += 1
@@ -131,8 +131,8 @@ class DummyPlugin(PluginBase):
     # Set State
     #
 
-    def set_plugin_state(self, entity, state):
-        self.log("DEBUG", "*** Setting State: %s = %s ***", entity, state)
+    def set_plugin_state(self, entity, state, **kwargs):
+        self.logger.debug("*** Setting State: %s = %s ***", entity, state)
         self.state[entity] = state
 
     def get_namespace(self):

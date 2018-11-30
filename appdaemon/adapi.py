@@ -371,7 +371,7 @@ class ADAPI:
 
         if hasattr(plugin, "set_plugin_state"):
             # We assume that the event will come back to us via the plugin
-            plugin.set_plugin_state(namespace, entity_id, new_state)
+            plugin.set_plugin_state(namespace, entity_id, new_state, **kwargs)
         else:
             # Just fire the event locally
             self.AD.appq.set_state_event(namespace, entity_id, new_state)
