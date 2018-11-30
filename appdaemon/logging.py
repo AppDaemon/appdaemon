@@ -263,14 +263,17 @@ class Logging:
         return self.error
 
     def add_log_callback(self, namespace, name, cb, level, **kwargs):
-        if self.AD.events is not None:
-            # Add a separate callback for each log level
-            handle = []
-            for thislevel in self.log_levels:
-                if self.log_levels[thislevel] >= self.log_levels[level] :
-                    handle.append(self.AD.events.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
+        if self.AD.threading.validate_pin(name, kwargs) is True:
+            if self.AD.events is not None:
+                # Add a separate callback for each log level
+                handle = []
+                for thislevel in self.log_levels:
+                    if self.log_levels[thislevel] >= self.log_levels[level] :
+                        handle.append(self.AD.events.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
 
-            return handle
+                return handle
+        else:
+            return None
 
     def cancel_log_callback(self, name, handle):
         if self.AD.events is not None:

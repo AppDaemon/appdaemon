@@ -14,35 +14,38 @@ class Events:
         #
 
     def add_event_callback(self, _name, namespace, cb, event, **kwargs):
-        with self.AD.app_management.objects_lock:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin_app"]
-            else:
-                pin_app = self.AD.app_management.objects[_name]["pin_app"]
-
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.AD.app_management.objects[_name]["pin_thread"]
-
-        with self.AD.callbacks.callbacks_lock:
-            if _name not in self.AD.callbacks.callbacks:
-                self.AD.callbacks.callbacks[_name] = {}
-            handle = uuid.uuid4()
+        if self.AD.threading.validate_pin(_name, kwargs) is True:
             with self.AD.app_management.objects_lock:
-                self.AD.callbacks.callbacks[_name][handle] = {
-                    "name": _name,
-                    "id": self.AD.app_management.objects[_name]["id"],
-                    "type": "event",
-                    "function": cb,
-                    "namespace": namespace,
-                    "event": event,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs
-                }
-        return handle
+                if "pin" in kwargs:
+                    pin_app = kwargs["pin_app"]
+                else:
+                    pin_app = self.AD.app_management.objects[_name]["pin_app"]
+
+                if "pin_thread" in kwargs:
+                    pin_thread = kwargs["pin_thread"]
+                    pin_app = True
+                else:
+                    pin_thread = self.AD.app_management.objects[_name]["pin_thread"]
+
+            with self.AD.callbacks.callbacks_lock:
+                if _name not in self.AD.callbacks.callbacks:
+                    self.AD.callbacks.callbacks[_name] = {}
+                handle = uuid.uuid4()
+                with self.AD.app_management.objects_lock:
+                    self.AD.callbacks.callbacks[_name][handle] = {
+                        "name": _name,
+                        "id": self.AD.app_management.objects[_name]["id"],
+                        "type": "event",
+                        "function": cb,
+                        "namespace": namespace,
+                        "event": event,
+                        "pin_app": pin_app,
+                        "pin_thread": pin_thread,
+                        "kwargs": kwargs
+                    }
+            return handle
+        else:
+            return None
 
     def cancel_event_callback(self, name, handle):
         with self.AD.callbacks.callbacks_lock:

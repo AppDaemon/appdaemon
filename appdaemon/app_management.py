@@ -631,7 +631,10 @@ class AppManagement:
 
             for app in sorted(prio_apps, key=prio_apps.get):
                 try:
-                    self.init_object(app)
+                    if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
+                        self.AD.logging.log("INFO", "{} is disabled".format(app))
+                    else:
+                        self.init_object(app)
                 except:
                     self.AD.logging.err("WARNING", '-' * 60)
                     self.AD.logging.err("WARNING", "Unexpected error initializing app: {}:".format(app))
@@ -646,7 +649,10 @@ class AppManagement:
             # Call initialize() for apps
 
             for app in sorted(prio_apps, key=prio_apps.get):
-                self.initialize_app(app)
+                if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
+                    pass
+                else:
+                    self.initialize_app(app)
 
         if self.AD.check_app_updates_profile is True:
             pr.disable()
