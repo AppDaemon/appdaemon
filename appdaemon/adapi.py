@@ -367,7 +367,7 @@ class ADAPI:
 
         # Fire the plugin's state update if it has one
 
-        plugin = self.AD.plugins.get_plugin(namespace)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "set_plugin_state"):
             # We assume that the event will come back to us via the plugin
@@ -417,7 +417,7 @@ class ADAPI:
 
         # Fire the plugin's state update if it has one
 
-        plugin = self.AD.plugins.get_plugin(namespace)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "fire_plugin_event"):
             # We assume that the event will come back to us via the plugin

@@ -9,6 +9,7 @@ import traceback
 import inspect
 from datetime import timedelta
 from collections import OrderedDict
+import logging
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -562,8 +563,8 @@ class Threading:
             funcref = args["function"]
             _id = args["id"]
             name = args["name"]
-            logger = self.AD.app_management.get_app(name).get_main_log()
-            error_logger = self.AD.app_management.get_app(name).get_error_log()
+            logger = logging.getLogger("AppDaemon.{}".format(name))
+            error_logger = logging.getLogger("Error.{}".format(name))
             args["kwargs"]["__thread_id"] = thread_id
             callback = "{}() in {}".format(funcref.__name__, name)
             app = None

@@ -16,7 +16,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
-        if not self.AD.plugins.get_plugin(self._get_namespace(**kwargs)).reading_messages:
+        if not self.AD.plugins.get_plugin_object(self._get_namespace(**kwargs)).reading_messages:
             self.AD.logging.log("WARNING", "Attempt to call Home Assistant while disconnected: {}".format(func.__name__))
             return lambda *args: None
         else:

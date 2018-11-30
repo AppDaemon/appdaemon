@@ -21,7 +21,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         if 'wildcard' in kwargs:
             wildcard = kwargs['wildcard']
             if wildcard[-2:] == '/#' and len(wildcard.split('/')[0]) >= 1:
-                self.AD.plugins.get_plugin(namespace).process_mqtt_wildcard(kwargs['wildcard'])
+                self.AD.plugins.get_plugin_object(namespace).process_mqtt_wildcard(kwargs['wildcard'])
             else:
                 self.AD.logging.log("Using {!r} as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered".format(wildcard), level="WARNING")
                 return
@@ -59,12 +59,12 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
 
         if 'topic' in kwargs:
-            if not self.AD.plugins.get_plugin(namespace).initialized: #ensure mqtt plugin is connected
+            if not self.AD.plugins.get_plugin_object(namespace).initialized: #ensure mqtt plugin is connected
                 self.log("Attempt to call Mqtt Service while disconnected: {!r}".format(service), level="WARNING")
                 return None
 
             try:
-                result = self.AD.plugins.get_plugin(namespace).mqtt_service(service, **kwargs)
+                result = self.AD.plugins.get_plugin_object(namespace).mqtt_service(service, **kwargs)
                 
             except Exception as e:
                 config = self.AD.plugins.get_plugin(namespace).config

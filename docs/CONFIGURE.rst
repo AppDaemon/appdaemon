@@ -217,6 +217,7 @@ In the required ``plugins:`` sub-section, there will usually be one or more plug
 
 -  ``type`` (required) The type of the plugin.
 -  ``namespace`` (optional) - which namespace to use. This can safely be left out unless you are planning to use multiple plugins (see below)
+- ``disable`` (optional) - if set to ``true``, the plugin will not be loaded - defaults to ``false``.
 
 The rest will vary depending upon which plugin type is in use.
 

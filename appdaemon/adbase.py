@@ -64,6 +64,8 @@ class ADBase:
         self.args = args
         self.global_vars = global_vars
         self.namespace = "default"
+        self._error = None
+        self._logger = None
 
         # Some initial Setup
 
@@ -78,6 +80,7 @@ class ADBase:
 
     def get_ad_api(self):
         api = adapi.ADAPI(self.AD, self.name, self.logging, self.args, self.config, self.app_config, self.global_vars)
+
         return api
 
     def get_plugin_api(self, name):
