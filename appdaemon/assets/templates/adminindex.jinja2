@@ -206,7 +206,7 @@ $(function(){ //DOM Ready
 
 </div>
 
-<div id="Logs" class="logtabcontentdiv">
+<div id="Logs" class="maintabcontent">
 <div class="tab">
   <button class="logtablinks" onclick="openTab(event, 'main_log', 'logtab')" id="main_log_button">Main</button>
   <button class="logtablinks" onclick="openTab(event, 'error_log', 'logtab')" id="error_log_button">Error</button>
@@ -214,7 +214,7 @@ $(function(){ //DOM Ready
     {%  if access_log != None %}
   <button class="logtablinks" onclick="openTab(event, 'access_log', 'logtab')" id="access_log_button">Access</button>
     {% endif %}
-        </div>
+</div>
 <div id="main_log" class="logtabcontent">
     <div id="main_log_div" class="log_panel">
         {% for line in main_log | reverse %}
