@@ -331,7 +331,7 @@ class ADAPI:
         )
 
         if entity_id in self.get_state(namespace=namespace):
-            new_state = self.get_state(namespace=namespace)[entity_id]
+            new_state = self.get_state(namespace = namespace)[entity_id]
         else:
             # Its a new state entry
             new_state = {}
@@ -339,12 +339,19 @@ class ADAPI:
 
         if "state" in kwargs:
             new_state["state"] = kwargs["state"]
+            del kwargs["state"]
+
 
         if "attributes" in kwargs and kwargs.get('replace', False):
             new_state["attributes"] = kwargs["attributes"]
         else:
             if "attributes" in kwargs:
                 new_state["attributes"].update(kwargs["attributes"])
+            else:
+                if "replace" in kwargs:
+                    del kwargs["replace"]
+
+                new_state["attributes"].update(kwargs)
 
         return new_state
 
