@@ -113,7 +113,8 @@ class AppManagement:
 
         self.AD.sched.term_object(name)
 
-        self.AD.api.term_object(name)
+        if self.AD.api is not None:
+            self.AD.api.term_object(name)
 
         # Update admin interface
         if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":
