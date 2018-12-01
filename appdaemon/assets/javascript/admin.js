@@ -48,32 +48,30 @@ function admin_stream(stream, transport)
         {
             for (id in data["updates"])
             {
-                document.getElementById(id).innerText = (data["updates"][id]);
+                $('#' + id).text(data["updates"][id]);
             }
         }
 
         if ("schedule" in data)
         {
-            // console.log(data["schedule"]);
-            document.getElementById("active_scheduler_callbacks").innerHTML = this.get_schedule_table(data["schedule"])
-
+            $('#active_scheduler_callbacks').html(get_schedule_table(data["schedule"]))
         }
 
         if ("state_callbacks" in data)
         {
             // console.log(data["schedule"]);
-            document.getElementById("active_state_callbacks").innerHTML = this.get_state_table(data["state_callbacks"])
+            $('#active_state_callbacks').html(get_state_table(data["state_callbacks"]))
         }
 
         if ("event_callbacks" in data)
         {
             // console.log(data["schedule"]);
-            document.getElementById("active_event_callbacks").innerHTML = this.get_event_table(data["event_callbacks"])
+            $('#active_event_callbacks').html(get_event_table(data["event_callbacks"]))
         }
 
         if ("threads" in data)
         {
-           document.getElementById("thread_table").innerHTML = this.get_thread_table(data["threads"])
+           $('#thread_table').html(get_thread_table(data["threads"]))
         }
 
         if ("log_entry" in data)
@@ -149,7 +147,7 @@ function get_state_table(data)
             {
 
                 html += "<tr>";
-                html += "<td>" + name + "</td>"
+                html += "<td>" + name + "</td>";
                 html += "<td>" + data[name][id].entity + "</td>";
                 html += "<td>" + data[name][id].function + "</td>";
                 html += "<td>" + data[name][id].pin_app + "</td>";
@@ -160,7 +158,7 @@ function get_state_table(data)
         }
     }
 
-    html += "</table>"
+    html += "</table>";
 
     return html
 }
@@ -173,7 +171,7 @@ function get_event_table(data)
     }
     else
     {
-        html = "<table>"
+        html = "<table>";
         html += "<tr><th>App</th><th>Event Name</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>"
         for (name in data)
         {
@@ -191,7 +189,7 @@ function get_event_table(data)
         }
     }
 
-    html += "</table>"
+    html += "</table>";
 
     return html
 }
@@ -216,48 +214,18 @@ function get_thread_table(data)
     return html
 }
 
-function openTab(evt, tabname) {
+function openTab(evt, tabname, tabgroup) {
     // Declare all variables
     var i, tabcontent, tablinks;
 
     // Get all elements with class="tabcontent" and hide them
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-
+    $('.' + tabgroup + 'content').each(function(index, elem){elem.style.display = "none"})
     // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = document.getElementsByClassName("tablinks");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
+    $('.' + tabgroup + 'links').each(function(index, elem){elem.className = elem.className.replace(" active", "")})
     // Show the current tab, and add an "active" class to the button that opened the tab
-    document.getElementById(tabname).style.display = "block";
+    $('#' + tabname).css("display", "block");
     evt.currentTarget.className += " active";
 }
-
-function openLogTab(evt, tabname) {
-    // Declare all variables
-    var i, tabcontent, tablinks;
-
-    // Get all elements with class="tabcontent" and hide them
-    tabcontent = document.getElementsByClassName("logtabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-
-    // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = document.getElementsByClassName("logtablinks");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
-    // Show the current tab, and add an "active" class to the button that opened the tab
-    document.getElementById(tabname).style.display = "block";
-    evt.currentTarget.className += " active";
-}
-
 
 function logout()
 {

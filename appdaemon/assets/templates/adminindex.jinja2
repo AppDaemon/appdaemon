@@ -73,23 +73,23 @@ $(function(){ //DOM Ready
         <h1><img src="images/favicon-32x32.png"> AppDaemon Administration</h1>
 <!-- Tab links -->
 <div class="tab">
-  <button class="tablinks" onclick="openTab(event, 'AppDaemon')" id="appdaemon">AppDaemon</button>
-  <button class="tablinks" onclick="openTab(event, 'Plugins')" id="plugins">Plugins</button>
-  <button class="tablinks" onclick="openTab(event, 'Modules')" id="modules">Modules</button>
-  <button class="tablinks" onclick="openTab(event, 'Apps')" id="apps">Apps</button>
-  <button class="tablinks" onclick="openTab(event, 'Threads')" id="apps">Threads</button>
-  <button class="tablinks" onclick="openTab(event, 'Callbacks')" id="apps">Callbacks</button>
-  <button class="tablinks" onclick="openTab(event, 'Logs')" id="apps">Logs</button>
+  <button class="maintablinks" onclick="openTab(event, 'AppDaemon', 'maintab')" id="appdaemon">AppDaemon</button>
+  <button class="maintablinks" onclick="openTab(event, 'Plugins', 'maintab')" id="plugins">Plugins</button>
+  <button class="maintablinks" onclick="openTab(event, 'Modules', 'maintab')" id="modules">Modules</button>
+  <button class="maintablinks" onclick="openTab(event, 'Apps', 'maintab')" id="apps">Apps</button>
+  <button class="maintablinks" onclick="openTab(event, 'Threads', 'maintab')" id="apps">Threads</button>
+  <button class="maintablinks" onclick="openTab(event, 'Callbacks', 'maintab')" id="apps">Callbacks</button>
+  <button class="maintablinks" onclick="openTab(event, 'Logs', 'maintab')" id="apps">Logs</button>
 </div>
 
 <!-- Tab content -->
-<div id="AppDaemon" class="tabcontent">
+<div id="AppDaemon" class="maintabcontent">
     <h3>AppDaemon</h3>
     <br>Version: {{ appdaemon["version"] }}
     <br>Running since: {{ appdaemon["booted"] }}
 </div>
 
-<div id="Apps" class="tabcontent">
+<div id="Apps" class="maintabcontent">
     <h3>Active Apps</h3>
     {% for app in apps %}
             <br>{{ app }}
@@ -97,11 +97,11 @@ $(function(){ //DOM Ready
 
 </div>
 
-<div id="Modules" class="tabcontent">
+<div id="Modules" class="maintabcontent">
 
 </div>
 
-<div id="Threads" class="tabcontent">
+<div id="Threads" class="maintabcontent">
     <h3>Summary</h3>
     <table>
         <tr><td>Current Busy</td><td id="current_busy_threads">{{ threads["current_busy"] }}</td></tr>
@@ -132,7 +132,7 @@ $(function(){ //DOM Ready
     </span>
 </div>
 
-<div id="Callbacks" class="tabcontent">
+<div id="Callbacks" class="maintabcontent">
     <h3>Summary</h3>
     <table>
         <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callback_updates["total_callbacks_fired"] }}</td><td>Average <span id="avg_callbacks_fired_per_sec">{{ callback_updates["avg_callbacks_fired_per_sec"] }}</span> callback_updates/s</td></tr>
@@ -206,13 +206,13 @@ $(function(){ //DOM Ready
 
 </div>
 
-<div id="Logs" class="tabcontent">
+<div id="Logs" class="logtabcontentdiv">
 <div class="tab">
-  <button class="logtablinks" onclick="openLogTab(event, 'main_log')" id="main_log_button">Main</button>
-  <button class="logtablinks" onclick="openLogTab(event, 'error_log')" id="error_log_button">Error</button>
-  <button class="logtablinks" onclick="openLogTab(event, 'diag_log')" id="diag_log_button">Diag</button>
+  <button class="logtablinks" onclick="openTab(event, 'main_log', 'logtab')" id="main_log_button">Main</button>
+  <button class="logtablinks" onclick="openTab(event, 'error_log', 'logtab')" id="error_log_button">Error</button>
+  <button class="logtablinks" onclick="openTab(event, 'diag_log', 'logtab')" id="diag_log_button">Diag</button>
     {%  if access_log != None %}
-  <button class="logtablinks" onclick="openLogTab(event, 'access_log')" id="access_log_button">Access</button>
+  <button class="logtablinks" onclick="openTab(event, 'access_log', 'logtab')" id="access_log_button">Access</button>
     {% endif %}
         </div>
 <div id="main_log" class="logtabcontent">
@@ -247,7 +247,7 @@ $(function(){ //DOM Ready
          {% endif %}
 </div>
 
-<div id="Plugins" class="tabcontent">
+<div id="Plugins" class="maintabcontent">
   <h3>Plugins</h3>
     <table>
         <tr>
