@@ -103,7 +103,7 @@ class AppManagement:
                 self.AD.logging.err("WARNING", traceback.format_exc())
                 self.AD.logging.err("WARNING", '-' * 60)
                 if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                    self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
+                    self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
 
         with self.objects_lock:
             if name in self.objects:

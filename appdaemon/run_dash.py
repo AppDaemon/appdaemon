@@ -381,7 +381,7 @@ class RunDash:
 
 
     async def on_message(self, data):
-        self.AD.logging.log("INFO", "New dashboard connected: {}".format(data))
+        self.AD.logging.access("INFO", "New dashboard connected: {}".format(data))
 
     async def on_connect(self):
         pass

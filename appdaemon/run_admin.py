@@ -137,7 +137,7 @@ class RunAdmin:
         await self.stream.send_update(updates)
 
     async def on_message(self, data):
-        self.AD.logging.log("INFO", "New admin browser connection")
+        self.AD.logging.access("INFO", "New admin browser connection")
 
     async def on_connect(self):
         pass
