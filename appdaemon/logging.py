@@ -218,6 +218,12 @@ class Logging:
     def set_tz(self, tz):
         self.tz = tz
 
+    def get_level_from_int(self, level):
+        for lvl in self.log_levels:
+            if self.log_levels[lvl] == level:
+                return lvl
+        return "UNKNOWN"
+
     def register_ad(self, ad):
         self.AD = ad
 

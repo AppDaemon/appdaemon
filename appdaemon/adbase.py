@@ -64,8 +64,14 @@ class ADBase:
         self.args = args
         self.global_vars = global_vars
         self.namespace = "default"
-        self.err = None
-        self.logger = None
+        self.logger = self.logging.get_logger().getChild(name)
+        self.err = self.logging.get_error().getChild(name)
+        if "log_level" in args:
+            self.logger.setLevel(args["log_level"])
+            self.err.setLevel(args["log_level"])
+        else:
+            self.logger.setLevel("INFO")
+            self.err.setLevel("INFO")
 
         # Some initial Setup
 
@@ -102,6 +108,17 @@ class ADBase:
     #
     # Constraints
     #
+
+    def _get_namespace(self, **kwargs):
+        if "namespace" in kwargs:
+            namespace = kwargs["namespace"]
+            del kwargs["namespace"]
+        else:
+            namespace = self._namespace
+
+        return namespace
+
+
 
     def register_constraint(self, name):
         self.constraints.append(name)

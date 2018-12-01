@@ -8,6 +8,7 @@ import cProfile
 import io
 import pstats
 import json
+import threading
 
 if platform.system() != "Windows":
     import pwd
@@ -70,19 +71,22 @@ class PersistentDict(dict):
     """
 
     def __init__(self, filename, safe, *args, **kwargs):
+        super().__init__(**kwargs)
         self.filename = filename
         self.safe = safe
+        self.lock = threading.RLock()
         self._load()
-        #self.update(True, *args, **kwargs)
 
     def _load(self):
-        if os.path.isfile(self.filename) and os.path.getsize(self.filename) > 0:
-            with open(self.filename, 'r') as fh:
-                self.update(False, json.load(fh))
+        with self.lock:
+            if os.path.isfile(self.filename) and os.path.getsize(self.filename) > 0:
+                with open(self.filename, 'r') as fh:
+                    self.update(False, json.load(fh))
 
     def save(self):
-        with open(self.filename, 'w') as fh:
-            json.dump(self, fh)
+        with self.lock:
+            with open(self.filename, 'w') as fh:
+                json.dump(self, fh)
 
     def __getitem__(self, key):
         return dict.__getitem__(self, key)

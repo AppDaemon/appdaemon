@@ -3,10 +3,10 @@ import inspect
 import iso8601
 import re
 from datetime import timedelta
-import logging
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+
 
 class ADAPI:
     #
@@ -14,7 +14,6 @@ class ADAPI:
     #
 
     def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
-
         # Store args
 
         self.AD = ad
@@ -25,14 +24,14 @@ class ADAPI:
         self.args = args
         self.global_vars = global_vars
         self._namespace = "default"
-        self.logger = self.logging.get_logger().getChild(name)
-        self.err = self.logging.get_error().getChild(name)
-        if "log_level" in args:
-            self.logger.setLevel(args["log_level"])
-            self.err.setLevel(args["log_level"])
-        else:
-            self.logger.setLevel("INFO")
-            self.err.setLevel("INFO")
+        #self.logger = self.logging.get_logger().getChild(name)
+        #self.err = self.logging.get_error().getChild(name)
+        #if "log_level" in args:
+        #    self.logger.setLevel(args["log_level"])
+        #    self.err.setLevel(args["log_level"])
+        #else:
+        #    self.logger.setLevel("INFO")
+        #    self.err.setLevel("INFO")
 
     @staticmethod
     def _sub_stack(msg):
@@ -55,22 +54,6 @@ class ADAPI:
             namespace = self._namespace
 
         return namespace
-
-    #
-    # Threading
-    #
-
-    def set_app_pin(self, pin):
-        self.AD.threading.set_app_pin(self.name, pin)
-
-    def get_app_pin(self):
-        return self.AD.threading.get_app_pin(self.name)
-
-    def set_pin_thread(self, thread):
-        self.AD.threading.set_pin_thread(self.name, thread)
-
-    def get_pin_thread(self):
-        return self.AD.threading.get_pin_thread(self.name)
 
     #
     # Logging
@@ -120,6 +103,21 @@ class ADAPI:
 
     def set_error_level(self, level):
         self.err.setLevel(self.logging.log_levels[level])
+    #
+    # Threading
+    #
+
+    def set_app_pin(self, pin):
+        self.AD.threading.set_app_pin(self.name, pin)
+
+    def get_app_pin(self):
+        return self.AD.threading.get_app_pin(self.name)
+
+    def set_pin_thread(self, thread):
+        self.AD.threading.set_pin_thread(self.name, thread)
+
+    def get_pin_thread(self):
+        return self.AD.threading.get_pin_thread(self.name)
 
     #
     # Namespace

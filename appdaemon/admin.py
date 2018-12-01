@@ -67,8 +67,16 @@ class Admin:
             params["appdaemon"]["version"] = utils.__version__
 
             params["apps"] = {}
-            for obj in self.AD.app_management.objects:
-                params["apps"][obj] = {}
+            app_config = self.AD.app_management.app_config
+            for app in app_config:
+                params["apps"][app] = {}
+
+                if "disabled" in app_config[app] and app_config[app][app]["disabled"] is True:
+                    params["apps"][app]["disabled"] = True
+                else:
+                    params["apps"][app]["disabled"] = False
+
+                params["apps"][app]["debug"] = self.AD.app_management.get_app_debug_level(app)
 
             params["plugins"] = {}
             for plug in self.AD.plugins.plugin_objs:

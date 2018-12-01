@@ -119,3 +119,31 @@ th, td {
     border: 1px solid black;
     border-collapse: collapse;
 }
+
+.table-list .caret:after { content:""; }
+.asc .caret:after {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 3px solid #808080;
+  content: "";
+  position: relative;
+  top: -3px;
+  right: -4px;
+  font-size:0; }
+.desc .caret:after {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 3px solid #808080;
+  content: "";
+  position: relative;
+  top: -4px;
+  right: -4px;
+  font-size:0; }
+
+button.sort .caret { display:none; }
+button.sort.asc .caret { display:inline-block; }
+button.sort.desc .caret { display:inline-block; }

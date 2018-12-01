@@ -1,3 +1,42 @@
+function dom_ready(transport, appvalues)
+{
+    // Open the default tabs
+
+    document.getElementById("appdaemon").click();
+    document.getElementById("main_log_button").click();
+
+    // Apps Table
+
+    var appoptions = {
+        valueNames: ['appname', 'disabled', 'debug'],
+        item: '<tr><td class="appname"></td><td class="disabled"><td class="debug"></td></td></tr>'
+    };
+
+    var apptable = new List('app-table', appoptions, appvalues);
+
+    // Start listening for Events
+
+    var stream_url;
+    if (transport === "ws")
+    {
+        if (location.protocol === 'https:')
+        {
+            wsprot = "wss:"
+        }
+        else
+        {
+            wsprot = "ws:"
+        }
+        stream_url = wsprot + '//' + location.host + '/stream'
+    }
+    else
+    {
+        stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
+    }
+
+    admin_stream(stream_url, transport);
+}
+
 function admin_stream(stream, transport)
 {
 

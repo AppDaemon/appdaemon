@@ -10,6 +10,7 @@
 	<script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
 	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
     <script type="text/javascript" src="javascript/socket.io.js"></script>
+    <script type="text/javascript" src="javascript/list.min.js"></script>
 	<script type="text/javascript" src="javascript/admin.js"></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
@@ -24,40 +25,28 @@
 </head>
 <body>
             <script>
-$(function(){ //DOM Ready
+$(function() {
+    //DOM Ready
 
-    // Open the default tab
+    var appvalues = [
+        {% for app in apps %}
+            {
+                appname: "{{ app }}",
+                disabled: "{{ apps[app].disabled }}",
+                debug: "{{ apps[app].debug }}",
+            },
+        {% endfor %}
+    ];
 
-    document.getElementById("appdaemon").click();
-    document.getElementById("main_log_button").click();
-
-    // Start listening for Events
-
-    {% if transport == "ws" %}
-    if (location.protocol === 'https:')
-    {
-        wsprot = "wss:"
-    }
-    else
-    {
-        wsprot = "ws:"
-    }
-    var stream_url = wsprot + '//' + location.host + '/stream'
-    {% else %}
-        var stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
-    {% endif %}
-
-    admin_stream(stream_url, "{{ transport }}");
-
-});
-
-            </script>
+    dom_ready('{{ transport }}', appvalues)
+})
+</script>
 
     {% if logon is defined %}
         <div id="backgroundImage">
         <div class="main">
         <h1><img src="/images/favicon-32x32.png">&nbsp;HADashboard</h1>
-        <br>Welcome to the AppDaemon Administration Interface.</br>
+        <br>Welcome to the AppDaemon Administration Interface.
         <br/>
         <section class="loginform cf">
         <form name="login" action="/logon" method="post" accept-charset="utf-8">
@@ -91,10 +80,19 @@ $(function(){ //DOM Ready
 
 <div id="Apps" class="maintabcontent">
     <h3>Active Apps</h3>
-    {% for app in apps %}
-            <br>{{ app }}
-    {% endfor %}
-
+    <div id="app-table">
+    Filter <input class="search" /><br><br>
+        <table>
+            <thead>
+            <tr>
+                <th class="sort" data-sort="appname">Name<i class="caret"></i></th>
+                <th class="sort" data-sort="disabled">Disabled<i class="caret"></i></th>
+                <th class="sort" data-sort="debug">Debug Level<i class="caret"></i></th>
+            </tr>
+            </thead>
+            <tbody class="list"></tbody>
+        </table>
+    </div>
 </div>
 
 <div id="Modules" class="maintabcontent">
@@ -264,8 +262,6 @@ $(function(){ //DOM Ready
     {% endfor %}
     </table>
 </div>
-            <input type="submit" value="Logout" onclick="javascript:logout()">
-
         </div>
         </div>
     {%endif%}
