@@ -263,7 +263,15 @@ class ADMain():
 
         # Setup logging
 
-        self.logging = logging.Logging(config, args.debug)
+        if "log" in config:
+            print("ERROR", "'log' directive deprecated, please convert to new 'logs' syntax")
+            sys.exit(1)
+        if "logs" in config:
+            logs = config["logs"]
+        else:
+            logs = {}
+
+        self.logging = logging.Logging(logs, args.debug)
         self.logger = self.logging.get_logger()
 
         if "time_zone" in config["appdaemon"]:
@@ -274,6 +282,7 @@ class ADMain():
 
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
         self.logger.info("Configuration read from: %s", config_file_yaml)
+        self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
 

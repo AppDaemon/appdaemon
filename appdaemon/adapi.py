@@ -74,7 +74,12 @@ class ADAPI:
         logger.log(self.logging.log_levels[level], msg, *args, **kwargs)
 
     def log(self, msg, *args, **kwargs):
-        self._log(self.logger, msg, *args, **kwargs)
+        if "log" in kwargs:
+            logger = self.AD.logging.get_user_log(kwargs["log"])
+            kwargs.pop("log")
+        else:
+            logger = self.logger
+        self._log(logger, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
         self._log(self.err, msg, *args, **kwargs)
@@ -97,6 +102,9 @@ class ADAPI:
 
     def get_error_log(self):
         return self.err
+
+    def get_user_log(self, log):
+        return self.AD.logging.get_user_log(log)
 
     def set_log_level(self, level):
         self.logger.setLevel(self.logging.log_levels[level])

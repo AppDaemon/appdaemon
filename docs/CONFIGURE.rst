@@ -50,14 +50,14 @@ The ``log:`` section is optional but if included, must have at least one directi
    will default to 3 files.
 - ``log_format`` (optional) Format string for the log file - standard logger format.
 - ``error_format`` (optional) Format string for the error file - standard logger format.
-- ``access_format`` (optional) Format string for the access file - standard percent style logger format.
-- ``diag_format`` (optional) Format string for the diag file - standard percent style logger format.
+- ``access_format`` (optional) Format string for the access file - standard str.format() format.
+- ``diag_format`` (optional) Format string for the diag file - standard str.format() format.
 
-Note that the AppDaemon logs use an enhanced formatter that allows interpolation of the App Name in the logger output as well as all the other standard fields. In addition, the ``%(asctime)`` token will give the right results if time travel is in use. For example, the default logfile format for AppDaemon's main log is:
+Note that the AppDaemon logs use an enhanced formatter that allows interpolation of the App Name in the logger output as well as all the other standard fields. In addition, the ``{asctime}`` token will give the right results if time travel is in use. For example, the default logfile format for AppDaemon's main log is:
 
 .. code::
 
-    %(asctime)s %(levelname)s %(appname)s: %(message)s
+    {asctime} {levelname} {appname:<20}: {message}
 
 
 AppDaemon Configuration

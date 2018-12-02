@@ -95,10 +95,7 @@ class Admin:
 
             params["sched"] = self.AD.sched.get_scheduler_entries()
 
-            params["main_log"] = self.AD.logging.read_logfile()
-            params["error_log"] = self.AD.logging.read_errorfile()
-            params["diag_log"] = self.AD.logging.read_diagfile()
-            params["access_log"] = self.AD.logging.read_accessfile()
+            params["logs"] = self.AD.logging.get_admin_logs()
             #
             # Render Page
             #

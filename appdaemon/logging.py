@@ -5,6 +5,7 @@ import sys
 import logging
 from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
+from collections import OrderedDict
 
 from appdaemon.appq import AppDaemon
 
@@ -14,7 +15,7 @@ class AppNameFormatter(logging.Formatter):
     Logger formatter to add 'appname' as an interpolatable field
     """
 
-    def __init__(self, fmt=None, datefmt=None, style='%'):
+    def __init__(self, fmt=None, datefmt=None, style=None):
         super().__init__(fmt, datefmt, style)
 
     def format(self, record):
@@ -92,117 +93,119 @@ class Logging:
         "NOTSET": 0
     }
 
-    def __init__(self, config, debug):
+    def __init__(self, config, log_level):
 
         self.AD = None
         self.tz = None
 
-        log_format_default = '%(asctime)s %(levelname)s %(appname)s: %(message)s'
-        error_format_default = '%(asctime)s %(levelname)s %(appname)s: %(message)s'
-        access_format_default = '%(asctime)s %(levelname)s %(message)s'
-        diag_format_default = '%(asctime)s %(levelname)s %(message)s'
+        # Set up defaults
 
-        if "log" not in config:
-            self.logfile = "STDOUT"
-            self.errorfile = "STDERR"
-            self.diagfile = "STDOUT"
-            self.accessfile = None
+        default_filename = "STDOUT"
+        default_logsize = 1000000
+        default_log_generations = 3
+        default_format = "{asctime} {levelname} {appname}: {message}"
 
-            log_size = 1000000
-            log_generations = 3
-            log_format = log_format_default
-            error_format = error_format_default
-            access_format = access_format_default
-            diag_format = diag_format_default
-        else:
-            self.logfile = config['log'].get("logfile", "STDOUT")
-            self.errorfile = config['log'].get("errorfile", "STDERR")
-            self.diagfile = config['log'].get("diagfile", "NONE")
-            if self.diagfile == "NONE":
-                self.diagfile = self.logfile
-            log_size = config['log'].get("log_size", 1000000)
-            log_generations = config['log'].get("log_generations", 3)
-            self.accessfile = config['log'].get("accessfile")
-            log_format = config['log'].get("log_format", log_format_default)
-            error_format = config['log'].get("error_format", error_format_default)
-            access_format = config['log'].get("access_format", access_format_default)
-            diag_format = config['log'].get("diag_format", diag_format_default)
+        self.config = \
+            {
+                'main_log':
+                    {
+                        'name': "AppDaemon",
+                        'filename': default_filename,
+                        'log_generations': default_log_generations,
+                        'log_size': default_logsize,
+                        'format': default_format
+                    },
+                'error_log':
+                    {
+                        'name': "Error",
+                        'filename': 'STDERR',
+                        'log_generations': default_log_generations,
+                        'log_size': default_logsize,
+                        'format': default_format
+                    },
+                'access_log':
+                    {
+                        'name': "Access",
+                        'alias': "main_log",
+                    },
+                'diag_log':
+                    {
+                        'name': "Diag",
+                        'alias': 'main_log',
+                    }
+            }
 
-        self.log_level = debug
-        numeric_level = getattr(logging, debug, None)
-        self.log_formatter = AppNameFormatter(log_format)
-        #
-        # Add a time formatter that understands time travel and formats the log correctly
-        #
-        self.log_formatter.formatTime = self.get_time
+        # Merge in any user input
 
-        self.error_formatter = AppNameFormatter(error_format)
-        self.error_formatter.formatTime = self.get_time
+        if config is not None:
+            for log in config:
+                if log not in self.config:
+                    # it's a new log - set it up with some defaults
+                    self.config[log] = {}
+                    self.config[log]["filename"] = default_filename
+                    self.config[log]["log_generations"] = default_log_generations
+                    self.config[log]["log_size"] = default_logsize
+                    self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
+                    for arg in config[log]:
+                        self.config[log][arg] = config[log][arg]
+                elif "alias" in self.config[log] and "alias" not in config[log]:
+                # A file aliased by default that the user has supplied one or more config items for
+                # We need to remove the alias tag and populate defaults
+                    self.config[log]["filename"] = default_filename
+                    self.config[log]["log_generations"] = default_log_generations
+                    self.config[log]["log_size"] = default_logsize
+                    self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
+                    self.config[log].pop("alias")
+                    for arg in config[log]:
+                        self.config[log][arg] = config[log][arg]
+                else:
+                    # A regular file, just fill in the blanks
+                    for arg in config[log]:
+                        self.config[log][arg] = config[log][arg]
 
-        self.access_formatter = AppNameFormatter(access_format)
-        self.access_formatter.formatTime = self.get_time
+        # Build the logs
 
-        self.diag_formatter = AppNameFormatter(diag_format)
-        self.diag_formatter.formatTime = self.get_time
+        for log in self.config:
+            args = self.config[log]
+            if 'alias' not in args:
+                self.log_level = log_level
+                formatter = AppNameFormatter(args["format"], style='{')
+                self.config[log]["formatter"] = formatter
+                formatter.formatTime = self.get_time
+                logger = logging.getLogger(args["name"])
+                self.config[log]["logger"] = logger
+                logger.setLevel(log_level)
+                logger.propagate = False
+                if args["filename"] == "STDOUT":
+                    handler = logging.StreamHandler(stream=sys.stdout)
+                elif args["filename"] == "STDERR":
+                    handler = logging.StreamHandler(stream=sys.stdout)
+                else:
+                    handler = RotatingFileHandler(args["filename"], maxBytes=args["log_size"], backupCount=args["log_generations"])
+                self.config[log]["handler"] = handler
+                handler.setFormatter(formatter)
+                logger.addHandler(handler)
 
-        self.logger = logging.getLogger("AppDaemon")
-        self.logger.setLevel(numeric_level)
-        self.logger.propagate = False
-        if self.logfile != "STDOUT":
-            fh = RotatingFileHandler(self.logfile, maxBytes=log_size, backupCount=log_generations)
-        else:
-            fh = logging.StreamHandler(stream=sys.stdout)
+        # Setup any aliases
 
-        fh.setFormatter(self.log_formatter)
-        self.logger.addHandler(fh)
-        self.log_filehandler = fh
+        for log in self.config:
+            if 'alias' in self.config[log]:
+                self.config[log]["logger"] = self.config[self.config[log]["alias"]]["logger"]
+                self.config[log]["formatter"] = self.config[self.config[log]["alias"]]["formatter"]
+                self.config[log]["filename"] = self.config[self.config[log]["alias"]]["filename"]
+                self.config[log]["log_generations"] = self.config[self.config[log]["alias"]]["log_generations"]
+                self.config[log]["log_size"] = self.config[self.config[log]["alias"]]["log_size"]
+                self.config[log]["format"] = self.config[self.config[log]["alias"]]["format"]
 
-        # Setup compile output
+        self.logger = self.get_logger()
 
-        self.error = logging.getLogger("Error")
-        self.error.setLevel(numeric_level)
-        self.error.propagate = False
-        if self.errorfile != "STDERR":
-            efh = RotatingFileHandler(
-                self.errorfile, maxBytes=log_size, backupCount=log_generations)
-        else:
-            efh = logging.StreamHandler()
-
-        efh.setFormatter(self.error_formatter)
-        self.error.addHandler(efh)
-        self.error_filehandler = efh
-
-        # setup diag output
-
-        self.diagnostic = logging.getLogger("Diag")
-        self.diagnostic.setLevel(numeric_level)
-        self.diagnostic.propagate = False
-        if self.diagfile != "STDOUT":
-            dfh = RotatingFileHandler(
-                self.diagfile, maxBytes=log_size, backupCount=log_generations
-            )
-        else:
-            dfh = logging.StreamHandler()
-
-        dfh.setFormatter(self.diag_formatter)
-        self.diagnostic.addHandler(dfh)
-        self.diag_filehandler = dfh
-
-        # Setup dash output
-        if self.accessfile is not None:
-            self.acc = logging.getLogger("Access")
-            self.acc.setLevel(numeric_level)
-            self.acc.propagate = False
-            afh = RotatingFileHandler(
-                config['log'].get("accessfile"), maxBytes=log_size, backupCount=log_generations
-            )
-
-            afh.setFormatter(self.access_formatter)
-            self.acc.addHandler(afh)
-            self.access_filehandler = fh
-        else:
-            self.acc = self.logger
-            self.access_filehandler = None
+    def dump_log_config(self):
+        for log in self.config:
+            self.logger.info("added log: %s", self.config[log]["name"])
+            self.logger.debug("  filename:    %s", self.config[log]["filename"])
+            self.logger.debug("  size:        %s", self.config[log]["log_size"])
+            self.logger.debug("  generations: %s", self.config[log]["log_generations"])
+            self.logger.debug("  format:      %s", self.config[log]["format"])
 
     def get_time(logger, record, format=None):
         if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
@@ -225,7 +228,9 @@ class Logging:
         return "UNKNOWN"
 
     def separate_error_log(self):
-        if self.errorfile != "STDERR" and self.logfile != "STDOUT" and self.errorfile != self.logfile:
+        if self.config["error_log"]["filename"] != "STDERR" and \
+                self.config["main_log"]["filename"] != "STDOUT" and \
+                not self.is_alias("error_log"):
             return True
         return False
 
@@ -234,45 +239,19 @@ class Logging:
 
         # Log Subscriptions
 
-        lh = LogSubscriptionHandler(self.AD)
-        #lh.setFormatter(AppNameFormatter())
-        lh.setLevel(logging.INFO)
-        self.logger.addHandler(lh)
-
-        eh = LogSubscriptionHandler(self.AD)
-        #eh.setFormatter(AppNameFormatter())
-        eh.setLevel(logging.INFO)
-        self.error.addHandler(eh)
-
-        dh = LogSubscriptionHandler(self.AD)
-        #dh.setFormatter(AppNameFormatter())
-        dh.setLevel(logging.INFO)
-        self.acc.addHandler(dh)
-
-        ah = LogSubscriptionHandler(self.AD)
-        #ah.setFormatter(AppNameFormatter())
-        ah.setLevel(logging.INFO)
-        self.diagnostic.addHandler(ah)
+        for log in self.config:
+            if not self.is_alias(log):
+                lh = LogSubscriptionHandler(self.AD)
+                lh.setLevel(logging.INFO)
+                self.config[log]["logger"].addHandler(lh)
 
         # Admin Subscriptions
 
-        alh = AdminHandler(self.AD, "main_log")
-        alh.setFormatter(self.log_formatter)
-        self.logger.addHandler(alh)
-
-        elh = AdminHandler(self.AD, "error_log")
-        elh.setFormatter(self.error_formatter)
-        self.error.addHandler(elh)
-
-        dlh = AdminHandler(self.AD, "diag_log")
-        dlh.setFormatter(self.diag_formatter)
-        self.diagnostic.addHandler(dlh)
-
-        if self.accessfile is not None:
-            clh = AdminHandler(self.AD, "access_log")
-            clh.setFormatter(self.access_formatter)
-            self.acc.addHandler(clh)
-
+        for log in self.config:
+            if not self.is_alias(log):
+                alh = AdminHandler(self.AD, log)
+                alh.setFormatter(self.config[log]["formatter"])
+                self.config[log]["logger"].addHandler(alh)
 
     def _log(self, logger, level, message):
         if level == "INFO":
@@ -286,51 +265,65 @@ class Logging:
         else:
             logger.log(self.log_levels[level], message)
 
-    def log(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.logger, level, message)
+    def log(self, level, message):
+        self._log(self.config["main_log"]["logger"], level, message)
 
-    def err(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.error, level, message)
+    def err(self, level, message):
+        self._log(self.config["error_log"]["logger"], level, message)
 
-    def diag(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.diagnostic, level, message)
+    def diag(self, level, message):
+        self._log(self.config["diag_log"]["logger"], level, message)
 
-    def access(self, level, message, name="AppDaemon", ascii_encode=True):
-        self._log(self.acc, level, message)
+    def access(self, level, message):
+        self._log(self.config["access_log"]["logger"], level, message)
+
+    # Log Objects
 
     def get_error(self):
-        return self.error
+        return self.config["error_log"]["logger"]
 
     def get_logger(self):
-        return self.logger
+        return self.config["main_log"]["logger"]
 
     def get_access(self):
-        return self.acc
+        return self.config["access_log"]["logger"]
 
     def get_diag(self):
-        return self.diagnostic
+        return self.config["diag_log"]["logger"]
 
-    def read_logfile(self):
-        return self._read_logfile(self.logfile)
+    def get_user_log(self, log):
+        return self.config[log]["logger"]
 
-    def read_errorfile(self):
-        return self._read_logfile(self.errorfile)
+    # Reading Logs
 
-    def read_diagfile(self):
-        return self._read_logfile(self.diagfile)
+    def get_admin_logs(self):
+        # Force main logs to be first in a specific order
+        logs = OrderedDict()
+        for log in ["main_log", "error_log", "diag_log", "access_log"]:
+            logs[log] = {}
+            logs[log]["name"] = self.config[log]["name"]
+            logs[log]["lines"] = self.read_logfile(log)
+        for log in self.config:
+            if log not in logs:
+                logs[log] = {}
+                logs[log]["name"] = self.config[log]["name"]
+                logs[log]["lines"] = self.read_logfile(log)
+        return logs
 
-    def read_accessfile(self):
-        if self.accessfile is None:
+    def read_logfile(self, log):
+        if self.is_alias(log):
             return None
-        return self._read_logfile(self.accessfile)
-
-    def _read_logfile(self, file):
-        if file == "STDOUT" or file == "STDERR" or file is None:
+        if self.config[log]["filename"] == "STDOUT" or self.config[log]["filename"] == "STDERR":
             return []
         else:
-            with open(file) as f:
+            with open(self.config[log]["filename"]) as f:
                 lines = f.read().splitlines()
             return lines
+
+    def is_alias(self, log):
+        if "alias" in self.config[log]:
+            return True
+        return False
 
     def add_log_callback(self, namespace, name, cb, level, **kwargs):
         if self.AD.threading.validate_pin(name, kwargs) is True:

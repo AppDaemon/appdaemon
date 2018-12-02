@@ -121,22 +121,7 @@ function admin_stream(stream, transport)
 
         if ("log_entry" in data)
         {
-            if (data["log_entry"]["type"] === "main_log")
-            {
-                $("#main_log_div").prepend(data["log_entry"]["msg"] + "<br>")
-            }
-            if (data["log_entry"]["type"] === "error_log")
-            {
-                $("#error_log_div").prepend(data["log_entry"]["msg"] + "<br>")
-            }
-            if (data["log_entry"]["type"] === "diag_log")
-            {
-                $("#diag_log_div").prepend(data["log_entry"]["msg"] + "<br>")
-            }
-            if (data["log_entry"]["type"] === "access_log")
-            {
-                $("#access_log_div").prepend(data["log_entry"]["msg"] + "<br>")
-            }
+            $("#" + data["log_entry"]["type"] + "_div").prepend(data["log_entry"]["msg"] + "<br>")
         }
     }
 }
