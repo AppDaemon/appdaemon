@@ -8,8 +8,14 @@ function dom_ready(transport, appvalues)
     // Apps Table
 
     var appoptions = {
-        valueNames: ['appname', 'disabled', 'debug'],
-        item: '<tr><td class="appname"></td><td class="disabled"><td class="debug"></td></td></tr>'
+        valueNames:
+            [
+                'appname',
+                'disabled',
+                'debug',
+                {name: "appid", attr: "id"},
+            ],
+        item: '<tr><td class="appid"><span class="appname"/></td><td class="disabled"><td class="debug"></td></td></tr>'
     };
 
     var apptable = new List('app-table', appoptions, appvalues);

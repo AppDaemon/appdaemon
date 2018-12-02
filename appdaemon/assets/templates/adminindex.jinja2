@@ -34,6 +34,7 @@ $(function() {
                 appname: "{{ app }}",
                 disabled: "{{ apps[app].disabled }}",
                 debug: "{{ apps[app].debug }}",
+                appid: "app_{{ app }}"
             },
         {% endfor %}
     ];

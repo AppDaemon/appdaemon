@@ -6,7 +6,7 @@ html {
 
 body {
   background-color: #eeeeee;
-  color: #03A9F4;
+  color: #000000;
   font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
 }
 
@@ -37,7 +37,7 @@ a {
 
 .log_panel{
     background-color: #d7e8ef;
-    color: #03a9f4;
+    color: #000000;
 }
 
 .main{

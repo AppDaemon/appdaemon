@@ -53,7 +53,7 @@ The ``log:`` section is optional but if included, must have at least one directi
 - ``access_format`` (optional) Format string for the access file - standard percent style logger format.
 - ``diag_format`` (optional) Format string for the diag file - standard percent style logger format.
 
-Note that the AppDaemon logs use an enhanced formatter that allows interpolation of the App Name in the logger output as well as all the other standard fields. For example, the default logfile format for AppDaemon's main log is:
+Note that the AppDaemon logs use an enhanced formatter that allows interpolation of the App Name in the logger output as well as all the other standard fields. In addition, the ``%(asctime)`` token will give the right results if time travel is in use. For example, the default logfile format for AppDaemon's main log is:
 
 .. code::
 
