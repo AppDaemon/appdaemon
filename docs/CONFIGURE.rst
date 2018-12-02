@@ -26,22 +26,45 @@ The top level consists of a number of sections:
 Log Configuration
 ~~~~~~~~~~~~~~~~~
 
-The ``log:`` section is optional but if included, must have at least one directive in it. The directives are as follows:
+The ``logs:`` section is optional. It consists of a number of log entries that describe the various system and user defined logs. The logs named ``main_log``, ``error_log``, ```diag_log`` and ``access_log`` have special significance and are used to describe AppDaemons 4 main logs. Any other named log sections will result in the creation of a user defined log, which can bew written to by your apps. The 4 built in logfiles are used as follows:
 
--  ``logfile`` (optional) is the path to where you want ``AppDaemon`` to
-   keep its main log. When run from the command line this is not used
-   -log messages come out on the terminal. When running as a daemon this
-   is where the log information will go. In the example above I created
-   a directory specifically for AppDaemon to run from, although there is
-   no reason you can't keep it in the ``appdaemon`` directory of the
-   cloned repository. If ``logfile = STDOUT``, output will be sent to
-   stdout instead of stderr when running in the foreground, if not
-   specified, output will be sent to STDOUT.
--  ``errorfile`` (optional) is the name of the logfile for errors - this
+-  ``main_log`` is the path to where you want ``AppDaemon`` to
+   keep its main log.
+-  ``error_log`` is the name of the logfile for errors - this
    will usually be errors during compilation and execution of the apps.
    If ``errorfile = STDERR`` errors will be sent to stderr instead of a
    file, if not specified, output will be sent to STDERR.
--  ``diagfile`` (optional) is the name of the log files for diagnostic information. This will contain information form the ``log_thread_actions`` parameter, as well as information dumped from AppDaemon's internal state when the AppDaemon process is sent a ``SIGUSR1`` signal.
+-  ``diag_log`` is the name of the log file for diagnostic information. This will contain information form the ``log_thread_actions`` parameter, as well as information dumped from AppDaemon's internal state when the AppDaemon process is sent a ``SIGUSR1`` signal.
+- ``access_log`` is the log that AppDaemon will write access information to for HADashboard and the admin interface.
+
+All 4 logs have defaults so they do not need to be specified, but if any parameters are specified they will override the defaults.
+
+A simple logs section might look like this:
+
+.. code:: yaml
+
+    logs:
+      main_log:
+        filename: /export/pegasus/hass/appdaemon_test/logs/appdaemon.log
+      access_log:
+        filename: /export/pegasus/hass/appdaemon_test/logs/access.log
+      error_log:
+        filename: /export/pegasus/hass/appdaemon_test/logs/error.log
+      diag_log:
+        filename: /export/pegasus/hass/appdaemon_test/logs/diag.log
+        log_generations: 5
+        log_size: 1024
+        format: "{asctime} {levelname:<8} {appname:<10}: {message}"
+      test_log:
+        name: TestLog
+        filename: /export/pegasus/hass/appdaemon_test/logs/test.log
+
+All directives are optional with the exception of ``name`` for user defined logs. The dircetives have the following meanings:
+
+The directives are as follows:
+
+-  ``logfile`` (optional) is the path to where you want the file to be written. if not
+   specified, output will be sent to STDOUT.
 -  ``log_size`` (optional) is the maximum size a logfile will get to
    before it is rotated if not specified, this will default to 1000000
    bytes.
@@ -49,9 +72,17 @@ The ``log:`` section is optional but if included, must have at least one directi
    will be retained before they are overwritten if not specified, this
    will default to 3 files.
 - ``log_format`` (optional) Format string for the log file - standard logger format.
-- ``error_format`` (optional) Format string for the error file - standard logger format.
-- ``access_format`` (optional) Format string for the access file - standard str.format() format.
-- ``diag_format`` (optional) Format string for the diag file - standard str.format() format.
+
+In the above example, a user defined log called ``test_log`` has also been created this can be accessed from apps directly from it's logger object, or from the self.log call as follows:
+
+.. code:: python
+
+    # Native logger
+    testlogger = self.get_user_log("test_log")
+    testlogger.info("Hello %s", "jim")
+    # self.log()
+    self.log("Hello", log="test_log")
+
 
 Note that the AppDaemon logs use an enhanced formatter that allows interpolation of the App Name in the logger output as well as all the other standard fields. In addition, the ``{asctime}`` token will give the right results if time travel is in use. For example, the default logfile format for AppDaemon's main log is:
 

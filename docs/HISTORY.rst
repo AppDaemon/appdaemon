@@ -26,6 +26,7 @@ Change Log
 - Refactored appdaemon.py for greater readability and easier maintenance
 - Added initial version of the Admin Interface
 - Added User Defined Namespaces
+- Rewrote logging to include user defined logs and formats
 - added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 - Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__

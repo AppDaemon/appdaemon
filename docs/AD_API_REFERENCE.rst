@@ -1924,7 +1924,7 @@ Synopsis
 
 .. code:: python
 
-    log(message, *args, level = "INFO", ascii_encode="True", **kwargs)
+    log(message, *args, level = "INFO", ascii_encode="True", log="some log", **kwargs)
 
 Returns
 ^^^^^^^
@@ -1951,13 +1951,19 @@ ascii_encode
 Switch to disable the encoding of all log messages to ascii. Set this to
 true if you want to log UTF-8 characters. (Default: True)
 
+log
+'''
+
+Send the message to a specific log, either system or user_defined. System logs are ``main_log``, ``error_log``, ```diag_log`` or ``access_log``. Any other value in use here must have a corresponding userdefined entyr in the ``logs`` section of appdaemon.yaml.
+
 Examples
 ^^^^^^^^
 
 .. code:: python
 
-    self.log("Log Test: Parameter is {}".format(some_variable))
-    self.log("Log Test: Parameter is {}".format(some_variable), level = "ERROR")
+    self.log("Log Test: Parameter is %s", some_variable)
+    self.log("Log Test: Parameter is %s", some_variable, log="test_log")
+    self.log("Log Test: Parameter is %s", some_variable, level = "ERROR")
     self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")
     self.log("value is %s", some_value)
     self.log("Stack is", some_value, level="WARNING", stack_info=True)
@@ -2003,7 +2009,7 @@ Examples
 If you want to perform more elaborate logging or formatting, the underlying ``logger`` objects can be obtained:
 
 get_main_log()
-~~~~~~~
+~~~~~~~~~~~~~~
 
 Synopsis
 ^^^^^^^^
@@ -2037,6 +2043,37 @@ Synopsis
 
     self.get_error_log()
 
+
+Returns
+^^^^^^^
+
+The underlying ``logger`` object used for the error log.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    error_log = self.get_error_log()
+    error_log.error("Log an error", stack_info=True, exc_info=True)
+
+get_user_log()
+~~~~~~~~~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_user_log("test_log")
+
+Parameters
+^^^^^^^^^^
+
+log
+'''
+
+The name of the log you wnat to get the underrlying logger object from, as described in the ``logs`` section of appdaemon.yaml.
 
 Returns
 ^^^^^^^
