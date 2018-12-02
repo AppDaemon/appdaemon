@@ -162,10 +162,8 @@ class Scheduler:
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
-            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+            if self.AD.logging.separate_error_log() is True:
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
             self.AD.logging.err("WARNING", "Scheduler entry has been deleted")
             self.AD.logging.err("WARNING", '-' * 60)
 
@@ -441,13 +439,8 @@ class Scheduler:
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err( "WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
-            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an error (since they show up anyway)
-                self.AD.logging.log(
-                    "WARNING",
-                    "Logged an error to {}".format(self.AD.errfile)
-                )
+            if self.AD.logging.separate_error_log() is True:
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
 
     #

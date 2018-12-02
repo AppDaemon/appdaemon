@@ -224,6 +224,11 @@ class Logging:
                 return lvl
         return "UNKNOWN"
 
+    def separate_error_log(self):
+        if self.errorfile != "STDERR" and self.logfile != "STDOUT" and self.errorfile != self.logfile:
+            return True
+        return False
+
     def register_ad(self, ad):
         self.AD = ad
 

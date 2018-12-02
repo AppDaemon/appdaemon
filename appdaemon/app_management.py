@@ -80,8 +80,8 @@ class AppManagement:
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
-            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
+            if self.AD.logging.separate_error_log() is True:
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
     def term_object(self, name):
         with self.objects_lock:
@@ -102,8 +102,8 @@ class AppManagement:
                 self.AD.logging.err("WARNING", '-' * 60)
                 self.AD.logging.err("WARNING", traceback.format_exc())
                 self.AD.logging.err("WARNING", '-' * 60)
-                if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                    self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.errfile))
+                if self.AD.logging.separate_error_log() is True:
+                    self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
         with self.objects_lock:
             if name in self.objects:
@@ -265,8 +265,8 @@ class AppManagement:
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
-            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
+            if self.AD.logging.separate_error_log() is True:
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
     # noinspection PyBroadException
     def check_config(self, silent=False, add_threads=True):
@@ -355,8 +355,8 @@ class AppManagement:
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
-            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
+            if self.AD.logging.separate_error_log() is True:
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
     def get_app_from_file(self, file):
         module = self.get_module_from_path(file)
@@ -600,9 +600,8 @@ class AppManagement:
                     self.AD.logging.err("WARNING", '-' * 60)
                     self.AD.logging.err("WARNING", traceback.format_exc())
                     self.AD.logging.err("WARNING", '-' * 60)
-                    if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
-
+                    if self.AD.logging.separate_error_log() is True:
+                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
         # Load/reload modules
 
@@ -615,7 +614,7 @@ class AppManagement:
                 self.AD.logging.err("WARNING", '-' * 60)
                 self.AD.logging.err("WARNING", traceback.format_exc())
                 self.AD.logging.err("WARNING", '-' * 60)
-                if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
+                if self.AD.logging.separate_error_log() is True:
                     self.AD.logging.log("WARNING", "Unexpected err loading module: {}:".format(mod["name"]))
                 self.AD.logging.log("WARNING", "Removing associated apps:")
                 module = self.get_module_from_path(mod["name"])
@@ -643,8 +642,8 @@ class AppManagement:
                     self.AD.logging.err("WARNING", '-' * 60)
                     self.AD.logging.err("WARNING", traceback.format_exc())
                     self.AD.logging.err("WARNING", '-' * 60)
-                    if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        self.AD.logging.log("WARNING", "Logged an err to {}".format(self.AD.errfile))
+                    if self.AD.logging.separate_error_log() is True:
+                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
             self.AD.threading.calculate_pin_threads()
 

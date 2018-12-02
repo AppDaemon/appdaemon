@@ -79,14 +79,7 @@ class AppDaemon:
         self.tz = None
 
         self.logfile = None
-        utils.process_arg(self, "logfile", kwargs)
-        if self.logfile is None:
-            self.logfile = "STDOUT"
-
         self.errfile = None
-        utils.process_arg(self, "error_file", kwargs)
-        if self.errfile is None:
-            self.errfile = "STDERR"
 
         self.config_file = None
         utils.process_arg(self, "config_file", kwargs)

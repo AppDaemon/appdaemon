@@ -172,10 +172,8 @@ class Plugins:
             self.error.warning("WARNING", '-' * 60)
             self.error.warning("WARNING", traceback.format_exc())
             self.error.warning("WARNING", '-' * 60)
-            if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                # When explicitly logging to stdout and stderr, suppress
-                # verbose_log messages about writing an err (since they show up anyway)
-                self.logger.warning("Logged an err to %s", self.AD.errfile)
+            if self.AD.logging.separate_error_log() is True:
+                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
 
     def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False

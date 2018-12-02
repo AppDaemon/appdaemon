@@ -607,8 +607,8 @@ class Threading:
                     error_logger.warning('-' * 60)
                     error_logger.warning(traceback.format_exc())
                     error_logger.warning('-' * 60)
-                    if self.AD.errfile != "STDERR" and self.AD.logfile != "STDOUT":
-                        logger.warning("Logged an err to %s", self.AD.errfile)
+                    if self.AD.logging.separate_error_log() is True:
+                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
                 finally:
                     self.update_thread_info(thread_id, "idle")
                     self.total_callbacks_executed += 1
