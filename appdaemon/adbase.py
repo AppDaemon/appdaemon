@@ -109,17 +109,6 @@ class ADBase:
     # Constraints
     #
 
-    def _get_namespace(self, **kwargs):
-        if "namespace" in kwargs:
-            namespace = kwargs["namespace"]
-            del kwargs["namespace"]
-        else:
-            namespace = self._namespace
-
-        return namespace
-
-
-
     def register_constraint(self, name):
         self.constraints.append(name)
 

@@ -242,8 +242,10 @@ class AppDaemon:
             self.utility.stop()
         if self.plugins is not None:
             self.plugins.stop()
+
+    def cleanup(self):
         if self.state is not None:
-            self.state.save_all_namespaces()
+            self.state.cleanup()
 
     #
     # Utilities

@@ -49,6 +49,10 @@ class State:
                 ns.append(namespace)
         return ns
 
+    def cleanup(self):
+        self.logger.info("Saving all namespaces")
+        self.save_all_namespaces()
+
     def add_state_callback(self, name, namespace, entity, cb, kwargs):
         if self.AD.threading.validate_pin(name, kwargs) is True:
             with self.AD.app_management.objects_lock:

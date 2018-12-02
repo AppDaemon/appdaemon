@@ -97,6 +97,15 @@ class ADMain():
 
             pending = asyncio.Task.all_tasks()
             loop.run_until_complete(asyncio.gather(*pending))
+
+            #
+            # Now we are sutting down - perform and necessary cleanup
+            #
+
+            self.AD.cleanup()
+
+            self.logger.info("AppDaemon is stopped.")
+
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected err during run()")

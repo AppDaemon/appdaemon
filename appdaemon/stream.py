@@ -59,20 +59,18 @@ class ADStream:
 
                 else:
                     await self.dash_stream.emit('down', jdata)
-            except BrokenPipeError:
-                self.AD.logging.log("INFO", "Admin browser disconnected unexpectedly")
             except TypeError as e:
-                self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected err in JSON conversion")
-                self.logger.warning("Data is: %s", data)
-                self.logger.warning("Error is: %s",e)
-                self.logger.warning('-' * 60)
+                self.logger.debug('-' * 60)
+                self.logger.warning("Unexpected error in JSON conversion for admin console")
+                self.logger.debug("Data is: %s", data)
+                self.logger.debug("Error is: %s",e)
+                self.logger.debug('-' * 60)
             except:
-                self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected err sending to admin panel")
-                self.logger.warning('-' * 60)
-                self.logger.warning(traceback.format_exc())
-                self.logger.warning('-' * 60)
+                self.logger.debug('-' * 60)
+                self.logger.warning("Admin browser disconnected unexpectedly")
+                self.logger.debug('-' * 60)
+                self.logger.debug(traceback.format_exc())
+                self.logger.debug('-' * 60)
 
     #@securedata
     async def wshandler(self, request):
