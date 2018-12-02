@@ -123,7 +123,10 @@ class AppManagement:
 
     def get_app_debug_level(self, app):
         with self.objects_lock:
-            return self.AD.logging.get_level_from_int(self.objects[app]["object"].logger.getEffectiveLevel())
+            if app in self.objects:
+                return self.AD.logging.get_level_from_int(self.objects[app]["object"].logger.getEffectiveLevel())
+            else:
+                return "None"
 
     def init_object(self, name):
         app_args = self.app_config[name]
