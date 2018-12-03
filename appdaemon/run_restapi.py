@@ -18,6 +18,8 @@ class ADAPI():
 
         self.AD = ad
         self.logging = logging
+        self.logger = ad.logging.get_child("_run_restapi")
+        self.access = ad.logging.get_access()
 
         self.api_key = None
         self._process_arg("api_key", config)
@@ -48,22 +50,16 @@ class ADAPI():
             f = loop.create_server(handler, "0.0.0.0", int(self.api_port), ssl=context)
             loop.create_task(f)
         except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected err in api thread")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in api thread")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
             if arg in kwargs:
                 setattr(self, arg, kwargs[arg])
-
-    def log(self, level, message):
-        self.logging.log(level, message, "AppDaemon")
-
-    def log_access(self, level, message):
-        self.logging.access(level, message, "AppDaemon")
 
     @staticmethod
     def get_response(code, error):
@@ -84,7 +80,7 @@ class ADAPI():
                 code = 401
                 response = "Unauthorized"
                 res = self.get_response(code, response)
-                self.log("INFO", "API Call to {}: status: {} {}".format(app, code, response))
+                self.access.info("API Call to %s: status: %s %s", app, code, response)
                 return web.Response(body=res, status=code)
 
         try:
@@ -93,27 +89,27 @@ class ADAPI():
             code = 400
             response = "JSON Decode Error"
             res = self.get_response(code, response)
-            self.log("INFO", "API Call to {}: status: {} {}".format(app, code, response))
+            self.logger.warning("API Call to %s: status: %s %s", app, code, response)
             return web.Response(body = res, status = code)
 
         try:
             ret, code = await self.AD.api.dispatch_app_by_name(app, args)
         except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected err during API call")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during API call")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
         if code == 404:
             response = "App Not Found"
             res = self.get_response(code, response)
-            self.log("INFO", "API Call to {}: status: {} {}".format(app, code, response))
+            self.access.info("API Call to %s: status: %s %s", app, code, response)
             return web.Response(body = res, status = code)
 
         response = "OK"
         res = self.get_response(code, response)
-        self.log_access("INFO", "API Call to {}: status: {} {}".format(app, code, response))
+        self.access.info("API Call to %s: status: %s %s", app, code, response)
 
         return web.json_response(ret, status = code)
 

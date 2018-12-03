@@ -9,7 +9,7 @@ class AppQ:
 
         self.AD = ad
         self.stopping = False
-
+        self.logger = ad.logging.get_child("_appq")
         #
         # Initial Setup
         #

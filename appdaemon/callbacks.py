@@ -11,7 +11,7 @@ class Callbacks:
 
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
-
+        self.logger = ad.logging.get_child("_callbacks")
 
     #
     # Diagnostic

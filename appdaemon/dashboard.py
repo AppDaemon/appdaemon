@@ -22,6 +22,8 @@ class Dashboard:
         #
         self.config_dir = config_dir
         self.logging = logging
+        self.logger = logging.get_child("_dashboard")
+        self.access = logging.get_access()
         self.dash_install_dir = os.path.dirname(__file__)
         self.dashboard_dir = os.path.join(config_dir, "dashboards")
         self.profile_dashboard = False
@@ -82,11 +84,11 @@ class Dashboard:
 
 
         except:
-            self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", "Unexpected err during HADashboard initialization")
-            self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", traceback.format_exc())
-            self.logging.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during HADashboard initialization")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
         #
         # Set a start time
@@ -99,8 +101,7 @@ class Dashboard:
             start_time = time.time()
             result = func(self, *args, **kwargs)
             elapsed_time = time.time() - start_time
-            self.logging.access("INFO", 'function [{}] finished in {} ms'.format(
-                func.__name__, int(elapsed_time * 1000)))
+            self.access.info('function [%s] finished in %s ms', func.__name__, int(elapsed_time * 1000))
             return result
 
         return newfunc
@@ -139,7 +140,7 @@ class Dashboard:
             try:
                 css = self._load_yaml(css_text)
             except yaml.YAMLError as exc:
-                self.logging.log("WARNING", "Error loading CSS variables")
+                self.logger.warning("Error loading CSS variables")
                 self._log_yaml_error(exc)
                 return None
             if css is None:
@@ -147,7 +148,7 @@ class Dashboard:
             else:
                 return self._resolve_css_params(css, css)
         else:
-            self.logging.log("WARNING", "Error loading variables.yaml for skin '{}'".format(skin))
+            self.logger.warning("Error loading variables.yaml for skin '%s'", skin)
             return None
 
     def _resolve_css_params(self, fields, subs):
@@ -168,12 +169,11 @@ class Dashboard:
                             done = False
                             fields[varline] = fields[varline].replace(var.group(), subs[subvar], 1)
                         else:
-                            self.logging.log("WARNING",
-                                   "Variable definition not found in CSS Skin variables: ${}".format(subvar))
+                            self.logger.warning("Variable definition not found in CSS Skin variables: $%s", subvar)
                             fields[varline] = ""
 
         if index == 100:
-            self.logging.log("WARNING", "Unable to resolve CSS Skin variables, check for circular references")
+            self.logger.warning("Unable to resolve CSS Skin variables, check for circular references")
 
         return fields
 
@@ -269,7 +269,7 @@ class Dashboard:
                 parts = name.split(".")
                 instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
             else:
-                self.logging.log("WARNING", "Unable to find widget definition for '{}'".format(name))
+                self.logger.warning("Unable to find widget definition for '%s'", name)
                 # Return some valid data so the browser will render a blank widget
                 return self.error_widget("Widget definition not found")
 
@@ -284,8 +284,7 @@ class Dashboard:
             widget_type = instantiated_widget["widget_type"]
 
             if widget_type == "text_sensor":
-                self.logging.log("WARNING",
-                       "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '{}'".format(name))
+                self.logger.warning("'text_sensor' widget is deprecated, please use 'sensor' instead for widget '%s'", name)
 
             # Check for custom base widgets first
             if os.path.isdir(os.path.join(self.config_dir, "custom_widgets", widget_type)):
@@ -313,7 +312,7 @@ class Dashboard:
                     widget = yamlfd.read()
                 final_widget = self._load_yaml(widget)
             except yaml.YAMLError as exc:
-                self._log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
+                self._log_error(dash, name, "Error in widget definition '%s':", widget_type)
                 self._log_yaml_dash_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
 
@@ -367,10 +366,10 @@ class Dashboard:
             return final_widget
 
         except FileNotFoundError:
-            self.logging.log("WARNING", "Unable to find widget type '{}'".format(widget_type))
-            self.logging.log("WARNING", traceback.format_exc())
+            self.logger.warning("Unable to find widget type '%s'", widget_type)
+            self.logger.warning(traceback.format_exc())
             # Return some valid data so the browser will render a blank widget
-            return self.error_widget("Unable to find widget type '{}'".format(widget_type))
+            return self.error_widget("Unable to find widget type '%s'", widget_type)
 
     def error_widget(self, error):
         return {"widget_type": "baseerror", "fields": {"err": error}, "static_css":{"widget_style": ""}}
@@ -413,7 +412,7 @@ class Dashboard:
                 widget["id"] = "{}-{}".format(page, sanitized_name)
 
                 if self._widget_exists(dash["widgets"], widget["id"]):
-                    self.logging.log("WARNING", "Duplicate widget name '{}' - ignored".format(name))
+                    self.logger.warning("Duplicate widget name '{}' - ignored".format(name))
                 else:
                     widget["position"] = [column, layout]
                     widget["size"] = [xsize, ysize]
@@ -440,11 +439,11 @@ class Dashboard:
 
     def _log_error(self, dash, name, error):
         dash["errors"].append("{}: {}".format(os.path.basename(name), error))
-        self.logging.log("WARNING", error)
+        self.logger.warning(error)
 
     def _log_yaml_error(self, exc):
         for line in self._yaml_error_lines(exc):
-            self.logging.log("WARNING", line)
+            self.logger.warning(line)
 
     def _log_yaml_dash_error(self, dash, name, exc):
         for line in self._yaml_error_lines(exc):
@@ -506,9 +505,7 @@ class Dashboard:
                 if extension == "dash":
                     global_parameters = dash_params["global_parameters"]
                 else:
-                    self.logging.log("WARNING",
-                           "global_parameters dashboard directive illegal in imported dashboard '{}.{}'".
-                           format(name, extension))
+                    self.logger.warning("global_parameters dashboard directive illegal in imported dashboard '%s.%s'", name, extension)
 
             if global_parameters is None:
                 global_parameters = {"namespace": "default"}
@@ -524,9 +521,7 @@ class Dashboard:
                     if extension == "dash":
                         dash[param] = dash_params[param]
                     else:
-                        self.logging.log("WARNING",
-                               "Top level dashboard directive illegal in imported dashboard '{}.{}': {}: {}".
-                               format(name, extension, param, dash_params[param]))
+                        self.logger.warning("Top level dashboard directive illegal in imported dashboard '%s.%s': %s: %s", name, extension, param, dash_params[param])
                 else:
                     includes.append({param: dash_params[param]})
 
@@ -576,7 +571,7 @@ class Dashboard:
             if dash is None:
                 return None
         else:
-            self.logging.log("WARNING", "Dashboard '{}' not found".format(name))
+            self.logger.warning("Dashboard '{}' not found".format(name))
             return None
 
         if "head_includes" in css_vars and css_vars["head_includes"] is not None:
@@ -602,7 +597,7 @@ class Dashboard:
             # Base CSS template and compile
             #
             if not os.path.isfile(os.path.join(skindir, "dashboard.css")):
-                self.logging.log("WARNING", "Error loading dashboard.css for skin '{}'".format(skin))
+                self.logger.warning("Error loading dashboard.css for skin '{}'".format(skin))
             else:
                 template = os.path.join(skindir, "dashboard.css")
                 with open(template, 'r') as cssfd:
@@ -625,18 +620,18 @@ class Dashboard:
                 js = js + widgets[widget]["js"] + "\n"
 
         except KeyError:
-            self.logging.log("WARNING", "Widget type not found: {}".format(widget["parameters"]["widget_type"]))
+            self.logger.warning("Widget type not found: {}".format(widget["parameters"]["widget_type"]))
             return None
         except:
-            self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", "Unexpected err in CSS file")
-            self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", traceback.format_exc())
-            self.logging.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in CSS file")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
             if rendered_css is not None:
-                self.logging.log("WARNING", "Rendered CSS:")
-                self.logging.log("WARNING", rendered_css)
-                self.logging.log("WARNING", '-' * 60)
+                self.logger.warning("Rendered CSS:")
+                self.logger.warning(rendered_css)
+                self.logger.warning('-' * 60)
             return None
 
         if not os.path.exists(os.path.join(self.compiled_css_dir, skin)):
@@ -676,7 +671,7 @@ class Dashboard:
                 widget_dirs = os.listdir(path=widget_dir)
                 for widget in widget_dirs:
                     if widget_dir == os.path.join(self.config_dir, "custom_widgets"):
-                        self.logging.log("INFO", "Loading custom widget '{}'".format(widget))
+                        self.logger.info("Loading custom widget '{}'".format(widget))
                     if os.path.isdir(os.path.join(widget_dir, widget)):
                         jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
                         csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
@@ -716,12 +711,12 @@ class Dashboard:
         #
         skindir = os.path.join(self.config_dir, "custom_css", skin)
         if os.path.isdir(skindir):
-            self.logging.log("INFO", "Loading custom skin '{}'".format(skin))
+            self.logger.info("Loading custom skin '{}'".format(skin))
         else:
             # Not a custom skin, try product skins
             skindir = os.path.join(self.css_dir, skin)
             if not os.path.isdir(skindir):
-                self.logging.log("WARNING", "Skin '{}' does not exist".format(skin))
+                self.logger.warning("Skin '{}' does not exist".format(skin))
                 skin = "default"
                 skindir = os.path.join(self.css_dir, "default")
 
@@ -768,7 +763,7 @@ class Dashboard:
             if do_compile is False:
                 return {"errors": []}
 
-                self.logging.log("INFO", "Compiling dashboard '{}'".format(name))
+        self.logger.info("Compiling dashboard '{}'".format(name))
 
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
@@ -863,15 +858,15 @@ class Dashboard:
             return(rendered_template)
 
         except:
-            self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", "Unexpected err during DASH creation")
-            self.logging.log("WARNING", '-' * 60)
-            self.logging.log("WARNING", traceback.format_exc())
-            self.logging.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during DASH creation")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
             return self.html_error()
 
     def html_error(self):
-        params = {"errors": ["An unrecoverable err occured fetching dashboard"]}
+        params = {"errors": ["An unrecoverable error occured fetching dashboard"]}
         env = Environment(
             loader=FileSystemLoader(self.template_dir),
             autoescape=select_autoescape(['html', 'xml'])

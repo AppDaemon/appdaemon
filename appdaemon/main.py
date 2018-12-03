@@ -108,7 +108,7 @@ class ADMain():
 
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected err during run()")
+            self.logger.warning("Unexpected error during run()")
             self.logger.warning('-' * 60, exc_info=True)
             self.logger.warning('-' * 60)
 
@@ -140,6 +140,7 @@ class ADMain():
                             [
                                 "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
                             ])
+        parser.add_argument('-m', '--moduledebug', nargs=2, action='append', help=argparse.SUPPRESS)
         parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + utils.__version__)
         parser.add_argument('--profiledash', help=argparse.SUPPRESS, action='store_true')
 
@@ -158,6 +159,11 @@ class ADMain():
             sys.exit(1)
 
         config = None
+
+        module_debug = {}
+        if args.moduledebug is not None:
+            for arg in args.moduledebug:
+                module_debug[arg[0]] = arg[1]
 
         #
         # First locate secrets file
@@ -226,7 +232,7 @@ class ADMain():
         appdaemon["config_dir"] = config_dir
         appdaemon["config_file"] = config_file_yaml
         appdaemon["app_config_file"] = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
-
+        appdaemon["module_debug"] = module_debug
 
         if args.starttime is not None:
             appdaemon["starttime"] = args.starttime

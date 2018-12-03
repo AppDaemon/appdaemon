@@ -8,7 +8,7 @@ class Events:
     def __init__(self, ad: AppDaemon):
 
         self.AD = ad
-
+        self.logger = ad.logging.get_child("_events")
         #
         # Events
         #

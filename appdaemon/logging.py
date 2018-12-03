@@ -23,11 +23,22 @@ class AppNameFormatter(logging.Formatter):
         # Figure out the name of the app and add it to the LogRecord
         # Each logger is named after the app so split it out form the logger name
         #
-        name = record.name
+        appname = record.name
+        modulename = record.name
         if "." in record.name:
             loggers = record.name.split(".")
             name = loggers[len(loggers) - 1]
-        record.appname = name
+            if name[0] == "_":
+                # It's a module
+                appname = "AppDaemon"
+                modulename = "AD:" + name[1:]
+            else:
+                # It's an app
+                appname = name
+                modulename = "App:" + appname
+
+        record.modulename = modulename
+        record.appname = appname
         return super().format(record)
 
 
@@ -44,7 +55,7 @@ class AdminHandler(StreamHandler):
 
     def emit(self, record):
         msg = self.format(record)
-        if self.AD is not None and self.AD.appq is not None:
+        if self.AD is not None and self.AD.appq is not None and record.name != "AppDaemon._stream":
             self.AD.appq.admin_update({"log_entry": {"type": self.type, "msg": msg}})
 
 class LogSubscriptionHandler(StreamHandler):
@@ -65,12 +76,15 @@ class LogSubscriptionHandler(StreamHandler):
             # If so, don't generate the event to avoid loops
             has_log_callback = False
             msg = self.format(record)
-            with self.AD.callbacks.callbacks_lock:
-                for callback in self.AD.callbacks.callbacks:
-                    for uuid in self.AD.callbacks.callbacks[callback]:
-                        cb = self.AD.callbacks.callbacks[callback][uuid]
-                        if cb["name"] == record.appname and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
-                            has_log_callback = True
+            if record.name == "AppDaemon._stream":
+                has_log_callback = True
+            else:
+                with self.AD.callbacks.callbacks_lock:
+                    for callback in self.AD.callbacks.callbacks:
+                        for uuid in self.AD.callbacks.callbacks[callback]:
+                            cb = self.AD.callbacks.callbacks[callback][uuid]
+                            if cb["name"] == record.appname and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
+                                has_log_callback = True
 
             if has_log_callback is False:
                 self.AD.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
@@ -104,7 +118,8 @@ class Logging:
         default_logsize = 1000000
         default_log_generations = 3
         default_format = "{asctime} {levelname} {appname}: {message}"
-        default_date_format = "%Y-%m-%d %H:%M:%S.%f%z"
+        default_date_format = "%Y-%m-%d %H:%M:%S.%f"
+
 
         self.config = \
             {
@@ -286,20 +301,30 @@ class Logging:
 
     # Log Objects
 
-    def get_error(self):
+    def get_error(self) -> logging.Logger:
         return self.config["error_log"]["logger"]
 
-    def get_logger(self):
+    def get_logger(self) -> logging.Logger:
         return self.config["main_log"]["logger"]
 
-    def get_access(self):
+    def get_access(self) -> logging.Logger:
         return self.config["access_log"]["logger"]
 
-    def get_diag(self):
+    def get_diag(self) -> logging.Logger:
         return self.config["diag_log"]["logger"]
 
     def get_user_log(self, log):
         return self.config[log]["logger"]
+
+    def get_child(self, name):
+        logger = self.get_logger().getChild(name)
+        if name in self.AD.module_debug:
+            logger.setLevel(self.AD.module_debug[name])
+        else:
+            logger.setLevel("INFO")
+
+        return logger
+
 
     # Reading Logs
 

@@ -74,6 +74,8 @@ class RunDash:
 
         self.AD = ad
         self.logging = logging
+        self.logger = ad.logging.get_child("_run_dash")
+        self.access = ad.logging.get_access()
 
         self.dashboard_dir = None
         self._process_arg("dashboard_dir", config)
@@ -113,13 +115,13 @@ class RunDash:
 
         self.transport = "ws"
         self._process_arg("transport", config)
-        self.AD.logging.log("INFO", "Using {} for dashboard event stream".format(self.transport))
+        self.logger.info("Using %s for dashboard event stream", self.transport)
 
         if "rss_feeds" in config:
             self.rss_feeds = []
             for feed in config["rss_feeds"]:
                 if feed["target"].count('.') != 1:
-                    self.AD.logging.log("WARNING", "Invalid RSS feed target: {}".format(feed["target"]))
+                    self.logger.warning("Invalid RSS feed target: %s", feed["target"])
                 else:
                     self.rss_feeds.append(feed)
 
@@ -191,11 +193,11 @@ class RunDash:
             loop.create_task(f)
             loop.create_task(self.update_rss())
         except:
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", "Unexpected err in dashboard thread")
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", traceback.format_exc())
-            self.AD.logging.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in dashboard thread")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
     def stop(self):
         self.stopping = True
@@ -220,7 +222,7 @@ class RunDash:
         password = data["password"]
 
         if password == self.dash_password:
-            self.AD.logging.access("INFO", "Succesful logon from {}".format(request.host))
+            self.access.info("Succesful logon from %s", request.host)
             hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt(self.work_factor))
 
             # utils.verbose_log(conf.dash, "INFO", hashed)
@@ -229,7 +231,7 @@ class RunDash:
             response.set_cookie("adcreds", hashed.decode("utf-8"))
 
         else:
-            self.AD.logging.access("WARNING", "Unsuccessful logon from {}".format(request.host))
+            self.access.warning("Unsuccessful logon from {}", request.host)
             response = await self.list_dash(request)
 
         return response
@@ -276,7 +278,7 @@ class RunDash:
                             feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
 
                             if "bozo_exception" in feed:
-                                self.AD.logging.log("WARNING", "Error in RSS feed {}: {}".format(feed_data["feed"], feed["bozo_exception"]))
+                                self.logger.warning("Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"])
                             else:
                                 new_state = {"feed": feed}
 
@@ -290,11 +292,11 @@ class RunDash:
 
                     await asyncio.sleep(1)
                 except:
-                    self.AD.logging.log("WARNING", '-' * 60)
-                    self.AD.logging.log("WARNING", "Unexpected err in dashboard thread")
-                    self.AD.logging.log("WARNING", '-' * 60)
-                    self.AD.logging.log("WARNING", traceback.format_exc())
-                    self.AD.logging.log("WARNING", '-' * 60)
+                    self.logger.warning('-' * 60)
+                    self.logger.warning("Unexpected error in dashboard thread")
+                    self.logger.warning('-' * 60)
+                    self.logger.warning(traceback.format_exc())
+                    self.logger.warning('-' * 60)
 
 
 
@@ -353,11 +355,11 @@ class RunDash:
             return web.Response(status=200)
 
         except:
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", "Unexpected err in call_service()")
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", traceback.format_exc())
-            self.AD.logging.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in call_service()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
             return web.Response(status=500)
 
     # noinspection PyUnusedLocal
@@ -381,7 +383,7 @@ class RunDash:
 
 
     async def on_message(self, data):
-        self.AD.logging.access("INFO", "New dashboard connected: {}".format(data))
+        self.access.info("New dashboard connected: %s", data)
 
     async def on_connect(self):
         pass

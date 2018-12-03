@@ -55,6 +55,7 @@ Change Log
 - Removed Daemonize support - please use sysctl instead
 - ``set_app_state()`` is deprecated - use ``set_state()`` instead and it should do the right thing
 - ``dash_compile_on_start`` now defaults to true
+- The ``log`` section of appdaemon.yaml has been deprecated and must be replaced by the new ``logs`` section which has a different format to allow for user defined logs and greater flexibility in formatting etc.
 
 3.0.2 10/31/2018
 ----------------

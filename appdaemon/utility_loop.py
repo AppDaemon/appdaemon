@@ -13,7 +13,7 @@ class Utility:
 
         self.AD = ad
         self.stopping = False
-        self.logger = ad.logging.get_logger()
+        self.logger = ad.logging.get_child("_utility")
 
     def stop(self):
         self.stopping = True
@@ -101,7 +101,7 @@ class Utility:
 
                 except:
                     self.logger.warning('-' * 60)
-                    self.logger.warning("Unexpected err during utility()")
+                    self.logger.warning("Unexpected error during utility()")
                     self.logger.warning('-' * 60)
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning('-' * 60)

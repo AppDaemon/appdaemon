@@ -411,7 +411,7 @@ class HassPlugin(PluginBase):
             return response
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected err during call_service()")
+            self.logger.warning("Unexpected error during call_service()")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)

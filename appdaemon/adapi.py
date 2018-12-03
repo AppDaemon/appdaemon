@@ -24,7 +24,7 @@ class ADAPI:
         self.args = args
         self.global_vars = global_vars
         self._namespace = "default"
-        self.logger = self.logging.get_logger().getChild(name)
+        self.logger = self.logging.get_child(name)
         self.err = self.logging.get_error().getChild(name)
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])

@@ -20,7 +20,7 @@ class Threading:
 
         self.AD = ad
 
-        self.logger = ad.logging.get_logger()
+        self.logger = ad.logging.get_child("_threading")
         self.diag = ad.logging.get_diag()
 
         self.thread_info = {}
@@ -602,7 +602,7 @@ class Threading:
                                 funcref(args["event"], data, args["kwargs"])
                 except:
                     error_logger.warning('-' * 60,)
-                    error_logger.warning("Unexpected err in worker for App %s:", name)
+                    error_logger.warning("Unexpected error in worker for App %s:", name)
                     error_logger.warning( "Worker Ags: %s", args)
                     error_logger.warning('-' * 60)
                     error_logger.warning(traceback.format_exc())

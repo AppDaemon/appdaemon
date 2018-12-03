@@ -18,7 +18,7 @@ class AppManagement:
     def __init__(self, ad: AppDaemon, config):
 
         self.AD = ad
-
+        self.logger = ad.logging.get_child("_app_management")
         self.monitored_files = {}
         self.filter_files = {}
         self.modules = {}
@@ -76,7 +76,7 @@ class AppManagement:
                 init()
         except:
             self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err("WARNING", "Unexpected err running initialize() for {}".format(name))
+            self.AD.logging.err("WARNING", "Unexpected error running initialize() for {}".format(name))
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
@@ -98,7 +98,7 @@ class AppManagement:
                 term()
             except:
                 self.AD.logging.err("WARNING", '-' * 60)
-                self.AD.logging.err("WARNING", "Unexpected err running terminate() for {}".format(name))
+                self.AD.logging.err("WARNING", "Unexpected error running terminate() for {}".format(name))
                 self.AD.logging.err("WARNING", '-' * 60)
                 self.AD.logging.err("WARNING", traceback.format_exc())
                 self.AD.logging.err("WARNING", '-' * 60)
@@ -264,7 +264,7 @@ class AppManagement:
 
         except:
             self.AD.logging.err("WARNING", '-' * 60)
-            self.AD.logging.err("WARNING", "Unexpected err loading config file: {}".format(file))
+            self.AD.logging.err("WARNING", "Unexpected error loading config file: {}".format(file))
             self.AD.logging.err("WARNING", '-' * 60)
             self.AD.logging.err("WARNING", traceback.format_exc())
             self.AD.logging.err("WARNING", '-' * 60)
@@ -580,7 +580,7 @@ class AppManagement:
                             reload = True
                             break
                 else:
-                    # No plugin dependency specified, reload to err on the side of caution
+                    # No plugin dependency specified, reload to error on the side of caution
                     reload = True
 
                 if reload is True:
@@ -599,7 +599,7 @@ class AppManagement:
                     self.term_object(app)
                 except:
                     self.AD.logging.err("WARNING", '-' * 60)
-                    self.AD.logging.err("WARNING", "Unexpected err terminating app: {}:".format(app))
+                    self.AD.logging.err("WARNING", "Unexpected error terminating app: {}:".format(app))
                     self.AD.logging.err("WARNING", '-' * 60)
                     self.AD.logging.err("WARNING", traceback.format_exc())
                     self.AD.logging.err("WARNING", '-' * 60)
@@ -613,12 +613,12 @@ class AppManagement:
                 self.read_app(mod["name"], mod["reload"])
             except:
                 self.AD.logging.err("WARNING", '-' * 60)
-                self.AD.logging.err("WARNING", "Unexpected err loading module: {}:".format(mod["name"]))
+                self.AD.logging.err("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
                 self.AD.logging.err("WARNING", '-' * 60)
                 self.AD.logging.err("WARNING", traceback.format_exc())
                 self.AD.logging.err("WARNING", '-' * 60)
                 if self.AD.logging.separate_error_log() is True:
-                    self.AD.logging.log("WARNING", "Unexpected err loading module: {}:".format(mod["name"]))
+                    self.AD.logging.log("WARNING", "Unexpected error loading module: {}:".format(mod["name"]))
                 self.AD.logging.log("WARNING", "Removing associated apps:")
                 module = self.get_module_from_path(mod["name"])
                 for app in self.app_config:
@@ -641,7 +641,7 @@ class AppManagement:
                         self.init_object(app)
                 except:
                     self.AD.logging.err("WARNING", '-' * 60)
-                    self.AD.logging.err("WARNING", "Unexpected err initializing app: {}:".format(app))
+                    self.AD.logging.err("WARNING", "Unexpected error initializing app: {}:".format(app))
                     self.AD.logging.err("WARNING", '-' * 60)
                     self.AD.logging.err("WARNING", traceback.format_exc())
                     self.AD.logging.err("WARNING", '-' * 60)

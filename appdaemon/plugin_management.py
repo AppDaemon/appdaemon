@@ -16,11 +16,8 @@ class PluginBase:
     def __init__(self, ad: AppDaemon, name, args):
 
         self.AD = ad
-        self.logger = self.AD.logging.get_logger().getChild(name)
-        if "log_level" in args:
-            self.logger.setLevel(args["log_level"])
-        else:
-            self.logger.setLevel("INFO")
+        self.logger = self.AD.logging.get_child(name)
+
 
     def set_log_level(self, level):
         self.logger.setLevel(self.AD.logging.log_levels[level])
@@ -40,7 +37,7 @@ class Plugins:
         self.plugin_objs = {}
         self.last_plugin_state = {}
 
-        self.logger = self.AD.logging.get_logger()
+        self.logger = ad.logging.get_child("_plugin_management")
         self.error = self.AD.logging.get_error()
 
         # Add built in plugins to path
@@ -102,7 +99,7 @@ class Plugins:
 
                         self.AD.loop.create_task(plugin.get_updates())
                     except:
-                        self.logger.warning("err loading plugin: %s - ignoring", name)
+                        self.logger.warning("error loading plugin: %s - ignoring", name)
                         self.logger.warning('-' * 60)
                         self.logger.warning(traceback.format_exc())
                         self.logger.warning('-' * 60)
@@ -168,7 +165,7 @@ class Plugins:
                 self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.error.warning('-' * 60)
-            self.error.warning("WARNING", "Unexpected err during notify_plugin_started()")
+            self.error.warning("WARNING", "Unexpected error during notify_plugin_started()")
             self.error.warning("WARNING", '-' * 60)
             self.error.warning("WARNING", traceback.format_exc())
             self.error.warning("WARNING", '-' * 60)
@@ -212,7 +209,7 @@ class Plugins:
                             self.AD.state.update_namespace_state(plugin, state)
 
                     except:
-                        self.logger.warning("Unexpected err refreshing %s state - retrying in 10 minutes", plugin)
+                        self.logger.warning("Unexpected error refreshing %s state - retrying in 10 minutes", plugin)
                     finally:
                         self.last_plugin_state[plugin] = datetime.datetime.now()
 

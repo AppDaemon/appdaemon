@@ -67,7 +67,8 @@ class RunAdmin:
 
         self.AD = ad
         self.logging = logging
-
+        self.logger = ad.logging.get_child("_run_admin")
+        self.access = ad.logging.get_access()
         self.admin_password = None
         self._process_arg("admin_password", config)
 
@@ -124,11 +125,11 @@ class RunAdmin:
             self.AD.loop.create_task(self.admin_loop())
 
         except:
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", "Unexpected err in admin thread")
-            self.log("WARNING", '-' * 60)
-            self.log("WARNING", traceback.format_exc())
-            self.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in admin thread")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
 
     # Stream Handling
@@ -137,7 +138,7 @@ class RunAdmin:
         await self.stream.send_update(updates)
 
     async def on_message(self, data):
-        self.AD.logging.access("INFO", "New admin browser connection")
+        self.access.info("New admin browser connection")
 
     async def on_connect(self):
         pass

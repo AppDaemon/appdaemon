@@ -206,27 +206,7 @@ $(function() {
 </div>
 
 <div id="Logs" class="maintabcontent">
-<div class="tab">
-{% for log in logs %}
-    {%  if logs[log]["lines"] != None %}
-  <button class="logtablinks" onclick="openTab(event, '{{ log }}', 'logtab')"
-id="main_log_button">{{ logs[log]["name"] }}</button>
-    {% endif %}
-{% endfor %}
-</div>
-{% for log in logs %}
-    {%  if logs[log]["lines"] != None %}
-<div id="{{ log }}" class="logtabcontent">
-    <div id="{{ log }}_div" class="log_panel">
-        {% for line in logs[log]["lines"] | reverse %}
-            {{ line }}<br>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-        {% endfor %}
-</div>
-
+<div class="tab">{% for log in logs %}{%  if logs[log]["lines"] != None %}<button class="logtablinks" onclick="openTab(event, '{{ log }}', 'logtab')" id="main_log_button">{{ logs[log]["name"] }}</button>{% endif %}{% endfor %}</div>{% for log in logs %}{%  if logs[log]["lines"] != None %}<div id="{{ log }}" class="logtabcontent"><div id="{{ log }}_div" class="log_panel">{% for line in logs[log]["lines"] | reverse %}{{line}}<br>{% endfor %}</div></div>{% endif %}{% endfor %}</div>
 <div id="Plugins" class="maintabcontent">
   <h3>Plugins</h3>
     <table>

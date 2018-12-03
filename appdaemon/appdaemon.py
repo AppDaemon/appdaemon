@@ -24,6 +24,7 @@ class AppDaemon:
 
         self.logging = logging
         self.logging.register_ad(self)
+        self.logger = logging.get_logger()
         self.threading = None
 
         self.config = kwargs
@@ -53,6 +54,7 @@ class AppDaemon:
         self.sched = None
         self.appq = None
         self.utility = None
+        self.module_debug = kwargs["module_debug"]
 
         # User Supplied/Defaults
 
@@ -221,7 +223,7 @@ class AppDaemon:
 
         # Create utility loop
 
-        self.logging.log("DEBUG", "Starting utility loop")
+        self.logger.debug("Starting utility loop")
 
         self.utility = utility.Utility(self)
         loop.create_task(self.utility.loop())

@@ -16,7 +16,7 @@ class Admin:
         #
         self.config_dir = config_dir
         self.AD = ad
-        self.logger = logger
+        self.logger = self.logger = ad.logging.get_child("_admin")
         self.dash_install_dir = os.path.dirname(__file__)
         self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
         self.template_dir = os.path.join(self.dash_install_dir, "assets", "templates")
@@ -111,11 +111,11 @@ class Admin:
             return (rendered_template)
 
         except:
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", "Unexpected err in admin thread")
-            self.AD.logging.log("WARNING", '-' * 60)
-            self.AD.logging.log("WARNING", traceback.format_exc())
-            self.AD.logging.log("WARNING", '-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in admin thread")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
     def logon(self):
 
