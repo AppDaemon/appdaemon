@@ -71,7 +71,8 @@ The directives are as follows:
 -  ``log_generations`` (optional) is the number of rotated logfiles that
    will be retained before they are overwritten if not specified, this
    will default to 3 files.
-- ``log_format`` (optional) Format string for the log file - standard logger format.
+- ``format`` (optional) Format string for the log file - standard `str.format() logger format <https://docs.python.org/3.6/library/string.html#format-string-syntax>`__
+- ``date_format`` (optional) Format string to specify how the date is rendered in standard `datetime strftime() format <https://docs.python.org/3.6/library/datetime.html#strftime-strptime-behavior>`__
 
 In the above example, a user defined log called ``test_log`` has also been created this can be accessed from apps directly from it's logger object, or from the self.log call as follows:
 
@@ -90,6 +91,7 @@ Note that the AppDaemon logs use an enhanced formatter that allows interpolation
 
     {asctime} {levelname} {appname:<20}: {message}
 
+AppDaemon's default time format is ``%Y-%m-%d %H:%M:%S.%f%z``.
 
 AppDaemon Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~

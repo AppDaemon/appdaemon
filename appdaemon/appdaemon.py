@@ -2,6 +2,7 @@ import os
 import os.path
 import concurrent.futures
 import threading
+import datetime
 
 class AppDaemon:
 
@@ -26,7 +27,7 @@ class AppDaemon:
         self.threading = None
 
         self.config = kwargs
-        self.booted = None
+        self.booted = datetime.datetime.now
         self.config["ad_version"] = utils.__version__
         self.check_app_updates_profile = ""
 

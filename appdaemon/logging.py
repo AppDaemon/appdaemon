@@ -104,6 +104,7 @@ class Logging:
         default_logsize = 1000000
         default_log_generations = 3
         default_format = "{asctime} {levelname} {appname}: {message}"
+        default_date_format = "%Y-%m-%d %H:%M:%S.%f%z"
 
         self.config = \
             {
@@ -113,7 +114,8 @@ class Logging:
                         'filename': default_filename,
                         'log_generations': default_log_generations,
                         'log_size': default_logsize,
-                        'format': default_format
+                        'format': default_format,
+                        'date_format': default_date_format
                     },
                 'error_log':
                     {
@@ -121,7 +123,8 @@ class Logging:
                         'filename': 'STDERR',
                         'log_generations': default_log_generations,
                         'log_size': default_logsize,
-                        'format': default_format
+                        'format': default_format,
+                        'date_format': default_date_format
                     },
                 'access_log':
                     {
@@ -146,6 +149,7 @@ class Logging:
                     self.config[log]["log_generations"] = default_log_generations
                     self.config[log]["log_size"] = default_logsize
                     self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
+                    self.config[log]["date_format"] = default_date_format
                     for arg in config[log]:
                         self.config[log][arg] = config[log][arg]
                 elif "alias" in self.config[log] and "alias" not in config[log]:
@@ -155,6 +159,7 @@ class Logging:
                     self.config[log]["log_generations"] = default_log_generations
                     self.config[log]["log_size"] = default_logsize
                     self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
+                    self.config[log]["date_format"] = default_date_format
                     self.config[log].pop("alias")
                     for arg in config[log]:
                         self.config[log][arg] = config[log][arg]
@@ -169,7 +174,7 @@ class Logging:
             args = self.config[log]
             if 'alias' not in args:
                 self.log_level = log_level
-                formatter = AppNameFormatter(args["format"], style='{')
+                formatter = AppNameFormatter(fmt=args["format"], datefmt=args["date_format"], style='{')
                 self.config[log]["formatter"] = formatter
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
@@ -215,8 +220,10 @@ class Logging:
                 ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(logger.tz)
             else:
                 ts = datetime.datetime.now()
-
-        return str(ts)
+        if format is not None:
+            return ts.strftime(format)
+        else:
+            return str(ts)
 
     def set_tz(self, tz):
         self.tz = tz
