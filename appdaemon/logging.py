@@ -334,7 +334,6 @@ class Logging:
 
         return logger
 
-
     # Reading Logs
 
     def get_admin_logs(self):

@@ -367,7 +367,7 @@ class ADAPI:
             self.logger.info("%s: Entity %s created in namespace: %s", self.name, entity_id, namespace)
 
 
-        # Update AD's Copy
+        # Update _AD's Copy
 
         self.AD.state.set_state(namespace, entity_id, new_state)
 

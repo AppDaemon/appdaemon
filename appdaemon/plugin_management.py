@@ -10,7 +10,7 @@ from appdaemon.appdaemon import AppDaemon
 class PluginBase:
 
     """
-    Base class for plugins to set up logging
+    Base class for plugins to set up _logging
     """
 
     def __init__(self, ad: AppDaemon, name, args):

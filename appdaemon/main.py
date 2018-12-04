@@ -268,7 +268,7 @@ class ADMain():
         else:
             hadashboard = {"dashboard": False}
 
-        # Setup logging
+        # Setup _logging
 
         if "log" in config:
             print("ERROR", "'log' directive deprecated, please convert to new 'logs' syntax")

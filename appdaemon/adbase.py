@@ -45,6 +45,7 @@ def global_lock(f):
             self.AD.global_lock.release()
     return f_global_lock
 
+
 class ADBase:
     #
     # Internal
@@ -56,16 +57,16 @@ class ADBase:
 
         # Store args
 
-        self.AD = ad
+        self._AD = ad
         self.name = name
-        self.logging = logging
+        self._logging = logging
         self.config = config
         self.app_config = app_config
         self.args = args
         self.global_vars = global_vars
         self.namespace = "default"
-        self.logger = self.logging.get_child(name)
-        self.err = self.logging.get_error().getChild(name)
+        self.logger = self._logging.get_child(name)
+        self.err = self._logging.get_error().getChild(name)
         self.user_logs = {}
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
@@ -86,17 +87,17 @@ class ADBase:
     #
 
     def get_ad_api(self):
-        api = adapi.ADAPI(self.AD, self.name, self.logging, self.args, self.config, self.app_config, self.global_vars)
+        api = adapi.ADAPI(self._AD, self.name, self._logging, self.args, self.config, self.app_config, self.global_vars)
 
         return api
 
     def get_plugin_api(self, name):
-        if name in self.AD.plugins.plugins:
-            plugin = self.AD.plugins.plugins[name]
+        if name in self._AD.plugins.plugins:
+            plugin = self._AD.plugins.plugins[name]
             module_name = "{}api".format(plugin["type"])
             mod = __import__(module_name, globals(), locals(), [module_name], 0)
             app_class = getattr(mod, plugin["type"].title())
-            api = app_class(self.AD, self.name, self.logging, self.args, self.config, self.app_config, self.global_vars)
+            api = app_class(self._AD, self.name, self._logging, self.args, self.config, self.app_config, self.global_vars)
             if "namespace" in plugin:
                 api.set_namespace(plugin["namespace"])
             else:
