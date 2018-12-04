@@ -303,6 +303,8 @@ class MqttPlugin(PluginBase):
                         first_time = False
                     if not already_initialized and not already_notified:
                         self.logger.critical("Could not complete MQTT Plugin initialization, trying again in 5 seconds")
+                        if self.stopping:
+                            break
                     else:
                         self.logger.critical("Unable to reinitialize MQTT Plugin, will keep trying again until complete")
                     await asyncio.sleep(5)
