@@ -621,11 +621,11 @@ class AppManagement:
             try:
                 self.read_app(mod["name"], mod["reload"])
             except:
-                self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error loading module: %s:", mod["name"])
-                self.logger.warning('-' * 60)
-                self.logger.warning(traceback.format_exc())
-                self.logger.warning('-' * 60)
+                self.error.warning('-' * 60)
+                self.error.warning("Unexpected error loading module: %s:", mod["name"])
+                self.error.warning('-' * 60)
+                self.error.warning(traceback.format_exc())
+                self.error.warning('-' * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning("Unexpected error loading module: {}:".format(mod["name"]))
 
