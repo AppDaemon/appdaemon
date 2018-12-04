@@ -120,8 +120,8 @@ class MqttPlugin(PluginBase):
                 if result[0] == 0:
                     self.logger.debug("Unsubscription from Topic %s Successful", topic)
                     
-            self.mqtt_client.loop_stop()
-            self.mqtt_client.disconnect() #disconnect cleanly
+        self.mqtt_client.loop_stop()
+        self.mqtt_client.disconnect() #disconnect cleanly
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
         try:
