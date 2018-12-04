@@ -43,6 +43,9 @@ class AppManagement:
 
         self.process_filters()
 
+    def terminate(self):
+        self.check_app_updates(exit=True)
+
     def dump_objects(self):
         self.AD.logging.diag("INFO", "--------------------------------------------------")
         self.AD.logging.diag("INFO", "Objects")

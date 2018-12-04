@@ -118,9 +118,3 @@ class Utility:
                         self.AD.logging.diag("INFO", self.AD.app_management.check_app_updates_profile_stats)
 
                 await asyncio.sleep(self.AD.utility_delay)
-
-            #
-            # Stopping, so terminate apps.
-            #
-
-            self.AD.app_management.check_app_updates(exit=True)

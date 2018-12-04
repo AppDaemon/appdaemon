@@ -102,7 +102,7 @@ class ADMain():
             # Now we are sutting down - perform and necessary cleanup
             #
 
-            self.AD.cleanup()
+            self.AD.terminate()
 
             self.logger.info("AppDaemon is stopped.")
 

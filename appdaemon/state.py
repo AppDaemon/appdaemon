@@ -49,7 +49,7 @@ class State:
                 ns.append(namespace)
         return ns
 
-    def cleanup(self):
+    def terminate(self):
         self.logger.info("Saving all namespaces")
         self.save_all_namespaces()
 

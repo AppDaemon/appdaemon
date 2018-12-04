@@ -239,9 +239,13 @@ class AppDaemon:
         if self.plugins is not None:
             self.plugins.stop()
 
-    def cleanup(self):
+    def terminate(self):
+        if self.app_management is not None:
+            self.app_management.terminate()
+        if self.plugins is not None:
+            self.plugins.terminate()
         if self.state is not None:
-            self.state.cleanup()
+            self.state.terminate()
 
     #
     # Utilities
