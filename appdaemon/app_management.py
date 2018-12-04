@@ -39,6 +39,8 @@ class AppManagement:
 
         self.app_config_file = config
 
+        self.apps_initialized = False
+
         # Add Path for adbase
 
         sys.path.insert(0, os.path.dirname(__file__))
@@ -47,7 +49,8 @@ class AppManagement:
 
     def terminate(self):
         self.logger.debug("terminate() called for app_management")
-        self.check_app_updates(exit=True)
+        if self.apps_initialized is True:
+            self.check_app_updates(exit=True)
 
     def dump_objects(self):
         self.diag.info("--------------------------------------------------")
@@ -153,15 +156,18 @@ class AppManagement:
                     pin = -1
 
                 modname = __import__(app_args["module"])
-                app_class = getattr(modname, app_args["class"])
-                self.objects[name] = {
-                    "object": app_class(
-                        self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars
-                    ),
-                    "id": uuid.uuid4(),
-                    "pin_app": self.AD.threading.app_should_be_pinned(name),
-                    "pin_thread": pin
-                }
+                app_class = getattr(modname, app_args["class"], None)
+                if app_class is None:
+                    self.logger.warning("Unable to find class %s in module %s - %s is not initialized", app_args["module"], app_args["class"], modname, name)
+                else:
+                    self.objects[name] = {
+                        "object": app_class(
+                            self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars
+                        ),
+                        "id": uuid.uuid4(),
+                        "pin_app": self.AD.threading.app_should_be_pinned(name),
+                        "pin_thread": pin
+                    }
 
         else:
             self.logger.warning("Unable to find module module %s - %s is not initialized", app_args["module"], name)
@@ -671,6 +677,8 @@ class AppManagement:
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()
         self.check_app_updates_profile_stats = s.getvalue()
+
+        self.apps_initialized = True
 
     def get_app_deps_and_prios(self, applist):
 

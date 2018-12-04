@@ -44,7 +44,6 @@ class AppDaemon:
         self.dashboard = None
         self.admin = None
         self.api = None
-        self.running_apps = 0
 
         self.global_vars = {}
         self.global_lock = threading.RLock()
