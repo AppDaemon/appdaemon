@@ -9,6 +9,7 @@ import uuid
 import time
 import re
 import asyncio
+import logging
 from collections import OrderedDict
 
 import appdaemon.utils as utils
@@ -157,16 +158,17 @@ class Scheduler:
                 del self.schedule[name][entry]
 
         except:
-            self.error.warning('-' * 60)
-            self.error.warning("Unexpected error during exec_schedule() for App: %s", name)
-            self.error.warning("Args: %s", args)
-            self.error.warning('-' * 60)
-            self.error.warning(traceback.format_exc())
-            self.error.warning('-' * 60)
+            error_logger = logging.getLogger("Error.{}".format(name))
+            error_logger.warning('-' * 60)
+            error_logger.warning("Unexpected error during exec_schedule() for App: %s", name)
+            error_logger.warning("Args: %s", args)
+            error_logger.warning('-' * 60)
+            error_logger.warning(traceback.format_exc())
+            error_logger.warning('-' * 60)
             if self.AD.logging.separate_error_log() is True:
-                self.error.warning("Logged an error to %s", self.AD.logging.errorfile)
-            self.error.warning("Scheduler entry has been deleted")
-            self.error.warning('-' * 60)
+                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
+            error_logger.warning("Scheduler entry has been deleted")
+            error_logger.warning('-' * 60)
 
             del self.schedule[name][entry]
 
@@ -412,18 +414,16 @@ class Scheduler:
             self.logger.debug("Scheduler loop compute time: %ss", loop_duration)
 
             if self.realtime is True and loop_duration > self.AD.tick * 0.9:
-                self.error.warning("Excessive time spent in scheduler loop: %ss", loop_duration)
+                self.logger.warning("Excessive time spent in scheduler loop: %ss", loop_duration)
 
             return utc
 
         except:
-            self.error.warning('-' * 60)
-            self.error.warning("Unexpected error during do_every_tick()")
-            self.error.warning('-' * 60)
-            self.error.warning(traceback.format_exc())
-            self.error.warning('-' * 60)
-            if self.AD.logging.separate_error_log() is True:
-                self.error.warning("Logged an error to %s", self.AD.logging.errorfile)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during do_every_tick()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
 
     #

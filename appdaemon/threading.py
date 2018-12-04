@@ -567,7 +567,6 @@ class Threading:
             funcref = args["function"]
             _id = args["id"]
             name = args["name"]
-            logger = logging.getLogger("AppDaemon.{}".format(name))
             error_logger = logging.getLogger("Error.{}".format(name))
             args["kwargs"]["__thread_id"] = thread_id
             callback = "{}() in {}".format(funcref.__name__, name)
@@ -608,7 +607,7 @@ class Threading:
                     error_logger.warning(traceback.format_exc())
                     error_logger.warning('-' * 60)
                     if self.AD.logging.separate_error_log() is True:
-                        self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
+                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
                 finally:
                     self.update_thread_info(thread_id, "idle")
                     self.total_callbacks_executed += 1

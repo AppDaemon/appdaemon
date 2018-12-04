@@ -293,7 +293,7 @@ class ADMain():
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
 
-        utils.check_path("config_file", self.logging, config_file_yaml, pathtype="file")
+        utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
 
         self.run(appdaemon, hadashboard)
 

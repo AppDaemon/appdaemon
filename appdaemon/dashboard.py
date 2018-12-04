@@ -79,8 +79,8 @@ class Dashboard:
             if not os.path.isdir(os.path.join(self.compile_dir, "css")):
                 os.makedirs(css)
 
-            ha.check_path("css", self.logging, css, permissions="rwx")
-            ha.check_path("javascript", self.logging, js, permissions="rwx")
+            ha.check_path("css", self.logger, css, permissions="rwx")
+            ha.check_path("javascript", self.logger, js, permissions="rwx")
 
 
         except:
@@ -412,7 +412,7 @@ class Dashboard:
                 widget["id"] = "{}-{}".format(page, sanitized_name)
 
                 if self._widget_exists(dash["widgets"], widget["id"]):
-                    self.logger.warning("Duplicate widget name '{}' - ignored".format(name))
+                    self.logger.warning("Duplicate widget name '%s' - ignored", name)
                 else:
                     widget["position"] = [column, layout]
                     widget["size"] = [xsize, ysize]
@@ -571,7 +571,7 @@ class Dashboard:
             if dash is None:
                 return None
         else:
-            self.logger.warning("Dashboard '{}' not found".format(name))
+            self.logger.warning("Dashboard '%s' not found", name)
             return None
 
         if "head_includes" in css_vars and css_vars["head_includes"] is not None:
@@ -597,7 +597,7 @@ class Dashboard:
             # Base CSS template and compile
             #
             if not os.path.isfile(os.path.join(skindir, "dashboard.css")):
-                self.logger.warning("Error loading dashboard.css for skin '{}'".format(skin))
+                self.logger.warning("Error loading dashboard.css for skin '%s'", skin)
             else:
                 template = os.path.join(skindir, "dashboard.css")
                 with open(template, 'r') as cssfd:
@@ -620,7 +620,7 @@ class Dashboard:
                 js = js + widgets[widget]["js"] + "\n"
 
         except KeyError:
-            self.logger.warning("Widget type not found: {}".format(widget["parameters"]["widget_type"]))
+            self.logger.warning("Widget type not found: %s", widget["parameters"]["widget_type"])
             return None
         except:
             self.logger.warning('-' * 60)
@@ -671,7 +671,7 @@ class Dashboard:
                 widget_dirs = os.listdir(path=widget_dir)
                 for widget in widget_dirs:
                     if widget_dir == os.path.join(self.config_dir, "custom_widgets"):
-                        self.logger.info("Loading custom widget '{}'".format(widget))
+                        self.logger.info("Loading custom widget '%s'", widget)
                     if os.path.isdir(os.path.join(widget_dir, widget)):
                         jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
                         csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
@@ -711,12 +711,12 @@ class Dashboard:
         #
         skindir = os.path.join(self.config_dir, "custom_css", skin)
         if os.path.isdir(skindir):
-            self.logger.info("Loading custom skin '{}'".format(skin))
+            self.logger.info("Loading custom skin '%s'", skin)
         else:
             # Not a custom skin, try product skins
             skindir = os.path.join(self.css_dir, skin)
             if not os.path.isdir(skindir):
-                self.logger.warning("Skin '{}' does not exist".format(skin))
+                self.logger.warning("Skin '%s' does not exist", skin)
                 skin = "default"
                 skindir = os.path.join(self.css_dir, "default")
 
@@ -763,7 +763,7 @@ class Dashboard:
             if do_compile is False:
                 return {"errors": []}
 
-        self.logger.info("Compiling dashboard '{}'".format(name))
+        self.logger.info("Compiling dashboard '%s'", name)
 
         dash = self._get_dash(name, skin, skindir)
         if dash is None:

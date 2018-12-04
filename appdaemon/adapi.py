@@ -93,10 +93,7 @@ class ADAPI:
         return self.AD.logging.add_log_callback(namespace, self.name, cb, level, **kwargs)
 
     def cancel_listen_log(self, handle):
-        self.AD.logging.log(
-            "DEBUG",
-            "Canceling listen_log for {}".format(self.name)
-        )
+        self.logger.debug("Canceling listen_log for %s", self.name)
         self.AD.logging.cancel_log_callback(self.name, handle)
 
     def get_main_log(self):
@@ -111,7 +108,7 @@ class ADAPI:
             logger = self.user_logs[log]
         else:
             # Build it on the fly
-            logger = self.AD.logging.get_user_log(log).getChild(self.name)
+            logger = self.AD.logging.get_user_log(self.name, log).getChild(self.name)
             self.user_logs[log] = logger
 
         return logger
@@ -165,9 +162,7 @@ class ADAPI:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
         if not self.AD.state.entity_exists(namespace, entity):
-            self.AD.logging.log("WARNING",
-                      "{}: Entity {} not found in namespace {}".format(
-                          self.name, entity, namespace))
+            self.err.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
     def get_ad_version(self):
         return utils.__version__
@@ -303,25 +298,18 @@ class ADAPI:
         return self.AD.state.add_state_callback(name, namespace, entity, cb, kwargs)
 
     def cancel_listen_state(self, handle):
-        self.AD.logging.log(
-            "DEBUG",
-            "Canceling listen_state for {}".format(self.name)
-        )
+        self.logger.debug("Canceling listen_state for %s", self.name)
         self.AD.state.cancel_state_callback(handle, self.name)
 
     def info_listen_state(self, handle):
-        self.AD.logging.log(
-            "DEBUG",
-            "Calling info_listen_state for {}".format(self.name)
-        )
+        self.logger.debug("Calling info_listen_state for %s",self.name)
         return self.AD.state.info_state_callback(handle, self.name)
 
     def get_state(self, entity_id=None, attribute=None, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        self.AD.logging.log("DEBUG",
-               "get_state: {}.{}".format(entity_id, attribute))
+            self.logger.debug("get_state: %s.%s", entity_id, attribute)
         device = None
         entity = None
         if entity_id is not None and "." in entity_id:
@@ -341,10 +329,7 @@ class ADAPI:
 
     def parse_state(self, entity_id, namespace, **kwargs):
         self._check_entity(namespace, entity_id)
-        self.AD.logging.log(
-            "DEBUG",
-            "parse_state: {}, {}".format(entity_id, kwargs)
-        )
+        self.logger.debug("parse_state: %s, %s", entity_id, kwargs)
 
         if entity_id in self.get_state(namespace=namespace):
             new_state = self.get_state(namespace = namespace)[entity_id]
@@ -379,9 +364,7 @@ class ADAPI:
         new_state = self.parse_state(entity_id, namespace, **kwargs)
 
         if not self.AD.state.entity_exists(namespace, entity_id):
-            self.AD.logging.log("INFO",
-                      "{}: Entity {} created in namespace: {}".format(
-                          self.name, entity_id, namespace))
+            self.logger.info("%s: Entity %s created in namespace: %s", self.name, entity_id, namespace)
 
 
         # Update AD's Copy
@@ -412,24 +395,15 @@ class ADAPI:
             del kwargs["namespace"]
 
         _name = self.name
-        self.AD.logging.log(
-            "DEBUG",
-            "Calling listen_event for {}".format(self.name)
-        )
+        self.logger.debug("Calling listen_event for %s", self.name)
         return self.AD.events.add_event_callback(_name, namespace, cb, event, **kwargs)
 
     def cancel_listen_event(self, handle):
-        self.AD.logging.log(
-            "DEBUG",
-            "Canceling listen_event for {}".format(self.name)
-        )
+        self.logger.debug("Canceling listen_event for %s", self.name)
         self.AD.events.cancel_event_callback(self.name, handle)
 
     def info_listen_event(self, handle):
-        self.AD.logging.log(
-            "DEBUG",
-            "Calling info_listen_event for {}".format(self.name)
-        )
+        self.logger.debug("Calling info_listen_event for %s", self.name)
         return self.AD.events.info_event_callback(self.name, handle)
 
     def fire_event(self, event, **kwargs):
@@ -531,10 +505,7 @@ class ADAPI:
 
     def run_in(self, callback, seconds, **kwargs):
         name = self.name
-        self.AD.logging.log(
-            "DEBUG",
-            "Registering run_in in {} seconds for {}".format(seconds, name)
-        )
+        self.logger.debug("Registering run_in in %s seconds for %s", seconds, name)
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
         exec_time = self.get_now() + timedelta(seconds=int(seconds))
@@ -640,12 +611,8 @@ class ADAPI:
         aware_start = self.AD.sched.convert_naive(start)
         if aware_start < now:
             raise ValueError("start cannot be in the past")
-        self.AD.logging.log(
-            "DEBUG",
-            "Registering run_every starting {} in {}s intervals for {}".format(
-                aware_start, interval, name
-            )
-        )
+
+        self.logger.debug("Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name)
 
         handle = self.AD.sched.insert_schedule(name, aware_start, callback, True, None,
                                          interval=interval, **kwargs)
@@ -660,20 +627,13 @@ class ADAPI:
 
     def run_at_sunset(self, callback, **kwargs):
         name = self.name
-        self.AD.logging.log(
-            "DEBUG",
-            "Registering run_at_sunset with kwargs = {} for {}".format(
-                kwargs, name
-            )
-        )
+        self.logger.debug("Registering run_at_sunset with kwargs = %s for %s", kwargs, name)
         handle = self._schedule_sun(name, "next_setting", callback, **kwargs)
         return handle
 
     def run_at_sunrise(self, callback, **kwargs):
         name = self.name
-        self.AD.logging.log("DEBUG",
-                  "Registering run_at_sunrise with kwargs = {} for {}".format(
-                      kwargs, name))
+        self.logger.debug("Registering run_at_sunrise with kwargs = %s for %s", kwargs, name)
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
 

@@ -189,8 +189,8 @@ class AppDaemon:
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
-            utils.check_path("config_dir", logging, self.config_dir, permissions="rwx")
-            utils.check_path("appdir", logging, self.app_dir)
+            utils.check_path("config_dir", self.logger, self.config_dir, permissions="rwx")
+            utils.check_path("appdir", self.logger, self.app_dir)
 
             # Initialize Apps
 

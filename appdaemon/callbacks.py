@@ -12,6 +12,7 @@ class Callbacks:
         self.callbacks = {}
         self.callbacks_lock = threading.RLock()
         self.logger = ad.logging.get_child("_callbacks")
+        self.diag = ad.logging.get_diag()
 
     #
     # Diagnostic
@@ -19,16 +20,16 @@ class Callbacks:
 
     def dump_callbacks(self):
         if self.callbacks == {}:
-            self.AD.logging.diag("INFO", "No callbacks")
+            self.diag.info("No callbacks")
         else:
-            self.AD.logging.diag("INFO", "--------------------------------------------------")
-            self.AD.logging.diag("INFO", "Callbacks")
-            self.AD.logging.diag("INFO", "--------------------------------------------------")
+            self.diag.info("--------------------------------------------------")
+            self.diag.info("Callbacks")
+            self.diag.info("--------------------------------------------------")
             for name in self.callbacks.keys():
-                self.AD.logging.diag("INFO", "{}:".format(name))
+                self.diag.info("%s:", name)
                 for uuid_ in self.callbacks[name]:
-                    self.AD.logging.diag( "INFO", "  {} = {}".format(uuid_, self.callbacks[name][uuid_]))
-            self.AD.logging.diag("INFO", "--------------------------------------------------")
+                    self.diag.info("INFO", "  %s = %s", uuid_, self.callbacks[name][uuid_])
+            self.diag.info("--------------------------------------------------")
 
     def get_callback_entries(self, type="all"):
         callbacks = {}
@@ -61,7 +62,7 @@ class Callbacks:
         return callbacks
 
     def clear_callbacks(self, name):
-        self.AD.logging.log("DEBUG", "Clearing callbacks for {}".format(name))
+        self.logger.debug("Clearing callbacks for %s", name)
         with self.callbacks_lock:
             if name in self.callbacks:
                 del self.callbacks[name]

@@ -114,7 +114,7 @@ class Utility:
                 if self.AD.sched.realtime is True and loop_duration > (self.AD.max_utility_skew * 1000):
                     self.logger.warning("Excessive time spent in utility loop: %sms", loop_duration)
                     if self.AD.check_app_updates_profile is True:
-                        self.AD.logging.diag("INFO", "Profile information for Utility Loop")
-                        self.AD.logging.diag("INFO", self.AD.app_management.check_app_updates_profile_stats)
+                        self.logger.info("Profile information for Utility Loop")
+                        self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
 
                 await asyncio.sleep(self.AD.utility_delay)

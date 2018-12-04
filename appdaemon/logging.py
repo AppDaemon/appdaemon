@@ -314,9 +314,13 @@ class Logging:
     def get_diag(self) -> logging.Logger:
         return self.config["diag_log"]["logger"]
 
-    def get_user_log(self, log):
+    def get_filename(self, log):
+        return self.config[log]["filename"]
+
+    def get_user_log(self, name, log):
         if log not in self.config:
-            self.error.error("User defined log %s not found", log)
+            logger = self.AD.app_management.get_app(name).err
+            logger.error("User defined log %s not found", log)
             return None
         return self.config[log]["logger"]
 

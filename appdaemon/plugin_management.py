@@ -172,7 +172,7 @@ class Plugins:
             self.error.warning("WARNING", traceback.format_exc())
             self.error.warning("WARNING", '-' * 60)
             if self.AD.logging.separate_error_log() is True:
-                self.AD.logging.log("WARNING", "Logged an error to {}".format(self.AD.logging.errorfile))
+                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
     def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False

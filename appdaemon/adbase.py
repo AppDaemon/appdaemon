@@ -104,7 +104,7 @@ class ADBase:
             return api
 
         else:
-            self.AD.logging.log("WARNING", "Unknown Plugin Configuration in get_plugin_api()")
+            self.logger.warning("Unknown Plugin Configuration in get_plugin_api()")
             return None
     #
     # Constraints

@@ -31,6 +31,7 @@ class ADStream:
 
         self.AD = ad
         self.logger = ad.logging.get_child("_stream")
+        self.access = ad.logging.get_access()
         self.app = app
         self.transport = transport
         self.on_connect = on_connect
@@ -86,10 +87,9 @@ class ADStream:
                     await self.on_msg(msg.data)
                     request.app['websockets'][ws]["dashboard"] = msg.data
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    self.AD.logging.access("INFO",
-                           "WebSocket connection closed with exception {}".format(ws.exception()))
+                    self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except:
-            self.AD.logging.access("DEBUG", "WebSocket disconnected")
+            self.access.debug("WebSocket disconnected")
         finally:
             request.app['websockets'].pop(ws, None)
 
