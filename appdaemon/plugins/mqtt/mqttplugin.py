@@ -119,8 +119,8 @@ class MqttPlugin(PluginBase):
                 if result[0] == 0:
                     self.logger.debug("Unsubscription from Topic %s Successful", topic)
                     
-            self.mqtt_client.loop_stop()
-            self.mqtt_client.disconnect() #disconnect cleanly
+        self.mqtt_client.loop_stop()
+        self.mqtt_client.disconnect() #disconnect cleanly
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
         try:
@@ -273,7 +273,7 @@ class MqttPlugin(PluginBase):
 
         while not self.stopping: 
             while (not self.initialized or not already_initialized) and not self.stopping: #continue until initialization is successful
-                if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time 
+                if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time
                     try:
                         await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
                         await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
