@@ -86,6 +86,12 @@ class Events:
                                 if key in data["data"] and callback["kwargs"][key] != \
                                         data["data"][key]:
                                     _run = False
+
+                            if data["event_type"] == "__AD_LOG_EVENT":
+                                if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["data"]["log_type"]:
+                                    _run = False
+
+
                             if _run:
                                 with self.AD.app_management.objects_lock:
                                     if name in self.AD.app_management.objects:

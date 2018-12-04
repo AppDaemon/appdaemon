@@ -65,7 +65,7 @@ class LogSubscriptionHandler(StreamHandler):
     This Handler requires that it's formatter is an instance of AppNameFormatter
     """
 
-    def __init__(self, ad: AppDaemon):
+    def __init__(self, ad: AppDaemon, type):
         StreamHandler.__init__(self)
         self.AD = ad
         self.type = type
@@ -92,7 +92,8 @@ class LogSubscriptionHandler(StreamHandler):
                                                   "level": record.levelname,
                                                   "app_name": record.appname,
                                                   "message": msg,
-                                                  "type": "log"
+                                                  "type": "log",
+                                                  "log_type": self.type
                                               }})
 
 
@@ -264,7 +265,7 @@ class Logging:
 
         for log in self.config:
             if not self.is_alias(log):
-                lh = LogSubscriptionHandler(self.AD)
+                lh = LogSubscriptionHandler(self.AD, log)
                 lh.setLevel(logging.INFO)
                 self.config[log]["logger"].addHandler(lh)
 

@@ -2113,6 +2113,11 @@ level
 
 Logging level to be used - lower levels will not be forwarded to the app. Defaults to "INFO".
 
+log (optional)
+'''
+
+Name of the log to listen to, default is all logs. The name should be one of the 4 built in types (``main_log``, ``error`log``, ``diag_log``, ``access_log``) or a user defined log entry.
+
 pin = (optional)
 ''''''''''''''''
 
@@ -2148,6 +2153,8 @@ Examples
 .. code:: python
 
     self.handle = self.listen_log(self.cb, "WARNING")
+    self.handle = self.listen_log(self.cb, "WARNING", log="main_log")
+    self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
 
 cancel_log()
 ~~~~~~~~~~~~
