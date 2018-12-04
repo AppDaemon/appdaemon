@@ -162,7 +162,7 @@ class ADAPI:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
         if not self.AD.state.entity_exists(namespace, entity):
-            self.err.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
+            self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
     def get_ad_version(self):
         return utils.__version__
@@ -309,7 +309,7 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            self.logger.debug("get_state: %s.%s", entity_id, attribute)
+        self.logger.debug("get_state: %s.%s", entity_id, attribute)
         device = None
         entity = None
         if entity_id is not None and "." in entity_id:
@@ -342,7 +342,6 @@ class ADAPI:
             new_state["state"] = kwargs["state"]
             del kwargs["state"]
 
-
         if "attributes" in kwargs and kwargs.get('replace', False):
             new_state["attributes"] = kwargs["attributes"]
         else:
@@ -366,8 +365,7 @@ class ADAPI:
         if not self.AD.state.entity_exists(namespace, entity_id):
             self.logger.info("%s: Entity %s created in namespace: %s", self.name, entity_id, namespace)
 
-
-        # Update _AD's Copy
+        # Update AD's Copy
 
         self.AD.state.set_state(namespace, entity_id, new_state)
 

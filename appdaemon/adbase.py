@@ -31,6 +31,7 @@ def app_lock(f):
             self.lock.release()
     return f_app_lock
 
+
 def global_lock(f):
     """ Synchronization decorator. """
 
