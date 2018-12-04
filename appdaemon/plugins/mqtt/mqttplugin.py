@@ -110,6 +110,7 @@ class MqttPlugin(PluginBase):
                             }
 
     def stop(self):
+        self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
         if self.initialized:
             self.logger.info("Stopping MQTT Plugin and Unsubcribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)

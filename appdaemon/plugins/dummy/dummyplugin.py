@@ -46,7 +46,7 @@ class DummyPlugin(PluginBase):
         self.logger.info("Dummy Plugin initialization complete")
 
     def stop(self):
-        self.logger.debug("*** Stopping ***")
+        self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
 
     #

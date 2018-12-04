@@ -105,9 +105,8 @@ class Plugins:
                         self.logger.warning('-' * 60)
 
     def stop(self):
+        self.logger.debug("stop() called for plugin_management")
         self.stopping = True
-
-    def terminate(self):
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin]["object"].stop()
 

@@ -17,6 +17,7 @@ class AppQ:
         self.appq = asyncio.Queue(maxsize=0)
 
     def stop(self):
+        self.logger.debug("stop() called for appq")
         self.stopping = True
         # Queue a fake event to make the loop wake up and exit
         self.appq.put_nowait({"namespace": "global", "event_type": "__AD_STOP", "data": None})

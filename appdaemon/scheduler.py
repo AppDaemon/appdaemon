@@ -94,6 +94,7 @@ class Scheduler:
 
 
     def stop(self):
+        self.logger.debug("stop() called for scheduler")
         self.stopping = True
 
     def cancel_timer(self, name, handle):

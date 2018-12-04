@@ -96,7 +96,7 @@ class HassPlugin(PluginBase):
         self.logger.info("HASS Plugin initialization complete")
 
     def stop(self):
-        self.logger.debug("*** Stopping ***")
+        self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
         if self.ws is not None:
             self.ws.close()

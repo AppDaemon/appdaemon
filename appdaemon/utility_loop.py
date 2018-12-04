@@ -16,6 +16,7 @@ class Utility:
         self.logger = ad.logging.get_child("_utility")
 
     def stop(self):
+        self.logger.debug("stop() called for utility")
         self.stopping = True
 
     async def loop(self):

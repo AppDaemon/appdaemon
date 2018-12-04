@@ -46,6 +46,7 @@ class AppManagement:
         self.process_filters()
 
     def terminate(self):
+        self.logger.debug("terminate() called for app_management")
         self.check_app_updates(exit=True)
 
     def dump_objects(self):

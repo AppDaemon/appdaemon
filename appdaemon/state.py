@@ -50,6 +50,7 @@ class State:
         return ns
 
     def terminate(self):
+        self.logger.debug("terminate() called for state")
         self.logger.info("Saving all namespaces")
         self.save_all_namespaces()
 
