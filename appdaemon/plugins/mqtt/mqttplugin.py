@@ -110,7 +110,6 @@ class MqttPlugin(PluginBase):
                             }
 
     def stop(self):
-        self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
         if self.initialized:
             self.logger.info("Stopping MQTT Plugin and Unsubcribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
@@ -120,8 +119,8 @@ class MqttPlugin(PluginBase):
                 if result[0] == 0:
                     self.logger.debug("Unsubscription from Topic %s Successful", topic)
                     
-        self.mqtt_client.loop_stop()
-        self.mqtt_client.disconnect() #disconnect cleanly
+            self.mqtt_client.loop_stop()
+            self.mqtt_client.disconnect() #disconnect cleanly
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
         try:
@@ -303,6 +302,8 @@ class MqttPlugin(PluginBase):
                         first_time = False
                     if not already_initialized and not already_notified:
                         self.logger.critical("Could not complete MQTT Plugin initialization, trying again in 5 seconds")
+                        if self.stopping:
+                            break
                     else:
                         self.logger.critical("Unable to reinitialize MQTT Plugin, will keep trying again until complete")
                     await asyncio.sleep(5)
