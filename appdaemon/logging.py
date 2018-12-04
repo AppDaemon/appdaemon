@@ -330,7 +330,7 @@ class Logging:
         if name in self.AD.module_debug:
             logger.setLevel(self.AD.module_debug[name])
         else:
-            logger.setLevel("INFO")
+            logger.setLevel(self.AD.loglevel)
 
         return logger
 
