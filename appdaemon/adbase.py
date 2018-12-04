@@ -66,6 +66,7 @@ class ADBase:
         self.namespace = "default"
         self.logger = self.logging.get_child(name)
         self.err = self.logging.get_error().getChild(name)
+        self.user_logs = {}
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
             self.err.setLevel(args["log_level"])

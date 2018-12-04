@@ -218,6 +218,7 @@ class Logging:
                 self.config[log]["format"] = self.config[self.config[log]["alias"]]["format"]
 
         self.logger = self.get_logger()
+        self.error= self.get_error()
 
     def dump_log_config(self):
         for log in self.config:
@@ -314,6 +315,9 @@ class Logging:
         return self.config["diag_log"]["logger"]
 
     def get_user_log(self, log):
+        if log not in self.config:
+            self.error.error("User defined log %s not found", log)
+            return None
         return self.config[log]["logger"]
 
     def get_child(self, name):

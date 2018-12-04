@@ -53,6 +53,7 @@ class ADMain():
             self.stop()
 
     def stop(self):
+        self.logger.info("AppDaemon is shutting down")
         self.AD.stop()
         if self.rundash is not None:
             self.rundash.stop()

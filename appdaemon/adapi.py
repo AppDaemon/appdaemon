@@ -26,6 +26,7 @@ class ADAPI:
         self._namespace = "default"
         self.logger = self.logging.get_child(name)
         self.err = self.logging.get_error().getChild(name)
+        self.user_logs = {}
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
             self.err.setLevel(args["log_level"])
@@ -75,7 +76,8 @@ class ADAPI:
 
     def log(self, msg, *args, **kwargs):
         if "log" in kwargs:
-            logger = self.AD.logging.get_user_log(kwargs["log"])
+            # Its a user defined log
+            logger = self.get_user_log(kwargs["log"])
             kwargs.pop("log")
         else:
             logger = self.logger
@@ -104,7 +106,15 @@ class ADAPI:
         return self.err
 
     def get_user_log(self, log):
-        return self.AD.logging.get_user_log(log)
+        if log in self.user_logs:
+            # Did we use it already?
+            logger = self.user_logs[log]
+        else:
+            # Build it on the fly
+            logger = self.AD.logging.get_user_log(log).getChild(self.name)
+            self.user_logs[log] = logger
+
+        return logger
 
     def set_log_level(self, level):
         self.logger.setLevel(self.logging.log_levels[level])
