@@ -20,6 +20,7 @@ class AppManagement:
 
         self.AD = ad
         self.logger = ad.logging.get_child("_app_management")
+        self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
         self.monitored_files = {}
         self.filter_files = {}
