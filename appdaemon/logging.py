@@ -76,10 +76,7 @@ class LogSubscriptionHandler(StreamHandler):
             # If so, don't generate the event to avoid loops
             has_log_callback = False
             msg = self.format(record)
-            if self.AD.tz is not None:
-                record.ts = self.AD.tz.localize(datetime.datetime.fromtimestamp(record.created))
-            else:
-                record.ts = datetime.datetime.fromtimestamp(record.created)
+            record.ts = datetime.datetime.fromtimestamp(record.created)
             if record.name == "AppDaemon._stream":
                 has_log_callback = True
             else:
