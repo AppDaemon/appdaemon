@@ -232,10 +232,10 @@ class State:
                     # Process non-state callbacks
                     self.AD.events.process_event(namespace, data)
 
-            # Update dashboards
+            # Update stream
 
-            if self.AD.dashboard is not None:
-                await self.AD.dashboard.ws_update(namespace, data)
+            if self.AD.http is not None:
+                await self.AD.http.ws_update(namespace, data)
 
         except:
             self.logger.warning('-' * 60)

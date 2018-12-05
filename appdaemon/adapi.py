@@ -279,10 +279,10 @@ class ADAPI:
             ep = self.name
         else:
             ep = name
-        return self._AD.api.register_endpoint(cb, ep)
+        return self._AD.http.register_endpoint(cb, ep)
 
     def unregister_endpoint(self, handle):
-        self._AD.api.unregister_endpoint(handle, self.name)
+        self._AD.http.unregister_endpoint(handle, self.name)
 
     #
     # State

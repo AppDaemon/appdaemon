@@ -305,7 +305,7 @@ class Threading:
             self.thread_info["last_action_time"] = self.AD.sched.get_now_naive()
 
         # Update Admin
-        if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":
+        if self.AD.http.admin is not None and self.AD.admin.stats_update == "realtime":
             update = {
                 "updates": {
                         thread_id + "_qsize": self.thread_info["threads"][thread_id]["q"].qsize(),
@@ -368,7 +368,7 @@ class Threading:
                     thread_pins[thread] += 1
 
         # Update admin interface
-        if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":
+        if self.AD.http.admin is not None and self.AD.admin.stats_update == "realtime":
             update = {"threads": self.AD.threading.get_thread_info()["threads"]}
             self.AD.appq.admin_update(update)
 

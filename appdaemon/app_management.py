@@ -125,11 +125,11 @@ class AppManagement:
 
         self.AD.sched.term_object(name)
 
-        if self.AD.api is not None:
-            self.AD.api.term_object(name)
+        if self.AD.http.api is not None:
+            self.AD.http.term_object(name)
 
         # Update admin interface
-        if self.AD.admin is not None and self.AD.admin.stats_update == "realtime":
+        if self.AD.http.admin is not None and self.AD.http.admin.stats_update == "realtime":
             update = {"threads": self.AD.threading.get_thread_info()["threads"]}
             self.AD.appq.admin_update(update)
 

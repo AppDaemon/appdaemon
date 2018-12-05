@@ -67,15 +67,22 @@ class ADMain():
 
             # Initialize Dashboard/API/admin
 
-            if http is not None:
-                if hadashboard is not None or admin is not None or api is not False:
-                    self.logger.info("Initializing HTTP")
-                    self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api, http)
-                    self.AD.register_http(self.http_object)
-                else:
-                    self.logger.info("HTTP configured but no consumers are configured - disabling")
+            if http is not None and (hadashboard is not None or admin is not None or api is not False):
+                self.logger.info("Initializing HTTP")
             else:
-                self.logger.info("HTTP is disabled")
+                if http is not None:
+                    self.logger.info("HTTP configured but no consumers are configured - disabling")
+                else:
+                    self.logger.info("HTTP is disabled")
+                appdaemon = None
+                hadashboard = None
+                admin = None
+                api = False
+
+
+            self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api,
+                                               http)
+            self.AD.register_http(self.http_object)
 
             self.logger.debug("Start Loop")
 
@@ -139,8 +146,6 @@ class ADMain():
             print("FATAL: no configuration directory defined and defaults not present\n")
             parser.print_help()
             sys.exit(1)
-
-        config = None
 
         module_debug = {}
         if args.moduledebug is not None:
@@ -254,15 +259,15 @@ class ADMain():
         else:
             admin = None
 
-        if "api_enabled" in config["appdaemon"] and config["appdaemon"]["api_enabled"] is True:
-            api = True
+        if "api" in config:
+            api = {}
         else:
-            api = False
+            api = None
 
         if "http" in config:
-            http = True
+            http = config["http"]
         else:
-            http = False
+            http = None
 
         # Setup _logging
 

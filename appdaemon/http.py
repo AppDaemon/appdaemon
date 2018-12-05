@@ -10,13 +10,14 @@ import feedparser
 from aiohttp import web
 import ssl
 import bcrypt
+import threading
+import uuid
 
-import appdaemon.dashboard as dashboard
+import appdaemon.dashboard as addashboard
 import appdaemon.utils as utils
 import appdaemon.stream as stream
 
 from appdaemon.appdaemon import AppDaemon
-
 
 def securedata(myfunc):
     """
@@ -26,11 +27,11 @@ def securedata(myfunc):
     async def wrapper(*args):
 
         self = args[0]
-        if self.dash_password is None:
+        if self.password is None:
             return await myfunc(*args)
         else:
             if "adcreds" in args[1].cookies:
-                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.dash_password), str.encode(args[1].cookies["adcreds"]))
+                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.password), str.encode(args[1].cookies["adcreds"]))
                 if match:
                     return await myfunc(*args)
                 else:
@@ -49,18 +50,18 @@ def secure(myfunc):
     async def wrapper(*args):
 
         self = args[0]
-        if self.dash_password == None:
+        if self.password == None:
             return await myfunc(*args)
         else:
             if "adcreds" in args[1].cookies:
                 match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw,
-                                                    str.encode(self.dash_password),
+                                                    str.encode(self.password),
                                                     str.encode(args[1].cookies["adcreds"]))
                 if match:
                     return await myfunc(*args)
                 else:
                     return await self.forcelogon(args[1])
-            elif "dash_password" in args[1].query and args[1].query["dash_password"] == self.dash_password:
+            elif "password" in args[1].query and args[1].query["password"] == self.password:
                 return await myfunc(*args)
             else:
                 return await self.forcelogon(args[1])
@@ -70,152 +71,160 @@ def secure(myfunc):
 
 class HTTP:
 
-    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, hadashboard, admin, api, http):
+    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, api, http):
 
         self.AD = ad
         self.logging = logging
-        self.logger = ad.logging.get_child("_run_dash")
+        self.logger = ad.logging.get_child("_http")
         self.access = ad.logging.get_access()
 
-        self.dashboard_dir = None
-        self._process_arg("dashboard_dir", config)
+        self.appdaemon = appdaemon
+        self.dasboard = dashboard
+        self.admin = admin
+        self.http = http
+        self.api = api
 
-        self.dash_password = None
-        self._process_arg("dash_password", config)
+        self.password = None
+        self._process_arg("password", http)
 
-        self.dash_url = None
-        self._process_arg("dash_url", config)
-
-        self.config_dir = None
-        self._process_arg("config_dir", config)
+        self.url = None
+        self._process_arg("url", http)
 
         self.work_factor = 8
-        self._process_arg("work_factor", config)
+        self._process_arg("work_factor", http)
 
-        self.dash_ssl_certificate = None
-        self._process_arg("dash_ssl_certificate", config)
+        self.ssl_certificate = None
+        self._process_arg("ssl_certificate", http)
 
-        self.dash_ssl_key = None
-        self._process_arg("dash_ssl_key", config)
-
-        # Start Dashboards
-
-        if hadashboardis not None:
-            self.logger.info("Starting Dashboards")
-
-            self.dash_compile_on_start = True
-            self._process_arg("dash_compile_on_start", config)
-
-            self.dash_force_compile = False
-            self._process_arg("dash_force_compile", config)
-
-            self.profile_dashboard = False
-            self._process_arg("profile_dashboard", config)
-
-            self.rss_feeds = None
-            self._process_arg("rss_feeds", config)
-
-            self.fa4compatibility = False
-            self._process_arg("fa4compatibility", config)
-
-
-        else:
-            self.logger.info("Dashboards Disabled")
-
-        if "api_port" in appdaemon:
-            self.logger.info("Starting API on port %s", appdaemon["api_port"])
-        else:
-            self.logger.info("API is disabled")
-
-        if "admin" in appdaemon and "port" in appdaemon["admin"]:
-            self.logger.info("Starting Admin Interface on port %s", appdaemon["admin"]["port"])
-        else:
-            self.logger.info("Admin Interface is disabled")
-
-
+        self.ssl_key = None
+        self._process_arg("ssl_key", http)
 
         self.transport = "ws"
-        self._process_arg("transport", config)
-        self.logger.info("Using %s for dashboard event stream", self.transport)
-
-        if "rss_feeds" in config:
-            self.rss_feeds = []
-            for feed in config["rss_feeds"]:
-                if feed["target"].count('.') != 1:
-                    self.logger.warning("Invalid RSS feed target: %s", feed["target"])
-                else:
-                    self.rss_feeds.append(feed)
-
-        self.rss_update = None
-        self._process_arg("rss_update", config)
-
-        self.rss_last_update = None
+        self._process_arg("transport", http)
+        self.logger.info("Using %s for event stream", self.transport)
 
         self.stopping = False
 
-        url = urlparse(self.dash_url)
-
-        dash_net = url.netloc.split(":")
-        self.dash_host = dash_net[0]
-        try:
-            self.dash_port = dash_net[1]
-        except IndexError:
-            self.dash_port = 80
-
-        if self.dash_host == "":
-            raise ValueError("Invalid host for 'dash_url'")
-
-        # find dashboard dir
-
-        if self.dashboard_dir is None:
-            if self.config_dir is None:
-                self.dashboard_dir = utils.find_path("dashboards")
-            else:
-                self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
-
-
-            #
-            # Setup compile directories
-            #
-            if self.config_dir is None:
-                self.compile_dir = utils.find_path("compiled")
-            else:
-                self.compile_dir = os.path.join(self.config_dir, "compiled")
-
-        self.app = web.Application()
-
-        # Setup event stream
-
-        self.stream = stream.ADStream(self.AD, self.app, self.transport, self.on_connect, self.on_message)
-
-        self.loop = loop
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+        self.endpoints = {}
+        self.endpoints_lock = threading.RLock()
 
         try:
-            self.dashboard_obj = dashboard.Dashboard(self.config_dir, self.logging,
-                                                 dash_compile_on_start=self.dash_compile_on_start,
-                                                 dash_force_compile=self.dash_force_compile,
-                                                 profile_dashboard=self.profile_dashboard,
-                                                 dashboard_dir = self.dashboard_dir,
-                                                 fa4compatibility=self.fa4compatibility,
-                                                 transport = self.transport
-                                                     )
-            self.setup_routes()
+            url = urlparse(self.url)
 
-            if self.dash_ssl_certificate is not None and self.dash_ssl_key is not None:
+            net = url.netloc.split(":")
+            self.host = net[0]
+            try:
+                self.port = net[1]
+            except IndexError:
+                self.port = 80
+
+            if self.host == "":
+                raise ValueError("Invalid host for 'url'")
+
+            self.app = web.Application()
+
+            # Setup event stream
+
+            self.stream = stream.ADStream(self.AD, self.app, self.transport, self.on_connect, self.on_message)
+
+            self.loop = loop
+            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
+            if self.ssl_certificate is not None and self.ssl_key is not None:
                 context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                context.load_cert_chain(self.dash_ssl_certificate, self.dash_ssl_key)
+                context.load_cert_chain(self.ssl_certificate, self.ssl_key)
             else:
                 context = None
 
+            # Start Dashboards
+
+            if dashboard is not None:
+                self.logger.info("Starting Dashboards")
+
+                self.dashboard_dir = None
+                self._process_arg("dashboard_dir", dashboard)
+
+                self.compile_on_start = True
+                self._process_arg("compile_on_start", dashboard)
+
+                self.force_compile = False
+                self._process_arg("force_compile", dashboard)
+
+                self.profile_dashboard = False
+                self._process_arg("profile_dashboard", dashboard)
+
+                self.rss_feeds = None
+                self._process_arg("rss_feeds", dashboard)
+
+                self.fa4compatibility = False
+                self._process_arg("fa4compatibility", dashboard)
+
+                self.config_dir = None
+                self._process_arg("config_dir", dashboard)
+
+                if "rss_feeds" in dashboard:
+                    self.rss_feeds = []
+                    for feed in dashboard["rss_feeds"]:
+                        if feed["target"].count('.') != 1:
+                            self.logger.warning("Invalid RSS feed target: %s", feed["target"])
+                        else:
+                            self.rss_feeds.append(feed)
+
+                self.rss_update = None
+                self._process_arg("rss_update", dashboard)
+
+                self.rss_last_update = None
+
+                # find dashboard dir
+
+                if self.dashboard_dir is None:
+                    if self.config_dir is None:
+                        self.dashboard_dir = utils.find_path("dashboards")
+                    else:
+                        self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
+
+
+                #
+                # Setup compile directories
+                #
+                if self.config_dir is None:
+                    self.compile_dir = utils.find_path("compiled")
+                else:
+                    self.compile_dir = os.path.join(self.config_dir, "compiled")
+
+                self.dashboard_obj = addashboard.Dashboard(self.config_dir, self.logging,
+                                                 dash_compile_on_start=self.compile_on_start,
+                                                 dash_force_compile=self.force_compile,
+                                                 profile_dashboard=self.profile_dashboard,
+                                                 dashboard_dir=self.dashboard_dir,
+                                                 fa4compatibility=self.fa4compatibility,
+                                                 transport=self.transport
+                                                 )
+                self.setup_dashboard_routes()
+
+            else:
+                self.logger.info("Dashboards Disabled")
+
+            if api is not None:
+                self.logger.info("Starting API")
+                self.setup_api()
+            else:
+                self.logger.info("API is disabled")
+
+            #if "admin" in appdaemon and "port" in appdaemon["admin"]:
+            #    self.logger.info("Starting Admin Interface on port %s", appdaemon["admin"]["port"])
+            #else:
+            #    self.logger.info("Admin Interface is disabled")
+
             handler = self.app.make_handler()
 
-            f = loop.create_server(handler, "0.0.0.0", int(self.dash_port), ssl=context)
+            f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
             loop.create_task(f)
             loop.create_task(self.update_rss())
+
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error in dashboard thread")
+            self.logger.warning("Unexpected error in HTTP module")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
@@ -239,12 +248,11 @@ class HTTP:
 
     async def logon(self, request):
         data = await request.post()
-        success = False
         password = data["password"]
 
-        if password == self.dash_password:
+        if password == self.password:
             self.access.info("Succesful logon from %s", request.host)
-            hashed = bcrypt.hashpw(str.encode(self.dash_password), bcrypt.gensalt(self.work_factor))
+            hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
 
             # utils.verbose_log(conf.dash, "INFO", hashed)
 
@@ -331,15 +339,6 @@ class HTTP:
 
         return web.json_response({"state": state})
 
-
-    def get_response(self, code, error):
-        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code,
-                                                                                                                  error,
-                                                                                                                  code,
-                                                                                                                  error)
-        return res
-
-
     # noinspection PyUnusedLocal
     @securedata
     async def call_service(self, request):
@@ -411,7 +410,7 @@ class HTTP:
 
     # Routes, Status and Templates
 
-    def setup_routes(self):
+    def setup_dashboard_routes(self):
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon', self.logon)
@@ -445,4 +444,96 @@ class HTTP:
 
         # Add static path for images
         self.app.router.add_static('/images', self.dashboard_obj.images_dir)
+
+    # API
+
+    def term_object(self, name):
+        with self.endpoints_lock:
+            if name in self.endpoints:
+                del self.endpoints[name]
+
+    @staticmethod
+    def get_response(code, error):
+        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
+        return res
+
+    async def call_api(self, request):
+
+        code = 200
+        ret = ""
+
+        app = request.match_info.get('app')
+
+        if self.password is not None:
+            if (("x-ad-access" not in request.headers) or (request.headers["x-ad-access"] != self.password)) \
+                    and (("api_password" not in request.query) or (request.query["api_password"] != self.password)):
+
+                code = 401
+                response = "Unauthorized"
+                res = self.get_response(code, response)
+                self.access.info("API Call to %s: status: %s %s", app, code, response)
+                return web.Response(body=res, status=code)
+
+        try:
+            args = await request.json()
+        except json.decoder.JSONDecodeError:
+            code = 400
+            response = "JSON Decode Error"
+            res = self.get_response(code, response)
+            self.logger.warning("API Call to %s: status: %s %s", app, code, response)
+            return web.Response(body = res, status = code)
+
+        try:
+            ret, code = await self.dispatch_app_by_name(app, args)
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during API call")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+
+        if code == 404:
+            response = "App Not Found"
+            res = self.get_response(code, response)
+            self.access.info("API Call to %s: status: %s %s", app, code, response)
+            return web.Response(body = res, status = code)
+
+        response = "OK"
+        res = self.get_response(code, response)
+        self.access.info("API Call to %s: status: %s %s", app, code, response)
+
+        return web.json_response(ret, status = code)
+
+    # Routes, Status and Templates
+
+    def setup_api(self):
+        self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
+
+    def register_endpoint(self, cb, name):
+
+        handle = uuid.uuid4()
+
+        with self.endpoints_lock:
+            if name not in self.endpoints:
+                self.endpoints[name] = {}
+            self.endpoints[name][handle] = {"callback": cb, "name": name}
+
+        return handle
+
+    def unregister_endpoint(self, handle, name):
+        with self.endpoints_lock:
+            if name in self.endpoints and handle in self.endpoints[name]:
+                del self.endpoints[name][handle]
+
+    async def dispatch_app_by_name(self, name, args):
+        with self.endpoints_lock:
+            callback = None
+            for app in self.endpoints:
+                for handle in self.endpoints[app]:
+                    if self.endpoints[app][handle]["name"] == name:
+                        callback = self.endpoints[app][handle]["callback"]
+        if callback is not None:
+            return await utils.run_in_executor(self.AD.loop, self.AD.executor, callback, args)
+        else:
+            return '', 404
 
