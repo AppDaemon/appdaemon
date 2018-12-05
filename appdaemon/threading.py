@@ -261,9 +261,10 @@ class Threading:
     def check_q_size(self, warning_step, warning_iterations):
         qinfo = self.q_info()
         if qinfo["qsize"] > self.AD.qsize_warning_threshold:
-            if warning_step == 0 and warning_iterations > self.AD.qsize_warning_iterations:
+            if (warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations) or warning_iterations == self.AD.qsize_warning_iterations:
                 self.logger.warning("Queue size is %s, suspect thread starvation", qinfo["qsize"])
                 self.dump_threads(qinfo)
+                warning_step = 0
             warning_step += 1
             warning_iterations += 1
             if warning_step >= self.AD.qsize_warning_step:
