@@ -31,7 +31,7 @@ class AppNameFormatter(logging.Formatter):
             if name[0] == "_":
                 # It's a module
                 appname = "AppDaemon"
-                modulename = "AD:" + name[1:]
+                modulename = "_AD:" + name[1:]
             else:
                 # It's an app
                 appname = name

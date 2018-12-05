@@ -16,16 +16,16 @@ class ADAPI:
     def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
         # Store args
 
-        self.AD = ad
+        self._AD = ad
         self.name = name
-        self.logging = logging_obj
+        self._logging = logging_obj
         self.config = config
         self.app_config = app_config
         self.args = args
         self.global_vars = global_vars
         self._namespace = "default"
-        self.logger = self.logging.get_child(name)
-        self.err = self.logging.get_error().getChild(name)
+        self.logger = self._logging.get_child(name)
+        self.err = self._logging.get_error().getChild(name)
         self.user_logs = {}
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
@@ -72,7 +72,7 @@ class ADAPI:
             safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
             msg = safe_enc(msg)
 
-        logger.log(self.logging.log_levels[level], msg, *args, **kwargs)
+        logger.log(self._logging.log_levels[level], msg, *args, **kwargs)
 
     def log(self, msg, *args, **kwargs):
         if "log" in kwargs:
@@ -90,11 +90,11 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        return self.AD.logging.add_log_callback(namespace, self.name, cb, level, **kwargs)
+        return self._AD.logging.add_log_callback(namespace, self.name, cb, level, **kwargs)
 
     def cancel_listen_log(self, handle):
         self.logger.debug("Canceling listen_log for %s", self.name)
-        self.AD.logging.cancel_log_callback(self.name, handle)
+        self._AD.logging.cancel_log_callback(self.name, handle)
 
     def get_main_log(self):
         return self.logger
@@ -108,31 +108,31 @@ class ADAPI:
             logger = self.user_logs[log]
         else:
             # Build it on the fly
-            logger = self.AD.logging.get_user_log(self.name, log).getChild(self.name)
+            logger = self._AD.logging.get_user_log(self.name, log).getChild(self.name)
             self.user_logs[log] = logger
 
         return logger
 
     def set_log_level(self, level):
-        self.logger.setLevel(self.logging.log_levels[level])
+        self.logger.setLevel(self._logging.log_levels[level])
 
     def set_error_level(self, level):
-        self.err.setLevel(self.logging.log_levels[level])
+        self.err.setLevel(self._logging.log_levels[level])
     #
     # Threading
     #
 
     def set_app_pin(self, pin):
-        self.AD.threading.set_app_pin(self.name, pin)
+        self._AD.threading.set_app_pin(self.name, pin)
 
     def get_app_pin(self):
-        return self.AD.threading.get_app_pin(self.name)
+        return self._AD.threading.get_app_pin(self.name)
 
     def set_pin_thread(self, thread):
-        self.AD.threading.set_pin_thread(self.name, thread)
+        self._AD.threading.set_pin_thread(self.name, thread)
 
     def get_pin_thread(self):
-        return self.AD.threading.get_pin_thread(self.name)
+        return self._AD.threading.get_pin_thread(self.name)
 
     #
     # Namespace
@@ -145,23 +145,23 @@ class ADAPI:
         return self._namespace
 
     def list_namespaces(self):
-        return self.AD.state.list_namespaces()
+        return self._AD.state.list_namespaces()
 
     def save_namespace(self, namespace):
-        self.AD.state.save_namespace(namespace)
+        self._AD.state.save_namespace(namespace)
 
     #
     # Utility
     #
 
     def get_app(self, name):
-        return self.AD.app_management.get_app(name)
+        return self._AD.app_management.get_app(name)
 
     def _check_entity(self, namespace, entity):
         if "." not in entity:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
-        if not self.AD.state.entity_exists(namespace, entity):
+        if not self._AD.state.entity_exists(namespace, entity):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
     def get_ad_version(self):
@@ -169,7 +169,7 @@ class ADAPI:
 
     def entity_exists(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        return self.AD.state.entity_exists(namespace, entity_id)
+        return self._AD.state.entity_exists(namespace, entity_id)
 
     def split_entity(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
@@ -180,7 +180,7 @@ class ADAPI:
 
     def get_plugin_config(self, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        return self.AD.plugins.get_plugin_meta(namespace)
+        return self._AD.plugins.get_plugin_meta(namespace)
 
     def friendly_name(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
@@ -279,10 +279,10 @@ class ADAPI:
             ep = self.name
         else:
             ep = name
-        return self.AD.api.register_endpoint(cb, ep)
+        return self._AD.api.register_endpoint(cb, ep)
 
     def unregister_endpoint(self, handle):
-        self.AD.api.unregister_endpoint(handle, self.name)
+        self._AD.api.unregister_endpoint(handle, self.name)
 
     #
     # State
@@ -295,15 +295,15 @@ class ADAPI:
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
-        return self.AD.state.add_state_callback(name, namespace, entity, cb, kwargs)
+        return self._AD.state.add_state_callback(name, namespace, entity, cb, kwargs)
 
     def cancel_listen_state(self, handle):
         self.logger.debug("Canceling listen_state for %s", self.name)
-        self.AD.state.cancel_state_callback(handle, self.name)
+        self._AD.state.cancel_state_callback(handle, self.name)
 
     def info_listen_state(self, handle):
         self.logger.debug("Calling info_listen_state for %s",self.name)
-        return self.AD.state.info_state_callback(handle, self.name)
+        return self._AD.state.info_state_callback(handle, self.name)
 
     def get_state(self, entity_id=None, attribute=None, **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -313,7 +313,7 @@ class ADAPI:
         device = None
         entity = None
         if entity_id is not None and "." in entity_id:
-            if not self.AD.state.entity_exists(namespace, entity_id):
+            if not self._AD.state.entity_exists(namespace, entity_id):
                 return None
         if entity_id is not None:
             if "." not in entity_id:
@@ -325,7 +325,7 @@ class ADAPI:
             else:
                 device, entity = entity_id.split(".")
 
-        return self.AD.state.get_state(namespace, device, entity, attribute)
+        return self._AD.state.get_state(namespace, device, entity, attribute)
 
     def parse_state(self, entity_id, namespace, **kwargs):
         self._check_entity(namespace, entity_id)
@@ -362,23 +362,23 @@ class ADAPI:
 
         new_state = self.parse_state(entity_id, namespace, **kwargs)
 
-        if not self.AD.state.entity_exists(namespace, entity_id):
+        if not self._AD.state.entity_exists(namespace, entity_id):
             self.logger.info("%s: Entity %s created in namespace: %s", self.name, entity_id, namespace)
 
-        # Update AD's Copy
+        # Update _AD's Copy
 
-        self.AD.state.set_state(namespace, entity_id, new_state)
+        self._AD.state.set_state(namespace, entity_id, new_state)
 
         # Fire the plugin's state update if it has one
 
-        plugin = self.AD.plugins.get_plugin_object(namespace)
+        plugin = self._AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "set_plugin_state"):
             # We assume that the event will come back to us via the plugin
             plugin.set_plugin_state(namespace, entity_id, new_state, **kwargs)
         else:
             # Just fire the event locally
-            self.AD.appq.set_state_event(namespace, entity_id, new_state)
+            self._AD.appq.set_state_event(namespace, entity_id, new_state)
 
         return new_state
 
@@ -394,15 +394,15 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
-        return self.AD.events.add_event_callback(_name, namespace, cb, event, **kwargs)
+        return self._AD.events.add_event_callback(_name, namespace, cb, event, **kwargs)
 
     def cancel_listen_event(self, handle):
         self.logger.debug("Canceling listen_event for %s", self.name)
-        self.AD.events.cancel_event_callback(self.name, handle)
+        self._AD.events.cancel_event_callback(self.name, handle)
 
     def info_listen_event(self, handle):
         self.logger.debug("Calling info_listen_event for %s", self.name)
-        return self.AD.events.info_event_callback(self.name, handle)
+        return self._AD.events.info_event_callback(self.name, handle)
 
     def fire_event(self, event, **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -412,14 +412,14 @@ class ADAPI:
 
         # Fire the plugin's state update if it has one
 
-        plugin = self.AD.plugins.get_plugin_object(namespace)
+        plugin = self._AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "fire_plugin_event"):
             # We assume that the event will come back to us via the plugin
             plugin.fire_plugin_event(event, namespace, **kwargs)
         else:
             # Just fire the event locally
-            self.AD.appq.fire_app_event(namespace, {"event_type": event, "data": kwargs})
+            self._AD.appq.fire_app_event(namespace, {"event_type": event, "data": kwargs})
 
 
     #
@@ -448,47 +448,47 @@ class ADAPI:
         return iso8601.parse_date(utc)
 
     def sun_up(self):
-        return self.AD.sched.sun_up()
+        return self._AD.sched.sun_up()
 
     def sun_down(self):
-        return self.AD.sched.sun_down()
+        return self._AD.sched.sun_down()
 
     def parse_time(self, time_str, name=None, aware=False):
-        return self.AD.sched.parse_time(time_str, name, aware)
+        return self._AD.sched.parse_time(time_str, name, aware)
 
     def parse_datetime(self, time_str, name=None, aware=False):
-        return self.AD.sched.parse_datetime(time_str, name, aware)
+        return self._AD.sched.parse_datetime(time_str, name, aware)
 
     def get_now(self):
-        return self.AD.sched.get_now()
+        return self._AD.sched.get_now()
 
     def get_now_ts(self):
-        return self.AD.sched.get_now_ts()
+        return self._AD.sched.get_now_ts()
 
     def now_is_between(self, start_time_str, end_time_str, name=None):
-        return self.AD.sched.now_is_between(start_time_str, end_time_str, name)
+        return self._AD.sched.now_is_between(start_time_str, end_time_str, name)
 
     def sunrise(self, aware=False):
-        return self.AD.sched.sunrise(aware)
+        return self._AD.sched.sunrise(aware)
 
     def sunset(self, aware=False):
-        return self.AD.sched.sunset(aware)
+        return self._AD.sched.sunset(aware)
 
     def time(self):
-        return self.AD.sched.get_now().astimezone(self.AD.tz).time()
+        return self._AD.sched.get_now().astimezone(self._AD.tz).time()
 
 
     def datetime(self, aware=False):
         if aware is True:
-            return self.AD.sched.get_now().astimezone(self.AD.tz)
+            return self._AD.sched.get_now().astimezone(self._AD.tz)
         else:
-            return self.AD.sched.get_now_naive()
+            return self._AD.sched.get_now_naive()
 
     def date(self):
-        return self.AD.sched.get_now().astimezone(self.AD.tz).date()
+        return self._AD.sched.get_now().astimezone(self._AD.tz).date()
 
     def get_timezone(self):
-        return self.AD.time_zone
+        return self._AD.time_zone
 
     #
     # Scheduler
@@ -496,10 +496,10 @@ class ADAPI:
 
     def cancel_timer(self, handle):
         name = self.name
-        self.AD.sched.cancel_timer(name, handle)
+        self._AD.sched.cancel_timer(name, handle)
 
     def info_timer(self, handle):
-        return self.AD.sched.info_timer(handle, self.name)
+        return self._AD.sched.info_timer(handle, self.name)
 
     def run_in(self, callback, seconds, **kwargs):
         name = self.name
@@ -507,7 +507,7 @@ class ADAPI:
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
         exec_time = self.get_now() + timedelta(seconds=int(seconds))
-        handle = self.AD.sched.insert_schedule(
+        handle = self._AD.sched.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -516,7 +516,7 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = self.AD.sched._parse_time(start, self.name, True)["datetime"].time()
+            when = self._AD.sched._parse_time(start, self.name, True)["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
         name = self.name
@@ -527,7 +527,7 @@ class ADAPI:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
         exec_time = event.timestamp()
-        handle = self.AD.sched.insert_schedule(
+        handle = self._AD.sched.insert_schedule(
             name, exec_time, callback, False, None, **kwargs
         )
         return handle
@@ -536,10 +536,10 @@ class ADAPI:
         if type(start) == datetime.datetime:
             when = start
         elif type(start) == str:
-            when = self.AD.sched._parse_time(start, self.name)["datetime"]
+            when = self._AD.sched._parse_time(start, self.name)["datetime"]
         else:
             raise ValueError("Invalid type for start")
-        aware_when = self.AD.sched.convert_naive(when)
+        aware_when = self._AD.sched.convert_naive(when)
         name = self.name
         now = self.get_now()
         if aware_when < now:
@@ -547,7 +547,7 @@ class ADAPI:
                 "{}: run_at() Start time must be "
                 "in the future".format(self.name)
             )
-        handle = self.AD.sched.insert_schedule(
+        handle = self._AD.sched.insert_schedule(
             name, aware_when, callback, False, None, **kwargs
         )
         return handle
@@ -558,14 +558,14 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            info = self.AD.sched._parse_time(start, self.name)
+            info = self._AD.sched._parse_time(start, self.name)
         else:
             raise ValueError("Invalid type for start")
 
         if info is None or info["sun"] is None:
             if when is None:
                 when = info["datetime"].time()
-            now = self.AD.sched.make_naive(self.get_now())
+            now = self._AD.sched.make_naive(self.get_now())
             today = now.date()
             event = datetime.datetime.combine(today, when)
             if event < now:
@@ -606,19 +606,19 @@ class ADAPI:
     def run_every(self, callback, start, interval, **kwargs):
         name = self.name
         now = self.get_now()
-        aware_start = self.AD.sched.convert_naive(start)
+        aware_start = self._AD.sched.convert_naive(start)
         if aware_start < now:
             raise ValueError("start cannot be in the past")
 
         self.logger.debug("Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name)
 
-        handle = self.AD.sched.insert_schedule(name, aware_start, callback, True, None,
-                                         interval=interval, **kwargs)
+        handle = self._AD.sched.insert_schedule(name, aware_start, callback, True, None,
+                                                interval=interval, **kwargs)
         return handle
 
     def _schedule_sun(self, name, type_, callback, **kwargs):
-        event = self.AD.sched.sun[type_]
-        handle = self.AD.sched.insert_schedule(
+        event = self._AD.sched.sun[type_]
+        handle = self._AD.sched.insert_schedule(
             name, event, callback, True, type_, **kwargs
         )
         return handle
@@ -654,13 +654,13 @@ class ADAPI:
         self.run_in(callback, 0, pin=False, pin_thread=thread)
 
     def get_thread_info(self):
-        return self.AD.threading.get_thread_info()
+        return self._AD.threading.get_thread_info()
 
     def get_scheduler_entries(self):
-        return self.AD.sched.get_scheduler_entries()
+        return self._AD.sched.get_scheduler_entries()
 
     def get_callback_entries(self):
-        return self.AD.callbacks.get_callback_entries()
+        return self._AD.callbacks.get_callback_entries()
 
     @staticmethod
     def get_alexa_slot_value(data, slot=None):

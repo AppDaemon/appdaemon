@@ -146,6 +146,9 @@ class AppDaemon:
         self.qsize_warning_step = 60
         utils.process_arg(self, "qsize_warning_step", kwargs, int=True)
 
+        self.qsize_warning_iterations = 5
+        utils.process_arg(self, "qsize_warning_iterations", kwargs, int=True)
+
         self.namespaces = {}
         utils.process_arg(self, "namespaces", kwargs)
 

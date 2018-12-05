@@ -62,6 +62,7 @@ class Utility:
             self.AD.loop.create_task(self.AD.sched.do_every())
 
             warning_step = 0
+            warning_iterations = 0
 
             # Start the loop proper
 
@@ -86,7 +87,7 @@ class Utility:
 
                     # Check for thread starvation
 
-                    warning_step = self.AD.threading.check_q_size(warning_step)
+                    warning_step, warning_iterations = self.AD.threading.check_q_size(warning_step, warning_iterations)
 
                     # Check for any overdue threads
 
