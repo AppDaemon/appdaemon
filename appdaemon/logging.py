@@ -76,6 +76,10 @@ class LogSubscriptionHandler(StreamHandler):
             # If so, don't generate the event to avoid loops
             has_log_callback = False
             msg = self.format(record)
+            if self.AD.tz is not None:
+                record.ts = self.AD.tz.localize(datetime.datetime.fromtimestamp(record.created))
+            else:
+                record.ts = datetime.datetime.fromtimestamp(record.created)
             if record.name == "AppDaemon._stream":
                 has_log_callback = True
             else:
@@ -88,12 +92,14 @@ class LogSubscriptionHandler(StreamHandler):
 
             if has_log_callback is False:
                 self.AD.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
-                                              "data": {
+                                                "data":
+                                                  {
                                                   "level": record.levelname,
                                                   "app_name": record.appname,
                                                   "message": msg,
                                                   "type": "log",
-                                                  "log_type": self.type
+                                                  "log_type": self.type,
+                                                  "ts": record.ts
                                               }})
 
 
@@ -266,6 +272,7 @@ class Logging:
         for log in self.config:
             if not self.is_alias(log):
                 lh = LogSubscriptionHandler(self.AD, log)
+                lh.setFormatter(self.config[log]["formatter"])
                 lh.setLevel(logging.INFO)
                 self.config[log]["logger"].addHandler(lh)
 
