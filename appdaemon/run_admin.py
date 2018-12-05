@@ -131,7 +131,6 @@ class RunAdmin:
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
 
-
     # Stream Handling
 
     async def admin_update(self, updates):
@@ -173,13 +172,6 @@ class RunAdmin:
             old_update = update
 
             await asyncio.sleep(self.AD.admin_delay)
-
-
-    def log(self, level, message):
-        self.logging.log(level, message, "ADAdmin")
-
-    def access(self, level, message):
-        self.logging.access(level, message, "ADAdmin")
 
     def _process_arg(self, arg, kwargs):
         if kwargs:

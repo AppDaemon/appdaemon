@@ -281,30 +281,6 @@ class Logging:
                 alh.setFormatter(self.config[log]["formatter"])
                 self.config[log]["logger"].addHandler(alh)
 
-    def _log(self, logger, level, message):
-        if level == "INFO":
-            logger.info(message)
-        elif level == "WARNING":
-            logger.warning(message)
-        elif level == "ERROR":
-            logger.error(message)
-        elif level == "DEBUG":
-            logger.debug(message)
-        else:
-            logger.log(self.log_levels[level], message)
-
-    def log(self, level, message):
-        self._log(self.config["main_log"]["logger"], level, message)
-
-    def err(self, level, message):
-        self._log(self.config["error_log"]["logger"], level, message)
-
-    def diag(self, level, message):
-        self._log(self.config["diag_log"]["logger"], level, message)
-
-    def access(self, level, message):
-        self._log(self.config["access_log"]["logger"], level, message)
-
     # Log Objects
 
     def get_error(self) -> logging.Logger:

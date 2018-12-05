@@ -41,9 +41,7 @@ class AppDaemon:
         self.srv = None
         self.appd = None
         self.stopping = False
-        self.dashboard = None
-        self.admin = None
-        self.api = None
+        self.http = None
 
         self.global_vars = {}
         self.global_lock = threading.RLock()
@@ -251,11 +249,5 @@ class AppDaemon:
     # Utilities
     #
 
-    def register_dashboard(self, dash):
-        self.dashboard = dash
-
-    def register_admin(self, admin):
-        self.admin = admin
-
-    def register_api(self, api):
-        self.api = api
+    def register_http(self, http):
+        self.http = http

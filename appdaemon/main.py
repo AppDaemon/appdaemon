@@ -11,10 +11,8 @@ import pytz
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
-import appdaemon.run_restapi as api
-import appdaemon.run_dash as rundash
+import appdaemon.http as adhttp
 import appdaemon.logging as logging
-import appdaemon.run_admin as run_admin
 
 class ADMain():
 
@@ -23,8 +21,7 @@ class ADMain():
         self.error = None
         self.diag = None
         self.AD = None
-        self.rundash = None
-        self.runadmin = None
+        self.http_object = None
 
     def init_signals(self):
         # Windows does not support SIGUSR1 or SIGUSR2
@@ -55,13 +52,11 @@ class ADMain():
     def stop(self):
         self.logger.info("AppDaemon is shutting down")
         self.AD.stop()
-        if self.rundash is not None:
-            self.rundash.stop()
-        if self.runadmin is not None:
-            self.runadmin.stop()
+        if self.http_object is not None:
+            self.http_object.stop()
 
     # noinspection PyBroadException,PyBroadException
-    def run(self, appdaemon, hadashboard):
+    def run(self, appdaemon, hadashboard, admin, api, http):
 
         try:
             loop = asyncio.get_event_loop()
@@ -70,29 +65,17 @@ class ADMain():
 
             self.AD = ad.AppDaemon(self.logging, loop, **appdaemon)
 
-            # Initialize Dashboard/API
+            # Initialize Dashboard/API/admin
 
-            if hadashboard["dashboard"] is True:
-                self.logger.info("Starting Dashboards")
-                self.rundash = rundash.RunDash(self.AD, loop, self.logging, **hadashboard)
-                self.AD.register_dashboard(self.rundash)
+            if http is not None:
+                if hadashboard is not None or admin is not None or api is not False:
+                    self.logger.info("Initializing HTTP")
+                    self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api, http)
+                    self.AD.register_http(self.http_object)
+                else:
+                    self.logger.info("HTTP configured but no consumers are configured - disabling")
             else:
-                self.logger.info("Dashboards are disabled")
-
-            if "api_port" in appdaemon:
-                self.logger.info("Starting API on port %s", appdaemon["api_port"])
-                self.api = api.ADAPI(self.AD, loop, self.logging, **appdaemon)
-                self.AD.register_api(self.api)
-            else:
-                self.logger.info("API is disabled")
-
-            if "admin" in appdaemon and "port" in appdaemon["admin"]:
-                self.logger.info("Starting Admin Interface on port %s", appdaemon["admin"]["port"])
-                admin = appdaemon["admin"]
-                self.runadmin = run_admin.RunAdmin(self.AD, loop, self.logging, **admin)
-                self.AD.register_admin(self.runadmin)
-            else:
-                self.logger.info("Admin Interface is disabled")
+                self.logger.info("HTTP is disabled")
 
             self.logger.debug("Start Loop")
 
@@ -116,8 +99,6 @@ class ADMain():
             self.logger.debug("End Loop")
 
             self.logger.info("AppDeamon Exited")
-
-
 
     # noinspection PyBroadException
     def main(self):
@@ -266,7 +247,22 @@ class ADMain():
                 hadashboard["dashboard"] = True
 
         else:
-            hadashboard = {"dashboard": False}
+            hadashboard = None
+
+        if "admin" in config:
+            admin = config["admin"]
+        else:
+            admin = None
+
+        if "api_enabled" in config["appdaemon"] and config["appdaemon"]["api_enabled"] is True:
+            api = True
+        else:
+            api = False
+
+        if "http" in config:
+            http = True
+        else:
+            http = False
 
         # Setup _logging
 
@@ -295,7 +291,7 @@ class ADMain():
 
         utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
 
-        self.run(appdaemon, hadashboard)
+        self.run(appdaemon, hadashboard, admin, api, http)
 
 def main():
     admain = ADMain()

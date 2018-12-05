@@ -68,9 +68,9 @@ def secure(myfunc):
     return wrapper
 
 
-class RunDash:
+class HTTP:
 
-    def __init__(self, ad: AppDaemon, loop, logging, **config):
+    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, hadashboard, admin, api, http):
 
         self.AD = ad
         self.logging = logging
@@ -89,17 +89,8 @@ class RunDash:
         self.config_dir = None
         self._process_arg("config_dir", config)
 
-        self.dash_compile_on_start = True
-        self._process_arg("dash_compile_on_start", config)
-
-        self.dash_force_compile = False
-        self._process_arg("dash_force_compile", config)
-
         self.work_factor = 8
         self._process_arg("work_factor", config)
-
-        self.profile_dashboard = False
-        self._process_arg("profile_dashboard", config)
 
         self.dash_ssl_certificate = None
         self._process_arg("dash_ssl_certificate", config)
@@ -107,11 +98,41 @@ class RunDash:
         self.dash_ssl_key = None
         self._process_arg("dash_ssl_key", config)
 
-        self.rss_feeds = None
-        self._process_arg("rss_feeds", config)
+        # Start Dashboards
 
-        self.fa4compatibility = False
-        self._process_arg("fa4compatibility", config)
+        if hadashboardis not None:
+            self.logger.info("Starting Dashboards")
+
+            self.dash_compile_on_start = True
+            self._process_arg("dash_compile_on_start", config)
+
+            self.dash_force_compile = False
+            self._process_arg("dash_force_compile", config)
+
+            self.profile_dashboard = False
+            self._process_arg("profile_dashboard", config)
+
+            self.rss_feeds = None
+            self._process_arg("rss_feeds", config)
+
+            self.fa4compatibility = False
+            self._process_arg("fa4compatibility", config)
+
+
+        else:
+            self.logger.info("Dashboards Disabled")
+
+        if "api_port" in appdaemon:
+            self.logger.info("Starting API on port %s", appdaemon["api_port"])
+        else:
+            self.logger.info("API is disabled")
+
+        if "admin" in appdaemon and "port" in appdaemon["admin"]:
+            self.logger.info("Starting Admin Interface on port %s", appdaemon["admin"]["port"])
+        else:
+            self.logger.info("Admin Interface is disabled")
+
+
 
         self.transport = "ws"
         self._process_arg("transport", config)
@@ -363,14 +384,14 @@ class RunDash:
             return web.Response(status=500)
 
     # noinspection PyUnusedLocal
-    async def not_found(self, request):
+    @staticmethod
+    async def not_found(request):
         return web.Response(status=404)
 
-
     # noinspection PyUnusedLocal
-    async def error(self, request):
+    @staticmethod
+    async def error(request):
         return web.Response(status=401)
-
 
     # Stream Handling
 
