@@ -49,7 +49,7 @@ function ha_status(stream, dash, widgets, transport)
 
     this.update_dash = function(data)
     {
-        if (data.event_type === "hadashboard")
+        if (data.event_type === "__HADASHBOARD_EVENT")
         {
             if (data.data.command === "navigate")
             {

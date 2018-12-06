@@ -129,9 +129,9 @@ class AppManagement:
             self.AD.http.term_object(name)
 
         # Update admin interface
-        if self.AD.http.admin is not None and self.AD.http.admin.stats_update == "realtime":
+        if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
             update = {"threads": self.AD.threading.get_thread_info()["threads"]}
-            self.AD.appq.admin_update(update)
+            #self.AD.appq.stream_update(update)
 
     def get_app_debug_level(self, app):
         with self.objects_lock:

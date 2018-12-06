@@ -42,22 +42,6 @@ class AppNameFormatter(logging.Formatter):
         return super().format(record)
 
 
-class AdminHandler(StreamHandler):
-
-    """
-    Handle sending of logs to the admin interface
-    """
-
-    def __init__(self, ad: AppDaemon, type):
-        StreamHandler.__init__(self)
-        self.AD = ad
-        self.type = type
-
-    def emit(self, record):
-        msg = self.format(record)
-        if self.AD is not None and self.AD.appq is not None and record.name != "AppDaemon._stream":
-            self.AD.appq.admin_update({"log_entry": {"type": self.type, "msg": msg}})
-
 class LogSubscriptionHandler(StreamHandler):
 
     """
@@ -93,10 +77,12 @@ class LogSubscriptionHandler(StreamHandler):
                                                   {
                                                   "level": record.levelname,
                                                   "app_name": record.appname,
-                                                  "message": msg,
+                                                  "message": record.message,
                                                   "type": "log",
                                                   "log_type": self.type,
-                                                  "ts": record.ts
+                                                  "asctime": record.asctime,
+                                                  "ts": record.ts,
+                                                  "formatted_message": msg
                                               }})
 
 
@@ -123,7 +109,7 @@ class Logging:
         default_log_generations = 3
         default_format = "{asctime} {levelname} {appname}: {message}"
         default_date_format = "%Y-%m-%d %H:%M:%S.%f"
-
+        self.log_level = log_level
 
         self.config = \
             {
@@ -134,7 +120,9 @@ class Logging:
                         'log_generations': default_log_generations,
                         'log_size': default_logsize,
                         'format': default_format,
-                        'date_format': default_date_format
+                        'date_format': default_date_format,
+                        'logger': None,
+                        'formatter': None
                     },
                 'error_log':
                     {
@@ -143,7 +131,9 @@ class Logging:
                         'log_generations': default_log_generations,
                         'log_size': default_logsize,
                         'format': default_format,
-                        'date_format': default_date_format
+                        'date_format': default_date_format,
+                        'logger': None,
+                        'formatter': None
                     },
                 'access_log':
                     {
@@ -169,6 +159,7 @@ class Logging:
                     self.config[log]["log_size"] = default_logsize
                     self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
                     self.config[log]["date_format"] = default_date_format
+                    # Copy over any user defined fields
                     for arg in config[log]:
                         self.config[log][arg] = config[log][arg]
                 elif "alias" in self.config[log] and "alias" not in config[log]:
@@ -192,12 +183,11 @@ class Logging:
         for log in self.config:
             args = self.config[log]
             if 'alias' not in args:
-                self.log_level = log_level
                 formatter = AppNameFormatter(fmt=args["format"], datefmt=args["date_format"], style='{')
-                self.config[log]["formatter"] = formatter
+                args["formatter"] = formatter
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
-                self.config[log]["logger"] = logger
+                args["logger"] = logger
                 logger.setLevel(log_level)
                 logger.propagate = False
                 if args["filename"] == "STDOUT":
@@ -220,13 +210,14 @@ class Logging:
                 self.config[log]["log_generations"] = self.config[self.config[log]["alias"]]["log_generations"]
                 self.config[log]["log_size"] = self.config[self.config[log]["alias"]]["log_size"]
                 self.config[log]["format"] = self.config[self.config[log]["alias"]]["format"]
+                self.config[log]["date_format"] = self.config[self.config[log]["alias"]]["date_format"]
 
         self.logger = self.get_logger()
-        self.error= self.get_error()
+        self.error = self.get_error()
 
     def dump_log_config(self):
         for log in self.config:
-            self.logger.info("added log: %s", self.config[log]["name"])
+            self.logger.info("Added log: %s", self.config[log]["name"])
             self.logger.debug("  filename:    %s", self.config[log]["filename"])
             self.logger.debug("  size:        %s", self.config[log]["log_size"])
             self.logger.debug("  generations: %s", self.config[log]["log_generations"])
@@ -273,26 +264,18 @@ class Logging:
                 lh.setLevel(logging.INFO)
                 self.config[log]["logger"].addHandler(lh)
 
-        # Admin Subscriptions
-
-        for log in self.config:
-            if not self.is_alias(log):
-                alh = AdminHandler(self.AD, log)
-                alh.setFormatter(self.config[log]["formatter"])
-                self.config[log]["logger"].addHandler(alh)
-
     # Log Objects
 
-    def get_error(self) -> logging.Logger:
+    def get_error(self):
         return self.config["error_log"]["logger"]
 
-    def get_logger(self) -> logging.Logger:
+    def get_logger(self):
         return self.config["main_log"]["logger"]
 
-    def get_access(self) -> logging.Logger:
+    def get_access(self):
         return self.config["access_log"]["logger"]
 
-    def get_diag(self) -> logging.Logger:
+    def get_diag(self):
         return self.config["diag_log"]["logger"]
 
     def get_filename(self, log):

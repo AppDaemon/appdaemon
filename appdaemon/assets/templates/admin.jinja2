@@ -67,6 +67,7 @@ $(function() {
   <button class="maintablinks" onclick="openTab(event, 'Plugins', 'maintab')" id="plugins">Plugins</button>
   <button class="maintablinks" onclick="openTab(event, 'Modules', 'maintab')" id="modules">Modules</button>
   <button class="maintablinks" onclick="openTab(event, 'Apps', 'maintab')" id="apps">Apps</button>
+  <button class="maintablinks" onclick="openTab(event, 'Entities', 'maintab')" id="entities">Entities</button>
   <button class="maintablinks" onclick="openTab(event, 'Threads', 'maintab')" id="apps">Threads</button>
   <button class="maintablinks" onclick="openTab(event, 'Callbacks', 'maintab')" id="apps">Callbacks</button>
   <button class="maintablinks" onclick="openTab(event, 'Logs', 'maintab')" id="apps">Logs</button>
@@ -97,7 +98,20 @@ $(function() {
 </div>
 
 <div id="Modules" class="maintabcontent">
+    <h3>Modules</h3>
+</div>
 
+<div id="Entities" class="maintabcontent">
+    <h3>Entities</h3>
+{% for ns in entities %}
+    <h3>{{ ns }}</h3>
+    <table>
+    <tr><th>Name</th><th>State</th><th>Attributes</th></tr>
+    {% for entity in entities[ns] %}
+        <tr><td>{{ entity }}</td><td>{{ entities[ns][entity]["state"] }}</td><td>{{ entities[ns][entity]["attributes"] }}</td></tr>
+    {% endfor %}
+    </table>
+{% endfor %}
 </div>
 
 <div id="Threads" class="maintabcontent">

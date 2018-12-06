@@ -15,6 +15,7 @@ class State:
 
         self.state = {}
         self.state["default"] = {}
+        self.state["admin"] = {}
         self.state_lock = threading.RLock()
         self.logger = ad.logging.get_child("_state")
 
@@ -234,8 +235,8 @@ class State:
 
             # Update stream
 
-            if self.AD.http is not None:
-                await self.AD.http.ws_update(namespace, data)
+            #if self.AD.http is not None:
+                #await self.AD.http.stream_update(namespace, data)
 
         except:
             self.logger.warning('-' * 60)
@@ -261,6 +262,22 @@ class State:
             else:
                 self.logger.warning("Unknown namespace: %s", namespace)
                 return None
+    def get_namespaces(self):
+        namespaces = []
+        with self.state_lock:
+            for ns in self.state:
+                namespaces.append(ns)
+
+        return namespaces
+
+    def add_entity(self, namespace, entity, state, attributes = None):
+        if attributes is None:
+            attrs = {}
+        else:
+            attrs = attributes
+
+        with self.state_lock:
+            self.state[namespace][entity] = {"state": state, "attributes": attrs}
 
     def get_state(self, namespace, device, entity, attribute):
         with self.state_lock:

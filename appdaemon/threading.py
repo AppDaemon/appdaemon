@@ -23,22 +23,26 @@ class Threading:
         self.logger = ad.logging.get_child("_threading")
         self.diag = ad.logging.get_diag()
 
-        self.thread_info = {}
-        self.thread_info_lock = threading.RLock()
+        self.threads = {}
 
-        self.thread_info["threads"] = {}
-        self.thread_info["current_busy"] = 0
-        self.thread_info["max_busy"] = 0
-        self.thread_info["max_busy_time"] = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
-        # Scheduler isn;t setup so we can't get an accurate localized time
-        self.thread_info["last_action_time"] = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
+        # Initialize admin stats
+
+        ad.state.add_entity("admin", "sensor.callbacks_total_fired", 0)
+        ad.state.add_entity("admin", "sensor.callbacks_average_fired", 0)
+        ad.state.add_entity("admin", "sensor.callbacks_total_executed", 0)
+        ad.state.add_entity("admin", "sensor.callbacks_average_executed", 0)
+        ad.state.add_entity("admin", "sensor.threads_current_busy", 0)
+        ad.state.add_entity("admin", "sensor.threads_max_busy", 0)
+        ad.state.add_entity("admin", "sensor.threads_max_busy_time", str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)))
+        ad.state.add_entity("admin", "sensor.threads_last_action_time", str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)))
 
         self.auto_pin = True
 
-        self.total_callbacks_fired = 0
-        self.total_callbacks_executed = 0
-        self.current_callbacks_fired = 0
+        # Setup stats
+
         self.current_callbacks_executed = 0
+        self.current_callbacks_fired = 0
+
         self.last_stats_time = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
         self.callback_list = []
 
@@ -104,19 +108,12 @@ class Threading:
             fired_avg = round(fired_sum / total_duration, 1)
             executed_avg = round(executed_sum / total_duration, 1)
 
-        stats = \
-        {
-            "total_callbacks_executed": self.total_callbacks_executed,
-            "total_callbacks_fired": self.total_callbacks_fired,
-            "avg_callbacks_executed_per_sec": fired_avg,
-            "avg_callbacks_fired_per_sec": executed_avg,
-        }
+        self.AD.state.set_state("admin", "sensor.callbacks_average_fired", fired_avg)
+        self.AD.state.set_state("admin", "sensor.callbacks_average_executed", executed_avg)
 
         self.last_stats_time = now
         self.current_callbacks_executed = 0
         self.current_callbacks_fired = 0
-
-        return stats
 
     def create_initial_threads(self):
         self.threads = 0
@@ -124,7 +121,7 @@ class Threading:
             self.add_thread(True)
 
     def get_q(self, thread_id):
-        return self.thread_info["threads"][thread_id]["q"]
+        return self.threads[thread_id]["queue"]
 
     @staticmethod
     def atoi(text):
@@ -135,76 +132,46 @@ class Threading:
 
     # Diagnostics
 
-    def q_info(self):
+    def total_q_size(self):
         qsize = 0
-        with self.thread_info_lock:
-            thread_info = self.get_thread_info()
-
-        for thread in thread_info["threads"]:
-            qsize += self.thread_info["threads"][thread]["q"].qsize()
-        return {"qsize": qsize, "thread_info": thread_info}
+        for thread in self.threads:
+            qsize += self.threads[thread]["queue"].qsize()
+        return qsize
 
     def min_q_id(self):
         id = 0
         i = 0
         qsize = sys.maxsize
-        with self.thread_info_lock:
-            for thread in self.thread_info["threads"]:
-                if self.thread_info["threads"][thread]["q"].qsize() < qsize:
-                    qsize = self.thread_info["threads"][thread]["q"].qsize()
-                    id = i
-                i += 1
+        for thread in self.threads:
+            if self.threads[thread]["queue"].qsize() < qsize:
+                qsize = self.threads[thread]["queue"].qsize()
+                id = i
+            i += 1
         return id
 
-    def get_thread_info(self):
-        info = {}
-        # Make a copy without the thread objects
-        with self.thread_info_lock:
-            info["max_busy_time"] = copy(str(self.thread_info["max_busy_time"]))
-            info["last_action_time"] = copy(str(self.thread_info["last_action_time"]))
-            info["current_busy"] = copy(self.thread_info["current_busy"])
-            info["max_busy"] = copy(self.thread_info["max_busy"])
-            threads = {}
-            for thread in self.thread_info["threads"]:
-                if thread not in threads:
-                    threads[thread] = {}
-                    threads[thread]["time_called"] = str(self.thread_info["threads"][thread]["time_called"]) if self.thread_info["threads"][thread]["time_called"] != datetime.datetime(1970,1,1,0,0,0,0) else "Never"
-                    threads[thread]["callback"] = copy(self.thread_info["threads"][thread]["callback"])
-                    threads[thread]["is_alive"] = "True" if self.thread_info["threads"][thread]["thread"].is_alive() is True else "False"
-                    threads[thread]["pinned_apps"] = ""
-                    threads[thread]["qsize"] = copy(self.thread_info["threads"][thread]["q"].qsize())
-                papps = self.get_pinned_apps(thread)
-                for app in papps:
-                    threads[thread]["pinned_apps"] += "{} ".format(app)
-
-            ordered_threads = OrderedDict(sorted(threads.items(), key=lambda x : int(x[0][7:])))
-            info["threads"] = ordered_threads
-
-        return info
-
-    def dump_threads(self, qinfo):
-        thread_info = qinfo["thread_info"]
-        self.diag.info("--------------------------------------------------")
-        self.diag.info("Threads")
-        self.diag.info("--------------------------------------------------")
-        max_ts = thread_info["max_busy_time"]
-        last_ts = thread_info["last_action_time"]
-        self.diag.info("Currently busy threads: %s", thread_info["current_busy"])
-        self.diag.info("Most used threads: %s at %s", thread_info["max_busy"], max_ts)
-        self.diag.info("Last activity: %s", last_ts)
-        self.diag.info("Total Q Entries: %s", qinfo["qsize"])
-        self.diag.info("--------------------------------------------------")
-        for thread in sorted(thread_info["threads"], key=self.natural_keys):
-            self.diag.info(
-                     "%s - qsize: %s | current callback: %s | since %s, | alive: %s, | pinned apps: %s",
-                         thread,
-                         thread_info["threads"][thread]["qsize"],
-                         thread_info["threads"][thread]["callback"],
-                         thread_info["threads"][thread]["time_called"],
-                         thread_info["threads"][thread]["is_alive"],
-                         self.AD.threading.get_pinned_apps(thread)
-                     )
-        self.diag.info("--------------------------------------------------")
+    #def dump_threads(self, qinfo):
+    #    thread_info = qinfo["thread_info"]
+    #    self.diag.info("--------------------------------------------------")
+    #    self.diag.info("Threads")
+    #    self.diag.info("--------------------------------------------------")
+    #    max_ts = thread_info["max_busy_time"]
+    #    last_ts = thread_info["last_action_time"]
+    #    self.diag.info("Currently busy threads: %s", thread_info["current_busy"])
+    #    self.diag.info("Most used threads: %s at %s", thread_info["max_busy"], max_ts)
+    #    self.diag.info("Last activity: %s", last_ts)
+    #    self.diag.info("Total Q Entries: %s", qinfo["qsize"])
+    #    self.diag.info("--------------------------------------------------")
+    #    for thread in sorted(thread_info["threads"], key=self.natural_keys):
+    #        self.diag.info(
+    #                 "%s - qsize: %s | current callback: %s | since %s, | alive: %s, | pinned apps: %s",
+    #                     thread,
+    #                     thread_info["threads"][thread]["qsize"],
+    #                     thread_info["threads"][thread]["callback"],
+    #                     thread_info["threads"][thread]["time_called"],
+    #                     thread_info["threads"][thread]["is_alive"],
+    #                     self.AD.threading.get_pinned_apps(thread)
+    #                 )
+    #    self.diag.info("--------------------------------------------------")
 
     #
     # Thread Management
@@ -259,8 +226,7 @@ class Threading:
                         self.logger.warning("Excessive time spent in callback: %s - %s", self.thread_info["threads"][thread_id]["callback"], dur)
 
     def check_q_size(self, warning_step, warning_iterations):
-        qinfo = self.q_info()
-        if qinfo["qsize"] > self.AD.qsize_warning_threshold:
+        if self.total_q_size() > self.AD.qsize_warning_threshold:
             if (warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations) or warning_iterations == self.AD.qsize_warning_iterations:
                 self.logger.warning("Queue size is %s, suspect thread starvation", qinfo["qsize"])
                 self.dump_threads(qinfo)
@@ -305,7 +271,7 @@ class Threading:
             self.thread_info["last_action_time"] = self.AD.sched.get_now_naive()
 
         # Update Admin
-        if self.AD.http.admin is not None and self.AD.admin.stats_update == "realtime":
+        if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
             update = {
                 "updates": {
                         thread_id + "_qsize": self.thread_info["threads"][thread_id]["q"].qsize(),
@@ -317,7 +283,7 @@ class Threading:
                     }
             }
 
-            self.AD.appq.admin_update(update)
+            #self.AD.appq.stream_update(update)
 
     #
     # Pinning
@@ -330,13 +296,15 @@ class Threading:
         t = threading.Thread(target=self.worker)
         t.daemon = True
         t.setName("thread-{}".format(id))
-        with self.thread_info_lock:
-            self.thread_info["threads"][t.getName()] = \
-                {"callback": "idle",
-                 "time_called": datetime.datetime(1970, 1, 1, 0, 0, 0, 0),
-                 "q": Queue(maxsize=0),
-                 "id": id,
-                 "thread": t}
+        self.AD.state.add_entity("admin", "thread.{}".format(t.getName()),
+                                 {"callback": "idle",
+                                  "time_called": str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
+                                  "id": id,
+                                  "thread": t}
+                                 )
+        self.threads[t.getName()]["thread"] = t
+        self.threads[t.getName()]["queue"] = Queue(maxsize=0)
+
         t.start()
         self.threads += 1
         if pinthread is True:
@@ -368,9 +336,9 @@ class Threading:
                     thread_pins[thread] += 1
 
         # Update admin interface
-        if self.AD.http.admin is not None and self.AD.admin.stats_update == "realtime":
+        if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
             update = {"threads": self.AD.threading.get_thread_info()["threads"]}
-            self.AD.appq.admin_update(update)
+            #self.AD.appq.stream_update(update)
 
     def app_should_be_pinned(self, name):
         # Check apps.yaml first - allow override

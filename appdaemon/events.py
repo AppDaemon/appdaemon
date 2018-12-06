@@ -1,4 +1,5 @@
 import uuid
+from copy import deepcopy
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -63,6 +64,24 @@ class Events:
                 raise ValueError("Invalid handle: {}".format(handle))
 
     def process_event(self, namespace, data):
+
+        #
+        # Send to the stream
+        #
+
+        if self.AD.http is not None:
+            # take a copy without TS if present as it breaks deepcopy and jason
+            if "ts" in data["data"]:
+                ts = data["data"].pop("ts")
+                mydata = deepcopy(data)
+                data["data"]["ts"] = ts
+            else:
+                mydata = deepcopy(data)
+
+            mydata["stream"] = True
+            self.logger.debug("sending event to stream: %s", mydata)
+            self.AD.appq.fire_app_event(namespace, mydata)
+
         with self.AD.callbacks.callbacks_lock:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
@@ -74,7 +93,6 @@ class Events:
                         # Or the event is a match
                         # But don't allow a global listen for any system events (events that start with __)
                         #
-
                         if "event" in callback and (
                                 (callback["event"] is None and data['event_type'][:2] != "__")
                                 or data['event_type'] == callback["event"]):

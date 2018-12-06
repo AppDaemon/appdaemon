@@ -16,6 +16,7 @@ import uuid
 import appdaemon.dashboard as addashboard
 import appdaemon.utils as utils
 import appdaemon.stream as stream
+import appdaemon.admin as adadmin
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -101,7 +102,10 @@ class HTTP:
 
         self.transport = "ws"
         self._process_arg("transport", http)
-        self.logger.info("Using %s for event stream", self.transport)
+        self.logger.info("Using '%s' for event stream", self.transport)
+
+        self.config_dir = None
+        self._process_arg("config_dir", dashboard)
 
         self.stopping = False
 
@@ -121,6 +125,8 @@ class HTTP:
             if self.host == "":
                 raise ValueError("Invalid host for 'url'")
 
+            self.logger.info("Running on port %s", self.port)
+
             self.app = web.Application()
 
             # Setup event stream
@@ -136,7 +142,37 @@ class HTTP:
             else:
                 context = None
 
-            # Start Dashboards
+            self.setup_http_routes()
+
+            #
+            # API
+            #
+
+            if api is not None:
+                self.logger.info("Starting API")
+                self.setup_api_routes()
+            else:
+                self.logger.info("API is disabled")
+
+            #
+            # Admin
+            #
+
+            if admin is not None:
+                self.logger.info("Starting Admin Interface")
+
+                self.stats_update = "realtime"
+                self._process_arg("stats_update", admin)
+
+                self.admin_obj = adadmin.Admin(self.config_dir, logging, self.AD, **admin)
+                self.setup_admin_routes()
+
+            else:
+                self.logger.info("Admin Interface is disabled")
+
+            #
+            # Dashboards
+            #
 
             if dashboard is not None:
                 self.logger.info("Starting Dashboards")
@@ -158,9 +194,6 @@ class HTTP:
 
                 self.fa4compatibility = False
                 self._process_arg("fa4compatibility", dashboard)
-
-                self.config_dir = None
-                self._process_arg("config_dir", dashboard)
 
                 if "rss_feeds" in dashboard:
                     self.rss_feeds = []
@@ -205,16 +238,9 @@ class HTTP:
             else:
                 self.logger.info("Dashboards Disabled")
 
-            if api is not None:
-                self.logger.info("Starting API")
-                self.setup_api()
-            else:
-                self.logger.info("API is disabled")
-
-            #if "admin" in appdaemon and "port" in appdaemon["admin"]:
-            #    self.logger.info("Starting Admin Interface on port %s", appdaemon["admin"]["port"])
-            #else:
-            #    self.logger.info("Admin Interface is disabled")
+            #
+            # Finish up and start the server
+            #
 
             handler = self.app.make_handler()
 
@@ -265,10 +291,6 @@ class HTTP:
 
         return response
 
-
-    # Views
-
-
     # noinspection PyUnusedLocal
     @secure
     async def list_dash(self, request):
@@ -317,7 +339,7 @@ class HTTP:
                                 data = {"event_type": "state_changed",
                                         "data": {"entity_id": feed_data["target"], "new_state": new_state}}
 
-                                await self.ws_update("default", data)
+                                await self.stream_update("default", data)
 
                     await asyncio.sleep(1)
                 except:
@@ -335,7 +357,10 @@ class HTTP:
         entity_id = request.match_info.get('entity')
         namespace = request.match_info.get('namespace')
 
+        self.logger.debug("get_state() called, ns=%s, entity=%s", namespace, entity_id)
         state = self.AD.state.get_entity(namespace, entity_id)
+
+        self.logger.debug("result = %s", state)
 
         return web.json_response({"state": state})
 
@@ -394,13 +419,10 @@ class HTTP:
 
     # Stream Handling
 
-    async def ws_update(self, namespace, data):
-
-        if data["event_type"] == "state_changed" or data["event_type"] == "hadashboard":
-            data["namespace"] = namespace
-
-            await self.stream.send_update(data)
-
+    async def stream_update(self, namespace, data):
+        self.logger.debug("stream_update() %s:%s", namespace, data)
+        data["namespace"] = namespace
+        await self.stream.send_update(data)
 
     async def on_message(self, data):
         self.access.info("New dashboard connected: %s", data)
@@ -410,13 +432,18 @@ class HTTP:
 
     # Routes, Status and Templates
 
-    def setup_dashboard_routes(self):
+    def setup_api_routes(self):
+        self.app.router.add_post('/call_service', self.call_service)
+        self.app.router.add_get('/state/{namespace}/{entity}', self.get_state)
+        self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
+
+    def setup_http_routes(self):
+        self.app.router.add_get('/', self.list_dash)
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon', self.logon)
-        self.app.router.add_post('/call_service', self.call_service)
-        self.app.router.add_get('/state/{namespace}/{entity}', self.get_state)
-        self.app.router.add_get('/', self.list_dash)
+
+    def setup_dashboard_routes(self):
         self.app.router.add_get('/{name}', self.load_dash)
 
         # Setup Templates
@@ -506,9 +533,6 @@ class HTTP:
 
     # Routes, Status and Templates
 
-    def setup_api(self):
-        self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
-
     def register_endpoint(self, cb, name):
 
         handle = uuid.uuid4()
@@ -537,3 +561,14 @@ class HTTP:
         else:
             return '', 404
 
+    #
+    # Admin
+    #
+
+    def setup_admin_routes(self):
+        self.app.router.add_get('/admin', self.admin_page)
+
+    @secure
+    async def admin_page(self, request):
+        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.admin, request.scheme, request.host)
+        return web.Response(text=response, content_type="text/html")

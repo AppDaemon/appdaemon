@@ -25,9 +25,10 @@ class AppQ:
     async def loop(self):
         while not self.stopping:
             args = await self.appq.get()
-            if args["event_type"] == "admin_update":
+            self.logger.debug("appq loop, args=%s", args)
+            if "stream" in args and args["stream"] is True:
                 if self.AD.http.admin is not None:
-                    await self.AD.admin.admin_update(args["data"])
+                    await self.AD.http.stream_update(args["namespace"], args)
             else:
                 namespace = args["namespace"]
                 await self.AD.state.state_update(namespace, args)
@@ -50,5 +51,5 @@ class AppQ:
             args = {"namespace": namespace, "event_type": "state_changed", "data": data}
             self.appq.put_nowait(args)
 
-    def admin_update(self, data):
-        self.appq.put_nowait({"event_type": "admin_update", "data": data})
+    def stream_update(self, data):
+        self.appq.put_nowait({"event_type": "stream_update", "data": data})

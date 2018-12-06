@@ -84,7 +84,7 @@ class ADMain():
                                                http)
             self.AD.register_http(self.http_object)
 
-            self.logger.debug("Start Loop")
+            self.logger.debug("Start Main Loop")
 
             pending = asyncio.Task.all_tasks()
             loop.run_until_complete(asyncio.gather(*pending))
@@ -255,12 +255,16 @@ class ADMain():
             hadashboard = None
 
         if "admin" in config:
-            admin = config["admin"]
-        else:
-            admin = None
+            if config["admin"] is None:
+                admin = {}
+            else:
+                admin = config["admin"]
 
         if "api" in config:
-            api = {}
+            if config["api"] is None:
+                api = {}
+            else:
+                api = config["api"]
         else:
             api = None
 

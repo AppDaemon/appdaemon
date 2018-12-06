@@ -646,7 +646,7 @@ class ADAPI:
             kwargs["timeout"] = timeout
         if ret is not None:
             kwargs["return"] = ret
-        self.fire_event("hadashboard", **kwargs)
+        self.fire_event("__HADASHBOARD_EVENT", **kwargs)
     #
     # Other
     #

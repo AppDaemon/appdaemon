@@ -89,6 +89,15 @@ function admin_stream(stream, transport)
         // Process any updates
         // console.log(data);
         var id;
+
+        if (data.event_type === "__AD_LOG_EVENT")
+        {
+            $("#" + data.data.log_type + "_div").prepend(data.data.formatted_message + "<br>")
+        }
+
+        // Old stuff
+
+
         if ("updates" in data)
         {
             for (id in data["updates"])
@@ -119,10 +128,6 @@ function admin_stream(stream, transport)
            $('#thread_table').html(get_thread_table(data["threads"]))
         }
 
-        if ("log_entry" in data)
-        {
-            $("#" + data["log_entry"]["type"] + "_div").prepend(data["log_entry"]["msg"] + "<br>")
-        }
     }
 }
 

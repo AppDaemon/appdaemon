@@ -14,6 +14,7 @@ class Callbacks:
         self.logger = ad.logging.get_child("_callbacks")
         self.diag = ad.logging.get_diag()
 
+
     #
     # Diagnostic
     #

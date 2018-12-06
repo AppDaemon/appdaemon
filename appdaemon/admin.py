@@ -45,26 +45,20 @@ class Admin:
     # Methods
     #
 
-    def appdaemon(self, scheme, url):
-        return self.index(scheme, url, "appdaemon")
-
-    def apps(self, scheme, url):
-        return self.index(scheme, url, "apps")
-
-    def plugins(self, scheme, url):
-        return self.index(scheme, url, "plugins")
-
-    def index(self, scheme, url, tab="appdaemon"):
+    def admin(self, scheme, url):
 
         try:
             params = {}
 
-            params["tab"] = tab
             params["transport"] = self.transport
+
+            # AppDaemon
 
             params["appdaemon"] = {}
             params["appdaemon"]["booted"] = self.AD.booted.replace(microsecond=0)
             params["appdaemon"]["version"] = utils.__version__
+
+            # Apps
 
             params["apps"] = {}
             app_config = self.AD.app_management.app_config
@@ -78,6 +72,8 @@ class Admin:
 
                 params["apps"][app]["debug"] = self.AD.app_management.get_app_debug_level(app)
 
+            # Plugins
+
             params["plugins"] = {}
             for plug in self.AD.plugins.plugin_objs:
                 params["plugins"][plug] = \
@@ -87,15 +83,28 @@ class Admin:
                         "namespace": self.AD.plugins.plugin_objs[plug]["object"].namespace,
                     }
 
+            # Threads
+
             params["threads"] = self.AD.threading.get_thread_info()
+
+            # Callbacks
 
             params["callback_updates"] = self.AD.threading.get_callback_update()
             params["state_callbacks"] = self.AD.callbacks.get_callback_entries("state")
             params["event_callbacks"] = self.AD.callbacks.get_callback_entries("event")
-
             params["sched"] = self.AD.sched.get_scheduler_entries()
 
+            # Logs
+
             params["logs"] = self.AD.logging.get_admin_logs()
+
+            # Entities
+
+            params["entities"] = {}
+
+            for ns in sorted(self.AD.state.get_namespaces()):
+                params["entities"][ns] = self.AD.state.get_state(ns, None, None, None)
+                print(params["entities"][ns])
             #
             # Render Page
             #
@@ -105,7 +114,7 @@ class Admin:
                 autoescape=select_autoescape(['html', 'xml'])
             )
 
-            template = env.get_template("adminindex.jinja2")
+            template = env.get_template("admin.jinja2")
             rendered_template = template.render(params)
 
             return (rendered_template)
@@ -117,16 +126,3 @@ class Admin:
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
 
-    def logon(self):
-
-        params = {}
-
-        env = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            autoescape=select_autoescape(['html', 'xml'])
-        )
-
-        template = env.get_template("adminlogon.jinja2")
-        rendered_template = template.render(params)
-
-        return (rendered_template)

@@ -26,6 +26,8 @@ class AppDaemon:
         self.logging.register_ad(self)
         self.logger = logging.get_logger()
         self.threading = None
+        self.callbacks = None
+        self.state = None
 
         self.config = kwargs
         self.booted = datetime.datetime.now
@@ -42,6 +44,7 @@ class AppDaemon:
         self.appd = None
         self.stopping = False
         self.http = None
+        self.admin_loop = None
 
         self.global_vars = {}
         self.global_lock = threading.RLock()
@@ -167,6 +170,11 @@ class AppDaemon:
             self.apps = True
 
         #
+        # Set up state
+        #
+        self.state = state.State(self)
+
+        #
         # Set up events
         #
         self.events = events.Events(self)
@@ -175,11 +183,6 @@ class AppDaemon:
         # Set up callbacks
         #
         self.callbacks = callbacks.Callbacks(self)
-
-        #
-        # Set up state
-        #
-        self.state = state.State(self)
 
         if self.apps is True:
             if self.app_dir is None:
@@ -217,6 +220,8 @@ class AppDaemon:
 
         # Create appq Loop
 
+        self.logger.debug("Starting appq loop")
+
         if self.apps is True:
             self.appq = appq.AppQ(self)
             loop.create_task(self.appq.loop())
@@ -230,6 +235,8 @@ class AppDaemon:
 
     def stop(self):
         self.stopping = True
+        if self.admin_loop is not None:
+            self.admin_loop.stop()
         if self.appq is not None:
             self.appq.stop()
         if self.sched is not None:
@@ -250,4 +257,14 @@ class AppDaemon:
     #
 
     def register_http(self, http):
+
+        import appdaemon.admin_loop as admin_loop
+
         self.http = http
+        # Create admin loop
+
+        self.logger.debug("Starting admin loop")
+
+        self.admin_loop = admin_loop.AdminLoop(self)
+        self.loop.create_task(self.admin_loop.loop())
+
