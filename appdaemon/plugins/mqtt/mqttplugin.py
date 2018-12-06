@@ -169,6 +169,8 @@ class MqttPlugin(PluginBase):
                 self.logger.critical("MQTT Client Disconnected Abruptly. Will attempt reconnection")
                 self.logger.debug("Return code: %s", rc)
                 self.logger.debug("userdata: %s", userdata)
+                self.initialized = False
+                self.mqtt_connected = False
             return
         except:
             self.logger.critical("There was an error while disconnecting from the Mqtt Service")
