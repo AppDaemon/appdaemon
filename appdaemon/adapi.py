@@ -309,78 +309,18 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        self.logger.debug("get_state: %s.%s", entity_id, attribute)
-        device = None
-        entity = None
-        if entity_id is not None and "." in entity_id:
-            if not self._AD.state.entity_exists(namespace, entity_id):
-                return None
-        if entity_id is not None:
-            if "." not in entity_id:
-                if attribute is not None:
-                    raise ValueError(
-                        "{}: Invalid entity ID: {}".format(self.name, entity))
-                device = entity_id
-                entity = None
-            else:
-                device, entity = entity_id.split(".")
 
-        return self._AD.state.get_state(namespace, device, entity, attribute)
-
-    def parse_state(self, entity_id, namespace, **kwargs):
-        self._check_entity(namespace, entity_id)
-        self.logger.debug("parse_state: %s, %s", entity_id, kwargs)
-
-        if entity_id in self.get_state(namespace=namespace):
-            new_state = self.get_state(namespace = namespace)[entity_id]
-        else:
-            # Its a new state entry
-            new_state = {}
-            new_state["attributes"] = {}
-
-        if "state" in kwargs:
-            new_state["state"] = kwargs["state"]
-            del kwargs["state"]
-
-        if "attributes" in kwargs and kwargs.get('replace', False):
-            new_state["attributes"] = kwargs["attributes"]
-        else:
-            if "attributes" in kwargs:
-                new_state["attributes"].update(kwargs["attributes"])
-            else:
-                if "replace" in kwargs:
-                    del kwargs["replace"]
-
-                new_state["attributes"].update(kwargs)
-
-        return new_state
+        return self._AD.state.get_state(self.name, namespace, entity_id, attribute, **kwargs)
 
     def set_state(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
+        self._check_entity(namespace, entity_id)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        new_state = self.parse_state(entity_id, namespace, **kwargs)
-
-        if not self._AD.state.entity_exists(namespace, entity_id):
-            self.logger.info("%s: Entity %s created in namespace: %s", self.name, entity_id, namespace)
-
         # Update _AD's Copy
 
-        self._AD.state.set_state(namespace, entity_id, new_state)
-
-        # Fire the plugin's state update if it has one
-
-        plugin = self._AD.plugins.get_plugin_object(namespace)
-
-        if hasattr(plugin, "set_plugin_state"):
-            # We assume that the event will come back to us via the plugin
-            plugin.set_plugin_state(namespace, entity_id, new_state, **kwargs)
-        else:
-            # Just fire the event locally
-            self._AD.appq.set_state_event(namespace, entity_id, new_state)
-
-        return new_state
+        return self._AD.state.set_state(self.name, namespace, entity_id, **kwargs)
 
     #
     # Events

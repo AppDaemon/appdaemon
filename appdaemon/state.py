@@ -3,6 +3,7 @@ from copy import deepcopy
 import traceback
 import threading
 import os
+import iso8601
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -279,7 +280,23 @@ class State:
         with self.state_lock:
             self.state[namespace][entity] = {"state": state, "attributes": attrs}
 
-    def get_state(self, namespace, device, entity, attribute):
+    def get_state(self, name, namespace, entity_id=None, attribute=None, **kwargs):
+        self.logger.debug("get_state: %s.%s", entity_id, attribute)
+        device = None
+        entity = None
+        if entity_id is not None and "." in entity_id:
+            if not self.AD.state.entity_exists(namespace, entity_id):
+                return None
+        if entity_id is not None:
+            if "." not in entity_id:
+                if attribute is not None:
+                    raise ValueError(
+                        "{}: Invalid entity ID: {}".format(name, entity))
+                device = entity_id
+                entity = None
+            else:
+                device, entity = entity_id.split(".")
+
         with self.state_lock:
             if device is None:
                 if self.state[namespace] == {}:
@@ -318,9 +335,61 @@ class State:
                     else:
                         return None
 
-    def set_state(self, namespace, entity, state):
+    def parse_state(self, entity_id, namespace, **kwargs):
+        self.logger.debug("parse_state: %s, %s", entity_id, kwargs)
+
+        if entity_id in self.state[namespace]:
+            new_state = self.state[namespace][entity_id]
+        else:
+            # Its a new state entry
+            new_state = {}
+            new_state["attributes"] = {}
+
+        if "state" in kwargs:
+            new_state["state"] = kwargs["state"]
+            del kwargs["state"]
+
+        if "attributes" in kwargs and kwargs.get('replace', False):
+            new_state["attributes"] = kwargs["attributes"]
+        else:
+            if "attributes" in kwargs:
+                new_state["attributes"].update(kwargs["attributes"])
+            else:
+                if "replace" in kwargs:
+                    del kwargs["replace"]
+
+                new_state["attributes"].update(kwargs)
+
+        return new_state
+
+    def add_to_state(self, name, namespace, entity_id, i):
+        value = self.get_state(name, namespace, entity_id)
+        value += i
+        self.set_state(name, namespace, entity_id, state=value)
+
+    def set_state(self, name, namespace, entity_id, **kwargs):
+
         with self.state_lock:
-            self.state[namespace][entity] = state
+            new_state = self.parse_state(entity_id, namespace, **kwargs)
+
+            if not self.AD.state.entity_exists(namespace, entity_id):
+                self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
+
+                self.state[namespace][entity_id] = new_state
+
+
+        # Fire the plugin's state update if it has one
+
+        plugin = self.AD.plugins.get_plugin_object(namespace)
+
+        if hasattr(plugin, "set_plugin_state"):
+            # We assume that the event will come back to us via the plugin
+            plugin.set_plugin_state(namespace, entity_id, new_state, **kwargs)
+        else:
+            # Just fire the event locally
+            self.AD.appq.set_state_event(namespace, entity_id, new_state)
+
+        return new_state
 
     def set_namespace_state(self, namespace, state):
         with self.state_lock:

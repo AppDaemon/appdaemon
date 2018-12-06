@@ -9,6 +9,7 @@ import io
 import pstats
 import json
 import threading
+import iso8601
 
 if platform.system() != "Windows":
     import pwd
@@ -329,3 +330,10 @@ def check_path(type, logger, path, pathtype="directory", permissions=None):
         # getpwuid() errors out with a KeyError
         # We just have to skip most of these tests
         pass
+
+def str_to_dt(time):
+    return iso8601.parse_date(time)
+
+def dt_to_str(dt):
+    return dt.date.isoformat()
+
