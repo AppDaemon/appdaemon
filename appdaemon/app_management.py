@@ -132,7 +132,7 @@ class AppManagement:
         #if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
             #TODO Figure out
             #update = {"threads": self.AD.threading.get_thread_info()["threads"]}
-            #self.AD.appq.stream_update(update)
+            #self.AD.thread_async.stream_update(update)
 
     def get_app_debug_level(self, app):
         with self.objects_lock:
@@ -360,7 +360,7 @@ class AppManagement:
             if add_threads is True and self.AD.threading.auto_pin is True:
                 if total_apps > self.AD.threading.thread_count:
                     for i in range(total_apps - self.AD.threading.thread_count):
-                        self.AD.threading.add_thread(False, True)
+                        self.AD.thread_async.call_async_no_wait(self.AD.threading.add_thread, False, True)
 
             return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}
         except:

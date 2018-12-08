@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
 from collections import OrderedDict
 
-from appdaemon.appq import AppDaemon
+from appdaemon.thread_async import AppDaemon
 
 class AppNameFormatter(logging.Formatter):
 
@@ -71,8 +71,8 @@ class LogSubscriptionHandler(StreamHandler):
                             if cb["name"] == record.appname and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
                                 has_log_callback = True
 
-            if has_log_callback is False:
-                self.AD.events.process_event("global", {"event_type": "__AD_LOG_EVENT",
+            if has_log_callback is False and self.AD.thread_async is not None:
+                self.AD.thread_async.call_async_no_wait(self.AD.events.process_event, "global", {"event_type": "__AD_LOG_EVENT",
                                                 "data":
                                                   {
                                                   "level": record.levelname,

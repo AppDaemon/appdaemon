@@ -8,6 +8,7 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
+import asyncio
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -30,17 +31,6 @@ class Threading:
         self.get_state = ad.state.get_state
         self.set_state = ad.state.set_state
         self.add_to_state = ad.state.add_to_state
-
-        # Initialize admin stats
-
-        self.add_entity("admin", "sensor.callbacks_total_fired", 0)
-        self.add_entity("admin", "sensor.callbacks_average_fired", 0)
-        self.add_entity("admin", "sensor.callbacks_total_executed", 0)
-        self.add_entity("admin", "sensor.callbacks_average_executed", 0)
-        self.add_entity("admin", "sensor.threads_current_busy", 0)
-        self.add_entity("admin", "sensor.threads_max_busy", 0)
-        self.add_entity("admin", "sensor.threads_max_busy_time", utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)))
-        self.add_entity("admin", "sensor.threads_last_action_time", utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)))
 
         self.auto_pin = True
 
@@ -85,9 +75,7 @@ class Threading:
 
         self.next_thread = self.pin_threads
 
-        self.create_initial_threads()
-
-    def get_callback_update(self):
+    async def get_callback_update(self):
         now = datetime.datetime.now()
         self.callback_list.append(
             {
@@ -114,17 +102,30 @@ class Threading:
             fired_avg = round(fired_sum / total_duration, 1)
             executed_avg = round(executed_sum / total_duration, 1)
 
-        self.AD.state.set_state("_threading", "admin", "sensor.callbacks_average_fired", state=fired_avg)
-        self.AD.state.set_state("_threading", "admin", "sensor.callbacks_average_executed", state=executed_avg)
+        await self.set_state("_threading", "admin", "sensor.callbacks_average_fired", state=fired_avg)
+        await self.set_state("_threading", "admin", "sensor.callbacks_average_executed", state=executed_avg)
 
         self.last_stats_time = now
         self.current_callbacks_executed = 0
         self.current_callbacks_fired = 0
 
-    def create_initial_threads(self):
+    async def init_admin_stats(self):
+
+        # Initialize admin stats
+
+        await self.add_entity("admin", "sensor.callbacks_total_fired", 0)
+        await self.add_entity("admin", "sensor.callbacks_average_fired", 0)
+        await self.add_entity("admin", "sensor.callbacks_total_executed", 0)
+        await self.add_entity("admin", "sensor.callbacks_average_executed", 0)
+        await self.add_entity("admin", "sensor.threads_current_busy", 0)
+        await self.add_entity("admin", "sensor.threads_max_busy", 0)
+        await self.add_entity("admin", "sensor.threads_max_busy_time", utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)))
+        await self.add_entity("admin", "sensor.threads_last_action_time", utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)))
+
+    async def create_initial_threads(self):
         self.thread_count = 0
         for i in range(self.total_threads):
-            self.add_thread(True)
+            await self.add_thread(True)
 
     def get_q(self, thread_id):
         return self.threads[thread_id]["queue"]
@@ -257,7 +258,7 @@ class Threading:
 
         return warning_step, warning_iterations
 
-    def update_thread_info(self, thread_id, callback, type=None):
+    async def update_thread_info(self, thread_id, callback, type=None):
 
         if self.AD.log_thread_actions:
             if callback == "idle":
@@ -271,31 +272,31 @@ class Threading:
         if callback == "idle":
             start = utils.str_to_dt(self.get_state("_threading", "admin", "thread.{}".format(thread_id), attribute="time_called"))
             if self.AD.sched.realtime is True and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold:
-                self.logger.warning("callback %s has now completed", self.threads[thread_id]["callback"])
-            self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
+                self.logger.warning("callback %s has now completed", self.get_state("_threading", "admin", "thread.{}".format(thread_id)))
+            await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
         else:
-            self.add_to_state("_threading", "admin", "sensor.threads_current_busy", 1)
+            await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", 1)
 
         current_busy = self.get_state("_threading", "admin", "sensor.threads_current_busy")
         max_busy = self.get_state("_threading", "admin", "sensor.threads_max_busy")
         if current_busy > max_busy:
-            self.set_state("_threading", "admin", "sensor.threads_max_busy" , state=current_busy)
-            self.set_state("_threading", "admin", "sensor.threads_max_busy_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
+            await self.set_state("_threading", "admin", "sensor.threads_max_busy" , state=current_busy)
+            await self.set_state("_threading", "admin", "sensor.threads_max_busy_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
 
-        self.set_state("_threading", "admin", "sensor.threads_last_action_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
+            await self.set_state("_threading", "admin", "sensor.threads_last_action_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
 
         # Update thread info
 
-        self.set_state("_threading", "admin", "thread.{}".format(thread_id), q=self.threads[thread_id]["queue"].qsize())
-        self.set_state("_threading", "admin", "thread.{}".format(thread_id), state=callback)
-        self.set_state("_threading", "admin", "thread.{}".format(thread_id), time_called=utils.dt_to_str(now.replace(microsecond=0)))
-        self.set_state("_threading", "admin", "thread.{}".format(thread_id), is_alive=self.threads[thread_id]["thread"].is_alive())
+        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), q=self.threads[thread_id]["queue"].qsize())
+        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), state=callback)
+        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), time_called=utils.dt_to_str(now.replace(microsecond=0)))
+        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), is_alive=self.threads[thread_id]["thread"].is_alive())
 
     #
     # Pinning
     #
 
-    def add_thread(self, silent=False, pinthread=False, id=None):
+    async def add_thread(self, silent=False, pinthread=False, id=None):
         if id is None:
             tid = self.thread_count
         else:
@@ -307,7 +308,7 @@ class Threading:
         name = "thread-{}".format(tid)
         t.setName(name)
         if id is None:
-            self.add_entity("admin", "thread.{}".format(name), "idle",
+            await self.add_entity("admin", "thread.{}".format(name), "idle",
                                  {
                                      "q": 0,
                                      "is_alive": True,
@@ -321,7 +322,7 @@ class Threading:
             if pinthread is True:
                 self.pin_threads += 1
         else:
-            self.set_state("_threading", "admin", "thread.{}".format(name), state="idle", is_alive=True)
+            await self.set_state("_threading", "admin", "thread.{}".format(name), state="idle", is_alive=True)
 
         self.threads[name]["thread"] = t
 
@@ -435,13 +436,13 @@ class Threading:
     # Workers
     #
 
-    def check_and_dispatch_state(self, name, funcref, entity, attribute, new_state,
+    async def check_and_dispatch_state(self, name, funcref, entity, attribute, new_state,
                                  old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
         executed = False
         #kwargs["handle"] = uuid_
         if attribute == "all":
             with self.AD.app_management.objects_lock:
-                executed = self.dispatch_worker(name, {
+                executed = await self.dispatch_worker(name, {
                     "name": name,
                     "id": self.AD.app_management.objects[name]["id"],
                     "type": "attr",
@@ -488,7 +489,7 @@ class Threading:
                 else:
                     # Do it now
                     with self.AD.app_management.objects_lock:
-                        executed = self.dispatch_worker(name, {
+                        executed = await self.dispatch_worker(name, {
                             "name": name,
                             "id": self.AD.app_management.objects[name]["id"],
                             "type": "attr",
@@ -508,7 +509,7 @@ class Threading:
 
         return executed
 
-    def dispatch_worker(self, name, args):
+    async def dispatch_worker(self, name, args):
         with self.AD.app_management.objects_lock:
             unconstrained = True
             #
@@ -535,7 +536,7 @@ class Threading:
             #
             # It's gonna happen - so lets update stats
             #
-            self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
+            await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
             self.current_callbacks_fired += 1
             #
             # And Q
@@ -566,7 +567,7 @@ class Threading:
                 try:
                     if _type == "timer":
                         if self.validate_callback_sig(name, "timer", funcref):
-                            self.update_thread_info(thread_id, callback, _type)
+                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
                             funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                     elif _type == "attr":
                         if self.validate_callback_sig(name, "attr", funcref):
@@ -574,18 +575,18 @@ class Threading:
                             attr = args["attribute"]
                             old_state = args["old_state"]
                             new_state = args["new_state"]
-                            self.update_thread_info(thread_id, callback, _type)
+                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
                             funcref(entity, attr, old_state, new_state,
                                     self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
                     elif _type == "event":
                         data = args["data"]
                         if args["event"] == "__AD_LOG_EVENT":
                             if self.validate_callback_sig(name, "log_event", funcref):
-                                self.update_thread_info(thread_id, callback, _type)
+                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
                                 funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
                         else:
                             if self.validate_callback_sig(name, "event", funcref):
-                                self.update_thread_info(thread_id, callback, _type)
+                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
                                 funcref(args["event"], data, args["kwargs"])
                 except:
                     error_logger.warning('-' * 60,)
@@ -597,8 +598,8 @@ class Threading:
                     if self.AD.logging.separate_error_log() is True:
                         self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
                 finally:
-                    self.update_thread_info(thread_id, "idle")
-                    self.add_to_state("_threading", "admin", "sensor.callbacks_total_executed", 1)
+                    self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, "idle")
+                    self.AD.thread_async.call_async_no_wait(self.add_to_state, "_threading", "admin", "sensor.callbacks_total_executed", 1)
                     self.current_callbacks_executed += 1
 
             else:

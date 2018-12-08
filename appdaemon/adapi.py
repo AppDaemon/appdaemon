@@ -30,9 +30,6 @@ class ADAPI:
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
             self.err.setLevel(args["log_level"])
-        else:
-            self.logger.setLevel("INFO")
-            self.err.setLevel("INFO")
 
     @staticmethod
     def _sub_stack(msg):
@@ -313,14 +310,43 @@ class ADAPI:
         return self._AD.state.get_state(self.name, namespace, entity_id, attribute, **kwargs)
 
     def set_state(self, entity_id, **kwargs):
+        self.logger.debug("set state: %s, %s", entity_id, kwargs)
         namespace = self._get_namespace(**kwargs)
         self._check_entity(namespace, entity_id)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
+        old_state = self._AD.state.get_state(self.name, namespace, entity_id)
+        new_state = self._AD.state.parse_state(entity_id, namespace, **kwargs)
+
+        self._AD.state.set_state_simple(namespace, entity_id, new_state)
+
+        # Fire the plugin's state update if it has one
+
+        plugin = self._AD.plugins.get_plugin_object(namespace)
+
+        if hasattr(plugin, "set_plugin_state"):
+            # We assume that the state change will come back to us via the plugin
+            plugin.set_plugin_state(namespace, entity_id, new_state, **kwargs)
+        else:
+            # Just fire the event locally
+
+            data = \
+                        {
+                            "event_type": "state_changed",
+                            "data":
+                                {
+                                    "entity_id": entity_id,
+                                    "new_state": new_state,
+                                    "old_state": old_state
+                                }
+                        }
+
+            self._AD.thread_async.call_async_no_wait(self._AD.events.process_event, namespace, data)
+
         # Update _AD's Copy
 
-        return self._AD.state.set_state(self.name, namespace, entity_id, **kwargs)
+        return new_state
 
     #
     # Events
@@ -359,7 +385,7 @@ class ADAPI:
             plugin.fire_plugin_event(event, namespace, **kwargs)
         else:
             # Just fire the event locally
-            self._AD.appq.fire_app_event(namespace, {"event_type": event, "data": kwargs})
+            self._AD.thread_async.call_async_no_wait(self._AD.events.process_event, namespace, {"event_type": event, "data": kwargs})
 
 
     #

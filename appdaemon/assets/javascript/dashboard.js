@@ -198,7 +198,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.get_state = function(child, base_url, entity)
     {
-        state_url = base_url + "/state/" + parameters.namespace + "/" + entity.entity;
+        state_url = base_url + "/api/state/" + parameters.namespace + "/" + entity.entity;
         $.ajax
         ({
             url: state_url,
@@ -270,7 +270,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.call_service = function(child, args)
     {
-        service_url = child.url + "/" + "call_service";
+        service_url = child.url + "/api/call_service";
         args["namespace"] = parameters.namespace;
         $.post(service_url, args);
     };

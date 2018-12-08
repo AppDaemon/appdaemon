@@ -45,7 +45,7 @@ class Admin:
     # Methods
     #
 
-    def admin(self, scheme, url):
+    async def admin(self, scheme, url):
 
         try:
             params = {}
@@ -89,7 +89,7 @@ class Admin:
 
             # Callbacks
 
-            params["callback_updates"] = self.AD.threading.get_callback_update()
+            params["callback_updates"] = await self.AD.threading.get_callback_update()
             params["state_callbacks"] = self.AD.callbacks.get_callback_entries("state")
             params["event_callbacks"] = self.AD.callbacks.get_callback_entries("event")
             params["sched"] = self.AD.sched.get_scheduler_entries()
@@ -100,14 +100,7 @@ class Admin:
 
             # Entities
 
-            params["entities"] = {}
-
-            for ns in sorted(self.AD.state.get_namespaces()):
-                params["entities"][ns] = self.AD.state.get_state("_admin", ns)
-                print(params["entities"][ns])
-            #
-            # Render Page
-            #
+            params["namespaces"] = self.AD.state.list_namespaces()
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),

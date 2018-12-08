@@ -13,7 +13,7 @@ class AppDaemon:
         #
 
         import appdaemon.utils as utils
-        import appdaemon.appq as appq
+        import appdaemon.thread_async as appq
         import appdaemon.utility_loop as utility
         import appdaemon.plugin_management as plugins
         import appdaemon.threading
@@ -52,7 +52,7 @@ class AppDaemon:
         self.config_file_modified = 0
 
         self.sched = None
-        self.appq = None
+        self.thread_async = None
         self.utility = None
         self.module_debug = kwargs["module_debug"]
 
@@ -218,13 +218,13 @@ class AppDaemon:
 
         self.plugins = plugins.Plugins(self, args)
 
-        # Create appq Loop
+        # Create thread_async Loop
 
-        self.logger.debug("Starting appq loop")
+        self.logger.debug("Starting thread_async loop")
 
         if self.apps is True:
-            self.appq = appq.AppQ(self)
-            loop.create_task(self.appq.loop())
+            self.thread_async = appq.ThreadAsync(self)
+            loop.create_task(self.thread_async.loop())
 
         # Create utility loop
 
@@ -237,8 +237,8 @@ class AppDaemon:
         self.stopping = True
         if self.admin_loop is not None:
             self.admin_loop.stop()
-        if self.appq is not None:
-            self.appq.stop()
+        if self.thread_async is not None:
+            self.thread_async.stop()
         if self.sched is not None:
             self.sched.stop()
         if self.utility is not None:

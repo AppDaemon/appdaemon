@@ -72,9 +72,6 @@ class ADBase:
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
             self.err.setLevel(args["log_level"])
-        else:
-            self.logger.setLevel("INFO")
-            self.err.setLevel("INFO")
 
         # Some initial Setup
 

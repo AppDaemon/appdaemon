@@ -1,0 +1,43 @@
+import asyncio
+
+from appdaemon.appdaemon import AppDaemon
+
+
+class ThreadAsync:
+
+    """
+    Module to translate from the thread world to the async world via queues
+    """
+
+    def __init__(self, ad: AppDaemon):
+
+        self.AD = ad
+        self.stopping = False
+        self.logger = ad.logging.get_child("_thread_async")
+        #
+        # Initial Setup
+        #
+
+        self.appq = asyncio.Queue(maxsize=0)
+
+    def stop(self):
+        self.logger.debug("stop() called for thread_async")
+        self.stopping = True
+        # Queue a fake event to make the loop wake up and exit
+        self.appq.put_nowait({"namespace": "global", "event_type": "__AD_STOP", "data": None})
+
+    async def loop(self):
+        while not self.stopping:
+            args = await self.appq.get()
+            self.logger.debug("thread_async loop, args=%s", args)
+            function = args["function"]
+            myargs = args["args"]
+            mykwargs = args["kwargs"]
+
+            result = await function(*myargs, **mykwargs)
+
+
+        self.appq.task_done()
+
+    def call_async_no_wait(self, function, *args, **kwargs):
+        self.appq.put_nowait({"function": function, "args": args, "kwargs": kwargs})

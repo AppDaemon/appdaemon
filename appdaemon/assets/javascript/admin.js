@@ -1,24 +1,15 @@
-function dom_ready(transport, appvalues)
+function dom_ready(transport)
 {
     // Open the default tabs
 
     document.getElementById("appdaemon").click();
     document.getElementById("main_log_button").click();
+    document.getElementById("default_entity_button").click();
 
-    // Apps Table
 
-    var appoptions = {
-        valueNames:
-            [
-                'appname',
-                'disabled',
-                'debug',
-                {name: "appid", attr: "id"},
-            ],
-        item: '<tr><td class="appid"><span class="appname"/></td><td class="disabled"><td class="debug"></td></td></tr>'
-    };
+    // Entities
 
-    var apptable = new List('app-table', appoptions, appvalues);
+    get_namespaces(create_entity_tables);
 
     // Start listening for Events
 
@@ -41,6 +32,101 @@ function dom_ready(transport, appvalues)
     }
 
     admin_stream(stream_url, transport);
+}
+
+function create_entity_table(namespace, entities)
+{
+    id = namespace + "-entities-table"
+    window.namespace[namespace] = new List(id);
+    entities.forEach(function(entity)
+    {
+        console.log(entity)
+        window.namespace[namespace].add({"name": entity.entity_id})
+    });
+}
+
+function create_entity_tables(namespaces)
+{
+    namespaces.state.forEach(function(ns)
+    {
+        get_namespace(ns, create_entity_table)
+    });
+}
+
+function get_entity(namespace, entity, f)
+{
+    var state_url = "/api/state/" + namespace + "/" + entity;
+    $.ajax
+    ({
+        url: state_url,
+        type: 'GET',
+        success: function(data)
+                {
+                    f(data);
+                },
+        error: function(data)
+                {
+                    alert("Error getting state, check Java Console for details")
+                }
+
+    });
+}
+
+function get_namespaces(f)
+{
+    var state_url = "/api/state/";
+    $.ajax
+    ({
+        url: state_url,
+        type: 'GET',
+        success: function(data)
+                {
+                    f(data);
+                },
+        error: function(data)
+                {
+                    alert("Error getting state, check Java Console for details")
+                }
+
+    });
+}
+
+function get_namespace(namespace, f)
+{
+    var state_url = "/api/state/" + namespace;
+    $.ajax
+    ({
+        url: state_url,
+        type: 'GET',
+        success: function(data)
+                {
+                    f(namespace, data);
+                },
+        error: function(data)
+                {
+                    alert("Error getting state, check Java Console for details")
+                }
+
+    });
+}
+
+function get_state(f)
+{
+    var state_url = "/api/state" + namespace;
+    $.ajax
+    ({
+        url: state_url,
+        type: 'GET',
+        success: function(data)
+                {
+                    f(data);
+                },
+        error: function(data)
+                {
+                    alert("Error getting state, check Java Console for details")
+                }
+
+    });
 }
 
 function admin_stream(stream, transport)
@@ -87,7 +173,7 @@ function admin_stream(stream, transport)
     this.update_admin = function (data)
     {
         // Process any updates
-        console.log(data);
+        //console.log(data);
         var id;
 
         if (data.event_type === "__AD_LOG_EVENT")

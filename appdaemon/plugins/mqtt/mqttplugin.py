@@ -240,7 +240,7 @@ class MqttPlugin(PluginBase):
             self.mqtt_wildcards.append(wildcard.rstrip('#'))
     
     async def send_ad_event(self, data):
-        await self.AD.state.state_update(self.namespace, data)
+        await self.AD.events.process_event(self.namespace, data)
 
     #
     # Get initial state

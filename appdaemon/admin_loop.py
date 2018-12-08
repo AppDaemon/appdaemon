@@ -19,7 +19,7 @@ class AdminLoop:
             #update = {}
             #threads = {}
             if self.AD.http.stats_update != "none" and self.AD.sched is not None:
-                self.AD.threading.get_callback_update()
+                await self.AD.threading.get_callback_update()
                 #sched = self.AD.sched.get_scheduler_entries()
                 #state_callbacks = self.AD.callbacks.get_callback_entries("state")
                 #event_callbacks = self.AD.callbacks.get_callback_entries("event")

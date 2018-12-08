@@ -134,7 +134,7 @@ class State:
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
 
-    def process_state_change(self, namespace, state):
+    async def process_state_callbacks(self, namespace, state):
         data = state["data"]
         entity_id = data['entity_id']
         self.logger.debug(data)
@@ -167,7 +167,7 @@ class State:
 
                         executed = False
                         if cdevice is None:
-                            executed = self.AD.threading.check_and_dispatch_state(
+                            executed = await self.AD.threading.check_and_dispatch_state(
                                 name, callback["function"], entity_id,
                                 cattribute,
                                 data['new_state'],
@@ -180,7 +180,7 @@ class State:
                             )
                         elif centity is None:
                             if device == cdevice:
-                                executed = self.AD.threading.check_and_dispatch_state(
+                                executed = await self.AD.threading.check_and_dispatch_state(
                                     name, callback["function"], entity_id,
                                     cattribute,
                                     data['new_state'],
@@ -193,7 +193,7 @@ class State:
                                 )
 
                         elif device == cdevice and entity == centity:
-                            executed = self.AD.threading.check_and_dispatch_state(
+                            executed = await self.AD.threading.check_and_dispatch_state(
                                 name, callback["function"], entity_id,
                                 cattribute,
                                 data['new_state'],
@@ -214,33 +214,6 @@ class State:
             for remove in removes:
                 self.cancel_state_callback(remove["uuid"], remove["name"])
 
-    async def state_update(self, namespace, data):
-        try:
-            self.logger.debug("Event type:%s:", data['event_type'])
-            self.logger.debug(data["data"])
-
-            if data['event_type'] == "state_changed":
-                entity_id = data['data']['entity_id']
-
-                # First update our global state
-                with self.state_lock:
-                    self.state[namespace][entity_id] = data['data']['new_state']
-
-            if self.AD.apps is True:
-                # Process state changed message
-                if data['event_type'] == "state_changed":
-                    self.process_state_change(namespace, data)
-                else:
-                    # Process non-state callbacks
-                    self.AD.events.process_event(namespace, data)
-
-        except:
-            self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error during state_update()")
-            self.logger.warning('-' * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
-
     def entity_exists(self, namespace, entity):
         with self.state_lock:
             if namespace in self.state and entity in self.state[namespace]:
@@ -248,16 +221,23 @@ class State:
             else:
                 return False
 
-    def get_entity(self, namespace, entity_id):
+    def get_entity(self, namespace = None, entity_id = None):
         with self.state_lock:
-            if namespace in self.state:
+            if namespace is None:
+                return self.state
+            elif entity_id is None:
+                if namespace in self.state:
+                    return self.state[namespace]
+                else:
+                    self.logger.warning("Unknown namespace: %s", namespace)
+            elif namespace in self.state:
                 if entity_id in self.state[namespace]:
                     return self.state[namespace][entity_id]
                 else:
-                    return None
-            else:
-                self.logger.warning("Unknown namespace: %s", namespace)
-                return None
+                    self.logger.warning("Unknown namespace: %s", namespace)
+
+            return None
+
     def get_namespaces(self):
         namespaces = []
         with self.state_lock:
@@ -266,7 +246,7 @@ class State:
 
         return namespaces
 
-    def add_entity(self, namespace, entity, state, attributes = None):
+    async def add_entity(self, namespace, entity, state, attributes = None):
         if attributes is None:
             attrs = {}
         else:
@@ -275,7 +255,7 @@ class State:
         with self.state_lock:
             self.state[namespace][entity] = {"state": state, "attributes": attrs}
 
-    def get_state(self, name, namespace, entity_id=None, attribute=None, **kwargs):
+    def get_state(self, name, namespace, entity_id=None, attribute=None):
         self.logger.debug("get_state: %s.%s", entity_id, attribute)
         device = None
         entity = None
@@ -294,10 +274,7 @@ class State:
 
         with self.state_lock:
             if device is None:
-                if self.state[namespace] == {}:
-                    return {}
-                else:
-                    return deepcopy(dict(self.state[namespace]))
+                return deepcopy(dict(self.state[namespace]))
             elif entity is None:
                 devices = {}
                 for entity_id in self.state[namespace].keys():
@@ -357,32 +334,34 @@ class State:
 
         return new_state
 
-    def add_to_state(self, name, namespace, entity_id, i):
+    async def add_to_state(self, name, namespace, entity_id, i):
         value = self.get_state(name, namespace, entity_id)
         value += i
-        self.set_state(name, namespace, entity_id, state=value)
+        await self.set_state(name, namespace, entity_id, state=value)
 
-    def set_state(self, name, namespace, entity_id, **kwargs):
+    def set_state_simple(self, namespace, entity_id, state):
+        with self.state_lock:
+            self.state[namespace][entity_id] = state
+
+    async def set_state(self, name, namespace, entity_id, **kwargs):
 
         with self.state_lock:
+            old_state = self.state[namespace][entity_id]
             new_state = self.parse_state(entity_id, namespace, **kwargs)
 
             if not self.AD.state.entity_exists(namespace, entity_id):
                 self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
-
-                self.state[namespace][entity_id] = new_state
-
-
-        # Fire the plugin's state update if it has one
-
-        plugin = self.AD.plugins.get_plugin_object(namespace)
-
-        if hasattr(plugin, "set_plugin_state"):
-            # We assume that the event will come back to us via the plugin
-            plugin.set_plugin_state(namespace, entity_id, new_state, **kwargs)
-        else:
-            # Just fire the event locally
-            self.AD.appq.set_state_event(namespace, entity_id, new_state)
+                data = ret = \
+                        {
+                            "event_type": "state_changed",
+                            "data":
+                                {
+                                    "entity_id": entity_id,
+                                    "new_state": new_state,
+                                    "old_state": old_state
+                                }
+                        }
+                await self.AD.thread_async.call_async_no_wait(self.AD.events.process_event, namespace, {"event_type": "state_changed", "data": data})
 
         return new_state
 

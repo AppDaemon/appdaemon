@@ -106,7 +106,7 @@ class Scheduler:
                 del self.schedule[name]
 
     # noinspection PyBroadException
-    def exec_schedule(self, name, entry, args):
+    async def exec_schedule(self, name, entry, args):
         try:
             # Locking performed in calling function
             if "inactive" in args:
@@ -114,7 +114,7 @@ class Scheduler:
             # Call function
             with self.AD.app_management.objects_lock:
                 if "__entity" in args["kwargs"]:
-                    self.AD.threading.dispatch_worker(name, {
+                    await self.AD.threading.dispatch_worker(name, {
                         "name": name,
                         "id": self.AD.app_management.objects[name]["id"],
                         "type": "attr",
@@ -128,7 +128,7 @@ class Scheduler:
                         "kwargs": args["kwargs"],
                     })
                 else:
-                    self.AD.threading.dispatch_worker(name, {
+                    await self.AD.threading.dispatch_worker(name, {
                         "name": name,
                         "id": self.AD.app_management.objects[name]["id"],
                         "type": "timer",
@@ -402,7 +402,7 @@ class Scheduler:
                     ):
 
                         if self.schedule[name][entry]["timestamp"] <= utc:
-                            self.exec_schedule(name, entry, self.schedule[name][entry])
+                            await self.exec_schedule(name, entry, self.schedule[name][entry])
                         else:
                             break
                 for k, v in list(self.schedule.items()):

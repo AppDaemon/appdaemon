@@ -22,6 +22,14 @@ class Utility:
     async def loop(self):
 
         #
+        # Setup
+        #
+
+        await self.AD.threading.init_admin_stats()
+        await self.AD.threading.create_initial_threads()
+
+
+        #
         # Wait for all plugins to initialize
         #
 
@@ -53,7 +61,7 @@ class Utility:
                 #
                 # Fire APPD Started Event
                 #
-                self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
+                await self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
 
             # Create timer loop
 

@@ -224,7 +224,7 @@ class HassPlugin(PluginBase):
                         self.logger.warning("Unexpected result from Home Assistant, id = %s", _id)
                         self.logger.warning(result)
 
-                    await self.AD.state.state_update(self.namespace, result["event"])
+                    await self.AD.events.process_event(self.namespace, result["event"])
 
                 self.reading_messages = False
 
@@ -232,12 +232,12 @@ class HassPlugin(PluginBase):
                 self.reading_messages = False
                 first_time = False
                 if not already_notified:
-                    self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
+                    await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True
                 if not self.stopping:
                     self.logger.warning("Disconnected from Home Assistant, retrying in 5 seconds")
                     self.logger.debug('-' * 60)
-                    self.logger.debug("Unexpected err:")
+                    self.logger.debug("Unexpected error:")
                     self.logger.debug('-' * 60)
                     self.logger.debug(traceback.format_exc())
                     self.logger.debug('-' * 60)

@@ -163,7 +163,7 @@ class Plugins:
                     self.logger.info("Got initial state from namespace %s", namespace)
 
                 self.plugin_objs[namespace]["active"] = True
-                self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
+                await self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except:
             self.error.warning('-' * 60)
             self.error.warning("WARNING", "Unexpected error during notify_plugin_started()")
@@ -173,9 +173,9 @@ class Plugins:
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
-    def notify_plugin_stopped(self, name, namespace):
+    async def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False
-        self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
+        await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
     def get_plugin_meta(self, namespace):
         for name in self.plugins:

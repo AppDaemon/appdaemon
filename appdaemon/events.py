@@ -1,5 +1,6 @@
 import uuid
 from copy import deepcopy
+import traceback
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -63,25 +64,48 @@ class Events:
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
 
-    def process_event(self, namespace, data):
+    async def process_event(self, namespace, data):
+        try:
+            self.logger.debug("Event type:%s:", data['event_type'])
+            self.logger.debug(data["data"])
 
-        #
-        # Send to the stream
-        #
+            if data['event_type'] == "state_changed":
+                entity_id = data['data']['entity_id']
 
-        if self.AD.http is not None:
-            # take a copy without TS if present as it breaks deepcopy and jason
-            if "ts" in data["data"]:
-                ts = data["data"].pop("ts")
-                mydata = deepcopy(data)
-                data["data"]["ts"] = ts
+                self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
+
+                if self.AD.apps is True:
+                    # Process state changecallbacks
+                    if data['event_type'] == "state_changed":
+                        await self.AD.state.process_state_callbacks(namespace, data)
             else:
-                mydata = deepcopy(data)
+                if self.AD.apps is True:
+                    # Process non-state callbacks
+                    await self.AD.events.process_event_callbacks(namespace, data)
 
-            mydata["stream"] = True
-            self.logger.debug("sending event to stream: %s", mydata)
-            self.AD.appq.fire_app_event(namespace, mydata)
+            #
+            # Send to the stream
+            #
 
+            if self.AD.http is not None:
+                # take a copy without TS if present as it breaks deepcopy and jason
+                if "ts" in data["data"]:
+                    ts = data["data"].pop("ts")
+                    mydata = deepcopy(data)
+                    data["data"]["ts"] = ts
+                else:
+                    mydata = deepcopy(data)
+
+                await self.AD.http.stream_update(namespace, mydata)
+
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during process_event()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+
+    async def process_event_callbacks(self, namespace, data):
         with self.AD.callbacks.callbacks_lock:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
@@ -113,7 +137,7 @@ class Events:
                             if _run:
                                 with self.AD.app_management.objects_lock:
                                     if name in self.AD.app_management.objects:
-                                        self.AD.threading.dispatch_worker(name, {
+                                        await self.AD.threading.dispatch_worker(name, {
                                             "name": name,
                                             "id": self.AD.app_management.objects[name]["id"],
                                             "type": "event",

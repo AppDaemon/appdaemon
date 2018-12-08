@@ -51,7 +51,7 @@ def secure(myfunc):
     async def wrapper(*args):
 
         self = args[0]
-        if self.password == None:
+        if self.password is None:
             return await myfunc(*args)
         else:
             if "adcreds" in args[1].cookies:
@@ -336,11 +336,6 @@ class HTTP:
                                 # RSS Feeds always live in the default namespace
                                 self.AD.state.set_state("default", feed_data["target"], new_state)
 
-                                data = {"event_type": "state_changed",
-                                        "data": {"entity_id": feed_data["target"], "new_state": new_state}}
-
-                                await self.stream_update("default", data)
-
                     await asyncio.sleep(1)
                 except:
                     self.logger.warning('-' * 60)
@@ -352,13 +347,44 @@ class HTTP:
 
 
     @securedata
-    async def get_state(self, request):
+    async def get_entity(self, request):
 
         entity_id = request.match_info.get('entity')
         namespace = request.match_info.get('namespace')
 
         self.logger.debug("get_state() called, ns=%s, entity=%s", namespace, entity_id)
         state = self.AD.state.get_entity(namespace, entity_id)
+
+        self.logger.debug("result = %s", state)
+
+        return web.json_response({"state": state})
+
+    @securedata
+    async def get_namespace(self, request):
+
+        namespace = request.match_info.get('namespace')
+
+        self.logger.debug("get_namespace() called, ns=%s", namespace)
+        state = self.AD.state.get_entity(namespace)
+
+        self.logger.debug("result = %s", state)
+
+        return web.json_response({"state": state})
+
+    @securedata
+    async def get_namespaces(self, request):
+
+        self.logger.debug("get_namespaces() called)")
+        state = self.AD.state.list_namespaces()
+        self.logger.debug("result = %s", state)
+
+        return web.json_response({"state": state})
+
+    @securedata
+    async def get_state(self, request):
+
+        self.logger.debug("get_state() called")
+        state = self.AD.state.get_entity()
 
         self.logger.debug("result = %s", state)
 
@@ -396,6 +422,7 @@ class HTTP:
                     args[key] = data[key]
 
             plugin = self.AD.plugins.get_plugin_object(namespace)
+
             await plugin.call_service(service, **args)
             return web.Response(status=200)
 
@@ -433,8 +460,11 @@ class HTTP:
     # Routes, Status and Templates
 
     def setup_api_routes(self):
-        self.app.router.add_post('/call_service', self.call_service)
-        self.app.router.add_get('/state/{namespace}/{entity}', self.get_state)
+        self.app.router.add_post('/api/call_service', self.call_service)
+        self.app.router.add_get('/api/state/{namespace}/{entity}', self.get_entity)
+        self.app.router.add_get('/api/state/{namespace}', self.get_namespace)
+        self.app.router.add_get('/api/state/', self.get_namespaces)
+        self.app.router.add_get('/api/state', self.get_state)
         self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
 
     def setup_http_routes(self):
@@ -570,5 +600,5 @@ class HTTP:
 
     @secure
     async def admin_page(self, request):
-        response = await utils.run_in_executor(self.loop, self.executor, self.admin_obj.admin, request.scheme, request.host)
+        response = await self.admin_obj.admin(request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")

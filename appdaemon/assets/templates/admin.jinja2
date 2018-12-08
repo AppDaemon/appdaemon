@@ -28,18 +28,7 @@
 $(function() {
     //DOM Ready
 
-    var appvalues = [
-        {% for app in apps %}
-            {
-                appname: "{{ app }}",
-                disabled: "{{ apps[app].disabled }}",
-                debug: "{{ apps[app].debug }}",
-                appid: "app_{{ app }}"
-            },
-        {% endfor %}
-    ];
-
-    dom_ready('{{ transport }}', appvalues)
+    dom_ready('{{ transport }}')
 })
 </script>
 
@@ -102,15 +91,27 @@ $(function() {
 </div>
 
 <div id="Entities" class="maintabcontent">
-    <h3>Entities</h3>
-{% for ns in entities %}
-    <h3>{{ ns }}</h3>
-    <table>
-    <tr><th>Name</th><th>State</th><th>Attributes</th></tr>
-    {% for entity in entities[ns] %}
-        <tr><td>{{ entity }}</td><td>{{ entities[ns][entity]["state"] }}</td><td>{{ entities[ns][entity]["attributes"] }}</td></tr>
-    {% endfor %}
-    </table>
+    <div class="tab">
+        {% for ns in namespaces %}
+          <button class="entitytablinks" onclick="openTab(event, '{{ ns }}', 'entitytab')" id="{{ ns }}_entity_button">{{ ns }}</button>
+        {% endfor %}
+    </div>
+{% for ns in namespaces %}
+    <div id="{{ ns }}" class="entitytabcontent">
+        <div id="{{ ns }}-entities-table">
+        Filter <input class="search" /><br><br>
+            <table>
+                <thead>
+                <tr>
+                    <th class="sort" data-sort="name">Name<i class="caret"></i></th>
+                    <th class="sort" data-sort="state">State<i class="caret"></i></th>
+                    <th class="sort" data-sort="attributes">Attributes<i class="caret"></i></th>
+                </tr>
+                </thead>
+                <tbody class="list"></tbody>
+            </table>
+        </div>
+    </div>
 {% endfor %}
 </div>
 
@@ -220,7 +221,7 @@ $(function() {
 </div>
 
 <div id="Logs" class="maintabcontent">
-<div class="tab">{% for log in logs %}{%  if logs[log]["lines"] != None %}<button class="logtablinks" onclick="openTab(event, '{{ log }}', 'logtab')" id="main_log_button">{{ logs[log]["name"] }}</button>{% endif %}{% endfor %}</div>{% for log in logs %}{%  if logs[log]["lines"] != None %}<div id="{{ log }}" class="logtabcontent"><div id="{{ log }}_div" class="log_panel">{% for line in logs[log]["lines"] | reverse %}{{line}}<br>{% endfor %}</div></div>{% endif %}{% endfor %}</div>
+<div class="tab">{% for log in logs %}{%  if logs[log]["lines"] != None %}<button class="logtablinks" onclick="openTab(event, '{{ log }}', 'logtab')" id="{{ log }}_button">{{ logs[log]["name"] }}</button>{% endif %}{% endfor %}</div>{% for log in logs %}{%  if logs[log]["lines"] != None %}<div id="{{ log }}" class="logtabcontent"><div id="{{ log }}_div" class="log_panel">{% for line in logs[log]["lines"] | reverse %}{{line}}<br>{% endfor %}</div></div>{% endif %}{% endfor %}</div>
 <div id="Plugins" class="maintabcontent">
   <h3>Plugins</h3>
     <table>

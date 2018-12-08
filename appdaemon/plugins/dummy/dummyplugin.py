@@ -105,7 +105,7 @@ class DummyPlugin(PluginBase):
                                 }
                         }
                     self.logger.debug("*** State Update: %s ***", ret)
-                    self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
+                    await self.AD.state.process_event(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = \
                         {
@@ -113,7 +113,7 @@ class DummyPlugin(PluginBase):
                             "data": event["event"]["data"],
                         }
                     self.logger.debug("*** Event: %s ***", ret)
-                    self.AD.state.state_update(self.namespace, copy.deepcopy(ret))
+                    await self.AD.state.process_event(self.namespace, copy.deepcopy(ret))
 
                 elif "disconnect" in event:
                     self.logger.debug("*** Disconnected ***")
