@@ -62,7 +62,7 @@ class ADStream:
                     await self.dash_stream.emit('down', jdata)
             except TypeError as e:
                 self.logger.debug('-' * 60)
-                self.logger.warning("Unexpected error in JSON conversion for admin console")
+                self.logger.warning("Unexpected error in JSON conversion")
                 self.logger.debug("Data is: %s", data)
                 self.logger.debug("Error is: %s",e)
                 self.logger.debug('-' * 60)

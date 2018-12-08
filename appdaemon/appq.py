@@ -31,6 +31,7 @@ class AppQ:
                     await self.AD.http.stream_update(args["namespace"], args)
             else:
                 namespace = args["namespace"]
+                await self.AD.http.stream_update(args["namespace"], args)
                 await self.AD.state.state_update(namespace, args)
 
         self.appq.task_done()

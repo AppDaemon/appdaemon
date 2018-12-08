@@ -85,7 +85,7 @@ class Admin:
 
             # Threads
 
-            params["threads"] = self.AD.threading.get_thread_info()
+            params["threads"] = {}#self.AD.threading.get_thread_info()
 
             # Callbacks
 
@@ -103,7 +103,7 @@ class Admin:
             params["entities"] = {}
 
             for ns in sorted(self.AD.state.get_namespaces()):
-                params["entities"][ns] = self.AD.state.get_state(ns, None, None, None)
+                params["entities"][ns] = self.AD.state.get_state("_admin", ns)
                 print(params["entities"][ns])
             #
             # Render Page

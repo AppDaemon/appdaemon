@@ -335,5 +335,5 @@ def str_to_dt(time):
     return iso8601.parse_date(time)
 
 def dt_to_str(dt):
-    return dt.date.isoformat()
+    return dt.isoformat()
 

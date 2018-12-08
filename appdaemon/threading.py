@@ -20,6 +20,7 @@ class Threading:
 
         self.logger = ad.logging.get_child("_threading")
         self.diag = ad.logging.get_diag()
+        self.thread_count = 0
 
         self.threads = {}
 
@@ -27,8 +28,8 @@ class Threading:
 
         self.add_entity = ad.state.add_entity
         self.get_state = ad.state.get_state
-        self.set_state = ad.state.set_state()
-        self.add_to_state = ad.state.add_to_state()
+        self.set_state = ad.state.set_state
+        self.add_to_state = ad.state.add_to_state
 
         # Initialize admin stats
 
@@ -113,8 +114,8 @@ class Threading:
             fired_avg = round(fired_sum / total_duration, 1)
             executed_avg = round(executed_sum / total_duration, 1)
 
-        self.AD.state.set_state("admin", "sensor.callbacks_average_fired", state=fired_avg)
-        self.AD.state.set_state("admin", "sensor.callbacks_average_executed", state=executed_avg)
+        self.AD.state.set_state("_threading", "admin", "sensor.callbacks_average_fired", state=fired_avg)
+        self.AD.state.set_state("_threading", "admin", "sensor.callbacks_average_executed", state=executed_avg)
 
         self.last_stats_time = now
         self.current_callbacks_executed = 0
@@ -161,20 +162,22 @@ class Threading:
         current_busy = self.get_state("_threading", "admin", "sensor.threads_current_busy")
         max_busy = self.get_state("_threading", "admin", "sensor.threads_max_busy")
         max_busy_time = utils.str_to_dt(self.get_state("_threading", "admin", "sensor.threads_max_busy_time"))
+        last_action_time = utils.str_to_dt(self.get_state("_threading", "admin", "sensor.threads_last_action_time"))
         self.diag.info("Currently busy threads: %s", current_busy)
         self.diag.info("Most used threads: %s at %s", max_busy, max_busy_time)
-        self.diag.info("Last activity: %s", last_ts)
+        self.diag.info("Last activity: %s", last_action_time)
         self.diag.info("Total Q Entries: %s", self.total_q_size())
         self.diag.info("--------------------------------------------------")
         for thread in sorted(self.threads, key=self.natural_keys):
+            t = self.get_state("_threading", "admin", "thread.{}".format(thread), attributes = all)
             self.diag.info(
                      "%s - qsize: %s | current callback: %s | since %s, | alive: %s, | pinned apps: %s",
                          thread,
-                         thread_info["threads"][thread]["qsize"],
-                         thread_info["threads"][thread]["callback"],
-                         thread_info["threads"][thread]["time_called"],
-                         thread_info["threads"][thread]["is_alive"],
-                         self.AD.threading.get_pinned_apps(thread)
+                         t["qsize"],
+                         t["callback"],
+                         t["time_called"],
+                         t["is_alive"],
+                         self.get_pinned_apps(thread)
                      )
         self.diag.info("--------------------------------------------------")
 
@@ -220,14 +223,23 @@ class Threading:
         q = self.threads[id]["queue"]
         q.put_nowait(args)
 
-    def check_overdue_threads(self):
+    def check_overdue_and_dead_threads(self):
         if self.AD.sched.realtime is True and self.AD.thread_duration_warning_threshold != 0:
             for thread_id in self.threads:
-                if self.get_state(thread_id) != "idle":
-                    start = utils.str_to_dt(self.threads[thread_id]["time_called"])
-                    dur = (self.AD.sched.get_now_naive() - start).total_seconds()
+                if self.threads[thread_id]["thread"].isAlive() is not True:
+                    self.logger.critical("Thread %s has died", thread_id)
+                    self.logger.critical("Pinned apps were: %s", self.get_pinned_apps(thread_id))
+                    self.logger.critical("Thread will be restarted")
+                    id=thread_id.split("-")[1]
+                    self.add_thread(silent=False, pinthread=False, id=id)
+                if self.get_state("_threading", "admin", "thread.{}".format(thread_id)) != "idle":
+                    start = utils.str_to_dt(self.get_state("_threading", "admin", "thread.{}".format(thread_id), attribute="time_called"))
+                    dur = (self.AD.sched.get_now() - start).total_seconds()
                     if dur >= self.AD.thread_duration_warning_threshold and dur % self.AD.thread_duration_warning_threshold == 0:
-                        self.logger.warning("Excessive time spent in callback: %s - %s", self.threads[thread_id]["callback"], dur)
+                        self.logger.warning("Excessive time spent in callback: %s - %s",
+                                            self.get_state("_threading", "admin", "thread.{}".format(thread_id),
+                                                           attribute="callback")
+                                            , dur)
 
     def check_q_size(self, warning_step, warning_iterations):
         if self.total_q_size() > self.AD.qsize_warning_threshold:
@@ -245,7 +257,7 @@ class Threading:
 
         return warning_step, warning_iterations
 
-    def update_thread_info(self, thread_id, callback, type = None):
+    def update_thread_info(self, thread_id, callback, type=None):
 
         if self.AD.log_thread_actions:
             if callback == "idle":
@@ -255,12 +267,11 @@ class Threading:
                 self.diag.info(
                          "%s calling %s callback %s", thread_id, type, callback)
 
-        now = self.AD.sched.get_now_naive()
+        now = self.AD.sched.get_now()
         if callback == "idle":
-            start = utils.dt_to_str(self.threads[thread_id]["time_called"])
+            start = utils.str_to_dt(self.get_state("_threading", "admin", "thread.{}".format(thread_id), attribute="time_called"))
             if self.AD.sched.realtime is True and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold:
                 self.logger.warning("callback %s has now completed", self.threads[thread_id]["callback"])
-        if callback == "idle":
             self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
         else:
             self.add_to_state("_threading", "admin", "sensor.threads_current_busy", 1)
@@ -269,14 +280,14 @@ class Threading:
         max_busy = self.get_state("_threading", "admin", "sensor.threads_max_busy")
         if current_busy > max_busy:
             self.set_state("_threading", "admin", "sensor.threads_max_busy" , state=current_busy)
-            self.set_state("_threading", "admin", "sensor.threads_max_busy_time", state=utils.dt_to_str(self.AD.sched.get_now_naive().replace(microsecond=0)))
+            self.set_state("_threading", "admin", "sensor.threads_max_busy_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
 
-        self.set_state("_threading", "admin", "sensor.threads_last_action_time", state=utils.dt_to_str(self.AD.sched.get_now_naive().replace(microsecond=0)))
+        self.set_state("_threading", "admin", "sensor.threads_last_action_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
 
         # Update thread info
 
-        self.set_state("_threading", "admin", "thread.{}".format(thread_id), q=self.threads[thread_id]["q"].qsize())
-        self.set_state("_threading", "admin", "thread.{}".format(thread_id), callback=callback)
+        self.set_state("_threading", "admin", "thread.{}".format(thread_id), q=self.threads[thread_id]["queue"].qsize())
+        self.set_state("_threading", "admin", "thread.{}".format(thread_id), state=callback)
         self.set_state("_threading", "admin", "thread.{}".format(thread_id), time_called=utils.dt_to_str(now.replace(microsecond=0)))
         self.set_state("_threading", "admin", "thread.{}".format(thread_id), is_alive=self.threads[thread_id]["thread"].is_alive())
 
@@ -284,28 +295,36 @@ class Threading:
     # Pinning
     #
 
-    def add_thread(self, silent=False, pinthread=False):
-        id = self.thread_count
+    def add_thread(self, silent=False, pinthread=False, id=None):
+        if id is None:
+            tid = self.thread_count
+        else:
+            tid = id
         if silent is False:
-            self.logger.info("Adding thread %s", id)
+            self.logger.info("Adding thread %s", tid)
         t = threading.Thread(target=self.worker)
         t.daemon = True
-        t.setName("thread-{}".format(id))
-        self.add_entity("admin", "thread.{}".format(t.getName()), "idle",
+        name = "thread-{}".format(tid)
+        t.setName(name)
+        if id is None:
+            self.add_entity("admin", "thread.{}".format(name), "idle",
                                  {
-                                     "callback": "None",
                                      "q": 0,
                                      "is_alive": True,
                                      "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0))
                                  }
                                  )
-        self.threads[t.getName()]["thread"] = t
-        self.threads[t.getName()]["queue"] = Queue(maxsize=0)
+            self.threads[name] = {}
+            self.threads[name]["queue"] = Queue(maxsize=0)
+            t.start()
+            self.thread_count += 1
+            if pinthread is True:
+                self.pin_threads += 1
+        else:
+            self.set_state("_threading", "admin", "thread.{}".format(name), state="idle", is_alive=True)
 
-        t.start()
-        self.thread_count += 1
-        if pinthread is True:
-            self.pin_threads += 1
+        self.threads[name]["thread"] = t
+
 
     def calculate_pin_threads(self):
 
@@ -333,9 +352,10 @@ class Threading:
                     thread_pins[thread] += 1
 
         # Update admin interface
-        if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
-            update = {"threads": self.AD.threading.get_thread_info()["threads"]}
-            #self.AD.appq.stream_update(update)
+        #if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
+            #TODO Figure this out
+            #
+            #update = {"threads": self.AD.threading.get_thread_info()["threads"]}
 
     def app_should_be_pinned(self, name):
         # Check apps.yaml first - allow override

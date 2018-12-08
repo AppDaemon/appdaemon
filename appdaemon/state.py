@@ -234,11 +234,6 @@ class State:
                     # Process non-state callbacks
                     self.AD.events.process_event(namespace, data)
 
-            # Update stream
-
-            #if self.AD.http is not None:
-                #await self.AD.http.stream_update(namespace, data)
-
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error during state_update()")

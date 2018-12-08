@@ -87,7 +87,7 @@ function admin_stream(stream, transport)
     this.update_admin = function (data)
     {
         // Process any updates
-        // console.log(data);
+        console.log(data);
         var id;
 
         if (data.event_type === "__AD_LOG_EVENT")

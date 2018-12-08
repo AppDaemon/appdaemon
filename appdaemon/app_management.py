@@ -129,8 +129,9 @@ class AppManagement:
             self.AD.http.term_object(name)
 
         # Update admin interface
-        if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
-            update = {"threads": self.AD.threading.get_thread_info()["threads"]}
+        #if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
+            #TODO Figure out
+            #update = {"threads": self.AD.threading.get_thread_info()["threads"]}
             #self.AD.appq.stream_update(update)
 
     def get_app_debug_level(self, app):
@@ -148,7 +149,7 @@ class AppManagement:
 
             with self.objects_lock:
                 if "pin_thread" in app_args:
-                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.threads:
+                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.thread_count:
                         self.logger.warning("pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
                         return
                     else:
@@ -357,8 +358,8 @@ class AppManagement:
             # Now we know if we have any new apps we can create new threads if pinning
 
             if add_threads is True and self.AD.threading.auto_pin is True:
-                if total_apps > self.AD.threading.threads:
-                    for i in range(total_apps - self.AD.threading.threads):
+                if total_apps > self.AD.threading.thread_count:
+                    for i in range(total_apps - self.AD.threading.thread_count):
                         self.AD.threading.add_thread(False, True)
 
             return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}

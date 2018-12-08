@@ -91,7 +91,7 @@ class Utility:
 
                     # Check for any overdue threads
 
-                    self.AD.threading.check_overdue_threads()
+                    self.AD.threading.check_overdue_and_dead_threads()
 
                     # Save any hybrid namespaces
 

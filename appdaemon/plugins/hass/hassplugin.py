@@ -223,9 +223,6 @@ class HassPlugin(PluginBase):
                     if not (result["id"] == _id and result["type"] == "event"):
                         self.logger.warning("Unexpected result from Home Assistant, id = %s", _id)
                         self.logger.warning(result)
-                        raise ValueError(
-                            "Unexpected result from Home Assistant"
-                        )
 
                     await self.AD.state.state_update(self.namespace, result["event"])
 
