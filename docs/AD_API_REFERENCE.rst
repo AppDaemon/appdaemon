@@ -2987,3 +2987,39 @@ Examples
 .. code:: python
 
     version = self.get_ad_version()
+
+Plugin Metadata
+---------------
+
+get_plugin_config()
+~~~~~~~~~~~~~~~~~
+
+Get any useful metadata that the plugin may have available. For instance, for the HASS plugin this will return  Home Assistant configuration data such as latitude and longitude.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_plugin_config()
+
+Parameters
+^^^^^^^^^^
+
+namespace=<namespace>
+
+Select the namespace of the plugin for which data is desired.
+
+Returns
+^^^^^^^
+
+A dictionary containing all the configuration information available from the Home Assistant ``/api/config`` endpoint.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    config = self.get_plugin_config()
+    self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
+

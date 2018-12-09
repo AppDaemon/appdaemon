@@ -247,8 +247,6 @@ class AppDaemon:
             self.plugins.stop()
 
     def terminate(self):
-        if self.app_management is not None:
-            self.app_management.terminate()
         if self.state is not None:
             self.state.terminate()
 

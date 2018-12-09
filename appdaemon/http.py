@@ -504,7 +504,7 @@ class HTTP:
 
     # API
 
-    def term_object(self, name):
+    def terminate_app(self, name):
         with self.endpoints_lock:
             if name in self.endpoints:
                 del self.endpoints[name]

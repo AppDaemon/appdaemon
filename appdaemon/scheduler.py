@@ -312,7 +312,7 @@ class Scheduler:
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
         return handle
 
-    def term_object(self, name):
+    def terminate_app(self, name):
         with self.schedule_lock:
             if name in self.schedule:
                 del self.schedule[name]

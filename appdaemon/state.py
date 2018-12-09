@@ -246,14 +246,42 @@ class State:
 
         return namespaces
 
+    async def remove_entity(self, namespace, entity):
+        data = \
+            {
+                "event_type": "__AD_ENTITY_REMOVED",
+                "data":
+                    {
+                        "entity_id": entity,
+                    }
+            }
+
+        with self.state_lock:
+            self.state[namespace].pop(entity)
+
+        await self.AD.events.process_event(namespace, data)
+
     async def add_entity(self, namespace, entity, state, attributes = None):
         if attributes is None:
             attrs = {}
         else:
             attrs = attributes
 
+        state = {"state": state, "attributes": attrs}
+
         with self.state_lock:
-            self.state[namespace][entity] = {"state": state, "attributes": attrs}
+            self.state[namespace][entity] = state
+
+        data = \
+            {
+                "event_type": "__AD_ENTITY_ADDED",
+                "data":
+                    {
+                        "entity_id": entity,
+                        "state": state,
+                    }
+            }
+        await self.AD.events.process_event(namespace, data)
 
     def get_state(self, name, namespace, entity_id=None, attribute=None):
         self.logger.debug("get_state: %s.%s", entity_id, attribute)
@@ -339,19 +367,25 @@ class State:
         value += i
         await self.set_state(name, namespace, entity_id, state=value)
 
+    async def add_to_attr(self, name, namespace, entity_id, attr, i):
+        state = self.get_state(name, namespace, entity_id, attribute="all")
+        state["attributes"][attr] = state["attributes"][attr] + i
+        await self.set_state(name, namespace, entity_id, attributes=state["attributes"])
+
     def set_state_simple(self, namespace, entity_id, state):
         with self.state_lock:
             self.state[namespace][entity_id] = state
 
     async def set_state(self, name, namespace, entity_id, **kwargs):
-
+        self.logger.debug("set_state(): %s, %s", entity_id, kwargs)
         with self.state_lock:
             old_state = self.state[namespace][entity_id]
             new_state = self.parse_state(entity_id, namespace, **kwargs)
 
             if not self.AD.state.entity_exists(namespace, entity_id):
                 self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
-                data = ret = \
+
+            data = \
                         {
                             "event_type": "state_changed",
                             "data":
@@ -361,7 +395,7 @@ class State:
                                     "old_state": old_state
                                 }
                         }
-                await self.AD.thread_async.call_async_no_wait(self.AD.events.process_event, namespace, {"event_type": "state_changed", "data": data})
+            await self.AD.events.process_event(namespace, data)
 
         return new_state
 

@@ -74,7 +74,7 @@ class Events:
 
                 self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
 
-                if self.AD.apps is True:
+                if self.AD.apps is True and namespace != "admin":
                     # Process state changecallbacks
                     if data['event_type'] == "state_changed":
                         await self.AD.state.process_state_callbacks(namespace, data)

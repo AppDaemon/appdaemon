@@ -19,7 +19,7 @@
     {% if logon is defined %}
 		<title>Logon to AppDaemon</title>
     {% else %}
-		<title>AppDaemon Administration Interface</title>
+		<title>{{ title }}</title>
     {%endif%}
 
 </head>
@@ -77,8 +77,9 @@ $(function() {
             <thead>
             <tr>
                 <th class="sort" data-sort="appname">Name<i class="caret"></i></th>
-                <th class="sort" data-sort="disabled">Disabled<i class="caret"></i></th>
-                <th class="sort" data-sort="debug">Debug Level<i class="caret"></i></th>
+                <th class="sort" data-sort="appstate">State<i class="caret"></i></th>
+                <th class="sort" data-sort="appcallbacks">Callbacks<i class="caret"></i></th>
+                <th class="sort" data-sort="appargs">Arguments<i class="caret"></i></th>
             </tr>
             </thead>
             <tbody class="list"></tbody>
@@ -90,16 +91,8 @@ $(function() {
     <h3>Modules</h3>
 </div>
 
-<div id="Entities" class="maintabcontent">
-    <div class="tab">
-        {% for ns in namespaces %}
-          <button class="entitytablinks" onclick="openTab(event, '{{ ns }}', 'entitytab')" id="{{ ns }}_entity_button">{{ ns }}</button>
-        {% endfor %}
-    </div>
-{% for ns in namespaces %}
-    <div id="{{ ns }}" class="entitytabcontent">
-        <div id="{{ ns }}-entities-table">
-        Filter <input class="search" /><br><br>
+<div id="Entities" class="maintabcontent"><div class="tab">{% for ns in namespaces %}<button class="entitytablinks" onclick="openTab(event, '{{ ns }}', 'entitytab')" id="{{ ns }}_entity_button">{{ ns }}</button>{% endfor %}</div>
+{% for ns in namespaces %}<div id="{{ ns }}" class="entitytabcontent"><div id="{{ ns }}-entities-table"><br>        Filter <input class="search" />
             <table>
                 <thead>
                 <tr>
@@ -108,40 +101,28 @@ $(function() {
                     <th class="sort" data-sort="attributes">Attributes<i class="caret"></i></th>
                 </tr>
                 </thead>
-                <tbody class="list"></tbody>
-            </table>
-        </div>
-    </div>
-{% endfor %}
+                <tbody class="list"></tbody></table></div></div>{% endfor %}
 </div>
 
 <div id="Threads" class="maintabcontent">
     <h3>Summary</h3>
     <table>
-        <tr><td>Current Busy</td><td id="current_busy_threads">{{ threads["current_busy"] }}</td></tr>
-        <tr><td>Maximum Busy</td><td id="max_busy_threads">{{ threads["max_busy"] }}</td></tr>
-        <tr><td>Maximum Busy Time</td><td id="max_busy_threads_time">{{ threads["max_busy_time"] }}</td></tr>
+        <tr><td>Current Busy</td><td id="sensor.threads_current_busy"></td></tr>
+        <tr><td>Maximum Busy</td><td id="sensor.threads_max_busy"></td></tr>
+        <tr><td>Maximum Busy Time</td><td id="sensor.threads_max_busy_time"></td></tr>
     </table>
     <h3>Details</h3>
-    <span id="thread_table">
-    <table>
+    <span id="thread-table">
+    <table><thead>
             <tr>
-                <th>ID</th>
-                <th>Queue Size</th>
-                <th>Callback</th>
-                <th>Time Called</th>
-                <th>Alive</th>
-                <th>Pinned Apps</th>
-            </tr>
-            {% for thread in threads["threads"] %}
-            <tr><td>{{ thread }}</td>
-                <td id="{{thread}}_qsize">{{ threads["threads"][thread]["qsize"] }}</td>
-                <td id="{{thread}}_callback">{{ threads["threads"][thread]["callback"] }}</td>
-                <td id="{{thread}}_time_called">{{ threads["threads"][thread]["time_called"] }}</td>
-                <td id="{{thread}}_is_alive">{{ threads["threads"][thread]["is_alive"] }}</td>
-                <td id="{{thread}}_pinned_apps">{{ threads["threads"][thread]["pinned_apps"] }}</td>
-            </tr>
-            {% endfor %}
+                <th class="sort" data-sort="id">ID<i class="caret"></i></th>
+                <th class="sort" data-sort="q_size">Queue Size<i class="caret"></i></th>
+                <th class="sort" data-sort="callback">Callback<i class="caret"></i></th>
+                <th class="sort" data-sort="time_called">Time Called<i class="caret"></i></th>
+                <th class="sort" data-sort="alive">Alive<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned_apps">Pinned Apps<i class="caret"></i></th>
+            </tr></thead>
+            <tbody class="list"></tbody>
     </table>
     </span>
 </div>

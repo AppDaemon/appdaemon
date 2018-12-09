@@ -8,7 +8,6 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
-import asyncio
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -18,6 +17,7 @@ class Threading:
     def __init__(self, ad: AppDaemon, kwargs):
 
         self.AD = ad
+        self.kwargs = kwargs
 
         self.logger = ad.logging.get_child("_threading")
         self.diag = ad.logging.get_diag()
@@ -31,8 +31,11 @@ class Threading:
         self.get_state = ad.state.get_state
         self.set_state = ad.state.set_state
         self.add_to_state = ad.state.add_to_state
+        self.add_to_attr = ad.state.add_to_attr
 
         self.auto_pin = True
+        self.pin_threads = 0
+        self.total_threads = 0
 
         # Setup stats
 
@@ -41,39 +44,6 @@ class Threading:
 
         self.last_stats_time = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
         self.callback_list = []
-
-        if "threads" in kwargs:
-            self.logger.warning(
-                     "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps")
-
-        if "total_threads" in kwargs:
-            self.total_threads = kwargs["total_threads"]
-            self.auto_pin = False
-        else:
-            self.total_threads = int(self.AD.app_management.check_config(True, False)["total"])
-
-        self.pin_apps = True
-        utils.process_arg(self, "pin_apps", kwargs)
-
-        if self.pin_apps is True:
-            self.pin_threads = self.total_threads
-        else:
-            self.auto_pin = False
-            self.pin_threads = 0
-            if "total_threads" not in kwargs:
-                self.total_threads = 10
-
-        utils.process_arg(self, "pin_threads", kwargs, int=True)
-
-        if self.pin_threads > self.total_threads:
-            raise ValueError("pin_threads cannot be > total_threads")
-
-        if self.pin_threads < 0:
-            raise ValueError("pin_threads cannot be < 0")
-
-        self.logger.info("Starting Apps with %s workers and %s pins", self.total_threads, self.pin_threads)
-
-        self.next_thread = self.pin_threads
 
     async def get_callback_update(self):
         now = datetime.datetime.now()
@@ -123,6 +93,42 @@ class Threading:
         await self.add_entity("admin", "sensor.threads_last_action_time", utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)))
 
     async def create_initial_threads(self):
+        kwargs = self.kwargs
+
+        if "threads" in kwargs:
+            self.logger.warning(
+                     "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps")
+
+        if "total_threads" in kwargs:
+            self.total_threads = kwargs["total_threads"]
+            self.auto_pin = False
+        else:
+            apps = await self.AD.app_management.check_config(True, False)
+            self.total_threads = int(apps["total"])
+
+        self.pin_apps = True
+        utils.process_arg(self, "pin_apps", kwargs)
+
+        if self.pin_apps is True:
+            self.pin_threads = self.total_threads
+        else:
+            self.auto_pin = False
+            self.pin_threads = 0
+            if "total_threads" not in kwargs:
+                self.total_threads = 10
+
+        utils.process_arg(self, "pin_threads", kwargs, int=True)
+
+        if self.pin_threads > self.total_threads:
+            raise ValueError("pin_threads cannot be > total_threads")
+
+        if self.pin_threads < 0:
+            raise ValueError("pin_threads cannot be < 0")
+
+        self.logger.info("Starting Apps with %s workers and %s pins", self.total_threads, self.pin_threads)
+
+        self.next_thread = self.pin_threads
+
         self.thread_count = 0
         for i in range(self.total_threads):
             await self.add_thread(True)
@@ -258,8 +264,8 @@ class Threading:
 
         return warning_step, warning_iterations
 
-    async def update_thread_info(self, thread_id, callback, type=None):
-
+    async def update_thread_info(self, thread_id, callback, app, type=None):
+        self.logger.debug("Update thread info: %s", thread_id)
         if self.AD.log_thread_actions:
             if callback == "idle":
                 self.diag.info(
@@ -274,6 +280,7 @@ class Threading:
             if self.AD.sched.realtime is True and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold:
                 self.logger.warning("callback %s has now completed", self.get_state("_threading", "admin", "thread.{}".format(thread_id)))
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
+            await self.add_to_attr("_threading", "admin", "app.{}".format(app), "callbacks", 1)
         else:
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", 1)
 
@@ -287,10 +294,14 @@ class Threading:
 
         # Update thread info
 
-        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), q=self.threads[thread_id]["queue"].qsize())
-        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), state=callback)
-        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), time_called=utils.dt_to_str(now.replace(microsecond=0)))
-        await self.set_state("_threading", "admin", "thread.{}".format(thread_id), is_alive=self.threads[thread_id]["thread"].is_alive())
+        await self.set_state("_threading", "admin", "thread.{}".format(thread_id),
+                             q=self.threads[thread_id]["queue"].qsize(),
+                             state=callback,
+                             time_called=utils.dt_to_str(now.replace(microsecond=0)),
+                             is_alive = self.threads[thread_id]["thread"].is_alive(),
+                             pinned_apps=self.get_pinned_apps(thread_id)
+                             )
+        await self.set_state("_threading", "admin", "app.{}".format(app), state=callback)
 
     #
     # Pinning
@@ -312,7 +323,7 @@ class Threading:
                                  {
                                      "q": 0,
                                      "is_alive": True,
-                                     "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0))
+                                     "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
                                  }
                                  )
             self.threads[name] = {}
@@ -352,11 +363,9 @@ class Threading:
                     self.set_pin_thread(name, thread)
                     thread_pins[thread] += 1
 
-        # Update admin interface
-        #if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
-            #TODO Figure this out
-            #
-            #update = {"threads": self.AD.threading.get_thread_info()["threads"]}
+            for thread in self.threads:
+                pinned_apps = self.get_pinned_apps(thread)
+                self.AD.thread_async.call_async_no_wait(self.set_state, "_threading", "admin", "thread.{}".format(thread), pinned_apps=self.get_pinned_apps(thread))
 
     def app_should_be_pinned(self, name):
         # Check apps.yaml first - allow override
@@ -567,7 +576,7 @@ class Threading:
                 try:
                     if _type == "timer":
                         if self.validate_callback_sig(name, "timer", funcref):
-                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
+                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
                             funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                     elif _type == "attr":
                         if self.validate_callback_sig(name, "attr", funcref):
@@ -575,18 +584,18 @@ class Threading:
                             attr = args["attribute"]
                             old_state = args["old_state"]
                             new_state = args["new_state"]
-                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
+                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
                             funcref(entity, attr, old_state, new_state,
                                     self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
                     elif _type == "event":
                         data = args["data"]
                         if args["event"] == "__AD_LOG_EVENT":
                             if self.validate_callback_sig(name, "log_event", funcref):
-                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
+                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
                                 funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
                         else:
                             if self.validate_callback_sig(name, "event", funcref):
-                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, _type)
+                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
                                 funcref(args["event"], data, args["kwargs"])
                 except:
                     error_logger.warning('-' * 60,)
@@ -598,7 +607,7 @@ class Threading:
                     if self.AD.logging.separate_error_log() is True:
                         self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
                 finally:
-                    self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, "idle")
+                    self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, "idle", name)
                     self.AD.thread_async.call_async_no_wait(self.add_to_state, "_threading", "admin", "sensor.callbacks_total_executed", 1)
                     self.current_callbacks_executed += 1
 

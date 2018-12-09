@@ -43,6 +43,7 @@ class Dashboard:
         self.max_include_depth = 10
         self.fa4compatibility = False
         self.transport = "ws"
+        self.title = "HADashboard"
         #
         # Process any overrides
         #
@@ -64,6 +65,7 @@ class Dashboard:
         self._process_arg("max_include_depth", kwargs)
         self._process_arg("fa4compatibility", kwargs)
         self._process_arg("transport", kwargs)
+        self._process_arg("title", kwargs)
         #
         # Create some dirs
         #
@@ -843,7 +845,7 @@ class Dashboard:
             #
             # return params
             #
-            params = {"errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
+            params = {"title": self.title, "errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
                     "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable,
                     "fa4compatibility": self.fa4compatibility, "transport": self.transport}
 

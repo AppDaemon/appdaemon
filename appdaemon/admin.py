@@ -24,6 +24,7 @@ class Admin:
         self.fonts_dir = os.path.join(self.dash_install_dir, "assets", "fonts")
         self.images_dir = os.path.join(self.dash_install_dir, "assets", "images")
         self.base_url = ""
+        self.title = "AppDaemon Administrative Interface"
         #
         # Process any overrides
         #
@@ -32,6 +33,7 @@ class Admin:
         self._process_arg("css_dir", kwargs)
         self._process_arg("fonts_dir", kwargs)
         self._process_arg("images_dir", kwargs)
+        self._process_arg("title", kwargs)
 
         self.transport = "ws"
         self._process_arg("transport", kwargs)
@@ -51,6 +53,7 @@ class Admin:
             params = {}
 
             params["transport"] = self.transport
+            params["title"] = self.title
 
             # AppDaemon
 
