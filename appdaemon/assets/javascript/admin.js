@@ -129,7 +129,7 @@ function create_tables(entities)
 
                 if (device(entity) === "sensor")
                 {
-                    $('#' + entity).text(state)
+                    $('#' + device(entity) + "_" + name(entity)).text(state)
                 }
             }
         });
@@ -188,6 +188,14 @@ function update_admin(data)
                 })
             }
         }
+
+        // Sensors
+
+        if (device(entity) === "sensor")
+        {
+            $('#' + device(entity) + "_" + name(entity)).text(state)
+        }
+
     }
 
     if (data.event_type === "__AD_ENTITY_ADDED")
