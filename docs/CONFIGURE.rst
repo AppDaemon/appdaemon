@@ -115,7 +115,7 @@ The secrets can then be referred to as follows:
       plugins:
         HASS:
           type: hass
-          ha_key: !secret token
+          token: !secret token
           ha_url: http://192.168.1.20:8123
 
 Filters
@@ -196,7 +196,7 @@ To configure the HASS plugin, in addition to the required parameters above, you 
 -  ``type:`` This must be declared and it must be ``hass``
 -  ``ha_url`` (required for the ``hass`` plugin) is a reference to your home assistant installation and
    must include the correct port number and scheme (``http://`` or ``https://`` as appropriate)
--  ``ha_key`` (required for the ``hass`` plugin) should be set to your home assistant password if you have one, otherwise it can be removed. This directive is deprecated - you should use the ``token`` directive instead
+-  ``ha_key`` should be set to your home assistant API password if you have one, otherwise it can be removed. This directive is deprecated - you should use the ``token`` directive instead
 -  ``token`` (required) - set the long lived token for access to your hass instance (see later for a description of how to create a long lived access token)
 -  ``cert_verify`` (optional) - flag for cert verification for HASS -
    set to ``False`` to disable verification on self signed certs, or certs for which the address used doesn;tmatch the cert address (e.g. using an internal IP address)
@@ -234,7 +234,7 @@ An example of the HASS plugin could look like the following:
         HASS:
           type: hass
           ha_url: <some_url>
-          ha_key: <some key>
+          token: <token>
           cert_path: <path/to/root/CA/cert>
           cert_verify: True
           namespace: default
