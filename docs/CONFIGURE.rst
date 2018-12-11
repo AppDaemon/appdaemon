@@ -440,11 +440,66 @@ App configuration is fully described in the `API doc <API.md>`__.
 With this app in place we will be able to test the App part of AppDaemon
 when we first run it.
 
+Configuring the HTTP Component
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The HTTP componenet provides a unified front end to ``Apdaemon's Admin Interface, HADashboard, and the AppDaemon API. It requires some iniital configuration, but the dashboard and admin interface can be separately enabled or disabled.
+
+It has it's own top level section in AppDaemon.yaml, and one mandatory argument, ``url``:
+
+.. code::
+
+http:
+url: http://192.168.1.20:5050
+
+-  ``url`` - the url you want the http component to listen on
+
+
+To password protect ``AppDaemon`` use the ``password`` directive:
+
+.. code:: yaml
+
+      password: some_password
+
+Or you can use the secret function and place the actual password in your
+secrets.yaml file:
+
+.. code:: yaml
+
+      password: !secret ad_password
+
+To enable https support for HADashboard, add the following directives
+pointing to your certificate and keyfile:
+
+.. code:: yaml
+
+      dash_ssl_certificate: /etc/letsencrypt/live/somehost/fullchain.pem
+      dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
+
+
+AppDaemon uses websockets as the default protocol for streaming events from AppDaemon to the dashboard and admin interface so the dashboard can respond to events in real time. Some older devices, e.g. original iPad models, do not support websockets. In this case you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws` which means the Websockets protocol will be used:
+
+.. code:: yaml
+
+    http:
+        transport: socketio
+
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configuration of the dashboard component (HADashboard) is described
-separately in the `Dashboard doc <DASHBOARD_INSTALL.html>`__
+separately in the `Dashboard doc <DASHBOARD_INSTALL.html>`__ Note that the dashboard depends on the http section being configured to correctly function.
+
+Configuring the API
+~~~~~~~~~~~~~~~~~~~
+
+The AppDaemon App API is configured by adding a top level directive to appdaemon.yaml:
+
+.. code::
+
+    api:
+
+It takes no arguments.
 
 Example Apps
 ------------

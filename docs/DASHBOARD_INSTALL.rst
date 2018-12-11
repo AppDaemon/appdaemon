@@ -17,13 +17,9 @@ HADashboard is dependent upon AppDaemon. As a first step please refer to
 the `AppDaemon Installation Documentation <INSTALL.html>`__.
 
 When you have AppDaemon installed and running, configuration of the
-Dashboard is pretty simple. You just need to add a directive to the
-appdaemon.yaml file - ``dash_url``.
+Dashboard is pretty simple. You just need to add a ``hadashboard`` directive to the
+appdaemon.yaml file
 
-This and the optional ``dash_dir`` directive should be in the toplevel  of the
-file under a new ``hadashboard:`` section.
-
--  ``dash_url`` - the url you want the dashboard service to listen on
 
 For instance:
 
@@ -32,28 +28,8 @@ For instance:
     appdaemon:
         ...
     hadashboard:
-      dash_url: http://192.168.1.20:5050
 
-To enable https support for HADashboard, add the following directives
-pointing to your certificate and keyfile:
 
-::
-
-      dash_ssl_certificate: /etc/letsencrypt/live/somehost/fullchain.pem
-      dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
-
-To password protect HADashboard use the ``dash_password`` directive:
-
-.. code:: yaml
-
-      dash_password: some_password
-
-Or you can use the secret function and place the actual password in your
-secrets.yaml file:
-
-.. code:: yaml
-
-      dash_password: !secret dash_password
 
 By default, dashboards are searched for under the config directory in a
 sub directory called ``dashboards``. Optionally, you can place your
@@ -67,12 +43,6 @@ e.g.:
     hadashboard:
         dashboard_dir: /etc/appdaemon/dashboards
 
-HADashboard uses websockets as the default protocol for streaming events from AppDaemon to the dashboard so the dashboard can respond to events in real time. Some older devices, e.g. original iPad models, do not support websockets. IN this case you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws` which means the Websockets protocol will be used:
-
-.. code:: yaml
-
-    hadashboard:
-        transport: socketio
 
 Once initial configuration is complete, you will need to create the ``dashboards`` directive either under
 the conf directory, or wherever you specify with ``dash_dir``. Once that
@@ -126,7 +96,7 @@ use the following directive:
 .. code:: yaml
 
     hadashboard:
-    dash_force_compile: 1
+        force_compile: 1
 
 This will force dashboard recompilation whenever the dashboard is
 loaded. You can also force a recompilation by adding the parameter
@@ -134,19 +104,20 @@ loaded. You can also force a recompilation by adding the parameter
 
 By default, information and errors around access to the Dashboard will
 go to the same place as AppDaemon's log. To split the page access out to
-a different file, use the ``accessfile`` directive, e.g.:
+a different file, use the ``access_log`` directives in the ``logs`` section, e.g.:
 
 .. code:: yaml
 
-    hadashboard:
-      accessfile: /var/log/dash_access
+logs:
+  access_log:
+    filename: /export/pegasus/hass/appdaemon_test/logs/access.log
 
 To force dashboard recompilation of all dashboards after a restart, use:
 
 .. code:: yaml
 
     hadashboard:
-      dash_compile_on_start: 1
+      compile_on_start: 1
 
 This should not be necessary but may on occasion be required after an
 upgrade to pickup changes. This is now the default if not otherwise specified.
