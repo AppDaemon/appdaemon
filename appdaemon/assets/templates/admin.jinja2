@@ -65,8 +65,11 @@ $(function() {
 <!-- Tab content -->
 <div id="AppDaemon" class="maintabcontent">
     <h3>AppDaemon</h3>
-    <br>Version: {{ appdaemon["version"] }}
-    <br>Running since: {{ appdaemon["booted"] }}
+    <table>
+        <tr><td>Version</td><td id="sensor_appdaemon_version"></td></tr>
+        <tr><td>Booted</td><td id="sensor_appdaemon_booted"></td></tr>
+        <tr><td>Uptime</td><td id="sensor_appdaemon_uptime"></td></tr>
+    </table>
 </div>
 
 <div id="Apps" class="maintabcontent">
@@ -89,6 +92,16 @@ $(function() {
 
 <div id="Modules" class="maintabcontent">
     <h3>Modules</h3>
+    <span is="modules-table">
+   <table>
+        <thead><tr>
+            <th class="sort" data-sort="name">Name</th>
+            <th class="sort" data-sort="path">Type</th>
+            <th class="sort" data-sort="classes">Namespace</th>
+        </tr></thead>
+        <tbody></tbody>
+    </table>
+    </span>
 </div>
 
 <div id="Entities" class="maintabcontent"><div class="tab">{% for ns in namespaces %}<button class="entitytablinks" onclick="openTab(event, '{{ ns }}', 'entitytab')" id="{{ ns }}_entity_button">{{ ns }}</button>{% endfor %}</div>
@@ -130,95 +143,74 @@ $(function() {
 <div id="Callbacks" class="maintabcontent">
     <h3>Summary</h3>
     <table>
-        <tr><td>Total Callbacks Fired</td><td id="total_callbacks_fired">{{ callback_updates["total_callbacks_fired"] }}</td><td>Average <span id="avg_callbacks_fired_per_sec">{{ callback_updates["avg_callbacks_fired_per_sec"] }}</span> callback_updates/s</td></tr>
-        <tr><td>Total Callbacks Executed</td><td id="total_callbacks_executed">{{ callback_updates["total_callbacks_executed"] }}</td><td>Average <span id="avg_callbacks_executed_per_sec">{{ callback_updates["avg_callbacks_executed_per_sec"] }}</span> Callbacks/s</td></tr>
+        <tr><td>Total Callbacks Fired</td><td id="sensor_callbacks_total_fired"></td>
+            <td>Average Callbacks Fired/s</td><td id="sensor_callbacks_average_fired"></td></tr>
+        </tr>
+        <tr><td>Total Callbacks Executed</td><td id="sensor_callbacks_total_executed"></td>
+            <td>Average Callbackes Executed/s</td><td id="sensor_callbacks_average_executed"></td></tr>
+        </tr>
     </table>
     <h3>Scheduler Callbacks</h3>
-    <span id="active_scheduler_callbacks">
-        {% if sched|length == 0 %}
-            No active callbacks
-        {% else %}
+    <span id="scheduler-callback-table">
         <table>
-            <tr><th>App</th><th>Execution Time</th><th>Repeat</th><th>Callback</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>
-            {% for entry in sched %}
-                {% for id in sched[entry] %}
-                    <tr>
-                        <td>{{entry}}</td>
-                        <td>{{sched[entry][id]['timestamp'] }}</td>
-                        <td>{{sched[entry][id]['interval'] }}</td>
-                        <td>{{sched[entry][id]['callback'] }}</td>
-                        <td>{{sched[entry][id]['pin_app'] }}</td>
-                        <td>{{sched[entry][id]['pin_thread'] }}</td>
-                        <td>{{sched[entry][id]['kwargs'] }}</td>
-                    </tr>
-                {% endfor %}
-            {% endfor %}
+            <thead>
+            <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
+                <th class="sort" data-sort="execution_time">Execution Time<i class="caret"></i></th>
+                <th class="sort" data-sort="repeat">Repeat<i class="caret"></i></th>
+                <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned_thread">Pinned Thread<i class="caret"></i></th>
+                <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+            </tr></thead>
+            <tbody class="list"></tbody>
         </table>
-        {% endif %}
     </span>
     <h3>State Callbacks</h3>
-    <span id="active_state_callbacks">
-        {% if state_callbacks|length == 0 %}
-            No active callbacks
-        {% else %}
+    <span id="state-callback-table">
         <table>
-        <tr><th>App</th><th>Entity</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>
-            {% for entry in state_callbacks %}
-                {% for id in state_callbacks[entry] %}
-                    <td>{{ entry }}</td>
-                    <td>{{ state_callbacks[entry][id].entity }}</td>
-                    <td>{{ state_callbacks[entry][id].function }}</td>
-                    <td>{{ state_callbacks[entry][id].pin_app }}</td>
-                    <td>{{ state_callbacks[entry][id].pin_thread }}</td>
-                    <td>{{ state_callbacks[entry][id].kwargs }}</td>
-                {% endfor %}
-            {% endfor %}
+        <thead>
+        <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="sort" data-sort="entity">Entity<i class="caret"></i></th>
+            <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned_thread">Pinned Thread<i class="caret"></i></th>
+            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+        </tr></thead>
+        <tbody class="list"></tbody>
         </table>
-        {% endif %}
     </span>
     <h3>Event Callbacks</h3>
-    <span id="active_event_callbacks">
-        {% if event_callbacks|length == 0 %}
-            No active callbacks
-        {% else %}
+    <span id="event-callback-table">
         <table>
-        <tr><th>App</th><th>Event Name</th><th>Function</th><th>Pinned</th><th>Pinned Thread</th><th>Kwargs</th></tr>
-            {% for entry in event_callbacks %}
-                {% for id in event_callbacks[entry] %}
-                    <tr>
-                    <td>{{ entry }}</td>
-                    <td>{{ event_callbacks[entry][id].event }}</td>
-                    <td>{{ event_callbacks[entry][id].function }}</td>
-                    <td>{{ event_callbacks[entry][id].pin_app }}</td>
-                    <td>{{ event_callbacks[entry][id].pin_thread }}</td>
-                    <td>{{ event_callbacks[entry][id].kwargs }}</td>
-                    </tr>
-                {% endfor %}
-            {% endfor %}
+        <thead><tr>
+            <th class="sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="sort" data-sort="event_name">Event Name<i class="caret"></i></th>
+            <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned_thread">Pinned Thread<i class="caret"></i></th>
+            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+        </tr></thead>
+        <tbody class="list"></tbody>
         </table>
-        {% endif %}
     </span>
 
 </div>
 
 <div id="Logs" class="maintabcontent">
 <div class="tab">{% for log in logs %}{%  if logs[log]["lines"] != None %}<button class="logtablinks" onclick="openTab(event, '{{ log }}', 'logtab')" id="{{ log }}_button">{{ logs[log]["name"] }}</button>{% endif %}{% endfor %}</div>{% for log in logs %}{%  if logs[log]["lines"] != None %}<div id="{{ log }}" class="logtabcontent"><div id="{{ log }}_div" class="log_panel">{% for line in logs[log]["lines"] | reverse %}{{line}}<br>{% endfor %}</div></div>{% endif %}{% endfor %}</div>
+
 <div id="Plugins" class="maintabcontent">
+<span is="plugins-table">
   <h3>Plugins</h3>
     <table>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Namespace</th>
-        </tr>
-    {% for plugin in plugins %}
-        <tr>
-            <td>{{ plugin }}</td>
-            <td>{{ plugins[plugin]["type"] }}</td>
-            <td>{{ plugins[plugin]["namespace"] }}</td>
-        </tr>
-    {% endfor %}
+        <thead><tr>
+            <th class="sort" data-sort="name">Name</th>
+            <th class="sort" data-sort="type">Type</th>
+            <th class="sort" data-sort="namespace">Namespace</th>
+        </tr></thead>
+        <tbody></tbody>
     </table>
+                </span>
 </div>
         </div>
         </div>

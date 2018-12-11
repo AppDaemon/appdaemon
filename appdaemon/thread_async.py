@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -33,8 +34,15 @@ class ThreadAsync:
             function = args["function"]
             myargs = args["args"]
             mykwargs = args["kwargs"]
-
-            result = await function(*myargs, **mykwargs)
+            try:
+                result = await function(*myargs, **mykwargs)
+            except:
+                self.logger.warning('-' * 60)
+                self.logger.warning("Unexpected error during thread_async() loop()")
+                self.logger.warning("args: %s", args)
+                self.logger.warning('-' * 60)
+                self.logger.warning(traceback.format_exc())
+                self.logger.warning('-' * 60)
 
 
         self.appq.task_done()

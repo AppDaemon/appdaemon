@@ -105,6 +105,11 @@ class State:
                                 __new_state=kwargs["new"], **kwargs
                             )
 
+            self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin",
+                                                    "state_callback.{}".format(handle), "active",
+                                                    {"app": name, "listened_entity": entity, "function": cb.__name__,
+                                                     "pinned": pin_app, "pinned_thread": pin_thread, "kwargs": kwargs})
+
             return handle
         else:
             return None
@@ -116,6 +121,8 @@ class State:
 
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
+                self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin",
+                                                    "state_callback.{}".format(handle))
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
 

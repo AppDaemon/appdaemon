@@ -687,7 +687,8 @@ class AppManagement:
         error_apps = result["error"]
         prio_apps = result["prio"]
 
-        self.AD.threading.calculate_pin_threads()
+        if apps is not None and apps["init"]:
+            self.AD.threading.calculate_pin_threads()
 
         for app in error_apps:
             await self.AD.state.set_state("_app_management", "admin", "app.{}".format(app), state="error")

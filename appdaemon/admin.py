@@ -61,42 +61,6 @@ class Admin:
             params["appdaemon"]["booted"] = self.AD.booted.replace(microsecond=0)
             params["appdaemon"]["version"] = utils.__version__
 
-            # Apps
-
-            params["apps"] = {}
-            app_config = self.AD.app_management.app_config
-            for app in app_config:
-                params["apps"][app] = {}
-
-                if "disabled" in app_config[app] and app_config[app][app]["disabled"] is True:
-                    params["apps"][app]["disabled"] = True
-                else:
-                    params["apps"][app]["disabled"] = False
-
-                params["apps"][app]["debug"] = self.AD.app_management.get_app_debug_level(app)
-
-            # Plugins
-
-            params["plugins"] = {}
-            for plug in self.AD.plugins.plugin_objs:
-                params["plugins"][plug] = \
-                    {
-                        "name": self.AD.plugins.plugin_objs[plug]["object"].name,
-                        "type": self.AD.plugins.plugin_objs[plug]["object"].__class__.__name__,
-                        "namespace": self.AD.plugins.plugin_objs[plug]["object"].namespace,
-                    }
-
-            # Threads
-
-            params["threads"] = {}#self.AD.threading.get_thread_info()
-
-            # Callbacks
-
-            params["callback_updates"] = await self.AD.threading.get_callback_update()
-            params["state_callbacks"] = self.AD.callbacks.get_callback_entries("state")
-            params["event_callbacks"] = self.AD.callbacks.get_callback_entries("event")
-            params["sched"] = self.AD.sched.get_scheduler_entries()
-
             # Logs
 
             params["logs"] = self.AD.logging.get_admin_logs()

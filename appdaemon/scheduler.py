@@ -102,6 +102,7 @@ class Scheduler:
         with self.schedule_lock:
             if name in self.schedule and handle in self.schedule[name]:
                 del self.schedule[name][handle]
+                self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle)))
             if name in self.schedule and self.schedule[name] == {}:
                 del self.schedule[name]
 
@@ -155,7 +156,13 @@ class Scheduler:
                     # the timestamp with the repeat interval
                     args["basetime"] += timedelta(seconds = args["interval"])
                     args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
-            else:  # Otherwise just delete
+                # Update entity
+
+                await self.AD.state.set_state("_scheduler", "admin", "scheduler_callback.{}".format(entry), execution_time = utils.dt_to_str(args["timestamp"].replace(microsecond=0)))
+            else:
+                # Otherwise just delete
+                await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(entry))
+
                 del self.schedule[name][entry]
 
         except:
@@ -170,7 +177,7 @@ class Scheduler:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
             error_logger.warning("Scheduler entry has been deleted")
             error_logger.warning('-' * 60)
-
+            await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(entry))
             del self.schedule[name][entry]
 
     def process_sun(self, action):
@@ -309,12 +316,26 @@ class Scheduler:
                     "pin_thread": pin_thread,
                     "kwargs": kwargs
                 }
+
+        self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin", "scheduler_callback.{}".format(handle), "active",
+                                                                         {
+                                                                             "app": name,
+                                                                             "execution_time": utils.dt_to_str(ts.replace(microsecond=0)),
+                                                                             "repeat": interval,
+                                                                             "function": callback.__name__,
+                                                                             "pinned": pin_app,
+                                                                             "pinned_thread": pin_thread,
+                                                                             "kwargs": kwargs
+                                                                         })
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
+
         return handle
 
     def terminate_app(self, name):
         with self.schedule_lock:
             if name in self.schedule:
+                for id in self.schedule[name]:
+                    self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin", "scheduler_callback.{}".format(id))
                 del self.schedule[name]
 
     def is_realtime(self):

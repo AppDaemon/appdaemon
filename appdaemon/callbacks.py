@@ -66,4 +66,12 @@ class Callbacks:
         self.logger.debug("Clearing callbacks for %s", name)
         with self.callbacks_lock:
             if name in self.callbacks:
+                for id in self.callbacks[name]:
+                    if self.callbacks[name][id]["type"] == "event":
+                        self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin",
+                                                            "event_callback.{}".format(id))
+                    if self.callbacks[name][id]["type"] == "state":
+                        self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin",
+                                                            "state_callback.{}".format(id))
+
                 del self.callbacks[name]

@@ -69,6 +69,11 @@ class Utility:
 
             self.AD.loop.create_task(self.AD.sched.do_every())
 
+            self.booted = self.AD.sched.get_now()
+            await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
+            await self.AD.state.add_entity("admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0)))
+            await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", self.AD.sched.make_naive(self.booted.replace(microsecond=0)).isoformat())
+
             warning_step = 0
             warning_iterations = 0
 
@@ -108,6 +113,11 @@ class Utility:
                     # Run utility for each plugin
 
                     self.AD.plugins.run_plugin_utility()
+
+                    # Update uptime sensor
+
+                    uptime = self.AD.sched.get_now().replace(microsecond=0) - self.booted.replace(microsecond=0)
+                    await self.AD.state.set_state("_utility", "admin", "sensor.appdaemon_uptime", state=str(uptime))
 
                 except:
                     self.logger.warning('-' * 60)

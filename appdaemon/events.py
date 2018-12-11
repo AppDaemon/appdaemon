@@ -45,6 +45,7 @@ class Events:
                         "pin_thread": pin_thread,
                         "kwargs": kwargs
                     }
+                self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin", "event_callback.{}".format(handle), "active", {"app": _name, "event_name": event, "function": cb.__name__, "pinned": pin_app, "pinned_thread": pin_thread, "kwargs": kwargs})
             return handle
         else:
             return None
@@ -53,6 +54,8 @@ class Events:
         with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
+                self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin",
+                                                    "event_callback.{}".format(handle))
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
 

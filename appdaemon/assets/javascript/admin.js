@@ -65,6 +65,64 @@ function create_tables(entities)
 
     create_clear("thread_table", id, options);
 
+    // Create scheduler callbacks table
+
+    id = "scheduler-callback-table";
+    options = {
+        valueNames:
+            [
+                'id',
+                'app',
+                'execution_time',
+                'repeat',
+                'function',
+                'pinned',
+                'pinned_thread',
+                'kwargs'
+            ],
+        item: '<tr><td class="app"></td><td class="execution_time"></td><td class="repeat"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="kwargs"></td></tr>'
+    };
+
+    create_clear("scheduler_callback_table", id, options);
+
+    // Create state callbacks table
+
+    id = "state-callback-table";
+    options = {
+        valueNames:
+            [
+                'id',
+                'app',
+                'entity',
+                'function',
+                'pinned',
+                'pinned_thread',
+                'kwargs'
+            ],
+        item: '<tr></td><td class="app"></td><td class="entity"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="kwargs"></td></tr>'
+    };
+
+    create_clear("state_callback_table", id, options);
+
+    // Create event callbacks table
+
+    id = "event-callback-table";
+    options = {
+        valueNames:
+            [
+                'id',
+                'app',
+                'event_name',
+                'function',
+                'pinned',
+                'pinned_thread',
+                'kwargs'
+            ],
+        item: '<tr></td><td class="app"></td><td class="event_name"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="kwargs"></td></tr>'
+    };
+
+    create_clear("event_callback_table", id, options);
+
     // Iterate the namespaces for entities table
 
     jQuery.each(entities.state, function(namespace)
@@ -125,6 +183,52 @@ function create_tables(entities)
                     });
                 }
 
+                // Scheduler Callbacks
+
+                if (device(entity) === "scheduler_callback")
+                {
+                    window.scheduler_callback_table.add({
+                        id: name(entity),
+                        app: attributes.app,
+                        execution_time: attributes.execution_time,
+                        repeat: attributes.repeat,
+                        function: attributes.function,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    });
+                }
+
+                // State Callbacks
+
+                if (device(entity) === "state_callback")
+                {
+                    window.state_callback_table.add({
+                        id: name(entity),
+                        app: attributes.app,
+                        entity: attributes.listened_entity,
+                        function: attributes.function,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    });
+                }
+
+                // Event Callbacks
+
+                if (device(entity) === "event_callback")
+                {
+                    window.event_callback_table.add({
+                        id: name(entity),
+                        app: attributes.app,
+                        event_name: attributes.event_name,
+                        function: attributes.function,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    });
+                }
+
                 // Sensors
 
                 if (device(entity) === "sensor")
@@ -137,7 +241,10 @@ function create_tables(entities)
     });
 
     window.app_table.sort('name');
-    window.thread_table.sort('id')
+    window.thread_table.sort('id');
+    window.scheduler_callback_table.sort('app')
+    window.state_callback_table.sort('app')
+    window.event_callback_table.sort('app')
 }
 
 function update_admin(data)
@@ -187,22 +294,37 @@ function update_admin(data)
                     pinned_apps: JSON.stringify(attributes.pinned_apps)
                 })
             }
+
+            // Event and state callbacks are immutable, scheduler callbacks are not
+
+            if (device(entity) === "scheduler_callback")
+            {
+                item = window.scheduler_callback_table.get("id", name(entity));
+                item[0].values({
+                    id: name(entity),
+                    app: attributes.app,
+                    execution_time: attributes.execution_time,
+                    repeat: attributes.repeat,
+                    function: attributes.function,
+                    pinned: attributes.pinned,
+                    pinned_thread: attributes.pinned_thread,
+                    kwargs: JSON.stringify(attributes.kwargs)
+                })
+            }
+            // Sensors
+
+            if (device(entity) === "sensor")
+            {
+                $('#' + device(entity) + "_" + name(entity)).text(state)
+            }
         }
-
-        // Sensors
-
-        if (device(entity) === "sensor")
-        {
-            $('#' + device(entity) + "_" + name(entity)).text(state)
-        }
-
     }
 
     if (data.event_type === "__AD_ENTITY_ADDED")
     {
-        namespace = data.namespace
+        namespace = data.namespace;
         entity = data.data.entity_id;
-        attributes = JSON.stringify(data.data.state.attributes);
+        attributes = data.data.state.attributes;
         state = data.data.state.state;
 
         // Add To Entities
@@ -225,6 +347,7 @@ function update_admin(data)
                 });
                 window.app_table.sort('name')
             }
+
             if (device(entity) === "thread")
             {
                 window.thread_table.add({
@@ -236,6 +359,50 @@ function update_admin(data)
                     pinned_apps: JSON.stringify(attributes.pinned_apps)
                 });
                 window.thread_table.sort('name')
+            }
+
+            if (device(entity) === "scheduler_callback")
+            {
+                window.scheduler_callback_table.add({
+                    id: name(entity),
+                    app: attributes.app,
+                    execution_time: attributes.execution_time,
+                    repeat: attributes.repeat,
+                    function: attributes.function,
+                    pinned: attributes.pinned,
+                    pinned_thread: attributes.pinned_thread,
+                    kwargs: JSON.stringify(attributes.kwargs)
+                });
+                window.scheduler_callback_table.sort('app')
+            }
+
+
+            if (device(entity) === "state_callback")
+            {
+                window.state_callback_table.add({
+                    id: name(entity),
+                    app: attributes.app,
+                    entity: attributes.listened_entity,
+                    function: attributes.function,
+                    pinned: attributes.pinned,
+                    pinned_thread: attributes.pinned_thread,
+                    kwargs: JSON.stringify(attributes.kwargs)
+                });
+                window.state_callback_table.sort('app')
+            }
+
+            if (device(entity) === "event_callback")
+            {
+                window.event_callback_table.add({
+                    id: name(entity),
+                    app: attributes.app,
+                    event_name: attributes.event_name,
+                    function: attributes.function,
+                    pinned: attributes.pinned,
+                    pinned_thread: attributes.pinned_thread,
+                    kwargs: JSON.stringify(attributes.kwargs)
+                });
+                window.event_callback_table.sort('app')
             }
         }
     }
@@ -256,6 +423,18 @@ function update_admin(data)
             if (device(entity) === "thread")
             {
                 window.thread_table.remove("id", name(entity))
+            }
+            if (device(entity) === "scheduler_callback")
+            {
+                window.scheduler_callback_table.remove("id", name(entity))
+            }
+            if (device(entity) === "state_callback")
+            {
+                window.state_callback_table.remove("id", name(entity))
+            }
+            if (device(entity) === "event_callback")
+            {
+                window.event_callback_table.remove("id", name(entity))
             }
         }
     }
