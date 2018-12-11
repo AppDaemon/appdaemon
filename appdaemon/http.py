@@ -12,6 +12,7 @@ import ssl
 import bcrypt
 import threading
 import uuid
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import appdaemon.dashboard as addashboard
 import appdaemon.utils as utils
@@ -80,10 +81,12 @@ class HTTP:
         self.access = ad.logging.get_access()
 
         self.appdaemon = appdaemon
-        self.dasboard = dashboard
+        self.dashboard = dashboard
         self.admin = admin
         self.http = http
         self.api = api
+
+        self.template_dir = os.path.join(os.path.dirname(__file__), "assets", "templates")
 
         self.password = None
         self._process_arg("password", http)
@@ -111,6 +114,9 @@ class HTTP:
 
         self.endpoints = {}
         self.endpoints_lock = threading.RLock()
+
+        self.dashboard_obj = None
+        self.admin_obj = None
 
         try:
             url = urlparse(self.url)
@@ -165,11 +171,9 @@ class HTTP:
                 self._process_arg("stats_update", admin)
 
                 self.admin_obj = adadmin.Admin(self.config_dir, logging, self.AD, **admin)
-                self.setup_admin_routes()
 
             else:
                 self.logger.info("Admin Interface is disabled")
-
             #
             # Dashboards
             #
@@ -246,7 +250,8 @@ class HTTP:
 
             f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
             loop.create_task(f)
-            loop.create_task(self.update_rss())
+            if self.dashboard_obj is not None:
+                loop.create_task(self.update_rss())
 
         except:
             self.logger.warning('-' * 60)
@@ -278,7 +283,11 @@ class HTTP:
         if password == self.password:
             self.access.info("Succesful logon from %s", request.host)
             hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
-            response = await self._admin_page(request)
+            if self.admin is not None:
+                response = await self._admin_page(request)
+            else:
+                response = await self._list_dash(request)
+
             # Set cookie to last for 1 year
             response.set_cookie("adcreds", hashed.decode("utf-8"), max_age=31536000)
 
@@ -453,9 +462,6 @@ class HTTP:
 
     # Routes, Status and Templates
 
-    def setup_admin_routes(self):
-        self.app.router.add_get('/', self.admin_page)
-
     def setup_api_routes(self):
         self.app.router.add_post('/api/call_service', self.call_service)
         self.app.router.add_get('/api/state/{namespace}/{entity}', self.get_entity)
@@ -468,6 +474,13 @@ class HTTP:
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon_response', self.logon_response)
+        if self.admin is not None:
+            self.app.router.add_get('/', self.admin_page)
+        elif self.dashboard is not None:
+            self.app.router.add_get('/', self.list_dash)
+        else:
+            self.app.router.add_get('/', self.error_page)
+
 
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
@@ -602,6 +615,53 @@ class HTTP:
         return web.Response(text=response, content_type="text/html")
 
     async def logon_page(self, request):
-        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.admin_obj.logon_page, request.scheme, request.host)
+        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.generate_logon_page, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
+
+    async def error_page(self, request):
+        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.generate_error_page, request.scheme, request.host)
+        return web.Response(text=response, content_type="text/html")
+
+    def generate_logon_page(self, scheme, url):
+        try:
+            params = {}
+
+            env = Environment(
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
+
+            template = env.get_template("logon.jinja2")
+            rendered_template = template.render(params)
+
+            return (rendered_template)
+
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error creating logon page")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+
+    def generate_error_page(self, scheme, url):
+        try:
+            params = {}
+
+
+            env = Environment(
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
+
+            template = env.get_template("error.jinja2")
+            rendered_template = template.render(params)
+
+            return (rendered_template)
+
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error creating logon page")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 

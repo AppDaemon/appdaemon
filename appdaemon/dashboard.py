@@ -836,7 +836,7 @@ class Dashboard:
                 scalable = True
 
             if "dash_list" in dash:
-                dash_list = dash["dash_list"]
+                dash_list = dash["dash_list"]["dash_list"]
             else:
                 dash_list = []
 

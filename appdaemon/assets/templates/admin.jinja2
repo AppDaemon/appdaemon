@@ -33,7 +33,11 @@ $(function() {
     <tr>
     <td class="header-icon"><a href="/"><img src="images/favicon-32x32.png"></a></td>
     <td class="header-title"><a href="/">AppDaemon Administration</a></td>
-        <td class="header-list"><input type="submit" value="List Dashboards" onclick="javascript:window.location='/list'"></td>
+        <td class="header-list">
+            {%  if dashboard == True %}
+            <input type="submit" value="List Dashboards" onclick="javascript:window.location='/list'">
+            {% endif %}
+        </td>
         <td class="header-logout"><input type="submit" value="Logout" onclick="javascript:logout()"></td>
     </tr>
 </table>

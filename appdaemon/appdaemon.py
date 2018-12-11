@@ -261,8 +261,9 @@ class AppDaemon:
         self.http = http
         # Create admin loop
 
-        self.logger.debug("Starting admin loop")
+        if http.admin is not None:
+            self.logger.debug("Starting admin loop")
 
-        self.admin_loop = admin_loop.AdminLoop(self)
-        self.loop.create_task(self.admin_loop.loop())
+            self.admin_loop = admin_loop.AdminLoop(self)
+            self.loop.create_task(self.admin_loop.loop())
 

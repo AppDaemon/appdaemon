@@ -69,6 +69,9 @@ class ADMain():
 
             if http is not None and (hadashboard is not None or admin is not None or api is not False):
                 self.logger.info("Initializing HTTP")
+                self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api,
+                                               http)
+                self.AD.register_http(self.http_object)
             else:
                 if http is not None:
                     self.logger.info("HTTP configured but no consumers are configured - disabling")
@@ -80,9 +83,6 @@ class ADMain():
                 api = False
 
 
-            self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api,
-                                               http)
-            self.AD.register_http(self.http_object)
 
             self.logger.debug("Start Main Loop")
 

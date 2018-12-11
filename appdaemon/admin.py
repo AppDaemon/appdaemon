@@ -3,8 +3,6 @@ import traceback
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-import appdaemon.utils as utils
-
 from appdaemon.appdaemon import AppDaemon
 
 
@@ -55,6 +53,11 @@ class Admin:
             params["transport"] = self.transport
             params["title"] = self.title
 
+            if self.AD.http.dashboard_obj is not None:
+                params["dashboard"] = True
+            else:
+                params["dashboard"] = False
+
             # Logs
 
             params["logs"] = self.AD.logging.get_admin_logs()
@@ -76,31 +79,6 @@ class Admin:
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error creating admin page")
-            self.logger.warning('-' * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
-
-    def logon_page(self, scheme, url):
-        try:
-            params = {}
-
-            params["title"] = self.title
-
-            # Logs
-
-            env = Environment(
-                loader=FileSystemLoader(self.template_dir),
-                autoescape=select_autoescape(['html', 'xml'])
-            )
-
-            template = env.get_template("logon.jinja2")
-            rendered_template = template.render(params)
-
-            return (rendered_template)
-
-        except:
-            self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error creating logon page")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)

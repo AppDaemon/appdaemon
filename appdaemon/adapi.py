@@ -276,7 +276,11 @@ class ADAPI:
             ep = self.name
         else:
             ep = name
-        return self._AD.http.register_endpoint(cb, ep)
+        if self._AD.http is not None:
+            return self._AD.http.register_endpoint(cb, ep)
+        else:
+            self.logger.warning("register_endpoint for %s filed - HTTP component is not configured", name)
+
 
     def unregister_endpoint(self, handle):
         self._AD.http.unregister_endpoint(handle, self.name)
