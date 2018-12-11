@@ -103,7 +103,7 @@ class Threading:
             self.total_threads = kwargs["total_threads"]
             self.auto_pin = False
         else:
-            apps = await self.AD.app_management.check_config(True, False)
+            apps = self.AD.app_management.check_config(True, False)
             self.total_threads = int(apps["total"])
 
         self.pin_apps = True
@@ -365,7 +365,7 @@ class Threading:
 
             for thread in self.threads:
                 pinned_apps = self.get_pinned_apps(thread)
-                #self.AD.thread_async.call_async_no_wait(self.set_state, "_threading", "admin", "thread.{}".format(thread), pinned_apps=self.get_pinned_apps(thread))
+                self.AD.thread_async.call_async_no_wait(self.set_state, "_threading", "admin", "thread.{}".format(thread), pinned_apps=self.get_pinned_apps(thread))
 
     def app_should_be_pinned(self, name):
         # Check apps.yaml first - allow override

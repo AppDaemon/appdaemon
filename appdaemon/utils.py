@@ -10,6 +10,7 @@ import pstats
 import json
 import threading
 import iso8601
+import datetime
 
 if platform.system() != "Windows":
     import pwd
@@ -335,5 +336,8 @@ def str_to_dt(time):
     return iso8601.parse_date(time)
 
 def dt_to_str(dt):
-    return dt.isoformat()
+    if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
+        return "never"
+    else:
+        return dt.isoformat()
 

@@ -321,7 +321,7 @@ class Scheduler:
                                                                          {
                                                                              "app": name,
                                                                              "execution_time": utils.dt_to_str(ts.replace(microsecond=0)),
-                                                                             "repeat": interval,
+                                                                             "repeat": str(datetime.timedelta(seconds=interval)),
                                                                              "function": callback.__name__,
                                                                              "pinned": pin_app,
                                                                              "pinned_thread": pin_thread,

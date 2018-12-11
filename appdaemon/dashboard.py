@@ -770,7 +770,7 @@ class Dashboard:
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
             dash_list = self._list_dashes()
-            return {"errors": ["Dashboard has errors or is not found - check verbose_log for details"], "dash_list": dash_list}
+            return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
 
         params = dash
         params["base_url"] = self.base_url
@@ -819,7 +819,7 @@ class Dashboard:
             dash = self._conditional_compile(name, skin, recompile)
 
             if dash is None:
-                errors = []
+                errors = ["An unrecoverable error occured - check log for details"]
                 head_includes = []
                 body_includes = []
             else:
@@ -835,27 +835,43 @@ class Dashboard:
             else:
                 scalable = True
 
-            include_path = os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
-            with open(include_path, "r") as include_file:
-                head_includes = include_file.read()
-            include_path = os.path.join(self.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
-            with open(include_path, "r") as include_file:
-                body_includes = include_file.read()
+            if "dash_list" in dash:
+                dash_list = dash["dash_list"]
+            else:
+                dash_list = []
 
-            #
-            # return params
-            #
-            params = {"title": self.title, "errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
-                    "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable,
-                    "fa4compatibility": self.fa4compatibility, "transport": self.transport}
+            if errors != []:
+                params = {"title": self.title, "errors": errors, "name": name.lower(), "dash_list": dash_list}
 
-            env = Environment(
-                loader=FileSystemLoader(self.template_dir),
-                autoescape=select_autoescape(['html', 'xml'])
-            )
+                env = Environment(
+                    loader=FileSystemLoader(self.template_dir),
+                    autoescape=select_autoescape(['html', 'xml'])
+                )
 
-            template = env.get_template("dashboard.jinja2")
-            rendered_template = template.render(params)
+                template = env.get_template("list.jinja2")
+                rendered_template = template.render(params)
+            else:
+                include_path = os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
+                with open(include_path, "r") as include_file:
+                    head_includes = include_file.read()
+                include_path = os.path.join(self.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
+                with open(include_path, "r") as include_file:
+                    body_includes = include_file.read()
+
+                #
+                # return params
+                #
+                params = {"title": self.title, "errors": errors, "name": name.lower(), "skin": skin, "widgets": widgets,
+                        "head_includes": head_includes, "body_includes": body_includes, "scalable": scalable,
+                        "fa4compatibility": self.fa4compatibility, "transport": self.transport}
+
+                env = Environment(
+                    loader=FileSystemLoader(self.template_dir),
+                    autoescape=select_autoescape(['html', 'xml'])
+                )
+
+                template = env.get_template("dashboard.jinja2")
+                rendered_template = template.render(params)
 
             return(rendered_template)
 
@@ -868,13 +884,13 @@ class Dashboard:
             return self.html_error()
 
     def html_error(self):
-        params = {"errors": ["An unrecoverable error occured fetching dashboard"]}
+        params = {"errors": ["An unrecoverable error occured fetching dashboard, check log for details"]}
         env = Environment(
             loader=FileSystemLoader(self.template_dir),
             autoescape=select_autoescape(['html', 'xml'])
         )
 
-        template = env.get_template("dashboard.jinja2")
+        template = env.get_template("list.jinja2")
         rendered_template = template.render(params)
 
         return (rendered_template)
@@ -891,7 +907,7 @@ class Dashboard:
             autoescape=select_autoescape(['html', 'xml'])
         )
 
-        template = env.get_template("dashboard.jinja2")
+        template = env.get_template("list.jinja2")
         rendered_template = template.render(dash)
 
         return (rendered_template)

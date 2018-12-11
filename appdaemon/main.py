@@ -239,8 +239,13 @@ class ADMain():
 
         appdaemon["stop_function"] = self.stop
 
+        hadashboard = None
         if "hadashboard" in config:
-            hadashboard = config["hadashboard"]
+            if config["hadashboard"] is None:
+                hadashboard = {}
+            else:
+                hadashboard = config["hadashboard"]
+
             hadashboard["profile_dashboard"] = args.profiledash
             hadashboard["config_dir"] = config_dir
             hadashboard["config_file"] = config_file_yaml
@@ -251,27 +256,22 @@ class ADMain():
             if "dashboard" not in hadashboard:
                 hadashboard["dashboard"] = True
 
-        else:
-            hadashboard = None
-
+        admin = None
         if "admin" in config:
             if config["admin"] is None:
                 admin = {}
             else:
                 admin = config["admin"]
-
+        api = None
         if "api" in config:
             if config["api"] is None:
                 api = {}
             else:
                 api = config["api"]
-        else:
-            api = None
 
+        http = None
         if "http" in config:
             http = config["http"]
-        else:
-            http = None
 
         # Setup _logging
 

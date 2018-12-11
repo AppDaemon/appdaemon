@@ -161,7 +161,7 @@ function create_tables(entities)
                 {
                     callbacks = attributes.callbacks;
                     window.app_table.add({
-                        name: entity,
+                        name: name(entity),
                         state: state,
                         arguments: JSON.stringify(attributes.args),
                         callbacks: callbacks
@@ -242,9 +242,9 @@ function create_tables(entities)
 
     window.app_table.sort('name');
     window.thread_table.sort('id');
-    window.scheduler_callback_table.sort('app')
-    window.state_callback_table.sort('app')
-    window.event_callback_table.sort('app')
+    window.scheduler_callback_table.sort('app');
+    window.state_callback_table.sort('app');
+    window.event_callback_table.sort('app');
 }
 
 function update_admin(data)
@@ -274,12 +274,12 @@ function update_admin(data)
         {
             if (device(entity) === "app")
             {
-                item = window.app_table.get("name", entity);
+                item = window.app_table.get("name", name(entity));
                 item[0].values({
-                    name: entity,
+                    name: name(entity),
                     state: state,
                     callbacks: attributes.callbacks,
-                    args: JSON.stringify(attributes.args)
+                    arguments: JSON.stringify(attributes.args)
                 });
             }
             if (device(entity) === "thread")
@@ -340,7 +340,7 @@ function update_admin(data)
             if (device(entity) === "app")
             {
                 window.app_table.add({
-                    name: entity,
+                    name: name(entity),
                     state: state,
                     callbacks: attributes.callbacks,
                     args: JSON.stringify(attributes.args)
@@ -418,7 +418,7 @@ function update_admin(data)
         {
             if (device(entity) === "app")
             {
-                window.app_table.remove("name", entity)
+                window.app_table.remove("name", name(entity))
             }
             if (device(entity) === "thread")
             {
@@ -611,3 +611,4 @@ function get_state(f)
 
     });
 }
+

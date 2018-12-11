@@ -3,7 +3,7 @@ from copy import deepcopy
 import traceback
 import threading
 import os
-import iso8601
+from copy import copy, deepcopy
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -370,13 +370,13 @@ class State:
         return new_state
 
     async def add_to_state(self, name, namespace, entity_id, i):
-        value = self.get_state(name, namespace, entity_id)
+        value = int(self.get_state(name, namespace, entity_id))
         value += i
         await self.set_state(name, namespace, entity_id, state=value)
 
     async def add_to_attr(self, name, namespace, entity_id, attr, i):
         state = self.get_state(name, namespace, entity_id, attribute="all")
-        state["attributes"][attr] = state["attributes"][attr] + i
+        state["attributes"][attr] = copy(state["attributes"][attr]) + i
         await self.set_state(name, namespace, entity_id, attributes=state["attributes"])
 
     def set_state_simple(self, namespace, entity_id, state):
@@ -386,9 +386,10 @@ class State:
     async def set_state(self, name, namespace, entity_id, **kwargs):
         self.logger.debug("set_state(): %s, %s", entity_id, kwargs)
         with self.state_lock:
-            old_state = self.state[namespace][entity_id]
+            old_state = deepcopy(self.state[namespace][entity_id])
             new_state = self.parse_state(entity_id, namespace, **kwargs)
-
+            self.logger.debug("Old state: %s", old_state)
+            self.logger.debug("New state: %s", new_state)
             if not self.AD.state.entity_exists(namespace, entity_id):
                 self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
 

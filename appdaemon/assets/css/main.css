@@ -59,10 +59,10 @@ a {
 input[type="submit"] {
    border: 0;
    background: none;
-   background-color: #EAEAEA;
-   color: #03A9F4;
+   background-color: #d7e8ef;
+   color: #000000;
    box-shadow:none;
-   border-radius: 0px;
+   border-radius: 2px;
 }
 
 /* Style the tab */
@@ -107,7 +107,6 @@ input[type="submit"] {
     padding: 6px 12px;
     border: 1px solid #ccc;
     border-top: none;
-    font-family: "Courier New", Courier, monospace;
     white-space: pre-wrap;
 }
 
@@ -159,3 +158,36 @@ th, td {
 button.sort .caret { display:none; }
 button.sort.asc .caret { display:inline-block; }
 button.sort.desc .caret { display:inline-block; }
+
+.header  {
+    border: none;
+    vertical-align: center;
+    table-layout: auto;
+    width: 100%;
+    white-space: nowrap;}
+
+.header td {
+    border: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-icon {
+    alignment: left;
+    width: 50px;
+}
+
+.header-title {
+    alignment: left;
+}
+
+.header-logout {
+    alignment: right;
+    width: 1%;
+}
+
+.header-list {
+    alignment: right;
+    width: 1%;
+}

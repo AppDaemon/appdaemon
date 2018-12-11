@@ -268,35 +268,29 @@ class HTTP:
         return bcrypt.checkpw, str.encode(password), str.encode(hash)
 
     async def forcelogon(self, request):
-        response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list,
-                                                    {"logon": 1})
-        return web.Response(text=response, content_type="text/html")
+        response = await self.logon_page(request)
+        return response
 
-    async def logon(self, request):
+    async def logon_response(self, request):
         data = await request.post()
         password = data["password"]
 
         if password == self.password:
             self.access.info("Succesful logon from %s", request.host)
             hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
-
-            # utils.verbose_log(conf.dash, "INFO", hashed)
-
-            response = await self.list_dash_no_secure(request)
-            response.set_cookie("adcreds", hashed.decode("utf-8"))
+            response = await self._admin_page(request)
+            # Set cookie to last for 1 year
+            response.set_cookie("adcreds", hashed.decode("utf-8"), max_age=31536000)
 
         else:
-            self.access.warning("Unsuccessful logon from {}", request.host)
-            response = await self.list_dash(request)
+            self.access.warning("Unsuccessful logon from %s", request.host)
+            response = await self.logon_page(request)
 
         return response
 
     # noinspection PyUnusedLocal
     @secure
     async def list_dash(self, request):
-        return await self._list_dash(request)
-
-    async def list_dash_no_secure(self, request):
         return await self._list_dash(request)
 
     async def _list_dash(self, request):
@@ -459,6 +453,9 @@ class HTTP:
 
     # Routes, Status and Templates
 
+    def setup_admin_routes(self):
+        self.app.router.add_get('/', self.admin_page)
+
     def setup_api_routes(self):
         self.app.router.add_post('/api/call_service', self.call_service)
         self.app.router.add_get('/api/state/{namespace}/{entity}', self.get_entity)
@@ -468,12 +465,12 @@ class HTTP:
         self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
 
     def setup_http_routes(self):
-        self.app.router.add_get('/', self.list_dash)
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
-        self.app.router.add_post('/logon', self.logon)
+        self.app.router.add_post('/logon_response', self.logon_response)
 
     def setup_dashboard_routes(self):
+        self.app.router.add_get('/list', self.list_dash)
         self.app.router.add_get('/{name}', self.load_dash)
 
         # Setup Templates
@@ -595,10 +592,16 @@ class HTTP:
     # Admin
     #
 
-    def setup_admin_routes(self):
-        self.app.router.add_get('/admin', self.admin_page)
-
     @secure
     async def admin_page(self, request):
-        response = await self.admin_obj.admin(request.scheme, request.host)
+        return await self._admin_page(request)
+
+    async def _admin_page(self, request):
+        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.admin_obj.admin_page, request.scheme, request.host)
+
         return web.Response(text=response, content_type="text/html")
+
+    async def logon_page(self, request):
+        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.admin_obj.logon_page, request.scheme, request.host)
+        return web.Response(text=response, content_type="text/html")
+

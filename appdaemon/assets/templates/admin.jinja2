@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32">
     <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16">
     <link rel="manifest" href="images/manifest.json">
-    <link rel="stylesheet" type="text/css" href="css/admin.css">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
 	<script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
 	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
     <script type="text/javascript" src="javascript/socket.io.js"></script>
@@ -16,12 +16,7 @@
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
     <meta name="theme-color" content="#ffffff">
-    {% if logon is defined %}
-		<title>Logon to AppDaemon</title>
-    {% else %}
-		<title>{{ title }}</title>
-    {%endif%}
-
+    <title>{{ title }}</title>
 </head>
 <body>
             <script>
@@ -32,25 +27,18 @@ $(function() {
 })
 </script>
 
-    {% if logon is defined %}
-        <div id="backgroundImage">
-        <div class="main">
-        <h1><img src="/images/favicon-32x32.png">&nbsp;HADashboard</h1>
-        <br>Welcome to the AppDaemon Administration Interface.
-        <br/>
-        <section class="loginform cf">
-        <form name="login" action="/logon" method="post" accept-charset="utf-8">
-            <label for="password">Admin Password</label>
-            <input type="password" name="password" placeholder="password" required>
-            <br/>
-            <input type="submit" value="Login">
-        </form>
-        </section>
-    {% else %}
-		<div id="backgroundImage">
-        <div class="main">
-        <h1><img src="images/favicon-32x32.png"> AppDaemon Administration</h1>
-<!-- Tab links -->
+<div id="backgroundImage">
+<div class="main">
+<table class="header">
+    <tr>
+    <td class="header-icon"><a href="/"><img src="images/favicon-32x32.png"></a></td>
+    <td class="header-title"><a href="/">AppDaemon Administration</a></td>
+        <td class="header-list"><input type="submit" value="List Dashboards" onclick="javascript:window.location='/list'"></td>
+        <td class="header-logout"><input type="submit" value="Logout" onclick="javascript:logout()"></td>
+    </tr>
+</table>
+<br>
+    <!-- Tab links -->
 <div class="tab">
   <button class="maintablinks" onclick="openTab(event, 'AppDaemon', 'maintab')" id="appdaemon">AppDaemon</button>
   <button class="maintablinks" onclick="openTab(event, 'Plugins', 'maintab')" id="plugins">Plugins</button>
@@ -93,6 +81,7 @@ $(function() {
 <div id="Modules" class="maintabcontent">
     <h3>Modules</h3>
     <span is="modules-table">
+    Filter <input class="search" /><br><br>
    <table>
         <thead><tr>
             <th class="sort" data-sort="name">Name</th>
@@ -126,6 +115,7 @@ $(function() {
     </table>
     <h3>Details</h3>
     <span id="thread-table">
+    Filter <input class="search" /><br><br>
     <table><thead>
             <tr>
                 <th class="sort" data-sort="id">ID<i class="caret"></i></th>
@@ -152,6 +142,7 @@ $(function() {
     </table>
     <h3>Scheduler Callbacks</h3>
     <span id="scheduler-callback-table">
+        Filter <input class="search" /><br><br>
         <table>
             <thead>
             <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
@@ -167,6 +158,7 @@ $(function() {
     </span>
     <h3>State Callbacks</h3>
     <span id="state-callback-table">
+        Filter <input class="search" /><br><br>
         <table>
         <thead>
         <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
@@ -181,6 +173,7 @@ $(function() {
     </span>
     <h3>Event Callbacks</h3>
     <span id="event-callback-table">
+        Filter <input class="search" /><br><br>
         <table>
         <thead><tr>
             <th class="sort" data-sort="app">App<i class="caret"></i></th>
@@ -193,7 +186,6 @@ $(function() {
         <tbody class="list"></tbody>
         </table>
     </span>
-
 </div>
 
 <div id="Logs" class="maintabcontent">
@@ -202,6 +194,7 @@ $(function() {
 <div id="Plugins" class="maintabcontent">
 <span is="plugins-table">
   <h3>Plugins</h3>
+    Filter <input class="search" /><br><br>
     <table>
         <thead><tr>
             <th class="sort" data-sort="name">Name</th>
@@ -213,7 +206,7 @@ $(function() {
                 </span>
 </div>
         </div>
+<br><br>
         </div>
-    {%endif%}
 </body>
 </html>

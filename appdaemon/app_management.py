@@ -42,16 +42,28 @@ class AppManagement:
 
         self.apps_initialized = False
 
+
         # Add Path for adbase
 
         sys.path.insert(0, os.path.dirname(__file__))
 
         self.process_filters()
 
-    async def terminate(self):
+    def set_state(self, name, **kwargs):
+        self.AD.thread_async.call_async_no_wait(self.AD.state.set_state, "_app_management", "admin",
+                                                "app.{}".format(name), **kwargs)
+
+    def add_entity(self, name, state, attributes):
+        self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin", "app.{}".format(name), state,
+                                                attributes)
+
+    def remove_entity(self, name):
+        self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin", "app.{}".format(name))
+
+    def terminate(self):
         self.logger.debug("terminate() called for app_management")
         if self.apps_initialized is True:
-            await self.check_app_updates(exit=True)
+            self.check_app_updates(exit=True)
 
     def dump_objects(self):
         self.diag.info("--------------------------------------------------")
@@ -69,7 +81,7 @@ class AppManagement:
             else:
                 return None
 
-    async def initialize_app(self, name):
+    def initialize_app(self, name):
         with self.objects_lock:
             if name in self.objects:
                 init = getattr(self.objects[name]["object"], "initialize", None)
@@ -84,7 +96,7 @@ class AppManagement:
         try:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 init()
-                await self.AD.state.set_state("_app_management", "admin", "app.{}".format(name), state="idle", args=self.app_config[name])
+                self.set_state(name, state="idle")
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -94,9 +106,9 @@ class AppManagement:
             error_logger.warning('-' * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
-            await self.AD.state.set_state("_app_management", "admin", "app.{}".format(name), state="error")
+            self.set_state(name, state="initialize_error")
 
-    async def terminate_app(self, name):
+    def terminate_app(self, name):
         with self.objects_lock:
             term = None
             if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
@@ -109,7 +121,7 @@ class AppManagement:
         if term is not None:
             try:
                 term()
-                await self.AD.state.set_state("_app_management", "admin", "app.{}".format(name), state="terminated")
+                self.set_state(name, state="terminated")
             except:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning('-' * 60)
@@ -119,7 +131,6 @@ class AppManagement:
                 error_logger.warning('-' * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
-                await self.AD.state.set_state("_app_management", "admin", "app.{}".format(name), state="error")
 
         with self.objects_lock:
             if name in self.objects:
@@ -129,14 +140,8 @@ class AppManagement:
 
         self.AD.sched.terminate_app(name)
 
-        if self.AD.http.api is not None:
+        if self.AD.http is not None:
             self.AD.http.terminate_app(name)
-
-        # Update admin interface
-        #if self.AD.http.admin is not None and self.AD.http.stats_update == "realtime":
-            #TODO Figure out
-            #update = {"threads": self.AD.threading.get_thread_info()["threads"]}
-            #self.AD.thread_async.stream_update(update)
 
     def get_app_debug_level(self, app):
         with self.objects_lock:
@@ -153,7 +158,7 @@ class AppManagement:
 
             with self.objects_lock:
                 if "pin_thread" in app_args:
-                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.thread_count:
+                    if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.total_threads:
                         self.logger.warning("pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
                         return
                     else:
@@ -287,7 +292,7 @@ class AppManagement:
             self.logger.warning('-' * 60)
 
     # noinspection PyBroadException
-    async def check_config(self, silent=False, add_threads=True):
+    def check_config(self, silent=False, add_threads=True):
 
         terminate_apps = {}
         initialize_apps = {}
@@ -295,7 +300,7 @@ class AppManagement:
         total_apps = len(self.app_config)
 
         try:
-            latest = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.check_later_app_configs, self.app_config_file_modified)
+            latest = self.check_later_app_configs(self.app_config_file_modified)
             self.app_config_file_modified = latest["latest"]
 
             if latest["files"] or latest["deleted"]:
@@ -332,13 +337,12 @@ class AppManagement:
 
                         if silent is False:
                             self.logger.info("App '{}' deleted".format(name))
-
                         #
                         # Since the entry has been deleted we can't sensibly determine dependencies
                         # So just immediately terminate it
                         #
-                        await self.terminate_app(name)
-                        await self.AD.state.remove_entity("admin", "app.{}".format(name))
+                        self.terminate_app(name)
+                        self.remove_entity(name)
 
                 for name in new_config:
                     if name not in self.app_config:
@@ -348,7 +352,7 @@ class AppManagement:
                         if "class" in new_config[name] and "module" in new_config[name]:
                             self.logger.info("App '{}' added".format(name))
                             initialize_apps[name] = 1
-                            await self.AD.state.add_entity("admin", "app.{}".format(name), "disabled", {"callbacks": 0, "args": new_config[name]})
+                            self.add_entity(name, "loaded", {"callbacks": 0, "args": new_config[name]})
                         elif name == "global_modules":
                             pass
                         else:
@@ -490,7 +494,26 @@ class AppManagement:
                 return True
         return False
 
-    def find_files(self, apps, plugin):
+    #@_timeit
+    def check_app_updates(self, plugin=None, exit=False):
+
+        if self.AD.apps is False:
+            return
+
+        # Lets add some profiling
+        pr = None
+        if self.AD.check_app_updates_profile is True:
+            pr = cProfile.Profile()
+            pr.enable()
+
+        # Process filters
+
+        self.process_filters()
+
+        # Get list of apps we need to terminate and/or initialize
+
+        apps = self.check_config()
+
         found_files = []
         modules = []
         for root, subdirs, files in os.walk(self.AD.app_dir, topdown=True):
@@ -577,19 +600,36 @@ class AppManagement:
                             reload = True
                             break
                 else:
-                    # No plugin dependency specified, reload to err on the side of caution
+                    # No plugin dependency specified, reload to error on the side of caution
                     reload = True
 
                 if reload is True:
                     apps["term"][app] = 1
                     apps["init"][app] = 1
 
-        return modules
+        # Terminate apps
 
-    def reload_modules(self, apps, modules):
+        if apps is not None and apps["term"]:
 
-        error_apps = []
-        prio_apps = {}
+            prio_apps = self.get_app_deps_and_prios(apps["term"])
+
+            for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
+                try:
+                    self.logger.info("Terminating {}".format(app))
+                    self.terminate_app(app)
+                except:
+
+                    error_logger = logging.getLogger("Error.{}".format(app))
+                    error_logger.warning('-' * 60)
+                    error_logger.warning("Unexpected error terminating app: %s:", app)
+                    error_logger.warning('-' * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning('-' * 60)
+                    if self.AD.logging.separate_error_log() is True:
+                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(app))
+
+        # Load/reload modules
+
         for mod in modules:
             try:
                 self.read_app(mod["name"], mod["reload"])
@@ -609,7 +649,7 @@ class AppManagement:
                         if apps["init"] and app in apps["init"]:
                             del apps["init"][app]
                             self.logger.warning("{}".format(app))
-                            error_apps.append(app)
+                            self.set_state(app, state="compile_error")
 
         if apps is not None and apps["init"]:
 
@@ -621,6 +661,7 @@ class AppManagement:
                 try:
                     if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
                         self.logger.info("{} is disabled".format(app))
+                        self.set_state(app, state="disabled")
                     else:
                         self.init_object(app)
                 except:
@@ -632,75 +673,16 @@ class AppManagement:
                     error_logger.warning('-' * 60)
                     if self.AD.logging.separate_error_log() is True:
                         self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(app))
-                    error_apps.append(app)
 
-        return {"error": error_apps, "prio": prio_apps}
-
-    #@_timeit
-    async def check_app_updates(self, plugin=None, exit=False):
-
-        if self.AD.apps is False:
-            return
-
-        # Lets add some profiling
-        pr = None
-        if self.AD.check_app_updates_profile is True:
-            pr = cProfile.Profile()
-            pr.enable()
-
-        # Process filters
-
-        await utils.run_in_executor(self.AD.loop, self.AD.executor, self.process_filters)
-
-        # Get list of apps we need to terminate and/or initialize
-
-        apps = await self.check_config()
-
-        modules = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.find_files, apps, plugin)
-
-        # Terminate apps
-
-        if apps is not None and apps["term"]:
-
-            prio_apps = self.get_app_deps_and_prios(apps["term"])
-
-            for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
-                try:
-                    self.logger.info("Terminating {}".format(app))
-                    await self.terminate_app(app)
-                except:
-
-                    error_logger = logging.getLogger("Error.{}".format(app))
-                    error_logger.warning('-' * 60)
-                    error_logger.warning("Unexpected error terminating app: %s:", app)
-                    error_logger.warning('-' * 60)
-                    error_logger.warning(traceback.format_exc())
-                    error_logger.warning('-' * 60)
-                    if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(app))
-                    await self.AD.state.set_state("_app_management", "admin", "app.{}".format(app), state="error")
-
-        # Load/reload modules
-
-        result = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.reload_modules, apps, modules)
-
-        error_apps = result["error"]
-        prio_apps = result["prio"]
-
-        if apps is not None and apps["init"]:
             self.AD.threading.calculate_pin_threads()
 
-        for app in error_apps:
-            await self.AD.state.set_state("_app_management", "admin", "app.{}".format(app), state="error")
-
-        if apps is not None and apps["init"]:
             # Call initialize() for apps
 
             for app in sorted(prio_apps, key=prio_apps.get):
                 if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
                     pass
                 else:
-                    await self.initialize_app(app)
+                    self.initialize_app(app)
 
         if self.AD.check_app_updates_profile is True:
             pr.disable()

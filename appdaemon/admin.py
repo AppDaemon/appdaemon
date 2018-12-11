@@ -47,19 +47,13 @@ class Admin:
     # Methods
     #
 
-    async def admin(self, scheme, url):
+    def admin_page(self, scheme, url):
 
         try:
             params = {}
 
             params["transport"] = self.transport
             params["title"] = self.title
-
-            # AppDaemon
-
-            params["appdaemon"] = {}
-            params["appdaemon"]["booted"] = self.AD.booted.replace(microsecond=0)
-            params["appdaemon"]["version"] = utils.__version__
 
             # Logs
 
@@ -81,7 +75,32 @@ class Admin:
 
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error in admin thread")
+            self.logger.warning("Unexpected error creating admin page")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+
+    def logon_page(self, scheme, url):
+        try:
+            params = {}
+
+            params["title"] = self.title
+
+            # Logs
+
+            env = Environment(
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
+
+            template = env.get_template("logon.jinja2")
+            rendered_template = template.render(params)
+
+            return (rendered_template)
+
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error creating logon page")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
