@@ -1,5 +1,7 @@
 function dom_ready(transport)
 {
+    window.ready = false;
+
     // Open the default tabs
 
     $("#appdaemon_button")[0].click();
@@ -31,6 +33,8 @@ function dom_ready(transport)
 
 function create_tables(entities)
 {
+    window.ready = false;
+
     // Create Apps Table
 
     id = "app-table";
@@ -242,9 +246,6 @@ function create_tables(entities)
         // Add to the entities tab
 
         window[namespace + "_table"].add(entity_list);
-
-
-
         window[namespace + "_table"].sort('name')
     });
 
@@ -258,15 +259,19 @@ function create_tables(entities)
     $(".tooltip.kwargs").hover(open_tooltip, close_tooltip);
     $(".tooltip.attributes").hover(open_tooltip, close_tooltip);
 
+    window.ready = true;
+
 }
 
 function open_tooltip(e)
 {
 
     tooltip = $("#tooltiptext");
-    tooltip.text($(this).text());
-    tooltip.css("top", e.pageY)
-    tooltip.css("left", e.pageX - 550)
+    text = JSON.stringify(JSON.parse($(this).text()), null, 2);
+    tooltip.text(text);
+    width = tooltip.outerWidth();
+    tooltip.css("top", e.pageY);
+    tooltip.css("left", e.pageX - width - 50);
     tooltip.css("visibility", "visible")
 }
 
@@ -277,8 +282,16 @@ function close_tooltip(e)
 
 function update_admin(data)
 {
+
+    if (window.ready !== true)
+    {
+        return
+    }
+
     // Process any updates
+
     //console.log(data);
+
     var id;
 
     // Log Update

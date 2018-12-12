@@ -352,7 +352,10 @@ button.sort.desc .caret { display:inline-block; }
 
 .tooltiptext {
     visibility: hidden;
-    width: 500px;
+    border: 1px solid black;
+    width: auto;
+    min-height: 50px;
+    height: auto;
     text-align: left;
     -ms-word-wrap: break-word;
     word-wrap: break-word;
