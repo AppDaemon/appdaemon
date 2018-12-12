@@ -354,11 +354,13 @@ button.sort.desc .caret { display:inline-block; }
     visibility: hidden;
     border: 1px solid black;
     width: auto;
+    max-width: 750px;
     min-height: 50px;
     height: auto;
     text-align: left;
-    -ms-word-wrap: break-word;
-    word-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: break-word;
     background-color: #d7e8ef;
     color: #000;
     padding: 5px 5px;

@@ -270,7 +270,21 @@ function open_tooltip(e)
     text = JSON.stringify(JSON.parse($(this).text()), null, 2);
     tooltip.text(text);
     width = tooltip.outerWidth();
-    tooltip.css("top", e.pageY);
+    height = tooltip.outerHeight();
+    x = e.pageX;
+    y = e.pageY;
+
+    remainder = $(window).height() + $(window).scrollTop() - y - height;
+    if (remainder < 5)
+    {
+        tooltip.css("top", e.pageY - height);
+    }
+    else
+    {
+        tooltip.css("top", e.pageY);
+    }
+
+
     tooltip.css("left", e.pageX - width - 50);
     tooltip.css("visibility", "visible")
 }
