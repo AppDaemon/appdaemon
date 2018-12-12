@@ -29,6 +29,7 @@ $(function() {
 
 <div id="backgroundImage">
 <div class="main">
+<span class= "tooltiptext" id="tooltiptext">Hello!</span>
 <table class="header">
     <tr>
     <td class="header-icon"><a href="/"><img src="images/favicon-32x32.png"></a></td>
@@ -44,7 +45,7 @@ $(function() {
 <br>
     <!-- Tab links -->
 <div class="tab">
-  <button class="maintablinks" onclick="openTab(event, 'AppDaemon', 'maintab')" id="appdaemon">AppDaemon</button>
+  <button class="maintablinks" onclick="openTab(event, 'AppDaemon', 'maintab')" id="appdaemon_button">AppDaemon</button>
   <button class="maintablinks" onclick="openTab(event, 'Plugins', 'maintab')" id="plugins">Plugins</button>
   <button class="maintablinks" onclick="openTab(event, 'Modules', 'maintab')" id="modules">Modules</button>
   <button class="maintablinks" onclick="openTab(event, 'Apps', 'maintab')" id="apps">Apps</button>
@@ -54,13 +55,15 @@ $(function() {
   <button class="maintablinks" onclick="openTab(event, 'Logs', 'maintab')" id="apps">Logs</button>
 </div>
 
+
+
 <!-- Tab content -->
 <div id="AppDaemon" class="maintabcontent">
     <h3>AppDaemon</h3>
     <table>
-        <tr><td>Version</td><td id="sensor_appdaemon_version"></td></tr>
-        <tr><td>Booted</td><td id="sensor_appdaemon_booted"></td></tr>
-        <tr><td>Uptime</td><td id="sensor_appdaemon_uptime"></td></tr>
+        <tr><td class="appdaemon-text">Version</td><td class="appdaemon-value" id="sensor_appdaemon_version"></td></tr>
+        <tr><td class="appdaemon-text">Booted</td><td class="appdaemon-values" id="sensor_appdaemon_booted"></td></tr>
+        <tr><td class="appdaemon-text">Uptime</td><td class="appdaemon-values" id="sensor_appdaemon_uptime"></td></tr>
     </table>
 </div>
 
@@ -68,7 +71,7 @@ $(function() {
     <h3>Active Apps</h3>
     <div id="app-table">
     Filter <input class="search" /><br><br>
-        <table>
+        <table class="apps">
             <thead>
             <tr>
                 <th class="sort" data-sort="appname">Name<i class="caret"></i></th>
@@ -86,7 +89,7 @@ $(function() {
     <h3>Modules</h3>
     <span is="modules-table">
     Filter <input class="search" /><br><br>
-   <table>
+   <table class="modules">
         <thead><tr>
             <th class="sort" data-sort="name">Name</th>
             <th class="sort" data-sort="path">Type</th>
@@ -99,7 +102,7 @@ $(function() {
 
 <div id="Entities" class="maintabcontent"><div class="tab">{% for ns in namespaces %}<button class="entitytablinks" onclick="openTab(event, '{{ ns }}', 'entitytab')" id="{{ ns }}_entity_button">{{ ns }}</button>{% endfor %}</div>
 {% for ns in namespaces %}<div id="{{ ns }}" class="entitytabcontent"><div id="{{ ns }}-entities-table"><br>        Filter <input class="search" />
-            <table>
+            <table class="entities">
                 <thead>
                 <tr>
                     <th class="sort" data-sort="name">Name<i class="caret"></i></th>
@@ -120,7 +123,8 @@ $(function() {
     <h3>Details</h3>
     <span id="thread-table">
     Filter <input class="search" /><br><br>
-    <table><thead>
+    <table class="threads">
+        <thead>
             <tr>
                 <th class="sort" data-sort="id">ID<i class="caret"></i></th>
                 <th class="sort" data-sort="q_size">Queue Size<i class="caret"></i></th>
@@ -128,15 +132,16 @@ $(function() {
                 <th class="sort" data-sort="time_called">Time Called<i class="caret"></i></th>
                 <th class="sort" data-sort="alive">Alive<i class="caret"></i></th>
                 <th class="sort" data-sort="pinned_apps">Pinned Apps<i class="caret"></i></th>
-            </tr></thead>
-            <tbody class="list"></tbody>
+            </tr>
+        </thead>
+        <tbody class="list"></tbody>
     </table>
     </span>
 </div>
 
 <div id="Callbacks" class="maintabcontent">
     <h3>Summary</h3>
-    <table>
+    <table class="callbacks">
         <tr><td>Total Callbacks Fired</td><td id="sensor_callbacks_total_fired"></td>
             <td>Average Callbacks Fired/s</td><td id="sensor_callbacks_average_fired"></td></tr>
         </tr>
@@ -147,15 +152,15 @@ $(function() {
     <h3>Scheduler Callbacks</h3>
     <span id="scheduler-callback-table">
         Filter <input class="search" /><br><br>
-        <table>
+        <table class="callbacks">
             <thead>
-            <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
-                <th class="sort" data-sort="execution_time">Execution Time<i class="caret"></i></th>
-                <th class="sort" data-sort="repeat">Repeat<i class="caret"></i></th>
-                <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
-                <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
-                <th class="sort" data-sort="pinned_thread">Pinned Thread<i class="caret"></i></th>
-                <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+            <tr><th class="callbacks-app sort" data-sort="app">App<i class="caret"></i></th>
+                <th class="callbacks-execution-time sort" data-sort="execution_time">Execution Time<i class="caret"></i></th>
+                <th class="callbacks-repeat sort" data-sort="repeat">Repeat<i class="caret"></i></th>
+                <th class="callbacks-callback sort" data-sort="function">Callback<i class="caret"></i></th>
+                <th class="callbacks-pinned sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+                <th class="callbacks-pinned-thread sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+                <th class="callbacks-pinned-kwargs sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
             </tr></thead>
             <tbody class="list"></tbody>
         </table>
@@ -163,14 +168,14 @@ $(function() {
     <h3>State Callbacks</h3>
     <span id="state-callback-table">
         Filter <input class="search" /><br><br>
-        <table>
+        <table class="callbacks">
         <thead>
-        <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
-            <th class="sort" data-sort="entity">Entity<i class="caret"></i></th>
-            <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
-            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
-            <th class="sort" data-sort="pinned_thread">Pinned Thread<i class="caret"></i></th>
-            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+        <tr><th class="callbacks-app sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="callbacks-entity sort" data-sort="entity">Entity<i class="caret"></i></th>
+            <th class="callbacks-callback sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="callbacks-pinned sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="callbacks-pinned-thread sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+            <th class="callbacks-pinned-kwargs sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
         </tr></thead>
         <tbody class="list"></tbody>
         </table>
@@ -178,14 +183,14 @@ $(function() {
     <h3>Event Callbacks</h3>
     <span id="event-callback-table">
         Filter <input class="search" /><br><br>
-        <table>
+        <table class="callbacks">
         <thead><tr>
-            <th class="sort" data-sort="app">App<i class="caret"></i></th>
-            <th class="sort" data-sort="event_name">Event Name<i class="caret"></i></th>
-            <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
-            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
-            <th class="sort" data-sort="pinned_thread">Pinned Thread<i class="caret"></i></th>
-            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+            <th class="callbacks-app sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="callbacks-event sort" data-sort="event_name">Event Name<i class="caret"></i></th>
+            <th class="callbacks-callback sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="callbacks-pinned sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="callbacks-pinned-thread sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+            <th class="callbacks-pinned-kwargs sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
         </tr></thead>
         <tbody class="list"></tbody>
         </table>
@@ -199,7 +204,7 @@ $(function() {
 <span is="plugins-table">
   <h3>Plugins</h3>
     Filter <input class="search" /><br><br>
-    <table>
+    <table class="plugins">
         <thead><tr>
             <th class="sort" data-sort="name">Name</th>
             <th class="sort" data-sort="type">Type</th>

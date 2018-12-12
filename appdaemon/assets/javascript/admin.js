@@ -2,9 +2,9 @@ function dom_ready(transport)
 {
     // Open the default tabs
 
-    document.getElementById("appdaemon").click();
-    document.getElementById("main_log_button").click();
-    document.getElementById("default_entity_button").click();
+    $("#appdaemon_button")[0].click();
+    $("#main_log_button")[0].click();
+    $("#default_entity_button")[0].click();
 
     // Start listening for Events
 
@@ -42,7 +42,7 @@ function create_tables(entities)
                 'callbacks',
                 'arguments'
             ],
-        item: '<tr><td class="name"></td><td class="state"></td><td class="callbacks"></td><td class="arguments"></td></tr>'
+        item: '<tr><td class="name"></td><td class="state"></td><td class="callbacks"></td><td class="tooltip arguments"></td></tr>'
     };
 
     create_clear("app_table", id, options);
@@ -80,7 +80,7 @@ function create_tables(entities)
                 'pinned_thread',
                 'kwargs'
             ],
-        item: '<tr><td class="app"></td><td class="execution_time"></td><td class="repeat"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="kwargs"></td></tr>'
+        item: '<tr><td class="app"></td><td class="execution_time"></td><td class="repeat"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
     };
 
     create_clear("scheduler_callback_table", id, options);
@@ -99,7 +99,7 @@ function create_tables(entities)
                 'pinned_thread',
                 'kwargs'
             ],
-        item: '<tr></td><td class="app"></td><td class="entity"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="kwargs"></td></tr>'
+        item: '<tr></td><td class="app"></td><td class="entity"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
     };
 
     create_clear("state_callback_table", id, options);
@@ -118,7 +118,7 @@ function create_tables(entities)
                 'pinned_thread',
                 'kwargs'
             ],
-        item: '<tr></td><td class="app"></td><td class="event_name"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="kwargs"></td></tr>'
+        item: '<tr></td><td class="app"></td><td class="event_name"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
     };
 
     create_clear("event_callback_table", id, options);
@@ -136,21 +136,22 @@ function create_tables(entities)
                     'state',
                     'attributes'
                 ],
-            item: '<tr><td class="name"></td><td class="state"></td><td class="attributes"></td></tr>'
+            item: '<tr><td class="name"></td><td class="state"></td><td class="tooltip attributes"></td></tr>'
         };
 
         create_clear(namespace + "_table", id, options);
 
         // Now Iterate the Entities
 
+        entity_list = [];
+
         jQuery.each(entities.state[namespace], function(entity)
         {
             state = entities.state[namespace][entity].state;
             attributes = entities.state[namespace][entity].attributes;
-            window[namespace + "_table"].add({
-                name: entity,
-                state: state, attributes: JSON.stringify(attributes)
-            });
+
+            entity_list.push({name: entity,
+                state: state, attributes: JSON.stringify(attributes)});
 
             if (namespace === "admin")
             {
@@ -237,6 +238,13 @@ function create_tables(entities)
                 }
             }
         });
+
+        // Add to the entities tab
+
+        window[namespace + "_table"].add(entity_list);
+
+
+
         window[namespace + "_table"].sort('name')
     });
 
@@ -245,6 +253,26 @@ function create_tables(entities)
     window.scheduler_callback_table.sort('app');
     window.state_callback_table.sort('app');
     window.event_callback_table.sort('app');
+
+    $(".tooltip.arguments").hover(open_tooltip, close_tooltip);
+    $(".tooltip.kwargs").hover(open_tooltip, close_tooltip);
+    $(".tooltip.attributes").hover(open_tooltip, close_tooltip);
+
+}
+
+function open_tooltip(e)
+{
+
+    tooltip = $("#tooltiptext");
+    tooltip.text($(this).text());
+    tooltip.css("top", e.pageY)
+    tooltip.css("left", e.pageX - 550)
+    tooltip.css("visibility", "visible")
+}
+
+function close_tooltip(e)
+{
+    $("#tooltiptext").css("visibility", "hidden")
 }
 
 function update_admin(data)
