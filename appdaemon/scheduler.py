@@ -158,7 +158,7 @@ class Scheduler:
                     args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
                 # Update entity
 
-                await self.AD.state.set_state("_scheduler", "admin", "scheduler_callback.{}".format(entry), execution_time = utils.dt_to_str(args["timestamp"].replace(microsecond=0)))
+                await self.AD.state.set_state("_scheduler", "admin", "scheduler_callback.{}".format(entry), execution_time = utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz))
             else:
                 # Otherwise just delete
                 await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(entry))
@@ -320,7 +320,7 @@ class Scheduler:
         self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin", "scheduler_callback.{}".format(handle), "active",
                                                                          {
                                                                              "app": name,
-                                                                             "execution_time": utils.dt_to_str(ts.replace(microsecond=0)),
+                                                                             "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
                                                                              "repeat": str(datetime.timedelta(seconds=interval)),
                                                                              "function": callback.__name__,
                                                                              "pinned": pin_app,

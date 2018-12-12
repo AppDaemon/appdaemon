@@ -51,6 +51,16 @@ class State:
                 ns.append(namespace)
         return ns
 
+    def list_namespace_entities(self, namespace):
+        et = []
+        with self.state_lock:
+            if namespace in self.state:
+                for entity in self.state[namespace]:
+                    et.append(entity)
+                return et
+            else:
+                return None
+
     def terminate(self):
         self.logger.debug("terminate() called for state")
         self.logger.info("Saving all namespaces")

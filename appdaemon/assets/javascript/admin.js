@@ -538,7 +538,7 @@ function deauthorize()
 
 function get_entity(namespace, entity, f)
 {
-    var state_url = "/api/state/" + namespace + "/" + entity;
+    var state_url = "/api/appdaemon/state/" + namespace + "/" + entity;
     $.ajax
     ({
         url: state_url,
@@ -557,7 +557,7 @@ function get_entity(namespace, entity, f)
 
 function get_namespaces(f)
 {
-    var state_url = "/api/state/";
+    var state_url = "/api/appdaemon/state/";
     $.ajax
     ({
         url: state_url,
@@ -576,7 +576,7 @@ function get_namespaces(f)
 
 function get_namespace(namespace, f)
 {
-    var state_url = "/api/state/" + namespace;
+    var state_url = "/api/appdaemon/state/" + namespace;
     $.ajax
     ({
         url: state_url,
@@ -595,7 +595,7 @@ function get_namespace(namespace, f)
 
 function get_state(f)
 {
-    var state_url = "/api/state";
+    var state_url = "/api/appdaemon/state";
     $.ajax
     ({
         url: state_url,

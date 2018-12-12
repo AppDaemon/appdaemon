@@ -335,9 +335,12 @@ def check_path(type, logger, path, pathtype="directory", permissions=None):
 def str_to_dt(time):
     return iso8601.parse_date(time)
 
-def dt_to_str(dt):
+def dt_to_str(dt, tz=None):
     if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
         return "never"
     else:
-        return dt.isoformat()
+        if tz is not None:
+            return dt.astimezone(tz).isoformat()
+        else:
+            return dt.isoformat()
 

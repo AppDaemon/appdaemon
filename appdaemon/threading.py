@@ -288,16 +288,16 @@ class Threading:
         max_busy = self.get_state("_threading", "admin", "sensor.threads_max_busy")
         if current_busy > max_busy:
             await self.set_state("_threading", "admin", "sensor.threads_max_busy" , state=current_busy)
-            await self.set_state("_threading", "admin", "sensor.threads_max_busy_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
+            await self.set_state("_threading", "admin", "sensor.threads_max_busy_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0), self.AD.tz))
 
-            await self.set_state("_threading", "admin", "sensor.threads_last_action_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0)))
+            await self.set_state("_threading", "admin", "sensor.threads_last_action_time", state=utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0), self.AD.tz))
 
         # Update thread info
 
         await self.set_state("_threading", "admin", "thread.{}".format(thread_id),
                              q=self.threads[thread_id]["queue"].qsize(),
                              state=callback,
-                             time_called=utils.dt_to_str(now.replace(microsecond=0)),
+                             time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
                              is_alive = self.threads[thread_id]["thread"].is_alive(),
                              pinned_apps=self.get_pinned_apps(thread_id)
                              )

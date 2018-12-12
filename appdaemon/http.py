@@ -29,17 +29,17 @@ def securedata(myfunc):
     async def wrapper(*args):
 
         self = args[0]
+        request = args[1]
         if self.password is None:
             return await myfunc(*args)
+        elif "adcreds" in request.cookies:
+            match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
+            if match:
+                return await myfunc(*args)
+        elif ("x-ad-access" in request.headers) and (request.headers["x-ad-access"] == self.password):
+            return await myfunc(*args)
         else:
-            if "adcreds" in args[1].cookies:
-                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.password), str.encode(args[1].cookies["adcreds"]))
-                if match:
-                    return await myfunc(*args)
-                else:
-                    return await self.error(args[1])
-            else:
-                return await self.error(args[1])
+            return self.get_response(request, "401", "Unauthorized")
 
     return wrapper
 
@@ -52,21 +52,22 @@ def secure(myfunc):
     async def wrapper(*args):
 
         self = args[0]
+        request = args[1]
         if self.password is None:
             return await myfunc(*args)
         else:
-            if "adcreds" in args[1].cookies:
+            if "adcreds" in request.cookies:
                 match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw,
                                                     str.encode(self.password),
-                                                    str.encode(args[1].cookies["adcreds"]))
+                                                    str.encode(request.cookies["adcreds"]))
                 if match:
                     return await myfunc(*args)
                 else:
-                    return await self.forcelogon(args[1])
-            elif "password" in args[1].query and args[1].query["password"] == self.password:
+                    return await self.forcelogon(request)
+            elif "password" in request.query and request.query["password"] == self.password:
                 return await myfunc(*args)
             else:
-                return await self.forcelogon(args[1])
+                return await self.forcelogon(request)
 
     return wrapper
 
@@ -372,6 +373,24 @@ class HTTP:
 
         self.logger.debug("result = %s", state)
 
+        if state is None:
+            return self.get_response(request, 404, "Namespace Not Found")
+
+        return web.json_response({"state": state})
+
+    @securedata
+    async def get_namespace_entities(self, request):
+
+        namespace = request.match_info.get('namespace')
+
+        self.logger.debug("get_namespace_entities() called, ns=%s", namespace)
+        state = self.AD.state.list_namespace_entities(namespace)
+
+        self.logger.debug("result = %s", state)
+
+        if state is None:
+            return self.get_response(request, 404, "Namespace Not Found")
+
         return web.json_response({"state": state})
 
     @securedata
@@ -388,6 +407,9 @@ class HTTP:
 
         self.logger.debug("get_state() called")
         state = self.AD.state.get_entity()
+
+        if state is None:
+            self.get_response(request, 404, "State Not Found")
 
         self.logger.debug("result = %s", state)
 
@@ -442,11 +464,6 @@ class HTTP:
     async def not_found(request):
         return web.Response(status=404)
 
-    # noinspection PyUnusedLocal
-    @staticmethod
-    async def error(request):
-        return web.Response(status=401)
-
     # Stream Handling
 
     async def stream_update(self, namespace, data):
@@ -463,11 +480,12 @@ class HTTP:
     # Routes, Status and Templates
 
     def setup_api_routes(self):
-        self.app.router.add_post('/api/call_service', self.call_service)
-        self.app.router.add_get('/api/state/{namespace}/{entity}', self.get_entity)
-        self.app.router.add_get('/api/state/{namespace}', self.get_namespace)
-        self.app.router.add_get('/api/state/', self.get_namespaces)
-        self.app.router.add_get('/api/state', self.get_state)
+        self.app.router.add_post('/api/appdaemon/call_service', self.call_service)
+        self.app.router.add_get('/api/appdaemon/state/{namespace}/{entity}', self.get_entity)
+        self.app.router.add_get('/api/appdaemon/state/{namespace}', self.get_namespace)
+        self.app.router.add_get('/api/appdaemon/state/{namespace}/', self.get_namespace_entities)
+        self.app.router.add_get('/api/appdaemon/state/', self.get_namespaces)
+        self.app.router.add_get('/api/appdaemon/state', self.get_state)
         self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
 
     def setup_http_routes(self):
@@ -519,11 +537,16 @@ class HTTP:
             if name in self.endpoints:
                 del self.endpoints[name]
 
-    @staticmethod
-    def get_response(code, error):
+    def get_response(self, request, code, error):
         res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
-        return res
+        app = request.match_info.get('app', "system")
+        if code == 200:
+            self.access.info("API Call to %s: status: %s %s", app, code, res)
+        else:
+            self.logger.warning("API Call to %s: status: %s %s", app, code, res)
+        return web.Response(body=res, status=code)
 
+    @securedata
     async def call_api(self, request):
 
         code = 200
@@ -531,24 +554,10 @@ class HTTP:
 
         app = request.match_info.get('app')
 
-        if self.password is not None:
-            if (("x-ad-access" not in request.headers) or (request.headers["x-ad-access"] != self.password)) \
-                    and (("api_password" not in request.query) or (request.query["api_password"] != self.password)):
-
-                code = 401
-                response = "Unauthorized"
-                res = self.get_response(code, response)
-                self.access.info("API Call to %s: status: %s %s", app, code, response)
-                return web.Response(body=res, status=code)
-
         try:
             args = await request.json()
         except json.decoder.JSONDecodeError:
-            code = 400
-            response = "JSON Decode Error"
-            res = self.get_response(code, response)
-            self.logger.warning("API Call to %s: status: %s %s", app, code, response)
-            return web.Response(body = res, status = code)
+            return self.get_response(request, 400, "JSON Decode Error")
 
         try:
             ret, code = await self.dispatch_app_by_name(app, args)
@@ -560,13 +569,9 @@ class HTTP:
             self.logger.warning('-' * 60)
 
         if code == 404:
-            response = "App Not Found"
-            res = self.get_response(code, response)
-            self.access.info("API Call to %s: status: %s %s", app, code, response)
-            return web.Response(body = res, status = code)
+            return self.get_response(request, 404, "App Not Found")
 
         response = "OK"
-        res = self.get_response(code, response)
         self.access.info("API Call to %s: status: %s %s", app, code, response)
 
         return web.json_response(ret, status = code)

@@ -9,5 +9,5 @@ Note that not all changes will apply to everyone, some of them are in fairly obs
 
 For more detail see the ``Log Configuration`` section in the Configuration section.
 
-- ``api_port`` is no longer supported by the ``appdaemon`` section, it has moved to the new ``http`` component, and is defined by the port number in the ``url`` parameter. API Paths to apps have not chnaged. The App API, Dashboards and new Admin interface all share a single port, configured in the `http` section. FOr further details, see ``Configuring the HTTP Component`` in the Configuration section. To turn on support for the App Api, you will need to include an ``api`` section in AppDaemon.yaml - see the ``Configuring the API`` section in the Configuration section/
+- ``api_port`` is no longer supported by the ``appdaemon`` section, it has moved to the new ``http`` component, and is defined by the port number in the ``url`` parameter. API Paths to apps have not chnaged. The App API, Dashboards and new Admin interface all share a single port, configured in the `http` section. For further details, see ``Configuring the HTTP Component`` in the Configuration section. To turn on support for the App Api, you will need to include an ``api`` section in AppDaemon.yaml - see the ``Configuring the API`` section in the Configuration section/
 
