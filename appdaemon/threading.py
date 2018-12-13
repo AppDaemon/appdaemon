@@ -228,6 +228,7 @@ class Threading:
 
         id = "thread-{}".format(thread)
         q = self.threads[id]["queue"]
+
         q.put_nowait(args)
 
     def check_overdue_and_dead_threads(self):
@@ -264,7 +265,7 @@ class Threading:
 
         return warning_step, warning_iterations
 
-    async def update_thread_info(self, thread_id, callback, app, type=None):
+    async def update_thread_info(self, thread_id, callback, app, type, uuid):
         self.logger.debug("Update thread info: %s", thread_id)
         if self.AD.log_thread_actions:
             if callback == "idle":
@@ -281,8 +282,13 @@ class Threading:
                 self.logger.warning("callback %s has now completed", self.get_state("_threading", "admin", "thread.{}".format(thread_id)))
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
             await self.add_to_attr("_threading", "admin", "app.{}".format(app), "callbacks", 1)
+            await self.add_to_attr("_threading", "admin", "{}_callback.{}".format(type, uuid), "executed", 1)
+            await self.add_to_state("_threading", "admin", "sensor.callbacks_total_executed", 1)
+            self.current_callbacks_executed += 1
         else:
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", 1)
+            self.current_callbacks_fired += 1
+
 
         current_busy = self.get_state("_threading", "admin", "sensor.threads_current_busy")
         max_busy = self.get_state("_threading", "admin", "sensor.threads_max_busy")
@@ -452,9 +458,10 @@ class Threading:
         if attribute == "all":
             with self.AD.app_management.objects_lock:
                 executed = await self.dispatch_worker(name, {
+                    "id": uuid_,
                     "name": name,
-                    "id": self.AD.app_management.objects[name]["id"],
-                    "type": "attr",
+                    "objectid": self.AD.app_management.objects[name]["id"],
+                    "type": "state",
                     "function": funcref,
                     "attribute": attribute,
                     "entity": entity,
@@ -499,9 +506,10 @@ class Threading:
                     # Do it now
                     with self.AD.app_management.objects_lock:
                         executed = await self.dispatch_worker(name, {
+                            "id":uuid_,
                             "name": name,
-                            "id": self.AD.app_management.objects[name]["id"],
-                            "type": "attr",
+                            "objectid": self.AD.app_management.objects[name]["id"],
+                            "type": "state",
                             "function": funcref,
                             "attribute": attribute,
                             "entity": entity,
@@ -543,10 +551,13 @@ class Threading:
 
         if unconstrained:
             #
-            # It's gonna happen - so lets update stats
+            # It's going to happen
             #
-            await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
-            self.current_callbacks_fired += 1
+            self.AD.thread_async.call_async_no_wait(self.add_to_state, "_threading", "admin",
+                                                    "sensor.callbacks_total_fired", 1)
+
+            self.AD.thread_async.call_async_no_wait(self.add_to_attr, "_threading", "admin",
+                                                    "{}_callback.{}".format(args["type"], args["id"]), "fired", 1)
             #
             # And Q
             #
@@ -564,38 +575,39 @@ class Threading:
             _type = args["type"]
             funcref = args["function"]
             _id = args["id"]
+            objectid = args["objectid"]
             name = args["name"]
             error_logger = logging.getLogger("Error.{}".format(name))
             args["kwargs"]["__thread_id"] = thread_id
             callback = "{}() in {}".format(funcref.__name__, name)
             app = None
             with self.AD.app_management.objects_lock:
-                if name in self.AD.app_management.objects and self.AD.app_management.objects[name]["id"] == _id:
+                if name in self.AD.app_management.objects and self.AD.app_management.objects[name]["id"] == objectid:
                     app = self.AD.app_management.objects[name]["object"]
             if app is not None:
                 try:
-                    if _type == "timer":
-                        if self.validate_callback_sig(name, "timer", funcref):
-                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
+                    if _type == "scheduler":
+                        if self.validate_callback_sig(name, "scheduler", funcref):
+                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type, _id)
                             funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                    elif _type == "attr":
-                        if self.validate_callback_sig(name, "attr", funcref):
+                    elif _type == "state":
+                        if self.validate_callback_sig(name, "state", funcref):
                             entity = args["entity"]
                             attr = args["attribute"]
                             old_state = args["old_state"]
                             new_state = args["new_state"]
-                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
+                            self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type, _id)
                             funcref(entity, attr, old_state, new_state,
                                     self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
                     elif _type == "event":
                         data = args["data"]
                         if args["event"] == "__AD_LOG_EVENT":
                             if self.validate_callback_sig(name, "log_event", funcref):
-                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
+                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type, _id)
                                 funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
                         else:
                             if self.validate_callback_sig(name, "event", funcref):
-                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type)
+                                self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, callback, name, _type, _id)
                                 funcref(args["event"], data, args["kwargs"])
                 except:
                     error_logger.warning('-' * 60,)
@@ -607,9 +619,7 @@ class Threading:
                     if self.AD.logging.separate_error_log() is True:
                         self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
                 finally:
-                    self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, "idle", name)
-                    self.AD.thread_async.call_async_no_wait(self.add_to_state, "_threading", "admin", "sensor.callbacks_total_executed", 1)
-                    self.current_callbacks_executed += 1
+                    self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, "idle", name, _type, _id)
 
             else:
                 if not self.AD.stopping:
@@ -620,8 +630,8 @@ class Threading:
     def validate_callback_sig(self, name, type, funcref):
 
         callback_args = {
-            "timer": {"count": 1, "signature": "f(self, kwargs)"},
-            "attr": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
+            "scheduler": {"count": 1, "signature": "f(self, kwargs)"},
+            "state": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
             "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
             "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
             "initialize": {"count": 0, "signature": "initialize()"}

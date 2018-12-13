@@ -80,11 +80,13 @@ function create_tables(entities)
                 'execution_time',
                 'repeat',
                 'function',
+                'fired',
+                'executed',
                 'pinned',
                 'pinned_thread',
                 'kwargs'
             ],
-        item: '<tr><td class="app"></td><td class="execution_time"></td><td class="repeat"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
+        item: '<tr><td class="app"></td><td class="execution_time"></td><td class="repeat"></td><td class="function"></td><td class="fired"></td></td><td class="executed"></td></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
     };
 
     create_clear("scheduler_callback_table", id, options);
@@ -97,13 +99,16 @@ function create_tables(entities)
             [
                 'id',
                 'app',
+                'last_changed',
                 'entity',
                 'function',
+                'fired',
+                'executed',
                 'pinned',
                 'pinned_thread',
                 'kwargs'
             ],
-        item: '<tr></td><td class="app"></td><td class="entity"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
+        item: '<tr></td><td class="app"></td><td class="last_changed"></td><td class="entity"></td><td class="function"><td class="fired"></td></td><td class="executed"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
     };
 
     create_clear("state_callback_table", id, options);
@@ -116,13 +121,16 @@ function create_tables(entities)
             [
                 'id',
                 'app',
+                'last_changed',
                 'event_name',
                 'function',
+                'fired',
+                'executed',
                 'pinned',
                 'pinned_thread',
                 'kwargs'
             ],
-        item: '<tr></td><td class="app"></td><td class="event_name"></td><td class="function"></td><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
+        item: '<tr></td><td class="app"><td class="last_changed"></td><td class="event_name"></td><td class="function"></td><td class="fired"></td></td><td class="executed"><td class="pinned"></td><td class="pinned_thread"></td><td class="tooltip kwargs"></td></tr>'
     };
 
     create_clear("event_callback_table", id, options);
@@ -138,9 +146,10 @@ function create_tables(entities)
                 [
                     'name',
                     'state',
+                    'last_changed',
                     'attributes'
                 ],
-            item: '<tr><td class="name"></td><td class="state"></td><td class="tooltip attributes"></td></tr>'
+            item: '<tr><td class="name"></td><td class="state"><td class="last_changed"></td><td class="tooltip attributes"></td></tr>'
         };
 
         create_clear(namespace + "_table", id, options);
@@ -152,10 +161,11 @@ function create_tables(entities)
         jQuery.each(entities.state[namespace], function(entity)
         {
             state = entities.state[namespace][entity].state;
+            last_changed = entities.state[namespace][entity].last_changed;
             attributes = entities.state[namespace][entity].attributes;
 
             entity_list.push({name: entity,
-                state: state, attributes: JSON.stringify(attributes)});
+                state: state, last_changed: last_changed, attributes: JSON.stringify(attributes)});
 
             if (namespace === "admin")
             {
@@ -198,6 +208,8 @@ function create_tables(entities)
                         execution_time: attributes.execution_time,
                         repeat: attributes.repeat,
                         function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
                         pinned: attributes.pinned,
                         pinned_thread: attributes.pinned_thread,
                         kwargs: JSON.stringify(attributes.kwargs)
@@ -211,8 +223,11 @@ function create_tables(entities)
                     window.state_callback_table.add({
                         id: name(entity),
                         app: attributes.app,
+                        last_changed: last_changed,
                         entity: attributes.listened_entity,
                         function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
                         pinned: attributes.pinned,
                         pinned_thread: attributes.pinned_thread,
                         kwargs: JSON.stringify(attributes.kwargs)
@@ -226,8 +241,11 @@ function create_tables(entities)
                     window.event_callback_table.add({
                         id: name(entity),
                         app: attributes.app,
+                        last_changed: last_changed,
                         event_name: attributes.event_name,
                         function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
                         pinned: attributes.pinned,
                         pinned_thread: attributes.pinned_thread,
                         kwargs: JSON.stringify(attributes.kwargs)
@@ -319,12 +337,14 @@ function update_admin(data)
 
     if (data.event_type === "state_changed")
     {
+        //console.log(data)
         namespace = data.namespace;
         entity = data.data.entity_id;
+        last_changed = data.data.new_state.last_changed;
         state = data.data.new_state.state;
         attributes = data.data.new_state.attributes;
         item = window[namespace + "_table"].get("name", entity);
-        item[0].values({name: entity, state: state, attributes: JSON.stringify(attributes)});
+        item[0].values({name: entity, state: state, last_changed: last_changed, attributes: JSON.stringify(attributes)});
         if (namespace === "admin")
         {
             if (device(entity) === "app")
@@ -350,8 +370,6 @@ function update_admin(data)
                 })
             }
 
-            // Event and state callbacks are immutable, scheduler callbacks are not
-
             if (device(entity) === "scheduler_callback")
             {
                 item = window.scheduler_callback_table.get("id", name(entity));
@@ -361,11 +379,51 @@ function update_admin(data)
                     execution_time: attributes.execution_time,
                     repeat: attributes.repeat,
                     function: attributes.function,
+                    fired: attributes.fired,
+                    executed: attributes.executed,
                     pinned: attributes.pinned,
                     pinned_thread: attributes.pinned_thread,
                     kwargs: JSON.stringify(attributes.kwargs)
                 })
             }
+
+
+            if (device(entity) === "state_callback")
+            {
+                item = window.state_callback_table.get("id", name(entity));
+                item[0].values({
+                    id: name(entity),
+                    app: attributes.app,
+                    last_changed: last_changed,
+                    entity: attributes.listened_entity,
+                    function: attributes.function,
+                    fired: attributes.fired,
+                    executed: attributes.executed,
+                    pinned: attributes.pinned,
+                    pinned_thread: attributes.pinned_thread,
+                    kwargs: JSON.stringify(attributes.kwargs)
+                });
+                window.state_callback_table.sort('app')
+            }
+
+            if (device(entity) === "event_callback")
+            {
+                item = window.event_callback_table.get("id", name(entity));
+                item[0].values({
+                    id: name(entity),
+                    app: attributes.app,
+                    last_changed: last_changed,
+                    event_name: attributes.event_name,
+                    function: attributes.function,
+                    fired: attributes.fired,
+                    executed: attributes.executed,
+                    pinned: attributes.pinned,
+                    pinned_thread: attributes.pinned_thread,
+                    kwargs: JSON.stringify(attributes.kwargs)
+                });
+                window.event_callback_table.sort('app')
+            }
+
             // Sensors
 
             if (device(entity) === "sensor")
@@ -379,12 +437,14 @@ function update_admin(data)
     {
         namespace = data.namespace;
         entity = data.data.entity_id;
+        last_changed = data.data.state.last_changed;
         attributes = data.data.state.attributes;
         state = data.data.state.state;
 
         // Add To Entities
         window[namespace + "_table"].add({
             name: entity,
+            last_changed: last_changed,
             state: state,
             attributes: attributes
         });
@@ -424,6 +484,8 @@ function update_admin(data)
                     execution_time: attributes.execution_time,
                     repeat: attributes.repeat,
                     function: attributes.function,
+                    fired: attributes.fired,
+                    executed: attributes.executed,
                     pinned: attributes.pinned,
                     pinned_thread: attributes.pinned_thread,
                     kwargs: JSON.stringify(attributes.kwargs)
@@ -436,9 +498,12 @@ function update_admin(data)
             {
                 window.state_callback_table.add({
                     id: name(entity),
+                    last_changed: last_changed,
                     app: attributes.app,
                     entity: attributes.listened_entity,
                     function: attributes.function,
+                    fired: attributes.fired,
+                    executed: attributes.executed,
                     pinned: attributes.pinned,
                     pinned_thread: attributes.pinned_thread,
                     kwargs: JSON.stringify(attributes.kwargs)
@@ -451,8 +516,11 @@ function update_admin(data)
                 window.event_callback_table.add({
                     id: name(entity),
                     app: attributes.app,
+                    last_changed: last_changed,
                     event_name: attributes.event_name,
                     function: attributes.function,
+                    fired: attributes.fired,
+                    executed: attributes.executed,
                     pinned: attributes.pinned,
                     pinned_thread: attributes.pinned_thread,
                     kwargs: JSON.stringify(attributes.kwargs)

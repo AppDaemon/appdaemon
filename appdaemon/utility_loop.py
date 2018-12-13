@@ -73,8 +73,7 @@ class Utility:
             self.booted = self.AD.sched.get_now()
             await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
             await self.AD.state.add_entity("admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0)))
-            await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", self.AD.sched.make_naive(self.booted.replace(microsecond=0)).isoformat())
-
+            await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0), self.AD.tz))
             warning_step = 0
             warning_iterations = 0
 

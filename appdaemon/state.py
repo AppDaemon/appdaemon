@@ -1,9 +1,9 @@
 import uuid
-from copy import deepcopy
 import traceback
 import threading
 import os
 from copy import copy, deepcopy
+import datetime
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -118,7 +118,7 @@ class State:
             self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin",
                                                     "state_callback.{}".format(handle), "active",
                                                     {"app": name, "listened_entity": entity, "function": cb.__name__,
-                                                     "pinned": pin_app, "pinned_thread": pin_thread, "kwargs": kwargs})
+                                                     "pinned": pin_app, "pinned_thread": pin_thread, "fired": 0, "executed":0, "kwargs": kwargs})
 
             return handle
         else:
@@ -284,7 +284,7 @@ class State:
         else:
             attrs = attributes
 
-        state = {"state": state, "attributes": attrs}
+        state = {"state": state, "last_changed": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)), "attributes": attrs}
 
         with self.state_lock:
             self.state[namespace][entity] = state
@@ -398,6 +398,7 @@ class State:
         with self.state_lock:
             old_state = deepcopy(self.state[namespace][entity_id])
             new_state = self.parse_state(entity_id, namespace, **kwargs)
+            new_state["last_changed"] = utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0), self.AD.tz)
             self.logger.debug("Old state: %s", old_state)
             self.logger.debug("New state: %s", new_state)
             if not self.AD.state.entity_exists(namespace, entity_id):

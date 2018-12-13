@@ -107,7 +107,7 @@ class Scheduler:
                 del self.schedule[name]
 
     # noinspection PyBroadException
-    async def exec_schedule(self, name, entry, args):
+    async def exec_schedule(self, name, entry, args, uuid_):
         try:
             # Locking performed in calling function
             if "inactive" in args:
@@ -116,9 +116,10 @@ class Scheduler:
             with self.AD.app_management.objects_lock:
                 if "__entity" in args["kwargs"]:
                     await self.AD.threading.dispatch_worker(name, {
+                        "id": uuid_,
                         "name": name,
-                        "id": self.AD.app_management.objects[name]["id"],
-                        "type": "attr",
+                        "objectid": self.AD.app_management.objects[name]["id"],
+                        "type": "state",
                         "function": args["callback"],
                         "attribute": args["kwargs"]["__attribute"],
                         "entity": args["kwargs"]["__entity"],
@@ -130,9 +131,10 @@ class Scheduler:
                     })
                 else:
                     await self.AD.threading.dispatch_worker(name, {
+                        "id": uuid_,
                         "name": name,
-                        "id": self.AD.app_management.objects[name]["id"],
-                        "type": "timer",
+                        "objectid": self.AD.app_management.objects[name]["id"],
+                        "type": "scheduler",
                         "function": args["callback"],
                         "pin_app": args["pin_app"],
                         "pin_thread": args["pin_thread"],
@@ -325,6 +327,8 @@ class Scheduler:
                                                                              "function": callback.__name__,
                                                                              "pinned": pin_app,
                                                                              "pinned_thread": pin_thread,
+                                                                             "fired": 0,
+                                                                             "executed": 0,
                                                                              "kwargs": kwargs
                                                                          })
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
@@ -423,7 +427,7 @@ class Scheduler:
                     ):
 
                         if self.schedule[name][entry]["timestamp"] <= utc:
-                            await self.exec_schedule(name, entry, self.schedule[name][entry])
+                            await self.exec_schedule(name, entry, self.schedule[name][entry], entry)
                         else:
                             break
                 for k, v in list(self.schedule.items()):

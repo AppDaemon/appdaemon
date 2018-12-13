@@ -59,9 +59,9 @@ $(function() {
 <div id="AppDaemon" class="maintabcontent">
     <h3>AppDaemon</h3>
     <table>
-        <tr><td class="appdaemon-text">Version</td><td class="appdaemon-value" id="sensor_appdaemon_version"></td></tr>
-        <tr><td class="appdaemon-text">Booted</td><td class="appdaemon-values" id="sensor_appdaemon_booted"></td></tr>
-        <tr><td class="appdaemon-text">Uptime</td><td class="appdaemon-values" id="sensor_appdaemon_uptime"></td></tr>
+        <tr><td class="appdaemon-text">Version</td><td id="sensor_appdaemon_version"></td></tr>
+        <tr><td class="appdaemon-text">Booted</td><td id="sensor_appdaemon_booted"></td></tr>
+        <tr><td class="appdaemon-text">Uptime</td><td id="sensor_appdaemon_uptime"></td></tr>
     </table>
 </div>
 
@@ -105,6 +105,7 @@ $(function() {
                 <tr>
                     <th class="sort" data-sort="name">Name<i class="caret"></i></th>
                     <th class="sort" data-sort="state">State<i class="caret"></i></th>
+                    <th class="sort" data-sort="last_changed">Last Changed<i class="caret"></i></th>
                     <th class="sort" data-sort="attributes">Attributes<i class="caret"></i></th>
                 </tr>
                 </thead>
@@ -152,13 +153,15 @@ $(function() {
         Filter <input class="search" /><br><br>
         <table class="callbacks">
             <thead>
-            <tr><th class="callbacks-app sort" data-sort="app">App<i class="caret"></i></th>
-                <th class="callbacks-execution-time sort" data-sort="execution_time">Execution Time<i class="caret"></i></th>
-                <th class="callbacks-repeat sort" data-sort="repeat">Repeat<i class="caret"></i></th>
-                <th class="callbacks-callback sort" data-sort="function">Callback<i class="caret"></i></th>
-                <th class="callbacks-pinned sort" data-sort="pinned">Pinned<i class="caret"></i></th>
-                <th class="callbacks-pinned-thread sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
-                <th class="callbacks-pinned-kwargs sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+            <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
+                <th class="sort" data-sort="last_changed">Next Execution Time<i class="caret"></i></th>
+                <th class="sort" data-sort="repeat">Repeat<i class="caret"></i></th>
+                <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned">Fired<i class="caret"></i></th>
+                <th class="sort" data-sort="fired">Executed<i class="caret"></i></th>
+                <th class="sort" data-sort="executed">Pinned<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+                <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
             </tr></thead>
             <tbody class="list"></tbody>
         </table>
@@ -168,12 +171,15 @@ $(function() {
         Filter <input class="search" /><br><br>
         <table class="callbacks">
         <thead>
-        <tr><th class="callbacks-app sort" data-sort="app">App<i class="caret"></i></th>
-            <th class="callbacks-entity sort" data-sort="entity">Entity<i class="caret"></i></th>
-            <th class="callbacks-callback sort" data-sort="function">Callback<i class="caret"></i></th>
-            <th class="callbacks-pinned sort" data-sort="pinned">Pinned<i class="caret"></i></th>
-            <th class="callbacks-pinned-thread sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
-            <th class="callbacks-pinned-kwargs sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+        <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="sort" data-sort="last_changed">Last Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="entity">Entity<i class="caret"></i></th>
+            <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Fired<i class="caret"></i></th>
+            <th class="sort" data-sort="fired">Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
         </tr></thead>
         <tbody class="list"></tbody>
         </table>
@@ -183,12 +189,15 @@ $(function() {
         Filter <input class="search" /><br><br>
         <table class="callbacks">
         <thead><tr>
-            <th class="callbacks-app sort" data-sort="app">App<i class="caret"></i></th>
-            <th class="callbacks-event sort" data-sort="event_name">Event Name<i class="caret"></i></th>
-            <th class="callbacks-callback sort" data-sort="function">Callback<i class="caret"></i></th>
-            <th class="callbacks-pinned sort" data-sort="pinned">Pinned<i class="caret"></i></th>
-            <th class="callbacks-pinned-thread sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
-            <th class="callbacks-pinned-kwargs sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+            <th class="sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="sort" data-sort="last_changed">Last Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="event_name">Event Name<i class="caret"></i></th>
+            <th class=" sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Fired<i class="caret"></i></th>
+            <th class="sort" data-sort="fired">Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
         </tr></thead>
         <tbody class="list"></tbody>
         </table>

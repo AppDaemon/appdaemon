@@ -206,10 +206,6 @@ cursor: pointer;
     width: 100px;
 }
 
-.appdaemon-values
-{
-    width: 200px;
-}
 
 
 /* Apps Tab */
@@ -306,51 +302,6 @@ cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.callbacks-app
-{
-    width: 150px;
-}
-
-.callbacks-entity
-{
-    width: 300px;
-}
-
-.callbacks-event
-{
-    width: 300px;
-}
-
-.callbacks-execution-time
-{
-    width: 200px;
-}
-
-.callbacks-repeat
-{
-    width: 100px;
-}
-
-.callbacks-callback
-{
-    width: 200px;
-}
-
-.callbacks-pinned
-{
-    width: 75px;
-}
-
-.callbacks-pinned-thread
-{
-    width: 75px;
-}
-
-.callbacks-kwargs
-{
-    width: 100px;
 }
 
 .tooltiptext {

@@ -30,7 +30,7 @@ class AppDaemon:
         self.state = None
 
         self.config = kwargs
-        self.booted = utils.dt_to_str(datetime.datetime.now())
+        self.booted = "booting"
         self.config["ad_version"] = utils.__version__
         self.check_app_updates_profile = ""
 

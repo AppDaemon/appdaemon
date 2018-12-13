@@ -1,6 +1,7 @@
 import uuid
 from copy import deepcopy
 import traceback
+import datetime
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -45,7 +46,7 @@ class Events:
                         "pin_thread": pin_thread,
                         "kwargs": kwargs
                     }
-                self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin", "event_callback.{}".format(handle), "active", {"app": _name, "event_name": event, "function": cb.__name__, "pinned": pin_app, "pinned_thread": pin_thread, "kwargs": kwargs})
+                self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin", "event_callback.{}".format(handle), "active", {"app": _name, "event_name": event, "function": cb.__name__, "pinned": pin_app, "pinned_thread": pin_thread, "fired": 0, "executed": 0, "kwargs": kwargs})
             return handle
         else:
             return None
@@ -146,8 +147,9 @@ class Events:
                                 with self.AD.app_management.objects_lock:
                                     if name in self.AD.app_management.objects:
                                         await self.AD.threading.dispatch_worker(name, {
+                                            "id": uuid_,
                                             "name": name,
-                                            "id": self.AD.app_management.objects[name]["id"],
+                                            "objectid": self.AD.app_management.objects[name]["id"],
                                             "type": "event",
                                             "event": data['event_type'],
                                             "function": callback["function"],
