@@ -38,6 +38,8 @@ def securedata(myfunc):
                 return await myfunc(*args)
         elif ("x-ad-access" in request.headers) and (request.headers["x-ad-access"] == self.password):
             return await myfunc(*args)
+        elif "api_password" in request.query and request.query["api_password"] == self.password:
+            return await myfunc(*args)
         else:
             return self.get_response(request, "401", "Unauthorized")
 
@@ -64,8 +66,6 @@ def secure(myfunc):
                     return await myfunc(*args)
                 else:
                     return await self.forcelogon(request)
-            elif "password" in request.query and request.query["password"] == self.password:
-                return await myfunc(*args)
             else:
                 return await self.forcelogon(request)
 
@@ -541,9 +541,9 @@ class HTTP:
         res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
         app = request.match_info.get('app', "system")
         if code == 200:
-            self.access.info("API Call to %s: status: %s %s", app, code, res)
+            self.access.info("API Call to %s: status: %s %s", app, code)
         else:
-            self.logger.warning("API Call to %s: status: %s %s", app, code, res)
+            self.logger.warning("API Call to %s: status: %s", app, code)
         return web.Response(body=res, status=code)
 
     @securedata

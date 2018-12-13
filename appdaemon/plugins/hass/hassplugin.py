@@ -278,16 +278,19 @@ class HassPlugin(PluginBase):
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
-
-        apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
-
-        r = requests.post(
-            apiurl, headers=headers, json=new_state, verify=cert_path
-        )
-        r.raise_for_status()
-        state = r.json()
-
-        return state
+            r = None
+            apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
+            r = requests.post(
+                apiurl, headers=headers, json=new_state, verify=cert_path
+            )
+            try:
+                r.raise_for_status()
+                state = r.json()
+                return state
+            except:
+                self.logger.warning("Error setting %s state for homeassistant", r.status_code, r.reason)
+                self.logger.warning("Arguments: %s = %s {%}", entity_id, new_state, kwargs)
+                return None
 
 
     async def get_hass_state(self, entity_id=None):

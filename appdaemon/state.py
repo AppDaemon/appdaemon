@@ -329,7 +329,7 @@ class State:
                 return deepcopy(devices)
             elif attribute is None:
                 entity_id = "{}.{}".format(device, entity)
-                if entity_id in self.state[namespace]:
+                if entity_id in self.state[namespace] and "state" in self.state[namespace][entity_id]:
                     return deepcopy(self.state[namespace][entity_id]["state"])
                 else:
                     return None

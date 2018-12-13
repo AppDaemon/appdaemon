@@ -158,6 +158,9 @@ button.sort .caret { display:none; }
 button.sort.asc .caret { display:inline-block; }
 button.sort.desc .caret { display:inline-block; }
 
+.sort:hover {
+cursor: pointer;
+}
 /* Table Styles */
 
 /* Header */
