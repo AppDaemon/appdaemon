@@ -8,6 +8,7 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
+import functools
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -555,6 +556,9 @@ class Threading:
             #
             self.AD.thread_async.call_async_no_wait(self.add_to_state, "_threading", "admin",
                                                     "sensor.callbacks_total_fired", 1)
+            #utils.run_coroutine_threadsafe(functools.partial(
+            #    self.add_to_state, "_threading", "admin", "sensor.callbacks_total_fired", 1
+            #), self.AD.loop)
 
             self.AD.thread_async.call_async_no_wait(self.add_to_attr, "_threading", "admin",
                                                     "{}_callback.{}".format(args["type"], args["id"]), "fired", 1)

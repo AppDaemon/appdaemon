@@ -11,6 +11,7 @@ import json
 import threading
 import iso8601
 import datetime
+import concurrent.futures
 
 if platform.system() != "Windows":
     import pwd
@@ -221,6 +222,19 @@ async def run_in_executor(loop, executor, fn, *args, **kwargs):
     completed, pending = await asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
     response = list(completed)[0].result()
     return response
+
+def run_coroutine_threadsafe(coro, loop, timeout=None):
+    future = asyncio.run_coroutine_threadsafe(coro, loop)
+    try:
+        result = future.result(timeout)
+    except asyncio.TimeoutError:
+        print('The coroutine took too long, cancelling the task...')
+        future.cancel()
+    except Exception as exc:
+        print('The coroutine raised an exception: {!r}'.format(exc))
+    else:
+        print('The coroutine returned: {!r}'.format(result))
+
 
 def find_path(name):
     for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
