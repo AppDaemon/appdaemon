@@ -102,7 +102,7 @@ class Scheduler:
         with self.schedule_lock:
             if name in self.schedule and handle in self.schedule[name]:
                 del self.schedule[name][handle]
-                self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle)))
+                self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin", "scheduler_callback.{}".format(handle))
             if name in self.schedule and self.schedule[name] == {}:
                 del self.schedule[name]
 
