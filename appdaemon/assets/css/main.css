@@ -199,6 +199,7 @@ cursor: pointer;
     width: 1%;
 }
 
+
 /* AppDaemon Tab */
 
 .appdaemon-text
@@ -288,6 +289,11 @@ cursor: pointer;
     text-overflow: ellipsis;
 }
 
+.ts
+{
+    width: 50px;
+}
+
 /* Callbacks Tab */
 
 .callbacks
@@ -319,8 +325,6 @@ cursor: pointer;
     color: #000;
     padding: 5px 5px;
     border-radius: 6px;
-
-    /* Position the tooltip text - see examples below! */
     position: absolute;
     z-index: 1;
 }

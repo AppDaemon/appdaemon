@@ -222,7 +222,6 @@ async def run_in_executor(loop, executor, fn, *args, **kwargs):
     response = list(completed)[0].result()
     return response
 
-
 def find_path(name):
     for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
                  os.path.join(os.path.sep, "etc", "appdaemon")]:

@@ -6,6 +6,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
 from collections import OrderedDict
+import traceback
 
 from appdaemon.thread_async import AppDaemon
 
@@ -55,35 +56,45 @@ class LogSubscriptionHandler(StreamHandler):
         self.type = type
 
     def emit(self, record):
-        if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None:
-            # Need to check if this log callback belongs to an app that is accepting log events
-            # If so, don't generate the event to avoid loops
-            has_log_callback = False
-            msg = self.format(record)
-            record.ts = datetime.datetime.fromtimestamp(record.created)
-            if record.name == "AppDaemon._stream":
-                has_log_callback = True
-            else:
-                with self.AD.callbacks.callbacks_lock:
-                    for callback in self.AD.callbacks.callbacks:
-                        for uuid in self.AD.callbacks.callbacks[callback]:
-                            cb = self.AD.callbacks.callbacks[callback][uuid]
-                            if cb["name"] == record.appname and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
-                                has_log_callback = True
+        try:
+            if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None:
+                # Need to check if this log callback belongs to an app that is accepting log events
+                # If so, don't generate the event to avoid loops
+                has_log_callback = False
+                msg = self.format(record)
+                record.ts = datetime.datetime.fromtimestamp(record.created)
+                if record.name == "AppDaemon._stream":
+                    has_log_callback = True
+                else:
+                    with self.AD.callbacks.callbacks_lock:
+                        for callback in self.AD.callbacks.callbacks:
+                            for uuid in self.AD.callbacks.callbacks[callback]:
+                                cb = self.AD.callbacks.callbacks[callback][uuid]
+                                if cb["name"] == record.appname and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
+                                    has_log_callback = True
 
-            if has_log_callback is False and self.AD.thread_async is not None:
-                self.AD.thread_async.call_async_no_wait(self.AD.events.process_event, "global", {"event_type": "__AD_LOG_EVENT",
-                                                "data":
-                                                  {
-                                                  "level": record.levelname,
-                                                  "app_name": record.appname,
-                                                  "message": record.message,
-                                                  "type": "log",
-                                                  "log_type": self.type,
-                                                  "asctime": record.asctime,
-                                                  "ts": record.ts,
-                                                  "formatted_message": msg
-                                              }})
+                if has_log_callback is False and self.AD.thread_async is not None:
+                    self.AD.thread_async.call_async_no_wait(self.AD.events.process_event, "global", {"event_type": "__AD_LOG_EVENT",
+                                                    "data":
+                                                      {
+                                                      "level": record.levelname,
+                                                      "app_name": record.appname,
+                                                      "message": record.message,
+                                                      "type": "log",
+                                                      "log_type": self.type,
+                                                      "asctime": record.asctime,
+                                                      "ts": record.ts,
+                                                      "formatted_message": msg
+                                                  }})
+        except:
+            # No way to log this so we'll just do our best
+            print('-' * 60, )
+            print("Unrecoverable error occured in LogSubscriptionHandler.emit()")
+            print('-' * 60)
+            print(traceback.format_exc())
+            print('-' * 60)
+
+
 
 
 class Logging:
