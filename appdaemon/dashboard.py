@@ -20,23 +20,23 @@ class Dashboard:
         #
         # Set Defaults
         #
+        self.dash_install_dir = os.path.dirname(__file__)
         self.config_dir = config_dir
         self.logging = logging
         self.logger = logging.get_child("_dashboard")
         self.access = logging.get_access()
-        self.dash_install_dir = os.path.dirname(__file__)
         self.dashboard_dir = os.path.join(config_dir, "dashboards")
         self.profile_dashboard = False
         self.compile_dir = os.path.join(self.config_dir, "compiled")
-        self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
+        self.javascript_dir = None
         self.compiled_javascript_dir = os.path.join(self.compile_dir, "javascript")
         self.compiled_html_dir = os.path.join(self.compile_dir, "html")
-        self.template_dir = os.path.join(self.dash_install_dir, "assets", "templates")
-        self.css_dir = os.path.join(self.dash_install_dir, "assets", "css")
+        self.template_dir = None
+        self.css_dir = None
         self.compiled_css_dir = os.path.join(self.compile_dir, "css")
-        self.fonts_dir = os.path.join(self.dash_install_dir, "assets", "fonts")
-        self.webfonts_dir = os.path.join(self.dash_install_dir, "assets", "webfonts")
-        self.images_dir = os.path.join(self.dash_install_dir, "assets", "images")
+        self.fonts_dir = None
+        self.webfonts_dir = None
+        self.images_dir = None
         self.base_url = ""
         self.dash_force_compile = False
         self.dash_compile_on_start = False

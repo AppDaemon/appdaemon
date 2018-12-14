@@ -119,6 +119,15 @@ class HTTP:
         self.dashboard_obj = None
         self.admin_obj = None
 
+        self.install_dir = os.path.dirname(__file__)
+
+        self.javascript_dir = os.path.join(self.install_dir, "assets", "javascript")
+        self.template_dir = os.path.join(self.install_dir, "assets", "templates")
+        self.css_dir = os.path.join(self.install_dir, "assets", "css")
+        self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
+        self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
+        self.images_dir = os.path.join(self.install_dir, "assets", "images")
+
         try:
             url = urlparse(self.url)
 
@@ -171,7 +180,15 @@ class HTTP:
                 self.stats_update = "realtime"
                 self._process_arg("stats_update", admin)
 
-                self.admin_obj = adadmin.Admin(self.config_dir, logging, self.AD, **admin)
+                self.admin_obj = adadmin.Admin(self.config_dir, logging, self.AD,
+                                               javascript_dir=self.javascript_dir,
+                                               template_dir=self.template_dir,
+                                               css_dir=self.css_dir,
+                                               fonts_dir=self.fonts_dir,
+                                               webfonts_dir=self.webfonts_dir,
+                                               images_dir=self.images_dir,
+                                               **admin
+                                               )
 
             else:
                 self.logger.info("Admin Interface is disabled")
@@ -221,6 +238,12 @@ class HTTP:
                     else:
                         self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
 
+                self.javascript_dir = os.path.join(self.install_dir, "assets", "javascript")
+                self.template_dir = os.path.join(self.install_dir, "assets", "templates")
+                self.css_dir = os.path.join(self.install_dir, "assets", "css")
+                self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
+                self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
+                self.images_dir = os.path.join(self.install_dir, "assets", "images")
 
                 #
                 # Setup compile directories
@@ -231,13 +254,18 @@ class HTTP:
                     self.compile_dir = os.path.join(self.config_dir, "compiled")
 
                 self.dashboard_obj = addashboard.Dashboard(self.config_dir, self.logging,
-                                                 dash_compile_on_start=self.compile_on_start,
-                                                 dash_force_compile=self.force_compile,
-                                                 profile_dashboard=self.profile_dashboard,
-                                                 dashboard_dir=self.dashboard_dir,
-                                                 fa4compatibility=self.fa4compatibility,
-                                                 transport=self.transport
-                                                 )
+                                                           dash_compile_on_start=self.compile_on_start,
+                                                           dash_force_compile=self.force_compile,
+                                                           profile_dashboard=self.profile_dashboard,
+                                                           dashboard_dir=self.dashboard_dir,
+                                                           fa4compatibility=self.fa4compatibility,
+                                                           transport=self.transport,
+                                                           javascript_dir = self.javascript_dir,
+                                                           template_dir = self.template_dir,
+                                                           css_dir = self.css_dir,
+                                                           fonts_dir=self.fonts_dir,
+                                                           webfonts_dir=self.webfonts_dir,
+                                                           images_dir=self.images_dir)
                 self.setup_dashboard_routes()
 
             else:
@@ -492,6 +520,22 @@ class HTTP:
         self.app.router.add_get('/favicon.ico', self.not_found)
         self.app.router.add_get('/{gfx}.png', self.not_found)
         self.app.router.add_post('/logon_response', self.logon_response)
+
+        # Add static path for JavaScript
+        self.app.router.add_static('/javascript', self.javascript_dir)
+
+        # Add static path for fonts
+        self.app.router.add_static('/fonts', self.fonts_dir)
+
+        # Add static path for webfonts
+        self.app.router.add_static('/webfonts', self.webfonts_dir)
+
+        # Add static path for images
+        self.app.router.add_static('/images', self.images_dir)
+
+        # Add static path for css
+        self.app.router.add_static('/css', self.css_dir)
+
         if self.admin is not None:
             self.app.router.add_get('/', self.admin_page)
         elif self.dashboard is not None:
@@ -506,13 +550,8 @@ class HTTP:
 
         # Setup Templates
 
-        # Add static path for JavaScript
-
-        self.app.router.add_static('/javascript', self.dashboard_obj.javascript_dir)
         self.app.router.add_static('/compiled_javascript', self.dashboard_obj.compiled_javascript_dir)
 
-        # Add static path for css
-        self.app.router.add_static('/css', self.dashboard_obj.css_dir)
         self.app.router.add_static('/compiled_css', self.dashboard_obj.compiled_css_dir)
 
         # Add path for custom_css if it exists
@@ -520,16 +559,6 @@ class HTTP:
         custom_css = os.path.join(self.dashboard_obj.config_dir, "custom_css")
         if os.path.isdir(custom_css):
             self.app.router.add_static('/custom_css', custom_css)
-
-        # Add static path for fonts
-        self.app.router.add_static('/fonts', self.dashboard_obj.fonts_dir)
-
-        # Add static path for webfonts
-        self.app.router.add_static('/webfonts', self.dashboard_obj.webfonts_dir)
-
-        # Add static path for images
-        self.app.router.add_static('/images', self.dashboard_obj.images_dir)
-
     # API
 
     def terminate_app(self, name):

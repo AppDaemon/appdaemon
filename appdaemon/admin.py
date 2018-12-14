@@ -16,11 +16,11 @@ class Admin:
         self.AD = ad
         self.logger = self.logger = ad.logging.get_child("_admin")
         self.dash_install_dir = os.path.dirname(__file__)
-        self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
-        self.template_dir = os.path.join(self.dash_install_dir, "assets", "templates")
-        self.css_dir = os.path.join(self.dash_install_dir, "assets", "css")
-        self.fonts_dir = os.path.join(self.dash_install_dir, "assets", "fonts")
-        self.images_dir = os.path.join(self.dash_install_dir, "assets", "images")
+        self.javascript_dir = None
+        self.template_dir = None
+        self.css_dir = None
+        self.fonts_dir = None
+        self.images_dir = None
         self.base_url = ""
         self.title = "AppDaemon Administrative Interface"
         #
