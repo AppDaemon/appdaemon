@@ -306,25 +306,34 @@ class HTTP:
         return response
 
     async def logon_response(self, request):
-        data = await request.post()
-        password = data["password"]
+        try:
+            data = await request.post()
+            password = data["password"]
 
-        if password == self.password:
-            self.access.info("Succesful logon from %s", request.host)
-            hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
-            if self.admin is not None:
-                response = await self._admin_page(request)
+            if password == self.password:
+                self.access.info("Succesful logon from %s", request.host)
+                hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
+                if self.admin is not None:
+                    response = await self._admin_page(request)
+                else:
+                    response = await self._list_dash(request)
+
+                self.logger.debug("hashed=%s", hashed)
+                # Set cookie to last for 1 year
+                response.set_cookie("adcreds", hashed.decode("utf-8"), max_age=31536000)
+
             else:
-                response = await self._list_dash(request)
+                self.access.warning("Unsuccessful logon from %s", request.host)
+                response = await self.logon_page(request)
 
-            # Set cookie to last for 1 year
-            response.set_cookie("adcreds", hashed.decode("utf-8"), max_age=31536000)
-
-        else:
-            self.access.warning("Unsuccessful logon from %s", request.host)
-            response = await self.logon_page(request)
-
-        return response
+            return response
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in logon_response()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Server error in logon_response()")
 
     # noinspection PyUnusedLocal
     @secure
@@ -371,7 +380,7 @@ class HTTP:
                     await asyncio.sleep(1)
                 except:
                     self.logger.warning('-' * 60)
-                    self.logger.warning("Unexpected error in dashboard thread")
+                    self.logger.warning("Unexpected error in update_rss()")
                     self.logger.warning('-' * 60)
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning('-' * 60)
