@@ -298,7 +298,7 @@ class Scheduler:
         with self.schedule_lock:
             if name not in self.schedule:
                 self.schedule[name] = {}
-            handle = uuid.uuid4()
+            handle = uuid.uuid4().hex
             c_offset = self.get_offset({"kwargs": kwargs})
             ts = utc + timedelta(seconds=c_offset)
             interval = kwargs.get("interval", 0)

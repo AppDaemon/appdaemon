@@ -507,7 +507,7 @@ class Threading:
                     # Do it now
                     with self.AD.app_management.objects_lock:
                         executed = await self.dispatch_worker(name, {
-                            "id":uuid_,
+                            "id": uuid_,
                             "name": name,
                             "objectid": self.AD.app_management.objects[name]["id"],
                             "type": "state",

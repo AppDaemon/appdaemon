@@ -664,7 +664,7 @@ class HTTP:
 
     def register_endpoint(self, cb, name):
 
-        handle = uuid.uuid4()
+        handle = uuid.uuid4().hex
 
         with self.endpoints_lock:
             if name not in self.endpoints:

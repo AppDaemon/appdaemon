@@ -84,7 +84,7 @@ class State:
                 if name not in self.AD.callbacks.callbacks:
                     self.AD.callbacks.callbacks[name] = {}
 
-                handle = uuid.uuid4()
+                handle = uuid.uuid4().hex
                 with self.AD.app_management.objects_lock:
                     self.AD.callbacks.callbacks[name][handle] = {
                         "name": name,

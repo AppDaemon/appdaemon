@@ -175,7 +175,7 @@ class AppManagement:
                         "object": app_class(
                             self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars
                         ),
-                        "id": uuid.uuid4(),
+                        "id": uuid.uuid4().hex,
                         "pin_app": self.AD.threading.app_should_be_pinned(name),
                         "pin_thread": pin
                     }
