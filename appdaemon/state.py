@@ -452,5 +452,5 @@ class State:
         return utils._sanitize_kwargs(kwargs_copy, [
             "old", "new", "__attribute", "duration", "state",
             "__entity", "__duration", "__old_state", "__new_state",
-            "oneshot", "pin_app", "pin_thread"
+            "oneshot", "pin_app", "pin_thread", "__delay"
         ] + app.list_constraints())

@@ -47,30 +47,30 @@ class ADStream:
             self.sio.register_namespace(self.dash_stream)
 
     async def send_update(self, data):
-            try:
-                jdata = json.dumps(data)
+        try:
+            jdata = json.dumps(data)
 
-                if self.transport == "ws":
-                    if len(self.app['websockets']) > 0:
-                        self.logger.debug("Sending data: %s", jdata)
-                    for ws in self.app['websockets']:
-                        if "dashboard" in self.app['websockets'][ws]:
-                            await ws.send_str(jdata)
+            if self.transport == "ws":
+                if len(self.app['websockets']) > 0:
+                    self.logger.debug("Sending data: %s", jdata)
+                for ws in self.app['websockets']:
+                    if "dashboard" in self.app['websockets'][ws]:
+                        await ws.send_str(jdata)
 
-                else:
-                    await self.dash_stream.emit('down', jdata)
-            except TypeError as e:
-                self.logger.debug('-' * 60)
-                self.logger.warning("Unexpected error in JSON conversion")
-                self.logger.debug("Data is: %s", data)
-                self.logger.debug("Error is: %s",e)
-                self.logger.debug('-' * 60)
-            except:
-                self.logger.debug('-' * 60)
-                self.logger.warning("Admin browser disconnected unexpectedly")
-                self.logger.debug('-' * 60)
-                self.logger.debug(traceback.format_exc())
-                self.logger.debug('-' * 60)
+            else:
+                await self.dash_stream.emit('down', jdata)
+        except TypeError as e:
+            self.logger.debug('-' * 60)
+            self.logger.warning("Unexpected error in JSON conversion")
+            self.logger.debug("Data is: %s", data)
+            self.logger.debug("Error is: %s",e)
+            self.logger.debug('-' * 60)
+        except:
+            self.logger.debug('-' * 60)
+            self.logger.warning("Admin browser disconnected unexpectedly")
+            self.logger.debug('-' * 60)
+            self.logger.debug(traceback.format_exc())
+            self.logger.debug('-' * 60)
 
     #@securedata
     async def wshandler(self, request):
