@@ -621,7 +621,7 @@ class Threading:
                     error_logger.warning(traceback.format_exc())
                     error_logger.warning('-' * 60)
                     if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
+                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
                 finally:
                     self.AD.thread_async.call_async_no_wait(self.update_thread_info, thread_id, "idle", name, _type, _id)
 

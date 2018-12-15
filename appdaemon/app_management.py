@@ -105,7 +105,7 @@ class AppManagement:
             error_logger.warning(traceback.format_exc())
             error_logger.warning('-' * 60)
             if self.AD.logging.separate_error_log() is True:
-                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
+                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
             self.set_state(name, state="initialize_error")
 
     def terminate_app(self, name):
@@ -130,7 +130,7 @@ class AppManagement:
                 error_logger.warning(traceback.format_exc())
                 error_logger.warning('-' * 60)
                 if self.AD.logging.separate_error_log() is True:
-                    self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
+                    self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
         with self.objects_lock:
             if name in self.objects:
@@ -626,7 +626,7 @@ class AppManagement:
                     error_logger.warning(traceback.format_exc())
                     error_logger.warning('-' * 60)
                     if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(app))
+                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
         # Load/reload modules
 
@@ -672,7 +672,7 @@ class AppManagement:
                     error_logger.warning(traceback.format_exc())
                     error_logger.warning('-' * 60)
                     if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(app))
+                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
             self.AD.threading.calculate_pin_threads()
 

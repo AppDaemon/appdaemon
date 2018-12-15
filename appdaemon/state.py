@@ -264,19 +264,19 @@ class State:
         return namespaces
 
     async def remove_entity(self, namespace, entity):
-        data = \
-            {
-                "event_type": "__AD_ENTITY_REMOVED",
-                "data":
-                    {
-                        "entity_id": entity,
-                    }
-            }
-
         with self.state_lock:
-            self.state[namespace].pop(entity)
+            if entity in self.state[namespace]:
+                self.state[namespace].pop(entity)
+                data = \
+                    {
+                        "event_type": "__AD_ENTITY_REMOVED",
+                        "data":
+                            {
+                                "entity_id": entity,
+                            }
+                    }
 
-        await self.AD.events.process_event(namespace, data)
+                await self.AD.events.process_event(namespace, data)
 
     async def add_entity(self, namespace, entity, state, attributes = None):
         if attributes is None:

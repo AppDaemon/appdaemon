@@ -176,7 +176,7 @@ class Scheduler:
             error_logger.warning(traceback.format_exc())
             error_logger.warning('-' * 60)
             if self.AD.logging.separate_error_log() is True:
-                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename(name))
+                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
             error_logger.warning("Scheduler entry has been deleted")
             error_logger.warning('-' * 60)
             await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(entry))
