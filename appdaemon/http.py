@@ -385,72 +385,119 @@ class HTTP:
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning('-' * 60)
 
-
+    #
+    # REST API
+    #
 
     @securedata
     async def get_entity(self, request):
+        namespace = None
+        entity_id = None
+        try:
+            entity_id = request.match_info.get('entity')
+            namespace = request.match_info.get('namespace')
 
-        entity_id = request.match_info.get('entity')
-        namespace = request.match_info.get('namespace')
+            self.logger.debug("get_state() called, ns=%s, entity=%s", namespace, entity_id)
+            state = self.AD.state.get_entity(namespace, entity_id)
 
-        self.logger.debug("get_state() called, ns=%s, entity=%s", namespace, entity_id)
-        state = self.AD.state.get_entity(namespace, entity_id)
+            self.logger.debug("result = %s", state)
 
-        self.logger.debug("result = %s", state)
-
-        return web.json_response({"state": state})
+            return web.json_response({"state": state})
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_entity()")
+            self.logger.warning("Namespace: %s, entity: %s", namespace, entity_id)
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_entity()")
 
     @securedata
     async def get_namespace(self, request):
+        namespace = None
+        try:
+            namespace = request.match_info.get('namespace')
 
-        namespace = request.match_info.get('namespace')
+            self.logger.debug("get_namespace() called, ns=%s", namespace)
+            state = self.AD.state.get_entity(namespace)
 
-        self.logger.debug("get_namespace() called, ns=%s", namespace)
-        state = self.AD.state.get_entity(namespace)
+            self.logger.debug("result = %s", state)
 
-        self.logger.debug("result = %s", state)
+            if state is None:
+                return self.get_response(request, 404, "Namespace Not Found")
 
-        if state is None:
-            return self.get_response(request, 404, "Namespace Not Found")
-
-        return web.json_response({"state": state})
+            return web.json_response({"state": state})
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_namespace()")
+            self.logger.warning("Namespace: %s", namespace)
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_namespace()")
 
     @securedata
     async def get_namespace_entities(self, request):
 
-        namespace = request.match_info.get('namespace')
+        namespace = None
+        try:
+            namespace = request.match_info.get('namespace')
 
-        self.logger.debug("get_namespace_entities() called, ns=%s", namespace)
-        state = self.AD.state.list_namespace_entities(namespace)
+            self.logger.debug("get_namespace_entities() called, ns=%s", namespace)
+            state = self.AD.state.list_namespace_entities(namespace)
 
-        self.logger.debug("result = %s", state)
+            self.logger.debug("result = %s", state)
 
-        if state is None:
-            return self.get_response(request, 404, "Namespace Not Found")
+            if state is None:
+                return self.get_response(request, 404, "Namespace Not Found")
 
-        return web.json_response({"state": state})
+            return web.json_response({"state": state})
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_namespace_entities()")
+            self.logger.warning("Namespace: %s", namespace)
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_namespace_entities()")
 
     @securedata
     async def get_namespaces(self, request):
 
-        self.logger.debug("get_namespaces() called)")
-        state = self.AD.state.list_namespaces()
-        self.logger.debug("result = %s", state)
+        try:
+            self.logger.debug("get_namespaces() called)")
+            state = self.AD.state.list_namespaces()
+            self.logger.debug("result = %s", state)
 
-        return web.json_response({"state": state})
+            return web.json_response({"state": state})
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_namespaces()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_namespaces()")
+
 
     @securedata
     async def get_state(self, request):
+        try:
+            self.logger.debug("get_state() called")
+            state = self.AD.state.get_entity()
 
-        self.logger.debug("get_state() called")
-        state = self.AD.state.get_entity()
+            if state is None:
+                self.get_response(request, 404, "State Not Found")
 
-        if state is None:
-            self.get_response(request, 404, "State Not Found")
+            self.logger.debug("result = %s", state)
 
-        self.logger.debug("result = %s", state)
-
-        return web.json_response({"state": state})
+            return web.json_response({"state": state})
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_state()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_state()")
 
     # noinspection PyUnusedLocal
     @securedata
@@ -497,9 +544,8 @@ class HTTP:
             return web.Response(status=500)
 
     # noinspection PyUnusedLocal
-    @staticmethod
-    async def not_found(request):
-        return web.Response(status=404)
+    async def not_found(self, request):
+        return self.get_response(request, 404, "Not Found")
 
     # Stream Handling
 
