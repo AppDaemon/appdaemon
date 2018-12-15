@@ -52,7 +52,7 @@ class ADStream:
 
             if self.transport == "ws":
                 if len(self.app['websockets']) > 0:
-                    self.logger.debug("Sending data: %s", jdata)
+                    #self.logger.debug("Sending data: %s", jdata)
                 for ws in self.app['websockets']:
                     if "dashboard" in self.app['websockets'][ws]:
                         await ws.send_str(jdata)
