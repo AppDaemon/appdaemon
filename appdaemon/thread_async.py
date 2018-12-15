@@ -45,6 +45,7 @@ class ThreadAsync:
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning('-' * 60)
 
+            self.logger.debug("calling task_done()")
             self.appq.task_done()
 
     def call_async_no_wait(self, function, *args, **kwargs):
