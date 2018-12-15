@@ -504,7 +504,7 @@ class HTTP:
     # Stream Handling
 
     async def stream_update(self, namespace, data):
-        self.logger.debug("stream_update() %s:%s", namespace, data)
+        #self.logger.debug("stream_update() %s:%s", namespace, data)
         data["namespace"] = namespace
         await self.stream.send_update(data)
 
