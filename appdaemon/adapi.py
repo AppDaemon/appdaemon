@@ -30,6 +30,9 @@ class ADAPI:
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
             self.err.setLevel(args["log_level"])
+        if "log" in args:
+            self.logger = self.get_user_log(args["log"])
+
 
     @staticmethod
     def _sub_stack(msg):
@@ -107,6 +110,8 @@ class ADAPI:
             # Build it on the fly
             logger = self._AD.logging.get_user_log(self.name, log).getChild(self.name)
             self.user_logs[log] = logger
+            if "log_level" in self.args:
+                logger.setLevel(self.args["log_level"])
 
         return logger
 

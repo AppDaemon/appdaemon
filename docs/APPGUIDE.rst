@@ -1493,6 +1493,14 @@ The ``-D`` option of AppDaemon can be used to specify a global logging level, an
 
     log_level: DEBUG
 
+In addition, apps can select a default log for the `log()` call using the `log` directive in apps.yaml, referencing the section name in appdaemon.yaml. This can be one of the 4 builtin logs, ``main_log``, ``error_log``, ```diag_log`` and ``access_log``, or a user defined log, e.g.
+
+.. code:: yaml
+
+    log: test_log
+
+If an app has set a default log other than one of the 4 built in logs, these logs can still be accessed specifically using either the `log=` parameter of the `log()` call, or by getting the appropriate logger object yusing the `get_user_log()` call, whcih also works for default logs.
+
 ApDaemon loggin also allows you to use placeholders for the module,
 fucntion and line number. If you include the following in the test of
 your message:
@@ -1505,6 +1513,11 @@ your message:
 
 They will automatically be expanded to the appropriate values in the log
 message.
+
+User Defined Logs
+-----------------
+
+
 
 Getting Information in Apps and Sharing information between Apps
 ----------------------------------------------------------------
