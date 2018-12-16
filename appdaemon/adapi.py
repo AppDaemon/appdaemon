@@ -117,6 +117,9 @@ class ADAPI:
 
     def set_log_level(self, level):
         self.logger.setLevel(self._logging.log_levels[level])
+        self.err.setLevel(self._logging.log_levels[level])
+        for log in self.user_logs:
+            self.user_logs[log].setLevel(self._logging.log_levels[level])
 
     def set_error_level(self, level):
         self.err.setLevel(self._logging.log_levels[level])
