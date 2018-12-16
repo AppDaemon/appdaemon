@@ -52,10 +52,10 @@ class ADStream:
 
             if self.transport == "ws":
                 if len(self.app['websockets']) > 0:
-                    #self.logger.debug("Sending data: %s", jdata)
-                for ws in self.app['websockets']:
-                    if "dashboard" in self.app['websockets'][ws]:
-                        await ws.send_str(jdata)
+                    self.logger.debug("Sending data: %s", jdata)
+                    for ws in self.app['websockets']:
+                        if "dashboard" in self.app['websockets'][ws]:
+                            await ws.send_str(jdata)
 
             else:
                 await self.dash_stream.emit('down', jdata)
@@ -88,7 +88,11 @@ class ADStream:
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except:
-            self.access.debug("WebSocket disconnected")
+            self.logger.debug('-' * 60)
+            self.logger.warning("Unexpeced error in wshandler()")
+            self.logger.debug('-' * 60)
+            self.logger.debug(traceback.format_exc())
+            self.logger.debug('-' * 60)
         finally:
             request.app['websockets'].pop(ws, None)
 
@@ -98,6 +102,13 @@ class ADStream:
 
     async def on_shutdown(self, application):
         for ws in application['websockets']:
-            await ws.close(code=aiohttp.WSCloseCode.GOING_AWAY,
+            try:
+                await ws.close(code=aiohttp.WSCloseCode.GOING_AWAY,
                                 message='Server shutdown')
+            except:
+                self.logger.debug('-' * 60)
+                self.logger.warning("Unexpeced error in on_shutdown()")
+                self.logger.debug('-' * 60)
+                self.logger.debug(traceback.format_exc())
+                self.logger.debug('-' * 60)
 
