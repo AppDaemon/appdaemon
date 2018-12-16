@@ -303,7 +303,7 @@ function open_tooltip(e)
     }
 
 
-    tooltip.css("left", e.pageX - width - 50);
+    tooltip.css("left", e.pageX - width - 10);
     tooltip.css("visibility", "visible")
 }
 
