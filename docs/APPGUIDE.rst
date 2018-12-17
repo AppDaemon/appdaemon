@@ -1269,12 +1269,12 @@ About Events
 ~~~~~~~~~~~~
 
 Events are a fundamental part of how AppDaemon works under the
-covers. AD receives important events from all of its plugins and communicates them to apps as required. FOr instance, the MQTT plugin will generate an event when a message is recieved; The HASS plugin will generate an event when a service is called, or when it starts or stops.
+covers. AD receives important events from all of its plugins and communicates them to apps as required. For instance, the MQTT plugin will generate an event when a message is recieved; The HASS plugin will generate an event when a service is called, or when it starts or stops.
 
 Events and MQTT
 ~~~~~~~~~~~~~~~
 
-The MQTT plugin uses events as itsd primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. APps are able to subscribe to this event and process it appropriately.
+The MQTT plugin uses events as its primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. Apps are able to subscribe to this event and process it appropriately.
 
 Events and Home Assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~
