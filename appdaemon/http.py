@@ -480,6 +480,24 @@ class HTTP:
 
 
     @securedata
+    async def get_services(self, request):
+
+        try:
+            self.logger.debug("get_services() called)")
+            state = self.AD.services.list_services()
+            self.logger.debug("result = %s", state)
+
+            return web.json_response({"state": state})
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_namespaces()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_namespaces()")
+
+
+    @securedata
     async def get_state(self, request):
         try:
             self.logger.debug("get_state() called")
@@ -503,10 +521,18 @@ class HTTP:
     @securedata
     async def call_service(self, request):
         try:
-            data = await request.post()
+            try:
+                data = await request.json()
+            except json.decoder.JSONDecodeError:
+                return self.get_response(request, 400, "JSON Decode Error")
+
             args = {}
-            service = data["service"]
-            namespace = data["namespace"]
+            namespace = request.match_info.get('namespace')
+            domain = request.match_info.get('domain')
+            service = request.match_info.get('service')
+            #
+            # Some value munging for dashboard
+            #
             for key in data:
                 if key == "service" or key == "namespace":
                     pass
@@ -530,9 +556,9 @@ class HTTP:
                 else:
                     args[key] = data[key]
 
-            plugin = self.AD.plugins.get_plugin_object(namespace)
+            self.logger.debug("call_service() args = %s", args)
 
-            await plugin.call_service(service, **args)
+            await self.AD.services.call_service(namespace, domain, service, args)
             return web.Response(status=200)
 
         except:
@@ -563,7 +589,8 @@ class HTTP:
     # Routes, Status and Templates
 
     def setup_api_routes(self):
-        self.app.router.add_post('/api/appdaemon/call_service', self.call_service)
+        self.app.router.add_post('/api/appdaemon/service/{namespace}/{domain}/{service}', self.call_service)
+        self.app.router.add_get('/api/appdaemon/service/', self.get_services)
         self.app.router.add_get('/api/appdaemon/state/{namespace}/{entity}', self.get_entity)
         self.app.router.add_get('/api/appdaemon/state/{namespace}', self.get_namespace)
         self.app.router.add_get('/api/appdaemon/state/{namespace}/', self.get_namespace_entities)
@@ -627,7 +654,7 @@ class HTTP:
         if code == 200:
             self.access.info("API Call to %s: status: %s %s", app, code)
         else:
-            self.logger.warning("API Call to %s: status: %s", app, code)
+            self.logger.warning("API Call to %s: status: %s, %s", app, code, error)
         return web.Response(body=res, status=code)
 
     @securedata
@@ -635,7 +662,6 @@ class HTTP:
 
         code = 200
         ret = ""
-
         app = request.match_info.get('app')
 
         try:

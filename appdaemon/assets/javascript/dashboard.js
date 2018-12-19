@@ -270,9 +270,14 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.call_service = function(child, args)
     {
-        service_url = child.url + "/api/appdaemon/call_service";
-        args["namespace"] = parameters.namespace;
-        $.post(service_url, args);
+        service_url = child.url + "/api/appdaemon/service/" + parameters.namespace + "/" + args["service"];
+        $.ajax({
+              type: "POST",
+              url: service_url,
+              data: JSON.stringify(args),
+              dataType: "json"
+            });
+        //$.post(service_url, args, "json");
     };
 
     // Initialization

@@ -398,7 +398,10 @@ class State:
     async def set_state(self, name, namespace, entity_id, **kwargs):
         self.logger.debug("set_state(): %s, %s", entity_id, kwargs)
         with self.state_lock:
-            old_state = deepcopy(self.state[namespace][entity_id])
+            if entity_id in self.state[namespace]:
+                old_state = deepcopy(self.state[namespace][entity_id])
+            else:
+                old_state = {"state": None, "attributes": {}}
             new_state = self.parse_state(entity_id, namespace, **kwargs)
             new_state["last_changed"] = utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0), self.AD.tz)
             self.logger.debug("Old state: %s", old_state)
@@ -406,17 +409,34 @@ class State:
             if not self.AD.state.entity_exists(namespace, entity_id):
                 self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
 
-            data = \
-                        {
-                            "event_type": "state_changed",
-                            "data":
-                                {
-                                    "entity_id": entity_id,
-                                    "new_state": new_state,
-                                    "old_state": old_state
-                                }
-                        }
-            await self.AD.events.process_event(namespace, data)
+            # Fire the plugin's state update if it has one
+
+            plugin = self.AD.plugins.get_plugin_object(namespace)
+
+            if hasattr(plugin, "set_plugin_state"):
+                    # We assume that the state change will come back to us via the plugin
+                    self.logger.debug("sending event to plugin")
+                    result = await plugin.set_plugin_state(namespace, entity_id, **kwargs)
+                    if "entity_id" in result:
+                        result.pop("entity_id")
+                    self.state[namespace][entity_id] = self.parse_state(entity_id, namespace, **result)
+            else:
+                # Set the state locally
+                self.state[namespace][entity_id] = new_state
+                # Fire the event locally
+                self.logger.debug("sending event locally")
+                data = \
+                            {
+                                "event_type": "state_changed",
+                                "data":
+                                    {
+                                        "entity_id": entity_id,
+                                        "new_state": new_state,
+                                        "old_state": old_state
+                                    }
+                            }
+
+                await self.AD.events.process_event(namespace, data)
 
         return new_state
 

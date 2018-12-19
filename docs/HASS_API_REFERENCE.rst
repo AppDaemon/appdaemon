@@ -700,3 +700,31 @@ Example
     if device == "scene":
         do something specific to scenes
 
+
+Home Assistant Config
+---------------------
+
+get_plugin_config()
+~~~~~~~~~~~~~~~~~
+
+Get Home Assistant configuration data such as latitude and longitude.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_hass_config()
+
+Returns
+^^^^^^^
+
+A dictionary containing all the configuration information available from the Home Assistant ``/api/config`` endpoint.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    config = self.get_hass_config()
+    self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))

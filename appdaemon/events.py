@@ -68,6 +68,17 @@ class Events:
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
 
+    async def fire_event(self, namespace, event, **kwargs):
+        self.logger.debug("fire_plugin_event() %s %s %s", namespace, event, kwargs)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
+
+        if hasattr(plugin, "fire_plugin_event"):
+            # We assume that the event will come back to us via the plugin
+            await plugin.fire_plugin_event(event, namespace, **kwargs)
+        else:
+            # Just fire the event locally
+            await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
+
     async def process_event(self, namespace, data):
         try:
             self.logger.debug("Event type:%s:", data['event_type'])

@@ -223,17 +223,16 @@ async def run_in_executor(loop, executor, fn, *args, **kwargs):
     response = list(completed)[0].result()
     return response
 
-def run_coroutine_threadsafe(coro, loop, timeout=None):
-    future = asyncio.run_coroutine_threadsafe(coro, loop)
+def run_coroutine_threadsafe(self, coro, timeout=None):
+    result = None
+    future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
     try:
         result = future.result(timeout)
     except asyncio.TimeoutError:
-        print('The coroutine took too long, cancelling the task...')
+        self.logger.warning("The coroutine (%s) took too long, cancelling the task...", coro)
         future.cancel()
-    except Exception as exc:
-        print('The coroutine raised an exception: {!r}'.format(exc))
-    else:
-        print('The coroutine returned: {!r}'.format(result))
+
+    return(result)
 
 
 def find_path(name):

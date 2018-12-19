@@ -80,7 +80,7 @@ class MqttPlugin(PluginBase):
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
 
-        self.loop = self.AD.loop # get _AD loop
+        self.loop = self.AD.loop # get AD loop
         self.mqtt_connect_event = asyncio.Event(loop = self.loop)
         self.mqtt_wildcards = list()
         self.mqtt_metadata = {
