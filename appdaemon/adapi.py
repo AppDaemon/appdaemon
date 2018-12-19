@@ -321,6 +321,26 @@ class ADAPI:
 
         return self._AD.state.get_state(self.name, namespace, entity_id, attribute, **kwargs)
 
+        #
+        # Service
+        #
+
+    @staticmethod
+    def _check_service(service):
+        if service.find("/") == -1:
+            raise ValueError("Invalid Service Name: {}".format(service))
+
+    def call_service(self, service, **kwargs):
+        self._check_service(service)
+        d, s = service.split("/")
+        self.logger.debug("call_service: %s/%s, %s", d, s, kwargs)
+
+        namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        return self._AD.services.call_service(namespace, d, s, kwargs)
+
     def set_state(self, entity_id, **kwargs):
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
         namespace = self._get_namespace(**kwargs)
@@ -355,8 +375,6 @@ class ADAPI:
                         }
 
             self._AD.thread_async.call_async_no_wait(self._AD.events.process_event, namespace, data)
-
-        # Update _AD's Copy
 
         return new_state
 

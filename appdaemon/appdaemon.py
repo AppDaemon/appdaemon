@@ -21,6 +21,7 @@ class AppDaemon:
         import appdaemon.callbacks as callbacks
         import appdaemon.state as state
         import appdaemon.events as events
+        import appdaemon.services as services
 
         self.logging = logging
         self.logging.register_ad(self)
@@ -183,6 +184,11 @@ class AppDaemon:
         # Set up callbacks
         #
         self.callbacks = callbacks.Callbacks(self)
+
+        #
+        # Set up services
+        #
+        self.services = services.Services(self)
 
         if self.apps is True:
             if self.app_dir is None:

@@ -263,40 +263,4 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             kwargs["notification_id"] = id
         self.call_service("persistent_notification/create", **kwargs)
 
-    #
-    # Service
-    #
-    @staticmethod
-    def _check_service(service):
-        if service.find("/") == -1:
-            raise ValueError("Invalid Service Name: {}".format(service))
 
-    @hass_check
-    def call_service(self, service, **kwargs):
-        self._check_service(service)
-        d, s = service.split("/")
-        self.logger.debug("call_service: %s/%s, %s",d, s, kwargs)
-        
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
-        config = self.AD.plugins.get_plugin_object(namespace).config
-        if "cert_path" in config:
-            cert_path = config["cert_path"]
-        else:
-            cert_path = False
-
-        if "token" in config:
-            headers = {'Authorization': "Bearer {}".format(config["token"])}
-        elif "ha_key" in config:
-            headers = {'x-ha-access': config["ha_key"]}
-        else:
-            headers = {}
-
-        apiurl = "{}/api/services/{}/{}".format(config["ha_url"], d, s)
-        r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=cert_path
-        )
-        r.raise_for_status()
-        return r.json()

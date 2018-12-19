@@ -130,6 +130,13 @@ class MqttPlugin(PluginBase):
                 self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos, retain=self.mqtt_on_connect_retain)
 
                 self.logger.info("Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
+                #
+                # Register MQTT Services
+                #
+                self.AD.services.register_service(self.namespace, "mqtt", "subscribe", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "mqtt", "unsubscribe", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "mqtt", "publish", self.call_plugin_service)
+
                 for topic in self.mqtt_client_topics:
                     self.logger.debug("Subscribing to Topic: %s", topic)
                     result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
@@ -195,43 +202,63 @@ class MqttPlugin(PluginBase):
             self.logger.debug('There was an error while processing an MQTT message, with Traceback: %s', traceback.format_exc())
 
 
-    def mqtt_service(self, service, **kwargs):
-        topic = kwargs['topic']
-        payload = kwargs.get('payload', None)
-        retain = kwargs.get('retain', False)
-        qos = int(kwargs.get('qos', self.mqtt_qos))
+    def call_plugin_service(self, namespace, domain, service, kwargs):
 
-        if service == 'publish':
-            self.logger.debug("Publish Payload: %s to Topic: %s", payload, topic)
+        if 'topic' in kwargs:
+            if not self.initialized:  # ensure mqtt plugin is connected
+                self.logger.warning("Attempt to call Mqtt Service while disconnected: %s", service)
+                return None
+            try:
+                topic = kwargs['topic']
+                payload = kwargs.get('payload', None)
+                retain = kwargs.get('retain', False)
+                qos = int(kwargs.get('qos', self.mqtt_qos))
 
-            result = self.mqtt_client.publish(topic, payload, qos, retain)
+                if service == 'publish':
+                    self.logger.debug("Publish Payload: %s to Topic: %s", payload, topic)
 
-            if result[0] == 0:
-                self.logger.debug("Publishing Payload %s to Topic %s Successful", payload, topic)
+                    result = self.mqtt_client.publish(topic, payload, qos, retain)
 
-        elif service == 'subscribe':
-            self.logger.debug("Subscribe to Topic: %s", topic)
+                    if result[0] == 0:
+                        self.logger.debug("Publishing Payload %s to Topic %s Successful", payload, topic)
 
-            result = self.mqtt_client.subscribe(topic, qos)
+                elif service == 'subscribe':
+                    self.logger.debug("Subscribe to Topic: %s", topic)
 
-            if result[0] == 0:
-                self.logger.debug("Subscription to Topic %s Sucessful", topic)
+                    result = self.mqtt_client.subscribe(topic, qos)
 
-                if topic not in self.mqtt_client_topics:
-                    self.mqtt_client_topics.append(topic)
+                    if result[0] == 0:
+                        self.logger.debug("Subscription to Topic %s Sucessful", topic)
 
-        elif service == 'unsubscribe':
-            self.logger.debug("Unsubscribe from Topic: %s", topic)
+                        if topic not in self.mqtt_client_topics:
+                            self.mqtt_client_topics.append(topic)
 
-            result = self.mqtt_client.unsubscribe(topic)
-            if result[0] == 0:
-                self.logger.debug("Unsubscription from Topic %s Successful", topic)
-                if topic in self.mqtt_client_topics:
-                    self.mqtt_client_topics.remove(topic)
+                elif service == 'unsubscribe':
+                    self.logger.debug("Unsubscribe from Topic: %s", topic)
 
+                    result = self.mqtt_client.unsubscribe(topic)
+                    if result[0] == 0:
+                        self.logger.debug("Unsubscription from Topic %s Successful", topic)
+                        if topic in self.mqtt_client_topics:
+                            self.mqtt_client_topics.remove(topic)
+
+                else:
+                    self.logger.warning("Wrong Service Call %s for MQTT", service)
+                    result = 'ERR'
+
+            except Exception as e:
+                config = self.config
+                if config['type'] == 'mqtt':
+                    self.logger.debug('Got the following Error %s, when trying to retrieve Mqtt Plugin', e)
+                    return str(e)
+                else:
+                    self.logger.critical(
+                        'Wrong Namespace %s selected for MQTT Service. Please use proper namespace before trying again',
+                        namespace)
+                    return 'ERR'
         else:
-            self.logger.warning("Wrong Service Call %s for MQTT", service)
-            result = 'ERR'
+            self.logger.warning('Topic not provided for Service Call {!r}.'.format(service))
+            raise ValueError("Topic not provided, please provide Topic for Service Call")
 
         return result
 

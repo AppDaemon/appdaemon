@@ -34,45 +34,18 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     def mqtt_publish(self, topic, payload = None, **kwargs):
         kwargs['topic'] = topic
         kwargs['payload'] = payload
-        service = 'publish'
+        service = 'mqtt/publish'
         result = self.call_service(service, **kwargs)
         return result
 
     def mqtt_subscribe(self, topic, **kwargs):
         kwargs['topic'] = topic
-        service = 'subscribe'
+        service = 'mqtt/subscribe'
         result = self.call_service(service, **kwargs)
         return result
 
     def mqtt_unsubscribe(self, topic, **kwargs):
         kwargs['topic'] = topic
-        service = 'unsubscribe'
+        service = 'mqtt/unsubscribe'
         result = self.call_service(service, **kwargs)
-        return result
-
-    def call_service(self, service, **kwargs):
-        self.logger.debug("call_service: %s, %s", service, kwargs)
-        
-        namespace = self._get_namespace(**kwargs)
-
-        if 'topic' in kwargs:
-            if not self._AD.plugins.get_plugin_object(namespace).initialized: #ensure mqtt plugin is connected
-                self.logger.warning("Attempt to call Mqtt Service while disconnected: %s", service)
-                return None
-
-            try:
-                result = self._AD.plugins.get_plugin_object(namespace).mqtt_service(service, **kwargs)
-                
-            except Exception as e:
-                config = self._AD.plugins.get_plugin_object(namespace).config
-                if config['type'] == 'mqtt':
-                    self.logger.debug('Got the following Error %s, when trying to retrieve Mqtt Plugin' ,e)
-                    return str(e)
-                else:
-                    self.logger.critical('Wrong Namespace %s selected for MQTT Service. Please use proper namespace before trying again', namespace)
-                    return 'ERR'
-        else:
-            self.logger.warning('Topic not provided for Service Call {!r}.'.format(service))
-            raise ValueError("Topic not provided, please provide Topic for Service Call")
-
         return result

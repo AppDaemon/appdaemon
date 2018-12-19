@@ -196,6 +196,13 @@ class HassPlugin(PluginBase):
                 #
                 self.metadata = await self.get_hass_config()
                 #
+                # Register Services
+                #
+                self.services = await self.get_hass_services()
+                for domain in self.services:
+                    for service in domain["services"]:
+                        self.AD.services.register_service(self.get_namespace(), domain["domain"], service, self.call_plugin_service)
+                #
                 # Get State
                 #
                 state = await self.get_complete_state()
@@ -288,10 +295,45 @@ class HassPlugin(PluginBase):
                 state = r.json()
                 return state
             except:
-                self.logger.warning("Error setting %s state for homeassistant", r.status_code, r.reason)
+                self.logger.warning('-' * 60)
+                self.logger.warning("Unexpected error during call_plugin_service()")
                 self.logger.warning("Arguments: %s = %s {%}", entity_id, new_state, kwargs)
+                self.logger.warning('-' * 60)
+                self.logger.warning(traceback.format_exc())
+                self.logger.warning('-' * 60)
                 return None
 
+    @hass_check
+    def call_plugin_service(self, namespace, domain, service, data):
+
+        config = self.AD.plugins.get_plugin_object(namespace).config
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
+        else:
+            cert_path = False
+
+        if "token" in config:
+            headers = {'Authorization': "Bearer {}".format(config["token"])}
+        elif "ha_key" in config:
+            headers = {'x-ha-access': config["ha_key"]}
+        else:
+            headers = {}
+
+        apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
+        try:
+            r = requests.post(
+                apiurl, headers=headers, json=data, verify=cert_path
+            )
+            r.raise_for_status()
+            return r.json()
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during call_plugin_service()")
+            self.logger.warning("Service: %s.%s.%s Arguments: %s", namespace, domain, service, data)
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return None
 
     async def get_hass_state(self, entity_id=None):
         if self.token is not None:
@@ -358,6 +400,27 @@ class HassPlugin(PluginBase):
             self.logger.warning("Error getting metadata - retrying")
             raise
 
+    async def get_hass_services(self):
+        try:
+            self.logger.debug("get_hass_services()")
+            if self.token is not None:
+                headers = {'Authorization': "Bearer {}".format(self.token)}
+            elif self.ha_key is not None:
+                headers = {'x-ha-access': self.ha_key}
+            else:
+                headers = {}
+
+            apiurl = "{}/api/services".format(self.ha_url)
+            self.logger.debug("get_hass_services: url is %s", apiurl)
+            r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
+            r.raise_for_status()
+            services = await r.json()
+
+            return services
+        except:
+            self.logger.warning("Error getting services - retrying")
+            raise
+
     @hass_check
     def fire_plugin_event(self, event, namespace, **kwargs):
         self.logger.debug("fire_event: %s, %s %s", event, namespace, kwargs)
@@ -376,11 +439,19 @@ class HassPlugin(PluginBase):
             headers = {}
 
         apiurl = "{}/api/events/{}".format(config["ha_url"], event)
-        r = requests.post(
-            apiurl, headers=headers, json=kwargs, verify=cert_path
-        )
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = requests.post(
+                apiurl, headers=headers, json=kwargs, verify=cert_path
+            )
+            r.raise_for_status()
+            return r.json()
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error fire_plugin_event()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return None
 
     #
     # Async version of call_service() for the hass proxy for HADashboard

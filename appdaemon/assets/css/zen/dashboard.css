@@ -1,3 +1,4 @@
+/*noinspection CssUnknownTarget*/
 @import url('https://fonts.googleapis.com/css?family=Orbitron');
 
 html {
@@ -6,6 +7,7 @@ html {
   -ms-text-size-adjust: 100%;
 }
 
+/*noinspection CssUnknownTarget*/
 body {
   margin: 20px;
   background-image: url("/css/zen/img/zen_bg.jpg");
@@ -159,7 +161,6 @@ h3 {
   .icon-active {
     color: #ff0000;
   }
-}
 
 #container {
   padding-top: 10px;
