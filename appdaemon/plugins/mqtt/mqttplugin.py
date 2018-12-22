@@ -202,7 +202,7 @@ class MqttPlugin(PluginBase):
             self.logger.debug('There was an error while processing an MQTT message, with Traceback: %s', traceback.format_exc())
 
 
-    def call_plugin_service(self, namespace, domain, service, kwargs):
+    async def call_plugin_service(self, namespace, domain, service, kwargs):
 
         if 'topic' in kwargs:
             if not self.initialized:  # ensure mqtt plugin is connected
@@ -217,7 +217,7 @@ class MqttPlugin(PluginBase):
                 if service == 'publish':
                     self.logger.debug("Publish Payload: %s to Topic: %s", payload, topic)
 
-                    result = self.mqtt_client.publish(topic, payload, qos, retain)
+                    result = await utils.run_in_executor(self, self.mqtt_client.publish, topic, payload, qos, retain)
 
                     if result[0] == 0:
                         self.logger.debug("Publishing Payload %s to Topic %s Successful", payload, topic)
@@ -225,7 +225,7 @@ class MqttPlugin(PluginBase):
                 elif service == 'subscribe':
                     self.logger.debug("Subscribe to Topic: %s", topic)
 
-                    result = self.mqtt_client.subscribe(topic, qos)
+                    result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
 
                     if result[0] == 0:
                         self.logger.debug("Subscription to Topic %s Sucessful", topic)
@@ -236,7 +236,7 @@ class MqttPlugin(PluginBase):
                 elif service == 'unsubscribe':
                     self.logger.debug("Unsubscribe from Topic: %s", topic)
 
-                    result = self.mqtt_client.unsubscribe(topic)
+                    result = await utils.run_in_executor(self, self.mqtt_client.unsubscribe, topic)
                     if result[0] == 0:
                         self.logger.debug("Unsubscription from Topic %s Successful", topic)
                         if topic in self.mqtt_client_topics:
@@ -305,7 +305,7 @@ class MqttPlugin(PluginBase):
             while (not self.initialized or not already_initialized) and not self.stopping: #continue until initialization is successful
                 if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time
                     try:
-                        await asyncio.wait_for(utils.run_in_executor(self.AD.loop, self.AD.executor, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
+                        await asyncio.wait_for(utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
                         await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.logger.critical("Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)

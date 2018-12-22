@@ -128,7 +128,7 @@ class Plugins:
     def get_plugin(self, plugin):
         return self.plugins[plugin]
 
-    def get_plugin_object(self, name):
+    async def get_plugin_object(self, name):
         if name in self.plugin_objs:
             return self.plugin_objs[name]["object"]
         else:
@@ -158,7 +158,7 @@ class Plugins:
                 self.AD.state.set_namespace_state(namespace, state)
 
                 if not first_time:
-                    await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates, self.get_plugin_from_namespace(namespace))
+                    await utils.run_in_executor(self, self.AD.app_management.check_app_updates, self.get_plugin_from_namespace(namespace))
                 else:
                     self.logger.info("Got initial state from namespace %s", namespace)
 
@@ -177,7 +177,7 @@ class Plugins:
         self.plugin_objs[namespace]["active"] = False
         await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
-    def get_plugin_meta(self, namespace):
+    async def get_plugin_meta(self, namespace):
         for name in self.plugins:
             if "namespace" not in self.plugins[name] and namespace == "default":
                 return self.plugin_meta[namespace]
@@ -223,5 +223,19 @@ class Plugins:
                 OK = False
         return OK
 
+    async def get_plugin_api(self, plugin_name, name, _logging, args, config, app_config, global_vars):
+        if plugin_name in self.plugins:
+            plugin = self.plugins[plugin_name]
+            module_name = "{}api".format(plugin["type"])
+            mod = __import__(module_name, globals(), locals(), [module_name], 0)
+            app_class = getattr(mod, plugin["type"].title())
+            api = app_class(self.AD, name, _logging, args, config, app_config, global_vars)
+            if "namespace" in plugin:
+                api.set_namespace(plugin["namespace"])
+            else:
+                api.set_namespace("default")
+            return api
 
-
+        else:
+            self.logger.warning("Unknown Plugin Configuration in get_plugin_api()")
+            return None

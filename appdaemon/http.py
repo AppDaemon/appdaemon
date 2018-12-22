@@ -10,7 +10,6 @@ import feedparser
 from aiohttp import web
 import ssl
 import bcrypt
-import threading
 import uuid
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -33,7 +32,7 @@ def securedata(myfunc):
         if self.password is None:
             return await myfunc(*args)
         elif "adcreds" in request.cookies:
-            match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
+            match = await utils.run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
             if match:
                 return await myfunc(*args)
         elif ("x-ad-access" in request.headers) and (request.headers["x-ad-access"] == self.password):
@@ -59,7 +58,7 @@ def secure(myfunc):
             return await myfunc(*args)
         else:
             if "adcreds" in request.cookies:
-                match = await utils.run_in_executor(self.loop, self.executor, bcrypt.checkpw,
+                match = await utils.run_in_executor(self, bcrypt.checkpw,
                                                     str.encode(self.password),
                                                     str.encode(request.cookies["adcreds"]))
                 if match:
@@ -114,7 +113,6 @@ class HTTP:
         self.stopping = False
 
         self.endpoints = {}
-        self.endpoints_lock = threading.RLock()
 
         self.dashboard_obj = None
         self.admin_obj = None
@@ -341,7 +339,7 @@ class HTTP:
         return await self._list_dash(request)
 
     async def _list_dash(self, request):
-        response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard_list)
+        response = await utils.run_in_executor(self, self.dashboard_obj.get_dashboard_list)
         return web.Response(text=response, content_type="text/html")
 
     @secure
@@ -353,7 +351,7 @@ class HTTP:
         if recompile == '1':
             recompile = True
 
-        response = await utils.run_in_executor(self.loop, self.executor, self.dashboard_obj.get_dashboard, name, skin, recompile)
+        response = await utils.run_in_executor(self, self.dashboard_obj.get_dashboard, name, skin, recompile)
 
         return web.Response(text=response, content_type="text/html")
 
@@ -367,7 +365,7 @@ class HTTP:
                         self.rss_last_update = time.time()
 
                         for feed_data in self.rss_feeds:
-                            feed = await utils.run_in_executor(self.loop, self.executor, feedparser.parse, feed_data["feed"])
+                            feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
 
                             if "bozo_exception" in feed:
                                 self.logger.warning("Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"])
@@ -490,11 +488,11 @@ class HTTP:
             return web.json_response({"state": state})
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error in get_namespaces()")
+            self.logger.warning("Unexpected error in get_services()")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
-            return self.get_response(request, 500, "Unexpected error in get_namespaces()")
+            return self.get_response(request, 500, "Unexpected error in get_services()")
 
 
     @securedata
@@ -643,10 +641,9 @@ class HTTP:
             self.app.router.add_static('/custom_css', custom_css)
     # API
 
-    def terminate_app(self, name):
-        with self.endpoints_lock:
-            if name in self.endpoints:
-                del self.endpoints[name]
+    async def terminate_app(self, name):
+        if name in self.endpoints:
+            del self.endpoints[name]
 
     def get_response(self, request, code, error):
         res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
@@ -688,31 +685,28 @@ class HTTP:
 
     # Routes, Status and Templates
 
-    def register_endpoint(self, cb, name):
+    async def register_endpoint(self, cb, name):
 
         handle = uuid.uuid4().hex
 
-        with self.endpoints_lock:
-            if name not in self.endpoints:
-                self.endpoints[name] = {}
-            self.endpoints[name][handle] = {"callback": cb, "name": name}
+        if name not in self.endpoints:
+            self.endpoints[name] = {}
+        self.endpoints[name][handle] = {"callback": cb, "name": name}
 
         return handle
 
-    def unregister_endpoint(self, handle, name):
-        with self.endpoints_lock:
-            if name in self.endpoints and handle in self.endpoints[name]:
-                del self.endpoints[name][handle]
+    async def unregister_endpoint(self, handle, name):
+        if name in self.endpoints and handle in self.endpoints[name]:
+            del self.endpoints[name][handle]
 
     async def dispatch_app_by_name(self, name, args):
-        with self.endpoints_lock:
-            callback = None
-            for app in self.endpoints:
-                for handle in self.endpoints[app]:
-                    if self.endpoints[app][handle]["name"] == name:
-                        callback = self.endpoints[app][handle]["callback"]
+        callback = None
+        for app in self.endpoints:
+            for handle in self.endpoints[app]:
+                if self.endpoints[app][handle]["name"] == name:
+                    callback = self.endpoints[app][handle]["callback"]
         if callback is not None:
-            return await utils.run_in_executor(self.AD.loop, self.AD.executor, callback, args)
+            return await utils.run_in_executor(self, callback, args)
         else:
             return '', 404
 
@@ -724,17 +718,18 @@ class HTTP:
     async def admin_page(self, request):
         return await self._admin_page(request)
 
+    # Insecure version
     async def _admin_page(self, request):
-        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.admin_obj.admin_page, request.scheme, request.host)
+        response = await self.admin_obj.admin_page(request.scheme, request.host)
 
         return web.Response(text=response, content_type="text/html")
 
     async def logon_page(self, request):
-        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.generate_logon_page, request.scheme, request.host)
+        response = await utils.run_in_executor(self, self.generate_logon_page, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
 
     async def error_page(self, request):
-        response = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.generate_error_page, request.scheme, request.host)
+        response = await utils.run_in_executor(self, self.generate_error_page, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
 
     def generate_logon_page(self, scheme, url):

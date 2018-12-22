@@ -94,6 +94,9 @@ class HassPlugin(PluginBase):
 
         self.logger.info("HASS Plugin initialization complete")
 
+    async def am_reading_messages(self):
+        return(self.reading_messages)
+
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
@@ -150,7 +153,7 @@ class HassPlugin(PluginBase):
                 self.ws = websocket.create_connection(
                     "{}/api/websocket".format(url), sslopt=sslopt
                 )
-                res = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
+                res = await utils.run_in_executor(self, self.ws.recv)
                 result = json.loads(res)
                 self.logger.info("Connected to Home Assistant %s", result["ha_version"])
                 #
@@ -170,7 +173,7 @@ class HassPlugin(PluginBase):
                     else:
                         raise ValueError("HASS requires authentication and none provided in plugin config")
 
-                    await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, auth)
+                    await utils.run_in_executor(self, self.ws.send, auth)
                     result = json.loads(self.ws.recv())
                     if result["type"] != "auth_ok":
                         self.logger.warning("Error in authentication")
@@ -182,7 +185,7 @@ class HassPlugin(PluginBase):
                     "id": _id,
                     "type": "subscribe_events"
                 })
-                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.send, sub)
+                await utils.run_in_executor(self, self.ws.send, sub)
                 result = json.loads(self.ws.recv())
                 if not (result["id"] == _id and result["type"] == "result" and
                                 result["success"] is True):
@@ -223,7 +226,7 @@ class HassPlugin(PluginBase):
                 # Loop forever consuming events
                 #
                 while not self.stopping:
-                    ret = await utils.run_in_executor(self.AD.loop, self.AD.executor, self.ws.recv)
+                    ret = await utils.run_in_executor(self, self.ws.recv)
                     result = json.loads(ret)
 
                     if not (result["id"] == _id and result["type"] == "event"):
@@ -273,7 +276,7 @@ class HassPlugin(PluginBase):
     @hass_check
     async def set_plugin_state(self, namespace, entity_id, **kwargs):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
-        config = self.AD.plugins.get_plugin_object(namespace).config
+        config = (await self.AD.plugins.get_plugin_object(namespace)).config
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -289,13 +292,18 @@ class HassPlugin(PluginBase):
         apiurl = "{}/api/states/{}".format(config["ha_url"], entity_id)
         try:
             r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
-            r.raise_for_status()
-            state = await r.json()
-            self.logger.debug("return = %s", state)
+            if r.status == 200 or r.status == 201:
+                state = await r.json()
+                self.logger.debug("return = %s", state)
+            else:
+                self.logger.warning("Error setting Home Assistant state %s.%s, %s", namespace, entity_id, kwargs )
+                txt = await r.text()
+                self.logger.warning("Code: %s, error: %s", r.status, txt)
+                state = None
             return state
         except:
             self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error during call_plugin_service()")
+            self.logger.warning("Unexpected error during set_plugin_state()")
             self.logger.warning("Arguments: %s = %s", entity_id, kwargs)
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
@@ -305,12 +313,7 @@ class HassPlugin(PluginBase):
     @hass_check
     async def call_plugin_service(self, namespace, domain, service, data):
 
-        config = self.AD.plugins.get_plugin_object(namespace).config
-        if "cert_path" in config:
-            cert_path = config["cert_path"]
-        else:
-            cert_path = False
-
+        config = (await self.AD.plugins.get_plugin_object(namespace)).config
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
         elif "ha_key" in config:
@@ -321,8 +324,13 @@ class HassPlugin(PluginBase):
         apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
         try:
             r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
-            r.raise_for_status()
-            result = await r.json()
+            if r.status == 200 or r.status == 201:
+                result = await r.json()
+            else:
+                self.logger.warning("Error calling Home Assistant service %s/%s/%s", namespace, domain, service)
+                txt = await r.text()
+                self.logger.warning("Code: %s, error: %s", r.status, txt)
+                result = None
             return result
         except:
             self.logger.warning('-' * 60)
@@ -347,8 +355,14 @@ class HassPlugin(PluginBase):
             apiurl = "{}/api/states/{}".format(self.ha_url, entity_id)
         self.logger.debug("get_ha_state: url is %s", apiurl)
         r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
-        r.raise_for_status()
-        return await r.json()
+        if r.status == 200 or r.status == 201:
+            state = await r.json()
+        else:
+            self.logger.warning("Error getting Home Assistant state for %s", entity_id)
+            txt = await r.text()
+            self.logger.warning("Code: %s, error: %s", r.status, txt)
+            state = None
+        return state
 
     def validate_meta(self, meta, key):
         if key not in meta:
@@ -423,11 +437,7 @@ class HassPlugin(PluginBase):
     async def fire_plugin_event(self, event, namespace, **kwargs):
         self.logger.debug("fire_event: %s, %s %s", event, namespace, kwargs)
 
-        config = self.AD.plugins.get_plugin_object(namespace).config
-        if "cert_path" in config:
-            cert_path = config["cert_path"]
-        else:
-            cert_path = False
+        config = (await self.AD.plugins.get_plugin_object(namespace)).config
 
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}

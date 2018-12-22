@@ -34,14 +34,13 @@ class ADMain():
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
         if signum == signal.SIGUSR1:
-            self.AD.sched.dump_schedule()
-            self.AD.callbacks.dump_callbacks()
-            qinfo = self.AD.threading.q_info()
-            self.AD.threading.dump_threads(qinfo)
-            self.AD.app_management.dump_objects()
-            self.AD.sched.dump_sun()
+            self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_schedule)
+            self.AD.thread_async.call_async_no_wait(self.AD.callbacks.dump_callbacks)
+            self.AD.thread_async.call_async_no_wait(self.AD.threading.dump_threads)
+            self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
+            self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
         if signum == signal.SIGHUP:
-            self.AD.app_management.check_app_updates(True)
+            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates(True))
         if signum == signal.SIGINT:
             self.logger.info("Keyboard interrupt")
             self.stop()

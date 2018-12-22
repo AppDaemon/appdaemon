@@ -55,8 +55,7 @@ class Utility:
             if self.AD.apps is True:
                 self.logger.debug("Reading Apps")
 
-                await utils.run_in_executor(self.AD.loop, self.AD.executor,
-                                            self.AD.app_management.check_app_updates)
+                await self.AD.app_management.check_app_updates()
 
                 self.logger.info("App initialization complete")
                 #
@@ -70,10 +69,10 @@ class Utility:
 
             self.AD.loop.create_task(self.AD.sched.do_every())
 
-            self.booted = self.AD.sched.get_now()
+            self.booted = await self.AD.sched.get_now()
             await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
             await self.AD.state.add_entity("admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0)))
-            await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", utils.dt_to_str(self.AD.sched.get_now().replace(microsecond=0), self.AD.tz))
+            await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", utils.dt_to_str((await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz))
             warning_step = 0
             warning_iterations = 0
 
@@ -89,7 +88,7 @@ class Utility:
 
                         if self.AD.production_mode is False:
                             # Check to see if config has changed
-                            await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates)
+                            await self.AD.app_management.check_app_updates()
 
 
                     # Call me suspicious, but lets update state from the plugins periodically
@@ -100,11 +99,11 @@ class Utility:
 
                     # Check for thread starvation
 
-                    warning_step, warning_iterations = self.AD.threading.check_q_size(warning_step, warning_iterations)
+                    warning_step, warning_iterations = await self.AD.threading.check_q_size(warning_step, warning_iterations)
 
                     # Check for any overdue threads
 
-                    self.AD.threading.check_overdue_and_dead_threads()
+                    await self.AD.threading.check_overdue_and_dead_threads()
 
                     # Save any hybrid namespaces
 
@@ -116,7 +115,7 @@ class Utility:
 
                     # Update uptime sensor
 
-                    uptime = self.AD.sched.get_now().replace(microsecond=0) - self.booted.replace(microsecond=0)
+                    uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
                     await self.AD.state.set_state("_utility", "admin", "sensor.appdaemon_uptime", state=str(uptime))
 
                 except:
@@ -140,4 +139,4 @@ class Utility:
                 await asyncio.sleep(self.AD.utility_delay)
 
             if self.AD.app_management is not None:
-                self.AD.app_management.terminate()
+                await self.AD.app_management.terminate()

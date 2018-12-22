@@ -67,7 +67,8 @@ class ADStream:
             self.logger.debug('-' * 60)
         except:
             self.logger.debug('-' * 60)
-            self.logger.warning("Admin browser disconnected unexpectedly")
+            self.logger.debug("Client disconnected unexpectedly")
+            self.access.info("Client disconnected unexpectedly")
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
@@ -89,7 +90,8 @@ class ADStream:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except:
             self.logger.debug('-' * 60)
-            self.logger.warning("Unexpeced error in wshandler()")
+            self.logger.debug("Unexpected client disconnection")
+            self.access.info("Unexpected client disconnection")
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)

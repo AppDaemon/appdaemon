@@ -59,9 +59,11 @@ Change Log
 - The ``log`` section of appdaemon.yaml has been deprecated and must be replaced by the new ``logs`` section which has a different format to allow for user defined logs and greater flexibility in formatting etc.
 - API no longer has a separate port, all access is configured via the new unified http component
 - API has its own top level configuration section
-- Some dashboard parameters moved to the `HTTP` section and renamed
+- Some dashboard parameters moved to the ``HTTP`` section and renamed
 - ``dash_compile_on_start`` renamed to ``compile_on_start``
 - ``dash_force_compile`` renamed to ``force_compile``
+- Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log` should be renamed
+
 
 3.0.2 10/31/2018
 ----------------

@@ -1,6 +1,7 @@
 import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
 from appdaemon.appdaemon import AppDaemon
+import appdaemon.utils as utils
 
 class Mqtt(adbase.ADBase, adapi.ADAPI):
 
@@ -21,7 +22,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         if 'wildcard' in kwargs:
             wildcard = kwargs['wildcard']
             if wildcard[-2:] == '/#' and len(wildcard.split('/')[0]) >= 1:
-                self._AD.plugins.get_plugin_object(namespace).process_mqtt_wildcard(kwargs['wildcard'])
+                plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(namespace))
+                utils.run_coroutine_threadsafe(self, plugin.process_mqtt_wildcard(kwargs['wildcard']))
             else:
                 self.logger.warning("Using %s as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered", wildcard)
                 return

@@ -7,6 +7,7 @@ from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
 from collections import OrderedDict
 import traceback
+import appdaemon.utils as utils
 
 from appdaemon.thread_async import AppDaemon
 
@@ -57,35 +58,23 @@ class LogSubscriptionHandler(StreamHandler):
 
     def emit(self, record):
         try:
-            if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None:
-                # Need to check if this log callback belongs to an app that is accepting log events
-                # If so, don't generate the event to avoid loops
-                has_log_callback = False
+            if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None and self.AD.thread_async is not None:
                 msg = self.format(record)
                 record.ts = datetime.datetime.fromtimestamp(record.created)
-                if record.name == "AppDaemon._stream":
-                    has_log_callback = True
-                else:
-                    with self.AD.callbacks.callbacks_lock:
-                        for callback in self.AD.callbacks.callbacks:
-                            for uuid in self.AD.callbacks.callbacks[callback]:
-                                cb = self.AD.callbacks.callbacks[callback][uuid]
-                                if cb["name"] == record.appname and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
-                                    has_log_callback = True
-
-                if has_log_callback is False and self.AD.thread_async is not None:
-                    self.AD.thread_async.call_async_no_wait(self.AD.events.process_event, "global", {"event_type": "__AD_LOG_EVENT",
-                                                    "data":
-                                                      {
-                                                      "level": record.levelname,
-                                                      "app_name": record.appname,
-                                                      "message": record.message,
-                                                      "type": "log",
-                                                      "log_type": self.type,
-                                                      "asctime": record.asctime,
-                                                      "ts": record.ts,
-                                                      "formatted_message": msg
-                                                  }})
+                self.AD.thread_async.call_async_no_wait(
+                    self.AD.events.process_event, "global",
+                    {"event_type": "__AD_LOG_EVENT",
+                     "data":
+                         {
+                             "level": record.levelname,
+                             "app_name": record.appname,
+                             "message": record.message,
+                             "type": "log",
+                             "log_type": self.type,
+                             "asctime": record.asctime,
+                             "ts": record.ts,
+                             "formatted_message": msg
+                         }})
         except:
             # No way to log this so we'll just do our best
             print('-' * 60, )
@@ -93,8 +82,6 @@ class LogSubscriptionHandler(StreamHandler):
             print('-' * 60)
             print(traceback.format_exc())
             print('-' * 60)
-
-
 
 
 class Logging:
@@ -236,7 +223,8 @@ class Logging:
 
     def get_time(logger, record, format=None):
         if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
-            ts = logger.AD.sched.get_now().astimezone(logger.tz)
+            #TODO This Kills Time Travel
+            ts = (utils.run_coroutine_threadsafe(logger, logger.AD.sched.get_now())).astimezone(logger.tz)
         else:
             if logger.tz is not None:
                 ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(logger.tz)
@@ -292,10 +280,9 @@ class Logging:
     def get_filename(self, log):
         return self.config[log]["filename"]
 
-    def get_user_log(self, name, log):
+    def get_user_log(self, app, log):
         if log not in self.config:
-            logger = self.AD.app_management.get_app(name).err
-            logger.error("User defined log %s not found", log)
+            app.err.error("User defined log %s not found", log)
             return None
         return self.config[log]["logger"]
 
@@ -310,6 +297,7 @@ class Logging:
 
     # Reading Logs
 
+    # Run in executor
     def get_admin_logs(self):
         # Force main logs to be first in a specific order
         logs = OrderedDict()
@@ -339,22 +327,22 @@ class Logging:
             return True
         return False
 
-    def add_log_callback(self, namespace, name, cb, level, **kwargs):
+    async def add_log_callback(self, namespace, name, cb, level, **kwargs):
         if self.AD.threading.validate_pin(name, kwargs) is True:
             if self.AD.events is not None:
                 # Add a separate callback for each log level
                 handle = []
                 for thislevel in self.log_levels:
                     if self.log_levels[thislevel] >= self.log_levels[level] :
-                        handle.append(self.AD.events.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
+                        handle.append(await self.AD.events.add_event_callback(name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs))
 
                 return handle
         else:
             return None
 
-    def cancel_log_callback(self, name, handle):
+    async def cancel_log_callback(self, name, handle):
         if self.AD.events is not None:
             for h in handle:
-                self.AD.events.cancel_event_callback(name, h)
+                await self.AD.events.cancel_event_callback(name, h)
 
 

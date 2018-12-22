@@ -1,4 +1,3 @@
-import threading
 import traceback
 import datetime
 from datetime import timedelta
@@ -26,10 +25,8 @@ class Scheduler:
         self.diag = ad.logging.get_diag()
 
         self.schedule = {}
-        self.schedule_lock = threading.RLock()
 
         self.sun = {}
-        self.sun_lock = threading.RLock()
 
         self.now = pytz.utc.localize(datetime.datetime.utcnow())
 
@@ -43,7 +40,7 @@ class Scheduler:
         self.stopping = False
         self.realtime = True
 
-        tt = self.set_start_time()
+        self.set_start_time()
 
         if self.AD.endtime is not None:
             unaware_end = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
@@ -51,25 +48,6 @@ class Scheduler:
             self.endtime = aware_end.astimezone(pytz.utc)
         else:
             self.endtime = None
-
-        if tt is True:
-            self.realtime = False
-            self.logger.info("Starting time travel ...")
-            self.logger.info("Setting clocks to %s", self.get_now_naive())
-            if self.AD.tick == 0:
-                self.logger.info("Time displacement factor infinite")
-            else:
-                self.logger.info("Time displacement factor %s", self.AD.interval / self.AD.tick)
-        else:
-            self.logger.info("Scheduler tick set to %ss", self.AD.tick)
-
-        #
-
-        self.AD.booted = self.get_now_naive()
-
-        # Take a note of DST
-
-        self.was_dst = self.is_dst()
 
         # Setup sun
 
@@ -97,49 +75,46 @@ class Scheduler:
         self.logger.debug("stop() called for scheduler")
         self.stopping = True
 
-    def cancel_timer(self, name, handle):
+    async def cancel_timer(self, name, handle):
         self.logger.debug("Canceling timer for %s", name)
-        with self.schedule_lock:
-            if name in self.schedule and handle in self.schedule[name]:
-                del self.schedule[name][handle]
-                self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin", "scheduler_callback.{}".format(handle))
-            if name in self.schedule and self.schedule[name] == {}:
-                del self.schedule[name]
+        if name in self.schedule and handle in self.schedule[name]:
+            del self.schedule[name][handle]
+            await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle))
+        if name in self.schedule and self.schedule[name] == {}:
+            del self.schedule[name]
 
     # noinspection PyBroadException
     async def exec_schedule(self, name, entry, args, uuid_):
         try:
-            # Locking performed in calling function
             if "inactive" in args:
                 return
             # Call function
-            with self.AD.app_management.objects_lock:
-                if "__entity" in args["kwargs"]:
-                    await self.AD.threading.dispatch_worker(name, {
-                        "id": uuid_,
-                        "name": name,
-                        "objectid": self.AD.app_management.objects[name]["id"],
-                        "type": "state",
-                        "function": args["callback"],
-                        "attribute": args["kwargs"]["__attribute"],
-                        "entity": args["kwargs"]["__entity"],
-                        "new_state": args["kwargs"]["__new_state"],
-                        "old_state": args["kwargs"]["__old_state"],
-                        "pin_app": args["pin_app"],
-                        "pin_thread": args["pin_thread"],
-                        "kwargs": args["kwargs"],
-                    })
-                else:
-                    await self.AD.threading.dispatch_worker(name, {
-                        "id": uuid_,
-                        "name": name,
-                        "objectid": self.AD.app_management.objects[name]["id"],
-                        "type": "scheduler",
-                        "function": args["callback"],
-                        "pin_app": args["pin_app"],
-                        "pin_thread": args["pin_thread"],
-                        "kwargs": args["kwargs"],
-                    })
+            if "__entity" in args["kwargs"]:
+                await self.AD.threading.dispatch_worker(name, {
+                    "id": uuid_,
+                    "name": name,
+                    "objectid": self.AD.app_management.objects[name]["id"],
+                    "type": "state",
+                    "function": args["callback"],
+                    "attribute": args["kwargs"]["__attribute"],
+                    "entity": args["kwargs"]["__entity"],
+                    "new_state": args["kwargs"]["__new_state"],
+                    "old_state": args["kwargs"]["__old_state"],
+                    "pin_app": args["pin_app"],
+                    "pin_thread": args["pin_thread"],
+                    "kwargs": args["kwargs"],
+                })
+            else:
+                await self.AD.threading.dispatch_worker(name, {
+                    "id": uuid_,
+                    "name": name,
+                    "objectid": self.AD.app_management.objects[name]["id"],
+                    "type": "scheduler",
+                    "function": args["callback"],
+                    "pin_app": args["pin_app"],
+                    "pin_thread": args["pin_thread"],
+                    "kwargs": args["kwargs"],
+                })
             # If it is a repeating entry, rewrite with new timestamp
             if args["repeat"]:
                 if args["type"] == "next_rising" or args["type"] == "next_setting":
@@ -184,18 +159,17 @@ class Scheduler:
 
     def process_sun(self, action):
         self.logger.debug("Process sun: %s, next sunrise: %s, next sunset: %s", action, self.sun["next_rising"], self.sun["next_setting"])
-        with self.schedule_lock:
-            for name in self.schedule.keys():
-                for entry in sorted(
-                        self.schedule[name].keys(),
-                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                ):
-                    schedule = self.schedule[name][entry]
-                    if schedule["type"] == action and "inactive" in schedule:
-                        del schedule["inactive"]
-                        c_offset = self.get_offset(schedule)
-                        schedule["timestamp"] = self.sun[action] + timedelta(seconds=c_offset)
-                        schedule["offset"] = c_offset
+        for name in self.schedule.keys():
+            for entry in sorted(
+                    self.schedule[name].keys(),
+                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+            ):
+                schedule = self.schedule[name][entry]
+                if schedule["type"] == action and "inactive" in schedule:
+                    del schedule["inactive"]
+                    c_offset = self.get_offset(schedule)
+                    schedule["timestamp"] = self.sun[action] + timedelta(seconds=c_offset)
+                    schedule["offset"] = c_offset
 
     def init_sun(self):
         latitude = self.AD.latitude
@@ -239,22 +213,21 @@ class Scheduler:
                 pass
             mod += 1
 
-        with self.sun_lock:
-            old_next_rising_dt = self.sun.get("next_rising")
-            old_next_setting_dt = self.sun.get("next_setting")
-            self.sun["next_rising"] = next_rising_dt
-            self.sun["next_setting"] = next_setting_dt
+        old_next_rising_dt = self.sun.get("next_rising")
+        old_next_setting_dt = self.sun.get("next_setting")
+        self.sun["next_rising"] = next_rising_dt
+        self.sun["next_setting"] = next_setting_dt
 
-            if old_next_rising_dt is not None and old_next_rising_dt != self.sun["next_rising"]:
-                # dump_schedule()
-                self.process_sun("next_rising")
-                # dump_schedule()
-            if old_next_setting_dt is not None and old_next_setting_dt != self.sun["next_setting"]:
-                # dump_schedule()
-                self.process_sun("next_setting")
-                # dump_schedule()
+        if old_next_rising_dt is not None and old_next_rising_dt != self.sun["next_rising"]:
+            # dump_schedule()
+            self.process_sun("next_rising")
+            # dump_schedule()
+        if old_next_setting_dt is not None and old_next_setting_dt != self.sun["next_setting"]:
+            # dump_schedule()
+            self.process_sun("next_setting")
+            # dump_schedule()
 
-                self.logger.debug("Update sun: next sunrise: %s, next sunset: %s", self.sun["next_rising"], self.sun["next_setting"])
+            self.logger.debug("Update sun: next sunrise: %s, next sunset: %s", self.sun["next_rising"], self.sun["next_setting"])
 
 
     def get_offset(self, kwargs):
@@ -274,7 +247,7 @@ class Scheduler:
             self.logger.debug("sun: offset = %s", offset)
         return offset
 
-    def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
+    async def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
 
         #aware_dt will include a timezone of some sort - convert to utc timezone
         utc = aware_dt.astimezone(pytz.utc)
@@ -283,43 +256,40 @@ class Scheduler:
 
         utc = self.my_dt_round(utc, base=self.AD.tick)
 
-        with self.AD.app_management.objects_lock:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin"]
-            else:
-                pin_app = self.AD.app_management.objects[name]["pin_app"]
+        if "pin" in kwargs:
+            pin_app = kwargs["pin"]
+        else:
+            pin_app = self.AD.app_management.objects[name]["pin_app"]
 
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+        if "pin_thread" in kwargs:
+            pin_thread = kwargs["pin_thread"]
+            pin_app = True
+        else:
+            pin_thread = self.AD.app_management.objects[name]["pin_thread"]
 
-        with self.schedule_lock:
-            if name not in self.schedule:
-                self.schedule[name] = {}
-            handle = uuid.uuid4().hex
-            c_offset = self.get_offset({"kwargs": kwargs})
-            ts = utc + timedelta(seconds=c_offset)
-            interval = kwargs.get("interval", 0)
+        if name not in self.schedule:
+            self.schedule[name] = {}
+        handle = uuid.uuid4().hex
+        c_offset = self.get_offset({"kwargs": kwargs})
+        ts = utc + timedelta(seconds=c_offset)
+        interval = kwargs.get("interval", 0)
 
-            with self.AD.app_management.objects_lock:
-                self.schedule[name][handle] = {
-                    "name": name,
-                    "id": self.AD.app_management.objects[name]["id"],
-                    "callback": callback,
-                    "timestamp": ts,
-                    "interval": interval,
-                    "basetime": utc,
-                    "repeat": repeat,
-                    "offset": c_offset,
-                    "type": type_,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs
-                }
+        self.schedule[name][handle] = {
+            "name": name,
+            "id": self.AD.app_management.objects[name]["id"],
+            "callback": callback,
+            "timestamp": ts,
+            "interval": interval,
+            "basetime": utc,
+            "repeat": repeat,
+            "offset": c_offset,
+            "type": type_,
+            "pin_app": pin_app,
+            "pin_thread": pin_thread,
+            "kwargs": kwargs
+        }
 
-        self.AD.thread_async.call_async_no_wait(self.AD.state.add_entity, "admin", "scheduler_callback.{}".format(handle), "active",
+        await self.AD.state.add_entity("admin", "scheduler_callback.{}".format(handle), "active",
                                                                          {
                                                                              "app": name,
                                                                              "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
@@ -335,12 +305,11 @@ class Scheduler:
 
         return handle
 
-    def terminate_app(self, name):
-        with self.schedule_lock:
-            if name in self.schedule:
-                for id in self.schedule[name]:
-                    self.AD.thread_async.call_async_no_wait(self.AD.state.remove_entity, "admin", "scheduler_callback.{}".format(id))
-                del self.schedule[name]
+    async def terminate_app(self, name):
+        if name in self.schedule:
+            for id in self.schedule[name]:
+                await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(id))
+            del self.schedule[name]
 
     def is_realtime(self):
         return self.realtime
@@ -349,14 +318,33 @@ class Scheduler:
     # Timer
     #
     async def do_every(self):
+        self.logger.debug("do_every()")
         #
         # We already set self.now for DST calculation and initial sunset,
         # but lets reset it at the start of the timer loop to avoid an initial clock skew
         #
 
-        self.set_start_time()
+        tt = self.set_start_time()
+        self.logger.debug("Time travel: %s", tt)
+        self.AD.booted = await self.get_now_naive()
 
-        t = self.myround(self.get_now_ts(), base=self.AD.tick)
+        if tt is True:
+            self.realtime = False
+            self.logger.info("Starting time travel ...")
+            self.logger.info("Setting clocks to %s", await self.get_now_naive())
+            if self.AD.tick == 0:
+                self.logger.info("Time displacement factor infinite")
+            else:
+                self.logger.info("Time displacement factor %s", self.AD.interval / self.AD.tick)
+        else:
+            self.logger.info("Scheduler tick set to %ss", self.AD.tick)
+
+
+        # Take a note of DST
+
+        self.was_dst = await self.is_dst()
+
+        t = self.myround(await self.get_now_ts(), base=self.AD.tick)
         count = 0
         t_ = self.myround(time.time(), base=self.AD.tick)
         while not self.stopping:
@@ -409,30 +397,29 @@ class Scheduler:
             # Check if we have entered or exited DST - if so, reload apps
             # to ensure all time callbacks are recalculated
 
-            now_dst = self.is_dst()
+            now_dst = await self.is_dst()
             if now_dst != self.was_dst:
-                self.logger.info("INFO", "Detected change in DST from %s to %s - reloading all modules", self.was_dst, now_dst)
+                self.logger.info("Detected change in DST from %s to %s - reloading all modules", self.was_dst, now_dst)
 
                 self.logger.info("-" * 40)
-                await utils.run_in_executor(self.AD.loop, self.AD.executor, self.AD.app_management.check_app_updates, "__ALL__")
+                await self.AD.app_management.check_app_updates("__ALL__")
             self.was_dst = now_dst
 
             # Process callbacks
 
-            with self.schedule_lock:
-                for name in self.schedule.keys():
-                    for entry in sorted(
-                            self.schedule[name].keys(),
-                            key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                    ):
+            for name in self.schedule.keys():
+                for entry in sorted(
+                        self.schedule[name].keys(),
+                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+                ):
 
-                        if self.schedule[name][entry]["timestamp"] <= utc:
-                            await self.exec_schedule(name, entry, self.schedule[name][entry], entry)
-                        else:
-                            break
-                for k, v in list(self.schedule.items()):
-                    if v == {}:
-                        del self.schedule[k]
+                    if self.schedule[name][entry]["timestamp"] <= utc:
+                        await self.exec_schedule(name, entry, self.schedule[name][entry], entry)
+                    else:
+                        break
+            for k, v in list(self.schedule.items()):
+                if v == {}:
+                    del self.schedule[k]
 
             end_time = datetime.datetime.now().timestamp()
 
@@ -456,58 +443,54 @@ class Scheduler:
     # App API Calls
     #
 
-    def sun_up(self):
-        with self.sun_lock:
-            return self.sun["next_rising"] > self.sun["next_setting"]
+    async def sun_up(self):
+        return self.sun["next_rising"] > self.sun["next_setting"]
 
-    def sun_down(self):
-        with self.sun_lock:
-            return self.sun["next_rising"] < self.sun["next_setting"]
+    async def sun_down(self):
+        return self.sun["next_rising"] < self.sun["next_setting"]
 
-    def info_timer(self, handle, name):
-        with self.schedule_lock:
-            if name in self.schedule and handle in self.schedule[name]:
-                callback = self.schedule[name][handle]
-                return (
-                    self.make_naive(callback["timestamp"]),
-                    callback["interval"],
-                    self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"])
-                )
-            else:
-                raise ValueError("Invalid handle: %s", handle)
+    async def info_timer(self, handle, name):
+        if name in self.schedule and handle in self.schedule[name]:
+            callback = self.schedule[name][handle]
+            return (
+                self.make_naive(callback["timestamp"]),
+                callback["interval"],
+                self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"])
+            )
+        else:
+            raise ValueError("Invalid handle: %s", handle)
 
 
-    def get_scheduler_entries(self):
+    async def get_scheduler_entries(self):
         schedule = {}
-        with self.schedule_lock:
-            for name in self.schedule.keys():
-                schedule[name] = {}
-                for entry in sorted(
-                        self.schedule[name].keys(),
-                        key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-                ):
-                    schedule[name][str(entry)] = {}
-                    schedule[name][str(entry)]["timestamp"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["timestamp"]))
-                    schedule[name][str(entry)]["type"] = self.schedule[name][entry]["type"]
-                    schedule[name][str(entry)]["name"] = self.schedule[name][entry]["name"]
-                    schedule[name][str(entry)]["basetime"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["basetime"]))
-                    schedule[name][str(entry)]["repeat"] = self.schedule[name][entry]["repeat"]
-                    if self.schedule[name][entry]["type"] == "next_rising":
-                        schedule[name][str(entry)]["interval"] = "sunrise:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
-                    elif self.schedule[name][entry]["type"] == "next_setting":
-                        schedule[name][str(entry)]["interval"] = "sunset:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
-                    elif self.schedule[name][entry]["repeat"] is True:
-                        schedule[name][str(entry)]["interval"] = utils.format_seconds(self.schedule[name][entry]["interval"])
-                    else:
-                        schedule[name][str(entry)]["interval"] = "None"
+        for name in self.schedule.keys():
+            schedule[name] = {}
+            for entry in sorted(
+                    self.schedule[name].keys(),
+                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+            ):
+                schedule[name][str(entry)] = {}
+                schedule[name][str(entry)]["timestamp"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["timestamp"]))
+                schedule[name][str(entry)]["type"] = self.schedule[name][entry]["type"]
+                schedule[name][str(entry)]["name"] = self.schedule[name][entry]["name"]
+                schedule[name][str(entry)]["basetime"] = str(self.AD.sched.make_naive(self.schedule[name][entry]["basetime"]))
+                schedule[name][str(entry)]["repeat"] = self.schedule[name][entry]["repeat"]
+                if self.schedule[name][entry]["type"] == "next_rising":
+                    schedule[name][str(entry)]["interval"] = "sunrise:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
+                elif self.schedule[name][entry]["type"] == "next_setting":
+                    schedule[name][str(entry)]["interval"] = "sunset:{}".format(utils.format_seconds(self.schedule[name][entry]["offset"]))
+                elif self.schedule[name][entry]["repeat"] is True:
+                    schedule[name][str(entry)]["interval"] = utils.format_seconds(self.schedule[name][entry]["interval"])
+                else:
+                    schedule[name][str(entry)]["interval"] = "None"
 
-                    schedule[name][str(entry)]["offset"] = self.schedule[name][entry]["offset"]
-                    schedule[name][str(entry)]["kwargs"] = ""
-                    for kwarg in self.schedule[name][entry]["kwargs"]:
-                        schedule[name][str(entry)]["kwargs"] = utils.get_kwargs(self.schedule[name][entry]["kwargs"])
-                    schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
-                    schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"] if self.schedule[name][entry]["pin_thread"] != -1 else "None"
-                    schedule[name][str(entry)]["pin_app"] = "True" if self.schedule[name][entry]["pin_app"] is True else "False"
+                schedule[name][str(entry)]["offset"] = self.schedule[name][entry]["offset"]
+                schedule[name][str(entry)]["kwargs"] = ""
+                for kwarg in self.schedule[name][entry]["kwargs"]:
+                    schedule[name][str(entry)]["kwargs"] = utils.get_kwargs(self.schedule[name][entry]["kwargs"])
+                schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
+                schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"] if self.schedule[name][entry]["pin_thread"] != -1 else "None"
+                schedule[name][str(entry)]["pin_app"] = "True" if self.schedule[name][entry]["pin_app"] is True else "False"
 
         # Order it
 
@@ -515,22 +498,25 @@ class Scheduler:
 
         return ordered_schedule
 
-    def is_dst(self):
+    async def is_dst(self):
         return self.now.astimezone(self.AD.tz).dst() != datetime.timedelta(0)
 
-    def get_now(self):
+    async def get_now(self):
         return self.now
 
-    def get_now_ts(self):
+    async def get_now_ts(self):
         return self.now.timestamp()
 
-    def get_now_naive(self):
+    async def get_now_naive(self):
         return self.make_naive(self.now)
 
-    def now_is_between(self, start_time_str, end_time_str, name=None):
-        start_time = self._parse_time(start_time_str, name)["datetime"]
-        end_time = self._parse_time(end_time_str, name)["datetime"]
-        now = self.get_now().astimezone(self.AD.tz)
+    async def get_sun(self, type):
+        return self.sun[type]
+
+    async def now_is_between(self, start_time_str, end_time_str, name=None):
+        start_time = (await self._parse_time(start_time_str, name))["datetime"]
+        end_time = (await self._parse_time(end_time_str, name))["datetime"]
+        now = self.now.astimezone(self.AD.tz)
         start_date = now.replace(
             hour=start_time.hour, minute=start_time.minute,
             second=start_time.second
@@ -545,32 +531,32 @@ class Scheduler:
             end_date = end_date + datetime.timedelta(days=1)
         return start_date <= now <= end_date
 
-    def sunset(self, aware):
+    async def sunset(self, aware):
         if aware is True:
             return self.sun["next_setting"].astimezone(self.AD.tz)
         else:
             return self.make_naive(self.sun["next_setting"].astimezone(self.AD.tz))
 
-    def sunrise(self, aware):
+    async def sunrise(self, aware):
         if aware is True:
             return self.sun["next_rising"].astimezone(self.AD.tz)
         else:
             return self.make_naive(self.sun["next_rising"].astimezone(self.AD.tz))
 
-    def parse_time(self, time_str, name=None, aware=False):
+    async def parse_time(self, time_str, name=None, aware=False):
         if aware is True:
-            return self._parse_time(time_str, name)["datetime"].astimezone(self.AD.tz).time()
+            return (await self._parse_time(time_str, name))["datetime"].astimezone(self.AD.tz).time()
         else:
-            return self.make_naive(self._parse_time(time_str, name)["datetime"]).time()
+            return self.make_naive((await self._parse_time(time_str, name))["datetime"]).time()
 
-    def parse_datetime(self, time_str, name=None, aware=False):
+    async def parse_datetime(self, time_str, name=None, aware=False):
         if aware is True:
-            return self._parse_time(time_str, name)["datetime"].astimezone(self.AD.tz)
+            return (await self._parse_time(time_str, name))["datetime"].astimezone(self.AD.tz)
         else:
-            return self.make_naive(self._parse_time(time_str, name)["datetime"])
+            return self.make_naive((await self._parse_time(time_str, name))["datetime"])
 
 
-    def _parse_time(self, time_str, name=None):
+    async def _parse_time(self, time_str, name=None):
         parsed_time = None
         sun = None
         offset = 0
@@ -589,11 +575,11 @@ class Scheduler:
 
             else:
                 if time_str == "sunrise":
-                    parsed_time = self.sunrise(True)
+                    parsed_time = await self.sunrise(True)
                     sun = "sunrise"
                     offset = 0
                 elif time_str == "sunset":
-                    parsed_time = self.sunset(True)
+                    parsed_time = await self.sunset(True)
                     sun = "sunset"
                     offset = 0
                 else:
@@ -608,14 +594,14 @@ class Scheduler:
                                 seconds=int(parts.group(4))
                             )
                             offset = td.total_seconds()
-                            parsed_time = (self.sunrise(True) + td)
+                            parsed_time = (await self.sunrise(True) + td)
                         else:
                             td = datetime.timedelta(
                                 hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                 seconds=int(parts.group(4))
                             )
                             offset = td.total_seconds() * -1
-                            parsed_time = (self.sunrise(True) - td)
+                            parsed_time = (await self.sunrise(True) - td)
                     else:
                         parts = re.search(
                             '^sunset\s*([+-])\s*(\d+):(\d+):(\d+)$', time_str
@@ -628,14 +614,14 @@ class Scheduler:
                                     seconds=int(parts.group(4))
                                 )
                                 offset = td.total_seconds()
-                                parsed_time = (self.sunset(True) + td)
+                                parsed_time = (await self.sunset(True) + td)
                             else:
                                 td = datetime.timedelta(
                                     hours=int(parts.group(2)), minutes=int(parts.group(3)),
                                     seconds=int(parts.group(4))
                                 )
                                 offset = td.total_seconds() * -1
-                                parsed_time = (self.sunset(True) - td)
+                                parsed_time = (await self.sunset(True) - td)
         if parsed_time is None:
             if name is not None:
                 raise ValueError(
@@ -648,14 +634,14 @@ class Scheduler:
     # Diagnostics
     #
 
-    def dump_sun(self):
+    async def dump_sun(self):
         self.diag.info("--------------------------------------------------")
         self.diag.info("Sun")
         self.diag.info("--------------------------------------------------")
         self.diag.info(self.sun)
         self.diag.info("--------------------------------------------------")
 
-    def dump_schedule(self):
+    async def dump_schedule(self):
         if self.schedule == {}:
             self.diag.info("Scheduler Table is empty")
         else:

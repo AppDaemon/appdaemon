@@ -3,6 +3,7 @@ import traceback
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 
@@ -45,7 +46,7 @@ class Admin:
     # Methods
     #
 
-    def admin_page(self, scheme, url):
+    async def admin_page(self, scheme, url):
 
         try:
             params = {}
@@ -60,11 +61,11 @@ class Admin:
 
             # Logs
 
-            params["logs"] = self.AD.logging.get_admin_logs()
+            params["logs"] = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
 
             # Entities
 
-            params["namespaces"] = self.AD.state.list_namespaces()
+            params["namespaces"] = await self.AD.state.list_namespaces()
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),
@@ -72,7 +73,7 @@ class Admin:
             )
 
             template = env.get_template("admin.jinja2")
-            rendered_template = template.render(params)
+            rendered_template = await utils.run_in_executor(self, template.render, params)
 
             return (rendered_template)
 

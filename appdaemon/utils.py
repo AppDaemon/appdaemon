@@ -11,7 +11,6 @@ import json
 import threading
 import iso8601
 import datetime
-import concurrent.futures
 
 if platform.system() != "Windows":
     import pwd
@@ -72,6 +71,8 @@ class PersistentDict(dict):
     """
     Persistent Dictionary subclass that uses JSON to persist its contents
     """
+
+    #TODO - this all runs in the loop at the moment ...
 
     def __init__(self, filename, safe, *args, **kwargs):
         super().__init__(**kwargs)
@@ -191,8 +192,10 @@ def get_kwargs(kwargs):
             result += "{}={} ".format(kwarg, kwargs[kwarg])
     return result
 
+
 def _dummy_secret(loader, node):
     pass
+
 
 def _secret_yaml(loader, node):
     if secrets is None:
@@ -203,9 +206,11 @@ def _secret_yaml(loader, node):
 
     return secrets[node.value]
 
+
 def rreplace(s, old, new, occurrence):
     li = s.rsplit(old, occurrence)
     return new.join(li)
+
 
 def day_of_week(day):
     nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -218,21 +223,36 @@ def day_of_week(day):
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
-async def run_in_executor(loop, executor, fn, *args, **kwargs):
-    completed, pending = await asyncio.wait([loop.run_in_executor(executor, fn, *args, **kwargs)])
-    response = list(completed)[0].result()
+async def run_in_executor(self, fn, *args, **kwargs):
+    completed, pending = await asyncio.wait([self.AD.loop.run_in_executor(self.AD.executor, functools.partial(fn, *args, **kwargs))])
+    future = list(completed)[0]
+    response = None
+    try:
+        response = future.result()
+    except asyncio.TimeoutError:
+        if hasattr(self, "logger"):
+            self.logger.warning("Coroutine fn=%s took too long, cancelling the task...", fn.__name__)
+            self.logger.warning("args=%s, kwargs=%s", args, kwargs)
+        else:
+            print("Coroutine ({}) took too long, cancelling the task...".format(fn.__name__))
+        future.cancel()
     return response
 
-def run_coroutine_threadsafe(self, coro, timeout=None):
-    result = None
-    future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
-    try:
-        result = future.result(timeout)
-    except asyncio.TimeoutError:
-        self.logger.warning("The coroutine (%s) took too long, cancelling the task...", coro)
-        future.cancel()
 
-    return(result)
+def run_coroutine_threadsafe(self, coro):
+    result = None
+    if self.AD.loop.is_running():
+        future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
+        try:
+            result = future.result(5)
+        except asyncio.TimeoutError:
+            if hasattr(self, "logger"):
+                self.logger.warning("Coroutine (%s) took too long, cancelling the task...", coro)
+            else:
+                print("Coroutine ({}) took too long, cancelling the task...".format(coro))
+            future.cancel()
+
+    return result
 
 
 def find_path(name):
