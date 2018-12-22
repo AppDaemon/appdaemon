@@ -424,7 +424,7 @@ class Threading:
 
         return unconstrained
 
-    def check_time_constraint(self, args, name):
+    async def check_time_constraint(self, args, name):
         unconstrained = True
         if "constrain_start_time" in args or "constrain_end_time" in args:
             if "constrain_start_time" not in args:
@@ -435,7 +435,7 @@ class Threading:
                 end_time = "23:59:59"
             else:
                 end_time = args["constrain_end_time"]
-            if self.AD.sched.now_is_between(start_time, end_time, name) is False:
+            if await self.AD.sched.now_is_between(start_time, end_time, name) is False:
                 unconstrained = False
 
         return unconstrained
@@ -526,7 +526,7 @@ class Threading:
             constrained = await self.check_constraint(arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"])
             if not constrained:
                 unconstrained = False
-        if not self.check_time_constraint(self.AD.app_management.app_config[name], name):
+        if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
             unconstrained = False
         #
         # Callback level constraints
@@ -536,7 +536,7 @@ class Threading:
                 constrained = await self.check_constraint(arg, args["kwargs"][arg], self.AD.app_management.objects[name]["object"])
                 if not constrained:
                     unconstrained = False
-            if not self.check_time_constraint(args["kwargs"], name):
+            if not await self.check_time_constraint(args["kwargs"], name):
                 unconstrained = False
 
         if unconstrained:
