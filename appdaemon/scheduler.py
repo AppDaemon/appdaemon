@@ -504,6 +504,10 @@ class Scheduler:
     async def get_now(self):
         return self.now
 
+    # Non async version of get_now(), required for logging time formatter - no locking but only used during time travel so should be OK ...
+    def get_now_sync(self):
+        return self.now
+
     async def get_now_ts(self):
         return self.now.timestamp()
 

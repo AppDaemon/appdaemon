@@ -224,7 +224,7 @@ class Logging:
     def get_time(logger, record, format=None):
         if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
             #TODO This Kills Time Travel
-            ts = (utils.run_coroutine_threadsafe(logger, logger.AD.sched.get_now())).astimezone(logger.tz)
+            ts = logger.AD.sched.get_now_sync().astimezone(logger.tz)
         else:
             if logger.tz is not None:
                 ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(logger.tz)
