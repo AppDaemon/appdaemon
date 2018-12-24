@@ -83,4 +83,3 @@ class Admin:
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
-

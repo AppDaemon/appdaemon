@@ -10,6 +10,7 @@ import re
 import asyncio
 import logging
 from collections import OrderedDict
+from copy import deepcopy
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -113,7 +114,7 @@ class Scheduler:
                     "function": args["callback"],
                     "pin_app": args["pin_app"],
                     "pin_thread": args["pin_thread"],
-                    "kwargs": args["kwargs"],
+                    "kwargs": deepcopy(args["kwargs"]),
                 })
             # If it is a repeating entry, rewrite with new timestamp
             if args["repeat"]:
