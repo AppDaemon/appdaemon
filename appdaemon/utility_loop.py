@@ -116,7 +116,6 @@ class Utility:
                     # Update uptime sensor
 
                     uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
-                    print(await self.AD.sched.get_now())
                     await self.AD.state.set_state("_utility", "admin", "sensor.appdaemon_uptime", state=str(uptime))
 
                 except:
