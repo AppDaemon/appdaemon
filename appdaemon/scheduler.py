@@ -481,25 +481,31 @@ class Scheduler:
         return ordered_schedule
 
     async def is_dst(self):
-        return self.now.astimezone(self.AD.tz).dst() != datetime.timedelta(0)
+        return (await self.get_now()).astimezone(self.AD.tz).dst() != datetime.timedelta(0)
 
     async def get_now(self):
-        return self.now
+        if self.realtime is True:
+            return pytz.utc.localize(datetime.datetime.utcnow())
+        else:
+            return self.now
 
     # Non async version of get_now(), required for logging time formatter - no locking but only used during time travel so should be OK ...
     def get_now_sync(self):
-        return self.now
+        if self.realtime is True:
+            return pytz.utc.localize(datetime.datetime.utcnow())
+        else:
+            return self.now
 
     async def get_now_ts(self):
-        return self.now.timestamp()
+        return (await self.get_now()).timestamp()
 
     async def get_now_naive(self):
-        return self.make_naive(self.now)
+        return self.make_naive(await self.get_now())
 
     async def now_is_between(self, start_time_str, end_time_str, name=None):
         start_time = (await self._parse_time(start_time_str, name))["datetime"]
         end_time = (await self._parse_time(end_time_str, name))["datetime"]
-        now = self.now.astimezone(self.AD.tz)
+        now = (await self.get_now()).astimezone(self.AD.tz)
         start_date = now.replace(
             hour=start_time.hour, minute=start_time.minute,
             second=start_time.second
@@ -550,7 +556,7 @@ class Scheduler:
         else:
             parts = re.search('^(\d+):(\d+):(\d+)$', time_str)
             if parts:
-                today = self.now.astimezone(self.AD.tz)
+                today = (await self.get_now()).astimezone(self.AD.tz)
                 time = datetime.time(
                     int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), 0
                 )
