@@ -10,7 +10,7 @@ import re
 import asyncio
 import logging
 from collections import OrderedDict
-import sys
+from copy import deepcopy
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -24,6 +24,8 @@ class Scheduler:
         self.logger = ad.logging.get_child("_scheduler")
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
+        self.last_fired = None
+        self.sleep_task = None
 
         self.schedule = {}
 
@@ -85,7 +87,7 @@ class Scheduler:
             del self.schedule[name]
 
     # noinspection PyBroadException
-    async def exec_schedule(self, name, entry, args, uuid_):
+    async def exec_schedule(self, name, args, uuid_):
         try:
             if "inactive" in args:
                 return
@@ -136,12 +138,12 @@ class Scheduler:
                     args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
                 # Update entity
 
-                await self.AD.state.set_state("_scheduler", "admin", "scheduler_callback.{}".format(entry), execution_time = utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz))
+                await self.AD.state.set_state("_scheduler", "admin", "scheduler_callback.{}".format(uuid_), execution_time = utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz))
             else:
                 # Otherwise just delete
-                await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(entry))
+                await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(uuid_))
 
-                del self.schedule[name][entry]
+                del self.schedule[name][uuid_]
 
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
@@ -155,8 +157,8 @@ class Scheduler:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
             error_logger.warning("Scheduler entry has been deleted")
             error_logger.warning('-' * 60)
-            await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(entry))
-            del self.schedule[name][entry]
+            await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(uuid_))
+            del self.schedule[name][uuid_]
 
     def process_sun(self, action):
         self.logger.debug("Process sun: %s, next sunrise: %s, next sunset: %s", action, self.sun["next_rising"], self.sun["next_setting"])
@@ -245,7 +247,7 @@ class Scheduler:
             rbefore = kwargs["kwargs"].get("random_start", 0)
             rafter = kwargs["kwargs"].get("random_end", 0)
             offset = random.randint(rbefore, rafter)
-            self.logger.debug("sun: offset = %s", offset)
+            #self.logger.debug("get_offset(): offset = %s", offset)
         return offset
 
     async def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
@@ -304,6 +306,7 @@ class Scheduler:
                                                                          })
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
 
+        await self.kick()
         return handle
 
     async def terminate_app(self, name):
@@ -337,6 +340,7 @@ class Scheduler:
         return next_entries
 
     async def loop(self):
+        self.logger.debug("Starting scheduler loop()")
         self.AD.booted = await self.get_now_naive()
 
         tt = self.set_start_time()
@@ -352,36 +356,80 @@ class Scheduler:
             self.logger.info("Scheduler tick set to %ss", self.AD.tick)
 
 
-        next_entries = self.get_next_entries()
-        delay = next_entries[0]["timestramp"] - self.now
-
-        await asyncio.sleep(delay)
-
+        next_entries = []
         while not self.stopping:
-            if self.endtime is not None and self.now >= self.AD.endtime:
-                self.logger.info("End time reached, exiting")
-                if self.AD.stop_function is not None:
-                    self.AD.stop_function()
+            try:
+                if self.endtime is not None and self.now >= self.AD.endtime:
+                    self.logger.info("End time reached, exiting")
+                    if self.AD.stop_function is not None:
+                        self.AD.stop_function()
+                    else:
+                        #
+                        # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
+                        #
+                        self.stop()
+
+                if self.realtime:
+                    self.now = pytz.utc.localize(datetime.datetime.utcnow())
                 else:
-                    #
-                    # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
-                    #
-                    self.stop()
+                    pass
+                    #TODO Interpolate for time travel
+                self.last_fired = pytz.utc.localize(datetime.datetime.utcnow())
+                #
+                # OK, lets fire the entries
+                #
+                for entry in next_entries:
+                    # Check timestamps as we might have been interrupted to add a callback
+                    if entry["timestamp"] <= self.now:
+                        name = entry["name"]
+                        uuid_ = entry["uuid"]
+                        # Things may have changed since we last woke up
+                        # so check our callbacks are still valid before we execute them
+                        if name in self.schedule and uuid_ in self.schedule[name]:
+                            args = self.schedule[name][uuid_]
+                            self.logger.debug("Executing: %s", args)
+                            await self.exec_schedule(name, args, uuid_)
+                    else:
+                        break
+                for k, v in list(self.schedule.items()):
+                    if v == {}:
+                        del self.schedule[k]
 
-
-        for name in self.schedule.keys():
-            for entry in sorted(
-                    self.schedule[name].keys(),
-                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
-            ):
-
-                if self.schedule[name][entry]["timestamp"] <= utc:
-                    await self.exec_schedule(name, entry, self.schedule[name][entry], entry)
+                next_entries = self.get_next_entries()
+                self.logger.debug("Next entries: %s", next_entries)
+                if len(next_entries) > 0:
+                    delay = (next_entries[0]["timestamp"] - self.now).total_seconds()
                 else:
-                    break
-        for k, v in list(self.schedule.items()):
-            if v == {}:
-                del self.schedule[k]
+                    # Nothing to do, lets wait for a while, we will get woken up if anything new comes along
+                    delay = 60
+
+                if delay > 0:
+                    self.logger.debug("Sleeping for %s seconds", delay)
+                    result = await self.sleep(delay)
+                    self.logger.debug("result = %s", result)
+
+            except:
+                self.logger.warning('-' * 60)
+                self.logger.warning("Unexpected error in scheduler loop")
+                self.logger.warning('-' * 60)
+                self.logger.warning(traceback.format_exc())
+                self.logger.warning('-' * 60)
+                await self.sleep(1)
+
+    async def sleep(self, delay):
+        coro = asyncio.sleep(delay, loop=self.AD.loop)
+        self.sleep_task = asyncio.ensure_future(coro)
+        try:
+            await self.sleep_task
+            self.sleep_task = None
+            return False
+        except asyncio.CancelledError:
+            return True
+
+    async def kick(self):
+        while self.sleep_task is None:
+            pass
+        self.sleep_task.cancel()
 
     async def do_every(self):
         self.logger.debug("do_every()")

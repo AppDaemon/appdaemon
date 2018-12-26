@@ -67,7 +67,7 @@ class Utility:
 
             self.logger.debug("Starting timer loop")
 
-            self.AD.loop.create_task(self.AD.sched.do_every())
+            self.AD.loop.create_task(self.AD.sched.loop())
 
             self.booted = await self.AD.sched.get_now()
             await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
