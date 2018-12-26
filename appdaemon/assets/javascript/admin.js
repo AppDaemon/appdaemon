@@ -160,103 +160,108 @@ function create_tables(entities)
 
         jQuery.each(entities.state[namespace], function(entity)
         {
-            state = entities.state[namespace][entity].state;
-            last_changed = entities.state[namespace][entity].last_changed;
-            attributes = entities.state[namespace][entity].attributes;
-
-            entity_list.push({name: entity,
-                state: state, last_changed: last_changed, attributes: JSON.stringify(attributes)});
-
-            if (namespace === "admin")
+            if ("state" in entities.state[namespace][entity])
             {
+                state = entities.state[namespace][entity].state;
+                last_changed = entities.state[namespace][entity].last_changed;
+                attributes = entities.state[namespace][entity].attributes;
 
-                // Apps
+                entity_list.push({
+                    name: entity,
+                    state: state, last_changed: last_changed, attributes: JSON.stringify(attributes)
+                });
 
-                if (device(entity) === "app")
+                if (namespace === "admin")
                 {
-                    callbacks = attributes.callbacks;
-                    window.app_table.add({
-                        name: name(entity),
-                        state: state,
-                        arguments: JSON.stringify(attributes.args),
-                        callbacks: callbacks
-                    });
-                }
 
-                // Threads
+                    // Apps
 
-                if (device(entity) === "thread")
-                {
-                    window.thread_table.add({
-                        id: name(entity),
-                        q_size: attributes.q,
-                        arguments: JSON.stringify(attributes.args),
-                        callback: state,
-                        time_called: attributes.time_called,
-                        alive: attributes.is_alive,
-                        pinned_apps: JSON.stringify(attributes.pinned_apps)
-                    });
-                }
+                    if (device(entity) === "app")
+                    {
+                        callbacks = attributes.callbacks;
+                        window.app_table.add({
+                            name: name(entity),
+                            state: state,
+                            arguments: JSON.stringify(attributes.args),
+                            callbacks: callbacks
+                        });
+                    }
 
-                // Scheduler Callbacks
+                    // Threads
 
-                if (device(entity) === "scheduler_callback")
-                {
-                    window.scheduler_callback_table.add({
-                        id: name(entity),
-                        app: attributes.app,
-                        execution_time: attributes.execution_time,
-                        repeat: attributes.repeat,
-                        function: attributes.function,
-                        fired: attributes.fired,
-                        executed: attributes.executed,
-                        pinned: attributes.pinned,
-                        pinned_thread: attributes.pinned_thread,
-                        kwargs: JSON.stringify(attributes.kwargs)
-                    });
-                }
+                    if (device(entity) === "thread")
+                    {
+                        window.thread_table.add({
+                            id: name(entity),
+                            q_size: attributes.q,
+                            arguments: JSON.stringify(attributes.args),
+                            callback: state,
+                            time_called: attributes.time_called,
+                            alive: attributes.is_alive,
+                            pinned_apps: JSON.stringify(attributes.pinned_apps)
+                        });
+                    }
 
-                // State Callbacks
+                    // Scheduler Callbacks
 
-                if (device(entity) === "state_callback")
-                {
-                    window.state_callback_table.add({
-                        id: name(entity),
-                        app: attributes.app,
-                        last_changed: last_changed,
-                        entity: attributes.listened_entity,
-                        function: attributes.function,
-                        fired: attributes.fired,
-                        executed: attributes.executed,
-                        pinned: attributes.pinned,
-                        pinned_thread: attributes.pinned_thread,
-                        kwargs: JSON.stringify(attributes.kwargs)
-                    });
-                }
+                    if (device(entity) === "scheduler_callback")
+                    {
+                        window.scheduler_callback_table.add({
+                            id: name(entity),
+                            app: attributes.app,
+                            execution_time: attributes.execution_time,
+                            repeat: attributes.repeat,
+                            function: attributes.function,
+                            fired: attributes.fired,
+                            executed: attributes.executed,
+                            pinned: attributes.pinned,
+                            pinned_thread: attributes.pinned_thread,
+                            kwargs: JSON.stringify(attributes.kwargs)
+                        });
+                    }
 
-                // Event Callbacks
+                    // State Callbacks
 
-                if (device(entity) === "event_callback")
-                {
-                    window.event_callback_table.add({
-                        id: name(entity),
-                        app: attributes.app,
-                        last_changed: last_changed,
-                        event_name: attributes.event_name,
-                        function: attributes.function,
-                        fired: attributes.fired,
-                        executed: attributes.executed,
-                        pinned: attributes.pinned,
-                        pinned_thread: attributes.pinned_thread,
-                        kwargs: JSON.stringify(attributes.kwargs)
-                    });
-                }
+                    if (device(entity) === "state_callback")
+                    {
+                        window.state_callback_table.add({
+                            id: name(entity),
+                            app: attributes.app,
+                            last_changed: last_changed,
+                            entity: attributes.listened_entity,
+                            function: attributes.function,
+                            fired: attributes.fired,
+                            executed: attributes.executed,
+                            pinned: attributes.pinned,
+                            pinned_thread: attributes.pinned_thread,
+                            kwargs: JSON.stringify(attributes.kwargs)
+                        });
+                    }
 
-                // Sensors
+                    // Event Callbacks
 
-                if (device(entity) === "sensor")
-                {
-                    $('#' + device(entity) + "_" + name(entity)).text(state)
+                    if (device(entity) === "event_callback")
+                    {
+                        window.event_callback_table.add({
+                            id: name(entity),
+                            app: attributes.app,
+                            last_changed: last_changed,
+                            event_name: attributes.event_name,
+                            function: attributes.function,
+                            fired: attributes.fired,
+                            executed: attributes.executed,
+                            pinned: attributes.pinned,
+                            pinned_thread: attributes.pinned_thread,
+                            kwargs: JSON.stringify(attributes.kwargs)
+                        });
+                    }
+
+                    // Sensors
+
+                    if (device(entity) === "sensor")
+                    {
+                        $('#' + device(entity) + "_" + name(entity)).text(state)
+                    }
                 }
             }
         });
