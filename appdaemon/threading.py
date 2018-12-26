@@ -513,7 +513,7 @@ class Threading:
             else:
                 if "__duration" in kwargs:
                     # cancel timer
-                    self.AD.sched.cancel_timer(name, kwargs["__duration"])
+                    await self.AD.sched.cancel_timer(name, kwargs["__duration"])
 
         return executed
 

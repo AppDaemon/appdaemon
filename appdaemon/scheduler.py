@@ -26,6 +26,7 @@ class Scheduler:
         self.diag = ad.logging.get_diag()
         self.last_fired = None
         self.sleep_task = None
+        self.active = False
 
         self.schedule = {}
 
@@ -68,11 +69,10 @@ class Scheduler:
         else:
             self.now = pytz.utc.localize(datetime.datetime.utcnow())
 
-        if self.AD.tick != self.AD.interval:
+        if self.AD.timewarp != 1:
             tt = True
 
         return tt
-
 
     def stop(self):
         self.logger.debug("stop() called for scheduler")
@@ -255,9 +255,9 @@ class Scheduler:
         #aware_dt will include a timezone of some sort - convert to utc timezone
         utc = aware_dt.astimezone(pytz.utc)
 
-        # Round to nearest tick
+        # Round to nearest second
 
-        utc = self.my_dt_round(utc, base=self.AD.tick)
+        utc = self.my_dt_round(utc, base=1)
 
         if "pin" in kwargs:
             pin_app = kwargs["pin"]
@@ -306,7 +306,8 @@ class Scheduler:
                                                                          })
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
 
-        await self.kick()
+        if self.active is True:
+            await self.kick()
         return handle
 
     async def terminate_app(self, name):
@@ -340,6 +341,7 @@ class Scheduler:
         return next_entries
 
     async def loop(self):
+        self.active = True
         self.logger.debug("Starting scheduler loop()")
         self.AD.booted = await self.get_now_naive()
 
@@ -348,13 +350,12 @@ class Scheduler:
             self.realtime = False
             self.logger.info("Starting time travel ...")
             self.logger.info("Setting clocks to %s", await self.get_now_naive())
-            if self.AD.tick == 0:
+            if self.AD.timewarp == 0:
                 self.logger.info("Time displacement factor infinite")
             else:
-                self.logger.info("Time displacement factor %s", self.AD.interval / self.AD.tick)
+                self.logger.info("Time displacement factor %s", self.AD.timewarp)
         else:
-            self.logger.info("Scheduler tick set to %ss", self.AD.tick)
-
+            self.logger.info("Scheduler running in realtime")
 
         next_entries = []
         while not self.stopping:
@@ -428,7 +429,7 @@ class Scheduler:
 
     async def kick(self):
         while self.sleep_task is None:
-            pass
+            await asyncio.sleep(0)
         self.sleep_task.cancel()
 
     async def do_every(self):
