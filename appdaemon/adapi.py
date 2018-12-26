@@ -581,7 +581,12 @@ class ADAPI:
         return handle
 
     def _schedule_sun(self, name, type_, callback, **kwargs):
-        event = utils.run_coroutine_threadsafe(self, self.AD.sched.get_sun(type_))
+
+        if type_ == "next_rising":
+            event = self.AD.sched.next_sunrise()
+        else:
+            event = self.AD.sched.next_sunset()
+
         handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
             name, event, callback, True, type_, **kwargs
         ))
