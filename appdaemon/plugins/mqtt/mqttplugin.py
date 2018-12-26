@@ -262,7 +262,7 @@ class MqttPlugin(PluginBase):
 
         return result
 
-    def process_mqtt_wildcard(self, wildcard):
+    async def process_mqtt_wildcard(self, wildcard):
         if wildcard.rstrip('#') not in self.mqtt_wildcards:
             self.mqtt_wildcards.append(wildcard.rstrip('#'))
     
