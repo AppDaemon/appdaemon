@@ -10,6 +10,7 @@ import re
 import asyncio
 import logging
 from collections import OrderedDict
+import sys
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -317,6 +318,71 @@ class Scheduler:
     #
     # Timer
     #
+
+    def get_next_entries(self):
+
+        next_exec = datetime.datetime.now(pytz.utc).replace(year=3000)
+        for name in self.schedule.keys():
+            for entry in self.schedule[name].keys():
+                if self.schedule[name][entry]["timestamp"] < next_exec:
+                    next_exec = self.schedule[name][entry]["timestamp"]
+
+        next_entries =[]
+
+        for name in self.schedule.keys():
+            for entry in self.schedule[name].keys():
+                if self.schedule[name][entry]["timestamp"] == next_exec:
+                    next_entries.append({"name": name, "uuid": entry, "timestamp": self.schedule[name][entry]["timestamp"]})
+
+        return next_entries
+
+    async def loop(self):
+        self.AD.booted = await self.get_now_naive()
+
+        tt = self.set_start_time()
+        if tt is True:
+            self.realtime = False
+            self.logger.info("Starting time travel ...")
+            self.logger.info("Setting clocks to %s", await self.get_now_naive())
+            if self.AD.tick == 0:
+                self.logger.info("Time displacement factor infinite")
+            else:
+                self.logger.info("Time displacement factor %s", self.AD.interval / self.AD.tick)
+        else:
+            self.logger.info("Scheduler tick set to %ss", self.AD.tick)
+
+
+        next_entries = self.get_next_entries()
+        delay = next_entries[0]["timestramp"] - self.now
+
+        await asyncio.sleep(delay)
+
+        while not self.stopping:
+            if self.endtime is not None and self.now >= self.AD.endtime:
+                self.logger.info("End time reached, exiting")
+                if self.AD.stop_function is not None:
+                    self.AD.stop_function()
+                else:
+                    #
+                    # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
+                    #
+                    self.stop()
+
+
+        for name in self.schedule.keys():
+            for entry in sorted(
+                    self.schedule[name].keys(),
+                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"]
+            ):
+
+                if self.schedule[name][entry]["timestamp"] <= utc:
+                    await self.exec_schedule(name, entry, self.schedule[name][entry], entry)
+                else:
+                    break
+        for k, v in list(self.schedule.items()):
+            if v == {}:
+                del self.schedule[k]
+
     async def do_every(self):
         self.logger.debug("do_every()")
         #
