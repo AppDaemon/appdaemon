@@ -211,7 +211,7 @@ class Plugins:
                 if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
                         seconds=self.plugins[name]["refresh_delay"]):
                     try:
-                        self.logger.info("Refreshing %s state", name)
+                        self.logger.debug("Refreshing %s state", name)
 
                         with async_timeout.timeout(self.plugins[name]["refresh_timeout"], loop=self.AD.loop) as t:
                             state = await self.plugin_objs[plugin]["object"].get_complete_state()

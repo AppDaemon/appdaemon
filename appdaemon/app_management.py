@@ -363,7 +363,7 @@ class AppManagement:
             # Now we know if we have any new apps we can create new threads if pinning
 
             active_apps = self.get_active_app_count()
-            if add_threads is True and self.AD.threading.auto_pin is True:
+            if add_threads is True and selfr.AD.threading.auto_pin is True:
                 if active_apps > self.AD.threading.thread_count:
                     for i in range(active_apps - self.AD.threading.thread_count):
                         await self.AD.threading.add_thread(False, True)
