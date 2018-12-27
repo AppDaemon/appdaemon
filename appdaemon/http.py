@@ -388,6 +388,10 @@ class HTTP:
     #
 
     @securedata
+    async def get_ad(self, request):
+        return web.json_response({"state": {"status": "active"}})
+
+    @securedata
     async def get_entity(self, request):
         namespace = None
         entity_id = None
@@ -464,7 +468,7 @@ class HTTP:
 
         try:
             self.logger.debug("get_namespaces() called)")
-            state = self.AD.state.list_namespaces()
+            state = await self.AD.state.list_namespaces()
             self.logger.debug("result = %s", state)
 
             return web.json_response({"state": state})
@@ -595,6 +599,7 @@ class HTTP:
         self.app.router.add_get('/api/appdaemon/state/', self.get_namespaces)
         self.app.router.add_get('/api/appdaemon/state', self.get_state)
         self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
+        self.app.router.add_get('/api/appdaemon', self.get_ad)
 
     def setup_http_routes(self):
         self.app.router.add_get('/favicon.ico', self.not_found)
