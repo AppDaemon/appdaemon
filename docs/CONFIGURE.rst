@@ -140,8 +140,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 -  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and lcoking of instance variables
 -  ``pin_threads`` (optional) - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. Default is to use all threads for pinned apps.
 - ``load_distribution`` - Algorithm to use for loadbalancing between unpinned apps. Can be ``roundrobin`` (the default), ``random`` or ``load``
--  ``tick`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
--  ``interval`` (optional) - equivalent to the command line flag ``-i`` but will take precedence
+-  ``timewarp`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
 -  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
 -  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
 -  ``qsize_warning_iterations`` - if set to a value greater than 0, when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes but not until the qsize has been excessive for a minimum of ``qsize_warning_iterations``. This allows you to tune out brief expected spikes in Q size. Default is 5, usually meaning 5 secods.
@@ -252,6 +251,11 @@ In the required ``plugins:`` sub-section, there will usually be one or more plug
 -  ``type`` (required) The type of the plugin.
 -  ``namespace`` (optional) - which namespace to use. This can safely be left out unless you are planning to use multiple plugins (see below)
 - ``disable`` (optional) - if set to ``true``, the plugin will not be loaded - defaults to ``false``.
+
+Plugins also support some optional parameters:
+
+- ``refresh_delay`` - How often the complete state of the plugin is refreshed, in seconds. Default is 600 seconds.
+- ``refresh_timeout`` - How long to wait for the state refresh before cancelling it, in seconds. Default is 30 seconds.
 
 The rest will vary depending upon which plugin type is in use.
 

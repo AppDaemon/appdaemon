@@ -75,8 +75,8 @@ AppDaemon arguments
 
 ::
 
-    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TICK] [-s STARTTIME]
-                     [-e ENDTIME] [-i INTERVAL]
+    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
+                     [-e ENDTIME]
                      [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v] [-d]
 
     optional arguments:
@@ -85,13 +85,11 @@ AppDaemon arguments
                             full path to config diectory
       -p PIDFILE, --pidfile PIDFILE
                             full path to PID File
-      -t TICK, --tick TICK  time in seconds that a tick in the schedular lasts
+      -t TIMEWARP, --timewarp multiplication factor for the scheduler time (see Time TraveL)
       -s STARTTIME, --starttime STARTTIME
                             start time for scheduler <YYYY-MM-DD HH:MM:SS>
       -e ENDTIME, --endtime ENDTIME
                             end time for scheduler <YYYY-MM-DD HH:MM:SS>
-      -i INTERVAL, --interval INTERVAL
-                            multiplier for scheduler tick
       -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                             debug level
       -v, --version         show program's version number and exit

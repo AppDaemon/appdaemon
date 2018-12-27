@@ -14,10 +14,7 @@ class AdminLoop:
         self.stopping = True
 
     async def loop(self):
-        old_update = {}
         while not self.stopping:
-            #update = {}
-            #threads = {}
             if self.AD.http.stats_update != "none" and self.AD.sched is not None:
                 await self.AD.threading.get_callback_update()
 

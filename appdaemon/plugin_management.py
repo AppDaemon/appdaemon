@@ -3,8 +3,8 @@ import os
 import traceback
 import datetime
 import asyncio
+import async_timeout
 
-import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 class PluginBase:
@@ -64,6 +64,13 @@ class Plugins:
                 if "disable" in self.plugins[name] and self.plugins[name]["disable"] is True:
                     self.logger.info("Plugin '%s' disabled", name)
                 else:
+
+                    if "refresh_delay" not in self.plugins[name]:
+                        self.plugins[name]["refresh_delay"] = 600
+
+                    if "refresh_timeout" not in self.plugins[name]:
+                        self.plugins[name]["refresh_timeout"] = 30
+
                     basename = self.plugins[name]["type"]
                     type = self.plugins[name]["type"]
                     module_name = "{}plugin".format(basename)
@@ -158,7 +165,7 @@ class Plugins:
                 self.AD.state.set_namespace_state(namespace, state)
 
                 if not first_time:
-                    await utils.run_in_executor(self, self.AD.app_management.check_app_updates, self.get_plugin_from_namespace(namespace))
+                    await self.AD.app_management.check_app_updates(self.get_plugin_from_namespace(namespace))
                 else:
                     self.logger.info("Got initial state from namespace %s", namespace)
 
@@ -199,16 +206,21 @@ class Plugins:
     async def update_plugin_state(self):
         for plugin in self.plugin_objs:
             if self.plugin_objs[plugin]["active"] is True:
-                if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
-                        minutes=10):
-                    try:
-                        self.logger.debug("Refreshing %s state", plugin)
 
-                        state = await self.plugin_objs[plugin]["object"].get_complete_state()
+                name = self.get_plugin_from_namespace(plugin)
+                if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
+                        seconds=self.plugins[name]["refresh_delay"]):
+                    try:
+                        self.logger.info("Refreshing %s state", name)
+
+                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"], loop=self.AD.loop) as t:
+                            state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
                             self.AD.state.update_namespace_state(plugin, state)
 
+                    except asyncio.TimeoutError:
+                        self.logger.warning("Timeout refreshing %s state - retrying in 10 minutes", plugin)
                     except:
                         self.logger.warning("Unexpected error refreshing %s state - retrying in 10 minutes", plugin)
                     finally:

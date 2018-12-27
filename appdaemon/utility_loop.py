@@ -67,7 +67,7 @@ class Utility:
 
             self.logger.debug("Starting timer loop")
 
-            self.AD.loop.create_task(self.AD.sched.do_every())
+            self.AD.loop.create_task(self.AD.sched.loop())
 
             self.booted = await self.AD.sched.get_now()
             await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
@@ -92,8 +92,6 @@ class Utility:
 
 
                     # Call me suspicious, but lets update state from the plugins periodically
-                    # in case we miss events for whatever reason
-                    # Every 10 minutes seems like a good place to start
 
                     await self.AD.plugins.update_plugin_state()
 

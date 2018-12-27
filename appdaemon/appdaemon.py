@@ -91,8 +91,8 @@ class AppDaemon:
         self.config_dir = None
         utils.process_arg(self, "config_dir", kwargs)
 
-        self.tick = 1
-        utils.process_arg(self, "tick", kwargs, float=True)
+        self.timewarp = 1
+        utils.process_arg(self, "timewarp", kwargs, float=True)
 
         self.max_clock_skew = 1
         utils.process_arg(self, "max_clock_skew", kwargs, int=True)
@@ -105,12 +105,6 @@ class AppDaemon:
 
         self.endtime = None
         utils.process_arg(self, "endtime", kwargs)
-
-        self.interval = 1
-        if kwargs["interval"] is None:
-            self.interval = self.tick
-        else:
-            utils.process_arg(self, "interval", kwargs, float=True)
 
         self.loglevel = "INFO"
         utils.process_arg(self, "loglevel", kwargs)

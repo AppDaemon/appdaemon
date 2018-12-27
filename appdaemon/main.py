@@ -120,10 +120,9 @@ class ADMain():
 
         parser.add_argument("-c", "--config", help="full path to config directory", type=str, default=None)
         parser.add_argument("-p", "--pidfile", help="full path to PID File", default="/tmp/hapush.pid")
-        parser.add_argument("-t", "--tick", help="time that a tick in the schedular lasts (seconds)", default=1, type=float)
+        parser.add_argument("-t", "--timewarp", help="speed that the scheduler will work at for time travel", default=1, type=float)
         parser.add_argument("-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str)
         parser.add_argument("-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None)
-        parser.add_argument("-i", "--interval", help="multiplier for scheduler tick", type=float, default=None)
         parser.add_argument("-D", "--debug", help="global debug level", default="INFO", choices=
                             [
                                 "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
@@ -226,11 +225,8 @@ class ADMain():
         if args.endtime is not None:
             appdaemon["endtime"] = args.endtime
 
-        if "tick" not in appdaemon:
-            appdaemon["tick"] = args.tick
-
-        if "interval" not in appdaemon:
-            appdaemon["interval"] = args.interval
+        if "timewarp" not in appdaemon:
+            appdaemon["timewarp"] = args.timewarp
 
         appdaemon["loglevel"] = args.debug
 
