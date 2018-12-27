@@ -104,7 +104,7 @@ class Threading:
             self.auto_pin = False
         else:
             apps = await self.AD.app_management.check_config(True, False)
-            self.total_threads = int(apps["total"])
+            self.total_threads = int(apps["active"])
 
         self.pin_apps = True
         utils.process_arg(self, "pin_apps", kwargs)
@@ -360,17 +360,17 @@ class Threading:
                 if thread < self.pin_threads:
                     thread_pins[thread] += 1
 
-            # Now we know the numbers, go fill in the gaps
+        # Now we know the numbers, go fill in the gaps
 
-            for name in self.AD.app_management.objects:
-                if await self.get_app_pin(name) and await self.get_pin_thread(name) == -1:
-                    thread = thread_pins.index(min(thread_pins))
-                    await self.set_pin_thread(name, thread)
-                    thread_pins[thread] += 1
+        for name in self.AD.app_management.objects:
+            if await self.get_app_pin(name) and await self.get_pin_thread(name) == -1:
+                thread = thread_pins.index(min(thread_pins))
+                await self.set_pin_thread(name, thread)
+                thread_pins[thread] += 1
 
-            for thread in self.threads:
-                pinned_apps = await self.get_pinned_apps(thread)
-                await self.set_state("_threading", "admin", "thread.{}".format(thread), pinned_apps=pinned_apps)
+        for thread in self.threads:
+            pinned_apps = await self.get_pinned_apps(thread)
+            await self.set_state("_threading", "admin", "thread.{}".format(thread), pinned_apps=pinned_apps)
 
     def app_should_be_pinned(self, name):
         # Check apps.yaml first - allow override

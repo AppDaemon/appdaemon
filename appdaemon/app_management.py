@@ -291,7 +291,6 @@ class AppManagement:
 
         terminate_apps = {}
         initialize_apps = {}
-        new_config = {}
         total_apps = len(self.app_config)
 
         try:
@@ -363,12 +362,13 @@ class AppManagement:
 
             # Now we know if we have any new apps we can create new threads if pinning
 
+            active_apps = self.get_active_app_count()
             if add_threads is True and self.AD.threading.auto_pin is True:
-                if total_apps > self.AD.threading.thread_count:
-                    for i in range(total_apps - self.AD.threading.thread_count):
+                if active_apps > self.AD.threading.thread_count:
+                    for i in range(active_apps - self.AD.threading.thread_count):
                         await self.AD.threading.add_thread(False, True)
 
-            return {"init": initialize_apps, "term": terminate_apps, "total": total_apps}
+            return {"init": initialize_apps, "term": terminate_apps, "total": total_apps, "active": active_apps}
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error:")
@@ -376,6 +376,14 @@ class AppManagement:
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
 
+    def get_active_app_count(self):
+        c = 0
+        for name in self.app_config:
+            if "disable" in self.app_config[name] and self.app_config[name]["disable"] is True:
+                pass
+            else:
+                c += 1
+        return c
 
     def get_app_from_file(self, file):
         module = self.get_module_from_path(file)
