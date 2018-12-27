@@ -160,7 +160,7 @@ function create_tables(entities)
 
         jQuery.each(entities.state[namespace], function(entity)
         {
-            if ("state" in entities.state[namespace][entity])
+            if (entities.state[namespace][entity] != null)
             {
                 state = entities.state[namespace][entity].state;
                 last_changed = entities.state[namespace][entity].last_changed;
