@@ -92,8 +92,6 @@ class Utility:
 
 
                     # Call me suspicious, but lets update state from the plugins periodically
-                    # in case we miss events for whatever reason
-                    # Every 10 minutes seems like a good place to start
 
                     await self.AD.plugins.update_plugin_state()
 

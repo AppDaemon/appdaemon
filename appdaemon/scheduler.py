@@ -335,9 +335,10 @@ class Scheduler:
             self.logger.info("Scheduler running in realtime")
 
         next_entries = []
+        result = False
+        idle_time = 60
         while not self.stopping:
             try:
-                self.logger.debug("self.now = %s", self.now)
                 if self.endtime is not None and self.now >= self.endtime:
                     self.logger.info("End time reached, exiting")
                     if self.AD.stop_function is not None:
@@ -347,21 +348,25 @@ class Scheduler:
                         # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
                         #
                         self.stop()
-
+                now = pytz.utc.localize(datetime.datetime.utcnow())
                 if self.realtime is True:
-                    self.now = pytz.utc.localize(datetime.datetime.utcnow())
+                    self.now = now
                 else:
-                    # Figure out what pseudo time it is ...
-                    if len(next_entries) > 0:
-                        # Time is progressing infinitely fast and it's already time for our next callback
-                        delta = (next_entries[0]["timestamp"] - self.now).total_seconds()
+                    if result == True:
+                        # We got kicked so lets figure out the elapsed pseudo time
+                        delta = (now - self.last_fired).total_seconds() * self.AD.timewarp
                     else:
-                            # We have hit a singularity and time has stopped ...
-                            delta = 1
+                        if len(next_entries) > 0:
+                            # Time is progressing infinitely fast and it's already time for our next callback
+                            delta = (next_entries[0]["timestamp"] - self.now).total_seconds()
+                        else:
+                            # No kick, no scheduler expiry ...
+                            delta = idle_time
 
                     self.now = self.now + timedelta(seconds=delta)
 
                 self.last_fired = pytz.utc.localize(datetime.datetime.utcnow())
+                self.logger.debug("self.now = %s", self.now)
                 #
                 # OK, lets fire the entries
                 #
@@ -388,7 +393,7 @@ class Scheduler:
                     delay = (next_entries[0]["timestamp"] - self.now).total_seconds()
                 else:
                     # Nothing to do, lets wait for a while, we will get woken up if anything new comes along
-                    delay = 60
+                    delay = idle_time
 
                 self.logger.debug("Delay = %s seconds", delay)
                 if delay > 0 and self.AD.timewarp > 0:

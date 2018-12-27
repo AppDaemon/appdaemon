@@ -9,7 +9,7 @@ Change Log
 - Apps can now use a simplified version of the import statement e.g. ``import hassapi as hass`` or ``import mqttapi as mqtt``. The existing import method will continue to work.
 - Apps can now use multiple plugin APIs with the ``get_plugin_api()`` function
 - Added ``ADBase`` superclass for apps that want to use the ``get_plugin_api()`` style of coding
-- Scheduler can now run at much higher speeds if your hardware can take it
+- Scheduler rewritten to be more efficiant and allow for microsecond resolution
 - ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
 - Bumped aiohttp to v3.4.4
 - Added callback locking decorators
