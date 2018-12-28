@@ -301,6 +301,8 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 state = None
             return state
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            self.logger.warning("HASS Disconnected unexpectedly during set_state()")
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error during set_plugin_state()")
@@ -332,6 +334,8 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
             return result
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            self.logger.warning("HASS Disconnected unexpectedly during call_service()")
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error during call_plugin_service()")
@@ -452,6 +456,8 @@ class HassPlugin(PluginBase):
             r.raise_for_status()
             state = await r.json()
             return state
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            self.logger.warning("HASS Disconnected unexpectedly during fire_event()")
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error fire_plugin_event()")

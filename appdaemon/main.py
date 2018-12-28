@@ -40,7 +40,7 @@ class ADMain():
             self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
             self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
         if signum == signal.SIGHUP:
-            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates(True))
+            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, True)
         if signum == signal.SIGINT:
             self.logger.info("Keyboard interrupt")
             self.stop()
