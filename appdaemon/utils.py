@@ -227,16 +227,7 @@ def day_of_week(day):
 async def run_in_executor(self, fn, *args, **kwargs):
     completed, pending = await asyncio.wait([self.AD.loop.run_in_executor(self.AD.executor, functools.partial(fn, *args, **kwargs))])
     future = list(completed)[0]
-    response = None
-    try:
-        response = future.result()
-    except asyncio.TimeoutError:
-        if hasattr(self, "logger"):
-            self.logger.warning("Coroutine fn=%s took too long, cancelling the task...", fn.__name__)
-            self.logger.warning("args=%s, kwargs=%s", args, kwargs)
-        else:
-            print("Coroutine ({}) took too long, cancelling the task...".format(fn.__name__))
-        future.cancel()
+    response = future.result()
     return response
 
 

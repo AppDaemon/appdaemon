@@ -139,18 +139,21 @@ class HassPlugin(PluginBase):
                 self.logger.info("Delaying startup for %s seconds", self.startup_conditions["delay"])
                 await asyncio.sleep(int(self.startup_conditions["delay"]))
                 start = True
-            if "state" in self.startup_conditions and self.startup_conditions["state"] is not None:
+            if "state" in self.startup_conditions:
                 state = await self.get_complete_state()
-                for entry in self.startup_conditions["state"]:
-                    if "value" in entry:
-                        self.logger.info("Startup condition %s=%s", entry["entity"], entry["value"])
-                        if entry["entity"] in state and entry["value"] == state[entry["entity"]]["state"]:
-                            start = True
-                    elif entry["entity"] in state:
-                        self.logger.info("Startup condition: %s exists", entry["entity"])
+                entry = self.startup_conditions["state"]
+                if "value" in entry:
+                    self.logger.info("Startup condition %s=%s", entry["entity"], entry["value"])
+                    if entry["entity"] in state and entry["value"] == state[entry["entity"]]["state"]:
                         start = True
-            #if event is not None:
-            #    for entry in self.startup_conditions["event"]:
+                elif entry["entity"] in state:
+                    self.logger.info("Startup condition: %s exists", entry["entity"])
+                    start = True
+            if "event" in self.startup_conditions and event is not None:
+                entry = self.startup_conditions["event"]
+                if entry["type"] == event["event_type"]:
+                    start = True
+
 
         if start is True:
             # We are good to go
@@ -240,8 +243,16 @@ class HassPlugin(PluginBase):
                         self.AD.services.register_service(self.get_namespace(), domain["domain"], service, self.call_plugin_service)
 
                 # Decide if we can start yet
-                self.logger.info("Evaluating startup conditions")
-                await self.evaluate_started()
+                #self.logger.info("Evaluating startup conditions")
+                #await self.evaluate_started()
+
+                state = await self.get_complete_state()
+                self.reading_messages = True
+
+                await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state,
+                                                            self.first_time)
+                self.first_time = False
+                self.already_notified = False
 
                 #
                 # Loop forever consuming events
@@ -256,11 +267,11 @@ class HassPlugin(PluginBase):
 
                     await self.AD.events.process_event(self.namespace, result["event"])
 
-                    if self.reading_messages is False:
-                        if result["type"] == "event":
-                            await self.evaluate_started(result["event"])
-                        else:
-                            await self.evaluate_started()
+                    #if self.reading_messages is False:
+                    #    if result["type"] == "event":
+                    #        await self.evaluate_started(result["event"])
+                    #    else:
+                    #        await self.evaluate_started()
 
                 self.reading_messages = False
 

@@ -416,11 +416,11 @@ class Threading:
     # Constraints
     #
 
-    def check_constraint(self, key, value, app):
+    async def check_constraint(self, key, value, app):
         unconstrained = True
         if key in app.list_constraints():
             method = getattr(app, key)
-            unconstrained = method(value)
+            unconstrained = utils.run_in_executor(method, value)
 
         return unconstrained
 
@@ -523,7 +523,7 @@ class Threading:
         # Argument Constraints
         #
         for arg in self.AD.app_management.app_config[name].keys():
-            constrained = self.check_constraint(arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"])
+            constrained = await self.check_constraint(arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"])
             if not constrained:
                 unconstrained = False
         if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
@@ -534,7 +534,7 @@ class Threading:
         myargs = utils.deepcopy(args)
         if "kwargs" in myargs:
             for arg in myargs["kwargs"].keys():
-                constrained = self.check_constraint(arg, myargs["kwargs"][arg], self.AD.app_management.objects[name]["object"])
+                constrained = await self.check_constraint(arg, myargs["kwargs"][arg], self.AD.app_management.objects[name]["object"])
                 if not constrained:
                     unconstrained = False
             if not await self.check_time_constraint(myargs["kwargs"], name):
