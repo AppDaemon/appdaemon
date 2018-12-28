@@ -145,6 +145,9 @@ class AppDaemon:
         self.qsize_warning_iterations = 10
         utils.process_arg(self, "qsize_warning_iterations", kwargs, int=True)
 
+        self.internal_function_timeout = 10
+        utils.process_arg(self, "internal_function_timeout", kwargs, int=True)
+
         self.namespaces = {}
         utils.process_arg(self, "namespaces", kwargs)
 

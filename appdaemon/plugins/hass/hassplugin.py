@@ -10,12 +10,15 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.plugin_management import PluginBase
 
+async def no_func():
+    pass
+
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
         if not self.reading_messages:
             self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
-            return lambda *args: None
+            return no_func()
         else:
             return func(*args, **kwargs)
 
@@ -220,6 +223,7 @@ class HassPlugin(PluginBase):
                 self.reading_messages = True
                 await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
 
+                first_time = False
                 already_notified = False
 
                 #
@@ -239,7 +243,6 @@ class HassPlugin(PluginBase):
 
             except:
                 self.reading_messages = False
-                first_time = False
                 if not already_notified:
                     await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True

@@ -52,6 +52,12 @@ class Utility:
 
             self.AD.sched = scheduler.Scheduler(self.AD)
 
+            # Create timer loop
+
+            self.logger.debug("Starting timer loop")
+
+            self.AD.loop.create_task(self.AD.sched.loop())
+
             if self.AD.apps is True:
                 self.logger.debug("Reading Apps")
 
@@ -62,12 +68,6 @@ class Utility:
                 # Fire APPD Started Event
                 #
                 await self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
-
-            # Create timer loop
-
-            self.logger.debug("Starting timer loop")
-
-            self.AD.loop.create_task(self.AD.sched.loop())
 
             self.booted = await self.AD.sched.get_now()
             await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
