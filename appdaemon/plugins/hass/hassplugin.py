@@ -85,10 +85,10 @@ class HassPlugin(PluginBase):
         else:
             self.commtype = "WS"
 
-        if "app_init_delay" in args:
-            self.app_init_delay = args["app_init_delay"]
+        if "startup_conditions" in args:
+            self.startup_conditions = args["startup_conditions"]
         else:
-            self.app_init_delay = 0
+            self.startup_conditions = None
         #
         # Set up HTTP Client
         #
@@ -130,12 +130,32 @@ class HassPlugin(PluginBase):
     # Handle state updates
     #
 
+    async def evaluate_started(self, event=None):
+        start = False
+        if self.startup_conditions is None:
+            start = True
+        else:
+            if "delay" in self.startup_conditions:
+                self.logger.info("Delaying startup for %s seconds", self.startup_conditions["delay"])
+                await asyncio.sleep(int(self.startup_conditions["delay"]))
+                start = True
+            #elif "event" in self.startup_conditions:
+
+        if start is True:
+            # We are good to go
+            self.reading_messages = True
+            state = await self.get_complete_state()
+            await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
+            self.first_time = False
+            self.already_notified = False
+
+
     async def get_updates(self):
 
         _id = 0
 
-        already_notified = False
-        first_time = True
+        self.already_notified = False
+        self.first_time = True
         while not self.stopping:
             _id += 1
             try:
@@ -207,24 +227,9 @@ class HassPlugin(PluginBase):
                 for domain in self.services:
                     for service in domain["services"]:
                         self.AD.services.register_service(self.get_namespace(), domain["domain"], service, self.call_plugin_service)
-                #
-                # Get State
-                #
-                state = await self.get_complete_state()
-                #
-                # Wait for app delay
-                #
-                if self.app_init_delay > 0:
-                    self.logger.info("Delaying app initialization for %s seconds", self.app_init_delay)
-                    await asyncio.sleep(self.app_init_delay)
-                #
-                # Fire HA_STARTED Events
-                #
-                self.reading_messages = True
-                await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, first_time)
 
-                first_time = False
-                already_notified = False
+                # Decide if we can start yet
+                await self.evaluate_started()
 
                 #
                 # Loop forever consuming events
@@ -243,9 +248,9 @@ class HassPlugin(PluginBase):
 
             except:
                 self.reading_messages = False
-                if not already_notified:
+                if not self.already_notified:
                     await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
-                    already_notified = True
+                    self.already_notified = True
                 if not self.stopping:
                     self.logger.warning("Disconnected from Home Assistant, retrying in 5 seconds")
                     self.logger.debug('-' * 60)
@@ -304,7 +309,7 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 state = None
             return state
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in set_state(%s, %s, %s)", namespace, entity_id, kwargs)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during set_state()")
@@ -339,7 +344,7 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
             return result
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during call_service()")
@@ -463,7 +468,7 @@ class HassPlugin(PluginBase):
             r.raise_for_status()
             state = await r.json()
             return state
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in fire_event(%s, %s, %s)", event, namespace, kwargs)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during fire_event()")
