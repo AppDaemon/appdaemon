@@ -245,7 +245,7 @@ def run_coroutine_threadsafe(self, coro):
     if self.AD.loop.is_running():
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
         try:
-            result = future.result(5)
+            result = future.result(self.AD.internal_function_timeout)
         except asyncio.TimeoutError:
             if hasattr(self, "logger"):
                 self.logger.warning("Coroutine (%s) took too long, cancelling the task...", coro)
