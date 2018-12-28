@@ -301,6 +301,8 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 state = None
             return state
+        except asyncio.TimeoutError:
+            self.logger.warning("Timeout in set_state(%s, %s, %s)", namespace, entity_id, kwargs)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during set_state()")
         except:
@@ -334,6 +336,8 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
             return result
+        except asyncio.TimeoutError:
+            self.logger.warning("Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during call_service()")
         except:
@@ -456,6 +460,8 @@ class HassPlugin(PluginBase):
             r.raise_for_status()
             state = await r.json()
             return state
+        except asyncio.TimeoutError:
+            self.logger.warning("Timeout in fire_event(%s, %s, %s)", event, namespace, kwargs)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during fire_event()")
         except:
