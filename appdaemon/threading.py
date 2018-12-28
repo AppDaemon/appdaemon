@@ -420,7 +420,7 @@ class Threading:
         unconstrained = True
         if key in app.list_constraints():
             method = getattr(app, key)
-            unconstrained = utils.run_in_executor(method, value)
+            unconstrained = await utils.run_in_executor(self, method, value)
 
         return unconstrained
 
