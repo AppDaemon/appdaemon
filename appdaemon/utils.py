@@ -11,6 +11,7 @@ import json
 import threading
 import iso8601
 import datetime
+import types
 
 if platform.system() != "Windows":
     import pwd
@@ -254,6 +255,40 @@ def run_coroutine_threadsafe(self, coro):
 
     return result
 
+def deepcopy(data):
+
+    result = None
+
+    if isinstance(data, dict):
+        result = {}
+        for key, value in data.items():
+
+            result[key] = deepcopy(value)
+
+        assert id(result) != id(data)
+
+    elif isinstance(data, list):
+        result = []
+        for item in data:
+            result.append(deepcopy(item))
+
+        assert id(result) != id(data)
+
+    elif isinstance(data, tuple):
+        aux = []
+        for item in data:
+            aux.append(deepcopy(item))
+        result = tuple(aux)
+
+        assert id(result) != id(data)
+
+    elif isinstance(data, (int, float, type(None), str, bool)):
+        result = data
+
+    elif callable(data):
+        result = data
+
+    return result
 
 def find_path(name):
     for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),

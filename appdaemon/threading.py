@@ -416,11 +416,11 @@ class Threading:
     # Constraints
     #
 
-    async def check_constraint(self, key, value, app):
+    def check_constraint(self, key, value, app):
         unconstrained = True
         if key in app.list_constraints():
             method = getattr(app, key)
-            unconstrained = await utils.run_in_executor(self, method, value)
+            unconstrained = method(value)
 
         return unconstrained
 
@@ -523,7 +523,7 @@ class Threading:
         # Argument Constraints
         #
         for arg in self.AD.app_management.app_config[name].keys():
-            constrained = await self.check_constraint(arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"])
+            constrained = self.check_constraint(arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"])
             if not constrained:
                 unconstrained = False
         if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
@@ -531,12 +531,13 @@ class Threading:
         #
         # Callback level constraints
         #
-        if "kwargs" in args:
-            for arg in args["kwargs"].keys():
-                constrained = await self.check_constraint(arg, args["kwargs"][arg], self.AD.app_management.objects[name]["object"])
+        myargs = utils.deepcopy(args)
+        if "kwargs" in myargs:
+            for arg in myargs["kwargs"].keys():
+                constrained = self.check_constraint(arg, myargs["kwargs"][arg], self.AD.app_management.objects[name]["object"])
                 if not constrained:
                     unconstrained = False
-            if not await self.check_time_constraint(args["kwargs"], name):
+            if not await self.check_time_constraint(myargs["kwargs"], name):
                 unconstrained = False
 
         if unconstrained:
@@ -544,11 +545,11 @@ class Threading:
             # It's going to happen
             #
             await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
-            await self.add_to_attr("_threading", "admin", "{}_callback.{}".format(args["type"], args["id"]), "fired", 1)
+            await self.add_to_attr("_threading", "admin", "{}_callback.{}".format(myargs["type"], myargs["id"]), "fired", 1)
             #
             # And Q
             #
-            self.select_q(args)
+            self.select_q(myargs)
             return True
         else:
             return False
