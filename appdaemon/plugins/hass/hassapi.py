@@ -9,9 +9,6 @@ from appdaemon.appdaemon import AppDaemon
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-async def no_func():
-    pass
-
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
@@ -19,10 +16,10 @@ def hass_check(func):
         plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(ns))
         if plugin is None:
             self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, func.__name__)
-            return no_func()
+            return lambda *args: None
         if not utils.run_coroutine_threadsafe(self, plugin.am_reading_messages()):
             self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
-            return no_func()
+            return lambda *args: None
         else:
             return func(*args, **kwargs)
 

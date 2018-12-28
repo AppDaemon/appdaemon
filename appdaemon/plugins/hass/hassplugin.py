@@ -139,7 +139,7 @@ class HassPlugin(PluginBase):
                 self.logger.info("Delaying startup for %s seconds", self.startup_conditions["delay"])
                 await asyncio.sleep(int(self.startup_conditions["delay"]))
                 start = True
-            elif "state" in self.startup_conditions:
+            if "state" in self.startup_conditions and self.startup_conditions["state"] is not None:
                 state = await self.get_complete_state()
                 for entry in self.startup_conditions["state"]:
                     if "value" in entry:
@@ -149,6 +149,8 @@ class HassPlugin(PluginBase):
                     elif entry["entity"] in state:
                         self.logger.info("Startup condition: %s exists", entry["entity"])
                         start = True
+            #if event is not None:
+            #    for entry in self.startup_conditions["event"]:
 
         if start is True:
             # We are good to go
@@ -253,6 +255,12 @@ class HassPlugin(PluginBase):
                         self.logger.warning(result)
 
                     await self.AD.events.process_event(self.namespace, result["event"])
+
+                    if self.reading_messages is False:
+                        if result["type"] == "event":
+                            await self.evaluate_started(result["event"])
+                        else:
+                            await self.evaluate_started()
 
                 self.reading_messages = False
 
