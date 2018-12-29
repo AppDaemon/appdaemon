@@ -28,6 +28,7 @@ Change Log
 - Added User Defined Namespaces
 - Rewrote logging to include user defined logs and formats
 - Added a unified http component to handle API, ADMIN and DASBOARD access on a single port
+- Added startup conditions to the HASS plugin
 - added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 - Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
@@ -44,6 +45,7 @@ Change Log
 - Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
 - Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
 
 **Breaking Changes**
 

@@ -5,6 +5,7 @@ import websocket
 import traceback
 import aiohttp
 import pytz
+from deepdiff import DeepDiff
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -39,6 +40,7 @@ class HassPlugin(PluginBase):
         self.ws = None
         self.reading_messages = False
         self.metadata = None
+        self.hass_booting = False
 
         self.logger.info("HASS Plugin Initializing")
 
@@ -85,10 +87,15 @@ class HassPlugin(PluginBase):
         else:
             self.commtype = "WS"
 
-        if "startup_conditions" in args:
-            self.startup_conditions = args["startup_conditions"]
+        if "appdaemon_startup_conditions" in args:
+            self.appdaemon_startup_conditions = args["appdaemon_startup_conditions"]
         else:
-            self.startup_conditions = None
+            self.appdaemon_startup_conditions = None
+
+        if "plugin_startup_conditions" in args:
+            self.plugin_startup_conditions = args["plugin_startup_conditions"]
+        else:
+            self.plugin_startup_conditions = None
         #
         # Set up HTTP Client
         #
@@ -130,32 +137,57 @@ class HassPlugin(PluginBase):
     # Handle state updates
     #
 
-    async def evaluate_started(self, event=None):
-        start = False
-        if self.startup_conditions is None:
-            start = True
+    async def evaluate_started(self, delay_done, plugin_booting, event=None):
+
+        if plugin_booting is True:
+            startup_conditions = self.plugin_startup_conditions
         else:
-            if "delay" in self.startup_conditions:
-                self.logger.info("Delaying startup for %s seconds", self.startup_conditions["delay"])
-                await asyncio.sleep(int(self.startup_conditions["delay"]))
-                start = True
-            if "state" in self.startup_conditions:
+            startup_conditions = self.appdaemon_startup_conditions
+
+        state_start = False
+        event_start = False
+        if startup_conditions is None:
+            delay_start = True
+            state_start = True
+            event_start = True
+        else:
+            if "delay" in startup_conditions:
+                if delay_done is False:
+                    self.logger.info("Delaying startup for %s seconds", startup_conditions["delay"])
+                    await asyncio.sleep(int(startup_conditions["delay"]))
+
+            if "state" in startup_conditions:
                 state = await self.get_complete_state()
-                entry = self.startup_conditions["state"]
+                entry = startup_conditions["state"]
                 if "value" in entry:
-                    self.logger.info("Startup condition %s=%s", entry["entity"], entry["value"])
-                    if entry["entity"] in state and entry["value"] == state[entry["entity"]]["state"]:
-                        start = True
+                    print(entry["value"], state[entry["entity"]])
+                    print(DeepDiff(state[entry["entity"]], entry["value"]))
+                    if entry["entity"] in state and "values_changed" not in DeepDiff(entry["value"], state[entry["entity"]]):
+                        self.logger.info("Startup condition met: %s=%s", entry["entity"], entry["value"])
+                        state_start = True
                 elif entry["entity"] in state:
-                    self.logger.info("Startup condition: %s exists", entry["entity"])
-                    start = True
-            if "event" in self.startup_conditions and event is not None:
-                entry = self.startup_conditions["event"]
-                if entry["type"] == event["event_type"]:
-                    start = True
+                    self.logger.info("Startup condition met: %s exists", entry["entity"])
+                    state_start = True
+            else:
+                state_start = True
 
+            if "event" in startup_conditions:
+                if event is not None:
+                    entry = startup_conditions["event"]
+                    if "data" not in entry:
+                        if entry["event_type"] == event["event_type"]:
+                            event_start = True
+                            self.logger.info("Startup condition met: event type %s fired", event["event_type"])
+                    else:
+                        if entry["event_type"] == event["event_type"]:
+                            if "values_changed" not in DeepDiff(event["data"], entry["data"]):
+                                event_start = True
+                                self.logger.info("Startup condition met: event type %s, data = %s fired", event["event_type"], entry["data"])
 
-        if start is True:
+            else:
+                event_start = True
+
+        if state_start is True and event_start is True:
             # We are good to go
             self.reading_messages = True
             state = await self.get_complete_state()
@@ -243,16 +275,16 @@ class HassPlugin(PluginBase):
                         self.AD.services.register_service(self.get_namespace(), domain["domain"], service, self.call_plugin_service)
 
                 # Decide if we can start yet
-                #self.logger.info("Evaluating startup conditions")
-                #await self.evaluate_started()
+                self.logger.info("Evaluating startup conditions")
+                await self.evaluate_started(False, self.hass_booting)
 
-                state = await self.get_complete_state()
-                self.reading_messages = True
+                #state = await self.get_complete_state()
+                #self.reading_messages = True
 
-                await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state,
-                                                            self.first_time)
-                self.first_time = False
-                self.already_notified = False
+                #await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state,
+                                                            #self.first_time)
+                #self.first_time = False
+                #self.already_notified = False
 
                 #
                 # Loop forever consuming events
@@ -265,18 +297,19 @@ class HassPlugin(PluginBase):
                         self.logger.warning("Unexpected result from Home Assistant, id = %s", _id)
                         self.logger.warning(result)
 
-                    await self.AD.events.process_event(self.namespace, result["event"])
-
-                    #if self.reading_messages is False:
-                    #    if result["type"] == "event":
-                    #        await self.evaluate_started(result["event"])
-                    #    else:
-                    #        await self.evaluate_started()
+                    if self.reading_messages is False:
+                        if result["type"] == "event":
+                            await self.evaluate_started(True, self.hass_booting, result["event"])
+                        else:
+                            await self.evaluate_started(True, self.hass_booting)
+                    else:
+                        await self.AD.events.process_event(self.namespace, result["event"])
 
                 self.reading_messages = False
 
             except:
                 self.reading_messages = False
+                self.hass_booting = True
                 if not self.already_notified:
                     await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     self.already_notified = True

@@ -147,6 +147,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 - namespaces (optional) - configure one or more User Defined Namespaces and set their writeback strategy
 
 .. code:: yaml
+
     namespaces:
         andrew:
           # writeback is safe, performance or hybrid
@@ -276,7 +277,8 @@ To configure the HASS plugin, in addition to the required parameters above, you 
 -  ``app_init_delay`` (optional) - If sepcified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g. zwave).
 Optionally, you can place your apps in a directory other than under the
 config directory using the ``app_dir`` directive.
-
+- appdaemon_startup_conditions - see "HASS Plugin Startup Conditions"
+- plugin_startup_conditions - see "HASS Plugin Startup Conditions"
 e.g.:
 
 .. code:: yaml
@@ -351,6 +353,72 @@ A real token will be a lot longer than this and will consist of a string of rand
 
 .. figure:: images/list.png
    :alt: List
+
+HASS Plugin Startup Conditions
+++++++++++++++++++++++++++++++
+
+The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
+
+- appdaemon_startup_conditions - conditions that must be met when appdeamon starts up
+- plugin_startup_conditions - conditions that must be met when HASS restarts while AppDaemon is up
+
+AppDamon will pause startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. Each set of conditions takes the same format, and their are 3 types of condition:
+
+delay
+'''''
+
+Delay startup for a number of seconds, e.g.:
+
+    ``delay:10``
+
+state
+'''''
+
+
+Wait until a specific state exists or has a specific value or set of values. The values are specified as an inline dictionary as follows:
+
+- wait until an entity exists - ``state: {entity: <entity id>}``
+- wait until an entity exists and has a specific value for its state: ``state: {entity: <entity id>, value: {state: "on"}}``
+- wait until an entity exists and has a specific value for an attribute: ``state: {entity: <entity id>, value: {attributes: {attribute: value}}}``
+
+States and values can be mixed and they must all match with the state at a point in time for the condition to be satisfied, for instance:
+
+.. code:: YAML
+
+    state: {entity: light.office_1, value: {state: "on", attributes: {brightness: 254}}}
+
+event
+'''''
+
+Wait for a specific event.
+
+- wait for a specific event of a given type: ``{event_type: <event name>}``
+- wait for a specific event with specific data: ``{event_type: <event name>, data:{service_data:{entity_id: <some entity>}, service: <some service>}}``
+
+Different condition types may be specified in combination with the following caveats:
+
+- The delay event always executes immediately upon startup, only once. No other checking is performed while the delay is in progress
+- State events will be evaluated after any delay every time a new state change event comes in
+- Events will be evaluated at the time the event arrives. If there is an additional state event, and it does not match, the event will be discarded and the plugin will continue to wait untill all conditions have been met. This is true even if the state event has previously matched but has reverted to a non matching state.
+
+Examples
+''''''''
+
+Wait for ZWave to complete initialization upon a HASS restart:
+
+.. code:: YAML
+
+    plugin_startup_conditions:
+        event: {event_type: zwave.network_ready}
+
+
+Wait for a specific input boolean to be triggered when appdaemon restarts:
+
+.. code:: YAML
+
+    appdaemon_startup_conditions:
+        event: {event_type: call_service, data:{domain: homeassistant, service_data:{entity_id: input_boolean.heating}, service: turn_on}}
+
 
 
 Configuration of the MQTT Plugin

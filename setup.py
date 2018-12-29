@@ -24,7 +24,8 @@ REQUIRES = [
     'iso8601',
     'bcrypt',
     'paho-mqtt',
-    'python-socketio'
+    'python-socketio',
+    'deepdiff'
 ]
 
 setup(

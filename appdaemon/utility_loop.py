@@ -78,6 +78,7 @@ class Utility:
 
             # Start the loop proper
 
+            thresh = 0.3
             while not self.stopping:
 
                 start_time = datetime.datetime.now().timestamp()
@@ -88,20 +89,36 @@ class Utility:
 
                         if self.AD.production_mode is False:
                             # Check to see if config has changed
+                            s = datetime.datetime.now().timestamp()
                             await self.AD.app_management.check_app_updates()
-
+                            e = datetime.datetime.now().timestamp()
+                            if e - s > thresh:
+                                self.logger.info("check_app_updates() took %s", e - s)
 
                     # Call me suspicious, but lets update state from the plugins periodically
 
+                    s = datetime.datetime.now().timestamp()
                     await self.AD.plugins.update_plugin_state()
+                    e = datetime.datetime.now().timestamp()
+                    if e - s > thresh:
+                        self.logger.info("update_plugin_state() took %s", e-s)
+
 
                     # Check for thread starvation
 
+                    s = datetime.datetime.now().timestamp()
                     warning_step, warning_iterations = await self.AD.threading.check_q_size(warning_step, warning_iterations)
+                    e = datetime.datetime.now().timestamp()
+                    if e - s > thresh:
+                        self.logger.info("check_q_size() took %s", e-s)
 
                     # Check for any overdue threads
 
+                    s = datetime.datetime.now().timestamp()
                     await self.AD.threading.check_overdue_and_dead_threads()
+                    e = datetime.datetime.now().timestamp()
+                    if e - s > thresh:
+                        self.logger.info("check_overdue_and_dead_threads() took %s", e-s)
 
                     # Save any hybrid namespaces
 
@@ -113,8 +130,17 @@ class Utility:
 
                     # Update uptime sensor
 
+                    s = datetime.datetime.now().timestamp()
                     uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
+                    e = datetime.datetime.now().timestamp()
+                    if e - s > thresh:
+                        self.logger.info("get_now() took %s", e-s)
+
+                    s = datetime.datetime.now().timestamp()
                     await self.AD.state.set_state("_utility", "admin", "sensor.appdaemon_uptime", state=str(uptime))
+                    e = datetime.datetime.now().timestamp()
+                    if e - s > thresh:
+                        self.logger.info("set_state() took %s", e-s)
 
                 except:
                     self.logger.warning('-' * 60)
