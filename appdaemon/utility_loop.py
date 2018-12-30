@@ -78,7 +78,7 @@ class Utility:
 
             # Start the loop proper
 
-            thresh = 0.3
+            thresh = 1000
             while not self.stopping:
 
                 start_time = datetime.datetime.now().timestamp()
