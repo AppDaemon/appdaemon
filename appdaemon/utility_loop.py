@@ -75,10 +75,11 @@ class Utility:
             await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", utils.dt_to_str((await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz))
             warning_step = 0
             warning_iterations = 0
+            s1 = 0
+            e1 = 0
 
             # Start the loop proper
 
-            thresh = 1000
             while not self.stopping:
 
                 start_time = datetime.datetime.now().timestamp()
@@ -89,36 +90,21 @@ class Utility:
 
                         if self.AD.production_mode is False:
                             # Check to see if config has changed
-                            s = datetime.datetime.now().timestamp()
+                            s1 = datetime.datetime.now().timestamp()
                             await self.AD.app_management.check_app_updates()
-                            e = datetime.datetime.now().timestamp()
-                            if e - s > thresh:
-                                self.logger.info("check_app_updates() took %s", e - s)
+                            e1 = datetime.datetime.now().timestamp()
 
                     # Call me suspicious, but lets update state from the plugins periodically
 
-                    s = datetime.datetime.now().timestamp()
                     await self.AD.plugins.update_plugin_state()
-                    e = datetime.datetime.now().timestamp()
-                    if e - s > thresh:
-                        self.logger.info("update_plugin_state() took %s", e-s)
-
 
                     # Check for thread starvation
 
-                    s = datetime.datetime.now().timestamp()
                     warning_step, warning_iterations = await self.AD.threading.check_q_size(warning_step, warning_iterations)
-                    e = datetime.datetime.now().timestamp()
-                    if e - s > thresh:
-                        self.logger.info("check_q_size() took %s", e-s)
 
                     # Check for any overdue threads
 
-                    s = datetime.datetime.now().timestamp()
                     await self.AD.threading.check_overdue_and_dead_threads()
-                    e = datetime.datetime.now().timestamp()
-                    if e - s > thresh:
-                        self.logger.info("check_overdue_and_dead_threads() took %s", e-s)
 
                     # Save any hybrid namespaces
 
@@ -130,17 +116,9 @@ class Utility:
 
                     # Update uptime sensor
 
-                    s = datetime.datetime.now().timestamp()
                     uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
-                    e = datetime.datetime.now().timestamp()
-                    if e - s > thresh:
-                        self.logger.info("get_now() took %s", e-s)
 
-                    s = datetime.datetime.now().timestamp()
                     await self.AD.state.set_state("_utility", "admin", "sensor.appdaemon_uptime", state=str(uptime))
-                    e = datetime.datetime.now().timestamp()
-                    if e - s > thresh:
-                        self.logger.info("set_state() took %s", e-s)
 
                 except:
                     self.logger.warning('-' * 60)
@@ -152,10 +130,11 @@ class Utility:
                 end_time = datetime.datetime.now().timestamp()
 
                 loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
+                check_app_updates_duration = (int((e1 - s1) * 1000) / 1000) * 1000
 
-                self.logger.debug("Util loop compute time: %sms", loop_duration)
+                self.logger.debug("Util loop compute time: %sms, check_config()=%sms, other=%sms", loop_duration, check_app_updates_duration, loop_duration - check_app_updates_duration)
                 if self.AD.sched.realtime is True and loop_duration > (self.AD.max_utility_skew * 1000):
-                    self.logger.warning("Excessive time spent in utility loop: %sms", loop_duration)
+                    self.logger.warning("Excessive time spent in utility loop: %sms, %sms in check_app_updates(), %sms in other", loop_duration, check_app_updates_duration, loop_duration - check_app_updates_duration)
                     if self.AD.check_app_updates_profile is True:
                         self.logger.info("Profile information for Utility Loop")
                         self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
