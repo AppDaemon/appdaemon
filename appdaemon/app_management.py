@@ -363,7 +363,6 @@ class AppManagement:
                 if inactive_apps > 0:
                     self.logger.info("Found {} inactive apps".format(inactive_apps))
 
-
             # Now we know if we have any new apps we can create new threads if pinning
 
             active_apps = self.get_active_app_count()
