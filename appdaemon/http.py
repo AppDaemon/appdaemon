@@ -580,7 +580,7 @@ class HTTP:
     async def stream_update(self, namespace, data):
         #self.logger.debug("stream_update() %s:%s", namespace, data)
         data["namespace"] = namespace
-        await self.stream.send_update(data)
+        self.AD.thread_async.call_async_no_wait(self.stream.send_update, data)
 
     async def on_message(self, data):
         self.access.info("New dashboard connected: %s", data)
