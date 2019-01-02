@@ -118,7 +118,7 @@ class AppDaemon:
         self.admin_delay = 1
         utils.process_arg(self, "admin_delay", kwargs, int=True)
 
-        self.max_utility_skew = self.utility_delay * 0.9
+        self.max_utility_skew = self.utility_delay * 2
         utils.process_arg(self, "max_utility_skew", kwargs, float=True)
 
         self.check_app_updates_profile = False

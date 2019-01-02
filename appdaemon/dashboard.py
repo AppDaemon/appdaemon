@@ -765,7 +765,7 @@ class Dashboard:
             if do_compile is False:
                 return {"errors": []}
 
-        self.logger.info("Compiling dashboard '%s'", name)
+        self.access.info("Compiling dashboard '%s'", name)
 
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
