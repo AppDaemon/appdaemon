@@ -273,10 +273,7 @@ def deepcopy(data):
 
         assert id(result) != id(data)
 
-    elif isinstance(data, (int, float, type(None), str, bool)):
-        result = data
-
-    elif callable(data):
+    else:
         result = data
 
     return result
