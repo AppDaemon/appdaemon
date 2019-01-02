@@ -29,6 +29,7 @@ Change Log
 - Rewrote logging to include user defined logs and formats
 - Added a unified http component to handle API, ADMIN and DASBOARD access on a single port
 - Added startup conditions to the HASS plugin
+- Added duplicate filtering for logs
 - added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 - Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__

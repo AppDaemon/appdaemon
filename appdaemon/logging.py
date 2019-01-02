@@ -11,6 +11,25 @@ import appdaemon.utils as utils
 
 from appdaemon.thread_async import AppDaemon
 
+class DuplicateFilter(logging.Filter):
+
+    def __init__(self, logger):
+        self.logger = logger
+        self.last_log = None
+        self.current_count = 0
+
+    def filter(self, record):
+        current_log = (record.module, record.levelno, record.msg)
+        if current_log != self.last_log:
+            self.last_log = current_log
+            if self.current_count > 0:
+                self.logger.info("Previous message repeated %s times", self.current_count)
+            self.current_count = 0
+            return True
+
+        self.current_count += 1
+        return False
+
 class AppNameFormatter(logging.Formatter):
 
     """
@@ -186,6 +205,7 @@ class Logging:
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
                 args["logger"] = logger
+                logger.addFilter(DuplicateFilter(logger))
                 logger.setLevel(log_level)
                 logger.propagate = False
                 if args["filename"] == "STDOUT":
@@ -287,6 +307,7 @@ class Logging:
 
     def get_child(self, name):
         logger = self.get_logger().getChild(name)
+        logger.addFilter(DuplicateFilter(logger))
         if name in self.AD.module_debug:
             logger.setLevel(self.AD.module_debug[name])
         else:
