@@ -344,7 +344,7 @@ class AppManagement:
                         # New section added!
                         #
                         if "class" in new_config[name] and "module" in new_config[name]:
-                            self.logger.info("App '{}' added".format(name))
+                            self.logger.info("App '%s' added", name)
                             initialize_apps[name] = 1
                             await self.add_entity(name, "loaded", {"callbacks": 0, "args": new_config[name]})
                         elif name == "global_modules":
@@ -352,16 +352,16 @@ class AppManagement:
                         else:
                             if self.AD.invalid_yaml_warnings:
                                 if silent is False:
-                                    self.logger.warning("App '{}' missing 'class' or 'module' entry - ignoring".format(name))
+                                    self.logger.warning("App '%s' missing 'class' or 'module' entry - ignoring", name)
 
                 self.app_config = new_config
                 total_apps = len(self.app_config)
 
                 #if silent is False:
-                self.logger.info("Found {} active apps".format(total_apps))
+                self.logger.info("Found %s active apps", total_apps)
                 inactive_apps = total_apps - self.get_active_app_count()
                 if inactive_apps > 0:
-                    self.logger.info("Found {} inactive apps".format(inactive_apps))
+                    self.logger.info("Found %s inactive apps", inactive_apps)
 
             # Now we know if we have any new apps we can create new threads if pinning
 
@@ -402,7 +402,7 @@ class AppManagement:
         module_name = os.path.splitext(name)[0]
         # Import the App
         if reload:
-            self.logger.info("Reloading Module: {}".format(file))
+            self.logger.info("Reloading Module: %s", file)
 
             file, ext = os.path.splitext(name)
             #
@@ -429,7 +429,7 @@ class AppManagement:
                     importlib.reload(self.modules[module_name])
 
             elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
-                self.logger.info("Loading Global Module: {}".format(file))
+                self.logger.info("Loading Global Module: %s", file)
                 self.modules[module_name] = importlib.import_module(module_name)
             else:
                 if self.AD.missing_app_warnings:
@@ -474,11 +474,11 @@ class AppManagement:
                                 if self.filter_files[infile] < modified:
                                     run = True
                             else:
-                                self.logger.info("Found new filter file {}".format(infile))
+                                self.logger.info("Found new filter file %s", infile)
                                 run = True
 
                             if run is True:
-                                self.logger.info("Running filter on {}".format(infile))
+                                self.logger.info("Running filter on %s", infile)
                                 self.filter_files[infile] = modified
 
                                 # Run the filter
@@ -570,7 +570,7 @@ class AppManagement:
         for file in self.monitored_files:
             if file not in found_files or exit is True:
                 deleted_modules.append(file)
-                self.logger.info("Removing module {}".format(file))
+                self.logger.info("Removing module %s", file)
 
         for file in deleted_modules:
             del self.monitored_files[file]
@@ -594,7 +594,7 @@ class AppManagement:
                             apps["init"][app] = 1
 
         if plugin is not None:
-            self.logger.info("Processing restart for {}".format(plugin))
+            self.logger.info("Processing restart for %s", plugin)
             # This is a restart of one of the plugins so check which apps need to be restarted
             for app in self.app_config:
                 reload = False
@@ -625,7 +625,7 @@ class AppManagement:
 
             for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
                 try:
-                    self.logger.info("Terminating {}".format(app))
+                    self.logger.info("Terminating %s", app)
                     await self.terminate_app(app)
                 except:
                     error_logger = logging.getLogger("Error.{}".format(app))
@@ -649,7 +649,7 @@ class AppManagement:
                 self.error.warning(traceback.format_exc())
                 self.error.warning('-' * 60)
                 if self.AD.logging.separate_error_log() is True:
-                    self.logger.warning("Unexpected error loading module: {}:".format(mod["name"]))
+                    self.logger.warning("Unexpected error loading module: %s:", mod["name"])
 
                 self.logger.warning("Removing associated apps:")
                 module = self.get_module_from_path(mod["name"])
@@ -657,7 +657,7 @@ class AppManagement:
                     if self.app_config[app]["module"] == module:
                         if apps["init"] and app in apps["init"]:
                             del apps["init"][app]
-                            self.logger.warning("{}".format(app))
+                            self.logger.warning("%s", app)
                             await self.set_state(app, state="compile_error")
 
         if apps is not None and apps["init"]:
@@ -669,7 +669,7 @@ class AppManagement:
             for app in sorted(prio_apps, key=prio_apps.get):
                 try:
                     if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
-                        self.logger.info("{} is disabled".format(app))
+                        self.logger.info("%s is disabled", app)
                         await self.set_state(app, state="disabled")
                     else:
                         await self.init_object(app)
@@ -726,8 +726,8 @@ class AppManagement:
                     if dep in self.app_config:
                         dependees.append(dep)
                     else:
-                        self.logger.warning("Unable to find app {} in dependencies for {}".format(dep, app))
-                        self.logger.warning("Ignoring app {}".format(app))
+                        self.logger.warning("Unable to find app %s in dependencies for %s", dep, app)
+                        self.logger.warning("Ignoring app %s", app)
             deps.append((app, dependees))
 
         prio_apps = {}
@@ -797,7 +797,7 @@ class AppManagement:
                     deps = ""
                     for dep in pend[1]:
                         deps += "{} ".format(dep)
-                    self.logger.warning("{} depends on {}".format(pend[0], deps))
+                    self.logger.warning("%s depends on %s", pend[0], deps)
                 raise ValueError("cyclic dependancy detected")
             pending = next_pending
             emitted = next_emitted

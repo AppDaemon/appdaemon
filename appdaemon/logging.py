@@ -13,22 +13,62 @@ from appdaemon.thread_async import AppDaemon
 
 class DuplicateFilter(logging.Filter):
 
-    def __init__(self, logger):
+    def __init__(self, logger, threshold, delay, timeout):
         self.logger = logger
         self.last_log = None
         self.current_count = 0
+        self.threshold = threshold
+        self.delay = delay
+        self.filtering = False
+        self.start_time = None
+        self.first_time = True
+        self.timeout = timeout
+        self.last_log_time = None
 
     def filter(self, record):
-        current_log = (record.module, record.levelno, record.msg)
+        if record.msg == "Previous message repeated %s times":
+            return True
+        if self.threshold == 0:
+            return True
+        current_log = (record.module, record.levelno, record.msg, record.args)
         if current_log != self.last_log:
             self.last_log = current_log
-            if self.current_count > 0:
-                self.logger.info("Previous message repeated %s times", self.current_count)
+            if self.filtering is True:
+                self.logger.info("Previous message repeated %s times", self.current_count - self.threshold + 1)
             self.current_count = 0
-            return True
+            self.filtering = False
+            self.start_time = None
+            result = True
+            self.first_time = True
+            self.last_log_time = datetime.datetime.now()
+        else:
+            now = datetime.datetime.now()
+            # Reset if we haven't exceeded the initial grace period
+            if self.filtering is False and now - self.last_log_time >= datetime.timedelta(seconds=self.timeout):
+                return True
 
-        self.current_count += 1
-        return False
+            if self.start_time is not None and now - self.start_time >= datetime.timedelta(seconds=self.delay):
+                self.start_time = now
+                if self.first_time is True:
+                    count = self.current_count - self.threshold + 1
+                    self.first_time = False
+                else:
+                    count = self.current_count + 1
+
+                self.logger.info("Previous message repeated %s times", count)
+                self.current_count = 0
+                result = True
+            else:
+                if self.filtering is False and self.current_count >= self.threshold - 1:
+                    self.filtering = True
+                    self.start_time = datetime.datetime.now()
+                if self.filtering is True:
+                    result = False
+                else:
+                    result = True
+                    self.last_log_time = datetime.datetime.now()
+                self.current_count += 1
+        return result
 
 class AppNameFormatter(logging.Formatter):
 
@@ -126,6 +166,9 @@ class Logging:
         default_log_generations = 3
         default_format = "{asctime} {levelname} {appname}: {message}"
         default_date_format = "%Y-%m-%d %H:%M:%S.%f"
+        default_filter_threshold = 1
+        default_filter_timeout = 0.1
+        default_filter_repeat_delay = 5
         self.log_level = log_level
 
         self.config = \
@@ -139,7 +182,10 @@ class Logging:
                         'format': default_format,
                         'date_format': default_date_format,
                         'logger': None,
-                        'formatter': None
+                        'formatter': None,
+                        'filter_threshold': default_filter_threshold,
+                        'filter_timeout': default_filter_timeout,
+                        'filter_repeat_delay': default_filter_repeat_delay
                     },
                 'error_log':
                     {
@@ -150,7 +196,10 @@ class Logging:
                         'format': default_format,
                         'date_format': default_date_format,
                         'logger': None,
-                        'formatter': None
+                        'formatter': None,
+                        'filter_threshold': default_filter_threshold,
+                        'filter_timeout': default_filter_timeout,
+                        'filter_repeat_delay': default_filter_repeat_delay
                     },
                 'access_log':
                     {
@@ -176,6 +225,9 @@ class Logging:
                     self.config[log]["log_size"] = default_logsize
                     self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
                     self.config[log]["date_format"] = default_date_format
+                    self.config[log]["filter_threshold"] = default_filter_threshold
+                    self.config[log]["filter_timeout"] = default_filter_timeout
+                    self.config[log]["filter_repeat_delay"] = default_filter_repeat_delay
                     # Copy over any user defined fields
                     for arg in config[log]:
                         self.config[log][arg] = config[log][arg]
@@ -187,6 +239,9 @@ class Logging:
                     self.config[log]["log_size"] = default_logsize
                     self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
                     self.config[log]["date_format"] = default_date_format
+                    self.config[log]["filter_threshold"] = default_filter_threshold
+                    self.config[log]["filter_timeout"] = default_filter_timeout
+                    self.config[log]["filter_repeat_delay"] = default_filter_repeat_delay
                     self.config[log].pop("alias")
                     for arg in config[log]:
                         self.config[log][arg] = config[log][arg]
@@ -204,8 +259,8 @@ class Logging:
                 args["formatter"] = formatter
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
+                logger.addFilter(DuplicateFilter(logger, args["filter_threshold"], args["filter_repeat_delay"], args["filter_timeout"]))
                 args["logger"] = logger
-                logger.addFilter(DuplicateFilter(logger))
                 logger.setLevel(log_level)
                 logger.propagate = False
                 if args["filename"] == "STDOUT":
@@ -216,6 +271,7 @@ class Logging:
                     handler = RotatingFileHandler(args["filename"], maxBytes=args["log_size"], backupCount=args["log_generations"])
                 self.config[log]["handler"] = handler
                 handler.setFormatter(formatter)
+                logger.addFilter(DuplicateFilter(logger, args["filter_threshold"], args["filter_repeat_delay"], args["filter_timeout"]))
                 logger.addHandler(handler)
 
         # Setup any aliases
@@ -229,6 +285,9 @@ class Logging:
                 self.config[log]["log_size"] = self.config[self.config[log]["alias"]]["log_size"]
                 self.config[log]["format"] = self.config[self.config[log]["alias"]]["format"]
                 self.config[log]["date_format"] = self.config[self.config[log]["alias"]]["date_format"]
+                self.config[log]["filter_threshold"] = self.config[self.config[log]["alias"]]["filter_threshold"]
+                self.config[log]["filter_timeout"] = self.config[self.config[log]["alias"]]["filter_timeout"]
+                self.config[log]["filter_repeat_delay"] = self.config[self.config[log]["alias"]]["filter_repeat_delay"]
 
         self.logger = self.get_logger()
         self.error = self.get_error()
@@ -307,7 +366,9 @@ class Logging:
 
     def get_child(self, name):
         logger = self.get_logger().getChild(name)
-        logger.addFilter(DuplicateFilter(logger))
+        logger.addFilter(
+            DuplicateFilter(logger, self.config["main_log"]["filter_threshold"], self.config["main_log"]["filter_repeat_delay"], self.config["main_log"]["filter_timeout"]))
+
         if name in self.AD.module_debug:
             logger.setLevel(self.AD.module_debug[name])
         else:
