@@ -42,7 +42,7 @@ Synopsis
 
 .. code:: python
 
-    get_state(entity=None, attribute=None, namespace=None)
+    get_state(entity=None, attribute=None, default=None, namespace=None)
 
 ``get_state()`` is used to query the state of any component within Home
 Assistant. State updates are continuously tracked so this call runs
@@ -52,9 +52,10 @@ and as such is very efficient.
 Returns
 ^^^^^^^
 
-``get_state()`` returns a ``dictionary`` or single value, the structure
-of which varies according to the parameters used. If an entity or
-attribute does not exist, ``get_state()`` will return ``None``.
+``get_state()`` returns a ``dictionary`` or single value, the structure of
+which varies according to the parameters used. If an entity or attribute
+does not exist, ``get_state()`` will return the value given as the
+``default``.
 
 Parameters
 ^^^^^^^^^^
@@ -81,12 +82,17 @@ attribute
 
 Name of an attribute within the entity state object. If this parameter
 is specified in addition to a fully qualified ``entity_id``, a single
-value representing the attribute will be returned, or ``None`` if it is
-not present.
+value representing the attribute will be returned.
 
 The value ``all`` for attribute has special significance and will return
 the entire state dictionary for the specified entity rather than an
 individual attribute value.
+
+default
+'''''''
+
+The value to return when the requested attribute or the whole entity
+doesn't exist. It defaults to ``None``.
 
 namespace
 '''''''''

@@ -276,13 +276,15 @@ class State:
 
         await self.AD.events.process_event(namespace, data)
 
-    async def get_state(self, name, namespace, entity_id=None, attribute=None):
-        self.logger.debug("get_state: %s.%s", entity_id, attribute)
+    async def get_state(
+            self, name, namespace, entity_id=None, attribute=None, default=None
+    ):
+        self.logger.debug("get_state: %s.%s %s", entity_id, attribute, default)
         device = None
         entity = None
         if entity_id is not None and "." in entity_id:
             if not await self.entity_exists(namespace, entity_id):
-                return None
+                return default
         if entity_id is not None:
             if "." not in entity_id:
                 if attribute is not None:
@@ -307,14 +309,14 @@ class State:
             if entity_id in self.state[namespace] and "state" in self.state[namespace][entity_id]:
                 return deepcopy(self.state[namespace][entity_id]["state"])
             else:
-                return None
+                return default
         else:
             entity_id = "{}.{}".format(device, entity)
             if attribute == "all":
                 if entity_id in self.state[namespace]:
                     return deepcopy(self.state[namespace][entity_id])
                 else:
-                    return None
+                    return default
             else:
                 if namespace in self.state and entity_id in self.state[namespace]:
                     if attribute in self.state[namespace][entity_id]["attributes"]:
@@ -323,9 +325,9 @@ class State:
                     elif attribute in self.state[namespace][entity_id]:
                         return deepcopy(self.state[namespace][entity_id][attribute])
                     else:
-                        return None
+                        return default
                 else:
-                    return None
+                    return default
 
     def parse_state(self, entity_id, namespace, **kwargs):
         self.logger.debug("parse_state: %s, %s", entity_id, kwargs)
