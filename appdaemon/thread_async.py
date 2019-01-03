@@ -29,24 +29,25 @@ class ThreadAsync:
 
     async def loop(self):
         while not self.stopping:
-            args = await self.appq.get()
-            if "stop" not in args:
-                self.logger.debug("thread_async loop, args=%s", args)
-                function = args["function"]
-                myargs = args["args"]
-                mykwargs = args["kwargs"]
-                try:
+            args = None
+            try:
+                args = await self.appq.get()
+                if "stop" not in args:
+                    self.logger.debug("thread_async loop, args=%s", args)
+                    function = args["function"]
+                    myargs = args["args"]
+                    mykwargs = args["kwargs"]
                     result = await function(*myargs, **mykwargs)
-                except:
-                    self.logger.warning('-' * 60)
-                    self.logger.warning("Unexpected error during thread_async() loop()")
-                    self.logger.warning("args: %s", args)
-                    self.logger.warning('-' * 60)
-                    self.logger.warning(traceback.format_exc())
-                    self.logger.warning('-' * 60)
 
-            self.logger.debug("calling task_done()")
-            self.appq.task_done()
+                    self.logger.debug("calling task_done()")
+                    self.appq.task_done()
+            except:
+                self.logger.warning('-' * 60)
+                self.logger.warning("Unexpected error during thread_async() loop()")
+                self.logger.warning("args: %s", args)
+                self.logger.warning('-' * 60)
+                self.logger.warning(traceback.format_exc())
+                self.logger.warning('-' * 60)
 
     def call_async_no_wait(self, function, *args, **kwargs):
         self.appq.put_nowait({"function": function, "args": args, "kwargs": kwargs})
