@@ -84,23 +84,28 @@ class AppNameFormatter(logging.Formatter):
         # Figure out the name of the app and add it to the LogRecord
         # Each logger is named after the app so split it out form the logger name
         #
-        appname = record.name
-        modulename = record.name
-        if "." in record.name:
-            loggers = record.name.split(".")
-            name = loggers[len(loggers) - 1]
-            if name[0] == "_":
-                # It's a module
-                appname = "AppDaemon"
-                modulename = "AD:" + name[1:]
-            else:
-                # It's an app
-                appname = name
-                modulename = "App:" + appname
+        try:
+            appname = record.name
+            modulename = record.name
+            if "." in record.name:
+                loggers = record.name.split(".")
+                name = loggers[len(loggers) - 1]
+                if name[0] == "_":
+                    # It's a module
+                    appname = "AppDaemon"
+                    modulename = "AD:" + name[1:]
+                else:
+                    # It's an app
+                    appname = name
+                    modulename = "App:" + appname
 
-        record.modulename = modulename
-        record.appname = appname
-        return super().format(record)
+            record.modulename = modulename
+            record.appname = appname
+            result = super().format(record)
+        except:
+            raise
+
+        return result
 
 
 class LogSubscriptionHandler(StreamHandler):
@@ -116,9 +121,15 @@ class LogSubscriptionHandler(StreamHandler):
         self.type = type
 
     def emit(self, record):
+        logger = self.AD.logging.get_logger()
         try:
             if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None and self.AD.thread_async is not None:
-                msg = self.format(record)
+                try:
+                    msg = self.format(record)
+                except TypeError as e:
+                    logger.warning("Log formatting error - '%s'", e)
+                    logger.warning("message: %s, args: %s", record.msg, record.args)
+                    return
                 record.ts = datetime.datetime.fromtimestamp(record.created)
                 self.AD.thread_async.call_async_no_wait(
                     self.AD.events.process_event, "global",
@@ -135,12 +146,11 @@ class LogSubscriptionHandler(StreamHandler):
                              "formatted_message": msg
                          }})
         except:
-            # No way to log this so we'll just do our best
-            print('-' * 60, )
-            print("Unrecoverable error occured in LogSubscriptionHandler.emit()")
-            print('-' * 60)
-            print(traceback.format_exc())
-            print('-' * 60)
+            logger.warning('-' * 60)
+            logger.warning("Unexpected error occured in LogSubscriptionHandler.emit()")
+            logger.warning('-' * 60)
+            logger.warning(traceback.format_exc())
+            logger.warning('-' * 60)
 
 
 class Logging:
@@ -158,6 +168,8 @@ class Logging:
 
         self.AD = None
         self.tz = None
+
+        logging.raiseExceptions = False
 
         # Set up defaults
 
