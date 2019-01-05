@@ -14,9 +14,25 @@ import appdaemon.appdaemon as ad
 import appdaemon.http as adhttp
 import appdaemon.logging as logging
 
+"""
+AppDaemon main() module.
+
+AppDaemon module that contains main() along with argument parsing, instantiation of the AppDaemon and HTTP Objects,
+also creates the loop and kicks evrything off
+"""
+
 class ADMain():
 
+    """
+    Class to encapsulate all main() functionality.
+    """
+
     def __init__(self):
+
+        """
+        Constructor.
+        """
+
         self.logging = None
         self.error = None
         self.diag = None
@@ -24,6 +40,12 @@ class ADMain():
         self.http_object = None
 
     def init_signals(self):
+        """
+        Setup signal handling.
+
+        :return: None
+        """
+
         # Windows does not support SIGUSR1 or SIGUSR2
         if platform.system() != "Windows":
             signal.signal(signal.SIGUSR1, self.handle_sig)
@@ -33,6 +55,19 @@ class ADMain():
 
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
+
+        """
+        Function to handle signals.
+
+        SIGUSR1 will result in internal info being dumped to the DIAG log
+        SIGHUP will force a reload of all apps
+        SIGINT and SIGTEM both result in AD shutting down
+
+        :param signum: signal number being processed
+        :param frame: frame - unused
+        :return: None
+        """
+
         if signum == signal.SIGUSR1:
             self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_schedule)
             self.AD.thread_async.call_async_no_wait(self.AD.callbacks.dump_callbacks)
@@ -49,6 +84,13 @@ class ADMain():
             self.stop()
 
     def stop(self):
+
+        """
+        Called by the signal handler to shut AD down.
+
+        :return: None
+        """
+
         self.logger.info("AppDaemon is shutting down")
         self.AD.stop()
         if self.http_object is not None:
@@ -56,6 +98,19 @@ class ADMain():
 
     # noinspection PyBroadException,PyBroadException
     def run(self, appdaemon, hadashboard, admin, api, http):
+
+        """
+        Start AppDaemon up after initial argument parsing.
+
+        Create loop, creat AppDaemon and HTTP Objects.
+
+        :param appdaemon: Config for AppDaemon Object
+        :param hadashboard: Config for HADashboard Object
+        :param admin: Config for admin Object
+        :param api: Config for API Object
+        :param http: Config for HTTP Object
+        :return: None
+        """
 
         try:
             loop = asyncio.get_event_loop()
@@ -109,8 +164,13 @@ class ADMain():
     # noinspection PyBroadException
     def main(self):
 
-        # import appdaemon.stacktracer
-        # appdaemon.stacktracer.trace_start("/tmp/trace.html")
+        """
+        Initial AppDaemon entry point.
+
+        Parse command line arguments, load configuration, set up logging.
+
+        :return: None
+        """
 
         self.init_signals()
 

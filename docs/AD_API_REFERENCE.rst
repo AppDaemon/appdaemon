@@ -112,6 +112,7 @@ Examples
 
     # Return the entire state for light.office_1
     state = self.get_state("light.office_1", attribute="all")
+
 set\_state()
 ~~~~~~~~~~~~
 
@@ -225,7 +226,7 @@ new, with the state attribute for that entity, e.g. ``on`` or ``off``
 for a light.
 
 attribute =  (optional)
-''''''''''''''''''''
+'''''''''''''''''''''''
 
 Name of an attribute within the entity state object. If this parameter
 is specified in addition to a fully qualified ``entity_id``,
@@ -240,14 +241,14 @@ callback functions with the entire state dictionary for the specified
 entity rather than an individual attribute value.
 
 new =  (optional)
-''''''''''''''''
+'''''''''''''''''
 
 If ``new`` is supplied as a parameter, callbacks will only be made if
 the state of the selected attribute (usually ``state``) in the new state
 match the value of ``new``.
 
 old =  (optional)
-''''''''''''''''
+'''''''''''''''''
 
 If ``old`` is supplied as a parameter, callbacks will only be made if
 the state of the selected attribute (usually ``state``) in the old state
@@ -256,7 +257,7 @@ match the value of ``old``.
 Note: ``old`` and ``new`` can be used singly or together.
 
 duration =  (optional)
-'''''''''''''''''''''
+''''''''''''''''''''''
 
 If duration is supplied as a parameter, the callback will not fire
 unless the state listened for is maintained for that number of seconds.
@@ -302,7 +303,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -459,7 +460,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -520,7 +521,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -592,7 +593,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -672,7 +673,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -748,7 +749,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -816,7 +817,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -886,7 +887,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -1022,7 +1023,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -1092,7 +1093,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -1268,7 +1269,7 @@ True or False
 If True, the callback will be pinned to a particular thread.
 
 pin_thread = (optional)
-''''''''''''''''
+'''''''''''''''''''''''
 
 0 - number of threads -1
 
@@ -1276,7 +1277,7 @@ Specify which thread from the worker pool the callback will be run by.
 
 
 \*\*kwargs (optional)
-'''''''''''''''''''
+'''''''''''''''''''''
 
 One or more keyword value pairs representing App specific parameters to
 supply to the callback. If the keywords match values within the event
@@ -1600,7 +1601,7 @@ Example
     time = self.parse_time("sunrise + 01:00:00")
 
 parse\_datetime()
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 Takes a string representation of a date and time, or sunrise or sunset offset and
 converts it to a ``datetime.datetime`` object.
@@ -1780,7 +1781,7 @@ Example
     MyApp.turn_light_on()
 
 get\_plugin_api()
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 ``get_plugin_api()`` will return an object suitable for running specific API calls on for a particular plugin. This method is used to enable an app to work with multiple plugins. The object will support all methods that an app derived from the plugin's class would, via the self notation, but will contain methods and configuration data for the target plugin rather than the plugin the App itself was derived from.
 
@@ -1836,7 +1837,7 @@ This example shows an App built using the hassapi also using an mqtt api call.
         self.mqtt.mqtt_publish("topic", payload = "Payload"):
 
 get\_ad_api()
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 ``get_ad_api()`` will return an object suitable for running AppDaemon base API calls, for instance scheduler or state calls, in fact all the calls documented in this section. This call requires an import of ``adbase``.
 
@@ -2058,7 +2059,7 @@ Examples
     error_log.error("Log an error", stack_info=True, exc_info=True)
 
 get_user_log()
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 Synopsis
 ^^^^^^^^
@@ -2360,7 +2361,7 @@ Parameters
 ^^^^^^^^^^
 
 callback
-''''''
+''''''''
 
 Function to be run on the new thread
 
@@ -2651,7 +2652,7 @@ Examples
 self.format_apiai_response(speech = speech)
 
 format_appapi_response()
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Format a response to be returned to Google Home including speech.
 
@@ -2786,7 +2787,7 @@ Parameters
 ^^^^^^^^^^
 
 name
-''''''
+''''
 
 Name of the function to register for the constraint. Note: this is a string not a function reference.
 
@@ -2827,7 +2828,7 @@ Namespace
 ---------
 
 list_namespaces()
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 List all namespaces curently available
 
@@ -2941,7 +2942,7 @@ Examples
     callbacks = self.get_callback_entries()
 
 get_thread_info()
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 Get information on AppDaemon worker threads.
 
@@ -2992,7 +2993,7 @@ Plugin Metadata
 ---------------
 
 get_plugin_config()
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Get any useful metadata that the plugin may have available. For instance, for the HASS plugin this will return  Home Assistant configuration data such as latitude and longitude.
 
