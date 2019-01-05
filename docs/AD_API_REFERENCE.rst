@@ -42,7 +42,7 @@ Synopsis
 
 .. code:: python
 
-    get_state(entity=None, attribute=None, default=None, namespace=None)
+    get_state(entity=None, attribute=None, default=None, copy=True, namespace=None)
 
 ``get_state()`` is used to query the state of any component within Home
 Assistant. State updates are continuously tracked so this call runs
@@ -93,6 +93,17 @@ default
 
 The value to return when the requested attribute or the whole entity
 doesn't exist. It defaults to ``None``.
+
+copy
+''''
+
+By default, a copy of the stored state object is returned. When you
+set ``copy`` to ``False``, you get the exact same object as is stored
+internally by AppDaemon. Avoiding the copying brings a small performance
+gain, but also gives you write-access to the internal AppDaemon data
+structures, which is dangerous. Only disable copying when you can
+guarantee not to modify the returned state object, e.g. you do read-only
+operations.
 
 namespace
 '''''''''
