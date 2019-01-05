@@ -9,9 +9,8 @@ import io
 import pstats
 import json
 import threading
-import iso8601
 import datetime
-import types
+
 
 if platform.system() != "Windows":
     import pwd
@@ -388,7 +387,8 @@ def check_path(type, logger, path, pathtype="directory", permissions=None):
         pass
 
 def str_to_dt(time):
-    return iso8601.parse_date(time)
+    #TODO - this is broken
+    return dateutil.parser.parse(time)
 
 def dt_to_str(dt, tz=None):
     if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
