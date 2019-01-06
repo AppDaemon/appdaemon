@@ -26,7 +26,8 @@ REQUIRES = [
     'paho-mqtt',
     'python-socketio',
     'deepdiff',
-    'python-dateutil'
+    'python-dateutil',
+    'pid'
 ]
 
 setup(

@@ -8,6 +8,7 @@ import platform
 import yaml
 import asyncio
 import pytz
+import pid
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
@@ -179,7 +180,7 @@ class ADMain():
         parser = argparse.ArgumentParser()
 
         parser.add_argument("-c", "--config", help="full path to config directory", type=str, default=None)
-        parser.add_argument("-p", "--pidfile", help="full path to PID File", default="/tmp/hapush.pid")
+        parser.add_argument("-p", "--pidfile", help="full path to PID File", default=None)
         parser.add_argument("-t", "--timewarp", help="speed that the scheduler will work at for time travel", default=1, type=float)
         parser.add_argument("-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str)
         parser.add_argument("-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None)
@@ -194,6 +195,7 @@ class ADMain():
         args = parser.parse_args()
 
         config_dir = args.config
+        pidfile = args.pidfile
 
         if config_dir is None:
             config_file_yaml = utils.find_path("appdaemon.yaml")
@@ -355,7 +357,17 @@ class ADMain():
 
         utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
 
-        self.run(appdaemon, hadashboard, admin, api, http)
+        if pidfile is not None:
+            self.logger.info("Using pidfile: %s", pidfile)
+            dir = os.path.dirname(pidfile)
+            name = os.path.basename(pidfile)
+            try:
+                with pid.PidFile(name, dir) as p:
+                    self.run(appdaemon, hadashboard, admin, api, http)
+            except pid.PidFileError:
+                self.logger.error("Unable to aquire pidfile - terminating")
+        else:
+            self.run(appdaemon, hadashboard, admin, api, http)
 
 def main():
     admain = ADMain()
