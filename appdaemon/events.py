@@ -84,14 +84,18 @@ class Events:
                 await self.AD.sched.kick()
 
             if data['event_type'] == "state_changed":
-                entity_id = data['data']['entity_id']
+                if 'entity_id' in data['data'] and 'new_state' in data['data']:
+                    entity_id = data['data']['entity_id']
 
-                self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
+                    self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
 
-                if self.AD.apps is True and namespace != "admin":
-                    # Process state changecallbacks
-                    if data['event_type'] == "state_changed":
-                        await self.AD.state.process_state_callbacks(namespace, data)
+                    if self.AD.apps is True and namespace != "admin":
+                        # Process state changecallbacks
+                        if data['event_type'] == "state_changed":
+                            await self.AD.state.process_state_callbacks(namespace, data)
+                else:
+                    self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
+                    return
             else:
                 if self.AD.apps is True:
                     # Process non-state callbacks

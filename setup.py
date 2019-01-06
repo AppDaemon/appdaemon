@@ -25,7 +25,8 @@ REQUIRES = [
     'bcrypt',
     'paho-mqtt',
     'python-socketio',
-    'deepdiff'
+    'deepdiff',
+    'python-dateutil'
 ]
 
 setup(

@@ -10,6 +10,7 @@ import pstats
 import json
 import threading
 import datetime
+import dateutil.parser
 
 
 if platform.system() != "Windows":
@@ -387,7 +388,6 @@ def check_path(type, logger, path, pathtype="directory", permissions=None):
         pass
 
 def str_to_dt(time):
-    #TODO - this is broken
     return dateutil.parser.parse(time)
 
 def dt_to_str(dt, tz=None):

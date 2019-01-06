@@ -16,7 +16,7 @@ Change Log
 - Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code if desired
 - Implemented multiple worker Ques to avoid Head of Line blocking
 - API Calls to control app pinning
-- added the ``run_in_thread()`` api call
+- added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIs to remove duplication
 - added checking for overdue threads
@@ -38,6 +38,7 @@ Change Log
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
+- Added ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 
 **Fixes**
 
