@@ -619,8 +619,8 @@ class ADAPI:
     #
     # Other
     #
-    def run_in_thread(self, callback, thread):
-        self.run_in(callback, 0, pin=False, pin_thread=thread)
+    def run_in_thread(self, callback, thread, **kwargs):
+        self.run_in(callback, 0, pin=False, pin_thread=thread, **kwargs)
 
     def get_thread_info(self):
         return utils.run_coroutine_threadsafe(self, self.AD.threading.get_thread_info())
