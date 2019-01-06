@@ -539,6 +539,21 @@ One wrinkle here is that YAML over enthusiastically "helps" by
 interpreting things like ``on`` and ``off`` as booleans so the quotes
 are needed to prevent this.
 
+Titles
+------
+
+Each widget could have custom text for title a title2. You can use option to force widget to use text from entity friendly name attribute.
+
+-  ``title_is_friendly_name`` - set title as entity friendly name if exists
+-  ``title2_is_friendly_name`` - set title2 as entity friendly name if exists
+
+Example:
+ 
+.. code:: yaml
+
+    title_is_friendly_name: 1
+    title2_is_friendly_name: 1
+    
 Icons
 -----
 

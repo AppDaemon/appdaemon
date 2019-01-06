@@ -234,6 +234,12 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                             {
                                 child.ViewModel.title(new_state.attributes.friendly_name)
                             }
+                            if ("title2_is_friendly_name" in child.parameters 
+                            && child.parameters.title2_is_friendly_name === 1
+                            && "friendly_name" in new_state.attributes)
+                            {
+                                child.ViewModel.title2(new_state.attributes.friendly_name)
+                            }
                             if (typeof child.entity_state === 'undefined')
                             {
                                 child.entity_state = {}
