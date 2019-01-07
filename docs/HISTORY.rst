@@ -67,7 +67,7 @@ Change Log
 - Some dashboard parameters moved to the ``HTTP`` section and renamed
 - ``dash_compile_on_start`` renamed to ``compile_on_start``
 - ``dash_force_compile`` renamed to ``force_compile``
-- Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log` should be renamed
+- Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log`` should be renamed
 
 
 3.0.2 10/31/2018
@@ -341,7 +341,7 @@ None
 None
 
 2.1.10 (2017-10-11)
-------------------
+-------------------
 
 **Features**
 
@@ -479,7 +479,7 @@ None
 None
 
 2.1.2 (2017-08-11)
------
+------------------
 
 **Features**
 

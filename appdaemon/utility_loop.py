@@ -1,3 +1,7 @@
+"""
+Module to handle utility functions within AppDameon.
+"""
+
 import asyncio
 import datetime
 import traceback
@@ -9,17 +13,40 @@ from appdaemon.appdaemon import AppDaemon
 
 class Utility:
 
+    """
+    Class that uncludes the utility loop.
+
+    Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes
+    """
+
     def __init__(self, ad: AppDaemon):
+
+        """
+        Constructor.
+
+        :param ad: Reference to the AppDaemon object
+        """
 
         self.AD = ad
         self.stopping = False
         self.logger = ad.logging.get_child("_utility")
 
     def stop(self):
+
+        """
+        Called by the AppDaemon object to terminate the loop cleanly
+        """
+
         self.logger.debug("stop() called for utility")
         self.stopping = True
 
     async def loop(self):
+
+        """
+        The main utility loop.
+
+        Loops until stop() is called, checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes
+        """
 
         #
         # Setup

@@ -1,4 +1,12 @@
 #!/usr/bin/python3
+
+"""
+AppDaemon main() module.
+
+AppDaemon module that contains main() along with argument parsing, instantiation of the AppDaemon and HTTP Objects,
+also creates the loop and kicks evrything off
+"""
+
 import sys
 import argparse
 import os
@@ -15,12 +23,7 @@ import appdaemon.appdaemon as ad
 import appdaemon.http as adhttp
 import appdaemon.logging as logging
 
-"""
-AppDaemon main() module.
 
-AppDaemon module that contains main() along with argument parsing, instantiation of the AppDaemon and HTTP Objects,
-also creates the loop and kicks evrything off
-"""
 
 class ADMain():
 
@@ -43,8 +46,6 @@ class ADMain():
     def init_signals(self):
         """
         Setup signal handling.
-
-        :return: None
         """
 
         # Windows does not support SIGUSR1 or SIGUSR2
@@ -66,7 +67,6 @@ class ADMain():
 
         :param signum: signal number being processed
         :param frame: frame - unused
-        :return: None
         """
 
         if signum == signal.SIGUSR1:
@@ -110,7 +110,6 @@ class ADMain():
         :param admin: Config for admin Object
         :param api: Config for API Object
         :param http: Config for HTTP Object
-        :return: None
         """
 
         try:
@@ -169,8 +168,6 @@ class ADMain():
         Initial AppDaemon entry point.
 
         Parse command line arguments, load configuration, set up logging.
-
-        :return: None
         """
 
         self.init_signals()
@@ -370,6 +367,9 @@ class ADMain():
             self.run(appdaemon, hadashboard, admin, api, http)
 
 def main():
+    """
+    Called when run from the command line.
+    """
     admain = ADMain()
     admain.main()
 
