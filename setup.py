@@ -22,7 +22,7 @@ REQUIRES = [
     'voluptuous',
     'feedparser',
     'iso8601',
-    'bcrypt',
+    'bcrypt==3.1.4',
     'paho-mqtt',
     'python-socketio',
     'deepdiff',

@@ -267,3 +267,4 @@ DocString Test
 
 .. automodule:: appdaemon.plugins.mqtt.mqttapi
    :members:
+
