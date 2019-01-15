@@ -6,6 +6,10 @@ import traceback
 import aiohttp
 import pytz
 from deepdiff import DeepDiff
+import datetime
+from datetime import timezone
+import dateutil.parser
+from urllib.parse import quote
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -395,9 +399,57 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
+        if domain == "hass":
+            if "entity_id" in data and data["entity_id"] != "":
+                filter_entity_id = "?filter_entity_id={}".format(data["entity_id"])
+            else:
+                filter_entity_id = ""
+
+            sTime = ""
+            eTime = ""
+
+            if "days" in data:
+                days = data["days"]
+                if days - 1 < 0:
+                    days = 1
+
+                sTime = datetime.datetime.now(timezone.utc) - datetime.timedelta(days = days)
+                
+            else:
+                days = 1
+
+            if "start_time" in data:
+                sTime = dateutil.parser.parse(data["start_time"]).replace(microsecond=0).replace(tzinfo=timezone.utc)
+
+            if "end_time" in data:
+                eTime = dateutil.parser.parse(data["end_time"]).replace(microsecond=0).replace(tzinfo=timezone.utc)
+
+
+            if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
+                filter_entity_id = ""
+            
+            elif filter_entity_id != "" and sTime == "": #if starttime is not declared and entity_id is declared, then use default
+                sTime = datetime.datetime.now(timezone.utc) - datetime.timedelta(days = days)
+            
+            if sTime != "":
+                timeStamp = "/{}".format(sTime.replace(microsecond=0).astimezone().isoformat())
+
+                if filter_entity_id != "":
+                    eTime = ""
+            else:
+                timeStamp = ""
+                eTime = ""
+
+            apiurl = "{}/api/history/period{}{}{}".format(config["ha_url"], timeStamp, filter_entity_id, eTime)
+
+        else:
+            apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
         try:
-            r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
+            if domain == "hass":
+                r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
+            else:
+                r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
+
             if r.status == 200 or r.status == 201:
                 result = await r.json()
             else:
@@ -405,6 +457,7 @@ class HassPlugin(PluginBase):
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
+
             return result
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data)
@@ -505,6 +558,7 @@ class HassPlugin(PluginBase):
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
+            services.append({"domain": "hass","services": ["history"]}) #manually add HASS history service
 
             return services
         except:
