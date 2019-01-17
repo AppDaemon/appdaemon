@@ -1,9 +1,5 @@
 FROM python:3.6
 
-VOLUME /conf
-VOLUME /certs
-EXPOSE 5050
-
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
 #ENV HA_URL http://hass:8123
@@ -11,14 +7,21 @@ EXPOSE 5050
 #ENV DASH_URL http://hass:5050
 #ENV EXTRA_CMD -D DEBUG
 
-# Copy appdaemon into image
-RUN mkdir -p /usr/src/app
+# Port for dashboards
+EXPOSE 5050
+
+# Mountpoints for user config and certificates
+VOLUME /conf
+VOLUME /certs
+
+# Copy AppDaemon into image
 WORKDIR /usr/src/app
 COPY . .
 
 # Install
-RUN pip3 install .
+RUN pip3 install . && \
+    chmod +x dockerStart.sh && \
+    rm -rf /tmp/* ~/.cache
 
 # Start script
-RUN chmod +x /usr/src/app/dockerStart.sh
-ENTRYPOINT [ "./dockerStart.sh" ]
+ENTRYPOINT ["./dockerStart.sh"]
