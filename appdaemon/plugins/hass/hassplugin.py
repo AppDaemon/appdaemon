@@ -399,12 +399,12 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        if domain == "hass":
+        if domain == "recorder":
             if "entity_id" in data and data["entity_id"] != "":
                 filter_entity_id = "?filter_entity_id={}".format(data["entity_id"])
             else:
                 filter_entity_id = ""
-
+                
             sTime = ""
             eTime = ""
 
@@ -423,7 +423,6 @@ class HassPlugin(PluginBase):
 
             if "end_time" in data:
                 eTime = dateutil.parser.parse(data["end_time"]).replace(microsecond=0).replace(tzinfo=timezone.utc)
-
 
             if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
                 filter_entity_id = ""
@@ -445,11 +444,11 @@ class HassPlugin(PluginBase):
         else:
             apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
         try:
-            if domain == "hass":
+            if domain == "recorder":
                 r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             else:
                 r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
-
+                
             if r.status == 200 or r.status == 201:
                 result = await r.json()
             else:
@@ -558,7 +557,7 @@ class HassPlugin(PluginBase):
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            services.append({"domain": "hass","services": ["history"]}) #manually add HASS history service
+            services.append({"domain": "recorder","services": ["history"]}) #manually add HASS history service
 
             return services
         except:
