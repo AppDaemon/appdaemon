@@ -399,7 +399,7 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        if domain == "recorder":
+        if domain == "database":
             if "entity_id" in data and data["entity_id"] != "":
                 filter_entity_id = "?filter_entity_id={}".format(data["entity_id"])
             else:
@@ -444,7 +444,7 @@ class HassPlugin(PluginBase):
         else:
             apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
         try:
-            if domain == "recorder":
+            if domain == "database":
                 r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             else:
                 r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
@@ -557,7 +557,7 @@ class HassPlugin(PluginBase):
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            services.append({"domain": "recorder","services": ["history"]}) #manually add HASS history service
+            services.append({"domain": "database","services": ["history"]}) #manually add HASS history service
 
             return services
         except:
