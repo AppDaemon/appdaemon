@@ -285,5 +285,5 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             
         rargs["namespace"] = namespace
 
-        result = self.call_service("recorder/history", **rargs)
+        result = self.call_service("database/history", **rargs)
         return result
