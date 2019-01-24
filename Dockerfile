@@ -18,6 +18,9 @@ VOLUME /certs
 WORKDIR /usr/src/app
 COPY . .
 
+# Install timezone data
+RUN apk add tzdata
+
 # Fix for current dev branch
 RUN pip3 install --no-cache-dir python-dateutil
 
