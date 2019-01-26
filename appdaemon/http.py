@@ -654,7 +654,7 @@ class HTTP:
         res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
         app = request.match_info.get('app', "system")
         if code == 200:
-            self.access.info("API Call to %s: status: %s %s", app, code)
+            self.access.info("API Call to %s: status: %s", app, code)
         else:
             self.logger.warning("API Call to %s: status: %s, %s", app, code, error)
         return web.Response(body=res, status=code)

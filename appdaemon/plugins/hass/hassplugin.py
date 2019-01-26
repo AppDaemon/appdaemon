@@ -119,7 +119,7 @@ class HassPlugin(PluginBase):
 
     async def get_complete_state(self):
         hass_state = await self.get_hass_state()
-        states = {}
+        states = {}     
         for state in hass_state:
             states[state["entity_id"]] = state
         self.logger.debug("Got state")
