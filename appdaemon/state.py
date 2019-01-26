@@ -98,7 +98,7 @@ class State:
             if "immediate" in kwargs and kwargs["immediate"] is True:
                 if entity is not None and "new" in kwargs and "duration" in kwargs:
                     if self.state[namespace][entity]["state"] == kwargs["new"]:
-                        exec_time = await self.AD.sched.get_now_ts() + datetime.timedelta(seconds=int(kwargs["duration"]))
+                        exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["duration"]))
                         kwargs["__duration"] = await self.AD.sched.insert_schedule(
                             name, exec_time, cb, False, None,
                             __entity=entity,
