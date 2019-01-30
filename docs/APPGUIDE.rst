@@ -406,7 +406,7 @@ Note that apps that are dependent upon other apps, and apps that are depended up
 App Log
 -------
 
-Starting from AD 4.0, it is now possible to determine which log as declared by the user, will be used by Apps by default when using the ``self.log()`` within the app; this can be very useful for debug purposes. This is done by simply adding a the ``log:`` directive entry, to its paremeters. e.g.:
+Starting from AD 4.0, it is now possible to determine which log as declared by the user, will be used by Apps by default when using the ``self.log()`` within the app; this can be very useful for debug purposes. This is done by simply adding the ``log:`` directive entry, to its paremeters. e.g.:
 
 .. code:: yaml
 
