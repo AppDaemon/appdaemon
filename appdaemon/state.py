@@ -224,21 +224,26 @@ class State:
         else:
             return False
 
-    def get_entity(self, namespace = None, entity_id = None):
+    def get_entity(self, namespace=None, entity_id=None):
         if namespace is None:
             return self.state
-        elif entity_id is None:
+
+        if entity_id is None:
             if namespace in self.state:
                 return self.state[namespace]
             else:
                 self.logger.warning("Unknown namespace: %s", namespace)
-        elif namespace in self.state:
+                return None
+
+        if namespace in self.state:
             if entity_id in self.state[namespace]:
                 return self.state[namespace][entity_id]
             else:
-                self.logger.warning("Unknown namespace: %s", namespace)
-
-        return None
+                self.logger.warning("Unknown entity: %s", entity_id)
+                return None
+        else:
+            self.logger.warning("Unknown namespace: %s", namespace)
+            return None
 
     async def remove_entity(self, namespace, entity):
         if entity in self.state[namespace]:

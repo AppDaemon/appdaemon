@@ -46,8 +46,10 @@ $(function() {
     <!-- Tab links -->
 <div class="tab">
   <button class="maintablinks" onclick="openTab(event, 'AppDaemon', 'maintab')" id="appdaemon_button">AppDaemon</button>
+{#
   <button class="maintablinks" onclick="openTab(event, 'Plugins', 'maintab')" id="plugins">Plugins</button>
   <button class="maintablinks" onclick="openTab(event, 'Modules', 'maintab')" id="modules">Modules</button>
+#}
   <button class="maintablinks" onclick="openTab(event, 'Apps', 'maintab')" id="apps">Apps</button>
   <button class="maintablinks" onclick="openTab(event, 'Entities', 'maintab')" id="entities">Entities</button>
   <button class="maintablinks" onclick="openTab(event, 'Threads', 'maintab')" id="apps">Threads</button>
@@ -81,21 +83,6 @@ $(function() {
             <tbody class="list"></tbody>
         </table>
     </div>
-</div>
-
-<div id="Modules" class="maintabcontent">
-    <h3>Modules</h3>
-    <span is="modules-table">
-    Filter <input class="search" /><br><br>
-   <table class="modules">
-        <thead><tr>
-            <th class="sort" data-sort="name">Name</th>
-            <th class="sort" data-sort="path">Type</th>
-            <th class="sort" data-sort="classes">Namespace</th>
-        </tr></thead>
-        <tbody></tbody>
-    </table>
-    </span>
 </div>
 
 <div id="Entities" class="maintabcontent"><div class="tab">{% for ns in namespaces %}<button class="entitytablinks" onclick="openTab(event, '{{ ns }}', 'entitytab')" id="{{ ns }}_entity_button">{{ ns }}</button>{% endfor %}</div>
@@ -207,6 +194,22 @@ $(function() {
 <div id="Logs" class="maintabcontent">
 <div class="tab">{% for log in logs %}{%  if logs[log]["lines"] != None %}<button class="logtablinks" onclick="openTab(event, '{{ log }}', 'logtab')" id="{{ log }}_button">{{ logs[log]["name"] }}</button>{% endif %}{% endfor %}</div>{% for log in logs %}{%  if logs[log]["lines"] != None %}<div id="{{ log }}" class="logtabcontent"><div id="{{ log }}_div" class="log_panel">{% for line in logs[log]["lines"] | reverse %}{{line}}<br>{% endfor %}</div></div>{% endif %}{% endfor %}</div>
 
+
+{#<div id="Modules" class="maintabcontent">
+    <h3>Modules</h3>
+    <span is="modules-table">
+    Filter <input class="search" /><br><br>
+   <table class="modules">
+        <thead><tr>
+            <th class="sort" data-sort="name">Name</th>
+            <th class="sort" data-sort="path">Type</th>
+            <th class="sort" data-sort="classes">Namespace</th>
+        </tr></thead>
+        <tbody></tbody>
+    </table>
+    </span>
+</div>
+
 <div id="Plugins" class="maintabcontent">
 <span is="plugins-table">
   <h3>Plugins</h3>
@@ -220,7 +223,8 @@ $(function() {
         <tbody></tbody>
     </table>
                 </span>
-</div>
+</div>#}
+
 <br><br>
 <table class="header">
     <tr>
