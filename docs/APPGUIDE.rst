@@ -276,7 +276,7 @@ Which can be accessed as a list in python with:
 
 .. code:: python
 
-    for entity in self.args.entities:
+    for entity in self.args["entities"]:
       do some stuff
 
 Also, this opens the door to really complex parameter structures if
