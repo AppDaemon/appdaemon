@@ -274,8 +274,6 @@ class MqttPlugin(PluginBase):
     #
 
     async def get_complete_state(self):
-        entity_id = '{}.none'.format(self.name.lower())
-        self.state[entity_id] = {'state': 'None', 'attributes' : {}}
         self.logger.debug("*** Sending Complete State: %s ***", self.state)
         return copy.deepcopy(self.state)
 
