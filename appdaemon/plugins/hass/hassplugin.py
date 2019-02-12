@@ -7,8 +7,6 @@ import aiohttp
 import pytz
 from deepdiff import DeepDiff
 import datetime
-from datetime import timezone
-import dateutil.parser
 from urllib.parse import quote
 
 import appdaemon.utils as utils
@@ -412,29 +410,31 @@ class HassPlugin(PluginBase):
                 days = data["days"]
                 if days - 1 < 0:
                     days = 1
-
-                sTime = datetime.datetime.now(timezone.utc) - datetime.timedelta(days = days)
                 
             else:
                 days = 1
 
             if "start_time" in data:
-                sTime = dateutil.parser.parse(data["start_time"]).replace(microsecond=0).replace(tzinfo=timezone.utc)
+                sTime = utils.str_to_dt(data["start_time"]).replace(microsecond=0)
 
             if "end_time" in data:
-                eTime = dateutil.parser.parse(data["end_time"]).replace(microsecond=0).replace(tzinfo=timezone.utc)
+                eTime = utils.str_to_dt(data["end_time"]).replace(microsecond=0)
 
             if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
                 filter_entity_id = ""
             
-            elif filter_entity_id != "" and sTime == "": #if starttime is not declared and entity_id is declared, then use default
-                sTime = datetime.datetime.now(timezone.utc) - datetime.timedelta(days = days)
+            elif (filter_entity_id != "" and sTime == "") or "days" in data: #if starttime is not declared and entity_id is declared, or days specified
+                sTime = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
             
             if sTime != "":
-                timeStamp = "/{}".format(sTime.replace(microsecond=0).astimezone().isoformat())
+                timeStamp = "/{}".format(utils.dt_to_str(sTime.replace(microsecond=0), self.AD.tz))
 
                 if filter_entity_id != "":
                     eTime = ""
+
+                if eTime != "":
+                    eTime = "?end_time={}".format(quote(utils.dt_to_str(eTime.replace(microsecond=0), self.AD.tz)))
+
             else:
                 timeStamp = ""
                 eTime = ""
@@ -557,7 +557,7 @@ class HassPlugin(PluginBase):
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            services.append({"domain": "database","services": ["history"]}) #manually add HASS history service
+            services.append({"domain": "database","services": ["history"]}) #manually added HASS history service
 
             return services
         except:
