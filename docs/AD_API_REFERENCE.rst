@@ -573,10 +573,10 @@ Examples
 
 .. code:: python
 
-     Run daily at 7pm
+    # Run daily at 7pm
     import datetime
     ...
-    time = datetime.time(19, 0, 0)
+    runtime = datetime.time(19, 0, 0)
     self.run_daily(self.run_daily_c, runtime)
 
 run\_hourly()
