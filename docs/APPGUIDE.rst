@@ -985,12 +985,12 @@ covers. AD receives important events from all of its plugins and communicates th
 Events and MQTT
 ~~~~~~~~~~~~~~~
 
-The MQTT plugin uses events as itsd primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. APps are able to subscribe to this event and process it appropriately.
+The MQTT plugin uses events as its primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. Apps are able to subscribe to this event and process it appropriately.
 
 Events and Home Assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
- We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them
+We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them
 are:
 
 -  ``homeassistant_start``
