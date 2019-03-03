@@ -55,11 +55,11 @@ class MqttPlugin(PluginBase):
 
         if self.mqtt_will_topic == None:
             self.mqtt_will_topic = status_topic
-            self.logger.info("Using %s as Will Topic", status_topic)
+            self.logger.info("Using %r as Will Topic", status_topic)
         
         if self.mqtt_on_connect_topic == None:
             self.mqtt_on_connect_topic = status_topic
-            self.logger.info("Using %s as Birth Topic", status_topic)
+            self.logger.info("Using %r as Birth Topic", status_topic)
 
         self.mqtt_will_payload = self.config.get('will_payload', 'offline')
         self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
