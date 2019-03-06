@@ -63,7 +63,7 @@ class MqttPlugin(PluginBase):
 
         self.mqtt_will_payload = self.config.get('will_payload', 'offline')
         self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
-        self.mqtt_shutdown_payload = self.config.get('shutdown_payload', 'offline')
+        self.mqtt_shutdown_payload = self.config.get('shutdown_payload', self.mqtt_will_payload)
 
         self.mqtt_client_tls_ca_cert = self.config.get('ca_cert', None)
         self.mqtt_client_tls_client_cert = self.config.get('client_cert', None)
