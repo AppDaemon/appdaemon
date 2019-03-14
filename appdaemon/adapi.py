@@ -486,12 +486,12 @@ class ADAPI:
         now = self.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, when)
+        aware_event = self.AD.sched.convert_naive(event)
         if event < now:
             one_day = datetime.timedelta(days=1)
             event = event + one_day
-        exec_time = event.timestamp()
         handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs
+            name, aware_event, callback, False, None, **kwargs
         ))
         return handle
 
