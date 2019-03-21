@@ -157,7 +157,8 @@ class ADAPI:
     def list_namespaces(self):
         return utils.run_coroutine_threadsafe(self, self.AD.state.list_namespaces())
 
-    def save_namespace(self, namespace):
+    def save_namespace(self, **kwargs):
+        namespace = self._get_namespace(**kwargs)
         utils.run_coroutine_threadsafe(self, self.AD.state.save_namespace(namespace))
 
     #
