@@ -453,6 +453,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 -  ``will_topic:`` (optional) This is the topic other clients can subscribe to, to pick up the data sent by the broker, when the plugin unceremonously disconnects from the broker. If not specified, one is auto generated
 -  ``will_payload:`` (optional) This is the payload sent by the broker when the plugin unceremonously disconnects from the broker. If not specified, it defaults to ``offline``
 -  ``will_retain:`` (optional) This tells the broker if it should retain the will message. If not specified, it defaults to ``True``
+-  ``shutdown_payload:`` (optional) This is the payload sent to the broker when the plugin disconnects from the broker cleanly. It uses the same topic as the ``will_topic``, and if not specified, defaults to the same payload message and ``will_payload``
 
 All auto-generated data can be picked up within apps, using the ``self.get_plugin_config()`` api
 
