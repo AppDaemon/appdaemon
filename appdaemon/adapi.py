@@ -187,6 +187,11 @@ class ADAPI:
     def split_entity(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         return entity_id.split(".")
+    
+    def remove_entity(self, entity_id, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        utils.run_coroutine_threadsafe(self, self.AD.state.remove_entity(namespace, entity_id))
+        return None
 
     def split_device_list(self, list_):
         return list_.split(",")
