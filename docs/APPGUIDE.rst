@@ -403,6 +403,23 @@ To accommodate both systems, dependency trees are assigned priorities in the ran
 
 Note that apps that are dependent upon other apps, and apps that are depended upon by other apps will ignore any priority setting in their configuration.
 
+App Log
+-------
+
+Starting from AD 4.0, it is now possible to determine which log as declared by the user, will be used by Apps by default when using the ``self.log()`` within the app; this can be very useful for debug purposes. This is done by simply adding the ``log:`` directive entry, to its paremeters. e.g.:
+
+.. code:: yaml
+
+    downstairs_motion_light:
+      module: motion_light
+      class: MotionLight
+      sensor: binary_sensor.downstairs_hall
+      light: light.downstairs_hall
+      log: lights_log
+
+
+By declaring the above, each time the function ``self.log()`` is used within the app, the log entry is sent to the user defined ``lights_log``. It is also possible to write to another log, within the same app if need be. This is done using the function ``self.log(text, log='main_log')``. Without using any of the aforementioned log capabilities, all logs from apps by default, will be sent to the ``main_log``.
+
 Global Module Dependencies
 --------------------------
 
