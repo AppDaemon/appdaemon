@@ -1,4 +1,4 @@
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 import random
 import globals
 
@@ -11,7 +11,7 @@ class Alexa(hass.Hass):
         intent = get_alexa_intent(data)
 
         if intent is None:
-            self.log("Alexa error encountered: {}".format(get_alexa_error(data)))
+            self.log("Alexa err encountered: {}".format(get_alexa_error(data)))
             return "", 201
 
         intents = {

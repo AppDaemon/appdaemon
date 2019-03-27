@@ -1,7 +1,7 @@
-AppDaemon Tutorial
-=================
+AppDaemon Tutorial for HASS Users
+=================================
 
-I have been working on a new subsystem to complement Home Assistant's
+AppDaemon is a subsystem to complement Home Assistant's
 Automation and Scripting components. ``AppDaemon`` is a python daemon
 that consumes events from Home Assistant and feeds them to snippets of
 python code called "Apps". An App is a Python class that is instantiated
@@ -131,7 +131,7 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class OutsideLights(hass.Hass):
 
@@ -169,7 +169,7 @@ terms:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class MotionLights(hass.Hass):
 
@@ -200,7 +200,7 @@ activated and bales out after 10 iterations.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class FlashyMotionLights(hass.Hass):
 

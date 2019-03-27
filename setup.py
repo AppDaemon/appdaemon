@@ -10,24 +10,30 @@ from appdaemon.utils import (__version__)
 REQUIRES = [
     'daemonize',
     'astral',
+    'pytz',
     'requests>=2.6.0',
     'sseclient',
     'websocket-client',
-    'aiohttp==2.3.10',
+    'aiohttp==3.4.4',
     'yarl==1.1.0',
     'Jinja2==2.10',
     'aiohttp_jinja2==0.15.0',
     'voluptuous',
     'feedparser',
     'iso8601',
-    'bcrypt'
+    'bcrypt==3.1.4',
+    'paho-mqtt',
+    'python-socketio',
+    'deepdiff',
+    'python-dateutil',
+    'pid'
 ]
 
 setup(
     name='appdaemon',
     version=__version__,
     description="Apps for the Home Assistant home automation package.",
-    long_description="AppDaemon is a loosely coupled, multithreaded, sandboxed python execution environment for writing automation apps for Home Assistant home automation software. As of release 2.0.0 it also provides a configurable dashboard (HADashboard) suitable for wall mounted tablets.",
+    long_description="AppDaemon is a loosely coupled, multithreaded, sandboxed python execution environment with a plugin based architechture for writing automation apps for Home Assistant, MQTT and other home automation software. As of release 2.0.0 it also provides a configurable dashboard (HADashboard) suitable for wall mounted tablets.",
     author='Andrew I Cockburn',
     author_email='appdaemon@acockburn.com',
     url='https://github.com/home-assistant/appdaemon.git',
@@ -39,7 +45,7 @@ setup(
     keywords=['appdaemon', 'home', 'automation'],
     entry_points={
         'console_scripts': [
-            'appdaemon = appdaemon.admain:main'
+            'appdaemon = appdaemon.main:main'
         ]
     },
     classifiers=[

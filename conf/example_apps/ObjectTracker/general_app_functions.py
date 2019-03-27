@@ -15,7 +15,7 @@
 #                                                                                         #
 ###########################################################################################
 
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 import datetime as datetime
 import platform
 
@@ -34,7 +34,7 @@ class general_fnc(hass.Hass):
             try:
                 old_time = datetime.datetime.strptime(str_old_time, "%Y-%m-%d %H:%M:%S")
             except:
-                self.log( "strptime gives error on: " + str_old_time, level = "INFO")
+                self.log( "strptime gives err on: " + str_old_time, level = "INFO")
                 return
             gone_by_time = update_time - old_time
             str_update_time = str(gone_by_time)[:-7] + " ago"

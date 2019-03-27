@@ -1,8 +1,8 @@
 widget_type: basedisplay
-entity: {{entity}}
+entity: "{{entity}}"
 entity_to_sub_entity_attribute: Description
 fields:
-  title: {{title}}
+  title: "{{title}}"
   title2: ""
   value: ""
   unit: ""

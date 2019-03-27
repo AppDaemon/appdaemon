@@ -1,14 +1,14 @@
 widget_type: baselight
-entity: {{entity}}
+entity: "{{entity}}"
 post_service_active:
     service: homeassistant/turn_on
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 post_service_inactive:
     service: homeassistant/turn_off
-    entity_id: {{entity}}
+    entity_id: "{{entity}}"
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   icon: ""
   units: "%"
   level: ""

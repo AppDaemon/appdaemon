@@ -1,18 +1,18 @@
 widget_type: baseheater
-icon_entity: {{icon_entity}}
-slider_entity: {{slider_entity}}
+icon_entity: "{{icon_entity}}"
+slider_entity: "{{slider_entity}}"
 post_service_active:
     service: homeassistant/turn_on
-    entity_id: {{icon_entity}}
+    entity_id: "{{icon_entity}}"
 post_service_inactive:
     service: homeassistant/turn_off
-    entity_id: {{icon_entity}}
+    entity_id: "{{icon_entity}}"
 post_service_slider_change:
     service: input_slider/select_value
-    entity_id: {{slider_entity}}
+    entity_id: "{{slider_entity}}"
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   Temperature: ""
   MinValue: "15"
   MaxValue: "25"

@@ -1,5 +1,5 @@
 widget_type: basedisplay
-sub_entity: {{entity}}
+sub_entity: "{{entity}}"
 sub_entity_to_entity_attribute: entity_picture
 state_map: 
   "/static/images/darksky/weather-pouring.svg": "&#xe009"
@@ -12,7 +12,7 @@ state_map:
   "/static/images/darksky/weather-night.svg": "&#xe02d"
   "/static/images/darksky/weather-partlycloudy.svg": "&#xe001"
 fields:
-  title: {{title}}
+  title: "{{title}}"
   title2: ""
   value: ""
   unit: ""

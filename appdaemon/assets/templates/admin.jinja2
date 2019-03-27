@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<link rel="shortcut icon" href="images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="images/manifest.json">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+	<script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
+	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
+    <script type="text/javascript" src="javascript/socket.io.js"></script>
+    <script type="text/javascript" src="javascript/list.min.js"></script>
+	<script type="text/javascript" src="javascript/admin.js"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Expires" content="0"/>
+    <meta name="theme-color" content="#ffffff">
+    <title>{{ title }}</title>
+</head>
+<body>
+            <script>
+$(function() {
+    //DOM Ready
+
+    dom_ready('{{ transport }}')
+})
+</script>
+
+<div id="backgroundImage">
+<div class="main">
+<pre><span class= "tooltiptext" id="tooltiptext">Hello!</span></pre>
+<table class="header">
+    <tr>
+    <td class="header-icon"><a href="/"><img src="images/favicon-32x32.png"></a></td>
+    <td class="header-title"><a href="/">AppDaemon Administration</a></td>
+        <td class="header-list">
+            {%  if dashboard == True %}
+            <input type="submit" value="List Dashboards" onclick="javascript:window.location='/list'">
+            {% endif %}
+        </td>
+        <td class="header-logout"><input type="submit" value="Logout" onclick="javascript:logout()"></td>
+    </tr>
+</table>
+<br>
+    <!-- Tab links -->
+<div class="tab">
+  <button class="maintablinks" onclick="openTab(event, 'AppDaemon', 'maintab')" id="appdaemon_button">AppDaemon</button>
+{#
+  <button class="maintablinks" onclick="openTab(event, 'Plugins', 'maintab')" id="plugins">Plugins</button>
+  <button class="maintablinks" onclick="openTab(event, 'Modules', 'maintab')" id="modules">Modules</button>
+#}
+  <button class="maintablinks" onclick="openTab(event, 'Apps', 'maintab')" id="apps">Apps</button>
+  <button class="maintablinks" onclick="openTab(event, 'Entities', 'maintab')" id="entities">Entities</button>
+  <button class="maintablinks" onclick="openTab(event, 'Threads', 'maintab')" id="apps">Threads</button>
+  <button class="maintablinks" onclick="openTab(event, 'Callbacks', 'maintab')" id="apps">Callbacks</button>
+  <button class="maintablinks" onclick="openTab(event, 'Logs', 'maintab')" id="apps">Logs</button>
+</div>
+
+<!-- Tab content -->
+<div id="AppDaemon" class="maintabcontent">
+    <h3>AppDaemon</h3>
+    <table>
+        <tr><td class="appdaemon-text">Version</td><td id="sensor_appdaemon_version"></td></tr>
+        <tr><td class="appdaemon-text">Booted</td><td id="sensor_appdaemon_booted"></td></tr>
+        <tr><td class="appdaemon-text">Uptime</td><td id="sensor_appdaemon_uptime"></td></tr>
+    </table>
+</div>
+
+<div id="Apps" class="maintabcontent">
+    <h3>Active Apps</h3>
+    <div id="app-table">
+    Filter <input class="search" /><br><br>
+        <table class="apps">
+            <thead>
+            <tr>
+                <th class="sort" data-sort="appname">Name<i class="caret"></i></th>
+                <th class="sort" data-sort="appstate">State<i class="caret"></i></th>
+                <th class="sort" data-sort="appcallbacks">Callbacks<i class="caret"></i></th>
+                <th class="sort" data-sort="appargs">Arguments<i class="caret"></i></th>
+            </tr>
+            </thead>
+            <tbody class="list"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="Entities" class="maintabcontent"><div class="tab">{% for ns in namespaces %}<button class="entitytablinks" onclick="openTab(event, '{{ ns }}', 'entitytab')" id="{{ ns }}_entity_button">{{ ns }}</button>{% endfor %}</div>
+{% for ns in namespaces %}<div id="{{ ns }}" class="entitytabcontent"><div id="{{ ns }}-entities-table"><br>        Filter <input class="search" />
+            <table class="entities">
+                <thead>
+                <tr>
+                    <th class="sort" data-sort="name">Name<i class="caret"></i></th>
+                    <th class="sort" data-sort="state">State<i class="caret"></i></th>
+                    <th class="sort" data-sort="last_changed">Last Changed<i class="caret"></i></th>
+                    <th class="sort" data-sort="attributes">Attributes<i class="caret"></i></th>
+                </tr>
+                </thead>
+                <tbody class="list"></tbody></table></div></div>{% endfor %}
+</div>
+
+<div id="Threads" class="maintabcontent">
+    <h3>Summary</h3>
+    <table>
+        <tr><td>Current Busy</td><td id="sensor_threads_current_busy"></td></tr>
+        <tr><td>Maximum Busy</td><td id="sensor_threads_max_busy"></td></tr>
+        <tr><td>Maximum Busy Time</td><td id="sensor_threads_max_busy_time"></td></tr>
+    </table>
+    <h3>Details</h3>
+    <span id="thread-table">
+    Filter <input class="search" /><br><br>
+    <table class="threads">
+        <thead>
+            <tr>
+                <th class="sort" data-sort="id">ID<i class="caret"></i></th>
+                <th class="sort" data-sort="q_size">Queue Size<i class="caret"></i></th>
+                <th class="sort" data-sort="callback">Callback<i class="caret"></i></th>
+                <th class="sort" data-sort="time_called">Time Called<i class="caret"></i></th>
+                <th class="sort" data-sort="alive">Alive<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned_apps">Pinned Apps<i class="caret"></i></th>
+            </tr>
+        </thead>
+        <tbody class="list"></tbody>
+    </table>
+    </span>
+</div>
+
+<div id="Callbacks" class="maintabcontent">
+    <h3>Summary</h3>
+    <table class="callbacks">
+        <tr><td>Total Callbacks Fired</td><td id="sensor_callbacks_total_fired"></td>
+            <td>Average Callbacks Fired/s</td><td id="sensor_callbacks_average_fired"></td></tr>
+        </tr>
+        <tr><td>Total Callbacks Executed</td><td id="sensor_callbacks_total_executed"></td>
+            <td>Average Callbackes Executed/s</td><td id="sensor_callbacks_average_executed"></td></tr>
+        </tr>
+    </table>
+    <h3>Scheduler Callbacks</h3>
+    <span id="scheduler-callback-table">
+        Filter <input class="search" /><br><br>
+        <table class="callbacks">
+            <thead>
+            <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
+                <th class="sort" data-sort="last_changed">Execution Time<i class="caret"></i></th>
+                <th class="sort" data-sort="repeat">Repeat<i class="caret"></i></th>
+                <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned">Fired<i class="caret"></i></th>
+                <th class="sort" data-sort="fired">Executed<i class="caret"></i></th>
+                <th class="sort" data-sort="executed">Pinned<i class="caret"></i></th>
+                <th class="sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+                <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+            </tr></thead>
+            <tbody class="list"></tbody>
+        </table>
+    </span>
+    <h3>State Callbacks</h3>
+    <span id="state-callback-table">
+        Filter <input class="search" /><br><br>
+        <table class="callbacks">
+        <thead>
+        <tr><th class="sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="sort" data-sort="last_changed">Last Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="entity">Entity<i class="caret"></i></th>
+            <th class="sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Fired<i class="caret"></i></th>
+            <th class="sort" data-sort="fired">Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+        </tr></thead>
+        <tbody class="list"></tbody>
+        </table>
+    </span>
+    <h3>Event Callbacks</h3>
+    <span id="event-callback-table">
+        Filter <input class="search" /><br><br>
+        <table class="callbacks">
+        <thead><tr>
+            <th class="sort" data-sort="app">App<i class="caret"></i></th>
+            <th class="sort" data-sort="last_changed">Last Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="event_name">Event Name<i class="caret"></i></th>
+            <th class=" sort" data-sort="function">Callback<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Fired<i class="caret"></i></th>
+            <th class="sort" data-sort="fired">Executed<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned">Pinned<i class="caret"></i></th>
+            <th class="sort" data-sort="pinned_thread">Thread<i class="caret"></i></th>
+            <th class="sort" data-sort="kwargs">Kwargs<i class="caret"></i></th>
+        </tr></thead>
+        <tbody class="list"></tbody>
+        </table>
+    </span>
+</div>
+
+<div id="Logs" class="maintabcontent">
+<div class="tab">{% for log in logs %}{%  if logs[log]["lines"] != None %}<button class="logtablinks" onclick="openTab(event, '{{ log }}', 'logtab')" id="{{ log }}_button">{{ logs[log]["name"] }}</button>{% endif %}{% endfor %}</div>{% for log in logs %}{%  if logs[log]["lines"] != None %}<div id="{{ log }}" class="logtabcontent"><div id="{{ log }}_div" class="log_panel">{% for line in logs[log]["lines"] | reverse %}{{line}}<br>{% endfor %}</div></div>{% endif %}{% endfor %}</div>
+
+
+{#<div id="Modules" class="maintabcontent">
+    <h3>Modules</h3>
+    <span is="modules-table">
+    Filter <input class="search" /><br><br>
+   <table class="modules">
+        <thead><tr>
+            <th class="sort" data-sort="name">Name</th>
+            <th class="sort" data-sort="path">Type</th>
+            <th class="sort" data-sort="classes">Namespace</th>
+        </tr></thead>
+        <tbody></tbody>
+    </table>
+    </span>
+</div>
+
+<div id="Plugins" class="maintabcontent">
+<span is="plugins-table">
+  <h3>Plugins</h3>
+    Filter <input class="search" /><br><br>
+    <table class="plugins">
+        <thead><tr>
+            <th class="sort" data-sort="name">Name</th>
+            <th class="sort" data-sort="type">Type</th>
+            <th class="sort" data-sort="namespace">Namespace</th>
+        </tr></thead>
+        <tbody></tbody>
+    </table>
+                </span>
+</div>#}
+
+<br><br>
+<table class="header">
+    <tr>
+    <td>&nbsp;</td>
+    </tr>
+</table>
+        </div>
+        </div>
+</body>
+</html>

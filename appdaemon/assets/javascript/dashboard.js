@@ -1,26 +1,63 @@
 
-function ha_status(stream, dash, widgets)
+function ha_status(stream, dash, widgets, transport)
 {
 
-    var webSocket = new ReconnectingWebSocket(stream);
-            
-    webSocket.onopen = function (event) 
+    if (transport === "ws")
     {
-        webSocket.send(dash);
-    };
+        var webSocket = new ReconnectingWebSocket(stream);
 
-    webSocket.onmessage = function (event) 
-    {
-        var data = JSON.parse(event.data)
-        if (data.event_type == "hadashboard")
+        webSocket.onopen = function (event)
         {
-            if (data.data.command == "navigate")
+            webSocket.send(dash);
+        };
+
+        webSocket.onmessage = function (event)
+        {
+            var data = JSON.parse(event.data);
+
+            update_dash(data)
+        };
+
+        webSocket.onclose = function (event)
+        {
+            //window.alert("Server closed connection")
+           // window.location.reload(false);
+        };
+
+        webSocket.onerror = function (event)
+        {
+            //window.alert("Error occured")
+            //window.location.reload(true);
+        };
+    }
+    else
+    {
+        var iosocket = io.connect(stream);
+
+        iosocket.on("connect", function()
+        {
+           iosocket.emit("up", dash);
+        });
+
+        iosocket.on("down", function(msg)
+        {
+            var data = JSON.parse(msg);
+            update_dash(data)
+        });
+
+    }
+
+    this.update_dash = function(data)
+    {
+        if (data.event_type === "__HADASHBOARD_EVENT")
+        {
+            if (data.data.command === "navigate")
             {
                 var timeout_params = "";
                 if ("timeout" in data.data)
                 {
-                    var timeout = data.data.timeout
-                    if (location.search == "")
+                    var timeout = data.data.timeout;
+                    if (location.search === "")
                     {
                         timeout_params = "?";
                     }
@@ -50,25 +87,14 @@ function ha_status(stream, dash, widgets)
                 window.location.href = data.data.target + location.search + timeout_params;
             }
         }
-        Object.keys(widgets).forEach(function (key)
-        {
+        Object.keys(widgets).forEach(function (key) {
             if ("on_ha_data" in widgets[key])
             {
                 widgets[key].on_ha_data(data);
             }
         })
-    };
-    webSocket.onclose = function (event)
-    {
-        //window.alert("Server closed connection")
-       // window.location.reload(false); 
-    };
-
-    webSocket.onerror = function (event)
-    {
-        //window.alert("Error occured")
-        //window.location.reload(true);         
     }
+
 }
 
 var inheritsFrom = function (child, parent) {
@@ -89,18 +115,15 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.format_number = function(self, value)
     {
+        var precision = 0;
         if ("precision" in self.parameters)
         {
-            var precision = self.parameters.precision
-        }
-        else
-        {
-            var precision = 0
+            precision = self.parameters.precision
         }
         value = parseFloat(value);
         value = value.toFixed(precision);
 
-        if ("shorten" in self.parameters && self.parameters.shorten == 1)
+        if ("shorten" in self.parameters && self.parameters.shorten === 1)
         {
             if (value >= 1E9)
             {
@@ -115,7 +138,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                 value = (value / 1E3).toFixed(1) + "K"
             }
         }
-        if ("use_comma" in self.parameters && self.parameters.use_comma == 1)
+        if ("use_comma" in self.parameters && self.parameters.use_comma === 1)
         {
             value = value.toString().replace(".", ",")
         }
@@ -142,15 +165,40 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         }
         return (state)
     };
-    
+
+    this.convert_icon = function(self, value)
+    {
+        bits = value.split("-");
+        iprefix = bits[0];
+        iname = "";
+        for (var i = 1; i <  bits.length; i++)
+        {
+            if (i!==1)
+            {
+                iname += "-"
+            }
+            iname += bits[i]
+        }
+        if (iprefix === "mdi")
+        {
+            icon = "mdi" + ' ' + value
+        }
+        else
+        {
+           icon = iprefix + ' ' + 'fa-' + iname
+        }
+
+        return icon
+    };
+
     this.set_icon = function(self, field, value)
     {
-        self.ViewModel[field](value.split("-")[0] + ' ' + value)
+        self.ViewModel[field](self.convert_icon(self, value))
     };
     
     this.get_state = function(child, base_url, entity)
     {
-        state_url = base_url + "/state/" + parameters.namespace + "/" + entity.entity;
+        state_url = base_url + "/api/appdaemon/state/" + parameters.namespace + "/" + entity.entity;
         $.ajax
         ({
             url: state_url,
@@ -173,18 +221,24 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                         {
                             new_state = data.state;
                             if ("use_hass_icon" in child.parameters &&
-                                parameters.use_hass_icon == 1 &&
-                                "attributes" in new_state && "icon" in new_state.attributes && new_state.attributes.icon != "False")
+                                parameters.use_hass_icon === 1 &&
+                                "attributes" in new_state && "icon" in new_state.attributes && new_state.attributes.icon !== "False")
                             {
-                                icon = new_state.attributes.icon.replace(":", "-")
-                                child.icons.icon_on = icon
+                                icon = new_state.attributes.icon.replace(":", "-");
+                                child.icons.icon_on = icon;
                                 child.icons.icon_off = icon
                             }
                             if ("title_is_friendly_name" in child.parameters 
-                            && child.parameters.title_is_friendly_name == 1
+                            && child.parameters.title_is_friendly_name === 1
                             && "friendly_name" in new_state.attributes)
                             {
                                 child.ViewModel.title(new_state.attributes.friendly_name)
+                            }
+                            if ("title2_is_friendly_name" in child.parameters 
+                            && child.parameters.title2_is_friendly_name === 1
+                            && "friendly_name" in new_state.attributes)
+                            {
+                                child.ViewModel.title2(new_state.attributes.friendly_name)
                             }
                             if (typeof child.entity_state === 'undefined')
                             {
@@ -206,11 +260,11 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         entity = data.data.entity_id;
         elen = monitored_entities.length;
-        if (data.event_type == "state_changed" && data.namespace == parameters.namespace)
+        if (data.event_type === "state_changed" && data.namespace === parameters.namespace)
         {
             for (i = 0; i < elen; i++)
             {
-                if (monitored_entities[i].entity == entity)
+                if (monitored_entities[i].entity === entity)
                 {
                     state = data.data.new_state.state;
                     this.entity_state[entity] = data.data.new_state;
@@ -222,9 +276,14 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.call_service = function(child, args)
     {
-        service_url = child.url + "/" + "call_service";
-        args["namespace"] = parameters.namespace
-        $.post(service_url, args);
+        service_url = child.url + "/api/appdaemon/service/" + parameters.namespace + "/" + args["service"];
+        $.ajax({
+              type: "POST",
+              url: service_url,
+              data: JSON.stringify(args),
+              dataType: "json"
+            });
+        //$.post(service_url, args, "json");
     };
 
     // Initialization
@@ -291,7 +350,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     if ("static_icons" in parameters)
     {
         Object.keys(parameters.static_icons).forEach(function (key, index) {
-            child.ViewModel[key](parameters.static_icons[key].split("-")[0] + ' ' + parameters.static_icons[key])
+            child.ViewModel[key](self.convert_icon(self, parameters.static_icons[key]))
         });
     }
 

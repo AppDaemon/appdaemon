@@ -1,6 +1,36 @@
 AppDaemon API Reference
 =======================
 
+A number of api calls are native to AppDaemon and will exist in any App as they are inherited through the plugin API. If the ``get_plugin_api()`` style of declarations is used, these functions will become available via an object created by the ``get_ad_api()`` call:
+
+.. code:: python
+
+    import adbase as ad
+    import adapi as adapi
+
+    class Test(ad.ADBase):
+
+      def initialize(self):
+
+        adbase = self.get_ad_api()
+        handle = self.adbase.run_in(callback, 20)
+
+These calls are documented below.
+
+App Creation
+------------
+
+To create apps based on just the AppDaemon base API, use some code like the following:
+
+.. code:: python
+
+    import adbase as ad
+
+    class MyApp(ad.ADBase):
+
+      def initialize(self):
+
+
 State Operations
 ----------------
 
@@ -80,7 +110,7 @@ Examples
     # Return the brightness attribute for light.office_1
     state = self.get_state("light.office_1", attribute="brightness")
 
-     Return the entire state for light.office_1
+    # Return the entire state for light.office_1
     state = self.get_state("light.office_1", attribute="all")
 
 set\_state()
@@ -195,8 +225,8 @@ When called, AppDaemon will supply the callback function, in old and
 new, with the state attribute for that entity, e.g. ``on`` or ``off``
 for a light.
 
-attribute (optional)
-''''''''''''''''''''
+attribute =  (optional)
+'''''''''''''''''''''''
 
 Name of an attribute within the entity state object. If this parameter
 is specified in addition to a fully qualified ``entity_id``,
@@ -211,14 +241,14 @@ callback functions with the entire state dictionary for the specified
 entity rather than an individual attribute value.
 
 new =  (optional)
-''''''''''''''''
+'''''''''''''''''
 
 If ``new`` is supplied as a parameter, callbacks will only be made if
 the state of the selected attribute (usually ``state``) in the new state
 match the value of ``new``.
 
 old =  (optional)
-''''''''''''''''
+'''''''''''''''''
 
 If ``old`` is supplied as a parameter, callbacks will only be made if
 the state of the selected attribute (usually ``state``) in the old state
@@ -227,12 +257,12 @@ match the value of ``old``.
 Note: ``old`` and ``new`` can be used singly or together.
 
 duration =  (optional)
-'''''''''''''''''''''
+''''''''''''''''''''''
 
 If duration is supplied as a parameter, the callback will not fire
 unless the state listened for is maintained for that number of seconds.
-This makes the most sense if a specific attribute is specified (or the
-default of ``state`` is used), and in conjunction with the ``old`` or
+This requires that a specific attribute is specified (or the
+default of ``state`` is used), and should be used in conjunction with the ``old`` or
 ``new`` parameters, or both. When the callback is called, it is supplied
 with the values of ``entity``, ``attr``, ``old`` and ``new`` that were
 current at the time the actual event occured, since the assumption is
@@ -265,6 +295,19 @@ namespace = (optional)
 
 Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will listen to state updates from any plugin.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -409,6 +452,20 @@ delay
 
 Delay, in seconds before the callback is invoked.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
 \*\*kwargs
 ''''''''''
 
@@ -453,9 +510,22 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 time
 ''''
 
-A Python ``time`` object that specifies when the callback will occur. If
-the time specified is in the past, the callback will occur the next day
+Either a Python ``time`` object or a ``parse_time()`` formatted string that specifies when the callback will occur. If the time specified is in the past, the callback will occur the next day
 at the specified time.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -468,11 +538,19 @@ Examples
 
 .. code:: python
 
-     Run at 4pm today, or 4pm tomorrow if it is already after 4pm
+    # Run at 4pm today, or 4pm tomorrow if it is already after 4pm
     import datetime
     ...
     runtime = datetime.time(16, 0, 0)
     handle = self.run_once(self.run_once_c, runtime)
+
+    # With parse_time() formatting
+    # run at 10:30
+    handle = self.run_once(self.run_once_c, "10:30:00")
+    # run at sunset
+    handle = self.run_once(self.run_once_c, "sunset")
+    # run an hour after sunrise
+    handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
 
 run\_at()
 ~~~~~~~~~
@@ -504,8 +582,22 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 datetime
 ''''''''
 
-A Python ``datetime`` object that specifies when the callback will
+Either a Python ``datetime`` object or a ``parse_datetime()`` formatted string that specifies when the callback will
 occur.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -518,13 +610,23 @@ Examples
 
 .. code:: python
 
-     Run at 4pm today
+    # Run at 4pm today
     import datetime
     ...
     runtime = datetime.time(16, 0, 0)
     today = datetime.date.today()
     event = datetime.datetime.combine(today, runtime)
-    handle = self.run_once(self.run_once_c, event)
+    handle = self.at(self.run_at_c, event)
+
+    # With parse_time() formatting
+    # run at 10:30 today
+    handle = self.at(self.run_at_c, "10:30:00")
+    # Run on a specific date and time
+    handle = self.at(self.run_at_c, "2018-12-11 10:30:00")
+    # run at the next sunset
+    handle = self.at(self.run_at_c, "sunset")
+    # run an hour after the next sunrise
+    handle = self.at(self.run_at_c, "sunrise + 01:00:00")
 
 run\_daily()
 ~~~~~~~~~~~~
@@ -557,14 +659,30 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 start
 '''''
 
-A Python ``time`` object that specifies when the callback will occur. If
+A Python ``time`` object  or a ``parse_datetime()`` formatted string that specifies when the callback will occur. If
 the time specified is in the past, the callback will occur the next day
 at the specified time.
+
+When specifying sunrise or sunset relative times using the ``parse_datetime()`` format, the time of the callback will be adjusted every day to track the actual value of sunrise or sunset.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
 
-Arbitary keyword parameters to be provided to the callback function when
+Arbitrary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
@@ -572,11 +690,19 @@ Examples
 
 .. code:: python
 
-     Run daily at 7pm
+    # Run daily at 7pm
     import datetime
     ...
     time = datetime.time(19, 0, 0)
     self.run_daily(self.run_daily_c, runtime)
+
+    # With parse_time() formatting
+    # run at 10:30 every day
+    handle = self.run_daily(self.run_daily_c, "10:30:00")
+    # Run every day at sunrise
+    handle = self.run_daily(self.run_daily_c, "sunrise")
+    # Run every day an hour after sunset
+    handle = self.run_daily(self.run_daily_c, "sunset + 01:00:00")
 
 run\_hourly()
 ~~~~~~~~~~~~~
@@ -614,6 +740,20 @@ the hour component of the time object is ignored. If the time specified
 is in the past, the callback will occur the next hour at the specified
 time. If time is not supplied, the callback will start an hour from the
 time that ``run_hourly()`` was executed.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -669,10 +809,24 @@ time specified is in the past, the callback will occur the next hour at
 the specified time. If time is not supplied, the callback will start a
 minute from the time that ``run_minutely()`` was executed.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
 \*\*kwargs
 ''''''''''
 
-Arbitary keyword parameters to be provided to the callback function when
+Arbitrary keyword parameters to be provided to the callback function when
 it is invoked.
 
 Examples
@@ -724,6 +878,20 @@ repeat
 
 After the initial callback has occurred, another will occur every
 ``repeat`` seconds.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -839,13 +1007,27 @@ callback
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
-offset = 
+offset =
 '''''''''
 
 The time in seconds that the callback should be delayed after sunrise. A
 negative value will result in the callback occurring before sunrise.
 This parameter cannot be combined with ``random_start`` or
 ``random_end``
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -895,13 +1077,27 @@ callback
 Function to be invoked when the requested state change occurs. It must
 conform to the standard Scheduler Callback format documented `Here <APPGUIDE.html#about-schedule-callbacks>`__.
 
-offset = 
+offset =
 '''''''''
 
 The time in seconds that the callback should be delayed after sunrise. A
 negative value will result in the callback occurring before sunrise.
 This parameter cannot be combined with ``random_start`` or
 ``random_end``
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
 
 \*\*kwargs
 ''''''''''
@@ -1023,392 +1219,6 @@ Examples
     if self.sun_down():
         do something
 
-Services
---------
-
-call\_service()
-~~~~~~~~~~~~~~~
-
-Call service is the basic way of calling a service within AppDaemon. It
-can call any service and provide any required parameters. Available
-services can be found using the developer tools in the UI. For listed
-services, the part before the first period is the domain, and the part
-after is the service name. For instance, ``light/turn_on`` has a domain
-of ``light`` and a service name of ``turn_on``.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.call_service(self, service, **kwargs)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-service
-'''''''
-
-The service name, e.g. ``light/turn_on``.
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-
-\*\*kwargs
-''''''''''
-
-Each service has different parameter requirements. This argument allows
-you to specify a comma separated list of keyword value pairs, e.g.
-``entity_id = light.office_1``. These parameters will be different for
-every service and can be discovered using the developer tools. Most if
-not all service calls require an ``entity_id`` however, so use of the
-above example is very common with this call.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
-    self.call_service("notify/notify", title = "Hello", message = "Hello World")
-
-turn\_on()
-~~~~~~~~~~
-
-This is a convenience function for the ``homassistant.turn_on``
-function. It is able to turn on pretty much anything in Home Assistant
-that can be turned on or run:
-
--  Lights
--  Switches
--  Scenes
--  Scripts
-
-And many more.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.turn_on(entity_id, **kwargs)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-Fully qualified entity\_id of the thing to be turned on, e.g.
-``light.office_lamp`` or ``scene.downstairs_on``
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-\*\*kwargs
-''''''''''
-
-A comma separated list of key value pairs to allow specification of
-parameters over and above ``entity_id``.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.turn_on("switch.patio_lights")
-    self.turn_on("scene.bedrrom_on")
-    self.turn_on("light.office_1", color_name = "green")
-
-turn\_off()
-~~~~~~~~~~~
-
-This is a convenience function for the ``homassistant.turn_off``
-function. Like ``homeassistant.turn_on``, it is able to turn off pretty
-much anything in Home Assistant that can be turned off.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.turn_off(entity_id)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-Fully qualified entity\_id of the thing to be turned off, e.g.
-``light.office_lamp`` or ``scene.downstairs_on``.
-
-namespace = (optional)
-'''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.turn_off("switch.patio_lights")
-    self.turn_off("light.office_1")
-
-toggle()
-~~~~~~~~
-
-This is a convenience function for the ``homassistant.toggle`` function.
-It is able to flip the state of pretty much anything in Home Assistant
-that can be turned on or off.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.toggle(entity_id)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-Fully qualified entity\_id of the thing to be toggled, e.g.
-``light.office_lamp`` or ``scene.downstairs_on``.
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.toggle("switch.patio_lights")
-    self.toggle("light.office_1", color_name = "green")
-
-set\_value()
-~~~~~~~~~~~~~~~
-
-This is a convenience function for the ``input_number.set_value``
-function. It is able to set the value of an input\_number in Home
-Assistant.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.set_value(entity_id, value)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-Fully qualified entity\_id of the input\_number to be changed, e.g.
-``input_number.alarm_hour``.
-
-value
-'''''
-
-The new value to set the input number to.
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.set_value("input_number.alarm_hour", 6)
-
-set\_textvalue()
-~~~~~~~~~~~~~~~
-
-This is a convenience function for the ``input_text.set_value``
-function. It is able to set the value of an input\_text in Home
-Assistant.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.set_textvalue(entity_id, value)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-Fully qualified entity\_id of the input\_text to be changed, e.g.
-``input_text.text1``.
-
-value
-'''''
-
-The new value to set the input text to.
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.set_textvalue("input_text.text1", "hello world")
-
-select\_option()
-~~~~~~~~~~~~~~~~
-
-This is a convenience function for the ``input_select.select_option``
-function. It is able to set the value of an input\_select in Home
-Assistant.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.select_option(entity_id, option)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-Fully qualified entity\_id of the input\_select to be changed, e.g.
-``input_select.mode``.
-
-value
-'''''
-
-The new value to set the input slider to.
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.select_option("input_select.mode", "Day")
-
-notify()
-~~~~~~~~
-
-This is a convenience function for the ``notify.notify`` service. It
-will send a notification to a named notification service. If the name is
-not specified it will default to ``notify/notify``.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    notify(message, **kwargs)
-
-Returns
-^^^^^^^
-
-None
-
-Parameters
-^^^^^^^^^^
-
-message
-'''''''
-
-Message to be sent to the notification service.
-
-title = (optional)
-''''''''''''''''''
-
-Title of the notification - optional.
-
-name = (optional)
-'''''''''''''''''
-
-Name of the notification service - optional.
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.notify("Switching mode to Evening")
-    self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
-
 Events
 ------
 
@@ -1451,9 +1261,23 @@ namespace = (optional)
 
 Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will lsiten to state updates from any plugin.
 
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
 
 \*\*kwargs (optional)
-'''''''''''''''''''
+'''''''''''''''''''''
 
 One or more keyword value pairs representing App specific parameters to
 supply to the callback. If the keywords match values within the event
@@ -1552,7 +1376,9 @@ Examples
 fire\_event()
 ~~~~~~~~~~~~~
 
-Fire an event on the HomeAssistant bus, for other components to hear.
+Fire an event on the AppDaemon bus, for apps and plugins.
+
+Fire event will propagate the event to whichever namespace is currently active. If a plugin is in use for the namespace, fire_event() will use the plugin to fire the event rather than firing it locally, under the assumption that the event will be returned to AppDamon via the plugin's event monitoring.
 
 Synopsis
 ^^^^^^^^
@@ -1596,238 +1422,8 @@ Examples
 
     self.fire_event("MY_CUSTOM_EVENT", jam="true")
 
-Presence
---------
 
-get\_trackers()
-~~~~~~~~~~~~~~~
 
-Return a list of all device tracker names. This is designed to be
-iterated over.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    tracker_list = get_trackers()
-
-Parameters
-^^^^^^^^^^
-
-namespace = (optional)
-'''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-
-Returns
-^^^^^^^
-
-An iterable list of all device trackers.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    trackers = self.get_trackers()
-    for tracker in trackers:
-        do something
-
-get\_tracker\_details()
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Return a list of all device trackers and their associated state.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    tracker_list = get_tracker_details()
-
-Parameters
-^^^^^^^^^^
-
-namespace = (optional)
-'''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-Returns
-^^^^^^^
-
-A list of all device trackers with their associated state.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    trackers = self.get_tracker_details()
-    for tracker in trackers:
-        do something
-
-get\_tracker\_state()
-~~~~~~~~~~~~~~~~~~~~~
-
-Get the state of a tracker. The values returned depend in part on the
-configuration and type of device trackers in the system. Simpler tracker
-types like ``Locative`` or ``NMAP`` will return one of 2 states:
-
--  ``home``
--  ``not_home``
-
-Some types of device tracker are in addition able to supply locations
-that have been configured as Geofences, in which case the name of that
-location can be returned.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    location = self.get_tracker_state(tracker_id)
-
-Returns
-^^^^^^^
-
-A string representing the location of the tracker.
-
-Parameters
-^^^^^^^^^^
-
-tracker\_id
-'''''''''''
-
-Fully qualified entity\_id of the device tracker to query, e.g.
-``device_tracker.andrew``.
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    trackers = self.get_trackers()
-    for tracker in trackers:
-      self.log("{} is {}".format(tracker, self.get_tracker_state(tracker)))
-
-everyone\_home()
-~~~~~~~~~~~~~~~~
-
-A convenience function to determine if everyone is home. Use this in
-preference to getting the state of ``group.all_devices()`` as it avoids
-a race condition when using state change callbacks for device trackers.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    result = self.everyone_home()
-
-Returns
-^^^^^^^
-
-Returns ``True`` if everyone is at home, ``False`` otherwise.
-
-Parameters
-^^^^^^^^^^
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    if self.everyone_home():
-        do something
-
-anyone\_home()
-~~~~~~~~~~~~~~
-
-A convenience function to determine if one or more person is home. Use
-this in preference to getting the state of ``group.all_devices()`` as it
-avoids a race condition when using state change callbacks for device
-trackers.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    result = self.anyone_home()
-
-Returns
-^^^^^^^
-
-Returns ``True`` if anyone is at home, ``False`` otherwise.
-
-Parameters
-^^^^^^^^^^
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    if self.anyone_home():
-        do something
-
-noone\_home()
-~~~~~~~~~~~~~
-
-A convenience function to determine if no people are at home. Use this
-in preference to getting the state of group.all\_devices() as it avoids
-a race condition when using state change callbacks for device trackers.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    result = self.noone_home()
-
-Returns
-^^^^^^^
-
-Returns ``True`` if no one is home, ``False`` otherwise.
-
-Parameters
-^^^^^^^^^^
-
-namespace = (optional)
-''''''''''''''''''''''
-
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
-
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    if self.noone_home():
-        do something
 
 Miscellaneous Helper Functions
 ------------------------------
@@ -2004,6 +1600,53 @@ Example
     time = self.parse_time("sunset + 00:30:00")
     time = self.parse_time("sunrise + 01:00:00")
 
+parse\_datetime()
+~~~~~~~~~~~~~~~~~
+
+Takes a string representation of a date and time, or sunrise or sunset offset and
+converts it to a ``datetime.datetime`` object.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    parse_time(time_string)
+
+Returns
+^^^^^^^
+
+A ``datetime.datetimetime`` object, representing the time and date given in the
+``time_string`` argument.
+
+Parameters
+^^^^^^^^^^
+
+time\_string
+''''''''''''
+
+A representation of the time in a string format with one of the
+following formats:
+
+-  YY-MM-DD HH:MM:SS - the date and time in Year, Month, Day, Hours Minutes and Seconds, 24 hour format.
+-  HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
+-  sunrise\|sunset [+\|- HH:MM:SS]- time of the next sunrise or sunset
+   with an optional positive or negative offset in Hours Minutes and
+   seconds
+
+If the ``HH:MM:SS`` format is used, the resulting datetime object will have today's date.
+
+Example
+^^^^^^^
+
+.. code:: python
+
+    time = self.parse_time("2018-08-09 17:30:00")
+    time = self.parse_time("17:30:00")
+    time = self.parse_time("sunrise")
+    time = self.parse_time("sunset + 00:30:00")
+    time = self.parse_time("sunrise + 01:00:00")
+
 now\_is\_between()
 ~~~~~~~~~~~~~~~~~~
 
@@ -2048,68 +1691,6 @@ Example
     if self.now_is_between("sunset - 00:45:00", "sunrise + 00:45:00"):
         do something
 
-friendly\_name()
-~~~~~~~~~~~~~~~~
-
-``frindly_name()`` will return the Friendly Name of an entity if it has
-one.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    Name = self.friendly_name(entity_id)
-
-Returns
-^^^^^^^
-
-The friendly name of the entity if it exists or the entity id if not.
-
-Example
-^^^^^^^
-
-.. code:: python
-
-    tracker = "device_tracker.andrew"
-    self.log("{}  ({}) is {}".format(tracker, self.friendly_name(tracker), self.get_tracker_state(tracker)))
-
-split\_entity()
-~~~~~~~~~~~~~~~
-
-``split_entity()`` will take a fully qualified entity id of the form
-``light.hall_light`` and split it into 2 values, the device and the
-entity, e.g. ``light`` and ``hall_light``.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    device, entity = self.split_entity(entity_id)
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-Fully qualified entity id to be split.
-
-Returns
-^^^^^^^
-
-A list with 2 entries, the device and entity respectively.
-
-Example
-^^^^^^^
-
-.. code:: python
-
-    device, entity = self.split_entity(entity_id)
-    if device == "scene":
-        do something specific to scenes
-
 entity\_exists()
 ~~~~~~~~~~~~~~~~
 
@@ -2121,7 +1702,10 @@ Synopsis
     entity_exists(entity)
 
 ``entity_exists()`` is used to verify if a given entity exists in Home
-Assistant or not.
+Assistant or not. When working with multiple Home Assistant instances, it is
+possible to specify the namespace, so that it checks within the right instance in
+in the event the app is working in a different instance. Also when using this function,
+it is also possible to check if an Appdaemon entity exists.
 
 Returns
 ^^^^^^^
@@ -2148,9 +1732,15 @@ Examples
 
 .. code:: python
 
-     Return state for the entire system
+    # Return True if the entity light.living_room exist within the app's namespace
     if self.entity_exists("light.living_room"):
-      do something 
+      do something
+
+    # Return True if the entity mqtt.security_settings exist within the mqtt namespace
+    # if the app is operating in a different namespace like default
+    if self.entity_exists("mqtt.security_settings", namespace = "mqtt"):
+      do something
+
       ...
 
 get\_app()
@@ -2190,6 +1780,102 @@ Example
     MyApp = self.get_app("MotionLights")
     MyApp.turn_light_on()
 
+get\_plugin_api()
+~~~~~~~~~~~~~~~~~
+
+``get_plugin_api()`` will return an object suitable for running specific API calls on for a particular plugin. This method is used to enable an app to work with multiple plugins. The object will support all methods that an app derived from the plugin's class would, via the self notation, but will contain methods and configuration data for the target plugin rather than the plugin the App itself was derived from.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_app(self, plugin)
+
+Parameters
+^^^^^^^^^^
+
+plugin
+''''''
+
+Name of the plugin required. This is the name specified as the top level of the plugin configuration. For instance, with the following configuration:
+
+.. code:: yaml
+
+  plugins:
+    HASS:
+      type: hass
+        ...
+
+The name used in the ``get_plugin_api()`` call would be ``HASS``.
+
+Returns
+^^^^^^^
+
+An object reference to the class.
+
+Example
+^^^^^^^
+
+This example shows an App built using the hassapi also using an mqtt api call.
+
+.. code:: python
+
+    import hassapi as hass
+
+    class GetAPI(hass.Hass):
+
+      def initialize(self):
+
+        # Hass API Call
+        self.turn_on("light.office")
+
+        # Grab an object for the MQTT API
+        self.mqtt = self.get_plugin_api("MQTT")
+
+        # Make MQTT API Call
+        self.mqtt.mqtt_publish("topic", payload = "Payload"):
+
+get\_ad_api()
+~~~~~~~~~~~~~
+
+``get_ad_api()`` will return an object suitable for running AppDaemon base API calls, for instance scheduler or state calls, in fact all the calls documented in this section. This call requires an import of ``adbase``.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_app(self, plugin)
+
+Parameters
+^^^^^^^^^^
+
+None.
+
+Returns
+^^^^^^^
+
+An object reference to the class.
+
+Example
+^^^^^^^
+
+This example shows an App getting an ADAPI object to make a scheduler call.
+
+.. code:: python
+
+    import adbase as ad
+    import adapi as adapi
+
+    class Test(ad.ADBase):
+
+      def initialize(self):
+
+        adbase = self.get_ad_api()
+        handle = self.adbase.run_in(callback, 20)
+
+
 split\_device\_list()
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -2207,6 +1893,14 @@ Synopsis
 
     devices = split_device_list(list)
 
+Parameters
+^^^^^^^^^^
+
+list
+''''
+
+Comma separated list of devices to be split (no spaces)
+
 Returns
 ^^^^^^^
 
@@ -2223,8 +1917,6 @@ Example
 Logfiles
 --------
 
-AppDaemon provides a couple of convenience functions for loggin to bith the main log and the app error log. These will automatically insert the app name for information.
-
 log()
 ~~~~~
 
@@ -2233,7 +1925,7 @@ Synopsis
 
 .. code:: python
 
-    log(message, level = "INFO")
+    log(message, *args, level = "INFO", ascii_encode="True", log="some log", **kwargs)
 
 Returns
 ^^^^^^^
@@ -2254,14 +1946,28 @@ level
 The log level of the message - takes a string representing the standard
 logger levels.
 
+ascii_encode
+''''''''''''
+
+Switch to disable the encoding of all log messages to ascii. Set this to
+true if you want to log UTF-8 characters. (Default: True)
+
+log
+'''
+
+Send the message to a specific log, either system or user_defined. System logs are ``main_log``, ``error_log``, ```diag_log`` or ``access_log``. Any other value in use here must have a corresponding userdefined entyr in the ``logs`` section of appdaemon.yaml.
+
 Examples
 ^^^^^^^^
 
 .. code:: python
 
-    self.log("Log Test: Parameter is {}".format(some_variable))
-    self.log("Log Test: Parameter is {}".format(some_variable), level = "ERROR")
+    self.log("Log Test: Parameter is %s", some_variable)
+    self.log("Log Test: Parameter is %s", some_variable, log="test_log")
+    self.log("Log Test: Parameter is %s", some_variable, level = "ERROR")
     self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")
+    self.log("value is %s", some_value)
+    self.log("Stack is", some_value, level="WARNING", stack_info=True)
 
 error()
 ~~~~~~~
@@ -2301,10 +2007,10 @@ Examples
     self.error("Some Critical string", level = "CRITICAL")
 
 
-If you want to perform more elaborate logging or formattin, the underlying ``logger`` objects can be obtained:
+If you want to perform more elaborate logging or formatting, the underlying ``logger`` objects can be obtained:
 
 get_main_log()
-~~~~~~~
+~~~~~~~~~~~~~~
 
 Synopsis
 ^^^^^^^^
@@ -2319,14 +2025,17 @@ Returns
 
 The underlying ``logger`` object used for the main log.
 
+Examples
+^^^^^^^^
+
 .. code:: python
 
     log = self.get_main_log()
-    log.log(50, "Log a critical error")
+    log.critical("Log a critical error")
 
 
 get_error_log()
-~~~~~~~
+~~~~~~~~~~~~~~~
 
 Synopsis
 ^^^^^^^^
@@ -2341,11 +2050,332 @@ Returns
 
 The underlying ``logger`` object used for the error log.
 
+Examples
+^^^^^^^^
+
 .. code:: python
 
     error_log = self.get_error_log()
-    error_log.log(40, "Log an error")
+    error_log.error("Log an error", stack_info=True, exc_info=True)
 
+get_user_log()
+~~~~~~~~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.get_user_log("test_log")
+
+Parameters
+^^^^^^^^^^
+
+log
+'''
+
+The name of the log you wnat to get the underrlying logger object from, as described in the ``logs`` section of appdaemon.yaml.
+
+Returns
+^^^^^^^
+
+The underlying ``logger`` object used for the error log.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    error_log = self.get_error_log()
+    error_log.error("Log an error", stack_info=True, exc_info=True)
+
+listen_log()
+~~~~~~~~~~~~
+
+Register the app to receive a callback every time an app logs a message.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.listen_log(callback, level, **kwargs)
+
+Parameters
+^^^^^^^^^^
+
+callback
+''''''''
+
+Function to be called when a message is logged
+
+level
+'''''
+
+Logging level to be used - lower levels will not be forwarded to the app. Defaults to "INFO".
+
+log (optional)
+''''''''''''''
+
+Name of the log to listen to, default is all logs. The name should be one of the 4 built in types (``main_log``, ``error`log``, ``diag_log``, ``access_log``) or a user defined log entry.
+
+pin = (optional)
+''''''''''''''''
+
+True or False
+
+If True, the callback will be pinned to a particular thread.
+
+pin_thread = (optional)
+'''''''''''''''''''''''
+
+0 - number of threads -1
+
+Specify which thread from the worker pool the callback will be run by.
+
+\*\*kwargs
+''''''''''
+
+Zero or more keyword arguments that will be supplied to the callback
+when it is called.
+
+Returns
+^^^^^^^
+
+A unique identifier that can be used to cancel the callback if required.
+Since variables created within object methods are local to the function
+they are created in, and in all likelihood the cancellation will be
+invoked later in a different function, it is recommended that handles
+are stored in the object namespace, e.g. ``self.handle``.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.handle = self.listen_log(self.cb, "WARNING")
+    self.handle = self.listen_log(self.cb, "WARNING", log="main_log")
+    self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
+
+cancel_log()
+~~~~~~~~~~~~
+
+Cancel the log callback for an app.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.cancel_listen_log(handle)
+
+Parameters
+^^^^^^^^^^
+
+handle
+''''''
+
+The handle returned when the ``listen_log()`` call was made.
+
+Returns
+^^^^^^^
+
+None.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.cancel_listen_log()
+
+About listen_log() Callbacks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The signature for a callback used with ``listen_log()`` is as follows:
+
+.. code:: python
+
+    def cb(self, name, ts, level, message):
+
+
+``name`` is the name of the app that logged the message
+``ts`` is the timestamp of the message
+``level`` is the severity level of the message
+``type`` is the log the message was sent to - ``log``, ``err``, or ``diag``
+``message`` is the text of the message
+``kwargs`` any parameters set as keyword values by ``listen_log()``
+
+For AppDaemon system messages, name will be set to "AppDaemon".
+
+App Pinning & Threading
+-----------------------
+
+set_app_pin()
+~~~~~~~~~~~~~
+
+Set an app to be pinned or unpinned
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    set_app_pin(pin)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+pin
+'''
+
+True or false to set whether the App becomes pinned.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.set_app_pin(True)
+
+get_app_pin()
+~~~~~~~~~~~~~
+
+Find out if the app is currently pinned or not
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    pinned = get_app_pin()
+
+Returns
+^^^^^^^
+
+True if the app is pinned, False otherwise.
+
+Parameters
+^^^^^^^^^^
+
+None
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        if self.get_app_pin(True):
+            self.log("I'm pinned!")
+
+
+set_pin_thread()
+~~~~~~~~~~~~~~~~
+
+Set the thread that the app will be pinned to
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    set_pin_thread(thread)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+thread
+''''''
+
+Number of the thread to pin to. Threads start at 0 and go up to the number of threads specified in appdaemon.yaml -1.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.set_pin_thread(5)
+
+get_pin_thread()
+~~~~~~~~~~~~~~~~
+
+Find out which thread the app is pinned to.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    thread = get_pin_thread()
+
+Returns
+^^^^^^^
+
+The thread the app is pinned to or ``-1`` if the thread is not pinned.
+
+Parameters
+^^^^^^^^^^
+
+None
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        thread = self.get_pin_thread(True):
+        self.log("I'm pinned to thread {}".format(thread))
+
+run_in_thread()
+~~~~~~~~~~~~~~~~
+
+Schedule a callback to be run in a different thread from the current one.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    run_in_thread(callback, thread)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+callback
+''''''''
+
+Function to be run on the new thread
+
+thread
+''''''
+
+Thread number (0 - number of threads)
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.run_in_thread(my_callback, 8)
 
 API
 ---
@@ -2387,6 +2417,10 @@ Examples
 
     self.register_endpoint(my_callback)
     self.register_callback(alexa_cb, "alexa")
+
+It should be noted that the register function, should return a string (can be empty), and a HTTP OK status response.
+For example ``'',200``. if this is not added as a returned response, the function will generate an error each time
+it is processed
 
 unregister_endpoint()
 ~~~~~~~~~~~~~~~~~~~~~
@@ -2618,7 +2652,7 @@ Examples
 self.format_apiai_response(speech = speech)
 
 format_appapi_response()
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Format a response to be returned to Google Home including speech.
 
@@ -2651,59 +2685,6 @@ Examples
 
 Dashboard Functions
 -------------------
-
-set\_app\_state()
-~~~~~~~~~~~~~~~~~
-
-Publish state information to AppDaemon's internal state and push the
-state changes out to listening Apps and Dashboards.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    self.set_app_state(entity_id, state)
-
-Returns
-^^^^^^^
-
-None.
-
-Parameters
-^^^^^^^^^^
-
-entity\_id
-''''''''''
-
-A name for the new state. It must conform to the standard entity\_id
-format, e.g. ``<device_type>.<name>``. however device type and name can
-be whatever you like as long as you ensure it doesn't conflict with any
-real devices. For clarity, I suggest the convention of using
-``appdaemon`` as the device type. A single App can publish to as many
-entity ids as desired.
-
-state
-'''''
-
-The state to be associated with the entity id. This is a dictionary and
-must contain the entirety of the state information, It will replace the
-old state information, and calls like ``listen_state()`` should work
-correctly reporting the old and the new state information as long as you
-keep the dictionary looking similar to HA status updates, e.g. the main
-state in a state field, and any attributes in an attributes
-sub-dictionary.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.set_app_state("appdaemon.alerts", {"state": number, "attributes": {"unit_of_measurement": ""}})
-
-This is an example of a state update that can be used with a sensor
-widget in HADashboard. "state" is the actual value, and the widget also
-expects an attribute called "unit\_of\_measurement" to work correctly.
 
 dash\_navigate()
 ~~~~~~~~~~~~~~~~
@@ -2806,7 +2787,7 @@ Parameters
 ^^^^^^^^^^
 
 name
-''''''
+''''
 
 Name of the function to register for the constraint. Note: this is a string not a function reference.
 
@@ -2818,7 +2799,7 @@ Examples
         self.deregister_constraint("my_custom_constraint")
 
 list_constraints()
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 Get a list of all currently registered custom constraints. Note: this list will include any constraints registered by the plugin itself.
 
@@ -2845,6 +2826,35 @@ Examples
 
 Namespace
 ---------
+
+list_namespaces()
+~~~~~~~~~~~~~~~~~
+
+List all namespaces curently available
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    set_namespace(self)
+
+Returns
+^^^^^^^
+
+A list of available namespaces.
+
+Parameters
+^^^^^^^^^^
+
+None
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.list_namespaces()
 
 set\_namespace()
 ~~~~~~~~~~~~~~~~
@@ -2879,34 +2889,6 @@ Examples
 
     self.set_namespace("hass1")
     self.set_namespace("default")
-
-Home Assistant Config
----------------------
-
-get_hass_config()
-~~~~~~~~~~~~~~~~~
-
-Get Home Assistant configuration data such as latitude and longitude.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    get_hass_config()
-
-Returns
-^^^^^^^
-
-A dictionary containing all the configuration information available from the Home Assistant ``/api/config`` endpoint.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    config = self.get_hass_config()
-    self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
 
 Introspection
 -------------
@@ -2960,7 +2942,7 @@ Examples
     callbacks = self.get_callback_entries()
 
 get_thread_info()
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 Get information on AppDaemon worker threads.
 
@@ -3006,3 +2988,39 @@ Examples
 .. code:: python
 
     version = self.get_ad_version()
+
+Plugin Metadata
+---------------
+
+get_plugin_config()
+~~~~~~~~~~~~~~~~~~~
+
+Get any useful metadata that the plugin may have available. For instance, for the HASS plugin this will return  Home Assistant configuration data such as latitude and longitude.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    get_plugin_config()
+
+Parameters
+^^^^^^^^^^
+
+namespace=<namespace>
+
+Select the namespace of the plugin for which data is desired.
+
+Returns
+^^^^^^^
+
+A dictionary containing all the configuration information available from the Home Assistant ``/api/config`` endpoint.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    config = self.get_plugin_config()
+    self.log("My current position is {}(Lat), {}(Long)".format(config["latitude"], config["longitude"]))
+

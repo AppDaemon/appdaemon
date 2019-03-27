@@ -1,8 +1,8 @@
 widget_type: baserss
-entity: {{entity}}
+entity: "{{entity}}"
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   text: ""
   description: ""
 static_css:

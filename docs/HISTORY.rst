@@ -1,24 +1,124 @@
 Change Log
 ==========
 
-3.0.2
-------------------
+4.0.0 Beta1
+----------------
+
+**Features**
+
+- Apps can now use a simplified version of the import statement e.g. ``import hassapi as hass`` or ``import mqttapi as mqtt``. The existing import method will continue to work.
+- Apps can now use multiple plugin APIs with the ``get_plugin_api()`` function
+- Added ``ADBase`` superclass for apps that want to use the ``get_plugin_api()`` style of coding
+- Scheduler rewritten to be more efficiant and allow for microsecond resolution
+- ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
+- Bumped aiohttp to v3.4.4
+- Added callback locking decorators
+- Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code if desired
+- Implemented multiple worker Ques to avoid Head of Line blocking
+- API Calls to control app pinning
+- added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
+- reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
+- Refactored plugin APIs to remove duplication
+- added checking for overdue threads
+- added error checking for callback signatures
+- added ``parse_datetime()``
+- ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
+- Refactored appdaemon.py for greater readability and easier maintenance
+- Added initial version of the Admin Interface
+- Added User Defined Namespaces
+- Rewrote logging to include user defined logs and formats
+- Added a unified http component to handle API, ADMIN and DASBOARD access on a single port
+- Added startup conditions to the HASS plugin
+- Added duplicate filtering for logs
+- Added standalone pidfile functionality
+- added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
+- added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
+- Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
+- Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
+- Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
+- Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
+- Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
+- Added ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
+
+**Fixes**
+
+- Fixes to listen_state() oneshot function
+- Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
+- Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
+- Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
+
+**Breaking Changes**
+
+- appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
+- Time travel semantics have changed to support faster scheduling.
+- ``plugin_started`` and ``plugin_stopped`` now go to the appropriate namespace for the plugin and are no longer global
+- Apps are no longer concurrent or re-entrant by default. This is most likely a good thing.
+- Changed the signature of ``listen_log()`` callbacks
+- ``cancel_listen_log()`` now requires a handle supplied by the initial ``listen_log()``
+- Removed Daemonize support - please use sysctl instead
+- ``set_app_state()`` is deprecated - use ``set_state()`` instead and it should do the right thing
+- ``dash_compile_on_start`` now defaults to true
+- The ``log`` section of appdaemon.yaml has been deprecated and must be replaced by the new ``logs`` section which has a different format to allow for user defined logs and greater flexibility in formatting etc.
+- API no longer has a separate port, all access is configured via the new unified http component
+- API has its own top level configuration section
+- Some dashboard parameters moved to the ``HTTP`` section and renamed
+- ``dash_compile_on_start`` renamed to ``compile_on_start``
+- ``dash_force_compile`` renamed to ``force_compile``
+- Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log`` should be renamed
+
+
+3.0.2 10/31/2018
+----------------
 
 **Features**
 
 - added ``set_textvalue()`` api call.
+- added ``app_init_delay`` to delay App Initialization
+- Added ability to register apps to receive log entries
+- Added instructions for running a dev build
+- Added support for Long Lived Access Tokens
+- Updated MDI Icons to 3.0.39
+- Updated Font Awesome Icons to 5.4.2
+- Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
+- Many MQTT Plugin enhancements - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
+- Docker start script will now check recursively for additional requirements and install them - contributed by `Kevin Eifinger <https://github.com/eifinger>`__
+- Added ability to set units explicitly in widgets - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added --upgrade to pip3 call for recursive requirements.txt scanning - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- Added the ability to pass stringified JSON parameters to service calls - contributed by `Clyra <https://github.com/clyra>`__
 
 **Fixes**
 
 - Fixed incorrect service call in ``set_value()``
 - Enforce domain name in rss feed target to avoid issues with other functions
 - Previously deleted modules will now be correctly reloaded to reflect changes
+- Fixed a bug in ``get_scheduler_entries()``
+- Prevent periodic refresh of HASS state from overwriting App created entities - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Fix to honor cert_path - contributed by `Myles Eftos <https://github.com/madpilot>`__
+- Run AD in docker as PID 1 - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
+- Fix encoding error in log messages - contributed by `Markus Meissner <https://github.com/daringer>`__
+- Fix a bug in ``get_plugin_meta()`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various Doc corrections and additions - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Various fixes in the Docker docs - contributed by `Simon van der Veldt <https://github.com/simonvanderveldt>`__
+- Namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- More namespace fixes - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Fixes of the namespaces fixes ;) - contributed by `Brian Redbeard <https://github.com/brianredbeard>`__
+- Fix typo in sample systemd config - contributed by `Evgeni Kunev <https://github.com/kunev>`__
+- Fix to cert path config - contributed by `nevalain <https://github.com/nevalain>`__
 
 **Breaking Changes**
 
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
+- SSE Support has been removed
+- Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
+- Many Font Awesome Icon names have changed - any custom icons you have on dashboards will need to be changed to suit - see `docs <https://appdaemon.readthedocs.io/en/latest/DASHBOARD_CREATION.html#a-note-on-font-awesome-upgrade>`__ for more detail.
 
-3.0.1
+While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+
+3.0.1 (2018-04-14)
 ------------------
 
 **Features**
@@ -29,12 +129,13 @@ Change Log
 - Exiting from the commandline with ctrl-c will now cleanly terminate apps
 - Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
 - Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
-- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates acording to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
+- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
 
 **Fixes**
 
 - Fixed a problem in the Docker initialization script
 - Fixed an parameter collision for events with a parameter ``name`` in ``listen_event()``
+- Grammar corrections to docs, and a fix to the stop code - contributed by `Matthias Urlichs <https://github.com/smurfix>`__
 
 **Breaking Changes**
 
@@ -240,7 +341,7 @@ None
 None
 
 2.1.10 (2017-10-11)
-------------------
+-------------------
 
 **Features**
 
@@ -378,7 +479,7 @@ None
 None
 
 2.1.2 (2017-08-11)
------
+------------------
 
 **Features**
 

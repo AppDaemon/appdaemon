@@ -116,7 +116,7 @@ function baseweather(widget_id, url, skin, parameters)
                 });
                 self.set_field(self, "bearing_icon", "mdi-rotate-" + closest)
             }
-            self.set_field(self, field, state.state)
+            self.set_field(self, field, self.format_number(self, state.state))
         }
     }
 }

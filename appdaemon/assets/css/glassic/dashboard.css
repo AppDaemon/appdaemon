@@ -12,7 +12,7 @@ body {
   margin: 0;
   background-color: black;
   background-image: url(/css/glassic/img/glassic_bg.jpg);
-  background-repeat: repeat
+  background-repeat: repeat;
   font-size: 15px;
   padding: 0;
   line-height: 1;
@@ -73,12 +73,12 @@ h1 {
 h2 {
   font-size: 300%;
   font-weight: 400;
-  
+
 }
 h3 {
   font-size: 125%;
   font-weight: 300;
-  
+
 }
 
 .dashboard_main {
@@ -119,14 +119,14 @@ h3 {
 
 .iframe {
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
   -webkit-border-radius: 6px;
   -moz-border-radius: 6px;
   border-radius: 6px;
 }
 
 .widget {
-  padding: 0px 0px;
+  padding: 0 0;
   text-align: center;
   width: 100%;
   display: table-cell;
@@ -136,15 +136,15 @@ h3 {
   border-radius: 6px;
   /*transform: translateY(5px);*/
   background-color: rgba(46, 174, 212, 0.15);
-  -moz-box-shadow: 
+  -moz-box-shadow:
    0 0 5px rgba(255, 255, 255, 0.9),
    inset 0 0 18px rgba(255, 255, 255, 0.65);
   -webkit-box-shadow:
    0 0 5px rgba(255, 255, 255, 0.9),
    inset 0 0 18px rgba(255, 255, 255, 0.65);
-  box-shadow: 
+  box-shadow:
    0 0 5px rgba(255, 255, 255, 0.9),
-   inset 0 0 18px rgba(255, 255, 255, 0.65);*/
+   inset 0 0 18px rgba(255, 255, 255, 0.65);
 }
 
 .xwidget:hover {
@@ -175,10 +175,9 @@ h3 {
   .icon-active {
     /*color: #aaff00;*/
   }
-}
 
 #container {
-  padding-top: 0px;
+  padding-top: 0;
 }
 
 .modalDialog {
@@ -229,3 +228,4 @@ h3 {
 }
 
 .modalDialogCloseButton:hover { background: #313133 }
+

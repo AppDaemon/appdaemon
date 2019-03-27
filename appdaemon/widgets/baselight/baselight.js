@@ -108,7 +108,7 @@ function baselight(widget_id, url, skin, parameters)
     {
         if (self.state == "off")
         {
-            args = self.parameters.post_service_active 
+            args = jQuery.extend(true, {}, self.parameters.post_service_active)
             if ("on_attributes" in self.parameters)
             {
                 for (var attr in self.parameters.on_attributes)
@@ -119,7 +119,7 @@ function baselight(widget_id, url, skin, parameters)
         }
         else
         {
-            args = self.parameters.post_service_inactive
+            args = jQuery.extend(true, {}, self.parameters.post_service_inactive)
         }
         self.call_service(self, args)
         toggle(self)
@@ -133,7 +133,7 @@ function baselight(widget_id, url, skin, parameters)
         {
             self.level = 255
         }
-        args = self.parameters.post_service_active 
+        args = jQuery.extend(true, {}, self.parameters.post_service_active);
         args["brightness"] = self.level
         self.call_service(self, args)
     }
@@ -148,11 +148,11 @@ function baselight(widget_id, url, skin, parameters)
         self.level = parseInt(self.level)
         if (self.level == 0)
         {
-            args = self.parameters.post_service_inactive
+            args = jQuery.extend(true, {}, self.parameters.post_service_inactive)
         }
         else
         {
-            args = self.parameters.post_service_active 
+            args = jQuery.extend(true, {}, self.parameters.post_service_active)
             args["brightness"] = self.level
         }
         self.call_service(self, args)             

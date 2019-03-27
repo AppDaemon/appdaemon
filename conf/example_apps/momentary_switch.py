@@ -1,4 +1,4 @@
-import appdaemon.plugins.hass.hassapi as hass
+import ahassapi as hass
 import globals
 
 #
