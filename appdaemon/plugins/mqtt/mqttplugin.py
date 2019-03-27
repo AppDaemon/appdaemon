@@ -55,14 +55,15 @@ class MqttPlugin(PluginBase):
 
         if self.mqtt_will_topic == None:
             self.mqtt_will_topic = status_topic
-            self.logger.info("Using %s as Will Topic", status_topic)
+            self.logger.info("Using %r as Will Topic", status_topic)
         
         if self.mqtt_on_connect_topic == None:
             self.mqtt_on_connect_topic = status_topic
-            self.logger.info("Using %s as Birth Topic", status_topic)
+            self.logger.info("Using %r as Birth Topic", status_topic)
 
         self.mqtt_will_payload = self.config.get('will_payload', 'offline')
         self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
+        self.mqtt_shutdown_payload = self.config.get('shutdown_payload', self.mqtt_will_payload)
 
         self.mqtt_client_tls_ca_cert = self.config.get('ca_cert', None)
         self.mqtt_client_tls_client_cert = self.config.get('client_cert', None)
@@ -102,6 +103,7 @@ class MqttPlugin(PluginBase):
             "birth_topic" : self.mqtt_on_connect_topic,
             "birth_payload" : self.mqtt_on_connect_payload,
             "birth_retain" : self.mqtt_on_connect_retain,
+            "shutdown_payload" : self.mqtt_shutdown_payload,
             "ca_cert" : self.mqtt_client_tls_ca_cert,
             "client_cert" : self.mqtt_client_tls_client_cert,
             "client_key" : self.mqtt_client_tls_client_key,
@@ -120,6 +122,7 @@ class MqttPlugin(PluginBase):
                 if result[0] == 0:
                     self.logger.debug("Unsubscription from Topic %s Successful", topic)
                     
+        self.mqtt_client.publish(self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
         self.mqtt_client.loop_stop()
         self.mqtt_client.disconnect() #disconnect cleanly
 
@@ -274,8 +277,6 @@ class MqttPlugin(PluginBase):
     #
 
     async def get_complete_state(self):
-        entity_id = '{}.none'.format(self.name.lower())
-        self.state[entity_id] = {'state': 'None', 'attributes' : {}}
         self.logger.debug("*** Sending Complete State: %s ***", self.state)
         return copy.deepcopy(self.state)
 
