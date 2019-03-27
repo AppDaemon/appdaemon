@@ -63,7 +63,6 @@ class ADAPI:
     #
 
     def _log(self, logger, msg, *args, **kwargs):
-        msg = self._sub_stack(msg)
         if "level" in kwargs:
             level = kwargs.get("level", "INFO")
             kwargs.pop("level")
@@ -83,6 +82,9 @@ class ADAPI:
             kwargs.pop("log")
         else:
             logger = self.logger
+            
+        msg = self._sub_stack(msg)
+        
         self._log(logger, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
