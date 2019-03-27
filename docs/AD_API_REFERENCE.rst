@@ -1742,6 +1742,88 @@ Examples
       do something
 
       ...
+      
+save\_namespace()
+~~~~~~~~~~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.save_namespace()
+
+``save_namespace()`` in user defined namespaces, makes it possible to save entities created in these namespaces into a ``json`` file.
+This way, when AD restarts the entities will be reloaded into AD with its previous states within the namespace. Depending on the configuration of the namespace, this function can be setup to constantly be running automatically or only when AD shutdown. This function also allows for users to manually execute the command as when needed.
+
+Returns
+^^^^^^^
+
+``save_namespace()`` returns ``None``.
+
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    # save all entities in the namespace
+    self.save_namespace()
+
+      ...
+
+remove\_entity()
+~~~~~~~~~~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.remove_entity(entity)
+
+``remove_entity(entity)`` Can be used to delete entities created in namespaces in AD.
+So if an entity was created, and its deemed no longer needed, by using this function,
+the entity can be removed from AD permanently. 
+
+Returns
+^^^^^^^
+
+``remove_entity()`` returns ``None``.
+
+Parameters
+^^^^^^^^^^
+
+entity
+''''''
+
+The fully qualified name of the entity to check for (including the
+device type)
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    # delete the entity in the present namespace
+    self.remove_namespace('sensor.living_room')
+    
+    # delete the entity in the mqtt namespace
+    self.remove_namespace('sensor.living_room', namespace = 'mqtt')
+
+      ...
 
 get\_app()
 ~~~~~~~~~~
