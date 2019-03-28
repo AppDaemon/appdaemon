@@ -39,7 +39,7 @@ Change Log
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
-- Documentation fixes - contributed by `Johann Schmitz https://github.com/ercpe`__ 
+- Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__ 
 - Added ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 
 **Fixes**
