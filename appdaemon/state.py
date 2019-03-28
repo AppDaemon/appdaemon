@@ -427,7 +427,11 @@ class State:
         self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
-        self.state[namespace].save()
+        if namespace in self.AD.namespaces:
+            self.state[namespace].save()
+        else:
+            self.logger.warning("Namespace: %s cannot be saved", namespace)
+        return None
 
     def save_all_namespaces(self):
         for ns in self.AD.namespaces:
