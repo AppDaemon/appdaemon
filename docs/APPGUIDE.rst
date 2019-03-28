@@ -381,7 +381,7 @@ will also detect circular dependencies.
 App Loading Priority
 --------------------
 
-It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an app, simply add a ``priority`` entry to its parameters. e.g.:
+It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an app, simply add a ``priority`` entry to its paremeters. e.g.:
 
 .. code:: yaml
 
@@ -561,11 +561,10 @@ time
 
 The time constraint consists of 2 variables, ``constrain_start_time``
 and ``constrain_end_time``. Callbacks will only be executed if the
-current time is between the start and end times.
-
-- If both are absent no time constraint will exist
-- If only start is present, end will default to 1 second before midnight
-- If only end is present, start will default to midnight
+current time is between the start and end times. - If both are absent no
+time constraint will exist - If only start is present, end will default
+to 1 second before midnight - If only end is present, start will default
+to midnight
 
 The times are specified in a string format with one of the following
 formats:

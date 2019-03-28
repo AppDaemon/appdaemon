@@ -31,17 +31,14 @@ Change Log
 - Added startup conditions to the HASS plugin
 - Added duplicate filtering for logs
 - Added standalone pidfile functionality
-- Added the ability to delete an AD app generated entity from any namespace
-- Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
+- added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 - Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
 - Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
 - Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
-- Allow to specify a MQTT message to be sent when AD shutsdown cleanly e.g. ``offline``
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
-- Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__ 
 - Added ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 
 **Fixes**
