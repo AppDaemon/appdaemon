@@ -23,6 +23,7 @@ REQUIRES = [
     'iso8601',
     'bcrypt==3.1.4',
     'paho-mqtt',
+    'pyyaml',
     'python-socketio',
     'deepdiff',
     'python-dateutil',
