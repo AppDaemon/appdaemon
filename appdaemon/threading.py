@@ -483,7 +483,7 @@ class Threading:
                 else:
                     new = None
 
-            if (cold is None or cold == old) and (cnew is None or cnew == new) and new != old:
+            if (cold is None or cold == old) and (cnew is None or cnew == new):
                 if "duration" in kwargs:
                     # Set a timer
                     exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(kwargs["duration"]))
@@ -511,7 +511,7 @@ class Threading:
                         "kwargs": kwargs
                     })
             else:
-                if "__duration" in kwargs and new != old:
+                if "__duration" in kwargs:
                     # cancel timer
                     await self.AD.sched.cancel_timer(name, kwargs["__duration"])
 
