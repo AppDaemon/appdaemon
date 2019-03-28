@@ -15,7 +15,7 @@ REQUIRES = [
     'sseclient',
     'websocket-client',
     'aiohttp==3.4.4',
-    'pyyaml',
+    'PyYaml' == 3.13,
     'yarl==1.1.0',
     'Jinja2==2.10',
     'aiohttp_jinja2==0.15.0',
