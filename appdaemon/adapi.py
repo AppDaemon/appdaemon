@@ -479,7 +479,7 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name, True))["datetime"].time()
+            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
         name = self.name
