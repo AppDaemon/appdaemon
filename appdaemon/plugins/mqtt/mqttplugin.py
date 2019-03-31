@@ -321,10 +321,10 @@ class MqttPlugin(PluginBase):
                         self.logger.critical("Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
 
                         if self.mqtt_client_force_start: #meaning it should start anyway even if broker is down
+                            self.mqtt_connected = True
+                        else:
                             self.mqtt_client.loop_stop()
                             self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
-                        else:
-                            self.mqtt_connected = True
 
                     first_time_service = False
 
