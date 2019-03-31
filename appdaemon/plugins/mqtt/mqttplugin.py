@@ -150,6 +150,9 @@ class MqttPlugin(PluginBase):
 
                 self.mqtt_connected = True
 
+                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Connected'}}
+                self.loop.create_task(self.send_ad_event(data))
+
             elif rc == 1:
                 err_msg = "Connection was refused due to Incorrect Protocol Version"
             elif rc == 2:
@@ -179,8 +182,9 @@ class MqttPlugin(PluginBase):
                 self.logger.critical("MQTT Client Disconnected Abruptly. Will attempt reconnection")
                 self.logger.debug("Return code: %s", rc)
                 self.logger.debug("userdata: %s", userdata)
-                self.initialized = False
-                self.mqtt_connected = False
+
+                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Disconnected'}}
+                self.loop.create_task(self.send_ad_event(data))
             return
         except:
             self.logger.critical("There was an error while disconnecting from the Mqtt Service")
@@ -268,6 +272,9 @@ class MqttPlugin(PluginBase):
     async def process_mqtt_wildcard(self, wildcard):
         if wildcard.rstrip('#') not in self.mqtt_wildcards:
             self.mqtt_wildcards.append(wildcard.rstrip('#'))
+
+    async def mqtt_client_state(self):
+        return self.mqtt_connected
     
     async def send_ad_event(self, data):
         await self.AD.events.process_event(self.namespace, data)
