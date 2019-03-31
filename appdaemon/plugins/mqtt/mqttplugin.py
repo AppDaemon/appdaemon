@@ -45,6 +45,7 @@ class MqttPlugin(PluginBase):
         self.mqtt_client_user = self.config.get('client_user', None)
         self.mqtt_client_password = self.config.get('client_password', None)
         self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
+        self.mqtt_client_force_start = self.config.get('force_start', False)
 
         status_topic = '{} status'.format(self.config.get('client_id', self.name + ' client').lower())
         
@@ -317,8 +318,12 @@ class MqttPlugin(PluginBase):
                         await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.logger.critical("Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
-                        self.mqtt_client.loop_stop()
-                        self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
+
+                        if self.mqtt_client_force_start: #meaning it should start anyway even if broker is down
+                            self.mqtt_client.loop_stop()
+                            self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
+                        else:
+                            self.mqtt_connected = True
 
                     first_time_service = False
 
