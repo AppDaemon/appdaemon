@@ -109,7 +109,8 @@ class MqttPlugin(PluginBase):
             "client_cert" : self.mqtt_client_tls_client_cert,
             "client_key" : self.mqtt_client_tls_client_key,
             "verify_cert" : self.mqtt_verify_cert,
-            "timeout" : self.mqtt_client_timeout
+            "timeout" : self.mqtt_client_timeout,
+            "force_state" : self.mqtt_client_force_start
                             }
 
     def stop(self):
