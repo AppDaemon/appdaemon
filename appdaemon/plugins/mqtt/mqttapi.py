@@ -157,3 +157,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         service = 'mqtt/unsubscribe'
         result = self.call_service(service, **kwargs)
         return result
+
+    def clientState(self, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+        plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(namespace))
+        return utils.run_coroutine_threadsafe(self, plugin.mqtt_client_state())
