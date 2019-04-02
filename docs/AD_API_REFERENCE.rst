@@ -693,7 +693,7 @@ Examples
     # Run daily at 7pm
     import datetime
     ...
-    time = datetime.time(19, 0, 0)
+    runtime = datetime.time(19, 0, 0)
     self.run_daily(self.run_daily_c, runtime)
 
     # With parse_time() formatting
@@ -769,7 +769,7 @@ Examples
      Run every hour, on the hour
     import datetime
     ...
-    time = datetime.time(0, 0, 0)
+    runtime = datetime.time(0, 0, 0)
     self.run_hourly(self.run_hourly_c, runtime)
 
 run\_minutely()

@@ -41,7 +41,7 @@ Change Log
 - Allow to specify a MQTT message to be sent when AD shutsdown cleanly e.g. ``offline``
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
-- Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__ 
+- Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
 - Added ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 
 **Fixes**
@@ -72,6 +72,13 @@ Change Log
 - ``dash_force_compile`` renamed to ``force_compile``
 - Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log`` should be renamed
 
+
+3.0.3 04/02/2019
+----------------
+
+**Fixes**
+
+Pinned PyYaml to 3.13 to avoid a known issue
 
 3.0.2 10/31/2018
 ----------------
@@ -344,7 +351,7 @@ None
 None
 
 2.1.10 (2017-10-11)
--------------------
+------------------
 
 **Features**
 
@@ -482,7 +489,7 @@ None
 None
 
 2.1.2 (2017-08-11)
-------------------
+-----
 
 **Features**
 
