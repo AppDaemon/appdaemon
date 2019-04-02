@@ -454,6 +454,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 -  ``will_payload:`` (optional) This is the payload sent by the broker when the plugin unceremonously disconnects from the broker. If not specified, it defaults to ``offline``
 -  ``will_retain:`` (optional) This tells the broker if it should retain the will message. If not specified, it defaults to ``True``
 - ``shutdown_payload:`` (optional) This is the payload sent to the broker when the plugin disconnects from the broker cleanly. It uses the same topic as the ``will_topic``, and if not specified, defaults to the same payload message and ``will_payload``
+- ``force_start:`` (optional) Normally when AD restarts, and the plugin cannot confirm connection to the MQTT broker, it keeps retrying until it has established a connection; this can prevent AD from starting up completely. If one is certain of the broker details being correct, and there is a possibility of the broker bring down (e.g. loss of internat connection if using an external broker), the ``force_start`` flag can be set to ``True``. This way AD will start up as usual, and when the broker is online, the plugin will connect to it. 
 
 All auto-generated data can be picked up within apps, using the ``self.get_plugin_config()`` api
 
