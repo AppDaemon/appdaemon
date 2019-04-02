@@ -268,4 +268,22 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             kwargs["notification_id"] = id
         self.call_service("persistent_notification/create", **kwargs)
 
+    @hass_check
+    def get_history(self, entity_id = "", **kwargs):
+        namespace = self._get_namespace(**kwargs)
 
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+        
+        if entity_id != "":
+            self._check_entity(namespace, entity_id)
+        if kwargs == {}:
+            rargs = {"entity_id": entity_id}
+        else:
+            rargs = kwargs
+            rargs["entity_id"] = entity_id
+            
+        rargs["namespace"] = namespace
+
+        result = self.call_service("database/history", **rargs)
+        return result
