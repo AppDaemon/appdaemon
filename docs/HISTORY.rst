@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+3.0.3 04/02/2019
+
+**Fixes**
+
+Pinned PyYaml to 3.13 to avoid a known issue
+
 3.0.2 10/31/2018
 ----------------
 
