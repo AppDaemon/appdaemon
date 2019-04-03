@@ -118,6 +118,7 @@ The ``appdaemon:`` section has a number of directives:
 -  ``api_ssl_certificate`` (optional) - certificate to use when running
    the API over SSL
 -  ``api_ssl_key`` (optional) - key to use when running the API over SSL
+-  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
 - ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
@@ -280,8 +281,7 @@ To configure the HASS plugin, in addition to the required parameters above, you 
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If sepcified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g. zwave).
-Optionally, you can place your apps in a directory other than under the
-config directory using the ``app_dir`` directive.
+
 - appdaemon_startup_conditions - see "HASS Plugin Startup Conditions"
 - plugin_startup_conditions - see "HASS Plugin Startup Conditions"
 e.g.:
