@@ -66,6 +66,7 @@ class ADBase:
         self.args = args
         self.global_vars = global_vars
         self.namespace = "default"
+        self.app_dir = self.AD.app_dir
         self.logger = self._logging.get_child(name)
         self.err = self._logging.get_error().getChild(name)
         self.user_logs = {}
