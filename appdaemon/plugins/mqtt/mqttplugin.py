@@ -152,7 +152,7 @@ class MqttPlugin(PluginBase):
 
                 self.mqtt_connected = True
 
-                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Connected', 'topic' : None}}
+                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Connected', 'topic' : None, 'wildcard' : None}}
                 self.loop.create_task(self.send_ad_event(data))
 
             elif rc == 1:
@@ -185,7 +185,7 @@ class MqttPlugin(PluginBase):
                 self.logger.debug("Return code: %s", rc)
                 self.logger.debug("userdata: %s", userdata)
 
-                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Disconnected', 'topic' : None }}
+                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Connected', 'topic' : None, 'wildcard' : None}}
                 self.loop.create_task(self.send_ad_event(data))
             return
         except:
