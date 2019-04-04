@@ -17,7 +17,7 @@ REQUIRES = [
     'yarl==1.1.0',
     'Jinja2==2.10',
     'aiohttp_jinja2==0.15.0',
-    'pyyaml==3.13',
+    'pyyaml==5.1',
     'voluptuous',
     'feedparser',
     'iso8601',

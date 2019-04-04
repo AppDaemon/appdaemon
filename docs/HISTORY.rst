@@ -1,11 +1,20 @@
 Change Log
 ==========
 
-3.0.3 04/02/2019
+3.0.4 04/04/2019
+----------------
 
 **Fixes**
 
-Pinned PyYaml to 3.13 to avoid a known issue
+- Use yaml.Safeloader to work around known security issue with PyYaml - contributed by `mvn23 <https://github.com/mvn23>`__
+- Unpinned PyYaml
+
+3.0.3 04/02/2019
+----------------
+
+**Fixes**
+
+- Pinned PyYaml to 3.13 to avoid a known issue
 
 3.0.2 10/31/2018
 ----------------
