@@ -262,7 +262,7 @@ class AppManagement:
                 config_file_contents = yamlfd.read()
 
             try:
-                new_config = yaml.load(config_file_contents)
+                new_config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
             except yaml.YAMLError as exc:
                 self.logger.warning("Error loading configuration")
