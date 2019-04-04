@@ -135,8 +135,8 @@ class Dashboard:
             with open(yaml_path, 'r') as yamlfd:
                 css_text = yamlfd.read()
             try:
-                yaml.add_constructor('!secret', ha._secret_yaml)
-                css = yaml.load(css_text)
+                yaml.add_constructor('!secret', ha._secret_yaml, Loader=yaml.SafeLoader)
+                css = yaml.load(css_text, Loader=yaml.SafeLoader)
             except yaml.YAMLError as exc:
                 ha.log(self.logger, "WARNING", "Error loading CSS variables")
                 if hasattr(exc, 'problem_mark'):
@@ -248,8 +248,8 @@ class Dashboard:
                 with open(yaml_path, 'r') as yamlfd:
                     widget = yamlfd.read()
                 try:
-                    yaml.add_constructor('!secret', ha._secret_yaml)
-                    instantiated_widget = yaml.load(widget)
+                    yaml.add_constructor('!secret', ha._secret_yaml, Loader=yaml.SafeLoader)
+                    instantiated_widget = yaml.load(widget, Loader=yaml.SafeLoader)
                 except yaml.YAMLError as exc:
                     _log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
                     if hasattr(exc, 'problem_mark'):
@@ -314,8 +314,8 @@ class Dashboard:
                 #
                 # Parse the substituted YAML file - this is a derived widget definition
                 #
-                yaml.add_constructor('!secret', ha._secret_yaml)
-                final_widget = yaml.load(yaml_file)
+                yaml.add_constructor('!secret', ha._secret_yaml, Loader=yaml.SafeLoader)
+                final_widget = yaml.load(yaml_file, Loader=yaml.SafeLoader)
             except yaml.YAMLError as exc:
                 _log_error(dash, name, "Error in widget definition '{}':".format(widget_type))
                 if hasattr(exc, 'problem_mark'):
@@ -482,8 +482,8 @@ class Dashboard:
             return dash, layout, occupied, includes
 
         try:
-            yaml.add_constructor('!secret', ha._secret_yaml)
-            dash_params = yaml.load(defs)
+            yaml.add_constructor('!secret', ha._secret_yaml, Loader=yaml.SafeLoader)
+            dash_params = yaml.load(defs, Loader=yaml.SafeLoader)
         except yaml.YAMLError as exc:
             self._log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
             if hasattr(exc, 'problem_mark'):

@@ -177,11 +177,11 @@ class ADMain():
             #
             # Initially load file to see if secret directive is present
             #
-            yaml.add_constructor('!secret', utils._dummy_secret)
+            yaml.add_constructor('!secret', utils._dummy_secret, Loader=yaml.SafeLoader)
             with open(config_file_yaml, 'r') as yamlfd:
                 config_file_contents = yamlfd.read()
 
-            config = yaml.load(config_file_contents)
+            config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
             if "secrets" in config:
                 secrets_file = config["secrets"]
@@ -195,7 +195,7 @@ class ADMain():
                 with open(secrets_file, 'r') as yamlfd:
                     secrets_file_contents = yamlfd.read()
 
-                utils.secrets = yaml.load(secrets_file_contents)
+                utils.secrets = yaml.load(secrets_file_contents, Loader=yaml.SafeLoader)
 
             else:
                 if "secrets" in config:
@@ -205,12 +205,12 @@ class ADMain():
             #
             # Read config file again, this time with secrets
             #
-            yaml.add_constructor('!secret', utils._secret_yaml)
+            yaml.add_constructor('!secret', utils._secret_yaml, Loader=yaml.SafeLoader)
 
             with open(config_file_yaml, 'r') as yamlfd:
                 config_file_contents = yamlfd.read()
 
-            config = yaml.load(config_file_contents)
+            config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
         except yaml.YAMLError as exc:
             print("ERROR", "Error loading configuration")
