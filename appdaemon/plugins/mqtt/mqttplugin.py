@@ -234,13 +234,16 @@ class MqttPlugin(PluginBase):
                 elif service == 'subscribe':
                     self.logger.debug("Subscribe to Topic: %s", topic)
 
-                    result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
+                    if topic not in self.mqtt_client_topics:
+                        result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
 
-                    if result[0] == 0:
-                        self.logger.debug("Subscription to Topic %s Sucessful", topic)
-
-                        if topic not in self.mqtt_client_topics:
+                        if result[0] == 0:
+                            self.logger.debug("Subscription to Topic %s Sucessful", topic)
                             self.mqtt_client_topics.append(topic)
+                        else:
+                            self.logger.warning("Subscription to Topic %s was not Sucessful", topic)
+                    else:
+                        self.logger.info("Topic %s already subscribed to", topic)
 
                 elif service == 'unsubscribe':
                     self.logger.debug("Unsubscribe from Topic: %s", topic)
