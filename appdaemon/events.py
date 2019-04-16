@@ -146,10 +146,9 @@ class Events:
                 else:
                     self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
                     return
-            else:
-                if self.AD.apps is True:
-                    # Process non-state callbacks
-                    await self.process_event_callbacks(namespace, data)
+            if self.AD.apps is True:
+                # Process callbacks
+                await self.process_event_callbacks(namespace, data)
 
             #
             # Send to the stream
@@ -202,7 +201,7 @@ class Events:
         """
         Process a pure event callback.
 
-        For callbacks that are not of type ``state_changed`` (which require different processing). Locate any callbacks that may be registered for this event, check for filters and if appropriate, dispatch the event for further checking and eventual action.
+        Locate any callbacks that may be registered for this event, check for filters and if appropriate, dispatch the event for further checking and eventual action.
 
         :param namespace: namesoace of the event
         :param data: data associated with the event.
