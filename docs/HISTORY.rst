@@ -52,6 +52,7 @@ Change Log
 - Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
+- Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
 
 **Breaking Changes**
 
