@@ -402,23 +402,31 @@ class HassPlugin(PluginBase):
                 filter_entity_id = "?filter_entity_id={}".format(data["entity_id"])
             else:
                 filter_entity_id = ""
-                
             sTime = ""
             eTime = ""
-
             if "days" in data:
                 days = data["days"]
                 if days - 1 < 0:
                     days = 1
-                
             else:
                 days = 1
-
             if "start_time" in data:
-                sTime = utils.str_to_dt(data["start_time"]).replace(microsecond=0)
+                if isinstance(data["start_time"], str):
+                    sTime = utils.str_to_dt(data["start_time"]).replace(microsecond=0)
+                elif isinstance(data["start_time"], datetime.datetime):
+                    sTime = self.AD.tz.localize(data["start_time"]).replace(microsecond=0)
+                else:
+                    self.logger.warning("Start Time must be string or datetime.datetime Object and not %s", type(data["start_time"]))
+                    return
 
             if "end_time" in data:
-                eTime = utils.str_to_dt(data["end_time"]).replace(microsecond=0)
+                if isinstance(data["end_time"], str):
+                    eTime = utils.str_to_dt(data["end_time"]).replace(microsecond=0)
+                elif isinstance(data["end_time"], datetime.datetime):
+                    eTime = self.AD.tz.localize(data["end_time"]).replace(microsecond=0)
+                else:
+                    self.logger.warning("End Time must be string or datetime.datetime Object and not %s", type(data["end_time"]))
+                    return
 
             if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
                 filter_entity_id = ""
