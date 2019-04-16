@@ -1,5 +1,4 @@
 import uuid
-import threading
 import traceback
 import os
 from copy import copy, deepcopy
@@ -13,7 +12,7 @@ class State:
     def __init__(self, ad: AppDaemon):
 
         self.AD = ad
-        self.state_lock = threading.RLock()
+
         self.state = {}
         self.state["default"] = {}
         self.state["admin"] = {}
@@ -147,31 +146,44 @@ class State:
         device, entity = entity_id.split(".")
 
         # Process state callbacks
-        with self.state_lock:
-            removes = []
-            for name in self.AD.callbacks.callbacks.keys():
-                for uuid_ in self.AD.callbacks.callbacks[name]:
-                    callback = self.AD.callbacks.callbacks[name][uuid_]
-                    if callback["type"] == "state" and (callback["namespace"] == namespace or callback[
-                        "namespace"] == "global" or namespace == "global"):
-                        cdevice = None
-                        centity = None
-                        if callback["entity"] is not None:
-                            if "." not in callback["entity"]:
-                                cdevice = callback["entity"]
-                                centity = None
-                            else:
-                                cdevice, centity = callback["entity"].split(".")
-                        if callback["kwargs"].get("attribute") is None:
-                            cattribute = "state"
+
+        removes = []
+        for name in self.AD.callbacks.callbacks.keys():
+            for uuid_ in self.AD.callbacks.callbacks[name]:
+                callback = self.AD.callbacks.callbacks[name][uuid_]
+                if callback["type"] == "state" and (callback["namespace"] == namespace or callback[
+                    "namespace"] == "global" or namespace == "global"):
+                    cdevice = None
+                    centity = None
+                    if callback["entity"] is not None:
+                        if "." not in callback["entity"]:
+                            cdevice = callback["entity"]
+                            centity = None
                         else:
-                            cattribute = callback["kwargs"].get("attribute")
+                            cdevice, centity = callback["entity"].split(".")
+                    if callback["kwargs"].get("attribute") is None:
+                        cattribute = "state"
+                    else:
+                        cattribute = callback["kwargs"].get("attribute")
 
-                        cold = callback["kwargs"].get("old")
-                        cnew = callback["kwargs"].get("new")
+                    cold = callback["kwargs"].get("old")
+                    cnew = callback["kwargs"].get("new")
 
-                        executed = False
-                        if cdevice is None:
+                    executed = False
+                    if cdevice is None:
+                        executed = await self.AD.threading.check_and_dispatch_state(
+                            name, callback["function"], entity_id,
+                            cattribute,
+                            data['new_state'],
+                            data['old_state'],
+                            cold, cnew,
+                            callback["kwargs"],
+                            uuid_,
+                            callback["pin_app"],
+                            callback["pin_thread"]
+                        )
+                    elif centity is None:
+                        if device == cdevice:
                             executed = await self.AD.threading.check_and_dispatch_state(
                                 name, callback["function"], entity_id,
                                 cattribute,
@@ -183,41 +195,28 @@ class State:
                                 callback["pin_app"],
                                 callback["pin_thread"]
                             )
-                        elif centity is None:
-                            if device == cdevice:
-                                executed = await self.AD.threading.check_and_dispatch_state(
-                                    name, callback["function"], entity_id,
-                                    cattribute,
-                                    data['new_state'],
-                                    data['old_state'],
-                                    cold, cnew,
-                                    callback["kwargs"],
-                                    uuid_,
-                                    callback["pin_app"],
-                                    callback["pin_thread"]
-                                )
 
-                        elif device == cdevice and entity == centity:
-                            executed = await self.AD.threading.check_and_dispatch_state(
-                                name, callback["function"], entity_id,
-                                cattribute,
-                                data['new_state'],
-                                data['old_state'], cold,
-                                cnew,
-                                callback["kwargs"],
-                                uuid_,
-                                callback["pin_app"],
-                                callback["pin_thread"]
-                            )
+                    elif device == cdevice and entity == centity:
+                        executed = await self.AD.threading.check_and_dispatch_state(
+                            name, callback["function"], entity_id,
+                            cattribute,
+                            data['new_state'],
+                            data['old_state'], cold,
+                            cnew,
+                            callback["kwargs"],
+                            uuid_,
+                            callback["pin_app"],
+                            callback["pin_thread"]
+                        )
 
-                        # Remove the callback if appropriate
-                        if executed is True:
-                            remove = callback["kwargs"].get("oneshot", False)
-                            if remove is True:
-                                removes.append({"name": callback["name"], "uuid": uuid_})
+                    # Remove the callback if appropriate
+                    if executed is True:
+                        remove = callback["kwargs"].get("oneshot", False)
+                        if remove is True:
+                            removes.append({"name": callback["name"], "uuid": uuid_})
 
-            for remove in removes:
-                await self.cancel_state_callback(remove["uuid"], remove["name"])
+        for remove in removes:
+            await self.cancel_state_callback(remove["uuid"], remove["name"])
 
     async def entity_exists(self, namespace, entity):
         if namespace in self.state and entity in self.state[namespace]:
@@ -428,11 +427,7 @@ class State:
         self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
-        if namespace in self.AD.namespaces:
-            self.state[namespace].save()
-        else:
-            self.logger.warning("Namespace: %s cannot be saved", namespace)
-        return None
+        self.state[namespace].save()
 
     def save_all_namespaces(self):
         for ns in self.AD.namespaces:
@@ -454,3 +449,4 @@ class State:
             "__entity", "__duration", "__old_state", "__new_state",
             "oneshot", "pin_app", "pin_thread", "__delay"
         ] + app.list_constraints())
+    
