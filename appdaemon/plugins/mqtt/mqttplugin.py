@@ -41,10 +41,7 @@ class MqttPlugin(PluginBase):
         mqtt_client_id = self.config.get('client_id', None)
         mqtt_transport = self.config.get('client_transport', 'tcp')
         mqtt_session = self.config.get('client_clean_session', True)
-        self.mqtt_client_topics = self.config.get('client_topics', ['#'])
-        if self.mqtt_client_topics == None:
-            self.mqtt_client_topics = []
-            
+        self.mqtt_client_topics = self.config.get('client_topics', ['#'])            
         self.mqtt_client_user = self.config.get('client_user', None)
         self.mqtt_client_password = self.config.get('client_password', None)
         self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
@@ -56,6 +53,9 @@ class MqttPlugin(PluginBase):
         self.mqtt_on_connect_topic = self.config.get('birth_topic', None)
         self.mqtt_will_retain = self.config.get('will_retain', True)
         self.mqtt_on_connect_retain = self.config.get('birth_retain', True)
+        
+        if self.mqtt_client_topics == None:
+            self.mqtt_client_topics = []
 
         if self.mqtt_will_topic == None:
             self.mqtt_will_topic = status_topic
@@ -119,7 +119,7 @@ class MqttPlugin(PluginBase):
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
-        if self.initialized:
+        if self.mqtt_connected:
             self.logger.info("Stopping MQTT Plugin and Unsubcribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
             for topic in self.mqtt_client_topics:
                 self.logger.debug("Unsubscribing from Topic: %s", topic)
