@@ -433,7 +433,10 @@ class HassPlugin(PluginBase):
                 sTime = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
                 
             elif filter_entity_id == "" and sTime != "" and eTime == "" and "days" in data: #if starttime is declared and entity_id is not declared, and days specified
-                eTime = (await self.AD.sched.get_now()).replace(microsecond=0) + datetime.timedelta(days = days)
+                eTime = sTime + datetime.timedelta(days = days)
+                
+            elif filter_entity_id == "" and eTime != "" and sTime == "" and "days" in data: #if endtime is declared and entity_id is not declared, and days specified
+                sTime = eTime - datetime.timedelta(days = days)
             
             if sTime != "":
                 timeStamp = "/{}".format(utils.dt_to_str(sTime.replace(microsecond=0), self.AD.tz))
