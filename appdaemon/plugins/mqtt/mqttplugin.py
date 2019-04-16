@@ -42,6 +42,9 @@ class MqttPlugin(PluginBase):
         mqtt_transport = self.config.get('client_transport', 'tcp')
         mqtt_session = self.config.get('client_clean_session', True)
         self.mqtt_client_topics = self.config.get('client_topics', ['#'])
+        if self.mqtt_client_topics == None:
+            self.mqtt_client_topics = []
+            
         self.mqtt_client_user = self.config.get('client_user', None)
         self.mqtt_client_password = self.config.get('client_password', None)
         self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
