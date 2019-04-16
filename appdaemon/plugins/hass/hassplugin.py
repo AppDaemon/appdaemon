@@ -416,8 +416,7 @@ class HassPlugin(PluginBase):
                 elif isinstance(data["start_time"], datetime.datetime):
                     sTime = self.AD.tz.localize(data["start_time"]).replace(microsecond=0)
                 else:
-                    self.logger.warning("Start Time must be string or datetime.datetime Object and not %s", type(data["start_time"]))
-                    return
+                    raise ValueError("Invalid type for start time")
 
             if "end_time" in data:
                 if isinstance(data["end_time"], str):
@@ -425,8 +424,7 @@ class HassPlugin(PluginBase):
                 elif isinstance(data["end_time"], datetime.datetime):
                     eTime = self.AD.tz.localize(data["end_time"]).replace(microsecond=0)
                 else:
-                    self.logger.warning("End Time must be string or datetime.datetime Object and not %s", type(data["end_time"]))
-                    return
+                    raise ValueError("Invalid type for end time")
 
             if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
                 filter_entity_id = ""
