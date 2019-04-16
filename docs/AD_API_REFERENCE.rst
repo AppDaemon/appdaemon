@@ -573,7 +573,7 @@ Examples
 
 .. code:: python
 
-     Run daily at 7pm
+    # Run daily at 7pm
     import datetime
     ...
     runtime = datetime.time(19, 0, 0)
