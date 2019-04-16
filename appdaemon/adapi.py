@@ -488,19 +488,19 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name, True))["datetime"].time()
+            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
         name = self.name
         now = self.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, when)
-        if event < now:
+        aware_event = self.AD.sched.convert_naive(event)
+        if aware_event < now:
             one_day = datetime.timedelta(days=1)
-            event = event + one_day
-        exec_time = event.timestamp()
+            aware_event = aware_event + one_day
         handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs
+            name, aware_event, callback, False, None, **kwargs
         ))
         return handle
 
