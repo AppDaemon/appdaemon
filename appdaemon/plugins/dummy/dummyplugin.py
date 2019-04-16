@@ -27,7 +27,7 @@ class DummyPlugin(PluginBase):
         with open(args["configuration"], 'r') as yamlfd:
             config_file_contents = yamlfd.read()
         try:
-            self.config = yaml.load(config_file_contents)
+            self.config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
         except yaml.YAMLError as exc:
             self.logger.warning("Error loading configuration")
             if hasattr(exc, 'problem_mark'):

@@ -66,11 +66,10 @@ class ADAPI:
 
     def _log(self, logger, msg, *args, **kwargs):
         if "level" in kwargs:
-            level = kwargs.get("level", "INFO")
-            kwargs.pop("level")
+            level = kwargs.pop("level", "INFO")
         else:
             level = "INFO"
-        ascii_encode = kwargs.get("ascii_encode", True)
+        ascii_encode = kwargs.pop("ascii_encode", True)
         if ascii_encode is True:
             safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
             msg = safe_enc(msg)
