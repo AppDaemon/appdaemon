@@ -6,6 +6,8 @@ import traceback
 import aiohttp
 import pytz
 from deepdiff import DeepDiff
+import datetime
+from urllib.parse import quote
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -395,9 +397,70 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
+        if domain == "database":
+            if "entity_id" in data and data["entity_id"] != "":
+                filter_entity_id = "?filter_entity_id={}".format(data["entity_id"])
+            else:
+                filter_entity_id = ""
+            sTime = ""
+            eTime = ""
+            if "days" in data:
+                days = data["days"]
+                if days - 1 < 0:
+                    days = 1
+            else:
+                days = 1
+            if "start_time" in data:
+                if isinstance(data["start_time"], str):
+                    sTime = utils.str_to_dt(data["start_time"]).replace(microsecond=0)
+                elif isinstance(data["start_time"], datetime.datetime):
+                    sTime = self.AD.tz.localize(data["start_time"]).replace(microsecond=0)
+                else:
+                    raise ValueError("Invalid type for start time")
+
+            if "end_time" in data:
+                if isinstance(data["end_time"], str):
+                    eTime = utils.str_to_dt(data["end_time"]).replace(microsecond=0)
+                elif isinstance(data["end_time"], datetime.datetime):
+                    eTime = self.AD.tz.localize(data["end_time"]).replace(microsecond=0)
+                else:
+                    raise ValueError("Invalid type for end time")
+
+            if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
+                filter_entity_id = ""
+            
+            elif (filter_entity_id != "" and sTime == "") or "days" in data: #if starttime is not declared and entity_id is declared, or days specified
+                sTime = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
+                
+            elif filter_entity_id == "" and sTime != "" and eTime == "" and "days" in data: #if starttime is declared and entity_id is not declared, and days specified
+                eTime = sTime + datetime.timedelta(days = days)
+                
+            elif filter_entity_id == "" and eTime != "" and sTime == "" and "days" in data: #if endtime is declared and entity_id is not declared, and days specified
+                sTime = eTime - datetime.timedelta(days = days)
+            
+            if sTime != "":
+                timeStamp = "/{}".format(utils.dt_to_str(sTime.replace(microsecond=0), self.AD.tz))
+
+                if filter_entity_id != "":
+                    eTime = ""
+
+                if eTime != "":
+                    eTime = "?end_time={}".format(quote(utils.dt_to_str(eTime.replace(microsecond=0), self.AD.tz)))
+
+            else:
+                timeStamp = ""
+                eTime = ""
+
+            apiurl = "{}/api/history/period{}{}{}".format(config["ha_url"], timeStamp, filter_entity_id, eTime)
+
+        else:
+            apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
         try:
-            r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
+            if domain == "database":
+                r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
+            else:
+                r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
+                
             if r.status == 200 or r.status == 201:
                 result = await r.json()
             else:
@@ -405,6 +468,7 @@ class HassPlugin(PluginBase):
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
+
             return result
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data)
@@ -505,6 +569,7 @@ class HassPlugin(PluginBase):
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
+            services.append({"domain": "database","services": ["history"]}) #manually added HASS history service
 
             return services
         except:
