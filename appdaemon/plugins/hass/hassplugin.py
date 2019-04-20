@@ -429,7 +429,7 @@ class HassPlugin(PluginBase):
             if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
                 filter_entity_id = ""
             
-            elif (filter_entity_id != "" and sTime == "") or "days" in data: #if starttime is not declared and entity_id is declared, or days specified
+            elif (filter_entity_id != "" and sTime == "") and "days" in data: #if starttime is not declared and entity_id is declared, and days specified
                 sTime = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
                 
             elif filter_entity_id == "" and sTime != "" and eTime == "" and "days" in data: #if starttime is declared and entity_id is not declared, and days specified
@@ -441,13 +441,13 @@ class HassPlugin(PluginBase):
             if sTime != "":
                 timeStamp = "/{}".format(utils.dt_to_str(sTime.replace(microsecond=0), self.AD.tz))
 
-                if filter_entity_id != "":
+                if filter_entity_id != "": #if entity_id is specified, end_time cannot be used
                     eTime = ""
 
                 if eTime != "":
                     eTime = "?end_time={}".format(quote(utils.dt_to_str(eTime.replace(microsecond=0), self.AD.tz)))
 
-            else:
+            else: #if no start_time is specified, other parameters are invalid
                 timeStamp = ""
                 eTime = ""
 
