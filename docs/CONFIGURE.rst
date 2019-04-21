@@ -118,6 +118,7 @@ The ``appdaemon:`` section has a number of directives:
 -  ``api_ssl_certificate`` (optional) - certificate to use when running
    the API over SSL
 -  ``api_ssl_key`` (optional) - key to use when running the API over SSL
+-  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
 - ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
@@ -280,8 +281,7 @@ To configure the HASS plugin, in addition to the required parameters above, you 
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If sepcified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g. zwave).
-Optionally, you can place your apps in a directory other than under the
-config directory using the ``app_dir`` directive.
+
 - appdaemon_startup_conditions - see "HASS Plugin Startup Conditions"
 - plugin_startup_conditions - see "HASS Plugin Startup Conditions"
 e.g.:
@@ -445,7 +445,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 -  ``client_cert:`` (optional) The certificate to be used when using SSL
 -  ``verify_cert:`` (optional) This is used to determine if to verify the certificate or not. This defaults to ``True`` and should be left as True; if not no need having any certificate installed
 -  ``event_name:`` (optional) The preferred event name to be used by the plugin. This name is what apps will listen to, to pick up data within apps. This defaults to ``MQTT_MESSAGE``
--  ``client_topics:`` (optional) This is a list of topics the plugin is to subscribe to on the broker. This defaults to ``#``, meaning it subscribes to all topics on the broker
+-  ``client_topics:`` (optional) This is a list of topics the plugin is to subscribe to on the broker. This defaults to ``#``, meaning it subscribes to all topics on the broker. This can be set to ``None``, if it is desired to use the subscribe service call within apps, to subscribe to topics.
 -  ``client_qos:`` (optional) The quality of service (QOS) level to be used in subscribing to the topics
 -  ``birth_topic:`` (optional) This is the topic other clients can subscribe to, to pick up the data sent by the client, when the plugin connects to the broker. If not specified, one is auto generated
 -  ``birth_payload:`` (optional) This is the payload sent by the plugin when it connects to the broker. If not specified, it defaults to ``online``
@@ -454,6 +454,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 -  ``will_payload:`` (optional) This is the payload sent by the broker when the plugin unceremonously disconnects from the broker. If not specified, it defaults to ``offline``
 -  ``will_retain:`` (optional) This tells the broker if it should retain the will message. If not specified, it defaults to ``True``
 - ``shutdown_payload:`` (optional) This is the payload sent to the broker when the plugin disconnects from the broker cleanly. It uses the same topic as the ``will_topic``, and if not specified, defaults to the same payload message and ``will_payload``
+- ``force_start:`` (optional) Normally when AD restarts, and the plugin cannot confirm connection to the MQTT broker, it keeps retrying until it has established a connection; this can prevent AD from starting up completely. This can be problematic, if AD is trying to connect to a Cloud broker, and the internet is down. If one is certain of the broker details being correct, and there is a possibility of the broker bring down (e.g. loss of internat connection if using an external broker), the ``force_start`` flag can be set to ``True``. This way AD will start up as usual, and when the broker is online, the plugin will connect to it. This defaults to ``False``
 
 All auto-generated data can be picked up within apps, using the ``self.get_plugin_config()`` api
 

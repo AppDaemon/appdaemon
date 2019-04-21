@@ -41,10 +41,11 @@ class MqttPlugin(PluginBase):
         mqtt_client_id = self.config.get('client_id', None)
         mqtt_transport = self.config.get('client_transport', 'tcp')
         mqtt_session = self.config.get('client_clean_session', True)
-        self.mqtt_client_topics = self.config.get('client_topics', ['#'])
+        self.mqtt_client_topics = self.config.get('client_topics', ['#'])            
         self.mqtt_client_user = self.config.get('client_user', None)
         self.mqtt_client_password = self.config.get('client_password', None)
         self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
+        self.mqtt_client_force_start = self.config.get('force_start', False)
 
         status_topic = '{} status'.format(self.config.get('client_id', self.name + ' client').lower())
         
@@ -52,6 +53,9 @@ class MqttPlugin(PluginBase):
         self.mqtt_on_connect_topic = self.config.get('birth_topic', None)
         self.mqtt_will_retain = self.config.get('will_retain', True)
         self.mqtt_on_connect_retain = self.config.get('birth_retain', True)
+        
+        if self.mqtt_client_topics == None:
+            self.mqtt_client_topics = []
 
         if self.mqtt_will_topic == None:
             self.mqtt_will_topic = status_topic
@@ -108,13 +112,14 @@ class MqttPlugin(PluginBase):
             "client_cert" : self.mqtt_client_tls_client_cert,
             "client_key" : self.mqtt_client_tls_client_key,
             "verify_cert" : self.mqtt_verify_cert,
-            "timeout" : self.mqtt_client_timeout
+            "timeout" : self.mqtt_client_timeout,
+            "force_state" : self.mqtt_client_force_start
                             }
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
-        if self.initialized:
+        if self.mqtt_connected:
             self.logger.info("Stopping MQTT Plugin and Unsubcribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
             for topic in self.mqtt_client_topics:
                 self.logger.debug("Unsubscribing from Topic: %s", topic)
@@ -122,9 +127,10 @@ class MqttPlugin(PluginBase):
                 if result[0] == 0:
                     self.logger.debug("Unsubscription from Topic %s Successful", topic)
                     
-        self.mqtt_client.publish(self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
+            self.mqtt_client.publish(self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
+            self.mqtt_client.disconnect() #disconnect cleanly
+            
         self.mqtt_client.loop_stop()
-        self.mqtt_client.disconnect() #disconnect cleanly
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
         try:
@@ -149,6 +155,9 @@ class MqttPlugin(PluginBase):
                         self.logger.debug("Subscription to Topic %s Unsucessful, as Client possibly not currently connected", topic)
 
                 self.mqtt_connected = True
+
+                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Connected', 'topic' : None, 'wildcard' : None}}
+                self.loop.create_task(self.send_ad_event(data))
 
             elif rc == 1:
                 err_msg = "Connection was refused due to Incorrect Protocol Version"
@@ -179,8 +188,9 @@ class MqttPlugin(PluginBase):
                 self.logger.critical("MQTT Client Disconnected Abruptly. Will attempt reconnection")
                 self.logger.debug("Return code: %s", rc)
                 self.logger.debug("userdata: %s", userdata)
-                self.initialized = False
-                self.mqtt_connected = False
+
+                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Disconnected', 'topic' : None, 'wildcard' : None}}
+                self.loop.create_task(self.send_ad_event(data))
             return
         except:
             self.logger.critical("There was an error while disconnecting from the Mqtt Service")
@@ -228,13 +238,16 @@ class MqttPlugin(PluginBase):
                 elif service == 'subscribe':
                     self.logger.debug("Subscribe to Topic: %s", topic)
 
-                    result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
+                    if topic not in self.mqtt_client_topics:
+                        result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
 
-                    if result[0] == 0:
-                        self.logger.debug("Subscription to Topic %s Sucessful", topic)
-
-                        if topic not in self.mqtt_client_topics:
+                        if result[0] == 0:
+                            self.logger.debug("Subscription to Topic %s Sucessful", topic)
                             self.mqtt_client_topics.append(topic)
+                        else:
+                            self.logger.warning("Subscription to Topic %s was not Sucessful", topic)
+                    else:
+                        self.logger.info("Topic %s already subscribed to", topic)
 
                 elif service == 'unsubscribe':
                     self.logger.debug("Unsubscribe from Topic: %s", topic)
@@ -268,6 +281,9 @@ class MqttPlugin(PluginBase):
     async def process_mqtt_wildcard(self, wildcard):
         if wildcard.rstrip('#') not in self.mqtt_wildcards:
             self.mqtt_wildcards.append(wildcard.rstrip('#'))
+
+    async def mqtt_client_state(self):
+        return self.mqtt_connected
     
     async def send_ad_event(self, data):
         await self.AD.events.process_event(self.namespace, data)
@@ -310,8 +326,12 @@ class MqttPlugin(PluginBase):
                         await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.logger.critical("Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
-                        self.mqtt_client.loop_stop()
-                        self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
+
+                        if self.mqtt_client_force_start: #meaning it should start anyway even if broker is down
+                            self.mqtt_connected = True
+                        else:
+                            self.mqtt_client.loop_stop()
+                            self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
 
                     first_time_service = False
 

@@ -301,6 +301,8 @@ required:
         warning_level: 100
         units: %
         
+It is also possible to get some constants like the app directory within apps. This can be accessed using the attribute ``self.app_dir``
+
 secrets
 ~~~~~~~
 

@@ -132,6 +132,11 @@ Topic
 
 The topic to be subscribed to on the broker e.g. ``homeassistant/bedroom/light``.
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the service - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
 mqtt\_unsubscribe()
 ~~~~~~~~~~~~~~~~~~~
 
@@ -159,6 +164,43 @@ Topic
 
 The topic to be unsubscribed from on the broker e.g. ``homeassistant/bedroom/light``.
 
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the service - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+clientConnected()
+~~~~~~~~~~~~~~~~~~~
+
+``clientConnected()`` is a helper function used to check or confirm within an app if the plugin is connected to the broker. This can be useful, if it is necessary to be certain the client is connected, so if not the app can internally store the data in a queue, and wait for connection before sending the data. Different clients to different brokers can be accessed within an app, using the ``namespace`` parameter.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.clientConnected(self, \*\*kwargs)
+    
+    #check if client is connected, and send data
+    if self.clientConnected():
+        self.mqtt_publish(topic, payload)
+        
+    #check if client is connected in mqtt2 namespace, and send data
+    if self.clientConnected(namespace = 'mqtt2'):
+        self.mqtt_publish(topic, payload, namespace = 'mqtt2')
+
+Returns
+^^^^^^^
+
+``True`` or ``False``
+
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the service - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
 
 Events
 ------
@@ -166,7 +208,7 @@ Events
 listen\_event()
 ~~~~~~~~~~~~~~~
 
-This is the primary way of listening for changes within the MQTT plugin - unlike other plugins, MQTT does not keep state. All MQTT messages will have an event which is set to ``MQTT_MESSAGE`` by default. This can be changed to whatever that is required in the plugin configuration.
+This is the primary way of listening for changes within the MQTT plugin - unlike other plugins, MQTT does not keep state. Though it is possible to listen to a connection event ``state``, so within the AD an app can tell when the client has diconnected or not. All MQTT messages will have an event which is set to ``MQTT_MESSAGE`` by default. This can be changed to whatever that is required in the plugin configuration. 
 
 Synopsis
 ^^^^^^^^
@@ -228,6 +270,10 @@ Examples
     self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", topic = 'homeassistant/bedroom/light')
     #Listen for when a specific subscribed high level topic gets some data:
     self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
+    #Listen for when the plugin disconnects from the broker:
+    self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", state = 'Disconnected', topic = None)
+    #Listen for when the plugin connects to the broker:
+    self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", state = 'Connected', topic = None)
     
 At this point, it is not possible to use single level wildcard like using ``homeassistant/+/light`` instead of ``homeassistant/bedroom/light``. This could be added later, if need be.
 

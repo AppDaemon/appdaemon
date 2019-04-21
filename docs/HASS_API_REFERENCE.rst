@@ -634,6 +634,91 @@ Examples
 
     if self.noone_home():
         do something
+        
+Database
+--------
+
+get\_history()
+~~~~~~~~~~~~~~~
+
+This is a convenience function that allows to access the HA Database, so the history state of a device can be retrieved.
+It allows for a level of felxibility when retrieving the data, and returns it as a dictionary list.
+Caution must be taken when using this, as depending on the size of the database, it can take a long time to process.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    data = self.get_history()
+
+Parameters
+^^^^^^^^^^
+
+entity\_id
+''''''''''
+
+Fully qualified entity\_id of the thing to be turned on, e.g.
+``light.office_lamp`` or ``scene.downstairs_on``
+This can be any entity\_id in the database. If this is left empty, the state of 
+all entities will be retrieved within the specified time. If both ``end_time``
+and ``start_time`` explained below are declared, and ``entity_id`` is specified,
+the specified ``entity_id`` will be ignored and the history states of all entity\_id
+in the database will be retrieved within the specified time.
+
+days
+''''
+
+The days from the present day walking backwards, that is required from the database.
+
+.. code:: python
+    #get device state over the last 5 days
+    data = self.get_history("light.office_lamp", days = 5)
+    
+
+start_time
+''''''''''
+
+The start time from when the data should be retrieved. This should be the furthest time backwards,
+like if wanting to get data from now untill two days ago. Your start time will be last two days datetime.
+``start_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00`` or
+a ``datetime.datetime`` object.
+
+.. code:: python
+    #get device state over the last 2 days and walk forward
+    import datetime
+    from datetime import timedelta
+    start_time = datetime.datetime.now() - timedelta(days = 2)
+    data = self.get_history("light.office_lamp", start_time = start_time)
+    
+end_time
+''''''''
+
+The end time from when the data should be retrieved. This should be the latest time
+like if wanting to get data from now untill two days ago. Your end time will be today's datetime
+``end_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00`` or
+a ``datetime.datetime`` object. It should be noted that it is not possible to declare only ``end_time``.
+If only ``end_time`` is declared without ``start_time`` or ``days``, it will revert to default 
+to the latest history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
+If ``entity_id`` is specified, ``end_time`` will be ignored.
+
+.. code:: python
+    #get device state from yesterday and walk 5 days back
+    import datetime
+    from datetime import timedelta
+    end_time = datetime.datetime.now() - timedelta(days = 1)
+    data = self.get_history(end_time = end_time, days = 5)
+
+namespace = (optional)
+'''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+
+Returns
+^^^^^^^
+
+An iterable list of entity\_ids and their history state.
+
 
 Miscellaneous Helper Functions
 ------------------------------

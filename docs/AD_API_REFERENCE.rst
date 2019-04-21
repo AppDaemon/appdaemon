@@ -1743,6 +1743,93 @@ Examples
 
       ...
 
+save\_namespace()
+~~~~~~~~~~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.save_namespace()
+
+``save_namespace()`` in user defined namespaces, this makes it possible to save entities created in 
+these namespaces into a ``File`` file. This way, when AD restarts these entities will be reloaded 
+into AD with its previous states within the namespace. This can be used as a basic form of non-volitile
+storage of entity data. Depending on the configuration of the namespace, this function can be setup to 
+constantly be running automatically or only when AD shutsdown. This function also allows for 
+users to manually execute the command as when needed.
+
+Returns
+^^^^^^^
+
+``save_namespace()`` returns ``None``.
+
+Parameters
+^^^^^^^^^^
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. It should be noted that this only supports user defined namespaces, and not those tied to a plugin like ``HASS``.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    # save all entities in the namespace
+    self.save_namespace()
+      ...
+
+remove\_entity()
+~~~~~~~~~~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.remove_entity(entity)
+
+``remove_entity(entity)`` Can be used to delete entities created within a namespaces in AD.
+So if an entity was created, and its deemed no longer needed, by using this function,
+the entity can be removed from AD permanently.
+
+Returns
+^^^^^^^
+
+``remove_entity()`` returns ``None``.
+
+Parameters
+^^^^^^^^^^
+
+entity
+''''''
+
+The fully qualified name of the entity to check for (including the
+device type)
+
+namespace = (optional)
+''''''''''''''''''''''
+
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. It should be noted that though it can be used in namespaces tied to a plugin like ``HASS``, but as AD continously checks
+and updates its entites from ``HASS``. If an entity genrated in ``HASS`` is removed, it will be replaced when AD updates. But its
+an entity created by AD in the ``HASS`` namespace, the entity will be permanently deleted.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    # delete the entity in the present namespace
+    self.remove_entity('sensor.living_room')
+    
+    # delete the entity in the mqtt namespace
+    self.remove_entity('mqtt.living_room_temperature', namespace = 'mqtt')
+
+      ...
+      
 get\_app()
 ~~~~~~~~~~
 

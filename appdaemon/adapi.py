@@ -22,6 +22,8 @@ class ADAPI:
         self.config = config
         self.app_config = app_config
         self.args = args
+        self.app_dir = self.AD.app_dir
+        self.config_dir = self.AD.config_dir
         self.global_vars = global_vars
         self._namespace = "default"
         self.logger = self._logging.get_child(name)
