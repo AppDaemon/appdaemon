@@ -1754,9 +1754,9 @@ Synopsis
     self.save_namespace()
 
 ``save_namespace()`` in user defined namespaces, this makes it possible to save entities created in 
-these namespaces into a ``json`` file. This way, when AD restarts these entities will be reloaded 
+these namespaces into a ``File`` file. This way, when AD restarts these entities will be reloaded 
 into AD with its previous states within the namespace. This can be used as a basic form of non-volitile
-storage of data. Depending on the configuration of the namespace, this function can be setup to 
+storage of entity data. Depending on the configuration of the namespace, this function can be setup to 
 constantly be running automatically or only when AD shutsdown. This function also allows for 
 users to manually execute the command as when needed.
 
