@@ -16,12 +16,13 @@ Change Log
 - Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code if desired
 - Implemented multiple worker Ques to avoid Head of Line blocking
 - API Calls to control app pinning
-- added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIs to remove duplication
-- added checking for overdue threads
-- added error checking for callback signatures
-- added ``parse_datetime()``
+- Added checking for overdue threads
+- Added error checking for callback signatures
+- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
+- Added ``parse_datetime()``
 - ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - Refactored appdaemon.py for greater readability and easier maintenance
 - Added initial version of the Admin Interface
@@ -32,6 +33,8 @@ Change Log
 - Added duplicate filtering for logs
 - Added standalone pidfile functionality
 - Added the ability to delete an AD app generated entity from any namespace
+- Added the ability to get the history of entities from HASS database
+- Added the ability to force a start of the MQTT plugin, even if not connected to broker at startup
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 - Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
@@ -42,16 +45,21 @@ Change Log
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
 - Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
-- Added ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
+- Documentation fixes - contributed by `Brendon Baumgartner <https://github.com/bbrendon>`__
+- Added the ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
+- Added the ability to listen to ``state_change`` events, without using listen_state() -  contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
 
 **Fixes**
 
 - Fixes to listen_state() oneshot function
+- Fixes to listen_state() function when it fires even when new and old states are same
 - Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
+- Fixed an issue of when MQTT Plugin not connected to broker, and it holds up AD startup
 - Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
 - Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
+- Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
 
 **Breaking Changes**
 
