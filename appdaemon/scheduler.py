@@ -445,7 +445,8 @@ class Scheduler:
                 self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"])
             )
         else:
-            raise ValueError("Invalid handle: %s", handle)
+            self.logger.warning("Invalid timer handle given as: %s", handle)
+            return None
 
     async def get_scheduler_entries(self):
         schedule = {}
