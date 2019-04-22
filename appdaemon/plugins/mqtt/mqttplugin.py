@@ -152,6 +152,7 @@ class MqttPlugin(PluginBase):
                     if result[0] == 0:
                         self.logger.debug("Subscription to Topic %s Sucessful", topic)
                     else:
+                        self.mqtt_client_topics.remove(topic)
                         self.logger.debug("Subscription to Topic %s Unsucessful, as Client possibly not currently connected", topic)
 
                 self.mqtt_connected = True
