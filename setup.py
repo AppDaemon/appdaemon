@@ -15,7 +15,7 @@ REQUIRES = [
     'websocket-client',
     'aiohttp==2.3.10',
     'yarl==1.1.0',
-    'Jinja2==2.10',
+    'Jinja2==2.10.1',
     'aiohttp_jinja2==0.15.0',
     'pyyaml==5.1',
     'voluptuous',

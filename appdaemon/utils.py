@@ -3,7 +3,7 @@ import datetime
 import asyncio
 import pwd
 
-__version__ = "3.0.4"
+__version__ = "3.0.5"
 secrets = None
 
 class Formatter(object):
