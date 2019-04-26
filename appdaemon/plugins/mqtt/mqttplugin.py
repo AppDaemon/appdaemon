@@ -47,8 +47,7 @@ class MqttPlugin(PluginBase):
         self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
         self.mqtt_client_force_start = self.config.get('force_start', False)
 
-        status_topic = '{}_status'.format(self.config.get('client_id', self.name + ' client').lower())
-        status_topic = status_topic.replace('_', '/')
+        status_topic = '{}_status'.format(self.config.get('client_id', self.name + ' client').lower()).replace('_', '/')
         
         self.mqtt_will_topic = self.config.get('will_topic', None)
         self.mqtt_on_connect_topic = self.config.get('birth_topic', None)
