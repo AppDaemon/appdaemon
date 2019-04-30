@@ -171,7 +171,7 @@ class Utility:
             if self.AD.app_management is not None:
                 await self.AD.app_management.terminate()
 
-    async def set_production_mode(self, mode):
+    async def set_production_mode(self, mode=True):
         if mode is True:
             self.logger.info("AD Production Mode Activated")
         else:
