@@ -211,6 +211,10 @@ class ADAPI:
                 return entity_id
         return None
 
+    def set_production_mode(self, mode = True):
+        utils.run_coroutine_threadsafe(self, self.AD.utility.set_production_mode(mode))
+        return mode
+
     #
     # Apiai
     #
