@@ -61,6 +61,7 @@ Change Log
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
 - Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
+- Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 
 **Breaking Changes**
 
