@@ -122,7 +122,7 @@ The ``appdaemon:`` section has a number of directives:
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
 - ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
-- ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``
+- ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``. This can also be changed from within apps, using the ``set_production_mode`` api call.
 - ``thread_duration_warning_threshold`` (optional) - AppDaemon monitors the time that each tread spends in an App. If a thread is taking too long to finish a callback it may impact other apps. AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is 30 seconds, setting this value to ``00`` will disable the check.
 - ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events and state changes - this can be useful for troubleshooting thread starvation issues
 When using the ``exclude_dirs`` directive you should supply a list of directory names that should be ignored, e.g.
@@ -434,7 +434,6 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 
 -  ``type:`` This must be declared and it must be ``mqtt``
 -  ``namepace:`` (optional) This will default to ``default``
--  ``verbose:`` (optional) If wanting to view all data recieved by the plugin in the log, set this to ``True``. Its ``False`` by default
 -  ``client_host:`` (optional) The IP address or DNS of the Broker. Defaults to 127.0.0.1 which is the localhost
 -  ``client_port:`` (optional) The port number used to access the broker. Defaults to ``1883``
 -  ``client_transport:`` (optional) The transport protocol used to access the broker. This can be either ``tcp`` or ``websockets`` Defaults to ``tcp``
@@ -446,7 +445,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 -  ``verify_cert:`` (optional) This is used to determine if to verify the certificate or not. This defaults to ``True`` and should be left as True; if not no need having any certificate installed
 -  ``event_name:`` (optional) The preferred event name to be used by the plugin. This name is what apps will listen to, to pick up data within apps. This defaults to ``MQTT_MESSAGE``
 -  ``client_topics:`` (optional) This is a list of topics the plugin is to subscribe to on the broker. This defaults to ``#``, meaning it subscribes to all topics on the broker. This can be set to ``None``, if it is desired to use the subscribe service call within apps, to subscribe to topics.
--  ``client_qos:`` (optional) The quality of service (QOS) level to be used in subscribing to the topics
+-  ``client_qos:`` (optional) The quality of service (QOS) level to be used in subscribing to the topics. This will also be used as the default ``qos``, when publishing and the qos is not specified by the publishing app.
 -  ``birth_topic:`` (optional) This is the topic other clients can subscribe to, to pick up the data sent by the client, when the plugin connects to the broker. If not specified, one is auto generated
 -  ``birth_payload:`` (optional) This is the payload sent by the plugin when it connects to the broker. If not specified, it defaults to ``online``
 -  ``birth_retain:`` (optional) This tells the broker if it should retain the birth message. If not specified, it defaults to ``True``
