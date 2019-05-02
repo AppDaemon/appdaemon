@@ -434,7 +434,6 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 
 -  ``type:`` This must be declared and it must be ``mqtt``
 -  ``namepace:`` (optional) This will default to ``default``
--  ``verbose:`` (optional) If wanting to view all data recieved by the plugin in the log, set this to ``True``. Its ``False`` by default
 -  ``client_host:`` (optional) The IP address or DNS of the Broker. Defaults to 127.0.0.1 which is the localhost
 -  ``client_port:`` (optional) The port number used to access the broker. Defaults to ``1883``
 -  ``client_transport:`` (optional) The transport protocol used to access the broker. This can be either ``tcp`` or ``websockets`` Defaults to ``tcp``
