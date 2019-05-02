@@ -219,7 +219,7 @@ class MqttPlugin(PluginBase):
     async def call_plugin_service(self, namespace, domain, service, kwargs):
 
         if 'topic' in kwargs:
-            if not self.initialized:  # ensure mqtt plugin is connected
+            if not self.mqtt_connected:  # ensure mqtt plugin is connected
                 self.logger.warning("Attempt to call Mqtt Service while disconnected: %s", service)
                 return None
             try:
