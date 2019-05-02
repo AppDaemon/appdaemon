@@ -35,6 +35,7 @@ Change Log
 - Added the ability to delete an AD app generated entity from any namespace
 - Added the ability to get the history of entities from HASS database
 - Added the ability to force a start of the MQTT plugin, even if not connected to broker at startup
+- Added the ability to set AD's `production_mode` from within apps
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
 - Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
@@ -60,6 +61,7 @@ Change Log
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
 - Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
+- Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 
 **Breaking Changes**
 
@@ -79,6 +81,8 @@ Change Log
 - ``dash_compile_on_start`` renamed to ``compile_on_start``
 - ``dash_force_compile`` renamed to ``force_compile``
 - Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log`` should be renamed
+- Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
+- As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
 
 
 3.0.4 04/04/2019
