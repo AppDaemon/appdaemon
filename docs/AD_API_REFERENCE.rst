@@ -944,7 +944,8 @@ Examples
 info\_timer()
 ~~~~~~~~~~~~~
 
-Get information on a scheduler event from its handle.
+Get information on a scheduler event from its handle. If the handle is an 
+invalid one, or the timer had been executed, it will retrun a ``None``
 
 Synopsis
 ^^^^^^^^
@@ -962,6 +963,8 @@ fired
 interval - repeat interval if applicable, ``0`` otherwise.
 
 kwargs - the values supplied when the callback was initially created.
+
+None - if handle is invalid or timer no longer exists
 
 Parameters
 ^^^^^^^^^^
