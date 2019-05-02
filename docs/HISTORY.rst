@@ -81,6 +81,8 @@ Change Log
 - ``dash_compile_on_start`` renamed to ``compile_on_start``
 - ``dash_force_compile`` renamed to ``force_compile``
 - Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log`` should be renamed
+- Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
+- As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
 
 
 3.0.4 04/04/2019
