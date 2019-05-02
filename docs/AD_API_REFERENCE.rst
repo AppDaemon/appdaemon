@@ -1830,6 +1830,32 @@ Examples
 
       ...
       
+set\_production\_mode()
+~~~~~~~~~~~~~~~~
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    self.set_production_mode(mode=True)
+
+``set_production_mode(mode)`` can be used to deactivate and activate the production
+mode in AD. When called without declaring passing any arguements, ``mode`` defaults to ``True``: 
+
+Returns
+^^^^^^^
+
+``mode`` or ``None`` if wrong parameter is passed.
+
+Parameters
+^^^^^^^^^^
+
+mode
+''''''
+
+This must be boolean so either ``True`` or ``False``.
+
 get\_app()
 ~~~~~~~~~~
 
