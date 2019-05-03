@@ -211,6 +211,13 @@ class ADAPI:
                 return entity_id
         return None
 
+    def set_production_mode(self, mode = True):
+        if not isinstance(mode, bool):
+            self.logger.warning("%s not a valid parameter for Production Mode", mode)
+            return None
+        utils.run_coroutine_threadsafe(self, self.AD.utility.set_production_mode(mode))
+        return mode
+
     #
     # Apiai
     #

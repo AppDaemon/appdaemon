@@ -47,7 +47,7 @@ class MqttPlugin(PluginBase):
         self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
         self.mqtt_client_force_start = self.config.get('force_start', False)
 
-        status_topic = '{} status'.format(self.config.get('client_id', self.name + ' client').lower())
+        status_topic = '{}/status'.format(self.config.get('client_id', self.name + '-client').lower())
         
         self.mqtt_will_topic = self.config.get('will_topic', None)
         self.mqtt_on_connect_topic = self.config.get('birth_topic', None)
@@ -152,6 +152,7 @@ class MqttPlugin(PluginBase):
                     if result[0] == 0:
                         self.logger.debug("Subscription to Topic %s Sucessful", topic)
                     else:
+                        self.mqtt_client_topics.remove(topic)
                         self.logger.debug("Subscription to Topic %s Unsucessful, as Client possibly not currently connected", topic)
 
                 self.mqtt_connected = True
@@ -218,7 +219,7 @@ class MqttPlugin(PluginBase):
     async def call_plugin_service(self, namespace, domain, service, kwargs):
 
         if 'topic' in kwargs:
-            if not self.initialized:  # ensure mqtt plugin is connected
+            if not self.mqtt_connected:  # ensure mqtt plugin is connected
                 self.logger.warning("Attempt to call Mqtt Service while disconnected: %s", service)
                 return None
             try:
