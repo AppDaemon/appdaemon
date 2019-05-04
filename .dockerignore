@@ -1,2 +1,9 @@
 .git
+.gitignore
+
 Dockerfile
+.dockerignore
+
+*.md
+*.rst
+docs
