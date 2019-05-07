@@ -30,11 +30,6 @@ class MqttPlugin(PluginBase):
         else:
             self.namespace = 'default'
 
-        if 'verbose' in self.config:
-            self.verbose = self.config['verbose']
-        else:
-            self.verbose = False
-
         self.mqtt_client_host = self.config.get('client_host', '127.0.0.1')
         self.mqtt_client_port = self.config.get('client_port', 1883)
         self.mqtt_qos = self.config.get('client_qos', 0)
