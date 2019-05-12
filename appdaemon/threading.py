@@ -626,7 +626,7 @@ class Threading:
 
         if type in callback_args:
             if len(sig.parameters) != callback_args[type]["count"]:
-                self.logger.warning("Incorrect signature type for callback %s(), should be %s - discarding", funcref.__name__, callback_args[type]["signature"])
+                self.logger.warning("Incorrect signature type for callback %s() in %s, should be %s - discarding", funcref.__name__, name, callback_args[type]["signature"])
                 return False
             else:
                 return True
