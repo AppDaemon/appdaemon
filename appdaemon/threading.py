@@ -589,7 +589,7 @@ class Threading:
                         if args["event"] == "__AD_LOG_EVENT":
                             if self.validate_callback_sig(name, "log_event", funcref):
                                 utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
-                                funcref(data["app_name"], data["ts"], data["level"], data["type"], data["message"], args["kwargs"])
+                                funcref(data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"])
                         else:
                             if self.validate_callback_sig(name, "event", funcref):
                                 utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
@@ -626,7 +626,7 @@ class Threading:
 
         if type in callback_args:
             if len(sig.parameters) != callback_args[type]["count"]:
-                self.logger.warning("Incorrect signature type for callback %s(), should be %s - discarding", funcref.__name__, callback_args[type]["signature"])
+                self.logger.warning("Incorrect signature type for callback %s() in %s, should be %s - discarding", funcref.__name__, name, callback_args[type]["signature"])
                 return False
             else:
                 return True
