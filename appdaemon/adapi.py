@@ -335,12 +335,14 @@ class ADAPI:
         self.logger.debug("Calling info_listen_state for %s",self.name)
         return utils.run_coroutine_threadsafe(self, self.AD.state.info_state_callback(handle, self.name))
 
-    def get_state(self, entity_id=None, attribute=None, **kwargs):
+    def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.state.get_state(self.name, namespace, entity_id, attribute, **kwargs))
+        return utils.run_coroutine_threadsafe(self, self.AD.state.get_state(
+            self.name, namespace, entity_id, attribute, default, copy, **kwargs
+        ))
 
     def set_state(self, entity_id, **kwargs):
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
