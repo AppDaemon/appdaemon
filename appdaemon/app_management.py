@@ -188,7 +188,7 @@ class AppManagement:
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
                 if root[-11:] != "__pycache__":
                     for file in files:
-                        if file[-5:] == ".yaml":
+                        if file[-5:] == ".yaml" and file[0] != ".":
                             self.logger.debug("Reading %s", os.path.join(root, file))
                             config = await utils.run_in_executor(self, self.read_config_file, os.path.join(root, file))
                             valid_apps = {}
