@@ -48,7 +48,7 @@ Change Log
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
 - Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
 - Documentation fixes - contributed by `Brendon Baumgartner <https://github.com/bbrendon>`__
-- DOcumentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
+- Documentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
 - Added the ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 - Added the ability to listen to ``state_change`` events, without using listen_state() -  contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
 
