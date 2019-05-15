@@ -216,11 +216,7 @@ from the downloaded repository.
     $ git clone https://github.com/home-assistant/appdaemon.git
     $ cd appdaemon
 
-You must change the image line to use a Resin image in the Dockerfile:
-
-``FROM arm32v7/python:3.6-alpine``
-
-You can then build and run a docker image locally as follows:
+You can then build and run the docker image locally as follows:
 
 .. code:: bash
 
