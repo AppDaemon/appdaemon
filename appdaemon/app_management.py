@@ -68,11 +68,11 @@ class AppManagement:
     async def remove_entity(self, name):
         await self.AD.state.remove_entity("admin", "app.{}".format(name))
 
-    async def entity_exists(self, namespace, entity_id):
-        if namespace in self.AD.state.state and entity_id in self.AD.state.state[namespace]:
-            return True
-        else:
-            return False
+    async def create_sensors(self):
+        # create sensors
+        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps"})
+        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps"})
+        await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps"})
 
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
@@ -117,6 +117,7 @@ class AppManagement:
 
                 active_apps = await self.AD.state.get_state("_app_management", "admin", self.active_apps_sensor)
                 inactive_apps = await self.AD.state.get_state("_app_management", "admin", self.inactive_apps_sensor)
+
                 active_apps +=1
                 if inactive_apps > 0:
                     inactive_apps -=1
@@ -161,6 +162,7 @@ class AppManagement:
 
             active_apps = await self.AD.state.get_state("_app_management", "admin", self.active_apps_sensor)
             inactive_apps = await self.AD.state.get_state("_app_management", "admin", self.inactive_apps_sensor)
+
             active_apps -=1
             inactive_apps +=1
             await self.set_state(self.active_apps_sensor, state=active_apps)
@@ -327,12 +329,6 @@ class AppManagement:
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
-
-        if not await self.entity_exists("admin", self.total_apps_sensor):
-            # create sensors
-            await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps"})
-            await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps"})
-            await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps"})
 
         try:
             latest = await utils.run_in_executor(self, self.check_later_app_configs, self.app_config_file_modified)
