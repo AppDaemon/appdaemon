@@ -63,7 +63,7 @@ Change Log
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
 - Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
-- Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann https://github.com/fhirschmann>`__
+- Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann <https://github.com/fhirschmann>`__
 - Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 - Fix for ``log_type`` flag in ``listen_log`` callback
 
