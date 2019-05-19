@@ -46,7 +46,11 @@ class AppManagement:
         sys.path.insert(0, os.path.dirname(__file__))
 
     async def set_state(self, name, **kwargs):
-        await self.AD.state.set_state("_app_management", "admin", "app.{}".format(name), **kwargs)
+        if name.find(".") == -1: 
+            entity_id = "app.{}".format(name)
+        else:
+            entity_id = name
+        await self.AD.state.set_state("_app_management", "admin", entity_id, **kwargs)
 
     async def add_entity(self, name, state, attributes):
         await self.AD.state.add_entity("admin", "app.{}".format(name), state, attributes)
@@ -359,9 +363,13 @@ class AppManagement:
 
                 #if silent is False:
                 self.logger.info("Found %s active apps", total_apps)
+                await self.set_state("sensor.active_apps", state=total_apps, attributes = {"friendly_name":"Active Apps"})
+                
                 inactive_apps = total_apps - self.get_active_app_count()
                 if inactive_apps > 0:
                     self.logger.info("Found %s inactive apps", inactive_apps)
+                    
+                await self.set_state("sensor.inactive_apps", state=inactive_apps, attributes = {"friendly_name":"Inactive Apps"})
 
             # Now we know if we have any new apps we can create new threads if pinning
 
