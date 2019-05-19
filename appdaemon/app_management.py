@@ -40,23 +40,39 @@ class AppManagement:
 
         self.apps_initialized = False
 
+        # first declare sensors
+        self.active_apps_sensor = "sensor.active_apps"
+        self.inactive_apps_sensor = "sensor.inactive_apps"
+        self.total_apps_sensor = "sensor.total_apps"
 
         # Add Path for adbase
 
         sys.path.insert(0, os.path.dirname(__file__))
 
     async def set_state(self, name, **kwargs):
-        if name.find(".") == -1: 
+        if name.find(".") == -1: #not a fully qualified entity name
             entity_id = "app.{}".format(name)
         else:
             entity_id = name
+
         await self.AD.state.set_state("_app_management", "admin", entity_id, **kwargs)
 
     async def add_entity(self, name, state, attributes):
-        await self.AD.state.add_entity("admin", "app.{}".format(name), state, attributes)
+        if name.find(".") == -1: #not a fully qualified entity name
+            entity_id = "app.{}".format(name)
+        else:
+            entity_id = name
+
+        await self.AD.state.add_entity("admin", entity_id, state, attributes)
 
     async def remove_entity(self, name):
         await self.AD.state.remove_entity("admin", "app.{}".format(name))
+
+    async def entity_exists(self, namespace, entity_id):
+        if namespace in self.AD.state.state and entity_id in self.AD.state.state[namespace]:
+            return True
+        else:
+            return False
 
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
@@ -98,6 +114,14 @@ class AppManagement:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
+
+                active_apps = await self.AD.state.get_state("_app_management", "admin", self.active_apps_sensor)
+                inactive_apps = await self.AD.state.get_state("_app_management", "admin", self.inactive_apps_sensor)
+                active_apps +=1
+                if inactive_apps > 0:
+                    inactive_apps -=1
+                await self.set_state(self.active_apps_sensor, state=active_apps)
+                await self.set_state(self.inactive_apps_sensor, state=inactive_apps)
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -135,12 +159,20 @@ class AppManagement:
         if name in self.objects:
             del self.objects[name]
 
+            active_apps = await self.AD.state.get_state("_app_management", "admin", self.active_apps_sensor)
+            inactive_apps = await self.AD.state.get_state("_app_management", "admin", self.inactive_apps_sensor)
+            active_apps -=1
+            inactive_apps +=1
+            await self.set_state(self.active_apps_sensor, state=active_apps)
+            await self.set_state(self.inactive_apps_sensor, state=inactive_apps)
+
         await self.AD.callbacks.clear_callbacks(name)
 
         await self.AD.sched.terminate_app(name)
 
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
+
 
     def get_app_debug_level(self, app):
         if app in self.objects:
@@ -292,10 +324,15 @@ class AppManagement:
 
     # noinspection PyBroadException
     async def check_config(self, silent=False, add_threads=True):
-
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
+
+        if not await self.entity_exists("admin", self.total_apps_sensor):
+            # create sensors
+            await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps"})
+            await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps"})
+            await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps"})
 
         try:
             latest = await utils.run_in_executor(self, self.check_later_app_configs, self.app_config_file_modified)
@@ -363,17 +400,16 @@ class AppManagement:
 
                 #if silent is False:
                 self.logger.info("Found %s active apps", total_apps)
-                await self.set_state("sensor.active_apps", state=total_apps, attributes = {"friendly_name":"Active Apps"})
+                await self.set_state(self.total_apps_sensor, state=total_apps)
                 
                 inactive_apps = total_apps - self.get_active_app_count()
                 if inactive_apps > 0:
                     self.logger.info("Found %s inactive apps", inactive_apps)
-                    
-                await self.set_state("sensor.inactive_apps", state=inactive_apps, attributes = {"friendly_name":"Inactive Apps"})
 
             # Now we know if we have any new apps we can create new threads if pinning
 
             active_apps = self.get_active_app_count()
+
             if add_threads is True and self.AD.threading.auto_pin is True:
                 if active_apps > self.AD.threading.thread_count:
                     for i in range(active_apps - self.AD.threading.thread_count):
