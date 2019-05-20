@@ -57,6 +57,14 @@ class AppManagement:
 
         await self.AD.state.set_state("_app_management", "admin", entity_id, **kwargs)
 
+    async def get_state(self, name, **kwargs):
+        if name.find(".") == -1: #not a fully qualified entity name
+            entity_id = "app.{}".format(name)
+        else:
+            entity_id = name
+
+        return await self.AD.state.get_state("_app_management", "admin", entity_id, **kwargs)
+
     async def add_entity(self, name, state, attributes):
         if name.find(".") == -1: #not a fully qualified entity name
             entity_id = "app.{}".format(name)
@@ -115,12 +123,13 @@ class AppManagement:
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
 
-                active_apps = await self.AD.state.get_state("_app_management", "admin", self.active_apps_sensor)
-                inactive_apps = await self.AD.state.get_state("_app_management", "admin", self.inactive_apps_sensor)
+                active_apps = await self.get_state(self.active_apps_sensor)
+                inactive_apps = await self.get_state(self.inactive_apps_sensor)
 
                 active_apps +=1
                 if inactive_apps > 0:
                     inactive_apps -=1
+
                 await self.set_state(self.active_apps_sensor, state=active_apps)
                 await self.set_state(self.inactive_apps_sensor, state=inactive_apps)
         except:
@@ -160,8 +169,8 @@ class AppManagement:
         if name in self.objects:
             del self.objects[name]
 
-            active_apps = await self.AD.state.get_state("_app_management", "admin", self.active_apps_sensor)
-            inactive_apps = await self.AD.state.get_state("_app_management", "admin", self.inactive_apps_sensor)
+            active_apps = await self.get_state(self.active_apps_sensor)
+            inactive_apps = await self.get_state(self.inactive_apps_sensor)
 
             active_apps -=1
             inactive_apps +=1
@@ -394,11 +403,17 @@ class AppManagement:
                 self.app_config = new_config
                 total_apps = len(self.app_config)
 
+                if "global_modules" in self.app_config:
+                    total_apps -=1 # remove one
+
                 #if silent is False:
-                self.logger.info("Found %s active apps", total_apps)
+                self.logger.info("Found %s total number of apps", total_apps)
                 await self.set_state(self.total_apps_sensor, state=total_apps)
                 
-                inactive_apps = total_apps - self.get_active_app_count()
+                active_apps = self.get_active_app_count()
+                self.logger.info("Found %s active apps", active_apps)
+
+                inactive_apps = total_apps - active_apps
                 if inactive_apps > 0:
                     self.logger.info("Found %s inactive apps", inactive_apps)
 
@@ -423,6 +438,8 @@ class AppManagement:
         c = 0
         for name in self.app_config:
             if "disable" in self.app_config[name] and self.app_config[name]["disable"] is True:
+                pass
+            elif name == "global_modules":
                 pass
             else:
                 c += 1
