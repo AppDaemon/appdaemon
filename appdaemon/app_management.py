@@ -364,7 +364,7 @@ class AppManagement:
 
                 for name in self.app_config:
                     if name in new_config:
-                        if self.app_config[name] != new_config[name]:
+                        if set(self.app_config[name]) != set(new_config[name]):
                             # Something changed, clear and reload
 
                             if silent is False:
