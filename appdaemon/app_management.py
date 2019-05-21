@@ -40,19 +40,47 @@ class AppManagement:
 
         self.apps_initialized = False
 
+        # first declare sensors
+        self.active_apps_sensor = "sensor.active_apps"
+        self.inactive_apps_sensor = "sensor.inactive_apps"
+        self.total_apps_sensor = "sensor.total_apps"
 
         # Add Path for adbase
 
         sys.path.insert(0, os.path.dirname(__file__))
 
     async def set_state(self, name, **kwargs):
-        await self.AD.state.set_state("_app_management", "admin", "app.{}".format(name), **kwargs)
+        if name.find(".") == -1: #not a fully qualified entity name
+            entity_id = "app.{}".format(name)
+        else:
+            entity_id = name
+
+        await self.AD.state.set_state("_app_management", "admin", entity_id, **kwargs)
+
+    async def get_state(self, name, **kwargs):
+        if name.find(".") == -1: #not a fully qualified entity name
+            entity_id = "app.{}".format(name)
+        else:
+            entity_id = name
+
+        return await self.AD.state.get_state("_app_management", "admin", entity_id, **kwargs)
 
     async def add_entity(self, name, state, attributes):
-        await self.AD.state.add_entity("admin", "app.{}".format(name), state, attributes)
+        if name.find(".") == -1: #not a fully qualified entity name
+            entity_id = "app.{}".format(name)
+        else:
+            entity_id = name
+
+        await self.AD.state.add_entity("admin", entity_id, state, attributes)
 
     async def remove_entity(self, name):
         await self.AD.state.remove_entity("admin", "app.{}".format(name))
+
+    async def init_admin_stats(self):
+        # create sensors
+        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps", "apps":[]})
+        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps", "apps":[]})
+        await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps", "apps":[]})
 
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
@@ -94,6 +122,20 @@ class AppManagement:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
+
+                active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
+                inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
+
+                active_apps["state"] +=1
+                if inactive_apps["state"] > 0:
+                    inactive_apps["state"] -=1
+                    if name in inactive_apps["attributes"]["apps"]:
+                        inactive_apps["attributes"]["apps"].remove(name)
+
+                active_apps["attributes"]["apps"].append(name)
+
+                await self.set_state(self.active_apps_sensor, **active_apps)
+                await self.set_state(self.inactive_apps_sensor, **inactive_apps)
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -131,12 +173,27 @@ class AppManagement:
         if name in self.objects:
             del self.objects[name]
 
+            active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
+            inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
+
+            active_apps["state"] -=1
+            inactive_apps["state"] +=1
+
+            if name in active_apps["attributes"]["apps"]:
+                active_apps["attributes"]["apps"].remove(name)
+
+            inactive_apps["attributes"]["apps"].append(name)
+
+            await self.set_state(self.active_apps_sensor, **active_apps)
+            await self.set_state(self.inactive_apps_sensor, **inactive_apps)
+
         await self.AD.callbacks.clear_callbacks(name)
 
         await self.AD.sched.terminate_app(name)
 
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
+
 
     def get_app_debug_level(self, app):
         if app in self.objects:
@@ -288,7 +345,6 @@ class AppManagement:
 
     # noinspection PyBroadException
     async def check_config(self, silent=False, add_threads=True):
-
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
@@ -318,7 +374,7 @@ class AppManagement:
 
                 for name in self.app_config:
                     if name in new_config:
-                        if self.app_config[name] != new_config[name]:
+                        if set(self.app_config[name]) != set(new_config[name]):
                             # Something changed, clear and reload
 
                             if silent is False:
@@ -356,16 +412,27 @@ class AppManagement:
 
                 self.app_config = new_config
                 total_apps = len(self.app_config)
+                total_apps_list = list(self.app_config.keys())
+
+                if "global_modules" in self.app_config:
+                    total_apps -=1 # remove one
+                    total_apps_list.remove("global_modules")
 
                 #if silent is False:
-                self.logger.info("Found %s active apps", total_apps)
-                inactive_apps = total_apps - self.get_active_app_count()
+                self.logger.info("Found %s total number of apps", total_apps)
+                await self.set_state(self.total_apps_sensor, state=total_apps, attributes = {"apps":total_apps_list})
+                
+                active_apps = self.get_active_app_count()
+
+                inactive_apps = total_apps - active_apps
                 if inactive_apps > 0:
+                    self.logger.info("Found %s active apps", active_apps)
                     self.logger.info("Found %s inactive apps", inactive_apps)
 
             # Now we know if we have any new apps we can create new threads if pinning
 
             active_apps = self.get_active_app_count()
+
             if add_threads is True and self.AD.threading.auto_pin is True:
                 if active_apps > self.AD.threading.thread_count:
                     for i in range(active_apps - self.AD.threading.thread_count):
@@ -383,6 +450,8 @@ class AppManagement:
         c = 0
         for name in self.app_config:
             if "disable" in self.app_config[name] and self.app_config[name]["disable"] is True:
+                pass
+            elif name == "global_modules":
                 pass
             else:
                 c += 1

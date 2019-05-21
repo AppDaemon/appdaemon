@@ -54,6 +54,7 @@ class Utility:
 
         await self.AD.threading.init_admin_stats()
         await self.AD.threading.create_initial_threads()
+        await self.AD.app_management.init_admin_stats()
 
 
         #

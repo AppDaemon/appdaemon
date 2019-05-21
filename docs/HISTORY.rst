@@ -36,6 +36,7 @@ Change Log
 - Added the ability to get the history of entities from HASS database
 - Added the ability to force a start of the MQTT plugin, even if not connected to broker at startup
 - Added the ability to set AD's `production_mode` from within apps
+- Added sensors for different internal state of AD, that can be read by apps 
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
@@ -48,7 +49,7 @@ Change Log
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
 - Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
 - Documentation fixes - contributed by `Brendon Baumgartner <https://github.com/bbrendon>`__
-- DOcumentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
+- Documentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
 - Added the ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 - Added the ability to listen to ``state_change`` events, without using listen_state() -  contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
 
@@ -63,7 +64,7 @@ Change Log
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
 - Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
-- Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann https://github.com/fhirschmann>`__
+- Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann <https://github.com/fhirschmann>`__
 - Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 - Fix for ``log_type`` flag in ``listen_log`` callback
 
