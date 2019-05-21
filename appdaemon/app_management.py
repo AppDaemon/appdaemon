@@ -76,7 +76,7 @@ class AppManagement:
     async def remove_entity(self, name):
         await self.AD.state.remove_entity("admin", "app.{}".format(name))
 
-    async def create_sensors(self):
+    async def init_admin_stats(self):
         # create sensors
         await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps", "apps":[]})
         await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps", "apps":[]})
