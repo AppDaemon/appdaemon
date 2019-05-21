@@ -423,10 +423,10 @@ class AppManagement:
                 await self.set_state(self.total_apps_sensor, state=total_apps, attributes = {"apps":total_apps_list})
                 
                 active_apps = self.get_active_app_count()
-                self.logger.info("Found %s active apps", active_apps)
 
                 inactive_apps = total_apps - active_apps
                 if inactive_apps > 0:
+                    self.logger.info("Found %s active apps", active_apps)
                     self.logger.info("Found %s inactive apps", inactive_apps)
 
             # Now we know if we have any new apps we can create new threads if pinning
