@@ -219,6 +219,22 @@ class ADAPI:
         return mode
 
     #
+    # Internal Helper functions
+    #
+
+    def start_app(self, app, **kwargs):
+        kwargs["app"] = app
+        self.call_service("app/start", **kwargs)
+
+    def stop_app(self, app, **kwargs):
+        kwargs["app"] = app
+        self.call_service("app/stop", **kwargs)
+
+    def restart_app(self, app, **kwargs):
+        kwargs["app"] = app
+        self.call_service("app/restart", **kwargs)
+
+    #
     # Apiai
     #
 
