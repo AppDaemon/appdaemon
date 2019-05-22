@@ -224,15 +224,21 @@ class ADAPI:
 
     def start_app(self, app, **kwargs):
         kwargs["app"] = app
+        kwargs["namespace"] = "appdaemon"
         self.call_service("app/start", **kwargs)
+        return None
 
     def stop_app(self, app, **kwargs):
         kwargs["app"] = app
+        kwargs["namespace"] = "appdaemon"
         self.call_service("app/stop", **kwargs)
+        return None
 
     def restart_app(self, app, **kwargs):
         kwargs["app"] = app
+        kwargs["namespace"] = "appdaemon"
         self.call_service("app/restart", **kwargs)
+        return None
 
     #
     # Apiai
