@@ -240,6 +240,11 @@ class ADAPI:
         self.call_service("app/restart", **kwargs)
         return None
 
+    def reload_apps(self, **kwargs):
+        kwargs["namespace"] = "appdaemon"
+        self.call_service("app/reload", **kwargs)
+        return None
+
     #
     # Apiai
     #
