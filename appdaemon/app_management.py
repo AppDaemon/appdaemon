@@ -55,6 +55,7 @@ class AppManagement:
         self.AD.services.register_service("appdaemon", "app", "start", self.call_service)
         self.AD.services.register_service("appdaemon", "app", "stop", self.call_service)
         self.AD.services.register_service("appdaemon", "app", "restart", self.call_service)
+        self.AD.services.register_service("appdaemon", "app", "reload", self.call_service)
 
     async def set_state(self, name, **kwargs):
         if name.find(".") == -1: #not a fully qualified entity name
@@ -911,14 +912,18 @@ class AppManagement:
         return apps
 
     async def call_service(self, namespace, domain, service, kwargs):
+        app = None
         if "app" in kwargs:
             app = kwargs["app"]
+
+        elif service == "reload":
+            pass
 
         else:
             self.logger.warning("App not specified when calling '%s' serivce. Specify App", service)
             return None
 
-        if app not in self.app_config:
+        if service != "reload" and app not in self.app_config:
             self.logger.warning("Specified App '%s' is not a valid App", app)
             return None
 
@@ -930,4 +935,6 @@ class AppManagement:
         
         elif service == "restart":
             await self.restart_app(app)
-            
+
+        elif service == "reload":
+            await self.check_app_updates()
