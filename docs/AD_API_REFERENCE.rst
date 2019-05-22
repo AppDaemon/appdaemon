@@ -2341,6 +2341,117 @@ The signature for a callback used with ``listen_log()`` is as follows:
 
 For AppDaemon system messages, name will be set to "AppDaemon".
 
+App Management
+-----------------------
+
+AD allows for other apps to start, stop and restart apps via different ways.
+This can be done either via other Apps and REST API. This can be very useful
+when running AD in ``production_mode`` and there is need to restart an app. 
+Note should be made that when this API call is used, it essentially only runs the
+``initialize()`` function in the app, and changes to attributes like ``class`` name
+or app config is not taken into account.
+
+start_app()
+~~~~~~~~~~~~~
+
+Start an App which can either be running or not. This Api call cannot start an app
+which has already been disabled in the App Confg
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    start_app(app)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+app
+'''
+
+The app that is to be started.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.start_app("lights_app")
+        
+stop_app()
+~~~~~~~~~~~~~
+
+Stop an App which is running.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    stop_app(app)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+app
+'''
+
+The app that is to be stopped.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.stop_app("lights_app")
+        
+restart_app()
+~~~~~~~~~~~~~
+
+Restart an App which can either be running or not. This Api call cannot start an app
+which has already been disabled in the App Confg
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    restart_app(app)
+
+Returns
+^^^^^^^
+
+None
+
+Parameters
+^^^^^^^^^^
+
+app
+'''
+
+The app that is to be restarted.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.restart_app("lights_app")
+
 App Pinning & Threading
 -----------------------
 
