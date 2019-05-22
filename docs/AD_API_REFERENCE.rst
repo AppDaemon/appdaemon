@@ -2344,18 +2344,17 @@ For AppDaemon system messages, name will be set to "AppDaemon".
 App Management
 -----------------------
 
-AD allows for other apps to start, stop and restart apps via different ways.
+AD allows for other apps to start, stop, restart and reload apps via different ways.
 This can be done either via other Apps and REST API. This can be very useful
 when running AD in ``production_mode`` and there is need to restart an app. 
-Note should be made that when this API call is used, it essentially only runs the
-``initialize()`` function in the app, and changes to attributes like ``class`` name
-or app config is not taken into account.
 
 start_app()
 ~~~~~~~~~~~~~
 
 Start an App which can either be running or not. This Api call cannot start an app
-which has already been disabled in the App Confg
+which has already been disabled in the App Confg. It essentially only runs the
+``initialize()`` function in the app, and changes to attributes like ``class`` name
+or app config is not taken into account.
 
 Synopsis
 ^^^^^^^^
@@ -2422,7 +2421,7 @@ restart_app()
 ~~~~~~~~~~~~~
 
 Restart an App which can either be running or not. This Api call cannot start an app
-which has already been disabled in the App Confg
+which has already been disabled in the App Confg. 
 
 Synopsis
 ^^^^^^^^
@@ -2451,6 +2450,34 @@ Examples
 
     def initialize():
         self.restart_app("lights_app")
+        
+reload_apps()
+~~~~~~~~~~~~~
+
+This API call reloads the apps, and loads up those that have changes
+made to their ``.yaml`` or ``.py`` files. This can be used if AD is running
+in production mode, and it is needed to reload apps that changes have been 
+made to
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    reload_apps()
+
+Returns
+^^^^^^^
+
+None
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    def initialize():
+        self.reload_apps()
 
 App Pinning & Threading
 -----------------------
