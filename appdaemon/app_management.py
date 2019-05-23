@@ -9,6 +9,7 @@ import cProfile
 import io
 import pstats
 import logging
+import copy
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -178,22 +179,22 @@ class AppManagement:
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
+        active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
+        inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
+
+        active_apps["state"] -=1
+        inactive_apps["state"] +=1
+
+        if name in active_apps["attributes"]["apps"]:
+            active_apps["attributes"]["apps"].remove(name)
+
+        inactive_apps["attributes"]["apps"].append(name)
+
+        await self.set_state(self.active_apps_sensor, **active_apps)
+        await self.set_state(self.inactive_apps_sensor, **inactive_apps)
+
         if name in self.objects:
             del self.objects[name]
-
-            active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
-            inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
-
-            active_apps["state"] -=1
-            inactive_apps["state"] +=1
-
-            if name in active_apps["attributes"]["apps"]:
-                active_apps["attributes"]["apps"].remove(name)
-
-            inactive_apps["attributes"]["apps"].append(name)
-
-            await self.set_state(self.active_apps_sensor, **active_apps)
-            await self.set_state(self.inactive_apps_sensor, **inactive_apps)
 
         await self.AD.callbacks.clear_callbacks(name)
 
