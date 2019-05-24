@@ -87,8 +87,8 @@ class AppManagement:
 
     async def init_admin_stats(self):
         # create sensors
-        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps", "apps":[]})
-        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps", "apps":[]})
+        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps"})
+        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps"})
         await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps", "apps":[]})
 
     async def terminate(self):
@@ -132,19 +132,15 @@ class AppManagement:
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
 
-                active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
-                inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
+                active_apps = await self.get_state(self.active_apps_sensor)
+                inactive_apps = await self.get_state(self.inactive_apps_sensor)
 
-                active_apps["state"] +=1
-                if inactive_apps["state"] > 0:
-                    inactive_apps["state"] -=1
-                    if name in inactive_apps["attributes"]["apps"]:
-                        inactive_apps["attributes"]["apps"].remove(name)
+                active_apps +=1
+                if inactive_apps > 0:
+                    inactive_apps -=1
 
-                active_apps["attributes"]["apps"].append(name)
-
-                await self.set_state(self.active_apps_sensor, **active_apps)
-                await self.set_state(self.inactive_apps_sensor, **inactive_apps)
+                await self.set_state(self.active_apps_sensor, state = active_apps)
+                await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -179,19 +175,14 @@ class AppManagement:
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
-        active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
-        inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
+        active_apps = await self.get_state(self.active_apps_sensor)
+        inactive_apps = await self.get_state(self.inactive_apps_sensor)
 
-        active_apps["state"] -=1
-        inactive_apps["state"] +=1
+        active_apps -=1
+        inactive_apps +=1
 
-        if name in active_apps["attributes"]["apps"]:
-            active_apps["attributes"]["apps"].remove(name)
-
-        inactive_apps["attributes"]["apps"].append(name)
-
-        await self.set_state(self.active_apps_sensor, **active_apps)
-        await self.set_state(self.inactive_apps_sensor, **inactive_apps)
+        await self.set_state(self.active_apps_sensor, state = active_apps)
+        await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
 
         if name in self.objects:
             del self.objects[name]
@@ -446,15 +437,13 @@ class AppManagement:
 
                 self.app_config = new_config
                 total_apps = len(self.app_config)
-                total_apps_list = list(self.app_config.keys())
 
                 if "global_modules" in self.app_config:
                     total_apps -=1 # remove one
-                    total_apps_list.remove("global_modules")
 
                 #if silent is False:
                 self.logger.info("Found %s total number of apps", total_apps)
-                await self.set_state(self.total_apps_sensor, state=total_apps, attributes = {"apps":total_apps_list})
+                await self.set_state(self.total_apps_sensor, state=total_apps)
                 
                 active_apps = self.get_active_app_count()
 
