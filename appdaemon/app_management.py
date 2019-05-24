@@ -9,7 +9,6 @@ import cProfile
 import io
 import pstats
 import logging
-import copy
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
