@@ -9,6 +9,7 @@ import cProfile
 import io
 import pstats
 import logging
+import copy
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -130,16 +131,7 @@ class AppManagement:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
-
-                active_apps = await self.get_state(self.active_apps_sensor)
-                inactive_apps = await self.get_state(self.inactive_apps_sensor)
-
-                active_apps +=1
-                if inactive_apps > 0:
-                    inactive_apps -=1
-
-                await self.set_state(self.active_apps_sensor, state = active_apps)
-                await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
+                
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -173,15 +165,6 @@ class AppManagement:
                 error_logger.warning('-' * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
-
-        active_apps = await self.get_state(self.active_apps_sensor)
-        inactive_apps = await self.get_state(self.inactive_apps_sensor)
-
-        active_apps -=1
-        inactive_apps +=1
-
-        await self.set_state(self.active_apps_sensor, state = active_apps)
-        await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
 
         if name in self.objects:
             del self.objects[name]
@@ -442,6 +425,7 @@ class AppManagement:
 
                 #if silent is False:
                 self.logger.info("Found %s total number of apps", total_apps)
+                
                 await self.set_state(self.total_apps_sensor, state=total_apps)
                 
                 active_apps = self.get_active_app_count()
@@ -450,6 +434,9 @@ class AppManagement:
                 if inactive_apps > 0:
                     self.logger.info("Found %s active apps", active_apps)
                     self.logger.info("Found %s inactive apps", inactive_apps)
+
+                await self.set_state(self.active_apps_sensor, state = active_apps)
+                await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
 
             # Now we know if we have any new apps we can create new threads if pinning
 
