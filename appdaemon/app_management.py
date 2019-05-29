@@ -130,7 +130,6 @@ class AppManagement:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
-                
                 active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
                 inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
 
@@ -144,7 +143,6 @@ class AppManagement:
 
                 await self.set_state(self.active_apps_sensor, **active_apps)
                 await self.set_state(self.inactive_apps_sensor, **inactive_apps)
-                
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -181,7 +179,6 @@ class AppManagement:
 
         if name in self.objects:
             del self.objects[name]
-            
             active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
             inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
 
