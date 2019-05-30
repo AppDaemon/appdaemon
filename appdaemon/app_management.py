@@ -52,10 +52,10 @@ class AppManagement:
         #
         # Register App Services
         #
-        self.AD.services.register_service("appdaemon", "app", "start", self.call_service)
-        self.AD.services.register_service("appdaemon", "app", "stop", self.call_service)
-        self.AD.services.register_service("appdaemon", "app", "restart", self.call_service)
-        self.AD.services.register_service("appdaemon", "app", "reload", self.call_service)
+        self.AD.services.register_service("appdaemon", "app", "start", self.managed_services)
+        self.AD.services.register_service("appdaemon", "app", "stop", self.managed_services)
+        self.AD.services.register_service("appdaemon", "app", "restart", self.managed_services)
+        self.AD.services.register_service("appdaemon", "app", "reload", self.managed_services)
 
     async def set_state(self, name, **kwargs):
         if name.find(".") == -1: #not a fully qualified entity name
@@ -909,7 +909,7 @@ class AppManagement:
 
         return apps
 
-    async def call_service(self, namespace, domain, service, kwargs):
+    async def managed_services(self, namespace, domain, service, kwargs):
         app = None
         if "app" in kwargs:
             app = kwargs["app"]
