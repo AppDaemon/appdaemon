@@ -37,6 +37,7 @@ Change Log
 - Added the ability to force a start of the MQTT plugin, even if not connected to broker at startup
 - Added the ability to set AD's `production_mode` from within apps
 - Added the ability to start, stop, restart and reload apps from either other apps or REST API
+- Added the ability to register app services
 - Added sensors for different internal state of AD, that can be read by apps 
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
