@@ -6,7 +6,6 @@ import asyncio
 import datetime
 import traceback
 
-import appdaemon.scheduler as scheduler
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
@@ -63,22 +62,7 @@ class Utility:
 
         await self.AD.plugins.wait_for_plugins()
 
-        # Check if we need to bail due to missing metadata
-
-        if self.AD.plugins.required_meta_check() is False:
-            if self.AD.stop_function is not None:
-                self.AD.stop_function()
-            else:
-                self.stop()
-
         if not self.stopping:
-
-            #
-            # All plugins are loaded and we have initial state
-            # We also have metadata so we can initialise the scheduler
-            #
-
-            self.AD.sched = scheduler.Scheduler(self.AD)
 
             # Create timer loop
 

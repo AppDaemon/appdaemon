@@ -2,7 +2,7 @@ import os
 import os.path
 import concurrent.futures
 import threading
-import datetime
+
 
 class AppDaemon:
 
@@ -22,6 +22,7 @@ class AppDaemon:
         import appdaemon.state as state
         import appdaemon.events as events
         import appdaemon.services as services
+        import appdaemon.scheduler as scheduler
 
         self.logging = logging
         self.logging.register_ad(self)
@@ -166,6 +167,13 @@ class AppDaemon:
             self.logging.log("INFO", "Apps are disabled")
         else:
             self.apps = True
+
+
+        #
+        # Set up scheduler
+        #
+        self.sched = scheduler.Scheduler(self)
+
 
         #
         # Set up state

@@ -209,32 +209,29 @@ Raspberry Pi Docker
 -------------------
 
 Since the official Docker image isn't compatible with raspberry Pi, you will need to build your own docker image
-from the downloaded repository. The Dockerfile also needs a couple of changes:
-
-1. Change the image line to use a Resin image:
-
-``FROM arm32v7/python:3.6``
-
-2. Change the ``RUN`` line to the following:
-
-``RUN pip3 install requests && pip3 install .``
-
-You can then build and run a docker image locally as follows:
+from the downloaded repository.
 
 .. code:: bash
+
     $ git clone https://github.com/home-assistant/appdaemon.git
     $ cd appdaemon
+
+You can then build and run the docker image locally as follows:
+
+.. code:: bash
+
     $ docker build -t appdaemon .
-    $ docker run -t -i --name=appdaemon -p 5050:5050 \
-      -e HA_URL="<Your HA URL>" \
-      -e HA_KEY="<your HA Key>" \
-      -e DASH_URL="<Your DASH URL>" \
-      -v <Your AppDaemon conf dir>:/conf \
+    $ docker run --name=appdaemon -d -p 5050:5050 \
+      --restart=always \
+      -e HA_URL="<Your HA_URL value>" \
+      -e TOKEN="<your TOKEN value>" \
+      -e DASH_URL="http://$HOSTNAME:5050" \
+      -v <your_conf_folder>:/conf \
       appdaemon:latest
 
 For more information on running AppDaemon under Docker, see the Docker Tutorial. The key difference is that
 you will be running a locally built instance of AppDaemon rather than one from Docker Hub, so for run commands,
-make usre yo uspecify "appdaemon:latest" as the image, as above, rather than "acockburn/appdaemon:latest" as the tutorial states.
+make sure to specify "appdaemon:latest" as the image, as above, rather than "acockburn/appdaemon:latest" as the tutorial states.
 
 At the time of writing, @torkildr is maintaining a linked Raspberry Pi image here:
 
