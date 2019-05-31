@@ -219,6 +219,33 @@ class ADAPI:
         return mode
 
     #
+    # Internal Helper functions
+    #
+
+    def start_app(self, app, **kwargs):
+        kwargs["app"] = app
+        kwargs["namespace"] = "appdaemon"
+        self.call_service("app/start", **kwargs)
+        return None
+
+    def stop_app(self, app, **kwargs):
+        kwargs["app"] = app
+        kwargs["namespace"] = "appdaemon"
+        self.call_service("app/stop", **kwargs)
+        return None
+
+    def restart_app(self, app, **kwargs):
+        kwargs["app"] = app
+        kwargs["namespace"] = "appdaemon"
+        self.call_service("app/restart", **kwargs)
+        return None
+
+    def reload_apps(self, **kwargs):
+        kwargs["namespace"] = "appdaemon"
+        self.call_service("app/reload", **kwargs)
+        return None
+
+    #
     # Apiai
     #
 
@@ -354,14 +381,22 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self,
                                               self.AD.state.set_state(self.name, namespace, entity_id, **kwargs))
 
-        #
-        # Service
-        #
+    #
+    # Service
+    #
 
     @staticmethod
     def _check_service(service):
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
+            
+    def register_service(self, service, cb, **kwargs):
+        self._check_service(service)
+        d, s = service.split("/")
+        self.logger.debug("register_service: %s/%s, %s", d, s, kwargs)
+
+        namespace = self._get_namespace(**kwargs)
+        self.AD.services.register_service(namespace, d, s, cb)
 
     def call_service(self, service, **kwargs):
         self._check_service(service)

@@ -49,6 +49,14 @@ class AppManagement:
 
         sys.path.insert(0, os.path.dirname(__file__))
 
+        #
+        # Register App Services
+        #
+        self.AD.services.register_service("appdaemon", "app", "start", self.manage_services)
+        self.AD.services.register_service("appdaemon", "app", "stop", self.manage_services)
+        self.AD.services.register_service("appdaemon", "app", "restart", self.manage_services)
+        self.AD.services.register_service("appdaemon", "app", "reload", self.manage_services)
+
     async def set_state(self, name, **kwargs):
         if name.find(".") == -1: #not a fully qualified entity name
             entity_id = "app.{}".format(name)
@@ -122,7 +130,6 @@ class AppManagement:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
-
                 active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
                 inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
 
@@ -172,7 +179,6 @@ class AppManagement:
 
         if name in self.objects:
             del self.objects[name]
-
             active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
             inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
 
@@ -194,6 +200,31 @@ class AppManagement:
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
 
+    async def start_app(self, app):
+        await self.init_object(app)
+        
+        if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
+            pass
+        else:
+            await self.initialize_app(app)
+
+    async def stop_app(self, app):
+        try:
+            self.logger.info("Terminating %s", app)
+            await self.terminate_app(app)
+        except:
+            error_logger = logging.getLogger("Error.{}".format(app))
+            error_logger.warning('-' * 60)
+            error_logger.warning("Unexpected error terminating app: %s:", app)
+            error_logger.warning('-' * 60)
+            error_logger.warning(traceback.format_exc())
+            error_logger.warning('-' * 60)
+            if self.AD.logging.separate_error_log() is True:
+                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+
+    async def restart_app(self, app):
+        await self.stop_app(app)
+        await self.start_app(app)
 
     def get_app_debug_level(self, app):
         if app in self.objects:
@@ -374,7 +405,7 @@ class AppManagement:
 
                 for name in self.app_config:
                     if name in new_config:
-                        if set(self.app_config[name]) != set(new_config[name]):
+                        if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
 
                             if silent is False:
@@ -693,18 +724,7 @@ class AppManagement:
             prio_apps = self.get_app_deps_and_prios(apps["term"])
 
             for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
-                try:
-                    self.logger.info("Terminating %s", app)
-                    await self.terminate_app(app)
-                except:
-                    error_logger = logging.getLogger("Error.{}".format(app))
-                    error_logger.warning('-' * 60)
-                    error_logger.warning("Unexpected error terminating app: %s:", app)
-                    error_logger.warning('-' * 60)
-                    error_logger.warning(traceback.format_exc())
-                    error_logger.warning('-' * 60)
-                    if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+                await self.stop_app(app)
 
         # Load/reload modules
 
@@ -888,3 +908,31 @@ class AppManagement:
                         apps.append(app)
 
         return apps
+
+    async def manage_services(self, namespace, domain, service, kwargs):
+        app = None
+        if "app" in kwargs:
+            app = kwargs["app"]
+
+        elif service == "reload":
+            pass
+
+        else:
+            self.logger.warning("App not specified when calling '%s' serivce. Specify App", service)
+            return None
+
+        if service != "reload" and app not in self.app_config:
+            self.logger.warning("Specified App '%s' is not a valid App", app)
+            return None
+
+        if service == "start":
+            await self.start_app(app)
+        
+        elif service == "stop":
+            await self.stop_app(app)
+        
+        elif service == "restart":
+            await self.restart_app(app)
+
+        elif service == "reload":
+            await self.check_app_updates()
