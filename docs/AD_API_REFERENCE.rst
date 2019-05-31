@@ -1979,7 +1979,7 @@ Synopsis
 
 .. code:: python
 
-    get_app(self, plugin)
+    get_ad_api(self, plugin)
 
 Parameters
 ^^^^^^^^^^
@@ -2005,7 +2005,7 @@ This example shows an App getting an ADAPI object to make a scheduler call.
 
       def initialize(self):
 
-        adbase = self.get_ad_api()
+        self.adbase = self.get_ad_api()
         handle = self.adbase.run_in(callback, 20)
 
 
