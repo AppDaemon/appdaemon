@@ -70,6 +70,7 @@ Change Log
 - Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 - Fix for ``log_type`` flag in ``listen_log`` callback
 - Relative paths for appdaemon's config directory now work corrcetly
+- Fix to Dialogflow after format changes
 
 **Breaking Changes**
 
