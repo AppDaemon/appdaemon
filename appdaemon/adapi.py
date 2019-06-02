@@ -251,14 +251,14 @@ class ADAPI:
 
     @staticmethod
     def get_apiai_intent(data):
-        if "result" in data and "action" in data["result"]:
+        if "queryResult" in data and "action" in data["result"]:
             return data["result"]["action"]
         else:
             return None
 
     @staticmethod
     def get_apiai_slot_value(data, slot=None):
-        if "result" in data and \
+        if "queryResult" in data and \
                         "contexts" in data["result"]:
             req = data.get('result')
             contexts = req.get('contexts', [{}])

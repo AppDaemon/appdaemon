@@ -321,12 +321,15 @@ def process_arg(self, arg, args, **kwargs):
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
-def check_path(type, logger, path, pathtype="directory", permissions=None):
+def check_path(type, logger, inpath, pathtype="directory", permissions=None):
     #disable checks for windows platform
     if platform.system() == "Windows":
         return
 
     try:
+
+        path = os.path.abspath(inpath)
+
         perms = permissions
         if pathtype == "file":
             dir = os.path.dirname(path)
