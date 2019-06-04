@@ -57,6 +57,9 @@ class AppManagement:
         self.AD.services.register_service("appdaemon", "app", "restart", self.manage_services)
         self.AD.services.register_service("appdaemon", "app", "reload", self.manage_services)
 
+        self.active_apps = []
+        self.inactive_apps = []
+
     async def set_state(self, name, **kwargs):
         if name.find(".") == -1: #not a fully qualified entity name
             entity_id = "app.{}".format(name)
@@ -86,9 +89,9 @@ class AppManagement:
 
     async def init_admin_stats(self):
         # create sensors
-        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps", "apps":[]})
-        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps", "apps":[]})
-        await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps", "apps":[]})
+        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps"})
+        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps"})
+        await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps"})
 
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
@@ -120,9 +123,11 @@ class AppManagement:
             init = getattr(self.objects[name]["object"], "initialize", None)
             if init == None:
                 self.logger.warning("Unable to find initialize() function in module %s - skipped", name)
+                await self.increase_inactive_apps(name)
                 return
         else:
             self.logger.warning("Unable to find module %s - initialize() skipped", name)
+            await self.increase_inactive_apps(name)
             return
         # Call its initialize function
 
@@ -130,19 +135,9 @@ class AppManagement:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
                 await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
-                active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
-                inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
-
-                active_apps["state"] +=1
-                if inactive_apps["state"] > 0:
-                    inactive_apps["state"] -=1
-                    if name in inactive_apps["attributes"]["apps"]:
-                        inactive_apps["attributes"]["apps"].remove(name)
-
-                active_apps["attributes"]["apps"].append(name)
-
-                await self.set_state(self.active_apps_sensor, **active_apps)
-                await self.set_state(self.inactive_apps_sensor, **inactive_apps)
+                
+                await self.increase_active_apps(name)
+                
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -153,6 +148,7 @@ class AppManagement:
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
             await self.set_state(name, state="initialize_error")
+            await self.increase_inactive_apps(name)
 
     async def terminate_app(self, name):
         term = None
@@ -179,19 +175,8 @@ class AppManagement:
 
         if name in self.objects:
             del self.objects[name]
-            active_apps = await self.get_state(self.active_apps_sensor, attribute = "all")
-            inactive_apps = await self.get_state(self.inactive_apps_sensor, attribute = "all")
-
-            active_apps["state"] -=1
-            inactive_apps["state"] +=1
-
-            if name in active_apps["attributes"]["apps"]:
-                active_apps["attributes"]["apps"].remove(name)
-
-            inactive_apps["attributes"]["apps"].append(name)
-
-            await self.set_state(self.active_apps_sensor, **active_apps)
-            await self.set_state(self.inactive_apps_sensor, **inactive_apps)
+            
+        await self.increase_inactive_apps(name)
 
         await self.AD.callbacks.clear_callbacks(name)
 
@@ -250,7 +235,9 @@ class AppManagement:
             modname = await utils.run_in_executor(self, __import__, app_args["module"])
             app_class = getattr(modname, app_args["class"], None)
             if app_class is None:
-                self.logger.warning("Unable to find class %s in module %s - %s is not initialized", app_args["module"], app_args["class"], modname, name)
+                self.logger.warning("Unable to find class %s in module %s - '%s' is not initialized", app_args["class"], app_args["module"], name)
+                await self.increase_inactive_apps(name)
+
             else:
                 self.objects[name] = {
                     "object": app_class(
@@ -262,7 +249,8 @@ class AppManagement:
                 }
 
         else:
-            self.logger.warning("Unable to find module module %s - %s is not initialized", app_args["module"], name)
+            self.logger.warning("Unable to find module module %s - '%s' is not initialized", app_args["module"], name)
+            self.increase_inactive_apps(name)
 
     async def read_config(self):
 
@@ -443,15 +431,14 @@ class AppManagement:
 
                 self.app_config = new_config
                 total_apps = len(self.app_config)
-                total_apps_list = list(self.app_config.keys())
 
                 if "global_modules" in self.app_config:
                     total_apps -=1 # remove one
-                    total_apps_list.remove("global_modules")
 
                 #if silent is False:
                 self.logger.info("Found %s total number of apps", total_apps)
-                await self.set_state(self.total_apps_sensor, state=total_apps, attributes = {"apps":total_apps_list})
+                
+                await self.set_state(self.total_apps_sensor, state=total_apps)
                 
                 active_apps = self.get_active_app_count()
 
@@ -459,7 +446,7 @@ class AppManagement:
                 if inactive_apps > 0:
                     self.logger.info("Found %s active apps", active_apps)
                     self.logger.info("Found %s inactive apps", inactive_apps)
-
+                    
             # Now we know if we have any new apps we can create new threads if pinning
 
             active_apps = self.get_active_app_count()
@@ -760,6 +747,7 @@ class AppManagement:
                     if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
                         self.logger.info("%s is disabled", app)
                         await self.set_state(app, state="disabled")
+                        await self.increase_inactive_apps(app)
                     else:
                         await self.init_object(app)
                 except:
@@ -936,3 +924,30 @@ class AppManagement:
 
         elif service == "reload":
             await self.check_app_updates()
+
+
+    async def increase_active_apps(self, name):
+        if name not in self.active_apps:
+            self.active_apps.append(name)            
+
+        if name in self.inactive_apps:
+            self.inactive_apps.remove(name)
+        
+        active_apps = len(self.active_apps)
+        inactive_apps = len(self.inactive_apps)
+
+        await self.set_state(self.active_apps_sensor, state = active_apps)
+        await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
+
+    async def increase_inactive_apps(self, name):
+        if name not in self.inactive_apps:
+            self.inactive_apps.append(name)            
+
+        if name in self.active_apps:
+            self.active_apps.remove(name)
+        
+        inactive_apps = len(self.inactive_apps)
+        active_apps = len(self.active_apps)
+
+        await self.set_state(self.active_apps_sensor, state = active_apps)
+        await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
