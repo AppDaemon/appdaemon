@@ -38,9 +38,8 @@ class ThreadAsync:
                     myargs = args["args"]
                     mykwargs = args["kwargs"]
                     result = await function(*myargs, **mykwargs)
-
-                    self.logger.debug("calling task_done()")
-                    self.appq.task_done()
+                    #self.logger.debug("calling task_done()")
+                    #self.appq.task_done()
             except:
                 self.logger.warning('-' * 60)
                 self.logger.warning("Unexpected error during thread_async() loop()")

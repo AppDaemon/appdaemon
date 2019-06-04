@@ -105,16 +105,11 @@ The ``appdaemon:`` section has a number of directives:
 
 -  ``filters`` (optional) - see below
 -  ``plugins`` (required) - see below
--  ``latitude`` (optional) - latitude for AppDaemon to use. If not
-   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
--  ``longitude`` (optional) - longitude for AppDaemon to use. If not
-   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
--  ``elevation`` (optional) - elevation for AppDaemon to use. If not
-   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
--  ``time_zone`` (optional) - timezone for AppDaemon to use. IIf not
-   specified, AppDaemon will query the latitude from available plugins and terminate if it doesn't get a value.
--  ``api_key`` (optional) - adds the requirement for AppDaemon API calls
-   to provide a key in the header of a request
+-  ``latitude`` (required) - latitude for AppDaemon to use.
+-  ``longitude`` (required) - longitude for AppDaemon to use.
+-  ``elevation`` (required) - elevation for AppDaemon to use.
+-  ``time_zone`` (required) - timezone for AppDaemon to use.
+-  ``api_key`` (optional) - adds the requirement for AppDaemon API calls to provide a key in the header of a request
 -  ``api_ssl_certificate`` (optional) - certificate to use when running
    the API over SSL
 -  ``api_ssl_key`` (optional) - key to use when running the API over SSL

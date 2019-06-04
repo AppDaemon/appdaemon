@@ -294,7 +294,7 @@ class State:
             if not await self.entity_exists(namespace, entity_id):
                 return default
             state = self.state[namespace][entity_id]
-            if attribute is None:
+            if attribute is None and "state" in state:
                 return maybe_copy(state["state"])
             if attribute == "all":
                 return maybe_copy(state)

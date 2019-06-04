@@ -4,7 +4,7 @@
 AppDaemon main() module.
 
 AppDaemon module that contains main() along with argument parsing, instantiation of the AppDaemon and HTTP Objects,
-also creates the loop and kicks evrything off
+also creates the loop and kicks everything off
 """
 
 import sys
@@ -351,6 +351,27 @@ class ADMain():
         self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
+
+        exit = False
+
+        if "time_zone" not in config["appdaemon"]:
+            self.logger.error("time_zone not specified in appdaemon.cfg")
+            exit = True
+
+        if "latitude" not in config["appdaemon"]:
+            self.logger.error("latitude not specified in appdaemon.cfg")
+            exit = True
+
+        if "longitude" not in config["appdaemon"]:
+            self.logger.error("longitude not specified in appdaemon.cfg")
+            exit = True
+
+        if "elevation" not in config["appdaemon"]:
+            self.logger.error("elevation not specified in appdaemon.cfg")
+            exit = True
+
+        if exit is True:
+            sys.exit(1)
 
         utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
 

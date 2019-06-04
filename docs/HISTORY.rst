@@ -37,6 +37,7 @@ Change Log
 - Added the ability to force a start of the MQTT plugin, even if not connected to broker at startup
 - Added the ability to set AD's `production_mode` from within apps
 - Added the ability to start, stop, restart and reload apps from either other apps or REST API
+- Added the ability to register app services
 - Added sensors for different internal state of AD, that can be read by apps 
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
@@ -68,6 +69,8 @@ Change Log
 - Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann <https://github.com/fhirschmann>`__
 - Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 - Fix for ``log_type`` flag in ``listen_log`` callback
+- Relative paths for appdaemon's config directory now work corrcetly
+- Fix to Dialogflow after format changes
 
 **Breaking Changes**
 
@@ -89,6 +92,7 @@ Change Log
 - Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log`` should be renamed
 - Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
 - As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
+- In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
 
 
 3.0.4 04/04/2019

@@ -47,7 +47,7 @@ setup(
     keywords=['appdaemon', 'home', 'automation'],
     entry_points={
         'console_scripts': [
-            'appdaemon = appdaemon.main:main'
+            'appdaemon = appdaemon.__main__:main'
         ]
     },
     classifiers=[
