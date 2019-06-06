@@ -1,7 +1,21 @@
 MQTT API Reference
 ==================
 
-A list of API calls and information specific to the MQTT plugin.
+A list of API calls and information specific to the MQTT plugin. This API is working with HA embedded MQTT brocker which is now deprecated → https://www.home-assistant.io/docs/mqtt/broker#embedded-broker-deprecated
+
+In order to work with custom MQTT brocker (like Mosquitto) you need to pass the events manually using the following code in automations:
+
+.. code:: yaml
+
+  - alias: 'MQTT to EVENT hermes/#'
+    trigger:
+      platform: mqtt
+      topic: 'hermes/#'
+    action:
+      event: MQTT_HERMES
+      event_data_template:
+        topic: '{{ trigger.topic }}'
+        payload: '{{ trigger.payload }}'
 
 Service Calls
 ----------------
