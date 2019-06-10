@@ -293,7 +293,7 @@ immediate = (optional)
 True or False
 
 Quick check enables the countdown for a ``delay`` parameter to start at the time, if given.
-If the ``duration`` paremter is not given, the callback is ran immediately. What this means is that
+If the ``duration`` parameter is not given, the callback is ran immediately. What this means is that
 after the callback is registered, rather than requiring one or more state changes before it is ran, it immediately checks
 the entity's states based on given parameters. If the conditions are right, the callback is ran immediately at the time 
 of registering. This can be useful, if for instance you want the callback to be triggered immediately if a light is already on, or after a ``duration`` if given.
