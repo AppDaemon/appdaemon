@@ -99,8 +99,11 @@ class State:
                 __duration = 0 # run it immediately
                 __new_state = None
                 __attribute = None
-                run = True
-                if entity is not None:
+                run = False
+                
+                if entity is not None and entity in self.state[namespace]:
+                    run = True
+                    
                     if "attribute" in kwargs:
                         __attribute = kwargs["attribute"]
                     if "new" in kwargs:
