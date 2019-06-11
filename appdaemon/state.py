@@ -112,7 +112,7 @@ class State:
                             run = False
                     else: #use the present state of the entity
                         if __attribute == None:
-                            __new_state = self.state[namespace][entity]["state"] == kwargs["new"]
+                            __new_state = self.state[namespace][entity]["state"]
                         elif __attribute != None and __attribute in self.state[namespace][entity]["attributes"]:
                             __new_state = self.state[namespace][entity]["attributes"][__attribute]
                     if "duration" in kwargs:
