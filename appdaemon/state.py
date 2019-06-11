@@ -114,7 +114,7 @@ class State:
                         else:
                             run = False
                     else: #use the present state of the entity
-                        if __attribute == None:
+                        if __attribute == None and "state" in self.state[namespace][entity]:
                             __new_state = self.state[namespace][entity]["state"]
                         elif __attribute != None and __attribute in self.state[namespace][entity]["attributes"]:
                             __new_state = self.state[namespace][entity]["attributes"][__attribute]
