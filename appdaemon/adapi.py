@@ -352,6 +352,8 @@ class ADAPI:
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
+        
+        self.logger.debug("Calling listen_state for %s", self.name)
         return utils.run_coroutine_threadsafe(self, self.AD.state.add_state_callback(name, namespace, entity, cb, kwargs))
 
     def cancel_listen_state(self, handle):
