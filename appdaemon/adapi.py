@@ -514,6 +514,7 @@ class ADAPI:
 
     def cancel_timer(self, handle):
         name = self.name
+        self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
         utils.run_coroutine_threadsafe(self, self.AD.sched.cancel_timer(name, handle))
 
     def info_timer(self, handle):
