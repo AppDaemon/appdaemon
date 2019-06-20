@@ -64,6 +64,7 @@ Change Log
 
 **Breaking Changes**
 
+- ``get_hass_config()`` has been changed to ``get_plugin_config()``, to keep up with the plugin structure of AD
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
 - SSE Support has been removed
 - Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
