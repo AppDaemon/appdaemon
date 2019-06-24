@@ -28,7 +28,7 @@ Run AppDaemon from the command line
 
 Now that you have a local copy of the code, the next step is to run AppDaemon using that code.
 
-As a first step, if you are using a Virtual Environment enable it. The best practice here is to use a venv specifically for the dev version; it is possible that the dev branch may have updated dependencies that will be incompatible with the latest stable version, and may break it.
+As a first step, if you are using a Virtual Environment enable it. The best practice here is to use a venv specifically for the dev version; it is possible that the dev branch may have updated dependencies that will be incompatible with the latest stable version, and may break it. If there are dependency issues, review ``setup.py`` for a list of required dependencies.
 
 To run the cloned version of AppDaemon, make sure you are in the ``appdaemon`` subdirectory and run the following command:
 
