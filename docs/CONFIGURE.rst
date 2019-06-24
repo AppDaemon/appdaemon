@@ -138,7 +138,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 
 -  ``total_threads`` (optional) - the number of dedicated worker threads to create for
    running the apps. Normally, AppDaemon will create enough threads to provide one per app, or default to 10 if app pinning is turned off. Setting this to a value will turn off automatic thread management.
--  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and lcoking of instance variables
+-  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and locking of instance variables
 -  ``pin_threads`` (optional) - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. Default is to use all threads for pinned apps.
 - ``load_distribution`` - Algorithm to use for loadbalancing between unpinned apps. Can be ``roundrobin`` (the default), ``random`` or ``load``
 -  ``timewarp`` (optional) - equivalent to the command line flag ``-t`` but will take precedence

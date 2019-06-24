@@ -1123,6 +1123,65 @@ Style Arguments:
 -  ``title2_style``
 -  ``state_text_style``
 
+person
+~~~~~~
+
+A Widget that reports on the status of a person. It can also be
+optionally be used to toggle the status between "home" and "not\_home".
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - entity of the person, e.g. ``person.andrew``.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``enable`` - set to 1 to enable the widget to toggle the
+   person status
+-  ``state_text``
+-  ``state_map``
+-  ``active_map``
+
+Active map is used to specify states other than "home" that will be
+regarded as active, meaning the icon will light up. This can be useful
+if tracking a device tracker within the house using beacons for
+instance.
+
+Example:
+
+.. code:: yaml
+
+    wendy_presence_mapped:
+      widget_type: person
+      title: Wendy
+      title2: Mapped
+      entity: person.wendy
+      active_map:
+        - home
+        - house
+        - back_yard
+        - upstairs
+
+In the absence of an active map, only the state ``home`` will be
+regarded as active.
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
+
+
+
 label
 ~~~~~
 

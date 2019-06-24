@@ -168,6 +168,10 @@ class AppDaemon:
         else:
             self.apps = True
 
+        #
+        # Set up services
+        #
+        self.services = services.Services(self)
 
         #
         # Set up scheduler
@@ -189,11 +193,6 @@ class AppDaemon:
         # Set up callbacks
         #
         self.callbacks = callbacks.Callbacks(self)
-
-        #
-        # Set up services
-        #
-        self.services = services.Services(self)
 
         if self.apps is True:
             if self.app_dir is None:

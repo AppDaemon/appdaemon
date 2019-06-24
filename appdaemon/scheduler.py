@@ -74,6 +74,7 @@ class Scheduler:
         self.stopping = True
 
     async def cancel_timer(self, name, handle):
+        print("cancel timer")
         self.logger.debug("Canceling timer for %s", name)
         if name in self.schedule and handle in self.schedule[name]:
             del self.schedule[name][handle]

@@ -125,7 +125,12 @@ class Events:
         :param namespace: namespace the event was fired in
         :param data: data associated with the event
         """
+
         try:
+
+            #if data["event_type"] == "__AD_ENTITY_REMOVED":
+            #    print("process event")
+
             self.logger.debug("Event type:%s:", data['event_type'])
             self.logger.debug(data["data"])
 
@@ -146,6 +151,8 @@ class Events:
                 else:
                     self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
                     return
+
+
             if self.AD.apps is True and namespace != "admin":
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
@@ -155,12 +162,13 @@ class Events:
             #
 
             if self.AD.http is not None:
-                # take a copy without TS if present as it breaks deepcopy and jason
+
                 if data["event_type"] == "state_changed":
                     if data["data"]["new_state"] == data["data"]["old_state"]:
                         # Nothing changed so don't send
                         return
 
+                # take a copy without TS if present as it breaks deepcopy and jason
                 if "ts" in data["data"]:
                     ts = data["data"].pop("ts")
                     mydata = deepcopy(data)
