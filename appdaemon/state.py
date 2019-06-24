@@ -101,17 +101,40 @@ class State:
             # start the clock immediately if the device is already in the new state
             #
             if "immediate" in kwargs and kwargs["immediate"] is True:
-                if entity is not None and "new" in kwargs and "duration" in kwargs:
-                    if self.state[namespace][entity]["state"] == kwargs["new"]:
-                        exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["duration"]))
-                        kwargs["__duration"] = await self.AD.sched.insert_schedule(
-                            name, exec_time, cb, False, None,
-                            __entity=entity,
-                            __attribute=None,
-                            __old_state=None,
-                            __new_state=kwargs["new"], **kwargs
-                        )
-
+                __duration = 0 # run it immediately
+                __new_state = None
+                __attribute = None
+                run = False
+                
+                if entity is not None and entity in self.state[namespace]:
+                    run = True
+                    
+                    if "attribute" in kwargs:
+                        __attribute = kwargs["attribute"]
+                    if "new" in kwargs:
+                        if __attribute == None and self.state[namespace][entity]["state"] == kwargs["new"]:
+                            __new_state = kwargs["new"]
+                        elif __attribute != None and __attribute in self.state[namespace][entity]["attributes"] and self.state[namespace][entity]["attributes"][__attribute] == kwargs["new"]:
+                            __new_state = kwargs["new"]
+                        else:
+                            run = False
+                    else: #use the present state of the entity
+                        if __attribute == None and "state" in self.state[namespace][entity]:
+                            __new_state = self.state[namespace][entity]["state"]
+                        elif __attribute != None and __attribute in self.state[namespace][entity]["attributes"]:
+                            __new_state = self.state[namespace][entity]["attributes"][__attribute]
+                    if "duration" in kwargs:
+                        __duration = kwargs["duration"]
+                if run:
+                    exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(__duration))
+                    kwargs["__duration"] = await self.AD.sched.insert_schedule(
+                        name, exec_time, cb, False, None,
+                        __entity=entity,
+                        __attribute=__attribute,
+                        __old_state=None,
+                        __new_state=__new_state, **kwargs
+                    )
+                    
             await self.AD.state.add_entity("admin", "state_callback.{}".format(handle), "active",
                                                     {"app": name, "listened_entity": entity, "function": cb.__name__,
                                                      "pinned": pin_app, "pinned_thread": pin_thread, "fired": 0, "executed":0, "kwargs": kwargs})
@@ -465,4 +488,4 @@ class State:
             "__entity", "__duration", "__old_state", "__new_state",
             "oneshot", "pin_app", "pin_thread", "__delay"
         ] + app.list_constraints())
-    
+  

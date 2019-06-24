@@ -292,13 +292,17 @@ immediate = (optional)
 
 True or False
 
-Quick check enables the countdown for a ``delay`` parameter to start at the time
-the callback is registered, rather than requiring one or more state changes. This can be useful if
-for instance you want the duration to be triggered immediately if a light is already on.
+Quick check enables the countdown for a ``delay`` parameter to start at the time, if given.
+If the ``duration`` parameter is not given, the callback is ran immediately. What this means is that
+after the callback is registered, rather than requiring one or more state changes before it is ran, it immediately checks
+the entity's states based on given parameters. If the conditions are right, the callback is ran immediately at the time 
+of registering. This can be useful, if for instance you want the callback to be triggered immediately if a light is already on, or after a ``duration`` if given.
 
 If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check if the entity
-is already set to the new state and if so it will start the clock immediately. In this case, old will be ignored
-and when the timer triggers, its state will be set to None. If new or entity are not set, ``immediate`` will be ignored.
+is already set to the new state and if so it will start the clock immediately. If ``new`` and ``duration``are not set, 
+``immediate`` will trigger the callback immediately and report in its callback the ``new`` parameter as the present
+state of the entity. if ``attribute`` is specified, the state of the ``attribute`` will be used instead of ``state``.
+In these cases, old will be ignored and when the callback is triggered, its state will be set to ``None``.
 
 oneshot = (optional)
 ''''''''''''''''''''

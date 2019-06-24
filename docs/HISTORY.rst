@@ -25,6 +25,8 @@ Change Log
 - Added ``parse_datetime()``
 - ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - Refactored appdaemon.py for greater readability and easier maintenance
+- Expanded on the ability to trigger ``listen_state`` callbacks immediately using the ``immediate`` flag, without need of specifing the ``new`` nor ``duration`` parameter.
+- Allowed to make use of ``attribute`` when using the ``immediate`` flag in ``listen_state``
 - Added initial version of the Admin Interface
 - Added User Defined Namespaces
 - Rewrote logging to include user defined logs and formats
