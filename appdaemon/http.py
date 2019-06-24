@@ -536,7 +536,7 @@ class HTTP:
             # Some value munging for dashboard
             #
             for key in data:
-                if key == "service" or key == "namespace":
+                if key == "service":
                     pass
                 elif key == "rgb_color":
                     m = re.search('\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', data[key])

@@ -18,6 +18,11 @@ class State:
         self.state["admin"] = {}
         self.logger = ad.logging.get_child("_state")
 
+        # Register services
+
+        self.AD.services.register_service("appdaemon", "state", "set", self.state_services)
+
+
         # Initialize User Defined Namespaces
 
         nspath = os.path.join(self.AD.config_dir, "namespaces")
@@ -256,7 +261,6 @@ class State:
                             "entity_id": entity,
                         }
                 }
-
             await self.AD.events.process_event(namespace, data)
 
     async def add_entity(self, namespace, entity, state, attributes = None):
@@ -362,6 +366,26 @@ class State:
     def set_state_simple(self, namespace, entity_id, state):
         self.state[namespace][entity_id] = state
 
+    async def state_services(self, namespace, domain, service, kwargs):
+        self.logger.debug("state_services: %s, %s, %s, %s", namespace, domain, service, kwargs)
+        if "entity_id" not in kwargs:
+            self.logger.warning("Entity not specified in set_state service call: %s", kwargs)
+            return
+        else:
+            entity_id = kwargs["entity_id"]
+            del kwargs["entity_id"]
+
+        if "namespace" not in kwargs:
+            self.logger.warning("Namespace not specified in set_state service call: %s", kwargs)
+            return
+        else:
+            ns = kwargs["namespace"]
+            del kwargs["namespace"]
+
+        if service == "set":
+            await self.set_state(domain, ns, entity_id, **kwargs)
+        else:
+            self.logger.warning("Unknown service in set_state service call: %s", kwargs)
 
     async def set_state(self, name, namespace, entity_id, **kwargs):
         self.logger.debug("set_state(): %s, %s", entity_id, kwargs)
