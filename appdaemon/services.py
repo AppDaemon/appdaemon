@@ -33,6 +33,7 @@ class Services:
         return result
 
     async def call_service(self, namespace, domain, service, data):
+        self.logger.debug("call_service: namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data)
         with self.services_lock:
             if namespace not in self.services:
                 self.logger.warning("Unknown namespace (%s) in call_service", namespace)
@@ -44,9 +45,19 @@ class Services:
                 self.logger.warning("Unknown service (%s/%s/%s) in call_service", namespace, domain, service)
                 return None
 
+            # If we have namespace in data it's an override for the domain of the eventual serice call, as distinct
+            # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
+            # needs to operate on a different namespace, e.g. "default"
+
+            if "namespace" in data:
+                ns = data["namespace"]
+                del data["namespace"]
+            else:
+                ns = namespace
+
             try:
                 funcref = self.services[namespace][domain][service]
-                return await funcref(namespace, domain, service, data)
+                return await funcref(ns, domain, service, data)
             except:
                 self.logger.warning('-' * 60)
                 self.logger.warning("Unexpected error in namespace setup")

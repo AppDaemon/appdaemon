@@ -388,7 +388,7 @@ class HassPlugin(PluginBase):
 
     @hass_check
     async def call_plugin_service(self, namespace, domain, service, data):
-
+        self.logger.debug("call_plugin_service() namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data)
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}

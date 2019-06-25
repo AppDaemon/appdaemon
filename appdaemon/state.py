@@ -398,15 +398,8 @@ class State:
             entity_id = kwargs["entity_id"]
             del kwargs["entity_id"]
 
-        if "namespace" not in kwargs:
-            self.logger.warning("Namespace not specified in set_state service call: %s", kwargs)
-            return
-        else:
-            ns = kwargs["namespace"]
-            del kwargs["namespace"]
-
         if service == "set":
-            await self.set_state(domain, ns, entity_id, **kwargs)
+            await self.set_state(domain, namespace, entity_id, **kwargs)
         else:
             self.logger.warning("Unknown service in set_state service call: %s", kwargs)
 
