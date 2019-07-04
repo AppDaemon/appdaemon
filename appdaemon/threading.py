@@ -557,7 +557,7 @@ class Threading:
                     unconstrained = False
             if not await self.check_time_constraint(myargs["kwargs"], name):
                 unconstrained = False
-            elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
+            elif not await self.check_days_constraint(myargs["kwargs"], name):
                 unconstrained = False
 
         if unconstrained:
