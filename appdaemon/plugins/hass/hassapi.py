@@ -49,7 +49,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         self.register_constraint("constrain_presence")
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
-        self.register_constraint("constrain_days")
 
     #
     # Device Trackers
@@ -133,13 +132,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             unconstrained = False
 
         return unconstrained
-
-    def constrain_days(self, value):
-        day = self.get_now().weekday()
-        daylist = [utils.day_of_week(day) for day in value.split(",")]
-        if day in daylist:
-            return True
-        return False
 
     #
     # Helper functions for services
