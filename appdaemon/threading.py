@@ -487,6 +487,11 @@ class Threading:
                 if "duration" in kwargs:
                     # Set a timer
                     exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(kwargs["duration"]))
+
+                    #check if it is a oneshot and store handle
+                    if kwargs.get("oneshot", False):
+                        kwargs["__handle"] = uuid_
+
                     kwargs["__duration"] = await self.AD.sched.insert_schedule(
                         name, exec_time, funcref, False, None,
                         __entity=entity,
@@ -635,4 +640,3 @@ class Threading:
             self.logger.error("Unknown callback type: %s", type)
 
         return False
-
