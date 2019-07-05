@@ -590,6 +590,16 @@ times that span midnight.
     constrain_start_time: sunset - 00:45:00
     constrain_end_time: sunrise + 00:45:00
 
+days
+^^^^
+
+The day constraint consists of as list of days for which the callbacks
+will fire, e.g.
+
+.. code:: yaml
+
+    constrain_days: mon,tue,wed
+
 Other constraints may be supplied by the plugin in use.
 
 HASS Plugin Constraints
@@ -661,20 +671,9 @@ trackers. It takes 3 possible values:
     constrain_presence: someone
     # or
     constrain_presence: noone
-
-days
-^^^^
-
-The day constraint consists of as list of days for which the callbacks
-will fire, e.g.
-
-.. code:: yaml
-
-    constrain_days: mon,tue,wed
-
+    
 Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
-
 
 AppDaemon and Threading
 -----------------------
@@ -2339,14 +2338,12 @@ We start off with a python function that accepts a value to be evaluated like th
         else:
             return False
 
-
 To use this in a callback level constraint simply use:
 
 .. code:: python
 
         self.register_constraint("is_daylight")
         handle = self.run_every(self.callback, time, 1, is_daylight=1)
-
 
 Now ``callback()`` will only fire if the sun is up.
 

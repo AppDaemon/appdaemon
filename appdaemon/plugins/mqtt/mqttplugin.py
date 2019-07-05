@@ -2,6 +2,7 @@ import copy
 import paho.mqtt.client as mqtt
 import asyncio
 import traceback
+import ssl
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -68,6 +69,21 @@ class MqttPlugin(PluginBase):
         self.mqtt_client_tls_client_cert = self.config.get('client_cert', None)
         self.mqtt_client_tls_client_key = self.config.get('client_key', None)
         self.mqtt_verify_cert = self.config.get('verify_cert', True)
+        self.mqtt_tls_version = self.config.get('tls_version', 'auto')
+
+        if self.mqtt_tls_version == '1.2':
+            self.mqtt_tls_version = ssl.PROTOCOL_TLSv1_2
+        elif self.mqtt_tls_version == '1.1':
+            self.mqtt_tls_version = ssl.PROTOCOL_TLSv1_1
+        elif self.mqtt_tls_version == '1.0':
+            self.mqtt_tls_version = ssl.PROTOCOL_TLSv1
+        else:
+            import sys
+            if sys.hexversion >= 0x03060000:
+                self.mqtt_tls_version = ssl.PROTOCOL_TLS
+            else:
+                self.mqtt_tls_version = ssl.PROTOCOL_TLSv1
+
 
         self.mqtt_client_timeout = self.config.get('client_timeout', 60)
 
@@ -107,6 +123,7 @@ class MqttPlugin(PluginBase):
             "client_cert" : self.mqtt_client_tls_client_cert,
             "client_key" : self.mqtt_client_tls_client_key,
             "verify_cert" : self.mqtt_verify_cert,
+            "tls_version" : self.mqtt_tls_version,
             "timeout" : self.mqtt_client_timeout,
             "force_state" : self.mqtt_client_force_start
                             }
@@ -368,10 +385,10 @@ class MqttPlugin(PluginBase):
 
                 if self.mqtt_client_tls_ca_cert != None:
                     self.mqtt_client.tls_set(self.mqtt_client_tls_ca_cert, certfile=self.mqtt_client_tls_client_cert,
-                                            keyfile=self.mqtt_client_tls_client_key)
+                                            keyfile=self.mqtt_client_tls_client_key, tls_version=self.mqtt_tls_version)
 
-                if not self.mqtt_verify_cert:
-                    self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
+                    if not self.mqtt_verify_cert:
+                        self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
 
                 self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
 
