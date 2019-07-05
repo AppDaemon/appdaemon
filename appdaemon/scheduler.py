@@ -89,7 +89,7 @@ class Scheduler:
                 return
             # Call function
             if "__entity" in args["kwargs"]:
-                await self.AD.threading.dispatch_worker(name, {
+                executed = await self.AD.threading.dispatch_worker(name, {
                     "id": uuid_,
                     "name": name,
                     "objectid": self.AD.app_management.objects[name]["id"],
@@ -103,6 +103,11 @@ class Scheduler:
                     "pin_thread": args["pin_thread"],
                     "kwargs": args["kwargs"],
                 })
+
+                if executed is True:
+                    remove = args["kwargs"].get("oneshot", False)
+                    if remove is True:
+                        await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
             else:
                 await self.AD.threading.dispatch_worker(name, {
                     "id": uuid_,
