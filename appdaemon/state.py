@@ -127,6 +127,10 @@ class State:
                         __duration = kwargs["duration"]
                 if run:
                     exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(__duration))
+
+                    if kwargs.get("oneshot", False):
+                        kwargs["__handle"] = handle
+
                     kwargs["__duration"] = await self.AD.sched.insert_schedule(
                         name, exec_time, cb, False, None,
                         __entity=entity,
