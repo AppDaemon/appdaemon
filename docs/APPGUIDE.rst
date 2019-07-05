@@ -1421,7 +1421,7 @@ has been running connected to Home Assistant for a while and the
 connection is unexpectedly lost, the following will occur:
 
 -  When HASS first goes down or becomes disconnected, an event called
-   ``plugin_disconnected`` will fire
+   ``plugin_stopped`` will fire
 -  While disconnected from HASS, Apps will continue to run
 -  Schedules will continue to be honored
 -  Any operation reading locally cached state will succeed
