@@ -19,6 +19,7 @@ Change Log
 - Added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIs to remove duplication
+- Moved `contrain_days` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
 - Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
@@ -61,6 +62,7 @@ Change Log
 **Fixes**
 
 - Fixes to listen_state() oneshot function
+- Fixes to listen_state() oneshot function when duration is used
 - Fixes to listen_state() function when it fires even when new and old states are same
 - Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
 - Fixed an issue of when MQTT Plugin not connected to broker, and it holds up AD startup

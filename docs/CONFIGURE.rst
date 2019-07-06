@@ -437,6 +437,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 -  ``client_user:`` (optional) The username to be used by the plugin to connect to the broker. It defaults to ``None``, so no username is used
 -  ``client_password:`` (optional) The password to be used by the plugin to connect to the broker. It defaults to ``None``, so no password is used
 -  ``client_cert:`` (optional) The certificate to be used when using SSL
+- ``tls_version:``  (optional) The TLS version that should be used by the plugin
 -  ``verify_cert:`` (optional) This is used to determine if to verify the certificate or not. This defaults to ``True`` and should be left as True; if not no need having any certificate installed
 -  ``event_name:`` (optional) The preferred event name to be used by the plugin. This name is what apps will listen to, to pick up data within apps. This defaults to ``MQTT_MESSAGE``
 -  ``client_topics:`` (optional) This is a list of topics the plugin is to subscribe to on the broker. This defaults to ``#``, meaning it subscribes to all topics on the broker. This can be set to ``None``, if it is desired to use the subscribe service call within apps, to subscribe to topics.

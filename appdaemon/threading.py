@@ -440,6 +440,20 @@ class Threading:
 
         return unconstrained
 
+    async def check_days_constraint(self, args, name):
+        unconstrained = True
+        if "constrain_days" in args:
+            days = args["constrain_days"]
+            now = await self.AD.sched.get_now()
+            daylist = []
+            for day in days.split(","):
+                daylist.append(await utils.run_in_executor(self, utils.day_of_week, day))
+
+            if now.weekday() not in daylist:
+                unconstrained = False
+
+        return unconstrained
+
     #
     # Workers
     #
@@ -487,6 +501,11 @@ class Threading:
                 if "duration" in kwargs:
                     # Set a timer
                     exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(kwargs["duration"]))
+
+                    #check if it is a oneshot and store handle
+                    if kwargs.get("oneshot", False):
+                        kwargs["__handle"] = uuid_
+
                     kwargs["__duration"] = await self.AD.sched.insert_schedule(
                         name, exec_time, funcref, False, None,
                         __entity=entity,
@@ -529,6 +548,9 @@ class Threading:
                 unconstrained = False
         if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
             unconstrained = False
+        elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
+            unconstrained = False
+
         #
         # Callback level constraints
         #
@@ -539,6 +561,8 @@ class Threading:
                 if not constrained:
                     unconstrained = False
             if not await self.check_time_constraint(myargs["kwargs"], name):
+                unconstrained = False
+            elif not await self.check_days_constraint(myargs["kwargs"], name):
                 unconstrained = False
 
         if unconstrained:
@@ -635,4 +659,3 @@ class Threading:
             self.logger.error("Unknown callback type: %s", type)
 
         return False
-

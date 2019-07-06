@@ -121,12 +121,20 @@ class State:
                     else: #use the present state of the entity
                         if __attribute == None and "state" in self.state[namespace][entity]:
                             __new_state = self.state[namespace][entity]["state"]
-                        elif __attribute != None and __attribute in self.state[namespace][entity]["attributes"]:
-                            __new_state = self.state[namespace][entity]["attributes"][__attribute]
+                        elif __attribute != None:
+                            if __attribute in self.state[namespace][entity]["attributes"]:
+                                __new_state = self.state[namespace][entity]["attributes"][__attribute]
+                            elif __attribute == "all":
+                                __new_state = self.state[namespace][entity]
+
                     if "duration" in kwargs:
                         __duration = kwargs["duration"]
                 if run:
                     exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(__duration))
+
+                    if kwargs.get("oneshot", False):
+                        kwargs["__handle"] = handle
+
                     kwargs["__duration"] = await self.AD.sched.insert_schedule(
                         name, exec_time, cb, False, None,
                         __entity=entity,
@@ -481,4 +489,4 @@ class State:
             "__entity", "__duration", "__old_state", "__new_state",
             "oneshot", "pin_app", "pin_thread", "__delay"
         ] + app.list_constraints())
-  
+ 
