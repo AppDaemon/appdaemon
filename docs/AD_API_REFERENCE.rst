@@ -899,8 +899,8 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 offset =
 '''''''''
 
-The time in seconds that the callback should be delayed after sunrise. A
-negative value will result in the callback occurring before sunrise.
+The time in seconds that the callback should be delayed after sunset. A
+negative value will result in the callback occurring before sunset.
 This parameter cannot be combined with ``random_start`` or
 ``random_end``
 
