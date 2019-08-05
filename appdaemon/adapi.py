@@ -13,7 +13,9 @@ class ADAPI:
     # Internal
     #
 
-    def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
+    def __init__(
+        self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars
+    ):
         # Store args
 
         self.AD = ad
@@ -36,7 +38,7 @@ class ADAPI:
             userlog = self.get_user_log(args["log"])
             if userlog is not None:
                 self.logger = userlog
-
+        self.dialogflow_v = 2
 
     @staticmethod
     def _sub_stack(msg):
@@ -71,7 +73,9 @@ class ADAPI:
             level = "INFO"
         ascii_encode = kwargs.pop("ascii_encode", True)
         if ascii_encode is True:
-            safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+            safe_enc = (
+                lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+            )
             msg = safe_enc(msg)
 
         logger.log(self._logging.log_levels[level], msg, *args, **kwargs)
@@ -83,9 +87,9 @@ class ADAPI:
             kwargs.pop("log")
         else:
             logger = self.logger
-            
+
         msg = self._sub_stack(msg)
-        
+
         self._log(logger, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
@@ -95,11 +99,16 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        return utils.run_coroutine_threadsafe(self, self.AD.logging.add_log_callback(namespace, self.name, cb, level, **kwargs))
+        return utils.run_coroutine_threadsafe(
+            self,
+            self.AD.logging.add_log_callback(namespace, self.name, cb, level, **kwargs),
+        )
 
     def cancel_listen_log(self, handle):
         self.logger.debug("Canceling listen_log for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.logging.cancel_log_callback(self.name, handle))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.logging.cancel_log_callback(self.name, handle)
+        )
 
     def get_main_log(self):
         return self.logger
@@ -131,21 +140,30 @@ class ADAPI:
 
     def set_error_level(self, level):
         self.err.setLevel(self._logging.log_levels[level])
+
     #
     # Threading
     #
 
     def set_app_pin(self, pin):
-        utils.run_coroutine_threadsafe(self, self.AD.threading.set_app_pin(self.name, pin))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.threading.set_app_pin(self.name, pin)
+        )
 
     def get_app_pin(self):
-        return utils.run_coroutine_threadsafe(self, self.AD.threading.get_app_pin(self.name))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.threading.get_app_pin(self.name)
+        )
 
     def set_pin_thread(self, thread):
-        utils.run_coroutine_threadsafe(self, self.AD.threading.set_pin_thread(self.name, thread))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.threading.set_pin_thread(self.name, thread)
+        )
 
     def get_pin_thread(self):
-        return utils.run_coroutine_threadsafe(self, self.AD.threading.get_pin_thread(self.name))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.threading.get_pin_thread(self.name)
+        )
 
     #
     # Namespace
@@ -169,29 +187,38 @@ class ADAPI:
     #
 
     def get_app(self, name):
-        return utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app(name))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.app_management.get_app(name)
+        )
 
     def _check_entity(self, namespace, entity):
         if "." not in entity:
-            raise ValueError(
-                "{}: Invalid entity ID: {}".format(self.name, entity))
-        if not utils.run_coroutine_threadsafe(self, self.AD.state.entity_exists(namespace, entity)):
-            self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
+            raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
+        if not utils.run_coroutine_threadsafe(
+            self, self.AD.state.entity_exists(namespace, entity)
+        ):
+            self.logger.warning(
+                "%s: Entity %s not found in namespace %s", self.name, entity, namespace
+            )
 
     def get_ad_version(self):
         return utils.__version__
 
     def entity_exists(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        return utils.run_coroutine_threadsafe(self, self.AD.state.entity_exists(namespace, entity_id))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.state.entity_exists(namespace, entity_id)
+        )
 
     def split_entity(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         return entity_id.split(".")
-    
+
     def remove_entity(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        utils.run_coroutine_threadsafe(self, self.AD.state.remove_entity(namespace, entity_id))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.state.remove_entity(namespace, entity_id)
+        )
         return None
 
     def split_device_list(self, list_):
@@ -199,7 +226,9 @@ class ADAPI:
 
     def get_plugin_config(self, **kwargs):
         namespace = self._get_namespace(**kwargs)
-        return utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_meta(namespace))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.plugins.get_plugin_meta(namespace)
+        )
 
     def friendly_name(self, entity_id, **kwargs):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
@@ -211,7 +240,7 @@ class ADAPI:
                 return entity_id
         return None
 
-    def set_production_mode(self, mode = True):
+    def set_production_mode(self, mode=True):
         if not isinstance(mode, bool):
             self.logger.warning("%s not a valid parameter for Production Mode", mode)
             return None
@@ -246,45 +275,58 @@ class ADAPI:
         return None
 
     #
-    # Apiai
+    # Dialogflow
     #
 
     @staticmethod
-    def get_apiai_intent(data):
-        if "queryResult" in data and "action" in data["result"]:
+    def get_dialogflow_intent(data):
+        if "result" in data and "action" in data["result"]:
+            self.dialogflow_v = 1
             return data["result"]["action"]
+        elif "queryResult" in data and "action" in data["queryResult"]:
+            return data["queryResult"]["action"]
         else:
             return None
 
     @staticmethod
-    def get_apiai_slot_value(data, slot=None):
-        if "queryResult" in data and \
-                        "contexts" in data["result"]:
-            req = data.get('result')
-            contexts = req.get('contexts', [{}])
+    def get_dialogflow_slot_value(data, slot=None):
+        if "result" in data:
+            # using V1 API
+            contexts = data["result"]["contexts"][0]
             if contexts:
-                parameters = contexts[0].get('parameters')
+                parameters = contexts.get("parameters")
             else:
-                parameters = req.get('parameters')
+                parameters = data["result"]["parameters"]
             if slot is None:
                 return parameters
+            elif slot in parameters:
+                return parameters[slot]
             else:
-                if slot in parameters:
-                    return parameters[slot]
-                else:
-                    return None
+                return None
+        elif "queryResult" in data:
+            # using V2 API
+            contexts = data["queryResult"]["outputContexts"][0]
+            if contexts:
+                parameters = contexts.get("parameters")
+            else:
+                parameters = data["queryResult"]["parameters"]
+            if slot is None:
+                return parameters
+            elif slot in parameters:
+                return parameters[slot]
+            else:
+                return None
         else:
             return None
 
     @staticmethod
-    def format_apiai_response(speech=None):
-        speech = \
-            {
-                "speech": speech,
-                "source": "Appdaemon",
-                "displayText": speech
-            }
-
+    def format_dialogflow_response(speech=None):
+        if self.dialogflow_v == 1:
+            speech = {"speech": speech, "source": "Appdaemon", "displayText": speech}
+        elif self.dialogflow_v == 2:
+            speech = {"fulfillmentText": speech, "source": "Appdaemon"}
+        else:
+            speech = None
         return speech
 
     #
@@ -294,32 +336,15 @@ class ADAPI:
     @staticmethod
     def format_alexa_response(speech=None, card=None, title=None):
 
-        response = \
-            {
-                "shouldEndSession": True
-            }
+        response = {"shouldEndSession": True}
 
         if speech is not None:
-            response["outputSpeech"] = \
-                {
-                    "type": "PlainText",
-                    "text": speech
-                }
+            response["outputSpeech"] = {"type": "PlainText", "text": speech}
 
         if card is not None:
-            response["card"] = \
-                {
-                    "type": "Simple",
-                    "title": title,
-                    "content": card
-                }
+            response["card"] = {"type": "Simple", "title": title, "content": card}
 
-        speech = \
-            {
-                "version": "1.0",
-                "response": response,
-                "sessionAttributes": {}
-            }
+        speech = {"version": "1.0", "response": response, "sessionAttributes": {}}
 
         return speech
 
@@ -333,13 +358,19 @@ class ADAPI:
         else:
             ep = name
         if self.AD.http is not None:
-            return utils.run_coroutine_threadsafe(self, self.AD.http.register_endpoint(cb, ep))
+            return utils.run_coroutine_threadsafe(
+                self, self.AD.http.register_endpoint(cb, ep)
+            )
         else:
-            self.logger.warning("register_endpoint for %s filed - HTTP component is not configured", name)
-
+            self.logger.warning(
+                "register_endpoint for %s filed - HTTP component is not configured",
+                name,
+            )
 
     def unregister_endpoint(self, handle):
-        utils.run_coroutine_threadsafe(self, self.AD.http.unregister_endpoint(handle, self.name))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.http.unregister_endpoint(handle, self.name)
+        )
 
     #
     # State
@@ -352,26 +383,37 @@ class ADAPI:
         name = self.name
         if entity is not None and "." in entity:
             self._check_entity(namespace, entity)
-        
+
         self.logger.debug("Calling listen_state for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.state.add_state_callback(name, namespace, entity, cb, kwargs))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.state.add_state_callback(name, namespace, entity, cb, kwargs)
+        )
 
     def cancel_listen_state(self, handle):
         self.logger.debug("Canceling listen_state for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.state.cancel_state_callback(handle, self.name))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.state.cancel_state_callback(handle, self.name)
+        )
 
     def info_listen_state(self, handle):
-        self.logger.debug("Calling info_listen_state for %s",self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.state.info_state_callback(handle, self.name))
+        self.logger.debug("Calling info_listen_state for %s", self.name)
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.state.info_state_callback(handle, self.name)
+        )
 
-    def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
+    def get_state(
+        self, entity_id=None, attribute=None, default=None, copy=True, **kwargs
+    ):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.state.get_state(
-            self.name, namespace, entity_id, attribute, default, copy, **kwargs
-        ))
+        return utils.run_coroutine_threadsafe(
+            self,
+            self.AD.state.get_state(
+                self.name, namespace, entity_id, attribute, default, copy, **kwargs
+            ),
+        )
 
     def set_state(self, entity_id, **kwargs):
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
@@ -380,8 +422,9 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self,
-                                              self.AD.state.set_state(self.name, namespace, entity_id, **kwargs))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
+        )
 
     #
     # Service
@@ -391,7 +434,7 @@ class ADAPI:
     def _check_service(service):
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
-            
+
     def register_service(self, service, cb, **kwargs):
         self._check_service(service)
         d, s = service.split("/")
@@ -409,7 +452,9 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.services.call_service(namespace, d, s, kwargs)
+        )
 
     #
     # Events
@@ -423,15 +468,22 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.events.add_event_callback(_name, namespace, cb, event, **kwargs))
+        return utils.run_coroutine_threadsafe(
+            self,
+            self.AD.events.add_event_callback(_name, namespace, cb, event, **kwargs),
+        )
 
     def cancel_listen_event(self, handle):
         self.logger.debug("Canceling listen_event for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.events.cancel_event_callback(self.name, handle))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.events.cancel_event_callback(self.name, handle)
+        )
 
     def info_listen_event(self, handle):
         self.logger.debug("Calling info_listen_event for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.events.info_event_callback(self.name, handle))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.events.info_event_callback(self.name, handle)
+        )
 
     def fire_event(self, event, **kwargs):
         namespace = self._get_namespace(**kwargs)
@@ -439,23 +491,32 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        utils.run_coroutine_threadsafe(self, self.AD.events.fire_event(namespace, event, **kwargs))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.events.fire_event(namespace, event, **kwargs)
+        )
 
     #
     # Time
     #
 
     def parse_utc_string(self, s):
-        return datetime.datetime(*map(
-            int, re.split('[^\d]', s)[:-1]
-        )).timestamp() + self.get_tz_offset() * 60
+        return (
+            datetime.datetime(*map(int, re.split("[^\d]", s)[:-1])).timestamp()
+            + self.get_tz_offset() * 60
+        )
 
     @staticmethod
     def get_tz_offset():
-        utc_offset_min = int(round(
-            (datetime.datetime.now()
-             - datetime.datetime.utcnow()).total_seconds())
-        ) / 60  # round for taking time twice
+        utc_offset_min = (
+            int(
+                round(
+                    (
+                        datetime.datetime.now() - datetime.datetime.utcnow()
+                    ).total_seconds()
+                )
+            )
+            / 60
+        )  # round for taking time twice
         utc_offset_h = utc_offset_min / 60
 
         # we do not handle 1/2 h timezone offsets
@@ -473,10 +534,14 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sun_down())
 
     def parse_time(self, time_str, name=None, aware=False):
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.parse_time(time_str, name, aware))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.sched.parse_time(time_str, name, aware)
+        )
 
     def parse_datetime(self, time_str, name=None, aware=False):
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.parse_datetime(time_str, name, aware))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.sched.parse_datetime(time_str, name, aware)
+        )
 
     def get_now(self):
         return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now())
@@ -485,7 +550,9 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now_ts())
 
     def now_is_between(self, start_time_str, end_time_str, name=None):
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.now_is_between(start_time_str, end_time_str, name))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.sched.now_is_between(start_time_str, end_time_str, name)
+        )
 
     def sunrise(self, aware=False):
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sunrise(aware))
@@ -494,16 +561,26 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sunset(aware))
 
     def time(self):
-        return (utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).time())
+        return (
+            utils.run_coroutine_threadsafe(self, self.AD.sched.get_now())
+            .astimezone(self.AD.tz)
+            .time()
+        )
 
     def datetime(self, aware=False):
         if aware is True:
-            return (utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz))
+            return utils.run_coroutine_threadsafe(
+                self, self.AD.sched.get_now()
+            ).astimezone(self.AD.tz)
         else:
             return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now_naive())
 
     def date(self):
-        return (utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).date())
+        return (
+            utils.run_coroutine_threadsafe(self, self.AD.sched.get_now())
+            .astimezone(self.AD.tz)
+            .date()
+        )
 
     def get_timezone(self):
         return self.AD.time_zone
@@ -518,7 +595,9 @@ class ADAPI:
         utils.run_coroutine_threadsafe(self, self.AD.sched.cancel_timer(name, handle))
 
     def info_timer(self, handle):
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.info_timer(handle, self.name))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.sched.info_timer(handle, self.name)
+        )
 
     def run_in(self, callback, seconds, **kwargs):
         name = self.name
@@ -526,16 +605,21 @@ class ADAPI:
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
         exec_time = self.get_now() + timedelta(seconds=int(seconds))
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(
+                name, exec_time, callback, False, None, **kwargs
+            ),
+        )
         return handle
 
     def run_once(self, callback, start, **kwargs):
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"].time()
+            when = utils.run_coroutine_threadsafe(
+                self, self.AD.sched._parse_time(start, self.name)
+            )["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
         name = self.name
@@ -546,16 +630,21 @@ class ADAPI:
         if aware_event < now:
             one_day = datetime.timedelta(days=1)
             aware_event = aware_event + one_day
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, aware_event, callback, False, None, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(
+                name, aware_event, callback, False, None, **kwargs
+            ),
+        )
         return handle
 
     def run_at(self, callback, start, **kwargs):
         if type(start) == datetime.datetime:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"]
+            when = utils.run_coroutine_threadsafe(
+                self, self.AD.sched._parse_time(start, self.name)
+            )["datetime"]
         else:
             raise ValueError("Invalid type for start")
         aware_when = self.AD.sched.convert_naive(when)
@@ -563,12 +652,14 @@ class ADAPI:
         now = self.get_now()
         if aware_when < now:
             raise ValueError(
-                "{}: run_at() Start time must be "
-                "in the future".format(self.name)
+                "{}: run_at() Start time must be " "in the future".format(self.name)
             )
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, aware_when, callback, False, None, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(
+                name, aware_when, callback, False, None, **kwargs
+            ),
+        )
         return handle
 
     def run_daily(self, callback, start, **kwargs):
@@ -577,7 +668,9 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            info = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))
+            info = utils.run_coroutine_threadsafe(
+                self, self.AD.sched._parse_time(start, self.name)
+            )
         else:
             raise ValueError("Invalid type for start")
 
@@ -630,10 +723,19 @@ class ADAPI:
         if aware_start < now:
             raise ValueError("start cannot be in the past")
 
-        self.logger.debug("Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name)
+        self.logger.debug(
+            "Registering run_every starting %s in %ss intervals for %s",
+            aware_start,
+            interval,
+            name,
+        )
 
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(name, aware_start, callback, True, None,
-                                               interval=interval, **kwargs))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(
+                name, aware_start, callback, True, None, interval=interval, **kwargs
+            ),
+        )
         return handle
 
     def _schedule_sun(self, name, type_, callback, **kwargs):
@@ -643,20 +745,25 @@ class ADAPI:
         else:
             event = self.AD.sched.next_sunset()
 
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, event, callback, True, type_, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(name, event, callback, True, type_, **kwargs),
+        )
         return handle
 
     def run_at_sunset(self, callback, **kwargs):
         name = self.name
-        self.logger.debug("Registering run_at_sunset with kwargs = %s for %s", kwargs, name)
+        self.logger.debug(
+            "Registering run_at_sunset with kwargs = %s for %s", kwargs, name
+        )
         handle = self._schedule_sun(name, "next_setting", callback, **kwargs)
         return handle
 
     def run_at_sunrise(self, callback, **kwargs):
         name = self.name
-        self.logger.debug("Registering run_at_sunrise with kwargs = %s for %s", kwargs, name)
+        self.logger.debug(
+            "Registering run_at_sunrise with kwargs = %s for %s", kwargs, name
+        )
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
 
@@ -672,6 +779,7 @@ class ADAPI:
         if ret is not None:
             kwargs["return"] = ret
         self.fire_event("__HADASHBOARD_EVENT", **kwargs)
+
     #
     # Other
     #
@@ -682,21 +790,29 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.threading.get_thread_info())
 
     def get_scheduler_entries(self):
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_scheduler_entries())
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.sched.get_scheduler_entries()
+        )
 
     def get_callback_entries(self):
-        return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.callbacks.get_callback_entries()
+        )
 
     @staticmethod
     def get_alexa_slot_value(data, slot=None):
-        if "request" in data and \
-                        "intent" in data["request"] and \
-                        "slots" in data["request"]["intent"]:
+        if (
+            "request" in data
+            and "intent" in data["request"]
+            and "slots" in data["request"]["intent"]
+        ):
             if slot is None:
                 return data["request"]["intent"]["slots"]
             else:
-                if slot in data["request"]["intent"]["slots"] and \
-                                "value" in data["request"]["intent"]["slots"][slot]:
+                if (
+                    slot in data["request"]["intent"]["slots"]
+                    and "value" in data["request"]["intent"]["slots"][slot]
+                ):
                     return data["request"]["intent"]["slots"][slot]["value"]
                 else:
                     return None
@@ -705,14 +821,22 @@ class ADAPI:
 
     @staticmethod
     def get_alexa_error(data):
-        if "request" in data and "err" in data["request"] and "message" in data["request"]["err"]:
+        if (
+            "request" in data
+            and "err" in data["request"]
+            and "message" in data["request"]["err"]
+        ):
             return data["request"]["err"]["message"]
         else:
             return None
 
     @staticmethod
     def get_alexa_intent(data):
-        if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
+        if (
+            "request" in data
+            and "intent" in data["request"]
+            and "name" in data["request"]["intent"]
+        ):
             return data["request"]["intent"]["name"]
         else:
             return None
