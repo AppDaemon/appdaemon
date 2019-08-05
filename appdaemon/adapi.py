@@ -284,6 +284,7 @@ class ADAPI:
             self.dialogflow_v = 1
             return data["result"]["action"]
         elif "queryResult" in data and "action" in data["queryResult"]:
+            self.dialogflow_v = 2
             return data["queryResult"]["action"]
         else:
             return None
