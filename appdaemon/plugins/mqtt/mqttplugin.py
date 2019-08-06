@@ -50,7 +50,7 @@ class MqttPlugin(PluginBase):
         self.mqtt_will_retain = self.config.get('will_retain', True)
         self.mqtt_on_connect_retain = self.config.get('birth_retain', True)
         
-        if self.mqtt_client_topics == None:
+        if self.mqtt_client_topics == "NONE":
             self.mqtt_client_topics = []
 
         if self.mqtt_will_topic == None:

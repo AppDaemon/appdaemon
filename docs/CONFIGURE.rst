@@ -440,7 +440,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 - ``tls_version:``  (optional) The TLS version that should be used by the plugin
 -  ``verify_cert:`` (optional) This is used to determine if to verify the certificate or not. This defaults to ``True`` and should be left as True; if not no need having any certificate installed
 -  ``event_name:`` (optional) The preferred event name to be used by the plugin. This name is what apps will listen to, to pick up data within apps. This defaults to ``MQTT_MESSAGE``
--  ``client_topics:`` (optional) This is a list of topics the plugin is to subscribe to on the broker. This defaults to ``#``, meaning it subscribes to all topics on the broker. This can be set to ``None``, if it is desired to use the subscribe service call within apps, to subscribe to topics.
+-  ``client_topics:`` (optional) This is a list of topics the plugin is to subscribe to on the broker. This defaults to ``#``, meaning it subscribes to all topics on the broker. This can be set to ``NONE``, if it is desired to use the subscribe service call within apps, to subscribe to topics.
 -  ``client_qos:`` (optional) The quality of service (QOS) level to be used in subscribing to the topics. This will also be used as the default ``qos``, when publishing and the qos is not specified by the publishing app.
 -  ``birth_topic:`` (optional) This is the topic other clients can subscribe to, to pick up the data sent by the client, when the plugin connects to the broker. If not specified, one is auto generated
 -  ``birth_payload:`` (optional) This is the payload sent by the plugin when it connects to the broker. If not specified, it defaults to ``online``
