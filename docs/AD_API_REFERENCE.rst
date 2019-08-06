@@ -45,7 +45,7 @@ Synopsis
     get_state(entity=None, attribute=None, default=None, copy=True, namespace=None)
 
 ``get_state()`` is used to query the state of any component within Home
-Assistant. State updates are continuously tracked so this call runs
+Assistant. State updates are continuously tracked, so this call runs
 locally and does not require AppDaemon to call back to Home Assistant
 and as such is very efficient.
 
@@ -61,7 +61,7 @@ Parameters
 ^^^^^^^^^^
 
 All parameters are optional, and if ``get_state()`` is called with no
-parameters it will return the entire state of Home Assistant at that
+parameters, it will return the entire state of Home Assistant at that
 given time. This will consist of a dictionary with a key for each
 entity. Under that key will be the standard entity state information.
 
@@ -69,12 +69,12 @@ entity
 ''''''
 
 This is the name of an entity or device type. If just a device type is
-provided, e.g. ``light`` or ``binary_sensor``, ``get_state()`` will
+provided, e.g., ``light`` or ``binary_sensor``, ``get_state()`` will
 return a dictionary of all devices of that type, indexed by the
 entity\_id, containing all the state for each entity.
 
 If a fully qualified ``entity_id`` is provided, ``get_state()`` will
-return the state attribute for that entity, e.g. ``on`` or ``off`` for a
+return the state attribute for that entity, e.g., ``on`` or ``off`` for a
 light.
 
 attribute
@@ -98,17 +98,17 @@ copy
 ''''
 
 By default, a copy of the stored state object is returned. When you
-set ``copy`` to ``False``, you get the exact same object as is stored
+set ``copy`` to ``False``, you get the same object as is stored
 internally by AppDaemon. Avoiding the copying brings a small performance
 gain, but also gives you write-access to the internal AppDaemon data
 structures, which is dangerous. Only disable copying when you can
-guarantee not to modify the returned state object, e.g. you do read-only
+guarantee not to modify the returned state object, e.g., you do read-only
 operations.
 
 namespace
 '''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter
 
 Examples
 ^^^^^^^^
@@ -139,14 +139,14 @@ state of a light to ``on`` won't actually switch the device on, it will
 merely change the state of the device in Home Assistant so that it no
 longer reflects reality. In most cases, the state will be corrected the
 next time Home Assistant polls the device or someone causes a state
-change manually. To effect actual changes of devices use one of the
+change manually. To effect actual changes of devices, use one of the
 service call functions.
 
 One possible use case for ``set_state()`` is for testing. If for
 instance you are writing an App to turn on a light when it gets dark
 according to a luminance sensor, you can use ``set_state()`` to
 temporarily change the light level reported by the sensor to test your
-program. However this is also possible using the developer tools.
+program. However, this is also possible using the developer tools.
 
 At the time of writing, it appears that no checking is done as to
 whether or not the entity exists, so it is possible to add entirely new
@@ -178,13 +178,13 @@ values
 
 A list of keyword values to be changed or added to the entities state.
 e.g. ``state = "off"``. Note that any optional attributes such as colors
-for bulbs etc, need to reside in a dictionary called ``attributes``; see
+for bulbs etc., need to reside in a dictionary called ``attributes``; see
 the example.
 
 namespace
 '''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -212,7 +212,7 @@ Returns
 
 A unique identifier that can be used to cancel the callback if required.
 Since variables created within object methods are local to the function
-they are created in, and in all likelihood the cancellation will be
+they are created in, and in all likelihood, the cancellation will be
 invoked later in a different function, it is recommended that handles
 are stored in the object namespace, e.g. ``self.handle``.
 
@@ -282,7 +282,7 @@ This requires that a specific attribute is specified (or the
 default of ``state`` is used), and should be used in conjunction with the ``old`` or
 ``new`` parameters, or both. When the callback is called, it is supplied
 with the values of ``entity``, ``attr``, ``old`` and ``new`` that were
-current at the time the actual event occured, since the assumption is
+current at the time the actual event occurred, since the assumption is
 that none of them have changed in the intervening period.
 
 if you use ``duration`` when listening for an entire device type rather than a specific entity, or for all state changes, you may get unpredictable results, so it is recommended that this parameter is only used in conjunction with the state of specific entities.
@@ -293,10 +293,10 @@ immediate = (optional)
 True or False
 
 Quick check enables the countdown for a ``delay`` parameter to start at the time, if given.
-If the ``duration`` parameter is not given, the callback is ran immediately. What this means is that
-after the callback is registered, rather than requiring one or more state changes before it is ran, it immediately checks
-the entity's states based on given parameters. If the conditions are right, the callback is ran immediately at the time 
-of registering. This can be useful, if for instance you want the callback to be triggered immediately if a light is already on, or after a ``duration`` if given.
+If the ``duration`` parameter is not given, the callback runs immediately. What this means is that
+after the callback is registered, rather than requiring one or more state changes before it runs, it immediately checks
+the entity's states based on given parameters. If the conditions are right, the callback runs immediately at the time 
+of registering. This can be useful if, for instance, you want the callback to be triggered immediately if a light is already on, or after a ``duration`` if given.
 
 If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check if the entity
 is already set to the new state and if so it will start the clock immediately. If ``new`` and ``duration``are not set, 
@@ -314,7 +314,7 @@ If ``oneshot`` is true, the callback will be automatically cancelled after the f
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter. The value ``global`` for namespace has special significance, and means that the callback will listen to state updates from any plugin.
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter. The value ``global`` for namespace has special significance and means that the callback will listen to state updates from any plugin.
 
 pin = (optional)
 ''''''''''''''''
@@ -443,7 +443,7 @@ run\_in()
 ~~~~~~~~~
 
 Run the callback in a defined number of seconds. This is used to add a
-delay, for instance a 60 second delay before a light is turned off after
+delay, for instance, a 60 second delay before a light is turned off after
 it has been triggered by a motion detector. This callback should always
 be used instead of ``time.sleep()`` as discussed previously.
 
@@ -2016,7 +2016,7 @@ This example shows an App getting an ADAPI object to make a scheduler call.
 split\_device\_list()
 ~~~~~~~~~~~~~~~~~~~~~
 
-``split_device_list()`` will take a comma separated list of device types
+``split_device_list()`` will take a comma-separated list of device types
 (or anything else for that matter) and return them as an iterable list.
 This is intended to assist in use cases where the App takes a list of
 entities from an argument, e.g. a list of sensors to monitor. If only
@@ -2281,9 +2281,9 @@ Returns
 
 A unique identifier that can be used to cancel the callback if required.
 Since variables created within object methods are local to the function
-they are created in, and in all likelihood the cancellation will be
+they are created in, and in all likelihood, the cancellation will be
 invoked later in a different function, it is recommended that handles
-are stored in the object namespace, e.g. ``self.handle``.
+are stored in the object namespace, e.g., ``self.handle``.
 
 Examples
 ^^^^^^^^
@@ -2693,7 +2693,7 @@ Examples
     self.register_endpoint(my_callback)
     self.register_callback(alexa_cb, "alexa")
 
-It should be noted that the register function, should return a string (can be empty), and a HTTP OK status response.
+It should be noted that the register function, should return a string (can be empty), and an HTTP OK status response.
 For example ``'',200``. if this is not added as a returned response, the function will generate an error each time
 it is processed
 
@@ -3270,7 +3270,7 @@ Plugin Metadata
 get_plugin_config()
 ~~~~~~~~~~~~~~~~~~~
 
-Get any useful metadata that the plugin may have available. For instance, for the HASS plugin this will return  Home Assistant configuration data such as latitude and longitude.
+Get any useful metadata that the plugin may have available. For instance, for the HASS plugin, this will return  Home Assistant configuration data such as latitude and longitude.
 
 Synopsis
 ^^^^^^^^
