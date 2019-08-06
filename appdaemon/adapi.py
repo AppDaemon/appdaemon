@@ -278,8 +278,7 @@ class ADAPI:
     # Dialogflow
     #
 
-    @staticmethod
-    def get_dialogflow_intent(data):
+    def get_dialogflow_intent(self, data):
         if "result" in data and "action" in data["result"]:
             self.dialogflow_v = 1
             return data["result"]["action"]
@@ -320,8 +319,7 @@ class ADAPI:
         else:
             return None
 
-    @staticmethod
-    def format_dialogflow_response(speech=None):
+    def format_dialogflow_response(self, speech=None):
         if self.dialogflow_v == 1:
             speech = {"speech": speech, "source": "Appdaemon", "displayText": speech}
         elif self.dialogflow_v == 2:
