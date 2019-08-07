@@ -527,7 +527,7 @@ It has it's own top-level section in AppDaemon.yaml, and one mandatory argument,
 http:
 url: http://192.168.1.20:5050
 
--  ``url`` - the url you want the http component to listen on
+-  ``url`` - the URL you want the HTTP component to listen on
 
 
 To password protect ``AppDaemon`` use the ``password`` directive:
