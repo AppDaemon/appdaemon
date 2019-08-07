@@ -1,7 +1,7 @@
 Writing AppDaemon Apps
 =======================
 
-AppDaemon is a loosely coupled, sandboxed, multi-threaded Python
+AppDaemon (AD) is a loosely coupled, sandboxed, multi-threaded Python
 execution environment for writing automation apps for `Home
 Assistant <https://home-assistant.io/>`__, `MQTT <http://mqtt.org/>`__ event broker and other home automation software.
 
@@ -29,7 +29,7 @@ defined in the ``appdaemon`` section of configuration file - see `The
 Installation Page <INSTALL.html>`__ for further information on the
 configuration of AppDaemon itself). This file, is in fact, a Python
 module, and is expected to contain one or more classes derived from a
-supplied ``appdaemon`` class or a custom plugin. For instance, hass support can be used by importing from the supplied``hassapi`` module. The start of an App might look like this:
+supplied ``appdaemon`` class or a custom plugin. For instance, hass support can be used by importing from the supplied ``hassapi`` module. The start of an App might look like this:
 
 .. code:: python
 
@@ -514,7 +514,7 @@ Note, that this only effects reloading at plugin restart time:
 
 - apps will be reloaded if the module they use changes
 - apps will be reloaded if their apps.yaml changes
-- apps will be reloaded when a change to or from DST occurs
+- apps will be reloaded when a change to or from DST (Daylight Saving Time) occurs
 - apps will be reloaded if an App they depend upon is reloaded as part of a plugin restart
 - apps will be reloaded if changes are made to a global module that they depend upon
 
@@ -529,7 +529,7 @@ up a lot, and use of callback constraints can significantly simplify the
 logic required within callbacks.
 
 Put simply, callback constraints are one or more conditions on callback
-execution that can be applied to an individual App. An App's callbacks
+execution that can be applied to an individual App. App's callbacks
 will only be executed if all of the constraints are met. If a constraint
 is absent, it will not be checked for.
 
@@ -711,7 +711,7 @@ If you know what you are doing and understand the risks, you can disable AppDaem
 
 If you disable App pinning, you will start with a default number of 10 threads, but this can be modified with the ``total_threads`` setting in appdaemon.yaml.
 
-To disable App Pinning globally within AppDaemon set the Appdaemon directive ``pin_apps`` to ``false`` within the AppDaemon.yaml file and App pinning will be disabled for all apps. At this point, it is possible for different pieces of
+To disable App Pinning globally within AppDaemon set the AppDaemon directive ``pin_apps`` to ``false`` within the AppDaemon.yaml file and App pinning will be disabled for all apps. At this point, it is possible for different pieces of
 code within the App to be executed concurrently, so some care may be necessary if different callbacks, for instance, inspect and change shared
 variables. This is a fairly standard caveat with concurrent programming, and AppDaemon supplies a simple locking mechanism to help avoid this.
 
@@ -967,16 +967,16 @@ Although pinning and scheduling has been thoroughly tested, in current real-worl
 State Operations
 ----------------
 
-AppDaemon maintains a master state list segmented by namespace. As state changes are notified by the various plugins, AppDaemon takes not and stores the updated state locally.
+AppDaemon maintains a master state list segmented by namespace. As state changes are notified by the various plugins, AppDaemon listens and stores the updated state locally.
 
-The MQTT plugin does not use state at all, and relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
+The MQTT plugin does not use state at all, and it relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
 
 A note on Home Assistant State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 State within Home Assistant is stored as a collection of dictionaries,
 one for each entity. Each entity's dictionary will have some common
-fields and a number of entity type-specific fields The state for an
+fields and a number of entity type-specific fields. The state for an
 entity will always have the attributes:
 
 -  ``last_updated``
@@ -1020,11 +1020,11 @@ About Callbacks
 
 A large proportion of home automation revolves around waiting for
 something to happen and then reacting to it; a light level drops, the
-sun rises, a door opens, etc. The various plugins keep track of every state
-change that occurs within the system and streams that information to
+sun rises, a door opens, etc. Plugins keep track of every state
+change that occurs within the system, and they streams that information to
 AppDaemon almost immediately.
 
-An individual App however usually doesn't care about the majority of
+A single App however usually doesn't care about the majority of
 state changes going on in the system; Apps usually care about something
 very specific, like a specific sensor or light. Apps need a way to be
 notified when a state change happens that they care about, and be able
@@ -1038,10 +1038,10 @@ There are 3 types of callbacks within AppDaemon:
 
 -  State Callbacks - react to a change in state
 -  Scheduler Callbacks - react to a specific time or interval
--  Event Callbacks - react to specific Home Assistant and Appdaemon
+-  Event Callbacks - react to specific Home Assistant and AppDaemon
    events.
 
-All callbacks allow the user to specify additional parameters to be
+All callbacks allow users to specify additional parameters to be
 handed to the callback via the standard Python ``**kwargs`` mechanism
 for greater flexibility, these additional arguments are handed to the
 callback as a standard Python dictionary,
@@ -1352,7 +1352,7 @@ A standard Python object reference.
 event\_name
 ^^^^^^^^^^^
 
-Name of the event that was called, e.g. ``call_service``.
+Name of the event that was called, e.g., ``call_service``.
 
 data
 ^^^^
@@ -1410,7 +1410,7 @@ As an example of this, a Minimote controller when activated will
 generate an event called ``zwave.scene_activated``, along with 2 pieces
 of data that are specific to the event - ``entity_id`` and ``scene``. If
 you include keyword values for either of those, the values supplied to
-the \`listen\_event()1 call must match the values in the event or it
+the ``listen_event()`` 1 call must match the values in the event or it
 will not fire. If the keywords do not match any of the data in the event,
 they are simply ignored.
 
@@ -1498,12 +1498,12 @@ Writing to Logfiles
 ~~~~~~~~~~~~~~~~~~~
 
 AppDaemon uses 2 separate logs - the general log and the error log. An
-AppDaemon App can write to either of these using the supplied
+App can write to either of these using the supplied
 convenience methods ``log()`` and ``error()``, which are provided as
 part of parent ``AppDaemon`` class, and the call will automatically
 pre-pend the name of the App making the call.
 
-The functions are based on the python ``logging`` module and are able to pass through parameters for interpolation, and additional parameters such as ``exc_info`` just as with the usual style of invocation. Use of loggers interpolation method over the use of ``format()`` is recomended for performance reasons, as logger will only interpolate of the line is actually written whereas ``format()`` will always do the substitution.
+The functions are based on the Python ``logging`` module and are able to pass through parameters for interpolation, and additional parameters such as ``exc_info`` just as with the usual style of invocation. Use of loggers interpolation method over the use of ``format()`` is recomended for performance reasons, as logger will only interpolate of the line is actually written whereas ``format()`` will always do the substitution.
 
 The ``-D`` option of AppDaemon can be used to specify a global logging level, and Apps can individually have their logging level set as required. This can be achieved using the ``set_log_level()`` API call, or by using the special ``debug`` argument to the apps settings in ``apps.yaml``:
 
@@ -1511,7 +1511,7 @@ The ``-D`` option of AppDaemon can be used to specify a global logging level, an
 
     log_level: DEBUG
 
-In addition, apps can select a default log for the `log()` call using the `log` directive in apps.yaml, referencing the section name in appdaemon.yaml. This can be one of the 4 builtin logs, ``main_log``, ``error_log``, ```diag_log`` and ``access_log``, or a user-defined log, e.g.
+In addition, apps can select a default log for the `log()` call using the `log` directive in apps.yaml, referencing the section name in appdaemon.yaml. This can be one of the 4 builtin logs, ``main_log``, ``error_log``, ``diag_log`` and ``access_log``, or a user-defined log, e.g.:
 
 .. code:: yaml
 
@@ -1559,7 +1559,7 @@ To get AppDaemon's config parameters for example:
 
 
 To access any apps parameters, use the class attribute called ``app_config``. This is
-a python Dictionary with an entry for each App, keyed on the App's name.
+a Python Dictionary with an entry for each App, keyed on the App's name.
 
 .. code:: python
 
@@ -1607,7 +1607,7 @@ Development Workflow
 --------------------
 
 Developing Apps is intended to be fairly simple but is an exercise in
-programming like any other kind of Python programming. As such, it is
+programming like any other kind of Python program. As such, it is
 expected that apps will contain syntax errors and will generate
 exceptions during the development process. AppDaemon makes it very easy
 to iterate through the development process as it will automatically
@@ -1765,7 +1765,7 @@ configuration file. The API can run http or https if desired, separately
 from the dashboard.
 
 To call into a specific App, construct a URL, use the regular
-HADashboard URL, and append ``/API/appdaemon``, then add the name of the
+HADashboard URL, and append ``/api/appdaemon``, then add the name of the
 endpoint as registered by the App on the end, for example:
 
 ::
@@ -1889,8 +1889,8 @@ For more information about configuring Alexa Intents, see the `Home
 Assistant Alexa
 Documentation <https://home-assistant.io/components/alexa/>`__
 
-When configuring Alexa support for AppDaemon some care is needed. If as
-most people are, you are using SSL to access Home Assistant, there is
+When configuring Alexa support for AppDaemon some care is needed. If you are as
+most people, you are using SSL to access Home Assistant, there is
 contention for the use of the SSL port (443) since Alexa does not allow you
 to change this. This means that if you want to use AppDaemon with SSL,
 you will not be able to use Home Assistant remotely over SSL. The way
@@ -1920,7 +1920,7 @@ helper functions to understand the incoming request and format a
 response to be sent back to Amazon, to describe the spoken response and
 card for Alexa.
 
-Here is a sample Alexa App that can be extended for whatever intents you
+Here is a sample of an Alexa App that can be extended for whatever intents you
 want to configure.
 
 .. code:: python
@@ -2029,7 +2029,7 @@ want to configure.
 Google API.AI
 -------------
 
-Similarly, Google's API.AI for Google home is supported - here is the Google version of the same App. To set up Api.ai with your google home refer to the apiai component in home-assistant. Once it is setup you can use the appdaemon API as the webhook.
+Similarly, Google's API.AI for Google home is supported - here is the Google version of the same App. To set up API.AI with your google home refer to the `apiai` component in home-assistant. Once it is setup you can use the AppDaemon API as the webhook.
 
 .. code:: python
 
@@ -2175,7 +2175,7 @@ installation section of the docs - here I am just using a subset.
 Namespaces
 ----------
 
-A critical piece of this is the concept of ``namespaces``. Each plugin has an optional``namespace`` directive. If you have more than 1 plugin of any type, their state is separated into namespaces, and you need to name those namespaces using the ``namespace`` parameter. If you don't supply a namespace, the namespace defaults to ``default`` and this is the default for all areas of AppDaemon meaning that if you only have one plugin you don't need to worry about namespace at all.
+A critical piece of this is the concept of ``namespaces``. Each plugin has an optional ``namespace`` directive. If you have more than 1 plugin of any type, their state is separated into namespaces, and you need to name those namespaces using the ``namespace`` parameter. If you don't supply a namespace, the namespace defaults to ``default`` and this is the default for all areas of AppDaemon meaning that if you only have one plugin you don't need to worry about namespace at all.
 
 In the case above, the first instance had no namespace so its namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
 
