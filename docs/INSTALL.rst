@@ -4,7 +4,7 @@ Installation
 Installation is either by pip3 or Docker. There is also an official
 hass.io build.
 
-Note: Windows and Raspbian users should check the environment specific section at the end of this doc for additional information.
+Note: Windows and Raspbian users should check the environment-specific section at the end of this doc for additional information.
 
 Install and Run using Docker
 ----------------------------
@@ -21,7 +21,7 @@ Before running ``AppDaemon`` you will need to install the package:
     $ sudo pip3 install appdaemon
 
 
-**Do not** install this in the same Python virtual environment as Home Assistant. If you do that then Home Assistant will stop working.
+**Do not** install this in the same Python virtual environment as Home Assistant. If you do that, then Home Assistant will stop working.
 
 Install Using hass.io
 ---------------------
@@ -115,8 +115,8 @@ documentation.
 Starting At Reboot
 ------------------
 
-To run ``AppDaemon`` at reboot, you can set it up to run as a systemd
-service as follows.
+To run ``AppDaemon`` at reboot, you can set it up to run as a ``systemd
+service`` as follows.
 
 Add Systemd Service (appdaemon@appdaemon.service)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,7 +144,7 @@ Assistant with is a good choice.
     [Install]
     WantedBy=multi-user.target
 
-The above should work for hasbian, but if your homeassistant service is
+The above should work for hasbian, but if your ``homeassistant`` service is
 named something different you may need to change the ``After=`` lines to
 reflect the actual name.
 
@@ -174,7 +174,7 @@ Windows Support
 ---------------
 
 AppDaemon runs under windows and has been tested with the official 3.5.2
-release of python. There are a couple of caveats however:
+release of python. However, there are a couple of caveats:
 
 -  The ``-d`` or ``--daemonize`` option is not supported owing to
    limitations in the Windows implementation of Python.
@@ -189,7 +189,7 @@ Windows Under the Linux Subsystem
 
 Windows 10 now supports a full Linux bash environment that is capable of
 running Python. This is essentially an Ubuntu distribution and works
-extremely well. It is possible to run AppDaemon in exactly the same way
+extremely well. It is possible to run AppDaemon in the same way
 as for Linux distributions, and none of the above Windows Caveats apply
 to this version. This is the recommended way to run AppDaemon in a
 Windows 10 and later environment.
