@@ -1,7 +1,7 @@
 HASS API Reference
 ==================
 
-A list of API calls and information specific to the HASS plugin.
+This page provides a list of API calls and specific information related to the HASS plugin.
 
 App Creation
 ------------
@@ -47,12 +47,12 @@ Parameters
 service
 '''''''
 
-The service name, e.g. ``light/turn_on``.
+The service name, e.g., ``light/turn_on``.
 
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter
 
 
 
@@ -60,7 +60,7 @@ Namespace to use for the call - see the section on namespaces for a detailed des
 ''''''''''
 
 Each service has different parameter requirements. This argument allows
-you to specify a comma separated list of keyword value pairs, e.g.
+you to specify a comma-separated list of keyword value pairs, e.g.,
 ``entity_id = light.office_1``. These parameters will be different for
 every service and can be discovered using the developer tools. Most if
 not all service calls require an ``entity_id`` however, so use of the
@@ -78,7 +78,7 @@ turn\_on()
 ~~~~~~~~~~
 
 This is a convenience function for the ``homassistant.turn_on``
-function. It is able to turn on pretty much anything in Home Assistant
+function. It can turn ``on`` pretty much anything in Home Assistant
 that can be turned on or run:
 
 -  Lights
@@ -106,18 +106,18 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the thing to be turned on, e.g.
+Fully qualified entity\_id of the thing to be turned on, e.g.,
 ``light.office_lamp`` or ``scene.downstairs_on``
 
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 \*\*kwargs
 ''''''''''
 
-A comma separated list of key value pairs to allow specification of
+A comma-separated list of key-value pairs to allow the specification of
 parameters over and above ``entity_id``.
 
 Examples
@@ -133,7 +133,7 @@ turn\_off()
 ~~~~~~~~~~~
 
 This is a convenience function for the ``homassistant.turn_off``
-function. Like ``homeassistant.turn_on``, it is able to turn off pretty
+function. Like ``homeassistant.turn_on``, it can turn ``off`` pretty
 much anything in Home Assistant that can be turned off.
 
 Synopsis
@@ -154,13 +154,13 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the thing to be turned off, e.g.
+Fully qualified entity\_id of the thing to be turned off, e.g.,
 ``light.office_lamp`` or ``scene.downstairs_on``.
 
 namespace = (optional)
 '''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -196,13 +196,13 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the thing to be toggled, e.g.
+Fully qualified entity\_id of the thing to be toggled, e.g.,
 ``light.office_lamp`` or ``scene.downstairs_on``.
 
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -217,7 +217,7 @@ set\_value()
 ~~~~~~~~~~~~~~~
 
 This is a convenience function for the ``input_number.set_value``
-function. It is able to set the value of an input\_number in Home
+function. It can set the value of an input\_number in Home
 Assistant.
 
 Synopsis
@@ -238,7 +238,7 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the input\_number to be changed, e.g.
+Fully qualified entity\_id of the input\_number to be changed, e.g.,
 ``input_number.alarm_hour``.
 
 value
@@ -249,7 +249,7 @@ The new value to set the input number to.
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -263,7 +263,7 @@ set\_textvalue()
 ~~~~~~~~~~~~~~~
 
 This is a convenience function for the ``input_text.set_value``
-function. It is able to set the value of an input\_text in Home
+function. It can set the value of an input\_text in Home
 Assistant.
 
 Synopsis
@@ -284,7 +284,7 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the input\_text to be changed, e.g.
+Fully qualified entity\_id of the input\_text to be changed, e.g.,
 ``input_text.text1``.
 
 value
@@ -295,7 +295,7 @@ The new value to set the input text to.
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -309,7 +309,7 @@ select\_option()
 ~~~~~~~~~~~~~~~~
 
 This is a convenience function for the ``input_select.select_option``
-function. It is able to set the value of an input\_select in Home
+function. It can set the value of an input\_select in Home
 Assistant.
 
 Synopsis
@@ -330,7 +330,7 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the input\_select to be changed, e.g.
+Fully qualified entity\_id of the input\_select to be changed, e.g.,
 ``input_select.mode``.
 
 value
@@ -341,7 +341,7 @@ The new value to set the input slider to.
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -356,7 +356,7 @@ notify()
 
 This is a convenience function for the ``notify.notify`` service. It
 will send a notification to a named notification service. If the name is
-not specified it will default to ``notify/notify``.
+not specified, it will default to ``notify/notify``.
 
 Synopsis
 ^^^^^^^^
@@ -391,7 +391,7 @@ Name of the notification service - optional.
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -424,7 +424,7 @@ Parameters
 namespace = (optional)
 '''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 
@@ -460,7 +460,7 @@ Parameters
 namespace = (optional)
 '''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 Returns
 ^^^^^^^
@@ -508,13 +508,13 @@ Parameters
 tracker\_id
 '''''''''''
 
-Fully qualified entity\_id of the device tracker to query, e.g.
+Fully qualified entity\_id of the device tracker to query, e.g.,
 ``device_tracker.andrew``.
 
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -551,7 +551,7 @@ Parameters
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -588,7 +588,7 @@ Parameters
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -624,7 +624,7 @@ Parameters
 namespace = (optional)
 ''''''''''''''''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 
 Examples
@@ -641,8 +641,8 @@ Database
 get\_history()
 ~~~~~~~~~~~~~~~
 
-This is a convenience function that allows to access the HA Database, so the history state of a device can be retrieved.
-It allows for a level of felxibility when retrieving the data, and returns it as a dictionary list.
+This is a convenience function that allows accessing the HA Database, so the history state of a device can be retrieved.
+It allows for a level of flexibility when retrieving the data, and returns it as a dictionary list.
 Caution must be taken when using this, as depending on the size of the database, it can take a long time to process.
 
 Synopsis
@@ -658,7 +658,7 @@ Parameters
 entity\_id
 ''''''''''
 
-Fully qualified entity\_id of the thing to be turned on, e.g.
+Fully qualified entity\_id of the thing to be turned on, e.g.,
 ``light.office_lamp`` or ``scene.downstairs_on``
 This can be any entity\_id in the database. If this is left empty, the state of 
 all entities will be retrieved within the specified time. If both ``end_time``
@@ -669,7 +669,7 @@ in the database will be retrieved within the specified time.
 days
 ''''
 
-The days from the present day walking backwards, that is required from the database.
+The days from the present-day walking backwards that is required from the database.
 
 .. code:: python
     #get device state over the last 5 days
@@ -680,7 +680,7 @@ start_time
 ''''''''''
 
 The start time from when the data should be retrieved. This should be the furthest time backwards,
-like if wanting to get data from now untill two days ago. Your start time will be last two days datetime.
+like if we wanted to get data from now until two days ago. Your start time will be the last two days datetime.
 ``start_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00`` or
 a ``datetime.datetime`` object.
 
@@ -695,7 +695,7 @@ end_time
 ''''''''
 
 The end time from when the data should be retrieved. This should be the latest time
-like if wanting to get data from now untill two days ago. Your end time will be today's datetime
+like if we wanted to get data from now until two days ago. Your end time will be today's datetime
 ``end_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00`` or
 a ``datetime.datetime`` object. It should be noted that it is not possible to declare only ``end_time``.
 If only ``end_time`` is declared without ``start_time`` or ``days``, it will revert to default 
@@ -712,7 +712,7 @@ If ``entity_id`` is specified, ``end_time`` will be ignored.
 namespace = (optional)
 '''''''''
 
-Namespace to use for the call - see the section on namespaces for a detailed description. In most cases it is safe to ignore this parameter
+Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
 
 Returns
 ^^^^^^^
