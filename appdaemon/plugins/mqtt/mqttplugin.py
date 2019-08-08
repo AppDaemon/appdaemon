@@ -383,9 +383,22 @@ class MqttPlugin(PluginBase):
                 if self.mqtt_client_user != None:
                     self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
 
+                set_tls = False
+                auth = {"tls_version" : self.mqtt_tls_version}
                 if self.mqtt_client_tls_ca_cert != None:
-                    self.mqtt_client.tls_set(self.mqtt_client_tls_ca_cert, certfile=self.mqtt_client_tls_client_cert,
-                                            keyfile=self.mqtt_client_tls_client_key, tls_version=self.mqtt_tls_version)
+                    auth.update({"ca_certs" : self.mqtt_client_tls_ca_cert})
+                    set_tls = True
+                
+                if self.mqtt_client_tls_client_cert != None:
+                    auth.update({"certfile" : self.mqtt_client_tls_client_cert})
+                    set_tls = True
+                  
+                if self.mqtt_client_tls_client_key != None:
+                    auth.update({"keyfile" : self.mqtt_client_tls_client_key})
+                    set_tls = True
+                   
+                if set_tls == True:                    
+                    self.mqtt_client.tls_set(**auth)
 
                     if not self.mqtt_verify_cert:
                         self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
