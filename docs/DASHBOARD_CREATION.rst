@@ -13,14 +13,14 @@ Dashboard configuration is simple yet very powerful. Dashboards can be
 created in single files or made modular for reuse of blocks of widgets.
 Dashboards are configured using YAML.
 
-We will start with a simple single file configuration. Create a file
+We will start with a simple single-file configuration. Create a file
 with a ``.dash`` extension in the ``dashboards`` directory, and pull it
 up in your favorite editor.
 
 Main Settings
 ~~~~~~~~~~~~~
 
-A top level dashboard will usually have one of a number of initial
+A top-level dashboard will usually have one of several initial
 directives to configure aspects of the dashboard, although they are all
 optional. An example is as follows:
 
@@ -43,7 +43,7 @@ optional. An example is as follows:
           media_player:
             step: 5
 
-These are all fairly self explanatory:
+These are all fairly self-explanatory:
 
 -  ``title`` - the name that will end up in the title of the web page,
    defaults to "HADashboard".
@@ -51,25 +51,24 @@ These are all fairly self explanatory:
    widgets in pixels. Note that the absolute size is not too important
    as on tablets at least the browser will scale the page to fit. What
    is more important is the aspect ratio of the widgets as this will
-   affect whether or not the dashboard completely fills the tablets
-   screen. The default is [120, 120] (width, height). This works well
+   affect whether or not the dashboard completely fills the tablet's screen. The default is [120, 120] (width, height). This works well
    for a regular iPad.
 -  ``widget_size`` - the number of grid blocks each widget will be by
    default if not specified
 -  ``widget_margins`` - the size of blank space between widgets.
 -  ``rows`` - the total number of rows in the dashboard. This will help
    with spacing, but is optional for dashboards with fewer than 15 rows
--  ``columns`` - the number of columns the dasboard will have.
--  ``scalable`` - if set to ``False`` this parameter will disable resizing and double tap zooming on iOS devices, default is to not disable zooming.
+-  ``columns`` - the number of columns the dashboard will have.
+-  ``scalable`` - if set to ``False`` this parameter will disable resizing and double-tap zooming on iOS devices, default is not to disable zooming.
 -  ``global_parameters`` - a list of parameters that will be applied to
-   every widget. If the widget does not accept that parameter it will be
+   every widget. If the widget does not accept that parameter, it will be
    ignored. Global parameters can be overriden at the widget definition
    if desired. This is useful for instance if you want to use commas as
    decimals for all of your widgets. This will also apply to widgets
    defined with just their entity ids so they will not require a formal
    widget definition just to change the decimal separator. The namespace
    parameter will be explained further in the namespace section of this document.
-   Within the ``global`` paraemeters it is also possible to set parameters at the device level by including a ``device`` entry (see above for an example). Under device you can add an entry for any widget type, then under that, list global parameters that will be applied to just that widget type. For instance, in the example above, the default step size for the all media players is set to 5% rather than the default 10%.
+   Within the ``global`` parameters it is also possible to set parameters at the device level by including a ``device`` entry (see above for an example). Under device you can add an entry for any widget type, then under that, list global parameters that will be applied to just that widget type. For instance, in the example above, the default step size for all media players is set to 5% rather than the default 10%.
 
 The very simplest dashboard needs a layout so it can understand where to
 place the widgets. We use a ``layout`` directive to tell HADasboard how
@@ -82,15 +81,14 @@ to place them. Here is an example:
         - light.hall, light.living_room, input_boolean.heating
         - media_player(2x1), sensor.temperature
 
-As you can see, here we are refering directly to native Home Assistant
+As you can see, here we are referring directly to native Home Assistant
 entities. From this, HADashboard is able to figure out the right widget
-type and grab its friendly name and add it to the dasboard. For the
+type and grab its friendly name and add it to the dashboard. For the
 ``clock`` and ``weather`` widgets there is no associated entity id so
 just your ``clock.clock`` or ``weather.weather``.
 
-The layout command is intended to be visual in how you lay out the
-widgets. Each layout entry represents a row on the dashboard, each comma
-separated widget represents a cell on that row.
+The layout command is intended to be visual in how you layout the
+widgets. Each layout entry represents a row on the dashboard; each comma-separated widget represents a cell on that row.
 
 Widgets can also have a size associated with them - that is the
 ``(2x1)`` directive appended to the name. This is simply the width of
@@ -102,7 +100,7 @@ high. If you leave of the sizing information, the widget will use the
 layout from what you give it but expect strange behavior if you add too
 many widgets on a line.
 
-For a better visual cue you can lay the widgets out with appropriate
+For a better visual cue, you can lay the widgets out with appropriate
 spacing to see what the grid will look like more intuitively:
 
 .. code:: yaml
@@ -115,9 +113,9 @@ spacing to see what the grid will look like more intuitively:
 
 Make sure that the number of widths specified adds up to the total
 number of columns, and don't forget to take into account widgets that
-are more than one row high (e.g. the weather widget here).
+are more than one row high (e.g., the weather widget here).
 
-If you want a blank space you can use the special widget name
+If you want a blank space, you can use the special widget name
 ``spacer``. To leave a whole row empty, just leave an entry for it with
 no text. For instance:
 
@@ -144,11 +142,10 @@ Detailed Widget Definition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The approach above is ok for simple widgets like lights, but HADashboard
-has a huge range of customization options. To access these, you need to
-formally define the widget along with its associated parameters.
+has a huge range of customization options. To access these, you need to define the widget along with its associated parameters formally.
 
-To define a widget simply add lines elsewhere in the file. Give it a
-name , a widget type and a number of optional parameters like this:
+To define a widget, simply add lines elsewhere in the file. Give it a
+name, a widget type and a number of optional parameters like this:
 
 .. code:: yaml
 
@@ -156,11 +153,11 @@ name , a widget type and a number of optional parameters like this:
         widget_type: weather
         units: "&deg;F"
 
-Here we have defined a widget of type "weather", and given it an
+Here we have defined a widget of type "weather" and given it an
 optional parameter to tell it what units to use for temperature. Each
 widget type will have different required parameters, refer to the
 documentation below for a complete list for each type. All widgets
-support ways to customize colors and text sizes as well as attibutes
+support ways to customize colors and text sizes as well as attributes
 they need to understand how to link the widget to Home Assistant, such
 as entity\_ids.
 
@@ -225,7 +222,7 @@ Lets look at a couple more examples of widget definitions:
         icon_off: fas-car
         warn: 1
 
-Now, instead of an entity id we refer to the name of the widgets we just
+Now, instead of an entity id, we refer to the name of the widgets we just
 defined:
 
 .. code:: yaml
@@ -250,7 +247,7 @@ Note that the indentation level starts at 0. To include this file, just
 reference a widget called ``clock`` in the layout, and HADashboard will
 automatically load the widget.
 
-A file will override a native entity, so you can create your dashboard
+A file will override a native entity so that you can create your dashboard
 just using entities, but if you want to customize a specific entity, you
 can just create a file named ``<entity_name>.yaml`` and put the settings
 in there. You can also override entity names by specifying a widget of
@@ -263,19 +260,19 @@ Advanced Dashboard Definition
 -----------------------------
 
 When you get to the point where you have multiple dashboards, you may
-want to take a more modular approach, as you will find that in many
-cases you want to reuse parts of other dashboards. For instance, I have
+want to take a more modular approach. For example,  you will find that in many
+cases, you want to reuse parts of other dashboards. For instance, I have
 a common header for mine consisting of a row or two of widgets I want to
 see on every dashboard. I also have a footer of controls to switch
 between dashboards that I want on each dashboard as well.
 
 To facilitate this, it is possible to include additional files, inline
 to build up dashboards in a more modular fashion. These additional files
-end in ``.yaml`` to distinguish them from top level dashboards. They can
+end in ``.yaml`` to distinguish them from top-level dashboards. They can
 contain additional widget definitions and also optionally their own
 layouts.
 
-The sub files are included in the layout using a variation of the layout
+The sub-files are included in the layout using a variation of the layout
 directive:
 
 .. code:: yaml
@@ -290,16 +287,15 @@ can be used.
 -  If the yaml file includes its own layouts directive, the widgets
    from that file will be placed as a block, in the way described by its
    layout, making it reusable. You can change the order of the blocks
-   inclusion by moving where in the original layout directive you
-   include them.
+   inclusion by moving wherein the original layout directive you include them.
 -  If the yaml file just includes widget definitions, it is possible to
    perform the layout in the higher level dash if you prefer so you
    still get an overall view of the dashboard. This approach has the
-   benefit that you can be completely flexible in the layout wheras the
+   benefit that you can be completely flexible in the layout whereas the
    first method defines fixed layouts for the included blocks.
 
 I prefer the completely modular approach - here is an example of a full
-top level dashboard created in that way:
+top-level dashboard created in that way:
 
 .. code:: yaml
 
@@ -316,8 +312,8 @@ top level dashboard created in that way:
 
 As you can see, it includes four modular sub-dashes. Since these pieces
 all have their own layout information there is no need for additional
-layout in the top level file. Here is an example of one of the self
-contained sub modules (mode\_panel.yaml):
+layout in the top-level file. Here is an example of one of the self
+contained submodules (mode\_panel.yaml):
 
 .. code:: yaml
 
@@ -382,7 +378,7 @@ contained sub modules (mode\_panel.yaml):
         - clock(2x1), weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
         - mode(2x1), light_level(2x1), porch_motion, garage
 
-Now if we take a look at that exact same layout, but assume that just
+Now if we take a look at that same layout, but assume that just
 the widget definitions are in the sub-blocks, we would end up with
 something like this - note that we must explicitly lay out each widget
 we have included in the other files:
@@ -409,17 +405,17 @@ we have included in the other files:
 In this case, the actual layout including a widget must be after the
 include as you might expect.
 
-A few caveats for loaded sub files:
+A few caveats for loaded subfiles:
 
 -  Sub files can include other subfiles to a maximum depth of 10 -
    please avoid circular references!
--  When layout information is included in a sub file, the subfile must
+-  When layout information is included in a subfile, the subfile must
    comprise 1 or more complete dashboard rows - partial rows or blocks
    are not supported.
 
 As a final option, you can create widget definitions in the main file
 and use them in the layout of the header/footer/etc. For example, if you
-have a header that has a label in it that lists the room that the
+have a header that has a label on it that lists the room that the
 dashboard is associated with, you can put the label widget definition in
 the header file but all the pages get the same message. If you put the
 label widget definition in the main file for the room, and reference it
@@ -457,11 +453,11 @@ itself, and include the header in the layout:
 Widget Customization
 --------------------
 
-Widgets allow customization using arbitary CSS styles for the individual
+Widgets allow customization using arbitrary CSS styles for the individual
 elements that make up the widget. Every widget has a
 \`\ ``widget_style`` argument to apply styles to the whole widget, as
 well as one or more additional style arguments that differ for each
-widget. To customize a widget background for instance:
+widget. To customize a widget background, for instance:
 
 .. code:: yaml
 
@@ -521,12 +517,12 @@ In order to enable this, just add:
     state_text: 1
 
 to the widget definition. This will then make the widget show the HA
-state below the icon. Since native HA state is not always very pretty it
+state below the icon. Since native HA state is not always very pretty, it
 is also possible to map this to better values, for instance in a
 different language than English.
 
 To add a state map, just add a state\_map list to the widget definition
-listing the HA states and what you actually want displayed. For
+listing the HA states and what you actually want to be displayed. For
 instance:
 
 .. code:: yaml
@@ -535,14 +531,14 @@ instance:
       "on": Aan
       "off": Uit
 
-One wrinkle here is that YAML over enthusiastically "helps" by
+One wrinkle here is that YAML over-enthusiastically "helps" by
 interpreting things like ``on`` and ``off`` as booleans so the quotes
 are needed to prevent this.
 
 Titles
 ------
 
-Each widget could have custom text for title a title2. You can use option to force widget to use text from entity friendly name attribute.
+Each widget could have custom text for title a title2. You can use the option to force the widget to use text from entity friendly name attribute.
 
 -  ``title_is_friendly_name`` - set title as entity friendly name if exists
 -  ``title2_is_friendly_name`` - set title2 as entity friendly name if exists
@@ -560,7 +556,7 @@ Icons
 Widgets that allow the specification of icons have access to both `Font
 Awesome <http://fontawesome.io/cheatsheet/>`__ and `Material
 Design <https://materialdesignicons.com/>`__ Icons. To specify an icon
-simply use the prefix ``mdi-`` for Material Design, and the appropriate style prefix for Font Awesome Icons
+simply use the prefix ``mdi-`` for Material Design, and the appropriate style prefix for Font Awesome Icons.
 
 .. code:: yaml
 
@@ -579,7 +575,7 @@ This can also be set at the dashboard level as a global parameter.
 External Commands
 -----------------
 
-The dashboard can accept command from external systems to prompt
+The dashboard can accept commands from external systems to prompt
 actions, such as navigation to different pages. These can be achieved
 through a variety of means:
 
@@ -621,7 +617,7 @@ Arguments
 ``target`` - Name of the new Dashboard to navigate to, e.g.
 ``SensorPanel`` - this is not a URL. ``timeout`` - length of time to
 stay on the new dashboard before returning to the original. This
-argument is optional and if not specified, the navigation will be
+argument is optional, and if not specified, the navigation will be
 permanent.
 
 Note that if there is a click or touch on the new panel before the
@@ -629,14 +625,14 @@ timeout expires, the timeout will be cancelled.
 
 ``timeout`` - length of time to stay on the new dashboard
 ``return`` - dashboard to return to after the timeout has elapsed.
-``sticky`` - wether or not to reyurn to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if cliked and return to the original otherwise. With ``sticky=```, clicking the dasboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Namespaces
 ----------
 
 For a full explanation of namespaces see the ``Writing AppDaemon Apps`` Section of the guide. Namespaces may be ignored in HADashboard if only one plugin is in use.
 
-If multiple namespaces are in use, HADasboard is able to specify either at the dashboard level or the widget level which namespace to use. This is achieved by use of the ``namespace`` parameter. This parameter may be specified for each individual widget if desired. If it is specified as one of the global paraneters, it will apply to all widgets but may be overriden for individual widgets. If not specified as a global parameter, the default namespace will be used for any widgets that do not override it. For example:
+If multiple namespaces are in use, HADasboard is able to specify either at the dashboard level or the widget level which namespace to use. This is achieved by use of the ``namespace`` parameter. This parameter may be specified for each individual widget if desired. If it is specified as one of the global parameters, it will apply to all widgets but may be overridden for individual widgets. If not specified as a global parameter, the default namespace will be used for any widgets that do not override it. For example:
 
 .. code:: yaml
 
@@ -725,8 +721,8 @@ Style Arguments:
 weather
 ~~~~~~~
 
-Up to date weather reports. By default it's configured to work with dark sky
-sensor. To use all the features you need to add these sensors to
+Up to date weather reports. By default, it's configured to work with dark sky
+sensor. To use all the features, you need to add these sensors to
 monitored_conditions:
 
 -  temperature
@@ -743,7 +739,7 @@ monitored_conditions:
 -  icon
 
 To have the forecast displayed set ``show_forecast`` to 1. For it to work you
-additionally need to add the forecast option in dark_sky Home Assistant
+additionally, need to add the forecast option in dark_sky Home Assistant
 configuration.
 
 .. code:: yaml
@@ -865,7 +861,7 @@ The colors of the various lines are:
 - Waterloo & City: #95CDBA
 
 For smaller dashboards the Description text can be too long to fit in
-the widget properly. In that case hide the text as follows:
+the widget properly. In that case, hide the text as follows:
 
 .. code:: yaml
 
@@ -895,7 +891,7 @@ sensor
 A widget to report on values for any sensor in Home Assistant
 
 The widget will detect whether or not it is showing a numeric value, and
-if so, it will use the numeric style. If it is showing text it will use
+if so, it will use the numeric style. If it is showing text, it will use
 the text style, which among other things makes the text size smaller.
 To display an attribute of a sensor rather than the state itself add 
 the attribute to the end of the sensor name. For example, to display the
@@ -991,10 +987,10 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 
       rss_update: <feed_refresh_interval>
 
--  ``feed_url`` - fully qualified path to rss feed, e.g.
+-  ``feed_url`` - fully qualified path to rss feed, e.g.,
    ``http://rss.cnn.com/rss/cnn_topstories.rss``
 -  ``target name`` - the entity of the target RSS widget in the
-   dashboard definition file. This must be an arbitary name prepended by ``rss.`` - e.g. ``rss.cnn_news``
+   dashboard definition file. This must be an arbitrary name prepended by ``rss.`` - e.g., ``rss.cnn_news``
 -  ``feed_refresh_interval`` - how often AppDaemon will refresh the RSS
    feeds
 
@@ -1340,7 +1336,7 @@ Note that unlike HASS, Dashboard regards an unlocked lock as active. By
 contrast, the HASS UI shows a locked lock as "on". Since the purpose of
 the dashboard is to alert at a glance on anything that is unusual, I
 chose to make the unlocked state "active" which means in the default
-skin it is shown as red, wheras a locked icon is shown as gray. You can
+skin it is shown as red, whereas a locked icon is shown as gray. You can
 easily change this behavior by setting active and inactive styles if you
 prefer.
 
@@ -1512,7 +1508,7 @@ Cosmetic Arguments
 light
 ~~~~~
 
-A widget to monitor and contol a dimmable light
+A widget to monitor and control a dimmable light
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1588,7 +1584,7 @@ Cosmetic Arguments
 input\_number
 ~~~~~~~~~~~~~
 
-A widget to monitor and contol an input number
+A widget to monitor and control an input number
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1650,7 +1646,7 @@ Cosmetic Arguments
 climate
 ~~~~~~~
 
-A widget to monitor and contol a climate entity
+A widget to monitor and control a climate entity
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1722,7 +1718,7 @@ Cosmetic Arguments
 group
 ~~~~~
 
-A widget to monitor and contol a group of lights
+A widget to monitor and control a group of lights
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1740,7 +1736,7 @@ Groups currently do no report back state changes correctly when
 attributes light brightness are changed. As a workaround, instead of
 looking for state changes in the group, we use ``monitored_entity``
 instead. This is not necessary of there are no dimmable lights in the
-group, however if there are, it should be set to the entity\_id of one
+group; however, if there are, it should be set to the entity\_id of one
 of the dimmable group members.
 
 Cosmetic Arguments
@@ -1763,7 +1759,7 @@ Cosmetic Arguments
 navigate
 ~~~~~~~~
 
-A widget to navgigate to a new URL, intended to be used for switching
+A widget to navigate to a new URL, intended to be used for switching
 between dashboards.
 
 Mandatory Arguments
@@ -1781,12 +1777,12 @@ Optional Arguments:
 -  ``args`` - a list of arguments.
 -  ``skin`` - Skin to use with the new screen (for HADash URLs only)
 
-For an arbitary URL, Args can be anything. When specifying a dashboard
+For an arbitrary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
 
 -  ``timeout`` - length of time to stay on the new dashboard
 -  ``return`` - dashboard to return to after the timeout has elapsed.
--  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. Default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+-  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
 Both ``timeout`` and ``return`` must be specified.
 
@@ -1926,7 +1922,7 @@ Example:
           - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
           - https://www.pexels.com/photo/cat-sleeping-62640/
 
-Content will be shown with scroll bars which can be undesirable. For
+Content will be shown with scroll bars, which can be undesirable. For
 images this can be alleviated by using an image resizing service such as
 the one offered by
 `Google <https://carlo.zottmann.org/posts/2013/04/14/google-image-resizer.html>`__.
@@ -1973,7 +1969,7 @@ Example:
         title: Weather by YR
         entity: sensor.yr_symbol
 
-Example showing artwork of just playing album on media player: (tested with Google Home)
+Example showing artwork of just playing an album on media player: (tested with Google Home)
 
 .. code:: yaml
 
@@ -2001,14 +1997,14 @@ Mandatory Arguments
 
 -  ``entity_picture``
 
-This can be found using the developer tools, and will be one of the
+This can be found using the developer tools and will be one of the
 parameters associated with the camera you want to view. If you are using
 a password, you will need to append ``&api_password=<your password>`` to
 the end of the entity\_picture. It will look something like this:
 
 ``http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>``
 
-If you are using SSL, remeber to use the full DNS name and not the IP
+If you are using SSL, remember to use the full DNS name and not the IP
 address.
 
 Optional Arguments:
@@ -2054,7 +2050,7 @@ Style Arguments:
 Temperature
 ~~~~~~~~~~~
 
-A widget to report display a temperature using a thermometer styke view
+A widget to report display a temperature using a thermometer style view
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
@@ -2141,7 +2137,7 @@ Skins
 
 HADashboard fully supports skinning and ships with a number of skins. To
 access a specific skin, append the parameter ``skin=<skin name>`` to the
-dashboard URL. Skin names are sticky if you use the Navigate widet to
+dashboard URL. Skin names are sticky if you use the Navigate widget to
 switch between dashboards and will stay in force until another skin or
 no skin is specified.
 
@@ -2167,18 +2163,18 @@ a subdirectory in ``custom_css`` named for your skin.
 
 The skin itself consists of 2 separate files:
 
--  ``dashboard.css`` - This is the base dashboard CSS that sets widget
-   styles, background look and feel etc.
+-  ``dashboard.css`` - This is the base dashboard CSS that sets the widget
+   styles, background, look and feel, etc.
 -  ``variables.yaml`` - This is a list of variables that describe how
    different elements of the widgets will look. Using the correct
    variables you can skin pretty much every element of every widget
    type.
 
-Dashboard.css is a regular css file, and knowledge of CSS is required to
+Dashboard.css is a regular CSS file, and knowledge of CSS is required to
 make changes to it.
 
 Variables.yaml is really a set of overrise styles, so you can use
-fragments of CSS here, basically anything that you could normally put in
+fragments of CSS here, basically, anything that you could normally put in
 an HTML ``style`` tag. Variables .yaml also supports variable expansion
 to make structuring the file easier. Anything that starts with a ``$``
 is treated as a variable that refers back to one of the other yaml
@@ -2220,7 +2216,7 @@ Here we are setting up some general variables that we can reuse for
 styling the actual widgets.
 
 Below, we are setting styles for a specific widget, the light widget.
-All entries are required but can be left blank by using double quotes.
+All entries are required but can be left blank by using double-quotes.
 
 .. code:: yaml
 
@@ -2257,10 +2253,10 @@ e.g.:
       - some other include
 
 Text will be included verbatim in the head section of the doc, use for
-styles, javascript or 3rd party css etc. etc. It is your responsibility
+styles, javascript or 3rd party CSS, etc. etc. It is your responsibility
 to ensure the HTML is correct
 
-Similarly for body includes:
+Similarly, for body includes:
 
 .. code:: yaml
 
@@ -2283,7 +2279,7 @@ Some example dashboards are available in the AppDaemon repository:
 A Note on Font Awesome Upgrade
 ------------------------------
 
-As of AppDaemon 3.0.2, Font Awesome icons have been upgraded form version 4 to version 5. FA Introduced a lot of breaking changes with this upgrade. While all of HADashboard's included skins have been updated to reflect this, any custom skins may need changes, as will any custom icons used within dashboard config files. FA have provided a table of changed icons `here <https://fontawesome.com/how-to-use/on-the-web/setup/upgrading-from-version-4>`__.
+As of AppDaemon 3.0.2, Font Awesome icons have been upgraded from version 4 to version 5. FA Introduced a lot of breaking changes with this upgrade. While all of HADashboard's included skins have been updated to reflect this, any custom skins may need changes, as will any custom icons used within dashboard config files. FA have provided a table of changed icons `here <https://fontawesome.com/how-to-use/on-the-web/setup/upgrading-from-version-4>`__.
 
 To ease the transition further, a legacy mode has been included in HADashboard. This is not enabled by default, but can be turned on by specifying the following in the hadashboard section of ``appdaemon.cfg``:
 
@@ -2293,4 +2289,4 @@ To ease the transition further, a legacy mode has been included in HADashboard. 
 
 This is not intended as a permanent fix and may be removed at some point, but for now, this will enable existing skins and icons to work correctly, giving you an opportunity to work through your configurations and fix things.
 
-While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+While working through the upgrade, it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
