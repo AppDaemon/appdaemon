@@ -11,6 +11,7 @@ import json
 import threading
 import datetime
 import dateutil.parser
+import copy
 
 
 if platform.system() != "Windows":
@@ -104,6 +105,13 @@ class PersistentDict(dict):
     def __repr__(self):
         dictrepr = dict.__repr__(self)
         return '%s(%s)' % (type(self).__name__, dictrepr)
+
+    def __deepcopy__(self, memo):
+        result = {}
+        for key in self.keys():
+            result[key] = self.__getitem__(key)
+
+        return copy.deepcopy(result)
 
     def update(self, save=True, *args, **kwargs):
         for k, v in dict(*args, **kwargs).items():
@@ -401,4 +409,3 @@ def dt_to_str(dt, tz=None):
             return dt.astimezone(tz).isoformat()
         else:
             return dt.isoformat()
-
