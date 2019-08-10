@@ -10,9 +10,14 @@ from appdaemon.appdaemon import AppDaemon
 
 class ADAPI:
     #
-    # Internal
+    #AppDaemon API
+    #
+    #Includes API calls native to AppDaemon
     #
 
+    #
+    # Intrnal Stuff
+    #
     def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
         # Store args
 
@@ -61,10 +66,13 @@ class ADAPI:
         return namespace
 
     #
-    # Logging
+    #Logging
     #
 
     def _log(self, logger, msg, *args, **kwargs):
+        #
+        # Internal
+        #
         if "level" in kwargs:
             level = kwargs.pop("level", "INFO")
         else:
@@ -77,6 +85,29 @@ class ADAPI:
         logger.log(self._logging.log_levels[level], msg, *args, **kwargs)
 
     def log(self, msg, *args, **kwargs):
+        """Log a message to AppDaemon's main logfile
+
+        Args:
+            msg (str): The message to log.
+            level (str): The log level of the message - takes a string representing the standard logger levels. (Default: "WARNING").
+
+        Keyword Args:
+            ascii_encode (bool): Switch to disable the encoding of all log messages to ascii. Set this to true if you want to log UTF-8 characters. (Default: True)
+            log (str): Send the message to a specific log, either system or user_defined. System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``. Any other value in use here must have a corresponding user-defined enty in the ``logs`` section of appdaemon.yaml.
+
+        Returns:
+            None
+
+        Examples::
+
+            self.log("Log Test: Parameter is %s", some_variable)
+            self.log("Log Test: Parameter is %s", some_variable, log="test_log")
+            self.log("Log Test: Parameter is %s", some_variable, level = "ERROR")
+            self.log("Line: __line__, module: __module__, function: __function__, Message: Something bad happened")
+            self.log("value is %s", some_value)
+            self.log("Stack is", some_value, level="WARNING", stack_info=True)
+
+        """
         if "log" in kwargs:
             # Its a user defined log
             logger = self.get_user_log(kwargs["log"])
@@ -89,6 +120,25 @@ class ADAPI:
         self._log(logger, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
+        """Log a message to AppDaemon's error logfile
+
+        Args:
+            msg (str): The message to log.
+            level (str): The log level of the message - takes a string representing the standard logger levels.
+
+        Keyword Args:
+            ascii_encode (bool): Switch to disable the encoding of all log messages to ascii. Set this to true if you want to log UTF-8 characters. (Default: True)
+            log (str): Send the message to a specific log, either system or user_defined. System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``. Any other value in use here must have a corresponding user-defined enty in the ``logs`` section of appdaemon.yaml.
+
+        Returns:
+            None
+
+        Examples::
+
+            self.error("Some Warning string")
+            self.error("Some Critical string", level = "CRITICAL")
+
+        """
         self._log(self.err, msg, *args, **kwargs)
 
     def listen_log(self, cb, level="INFO", **kwargs):
@@ -323,6 +373,20 @@ class ADAPI:
 
         return speech
 
+    @staticmethod
+    def get_alexa_error(data):
+        if "request" in data and "err" in data["request"] and "message" in data["request"]["err"]:
+            return data["request"]["err"]["message"]
+        else:
+            return None
+
+    @staticmethod
+    def get_alexa_intent(data):
+        if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
+            return data["request"]["intent"]["name"]
+        else:
+            return None
+
     #
     # API
     #
@@ -365,6 +429,39 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.state.info_state_callback(handle, self.name))
 
     def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
+        """Used to query the state of any component within Home Assistant. State updates are continuously tracked, so this call runs locally and does not require AppDaemon to call back to Home Assistant and as such is very efficient.
+
+        Args:
+            entity_id (str):
+                This is the name of an entity or device type. If just a device type is provided, e.g., ``light`` or
+                ``binary_sensor``, ``get_state()`` will return a dictionary of all devices of that type, indexed by the
+                entity\_id, containing all the state for each entity. If a fully qualified ``entity_id`` is provided,
+                ``get_state()`` will return the state attribute for that entity, e.g., ``on`` or ``off`` for a light.
+            attribute (str): Name of an attribute within the entity state object. If this parameter is specified in addition to a fully qualified ``entity_id``, a single value representing the attribute will be returned. The value ``all`` for attribute has special significance and will return the entire state dictionary for the specified entity rather than an individual attribute value.
+            default (any): The value to return when the requested attribute or the whole entity doesn't exist. It defaults to ``None``.
+            copy: By default, a copy of the stored state object is returned. When you set ``copy`` to ``False``, you get the same object as is stored internally by AppDaemon. Avoiding the copying brings a small performance gain, but also gives you write-access to the internal AppDaemon data structures, which is dangerous. Only disable copying when you can guarantee not to modify the returned state object, e.g., you do read-only operations.
+
+        Keyword Args:
+            namespace(str): Namespace to use for the call - see the section on namespaces for a detailed description. In most cases, it is safe to ignore this parameter.
+
+        Returns:
+            All parameters are optional, and if ``get_state()`` is called with no parameters, it will return the entire state of Home Assistant at that given time. This will consist of a dictionary with a key for each entity. Under that key will be the standard entity state information.
+
+        Examples::
+
+            # Return state for the entire system
+            state = self.get_state()
+            # Return state for all switches in the system
+            state = self.get_state("switch")
+            # Return the state attribute for light.office_1
+            state = self.get_state("light.office_1")
+            # Return the brightness attribute for light.office_1
+            state = self.get_state("light.office_1", attribute="brightness")
+            # Return the entire state for light.office_1
+            state = self.get_state("light.office_1", attribute="all")
+
+
+        """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -703,16 +800,3 @@ class ADAPI:
         else:
             return None
 
-    @staticmethod
-    def get_alexa_error(data):
-        if "request" in data and "err" in data["request"] and "message" in data["request"]["err"]:
-            return data["request"]["err"]["message"]
-        else:
-            return None
-
-    @staticmethod
-    def get_alexa_intent(data):
-        if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
-            return data["request"]["intent"]["name"]
-        else:
-            return None
