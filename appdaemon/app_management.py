@@ -96,7 +96,7 @@ class AppManagement:
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
         if self.apps_initialized is True:
-            await self.check_app_updates(exit=True)
+            await self.check_app_updates(mode="term")
 
     async def dump_objects(self):
         self.diag.info("--------------------------------------------------")
@@ -594,7 +594,7 @@ class AppManagement:
         fh.close()
 
     #@_timeit
-    async def check_app_updates(self, plugin=None, exit=False):
+    async def check_app_updates(self, plugin=None, mode="normal"):
 
         if self.AD.apps is False:
             return
@@ -655,7 +655,7 @@ class AppManagement:
         # Check for deleted modules and add them to the terminate list
         deleted_modules = []
         for file in self.monitored_files:
-            if file not in found_files or exit is True:
+            if file not in found_files or mode == "term":
                 deleted_modules.append(file)
                 self.logger.info("Removing module %s", file)
 
@@ -708,7 +708,7 @@ class AppManagement:
 
         if apps is not None and apps["term"]:
 
-            prio_apps = self.get_app_deps_and_prios(apps["term"])
+            prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
 
             for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
                 await self.stop_app(app)
@@ -738,7 +738,7 @@ class AppManagement:
 
         if apps is not None and apps["init"]:
 
-            prio_apps = self.get_app_deps_and_prios(apps["init"])
+            prio_apps = self.get_app_deps_and_prios(apps["init"], mode)
 
             # Load Apps
 
@@ -781,7 +781,7 @@ class AppManagement:
 
         self.apps_initialized = True
 
-    def get_app_deps_and_prios(self, applist):
+    def get_app_deps_and_prios(self, applist, mode):
 
         # Build a list of modules and their dependencies
 
@@ -815,7 +815,7 @@ class AppManagement:
                     prio_apps[app] = prio
                     prio += float(0.0001)
                 else:
-                    if "priority" in self.app_config[app]:
+                    if mode == "init" and "priority" in self.app_config[app]:
                         prio_apps[app] = float(self.app_config[app]["priority"])
                     else:
                         prio_apps[app] = float(50)
@@ -923,7 +923,7 @@ class AppManagement:
             await self.restart_app(app)
 
         elif service == "reload":
-            await self.check_app_updates()
+            await self.check_app_updates(mode="init")
 
 
     async def increase_active_apps(self, name):
