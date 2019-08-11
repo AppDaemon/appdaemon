@@ -183,12 +183,16 @@ information about the path, just the name of the file itself (without
 the ``.py``) is sufficient. If names in the subdirectories overlap,
 AppDir will pick one of them but the exact choice it will make is
 undefined.
-
 When starting the system for the first time or when reloading an App or
 Module, the system will log the fact in its main log. It is often the
 case that there is a problem with the class, maybe a syntax error or
 some other problem. If that is the case, details will be output to the
 error log allowing the user to remedy the problem and reload.
+
+In general, the user should always keep an eye on the error log - system
+errors will be logged to the main log, any errors that are the responsibility
+of the user, e.g. that come from app code will be found in the error log.
+
 
 Steps to writing an App
 -----------------------
