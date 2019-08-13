@@ -73,7 +73,7 @@ class Utility:
             if self.AD.apps is True:
                 self.logger.debug("Reading Apps")
 
-                await self.AD.app_management.check_app_updates()
+                await self.AD.app_management.check_app_updates(mode="init")
 
                 self.logger.info("App initialization complete")
                 #

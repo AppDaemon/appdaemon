@@ -30,6 +30,58 @@ To create apps based on just the AppDaemon base API, use some code like the foll
 
       def initialize(self):
 
+Reference
+---------
+
+State
+~~~~~
+
+.. automethod:: appdaemon.adapi.ADAPI.get_state
+
+Time
+~~~~
+
+Scheduler
+~~~~~~~~~
+
+Service
+~~~~~~~
+
+Events
+~~~~~~
+
+Logging
+~~~~~~~
+
+.. automethod:: appdaemon.adapi.ADAPI.log
+.. automethod:: appdaemon.adapi.ADAPI.error
+
+Dashboard
+~~~~~~~~~
+
+Namespace
+~~~~~~~~~
+
+Threading
+~~~~~~~~~
+
+Utility
+~~~~~~~
+
+Apiai
+~~~~~
+
+Alexa
+~~~~~
+
+API
+~~~
+
+Other
+~~~~~
+
+---- below temporarily kept ----
+
 
 State Operations
 ----------------
