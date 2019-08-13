@@ -836,7 +836,6 @@ class Dashboard:
                 scalable = True
 
             if "dash_list" in dash and dash["dash_list"] != {}:
-                print(dash)
                 dash_list = dash["dash_list"]["dash_list"]
             else:
                 dash_list = []
