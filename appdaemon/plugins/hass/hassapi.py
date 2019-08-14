@@ -1,4 +1,5 @@
 import requests
+from ast import literal_eval
 
 import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
@@ -279,3 +280,20 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         result = self.call_service("database/history", **rargs)
         return result
+
+    @hass_check
+    def render_template(self, template, **kwargs):
+        namespace = self._get_namespace(**kwargs)
+
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        rargs = kwargs
+        rargs["namespace"] = namespace
+        rargs["template"] = template
+
+        result = self.call_service("template/render", **rargs)
+        try:
+            return literal_eval(result)
+        except (SyntaxError, ValueError):
+            return result
