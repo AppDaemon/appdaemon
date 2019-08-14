@@ -506,6 +506,9 @@ class Threading:
                     if kwargs.get("oneshot", False):
                         kwargs["__handle"] = uuid_
 
+                    if "__duration" in kwargs and kwargs["__duration"] != None: #if a timer running already
+                        await self.AD.sched.cancel_timer(name, kwargs["__duration"])
+
                     kwargs["__duration"] = await self.AD.sched.insert_schedule(
                         name, exec_time, funcref, False, None,
                         __entity=entity,
@@ -533,6 +536,7 @@ class Threading:
                 if "__duration" in kwargs and new != old:
                     # cancel timer
                     await self.AD.sched.cancel_timer(name, kwargs["__duration"])
+                    kwargs["__duration"] = None
 
         return executed
 
