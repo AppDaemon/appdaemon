@@ -293,8 +293,6 @@ class MqttPlugin(PluginBase):
             self.logger.warning('Topic not provided for Service Call {!r}.'.format(service))
             raise ValueError("Topic not provided, please provide Topic for Service Call")
 
-        return result
-
     async def process_mqtt_wildcard(self, wildcard):
         if wildcard.rstrip('#') not in self.mqtt_wildcards:
             self.mqtt_wildcards.append(wildcard.rstrip('#'))
