@@ -257,10 +257,10 @@ class MqttPlugin(PluginBase):
                         result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
 
                         if result[0] == 0:
-                            self.logger.debug("Subscription to Topic %s Sucessful", topic)
+                            self.logger.debug("Subscription to Topic %s Successful", topic)
                             self.mqtt_client_topics.append(topic)
                         else:
-                            self.logger.warning("Subscription to Topic %s was not Sucessful", topic)
+                            self.logger.warning("Subscription to Topic %s was not Successful", topic)
                     else:
                         self.logger.info("Topic %s already subscribed to", topic)
 
