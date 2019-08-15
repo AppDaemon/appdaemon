@@ -215,7 +215,7 @@ class MqttPlugin(PluginBase):
             topic = msg.topic
 
             if self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []: #check if any of the wildcards belong
-                wildcard = list(filter(lambda x: x in topic, self.mqtt_wildcards))[0] + '#'
+                wildcard = list(filter(lambda x: topic.startswith(x), self.mqtt_wildcards))[0] + '#'
 
                 data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': wildcard}}
 
