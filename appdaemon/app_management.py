@@ -272,7 +272,12 @@ class AppManagement:
                                 for app in config:
                                     if config[app] is not None:
                                         if app == "global_modules":
-                                            valid_apps[app] = config[app]
+                                            if isinstance(config[app], list):
+                                                valid_apps[app] = config[app]
+                                            else:
+                                                if self.AD.invalid_yaml_warnings:
+                                                    self.logger.warning("global_modules should be a list in File '%s' - ignoring", file)
+ 
                                         elif "class" in config[app] and "module" in config[app]:
                                             valid_apps[app] = config[app]
                                         else:
