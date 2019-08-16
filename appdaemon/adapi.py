@@ -401,6 +401,7 @@ class ADAPI:
         self._namespace = namespace
 
     def get_namespace(self):
+        """Returns the App's namespace."""
         return self._namespace
 
     def list_namespaces(self):
