@@ -1113,7 +1113,7 @@ class ADAPI:
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute
             trigger the delay immediately if the light is already on.
-            
+
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, immediate = True)
 
         """
@@ -1831,7 +1831,7 @@ class ADAPI:
 
             Run an hour after sunrise.
 
-            handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
+            >>> handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
 
         """
         if type(start) == datetime.time:
@@ -1898,6 +1898,7 @@ class ADAPI:
             >>> handle = self.run_at(self.run_at_c, "2018-12-11 10:30:00")
 
             Run at the next sunset.
+            
             >>> handle = self.run_at(self.run_at_c, "sunset")
 
             Run an hour after the next sunrise.
