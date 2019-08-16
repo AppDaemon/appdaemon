@@ -417,7 +417,7 @@ class ADAPI:
 
         This way, when AD restarts these entities will be reloaded into AD with its
         previous states within the namespace. This can be used as a basic form of
-        non-volitile storage of entity data. Depending on the configuration of the
+        non-volatile storage of entity data. Depending on the configuration of the
         namespace, this function can be setup to constantly be running automatically
         or only when AD shutdown. This function also allows for users to manually
         execute the command as when needed.
@@ -761,7 +761,7 @@ class ADAPI:
             or None, if no action was received.
 
         Examples:
-            >>> intent = self.get_apiai_intent(data)
+            >>> intent = ADAPI.get_apiai_intent(data)
 
         """
         if "queryResult" in data and "action" in data["result"]:
@@ -782,8 +782,8 @@ class ADAPI:
             A string representing the value of the slot from the interaction model, or a hash of slots.
 
         Examples:
-            >>> beer_type = self.get_apiai_intent(data, "beer_type")
-            >>> all_slots = self.get_apiai_intent(data)
+            >>> beer_type = ADAPI.get_apiai_intent(data, "beer_type")
+            >>> all_slots = ADAPI.get_apiai_intent(data)
 
         """
         if "queryResult" in data and \
@@ -815,7 +815,7 @@ class ADAPI:
             None.
 
         Examples:
-            >>> self.format_apiai_response(speech = "Hello World")
+            >>> ADAPI.format_apiai_response(speech = "Hello World")
 
         """
         speech = \
@@ -844,7 +844,7 @@ class ADAPI:
             None.
 
         Examples:
-            >>> self.format_alexa_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
+            >>> ADAPI.format_alexa_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
 
         """
         response = \
@@ -904,7 +904,7 @@ class ADAPI:
             or None, if no Intent was received.
 
         Examples:
-            >>> intent = self.get_alexa_intent(data)
+            >>> intent = ADAPI.get_alexa_intent(data)
 
         """
         if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
@@ -925,8 +925,8 @@ class ADAPI:
             A string representing the value of the slot from the interaction model, or a hash of slots.
 
         Examples:
-            >>> beer_type = self.get_alexa_intent(data, "beer_type")
-            >>> all_slots = self.get_alexa_intent(data)
+            >>> beer_type = ADAPI.get_alexa_intent(data, "beer_type")
+            >>> all_slots = ADAPI.get_alexa_intent(data)
 
         """
         if "request" in data and \
