@@ -1485,7 +1485,7 @@ class ADAPI:
         """Determines if the sun is currently down.
 
         Returns:
-            bool: `True` if the sun is down, `False` otherwise.
+            bool: ``True`` if the sun is down, ``False`` otherwise.
 
         Examples:
             >>> if self.sun_down():
@@ -1547,7 +1547,7 @@ class ADAPI:
 
                 If the ``HH:MM:SS`` format is used, the resulting datetime object will have
                 today's date.
-            aware (bool, optional): If `True` the created datetime object will be aware
+            aware (bool, optional): If ``True`` the created datetime object will be aware
                 of timezone.
 
         Returns:
