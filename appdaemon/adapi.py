@@ -499,12 +499,12 @@ class ADAPI:
             bool: ``True`` if the entity id exists, ``False`` otherwise.
 
         Examples:
-            Return True if the entity light.living_room exist within the app's namespace
+            Check if the entity light.living_room exist within the app's namespace
 
             >>> if self.entity_exists("light.living_room"):
             >>>     #do something
 
-            Return True if the entity mqtt.security_settings exist within the `mqtt` namespace
+            Check if the entity mqtt.security_settings exist within the `mqtt` namespace
             if the app is operating in a different namespace like default
 
             >>> if self.entity_exists("mqtt.security_settings", namespace = "mqtt"):
@@ -1166,12 +1166,13 @@ class ADAPI:
         """Gets the state of any component within Home Assistant.
 
         State updates are continuously tracked, so this call runs locally and does not require
-        AppDaemon to call back to Home Assistant and as such is very efficient.
+        AppDaemon to call back to Home Assistant. In other words, states are updated using a
+        push-based approach instead of a pull-based one.
 
         Args:
             entity_id (str, optional): This is the name of an entity or device type. If just
-                a device type is provided, e.g., ``light`` or ``binary_sensor``, ``get_state()``
-                will return a dictionary of all devices of that type, indexed by the entity\_id,
+                a device type is provided, e.g., `light` or `binary_sensor`, `get_state()`
+                will return a dictionary of all devices of that type, indexed by the ``entity_id``,
                 containing all the state for each entity. If a fully qualified ``entity_id``
                 is provided, ``get_state()`` will return the state attribute for that entity,
                 e.g., ``on`` or ``off`` for a light.
@@ -1181,7 +1182,7 @@ class ADAPI:
                 for attribute has special significance and will return the entire state
                 dictionary for the specified entity rather than an individual attribute value.
             default (any, optional): The value to return when the requested attribute or the
-                whole entity doesn't exist. It defaults to ``None``.
+                whole entity doesn't exist (Default: ``None``).
             copy (bool, optional): By default, a copy of the stored state object is returned.
                 When you set ``copy`` to ``False``, you get the same object as is stored
                 internally by AppDaemon. Avoiding the copying brings a small performance gain,
@@ -1190,9 +1191,9 @@ class ADAPI:
                 the returned state object, e.g., you do read-only operations.
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call - see the section on
-                namespaces for a detailed description. In most cases, it is safe to ignore
-                this parameter.
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
 
         Returns:
             The entire state of Home Assistant at that given time, if  if ``get_state()``
@@ -1306,10 +1307,11 @@ class ADAPI:
                 `listen_event()` will subscribe to all events.
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call - see the section on
-                namespaces for a detailed description. In most cases, it is safe to ignore
-                this parameter. The value `global` for namespace has special significance,
-                and means that the callback will listen to state updates from any plugin.
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter. The value ``global``
+                for namespace has special significance, and means that the callback will
+                listen to state updates from any plugin.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
@@ -1397,9 +1399,9 @@ class ADAPI:
                 `service_registered` or an arbitrary custom event such as "MODE_CHANGE".
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call - see the section on
-                namespaces for a detailed description. In most cases, it is safe to ignore
-                this parameter.
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
             **kwargs (optional): Zero or more keyword arguments that will be supplied as
                 part of the event.
 
