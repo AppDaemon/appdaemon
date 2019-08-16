@@ -290,6 +290,11 @@ class AppManagement:
                             if new_config is None:
                                 new_config = {}
                             for app in valid_apps:
+                                if app == "global_modules":
+                                    if app in new_config:
+                                        new_config[app].extend(valid_apps[app])
+                                        continue
+
                                 if app in new_config:
                                     self.logger.warning("File '%s' duplicate app: %s - ignoring", os.path.join(root, file), app)
                                 else:
