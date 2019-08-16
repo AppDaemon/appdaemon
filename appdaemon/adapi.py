@@ -112,7 +112,7 @@ class ADAPI:
 
             >>> self.log("Log Test: Parameter is %s", some_variable, log="test_log")
 
-            Log an message with error-level to the main logfile of the system.
+            Log a message with error-level to the main logfile of the system.
 
             >>> self.log("Log Test: Parameter is %s", some_variable, level = "ERROR")
 
@@ -156,11 +156,11 @@ class ADAPI:
             None.
 
         Examples:
-            Log a error message to the error logfile of the system.
+            Log an error message to the error logfile of the system.
 
             >>> self.error("Some Warning string")
 
-            Log a error message with critical-level to the error logfile of the system.
+            Log an error message with critical-level to the error logfile of the system.
 
             >>> self.error("Some Critical string", level = "CRITICAL")
 
@@ -243,7 +243,7 @@ class ADAPI:
         """Returns the underlying logger object used for the error log.
 
         Examples:
-            Log a error message to the `error` logfile of the system.
+            Log an error message to the `error` logfile of the system.
 
             >>> error_log = self.get_error_log()
             >>> error_log.error("Log an error", stack_info=True, exc_info=True)
@@ -262,7 +262,7 @@ class ADAPI:
             The underlying logger object used for the error log.
 
         Examples:
-            Log a error message to a user-defined logfile.
+            Log an error message to a user-defined logfile.
 
             >>> log = self.get_user_log("test_log")
             >>> log.error("Log an error", stack_info=True, exc_info=True)
@@ -1341,7 +1341,7 @@ class ADAPI:
 
             >>> self.listen_event(self.mode_event, "MODE_CHANGE")
 
-            Listen for a minimum event activating scene 3.
+            Listen for a `minimote` event activating scene 3.
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
 
@@ -1370,7 +1370,7 @@ class ADAPI:
             None.
 
         Examples:
-            self.cancel_listen_event(handle)
+            >>> self.cancel_listen_event(handle)
 
         """
         self.logger.debug("Canceling listen_event for %s", self.name)
@@ -1598,6 +1598,7 @@ class ADAPI:
         Notes:
             The string representation of the start and end time should follows
             one of these formats:
+
             - HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
             - sunrise|sunset [+|- HH:MM:SS]- time of the next sunrise or sunset
                 with an optional positive or negative offset in Hours Minutes,
