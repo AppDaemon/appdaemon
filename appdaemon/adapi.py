@@ -91,14 +91,14 @@ class ADAPI:
 
         Keyword Args:
             level (str, optional): The log level of the message - takes a string representing the
-                standard logger levels (Default: "WARNING").
+                standard logger levels (Default: ``"WARNING"``).
             ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to true if you want to log UTF-8 characters (Default: True).
+                ascii. Set this to true if you want to log UTF-8 characters (Default: ``True``).
             log (str, optional): Send the message to a specific log, either system or user_defined.
                 System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``.
                 Any other value in use here must have a corresponding user-defined entity in
                 the ``logs`` section of appdaemon.yaml.
-            stack_info (bool, optional):
+            stack_info (bool, optional): If ``True`` the stack info will included.
 
         Returns:
             None.
@@ -112,7 +112,7 @@ class ADAPI:
 
             >>> self.log("Log Test: Parameter is %s", some_variable, log="test_log")
 
-            Log an message with error-level to the main logfile of the system.
+            Log a message with error-level to the main logfile of the system.
 
             >>> self.log("Log Test: Parameter is %s", some_variable, level = "ERROR")
 
@@ -146,7 +146,7 @@ class ADAPI:
             level (str, optional): The log level of the message - takes a string representing the
                 standard logger levels.
             ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to true if you want to log UTF-8 characters (Default: True).
+                ascii. Set this to true if you want to log UTF-8 characters (Default: ``True``).
             log (str, optional): Send the message to a specific log, either system or user_defined.
                 System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``.
                 Any other value in use here must have a corresponding user-defined entity in
@@ -156,11 +156,11 @@ class ADAPI:
             None.
 
         Examples:
-            Log a error message to the error logfile of the system.
+            Log an error message to the error logfile of the system.
 
             >>> self.error("Some Warning string")
 
-            Log a error message with critical-level to the error logfile of the system.
+            Log an error message with critical-level to the error logfile of the system.
 
             >>> self.error("Some Critical string", level = "CRITICAL")
 
@@ -173,7 +173,7 @@ class ADAPI:
         Args:
             callback (function): Function to be called when a message is logged.
             level (str): Logging level to be used - lower levels will not be forwarded
-                to the app (Default: "INFO").
+                to the app (Default: ``"INFO"``).
 
         Keyword Args:
             log (str, optional): Name of the log to listen to, default is all logs. The name
@@ -191,15 +191,15 @@ class ADAPI:
             namespace, e.g., self.handle.
 
         Examples:
-            Listen to all WARNING log messages of the system.
+            Listen to all ``WARNING`` log messages of the system.
 
             >>> self.handle = self.listen_log(self.cb, "WARNING")
 
-            Listen to all WARNING log messages of the `main_log`.
+            Listen to all ``WARNING`` log messages of the `main_log`.
 
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="main_log")
 
-            Listen to all WARNING log messages of a user-defined logfile.
+            Listen to all ``WARNING`` log messages of a user-defined logfile.
 
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
 
@@ -243,7 +243,7 @@ class ADAPI:
         """Returns the underlying logger object used for the error log.
 
         Examples:
-            Log a error message to the `error` logfile of the system.
+            Log an error message to the `error` logfile of the system.
 
             >>> error_log = self.get_error_log()
             >>> error_log.error("Log an error", stack_info=True, exc_info=True)
@@ -262,7 +262,7 @@ class ADAPI:
             The underlying logger object used for the error log.
 
         Examples:
-            Log a error message to a user-defined logfile.
+            Log an error message to a user-defined logfile.
 
             >>> log = self.get_user_log("test_log")
             >>> log.error("Log an error", stack_info=True, exc_info=True)
@@ -290,7 +290,8 @@ class ADAPI:
             level (str): desired log level
 
         Notes:
-            Supported log levels: INFO, WARNING, ERROR, CRITICAL, DEBUG, NOTSET.
+            Supported log levels: ``INFO``, ``WARNING``, ``ERROR``,
+            ``CRITICAL``, ``DEBUG``, ``NOTSET``.
 
         Returns:
             None.
@@ -495,7 +496,7 @@ class ADAPI:
                 for a detailed description. In most cases it is safe to ignore this parameter.
 
         Returns:
-            bool: True if the entity id exists, False otherwise.
+            bool: ``True`` if the entity id exists, ``False`` otherwise.
 
         Examples:
             Return True if the entity light.living_room exist within the app's namespace
@@ -646,14 +647,14 @@ class ADAPI:
     def set_production_mode(self, mode=True):
         """Deactivates or activates the production mode in AppDaemon.
 
-        When called without declaring passing any arguments, mode defaults to True:
+        When called without declaring passing any arguments, mode defaults to ``True``.
 
         Args:
-            mode (bool): If it is True the production mode is activated, or deactivated
+            mode (bool): If it is ``True`` the production mode is activated, or deactivated
                 otherwise.
 
         Returns:
-            The specified mode or None if a wrong parameter is passed.
+            The specified mode or ``None`` if a wrong parameter is passed.
 
         """
         if not isinstance(mode, bool):
@@ -760,7 +761,7 @@ class ADAPI:
 
         Returns:
             A string representing the Intent from the interaction model that was requested,
-            or None, if no action was received.
+            or ``None``, if no action was received.
 
         Examples:
             >>> intent = ADAPI.get_apiai_intent(data)
@@ -778,7 +779,7 @@ class ADAPI:
         Args:
             data: Response received from Google Home.
             slot (str): Name of the slot. If a name is not specified, all slots will be returned
-                as a dictionary. If a name is specified but is not found, None will be returned.
+                as a dictionary. If a name is specified but is not found, ``None`` will be returned.
 
         Returns:
             A string representing the value of the slot from the interaction model, or a hash of slots.
@@ -886,7 +887,7 @@ class ADAPI:
             data: Response received from the Alexa API .
 
         Returns:
-            A string representing the value of message, or None if no error message was received.
+            A string representing the value of message, or ``None`` if no error message was received.
 
         """
         if "request" in data and "err" in data["request"] and "message" in data["request"]["err"]:
@@ -903,7 +904,7 @@ class ADAPI:
 
         Returns:
             A string representing the Intent's name from the interaction model that was requested,
-            or None, if no Intent was received.
+            or ``None``, if no Intent was received.
 
         Examples:
             >>> intent = ADAPI.get_alexa_intent(data)
@@ -924,7 +925,7 @@ class ADAPI:
                 a dictionary. If a name is specified but is not found, None will be returned.
 
         Returns:
-            A string representing the value of the slot from the interaction model, or a hash of slots.
+            A ``string`` representing the value of the slot from the interaction model, or a ``hash`` of slots.
 
         Examples:
             >>> beer_type = ADAPI.get_alexa_intent(data, "beer_type")
@@ -954,7 +955,7 @@ class ADAPI:
 
         Args:
             callback: The function to be called when a request is made to the named endpoint.
-            name (str, optional): The name of the endpoint to be used for the call  (Default: None).
+            name (str, optional): The name of the endpoint to be used for the call  (Default: ``None``).
 
         Returns:
             A handle that can be used to remove the registration.
@@ -1004,21 +1005,17 @@ class ADAPI:
         Args:
             callback: Function to be invoked when the requested state change occurs. It must conform
                 to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
-            entity (str, optional): name of an entity or device type.
-
-                If just a device type is provided, e.g., light or binary_sensor, listen_state() will
-                subscribe to state changes of all devices of that type.
-
-                If a fully qualified entity_id is provided, listen_state() will listen for state
-                changes for just that entity.
+            entity (str, optional): name of an entity or device type. If just a device type is provided,
+                e.g., light or binary_sensor, listen_state() will subscribe to state changes of all
+                devices of that type. If a fully qualified entity_id is provided, listen_state() will
+                listen for state changes for just that entity.
 
         Keyword Args:
-            attribute (str, optional): Name of an attribute within the entity state object.
-
-                If this parameter is specified in addition to a fully qualified `entity_id`,
-                `listen_state()` will subscribe to changes for just that attribute within that
-                specific entity. The `new` and `old` parameters in the callback function will
-                be provided with a single value representing the attribute.
+            attribute (str, optional): Name of an attribute within the entity state object. If this
+                parameter is specified in addition to a fully qualified `entity_id`, `listen_state()`
+                will subscribe to changes for just that attribute within that specific entity.
+                The `new` and `old` parameters in the callback function will be provided with
+                a single value representing the attribute.
 
                 The value `all` for attribute has special significance and will listen for any
                 state change within the specified entity, and supply the callback functions with
@@ -1046,18 +1043,18 @@ class ADAPI:
             immediate (bool, optional): It enables the countdown for a delay parameter to start
                 at the time, if given. If the duration parameter is not given, the callback runs immediately.
                 What this means is that after the callback is registered, rather than requiring one or more
-                 state changes before it runs, it immediately checks the entity's states based on given
-                 parameters. If the conditions are right, the callback runs immediately at the time of
-                 registering. This can be useful if, for instance, you want the callback to be triggered
-                 immediately if a light is already on, or after a `duration` if given.
+                state changes before it runs, it immediately checks the entity's states based on given
+                parameters. If the conditions are right, the callback runs immediately at the time of
+                registering. This can be useful if, for instance, you want the callback to be triggered
+                immediately if a light is already on, or after a `duration` if given.
 
-                 If `immediate` is in use, and `new` and `duration` are both set, AppDaemon will check
-                 if the entity is already set to the new state and if so it will start the clock
-                 immediately. If `new` and `duration` are not set, `immediate` will trigger the callback
-                 immediately and report in its callback the new parameter as the present state of the
-                 entity. If `attribute` is specified, the state of the attribute will be used instead of
-                 state. In these cases, `old` will be ignored and when the callback is triggered, its
-                 state will be set to `None`.
+                If `immediate` is in use, and `new` and `duration` are both set, AppDaemon will check
+                if the entity is already set to the new state and if so it will start the clock
+                immediately. If `new` and `duration` are not set, `immediate` will trigger the callback
+                immediately and report in its callback the new parameter as the present state of the
+                entity. If `attribute` is specified, the state of the attribute will be used instead of
+                state. In these cases, `old` will be ignored and when the callback is triggered, its
+                state will be set to `None`.
             oneshot (bool, optional): If true, the callback will be automatically cancelled
                 after the first state change that results in a callback.
             namespace (str, optional): Namespace to use for the call - see the section on namespaces
@@ -1313,7 +1310,7 @@ class ADAPI:
                 namespaces for a detailed description. In most cases, it is safe to ignore
                 this parameter. The value `global` for namespace has special significance,
                 and means that the callback will listen to state updates from any plugin.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs (optional): One or more keyword value pairs representing App specific
@@ -1321,10 +1318,10 @@ class ADAPI:
                 event data, they will act as filters, meaning that if they don't match the
                 values, the callback will not fire.
 
-                As an example of this, a Minimote controller when activated will generate
+                As an example of this, a `Minimote` controller when activated will generate
                 an event called zwave.scene_activated, along with 2 pieces of data that are
                 specific to the event - entity_id and scene. If you include keyword values
-                for either of those, the values supplied to the `listen_event()1 call must
+                for either of those, the values supplied to the `listen_event()` call must
                 match the values in the event or it will not fire. If the keywords do not
                 match any of the data in the event they are simply ignored.
 
@@ -1341,7 +1338,7 @@ class ADAPI:
 
             >>> self.listen_event(self.mode_event, "MODE_CHANGE")
 
-            Listen for a minimum event activating scene 3.
+            Listen for a `minimote` event activating scene 3.
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
 
@@ -1370,7 +1367,7 @@ class ADAPI:
             None.
 
         Examples:
-            self.cancel_listen_event(handle)
+            >>> self.cancel_listen_event(handle)
 
         """
         self.logger.debug("Canceling listen_event for %s", self.name)
@@ -1397,7 +1394,7 @@ class ADAPI:
 
         Args:
             event: Name of the event. Can be a standard Home Assistant event such as
-            `service_registered` or an arbitrary custom event such as "MODE_CHANGE".
+                `service_registered` or an arbitrary custom event such as "MODE_CHANGE".
 
         Keyword Args:
             namespace(str, optional): Namespace to use for the call - see the section on
@@ -1488,7 +1485,7 @@ class ADAPI:
         """Determines if the sun is currently down.
 
         Returns:
-            ``True`` if the sun is down, ``False` otherwise.
+            bool: ``True`` if the sun is down, ``False`` otherwise.
 
         Examples:
             >>> if self.sun_down():
@@ -1498,7 +1495,7 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sun_down())
 
     def parse_time(self, time_str, name=None, aware=False):
-        """Creates a datetime.time object from its string representation.
+        """Creates a time object from its string representation.
 
         This functions takes a string representation of a time, or sunrise,
         or sunset offset and converts it to a datetime.time object.
@@ -1506,14 +1503,15 @@ class ADAPI:
         Args:
             time_str (str): A representation of the time in a string format with one
                 of the following formats:
-                -  HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
-                -  sunrise\|sunset [+\|- HH:MM:SS]- time of the next sunrise or sunset
+
+                - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+                - ``sunrise|sunset [+|- HH:MM:SS]`` time of the next sunrise or sunset
                    with an optional positive or negative offset in Hours Minutes and
                    seconds.
             aware (bool, optional): If True the created time object will be aware of timezone.
 
         Returns:
-            A datetime.time object, representing the time given in the time_str argument.
+            A time object, representing the time given in the `time_str` argument.
 
         Examples:
             >>> self.parse_time("17:30:00")
@@ -1532,27 +1530,29 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.parse_time(time_str, name, aware))
 
     def parse_datetime(self, time_str, name=None, aware=False):
-        """Creates a datetime.datetime object from its string representation.
+        """Creates a datetime object from its string representation.
 
         This function takes a string representation of a date and time, or sunrise,
         or sunset offset and converts it to a datetime.datetime object.
 
         Args:
-            time_str (str): A representation of the datetime in a string format with one
-                of the following formats:
-                - YY-MM-DD HH:MM:SS - the date and time in Year, Month, Day, Hours Minutes,
-                  and Seconds, 24 hour format.
-                - HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
-                - sunrise|sunset [+|- HH:MM:SS]- time of the next sunrise or sunset with an
-                  optional positive or negative offset in Hours Minutes and seconds.
+            time_str (str): A string representation of the datetime with one of the
+                following formats:
 
-                If the HH:MM:SS format is used, the resulting datetime object will have today's date.
-            name:
-            aware (bool, optional): If True the created datetime object will be aware of timezone.
+                - ``YY-MM-DD-HH:MM:SS`` - the date and time in Year, Month, Day, Hours,
+                    Minutes, and Seconds, 24 hour format.
+                - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+                - ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
+                    with an optional positive or negative offset in Hours Minutes and seconds.
+
+                If the ``HH:MM:SS`` format is used, the resulting datetime object will have
+                today's date.
+            aware (bool, optional): If ``True`` the created datetime object will be aware
+                of timezone.
 
         Returns:
-            A datetime.datetime object, representing the time and date given in the
-            time_str argument.
+            A datetime object, representing the time and date given in the
+            `time_str` argument.
 
         Examples:
             >>> self.parse_datetime("2018-08-09 17:30:00")
@@ -1592,14 +1592,15 @@ class ADAPI:
             end_time (str): A string representation of the end time
 
         Returns:
-            bool: True if the current time is within the specified start and end times,
-                False otherwise.
+            bool: ``True`` if the current time is within the specified start and end times,
+            ``False`` otherwise.
 
         Notes:
             The string representation of the start and end time should follows
             one of these formats:
-            - HH:MM:SS - the time in Hours Minutes and Seconds, 24 hour format.
-            - sunrise|sunset [+|- HH:MM:SS]- time of the next sunrise or sunset
+
+            - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+            - ``sunrise|sunset [+|- HH:MM:SS]``- time of the next sunrise or sunset
                 with an optional positive or negative offset in Hours Minutes,
                 and Seconds.
 
@@ -1614,11 +1615,11 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.now_is_between(start_time, end_time, name))
 
     def sunrise(self, aware=False):
-        """Returns a Python datetime that represents the next time Sunrise will occur.
+        """Returns a datetime object that represents the next time Sunrise will occur.
 
         Args:
             aware (bool, optional): Specifies if the created datetime object will be
-                aware of timezone or not.
+                `aware` of timezone or `not`.
 
         Examples:
             >>> self.sunrise()
@@ -1628,11 +1629,11 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sunrise(aware))
 
     def sunset(self, aware=False):
-        """Returns a Python datetime that represents the next time Sunset will occur.
+        """Returns a datetime object that represents the next time Sunset will occur.
 
         Args:
            aware (bool, optional): Specifies if the created datetime object will be
-                aware of timezone or not.
+                `aware` of timezone or `not`.
 
         Examples:
             >>> self.sunset()
@@ -1642,7 +1643,7 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sunset(aware))
 
     def time(self):
-        """Returns a localised Python time object representing the current Local Time.
+        """Returns a localised time object representing the current Local Time.
 
         Use this in preference to the standard Python ways to discover the current time,
         especially when using the "Time Travel" feature for testing.
@@ -1662,7 +1663,7 @@ class ADAPI:
 
         Args:
             aware (bool, optional): Specifies if the created datetime object will be
-                aware of timezone or not.
+                `aware` of timezone or `not`.
 
         Examples:
             >>> self.datetime()
@@ -1715,17 +1716,17 @@ class ADAPI:
     def info_timer(self, handle):
         """Gets information on a scheduler event from its handle.
 
-        If the handle is an invalid one, or the timer had been executed,
-        it will return ``None``.
-
         Args:
             handle: The handle returned when the scheduler call was made.
 
         Returns:
-            time - datetime object representing the next time the callback will be fired
-            interval - repeat interval if applicable, ``0`` otherwise.
-            kwargs - the values supplied when the callback was initially created.
-            None - if handle is invalid or timer no longer exists
+            `time` - datetime object representing the next time the callback will be fired
+
+            `interval` - repeat interval if applicable, `0` otherwise.
+
+            `kwargs` - the values supplied when the callback was initially created.
+
+            ``None`` - if handle is invalid or timer no longer exists
 
         Examples:
             >>> time, interval, kwargs = self.info_timer(handle)
@@ -1787,15 +1788,13 @@ class ADAPI:
     def run_once(self, callback, start, **kwargs):
         """Runs the callback once, at the specified time of day.
 
-        If the time of day is in the past, the callback will occur on the next day.
-
         Args:
             callback: Function to be invoked at the specified time of day.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur. If the time
-                specified is in the past, the callback will occur the next day at
+                specified is in the past, the callback will occur the ``next day`` at
                 the specified time.
 
         Keyword Args:
@@ -1811,7 +1810,7 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -1866,7 +1865,7 @@ class ADAPI:
         Keyword Args:
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
@@ -1876,10 +1875,11 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            - The `random_start` value must always be numerically lower than `random_end` value,
+            - The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
-            - The ``run_at()`` function will raise an exception if the specified time is in the past.
+
+            - The ``run_at()`` function will ``raise`` an exception if the specified time is in the ``past`.
 
         Examples:
             Run at 4pm today
@@ -1934,7 +1934,7 @@ class ADAPI:
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur. If the time
-                specified is in the past, the callback will occur the next day at
+                specified is in the past, the callback will occur the ``next day`` at
                 the specified time.
                 When specifying sunrise or sunset relative times using the ``parse_datetime()``
                 format, the time of the callback will be adjusted every day to track the actual
@@ -1943,7 +1943,7 @@ class ADAPI:
         Keyword Args:
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
@@ -1953,7 +1953,7 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -2006,16 +2006,13 @@ class ADAPI:
     def run_hourly(self, callback, start, **kwargs):
         """Runs the callback at the same time every hour.
 
-        If the time has already passed, the function will not be invoked until
-        the following hour at the specified time.
-
         Args:
             callback: Function to be invoked every hour at the specified time.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: A Python ``time`` object that specifies when the callback will occur,
                 the hour component of the time object is ignored. If the time specified
-                is in the past, the callback will occur the next hour at the specified
+                is in the past, the callback will occur the ``next hour`` at the specified
                 time. If time is not supplied, the callback will start an hour from the
                 time that ``run_hourly()`` was executed.
 
@@ -2032,7 +2029,7 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -2057,16 +2054,13 @@ class ADAPI:
     def run_minutely(self, callback, start, **kwargs):
         """Runs the callback at the same time every minute.
 
-        If the time has already passed, the function will not be invoked
-        until the following minute at the specified time.
-
         Args:
             callback: Function to be invoked every minute.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: A Python ``time`` object that specifies when the callback will occur,
                 the hour and minute components of the time object are ignored. If the
-                time specified is in the past, the callback will occur the next hour at
+                time specified is in the past, the callback will occur the ``next minute`` at
                 the specified time. If time is not supplied, the callback will start a
                 minute from the time that ``run_minutely()`` was executed.
 
@@ -2083,7 +2077,7 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -2119,7 +2113,7 @@ class ADAPI:
         Keyword Args:
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
@@ -2129,7 +2123,7 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -2177,7 +2171,7 @@ class ADAPI:
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
@@ -2188,7 +2182,7 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -2228,7 +2222,7 @@ class ADAPI:
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
@@ -2240,7 +2234,7 @@ class ADAPI:
 
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -2283,7 +2277,7 @@ class ADAPI:
                 the new panel before the timeout expires, the timeout will be cancelled.
             ret (str): Dashboard to return to after the timeout has elapsed.
             sticky (int): Specifies whether or not to return to the original dashboard
-                after it has been clicked on. The default behavior (sticky=0) is to remain
+                after it has been clicked on. The default behavior (``sticky=0``) is to remain
                 on the new dashboard if clicked, or return to the original otherwise.
                 By using a different value (sticky= 5), clicking the dashboard will extend
                 the amount of time (in seconds), but it will return to the original dashboard
