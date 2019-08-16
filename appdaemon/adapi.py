@@ -1231,6 +1231,23 @@ class ADAPI:
         ))
 
     def set_state(self, entity_id, **kwargs):
+        """
+        Updates the state of the specified entity.
+
+        Args:
+            entity_id (str): The fully qualified entity id (including the device type).
+
+        Keyword Args:
+            **kwargs: Arbitrary keyword parameters. By using this option, the properties
+                of an entity (e.g., ``state``, ``attributes``, etc.) can be updated.
+
+        Returns:
+            A dictionary that represent new state of updated entity.
+
+        Examples:
+            >>> self.set_state('sensor.doorbell', state="off")
+
+        """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
         namespace = self._get_namespace(**kwargs)
         self._check_entity(namespace, entity_id)
@@ -2178,7 +2195,6 @@ class ADAPI:
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
                 function when it is invoked.
-            **kwargs:
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2229,7 +2245,6 @@ class ADAPI:
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
                 function when it is invoked.
-            **kwargs:
 
         Returns:
             A handle that can be used to cancel the timer.
