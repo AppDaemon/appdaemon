@@ -402,6 +402,9 @@ class AppManagement:
                 # Check for changes
 
                 for name in self.app_config:
+                    if name == "global_modules":
+                        continue
+
                     if name in new_config:
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
@@ -424,6 +427,9 @@ class AppManagement:
                         await self.remove_entity(name)
 
                 for name in new_config:
+                    if name == "global_modules":
+                        continue
+
                     if name not in self.app_config:
                         #
                         # New section added!
