@@ -1652,7 +1652,7 @@ class ADAPI:
             20:15:31.295751
 
         """
-        return (utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).time())
+        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).time()
 
     def datetime(self, aware=False):
         """Returns a datetime object representing the current Local Date and Time.
@@ -1670,7 +1670,7 @@ class ADAPI:
 
         """
         if aware is True:
-            return (utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz))
+            return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz)
         else:
             return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now_naive())
 
@@ -1685,7 +1685,7 @@ class ADAPI:
             2019-08-15
 
         """
-        return (utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).date())
+        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).date()
 
     def get_timezone(self):
         """Returns the current time zone."""
@@ -1898,7 +1898,7 @@ class ADAPI:
             >>> handle = self.run_at(self.run_at_c, "2018-12-11 10:30:00")
 
             Run at the next sunset.
-            
+
             >>> handle = self.run_at(self.run_at_c, "sunset")
 
             Run an hour after the next sunrise.
