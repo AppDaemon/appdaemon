@@ -1241,21 +1241,17 @@ class ADAPI:
         """
         Updates the state of the specified entity.
 
-        If the parameter `namespace` is set, AppDaemon will change the state of the given
-        entity in the given namespace. However, if no namespace is set, it will use the
-        last specified namespace or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
-        for a detailed description.
-
-
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
             state: New state value to be set.
             attributes (optional): Entity's attributes to be updated.
+            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
+                the state of the given entity in the given namespace. On the other hand,
+                if no namespace is given, AppDaemon will use the last specified namespace
+                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
+                for a detailed description. In most cases, it is safe to ignore this parameter.
 
         Returns:
             A dictionary that represents the new state of the updated entity.
