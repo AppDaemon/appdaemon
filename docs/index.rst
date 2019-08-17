@@ -16,6 +16,13 @@ Out of the box, AppDaemon has support for the following automation products:
 
 AppDaemon also provides a configurable dashboard (HADashboard) suitable for wall mounted tablets.
 
+AppDaemon is developed and maintained by a small team of hard working folks:
+
+- Andrew Cockburn - AppDaemon founder, Chief Architect and Benevolent Dictator For Life
+- Rene Tode - Head Product abuser and alternate point of view expert
+- Odianosen Ejale (@odianosen25) - MQTT Development and maintenance, fixer and tester
+- Humberto Rodríguez Avila (@rhumbertgz) - Document Meister
+
 Contents:
 
 .. toctree::
