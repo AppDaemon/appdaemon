@@ -1,8 +1,6 @@
 AppDaemon API Reference
 =======================
 
-.. automethod:: appdaemon.adapi.ADAPI.get_state
-
 A number of api calls are native to AppDaemon and will exist in any App as they are inherited through the plugin API.
 If the ``get_plugin_api()`` style of declarations is used, these functions will become available via an object created
 by the ``get_ad_api()`` call:
@@ -36,8 +34,6 @@ To create apps based on just the AppDaemon base API, use some code like the foll
 
 Reference
 ---------
-
-.. automethod:: appdaemon.adapi.ADAPI.get_state
 
 State
 ~~~~~
