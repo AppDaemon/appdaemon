@@ -1241,9 +1241,11 @@ class ADAPI:
         """
         Updates the state of the specified entity.
 
-        If the namespace in use by ``set_state()`` is owned by a `plugin`, the state
-        change will propagate to the system the plugin is managing if supported. If
-        the namespace is `local`, only AppDaemon's state will be updated.
+        If the parameter `namespace` is set, AppDaemon will change the state of the given
+        entity in the given namespace. However, if no namespace is set, it will use the
+        last specified namespace or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
+        for a detailed description.
+
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
@@ -1253,7 +1255,7 @@ class ADAPI:
                 of an entity (e.g., ``state``, ``attributes``, etc.) can be updated.
 
         Returns:
-            A dictionary that represent new state of updated entity.
+            A dictionary that represents the new state of the updated entity.
 
         Examples:
             Update the state of an entity.
@@ -1266,7 +1268,7 @@ class ADAPI:
 
             Update the state of an entity within the specified namespace.
 
-            >>> self.set_state("light.office_1", state="off", namespace ="first_floor")
+            >>> self.set_state("light.office_1", state="off", namespace ="hass")
 
         """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
