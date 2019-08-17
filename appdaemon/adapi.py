@@ -1265,7 +1265,7 @@ class ADAPI:
             >>> self.set_state('sensor.doorbell', state="off", attributes=some_value)
 
             Update the namespace of an entity.
-            
+
             >>> self.set_state('sensor.doorbell', namespace=new_namespace)
 
         """
@@ -1544,10 +1544,11 @@ class ADAPI:
             time_str (str): A representation of the time in a string format with one
                 of the following formats:
 
-                - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
-                - ``sunrise|sunset [+|- HH:MM:SS]`` time of the next sunrise or sunset
-                   with an optional positive or negative offset in Hours Minutes and
-                   seconds.
+                    a. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+
+                    b. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
+                    with an optional positive or negative offset in Hours Minutes and seconds.
+
             aware (bool, optional): If ``True`` the created time object will be aware of timezone.
 
         Returns:
@@ -1579,10 +1580,12 @@ class ADAPI:
             time_str (str): A string representation of the datetime with one of the
                 following formats:
 
-                - ``YY-MM-DD-HH:MM:SS`` - the date and time in Year, Month, Day, Hours,
+                    a. ``YY-MM-DD-HH:MM:SS`` - the date and time in Year, Month, Day, Hours,
                     Minutes, and Seconds, 24 hour format.
-                - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
-                - ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
+
+                    b. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+
+                    c. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
                     with an optional positive or negative offset in Hours Minutes and seconds.
 
                 If the ``HH:MM:SS`` format is used, the resulting datetime object will have
@@ -1651,8 +1654,9 @@ class ADAPI:
             The string representation of the ``start_time`` and ``end_time`` should follows
             one of these formats:
 
-            - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
-            - ``sunrise|sunset [+|- HH:MM:SS]``- time of the next sunrise or sunset
+                a. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+
+                b. ``sunrise|sunset [+|- HH:MM:SS]``- time of the next sunrise or sunset
                 with an optional positive or negative offset in Hours Minutes,
                 and Seconds.
 
