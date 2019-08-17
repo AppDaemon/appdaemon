@@ -1256,7 +1256,17 @@ class ADAPI:
             A dictionary that represent new state of updated entity.
 
         Examples:
+            Update the state of an entity.
+
             >>> self.set_state('sensor.doorbell', state="off")
+
+            Update the state and attributes of an entity.
+
+            >>> self.set_state('sensor.doorbell', state="off", attributes=some_value)
+
+            Update the namespace of an entity.
+            
+            >>> self.set_state('sensor.doorbell', namespace=new_namespace)
 
         """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
