@@ -425,8 +425,9 @@ class ADAPI:
         execute the command as when needed.
 
         Keyword Args:
-            namespace (str, optional): Namespace to use for the call - see the section on namespaces
-                for a detailed description. In most cases it is safe to ignore this parameter.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
         Returns:
             None.
@@ -492,19 +493,20 @@ class ADAPI:
             entity_id (str): The fully qualified entity id (including the device type).
 
         Keyword Args:
-            namespace (str, optional): Namespace to use for the call - see the section on namespaces
-                for a detailed description. In most cases it is safe to ignore this parameter.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
         Returns:
             bool: ``True`` if the entity id exists, ``False`` otherwise.
 
         Examples:
-            Return True if the entity light.living_room exist within the app's namespace
+            Check if the entity light.living_room exist within the app's namespace
 
             >>> if self.entity_exists("light.living_room"):
             >>>     #do something
 
-            Return True if the entity mqtt.security_settings exist within the `mqtt` namespace
+            Check if the entity mqtt.security_settings exist within the `mqtt` namespace
             if the app is operating in a different namespace like default
 
             >>> if self.entity_exists("mqtt.security_settings", namespace = "mqtt"):
@@ -524,8 +526,9 @@ class ADAPI:
             entity_id (str): The fully qualified entity id (including the device type).
 
         Keyword Args:
-            namespace (str, optional): Namespace to use for the call - see the section on namespaces
-                for a detailed description. In most cases it is safe to ignore this parameter.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
         Returns:
             A list with 2 entries, the device and entity respectively.
@@ -551,8 +554,9 @@ class ADAPI:
             entity_id (str): The fully qualified entity id (including the device type).
 
         Keyword Args:
-            namespace (str, optional): Namespace to use for the call - see the section on namespaces
-                for a detailed description. In most cases it is safe to ignore this parameter.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
         Returns:
             None.
@@ -621,8 +625,9 @@ class ADAPI:
             entity_id (str): The fully qualified entity id (including the device type).
 
         Keyword Args:
-            namespace (str, optional): Namespace to use for the call - see the section on namespaces
-                for a detailed description. In most cases it is safe to ignore this parameter.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
         Returns:
             str: The friendly name of the entity if it exists or the entity id if not.
@@ -1006,66 +1011,68 @@ class ADAPI:
             callback: Function to be invoked when the requested state change occurs. It must conform
                 to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
             entity (str, optional): name of an entity or device type. If just a device type is provided,
-                e.g., light or binary_sensor, listen_state() will subscribe to state changes of all
-                devices of that type. If a fully qualified entity_id is provided, listen_state() will
+                e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
+                devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
                 listen for state changes for just that entity.
 
         Keyword Args:
             attribute (str, optional): Name of an attribute within the entity state object. If this
-                parameter is specified in addition to a fully qualified `entity_id`, `listen_state()`
+                parameter is specified in addition to a fully qualified ``entity_id``. ``listen_state()``
                 will subscribe to changes for just that attribute within that specific entity.
-                The `new` and `old` parameters in the callback function will be provided with
+                The ``new`` and ``old`` parameters in the callback function will be provided with
                 a single value representing the attribute.
 
-                The value `all` for attribute has special significance and will listen for any
+                The value ``all`` for attribute has special significance and will listen for any
                 state change within the specified entity, and supply the callback functions with
                 the entire state dictionary for the specified entity rather than an individual
                 attribute value.
-            new (optional): If `new` is supplied as a parameter, callbacks will only be made if the
+            new (optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the new state match the value
-                of new.
-            old (optional): If `old` is supplied as a parameter, callbacks will only be made if the
+                of ``new``.
+            old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
-                of `old`.
+                of ``old``.
 
-                Note: old and new can be used singly or together.
-            duration (int, optional): If `duration` is supplied as a parameter, the callback will not
+            duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
                 fire unless the state listened for is maintained for that number of seconds. This
-                requires that a specific attribute is specified (or the default of `state` is used),
-                and should be used in conjunction with the `old` or `new` parameters, or both. When
-                the callback is called, it is supplied with the values of `entity`, `attr`, `old`,
-                and `new` that were current at the time the actual event occurred, since the assumption
+                requires that a specific attribute is specified (or the default of ``state`` is used),
+                and should be used in conjunction with the ``old`` or ``new`` parameters, or both. When
+                the callback is called, it is supplied with the values of ``entity``, ``attr``, ``old``,
+                and ``new`` that were current at the time the actual event occurred, since the assumption
                 is that none of them have changed in the intervening period.
 
-                If you use `duration` when listening for an entire device type rather than a specific
+                If you use ``duration`` when listening for an entire device type rather than a specific
                 entity, or for all state changes, you may get unpredictable results, so it is recommended
                 that this parameter is only used in conjunction with the state of specific entities.
             immediate (bool, optional): It enables the countdown for a delay parameter to start
-                at the time, if given. If the duration parameter is not given, the callback runs immediately.
+                at the time, if given. If the ``duration`` parameter is not given, the callback runs immediately.
                 What this means is that after the callback is registered, rather than requiring one or more
                 state changes before it runs, it immediately checks the entity's states based on given
                 parameters. If the conditions are right, the callback runs immediately at the time of
                 registering. This can be useful if, for instance, you want the callback to be triggered
-                immediately if a light is already on, or after a `duration` if given.
+                immediately if a light is already `on`, or after a ``duration`` if given.
 
-                If `immediate` is in use, and `new` and `duration` are both set, AppDaemon will check
+                If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check
                 if the entity is already set to the new state and if so it will start the clock
-                immediately. If `new` and `duration` are not set, `immediate` will trigger the callback
+                immediately. If ``new`` and ``duration`` are not set, ``immediate`` will trigger the callback
                 immediately and report in its callback the new parameter as the present state of the
-                entity. If `attribute` is specified, the state of the attribute will be used instead of
-                state. In these cases, `old` will be ignored and when the callback is triggered, its
-                state will be set to `None`.
-            oneshot (bool, optional): If true, the callback will be automatically cancelled
+                entity. If ``attribute`` is specified, the state of the attribute will be used instead of
+                state. In these cases, ``old`` will be ignored and when the callback is triggered, its
+                state will be set to ``None``.
+            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled
                 after the first state change that results in a callback.
-            namespace (str, optional): Namespace to use for the call - see the section on namespaces
-                for a detailed description. In most cases, it is safe to ignore this parameter. The
-                value `global` for namespace has special significance and means that the callback will
-                listen to state updates from any plugin.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description. In most cases,
+                it is safe to ignore this parameter. The value ``global`` for namespace has special
+                significance and means that the callback will listen to state updates from any plugin.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Sets which thread from the worker pool the callback will be
                 run by (0 - number of threads -1).
             *kwargs (optional): Zero or more keyword arguments that will be supplied to the callback
                 when it is called.
+
+        Notes:
+            The ``old`` and ``new`` args can be used singly or together.
 
         Returns:
             A unique identifier that can be used to cancel the callback if required. Since variables
@@ -1152,8 +1159,8 @@ class ADAPI:
             handle: The handle returned when the ``listen_state()`` call was made.
 
         Returns:
-            entity, attribute, kwargs - the values supplied when the callback was
-            initially created.
+            The values supplied for ``entity``, ``attribute``, and ``kwargs`` when
+            the callback was initially created.
 
         Examples:
             >>> entity, attribute, kwargs = self.info_listen_state(self.handle)
@@ -1166,12 +1173,13 @@ class ADAPI:
         """Gets the state of any component within Home Assistant.
 
         State updates are continuously tracked, so this call runs locally and does not require
-        AppDaemon to call back to Home Assistant and as such is very efficient.
+        AppDaemon to call back to Home Assistant. In other words, states are updated using a
+        push-based approach instead of a pull-based one.
 
         Args:
             entity_id (str, optional): This is the name of an entity or device type. If just
-                a device type is provided, e.g., ``light`` or ``binary_sensor``, ``get_state()``
-                will return a dictionary of all devices of that type, indexed by the entity\_id,
+                a device type is provided, e.g., `light` or `binary_sensor`, `get_state()`
+                will return a dictionary of all devices of that type, indexed by the ``entity_id``,
                 containing all the state for each entity. If a fully qualified ``entity_id``
                 is provided, ``get_state()`` will return the state attribute for that entity,
                 e.g., ``on`` or ``off`` for a light.
@@ -1181,7 +1189,7 @@ class ADAPI:
                 for attribute has special significance and will return the entire state
                 dictionary for the specified entity rather than an individual attribute value.
             default (any, optional): The value to return when the requested attribute or the
-                whole entity doesn't exist. It defaults to ``None``.
+                whole entity doesn't exist (Default: ``None``).
             copy (bool, optional): By default, a copy of the stored state object is returned.
                 When you set ``copy`` to ``False``, you get the same object as is stored
                 internally by AppDaemon. Avoiding the copying brings a small performance gain,
@@ -1190,9 +1198,9 @@ class ADAPI:
                 the returned state object, e.g., you do read-only operations.
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call - see the section on
-                namespaces for a detailed description. In most cases, it is safe to ignore
-                this parameter.
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
 
         Returns:
             The entire state of Home Assistant at that given time, if  if ``get_state()``
@@ -1230,6 +1238,38 @@ class ADAPI:
         ))
 
     def set_state(self, entity_id, **kwargs):
+        """
+        Updates the state of the specified entity.
+
+        Args:
+            entity_id (str): The fully qualified entity id (including the device type).
+
+        Keyword Args:
+            state: New state value to be set.
+            attributes (optional): Entity's attributes to be updated.
+            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
+                the state of the given entity in the given namespace. On the other hand,
+                if no namespace is given, AppDaemon will use the last specified namespace
+                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
+                for a detailed description. In most cases, it is safe to ignore this parameter.
+
+        Returns:
+            A dictionary that represents the new state of the updated entity.
+
+        Examples:
+            Update the state of an entity.
+
+            >>> self.set_state("light.office_1", state="off")
+
+            Update the state and attribute of an entity.
+
+            >>> self.set_state("light.office_1", state = "on", attributes = {"color_name": "red"})
+
+            Update the state of an entity within the specified namespace.
+
+            >>> self.set_state("light.office_1", state="off", namespace ="hass")
+
+        """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
         namespace = self._get_namespace(**kwargs)
         self._check_entity(namespace, entity_id)
@@ -1302,14 +1342,15 @@ class ADAPI:
                 It must conform to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
             event (optional): Name of the event to subscribe to. Can be a standard
                 Home Assistant event such as `service_registered` or an arbitrary
-                custom event such as "MODE_CHANGE". If no event is specified,
+                custom event such as `"MODE_CHANGE"`. If no event is specified,
                 `listen_event()` will subscribe to all events.
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call - see the section on
-                namespaces for a detailed description. In most cases, it is safe to ignore
-                this parameter. The value `global` for namespace has special significance,
-                and means that the callback will listen to state updates from any plugin.
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter. The value ``global``
+                for namespace has special significance, and means that the callback will
+                listen to state updates from any plugin.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
@@ -1334,7 +1375,7 @@ class ADAPI:
             A handle that can be used to cancel the callback.
 
         Examples:
-            Listen all "MODE_CHANGE" events.
+            Listen all `"MODE_CHANGE"` events.
 
             >>> self.listen_event(self.mode_event, "MODE_CHANGE")
 
@@ -1397,9 +1438,9 @@ class ADAPI:
                 `service_registered` or an arbitrary custom event such as "MODE_CHANGE".
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call - see the section on
-                namespaces for a detailed description. In most cases, it is safe to ignore
-                this parameter.
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
             **kwargs (optional): Zero or more keyword arguments that will be supplied as
                 part of the event.
 
@@ -1421,14 +1462,14 @@ class ADAPI:
     # Time
     #
 
-    def parse_utc_string(self, s):
+    def parse_utc_string(self, utc_string):
         """Converts a UTC to its string representation.
 
         Args:
-            s (str): A string that contains a date and time to convert.
+            utc_string (str): A string that contains a date and time to convert.
 
         Returns:
-            An object that is equivalent to the date and time contained in s
+            An UTC object that is equivalent to the date and time contained in `utc_string`.
 
         """
         return datetime.datetime(*map(
@@ -1450,20 +1491,20 @@ class ADAPI:
 
     @staticmethod
     def convert_utc(utc):
-        """Gets a datetime object for the specified UTC.
+        """Gets a `datetime` object for the specified UTC.
 
         Home Assistant provides timestamps of several different sorts that may be
         used to gain additional insight into state changes. These timestamps are
-        in UTC and are coded as ISO 8601 Combined date and time strings. convert_utc()
+        in UTC and are coded as `ISO 8601` combined date and time strings. This function
         will accept one of these strings and convert it to a localised Python
-        datetime object representing the timestamp.
+        `datetime` object representing the timestamp.
 
         Args:
-            utc: An ISO 8601 encoded date and time string in the following
+            utc: An `ISO 8601` encoded date and time string in the following
                 format: `2016-07-13T14:24:02.040658-04:00`
 
         Returns:
-             A localised Python datetime object representing the timestamp.
+             A localised Python `datetime` object representing the timestamp.
 
         """
         return iso8601.parse_date(utc)
@@ -1495,7 +1536,7 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sun_down())
 
     def parse_time(self, time_str, name=None, aware=False):
-        """Creates a time object from its string representation.
+        """Creates a `time` object from its string representation.
 
         This functions takes a string representation of a time, or sunrise,
         or sunset offset and converts it to a datetime.time object.
@@ -1504,14 +1545,15 @@ class ADAPI:
             time_str (str): A representation of the time in a string format with one
                 of the following formats:
 
-                - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
-                - ``sunrise|sunset [+|- HH:MM:SS]`` time of the next sunrise or sunset
-                   with an optional positive or negative offset in Hours Minutes and
-                   seconds.
-            aware (bool, optional): If True the created time object will be aware of timezone.
+                    a. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+
+                    b. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
+                    with an optional positive or negative offset in Hours Minutes and seconds.
+
+            aware (bool, optional): If ``True`` the created time object will be aware of timezone.
 
         Returns:
-            A time object, representing the time given in the `time_str` argument.
+            A `time` object, representing the time given in the `time_str` argument.
 
         Examples:
             >>> self.parse_time("17:30:00")
@@ -1530,19 +1572,21 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.parse_time(time_str, name, aware))
 
     def parse_datetime(self, time_str, name=None, aware=False):
-        """Creates a datetime object from its string representation.
+        """Creates a `datetime` object from its string representation.
 
         This function takes a string representation of a date and time, or sunrise,
-        or sunset offset and converts it to a datetime.datetime object.
+        or sunset offset and converts it to a `datetime` object.
 
         Args:
             time_str (str): A string representation of the datetime with one of the
                 following formats:
 
-                - ``YY-MM-DD-HH:MM:SS`` - the date and time in Year, Month, Day, Hours,
+                    a. ``YY-MM-DD-HH:MM:SS`` - the date and time in Year, Month, Day, Hours,
                     Minutes, and Seconds, 24 hour format.
-                - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
-                - ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
+
+                    b. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+
+                    c. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
                     with an optional positive or negative offset in Hours Minutes and seconds.
 
                 If the ``HH:MM:SS`` format is used, the resulting datetime object will have
@@ -1551,7 +1595,7 @@ class ADAPI:
                 of timezone.
 
         Returns:
-            A datetime object, representing the time and date given in the
+            A `datetime` object, representing the time and date given in the
             `time_str` argument.
 
         Examples:
@@ -1573,18 +1617,30 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.parse_datetime(time_str, name, aware))
 
     def get_now(self):
-        """Returns the current Local Date and Time."""
+        """Returns the current Local Date and Time.
+
+        Examples:
+            >>> self.get_now()
+            2019-08-16 21:17:41.098813+00:00
+
+        """
         return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now())
 
     def get_now_ts(self):
-        """Returns the current Local Timestamp."""
+        """Returns the current Local Timestamp.
+
+        Examples:
+             >>> self.get_now_ts()
+             1565990318.728324
+
+        """
         return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now_ts())
 
     def now_is_between(self, start_time, end_time, name=None):
-        """Determines is the current time is within the specified start and end times.
+        """Determines is the current `time` is within the specified start and end times.
 
-        This function takes two string representations of a time, or sunrise or sunset
-        offset and returns true if the current time is between those 2 times. Its
+        This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
+        offset and returns ``true`` if the current time is between those 2 times. Its
         implementation can correctly handle transitions across midnight.
 
         Args:
@@ -1596,11 +1652,12 @@ class ADAPI:
             ``False`` otherwise.
 
         Notes:
-            The string representation of the start and end time should follows
+            The string representation of the ``start_time`` and ``end_time`` should follows
             one of these formats:
 
-            - ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
-            - ``sunrise|sunset [+|- HH:MM:SS]``- time of the next sunrise or sunset
+                a. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+
+                b. ``sunrise|sunset [+|- HH:MM:SS]``- time of the next sunrise or sunset
                 with an optional positive or negative offset in Hours Minutes,
                 and Seconds.
 
@@ -1615,7 +1672,7 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.now_is_between(start_time, end_time, name))
 
     def sunrise(self, aware=False):
-        """Returns a datetime object that represents the next time Sunrise will occur.
+        """Returns a `datetime` object that represents the next time Sunrise will occur.
 
         Args:
             aware (bool, optional): Specifies if the created datetime object will be
@@ -1629,7 +1686,7 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sunrise(aware))
 
     def sunset(self, aware=False):
-        """Returns a datetime object that represents the next time Sunset will occur.
+        """Returns a `datetime` object that represents the next time Sunset will occur.
 
         Args:
            aware (bool, optional): Specifies if the created datetime object will be
@@ -1643,7 +1700,7 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.sunset(aware))
 
     def time(self):
-        """Returns a localised time object representing the current Local Time.
+        """Returns a localised `time` object representing the current Local Time.
 
         Use this in preference to the standard Python ways to discover the current time,
         especially when using the "Time Travel" feature for testing.
@@ -1656,7 +1713,7 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).time()
 
     def datetime(self, aware=False):
-        """Returns a datetime object representing the current Local Date and Time.
+        """Returns a `datetime` object representing the current Local Date and Time.
 
         Use this in preference to the standard Python ways to discover the current
         datetime, especially when using the "Time Travel" feature for testing.
@@ -1676,7 +1733,7 @@ class ADAPI:
             return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now_naive())
 
     def date(self):
-        """Returns a localised date object representing the current Local Date.
+        """Returns a localised `date` object representing the current Local Date.
 
         Use this in preference to the standard Python ways to discover the current date,
         especially when using the "Time Travel" feature for testing.
@@ -1726,7 +1783,7 @@ class ADAPI:
 
             `kwargs` - the values supplied when the callback was initially created.
 
-            ``None`` - if handle is invalid or timer no longer exists
+            or ``None`` - if handle is invalid or timer no longer exists.
 
         Examples:
             >>> time, interval, kwargs = self.info_timer(handle)
@@ -1761,7 +1818,7 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            The `random_start` value must always be numerically lower than `random_end` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
@@ -1875,14 +1932,14 @@ class ADAPI:
             A handle that can be used to cancel the timer.
 
         Notes:
-            - The ``random_start`` value must always be numerically lower than ``random_end`` value,
+            The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
 
-            - The ``run_at()`` function will ``raise`` an exception if the specified time is in the ``past`.
+            The ``run_at()`` function will ``raise`` an exception if the specified time is in the ``past``.
 
         Examples:
-            Run at 4pm today
+            Run at 4pm today.
 
             >>> runtime = datetime.time(16, 0, 0)
             >>> today = datetime.date.today()
@@ -2019,7 +2076,7 @@ class ADAPI:
         Keyword Args:
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
@@ -2176,7 +2233,6 @@ class ADAPI:
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
                 function when it is invoked.
-            **kwargs:
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2227,7 +2283,6 @@ class ADAPI:
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
                 function when it is invoked.
-            **kwargs:
 
         Returns:
             A handle that can be used to cancel the timer.
