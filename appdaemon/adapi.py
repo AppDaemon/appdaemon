@@ -1241,9 +1241,9 @@ class ADAPI:
         """
         Updates the state of the specified entity.
 
-        If the namespace in use by ``set_state()``, is owned by a `plugin`, the state change
-        will propagate to the system the plugin is managing. On the other hand, if the
-        namespace is `local`, only AppDaemon's state will be updated.
+        If the namespace in use by ``set_state()`` is owned by a `plugin`, the state
+        change will propagate to the system the plugin is managing if supported. If
+        the namespace is `local`, only AppDaemon's state will be updated.
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
@@ -1258,15 +1258,15 @@ class ADAPI:
         Examples:
             Update the state of an entity.
 
-            >>> self.set_state('sensor.doorbell', state="off")
+            >>> self.set_state("light.office_1", state="off")
 
-            Update the state and attributes of an entity.
+            Update the state and attribute of an entity.
 
-            >>> self.set_state('sensor.doorbell', state="off", attributes=some_value)
+            >>> self.set_state("light.office_1", state = "on", attributes = {"color_name": "red"})
 
-            Update the namespace of an entity.
+            Update the state of an entity within the specified namespace.
 
-            >>> self.set_state('sensor.doorbell', namespace=new_namespace)
+            >>> self.set_state("light.office_1", state="off", namespace ="mqtt")
 
         """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
