@@ -1266,7 +1266,7 @@ class ADAPI:
 
             Update the state of an entity within the specified namespace.
 
-            >>> self.set_state("light.office_1", state="off", namespace ="mqtt")
+            >>> self.set_state("light.office_1", state="off", namespace ="first_floor")
 
         """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
