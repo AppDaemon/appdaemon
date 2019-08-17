@@ -1251,8 +1251,11 @@ class ADAPI:
             entity_id (str): The fully qualified entity id (including the device type).
 
         Keyword Args:
-            **kwargs: Arbitrary keyword parameters. By using this option, the properties
-                of an entity (e.g., ``state``, ``attributes``, etc.) can be updated.
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
+            state: New state value to be set.
+            attributes (optional): Entity's attributes to be updated.
 
         Returns:
             A dictionary that represents the new state of the updated entity.
