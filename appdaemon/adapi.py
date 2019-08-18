@@ -986,6 +986,7 @@ class ADAPI:
             return utils.run_coroutine_threadsafe(self, self.AD.http.register_endpoint(callback, ep))
         else:
             self.logger.warning("register_endpoint for %s filed - HTTP component is not configured", name)
+            return None
 
     def unregister_endpoint(self, handle):
         """Removes a previously registered endpoint.
