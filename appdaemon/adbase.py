@@ -62,8 +62,8 @@ class ADBase:
         self.AD = ad
         self.name = name
         self._logging = logging
-        self.config = deepcopy(config)
-        self.app_config = deepcopy(app_config)
+        self.config = config
+        self.app_config = app_config
         self.args = deepcopy(args)
         self.global_vars = global_vars
         self.namespace = "default"
