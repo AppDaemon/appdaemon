@@ -288,14 +288,14 @@ class ADAPI:
         """Sets a specific log level for the App.
 
         Args:
-            level (str): desired log level
-
-        Notes:
-            Supported log levels: ``INFO``, ``WARNING``, ``ERROR``,
-            ``CRITICAL``, ``DEBUG``, ``NOTSET``.
+            level (str): Log level.
 
         Returns:
             None.
+
+        Notes:
+            Supported log levels: ``INFO``, ``WARNING``, ``ERROR``, ``CRITICAL``,
+            ``DEBUG``, ``NOTSET``.
 
         Examples:
               >>> self.set_log_level("DEBUG")
@@ -310,10 +310,14 @@ class ADAPI:
         """Sets the log level to send to the `error` logfile of the system.
 
         Args:
-            level (str): desired error level
+            level (str): Error level.
 
         Returns:
             None.
+
+        Notes:
+            Supported log levels: ``INFO``, ``WARNING``, ``ERROR``, ``CRITICAL``,
+            ``DEBUG``, ``NOTSET``.
 
         """
         self.err.setLevel(self._logging.log_levels[level])
@@ -983,6 +987,7 @@ class ADAPI:
             return utils.run_coroutine_threadsafe(self, self.AD.http.register_endpoint(callback, ep))
         else:
             self.logger.warning("register_endpoint for %s filed - HTTP component is not configured", name)
+            return None
 
     def unregister_endpoint(self, handle):
         """Removes a previously registered endpoint.
