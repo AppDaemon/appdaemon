@@ -1,5 +1,6 @@
 import threading
 from functools import wraps
+from copy import deepcopy
 
 import appdaemon.utils as utils
 import appdaemon.adapi as adapi
@@ -63,7 +64,7 @@ class ADBase:
         self._logging = logging
         self.config = config
         self.app_config = app_config
-        self.args = args
+        self.args = deepcopy(args)
         self.global_vars = global_vars
         self.namespace = "default"
         self.app_dir = self.AD.app_dir
