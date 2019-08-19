@@ -3,6 +3,7 @@ import inspect
 import iso8601
 import re
 from datetime import timedelta
+from copy import deepcopy
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -26,7 +27,7 @@ class ADAPI:
         self._logging = logging_obj
         self.config = config
         self.app_config = app_config
-        self.args = args
+        self.args = deepcopy(args)
         self.app_dir = self.AD.app_dir
         self.config_dir = self.AD.config_dir
         self.global_vars = global_vars
