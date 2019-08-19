@@ -283,6 +283,28 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @hass_check
     def render_template(self, template, **kwargs):
+        """Renders a Home Assistant Template
+
+        Args:
+            template (str): The Home Assistant Template to be rendered.
+
+        Keyword Args:
+            None.
+
+        Returns:
+            The rendered template in a native Python type.
+
+        Examples:
+            >>> self.render_template("{{ states('sun.sun') }}")
+            Returns (str) above_horizon
+
+            >>> self.render_template("{{ is_state('sun.sun', 'above_horizon') }}")
+            Returns (bool) True
+
+            >>> self.render_template("{{ states('sensor.outside_temp') }}")
+            Returns (float) 97.2
+
+        """
         namespace = self._get_namespace(**kwargs)
 
         if "namespace" in kwargs:
