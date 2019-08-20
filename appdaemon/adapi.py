@@ -837,7 +837,7 @@ class ADAPI:
             {
                 "shouldEndSession": True
             }
-        
+
         if speech is not None:
             response["outputSpeech"] = \
                 {
@@ -1884,7 +1884,7 @@ class ADAPI:
             one_day = datetime.timedelta(days=1)
             aware_event = aware_event + one_day
         handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-                name, aware_event, callback, False, None, **kwargs
+            name, aware_event, callback, False, None, **kwargs
         ))
         return handle
 
@@ -1958,7 +1958,7 @@ class ADAPI:
             )
         handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
             name, aware_when, callback, False, None, **kwargs
-        ))    
+        ))
         return handle
 
     def run_daily(self, callback, start, **kwargs):
