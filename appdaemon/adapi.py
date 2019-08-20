@@ -19,7 +19,6 @@ class ADAPI:
     #
     # Internal parameters
     #
-
     def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
         # Store args
 
@@ -474,7 +473,8 @@ class ADAPI:
 
     def _check_entity(self, namespace, entity):
         if "." not in entity:
-            raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
+            raise ValueError(
+                "{}: Invalid entity ID: {}".format(self.name, entity))
         if not utils.run_coroutine_threadsafe(self, self.AD.state.entity_exists(namespace, entity)):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
@@ -829,11 +829,15 @@ class ADAPI:
         Returns:
             None.
 
+        Examples:
+            >>> ADAPI.format_alexa_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
+
+        """
         response = \
             {
                 "shouldEndSession": True
             }
-        """
+        
         if speech is not None:
             response["outputSpeech"] = \
                 {
@@ -1210,7 +1214,7 @@ class ADAPI:
 
         return utils.run_coroutine_threadsafe(self, self.AD.state.get_state(
             self.name, namespace, entity_id, attribute, default, copy, **kwargs
-            ))
+        ))
 
     def set_state(self, entity_id, **kwargs):
         """
@@ -1303,9 +1307,7 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(
-            self, self.AD.services.call_service(namespace, d, s, kwargs)
-        )
+        return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
 
     #
     # Events
@@ -1389,9 +1391,7 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_event for %s", self.name)
-        utils.run_coroutine_threadsafe(
-            self, self.AD.events.cancel_event_callback(self.name, handle)
-        )
+        utils.run_coroutine_threadsafe(self, self.AD.events.cancel_event_callback(self.name, handle))
 
     def info_listen_event(self, handle):
         """Gets information on an event callback from its handle.
@@ -1883,12 +1883,9 @@ class ADAPI:
         if aware_event < now:
             one_day = datetime.timedelta(days=1)
             aware_event = aware_event + one_day
-        handle = utils.run_coroutine_threadsafe(
-            self,
-            self.AD.sched.insert_schedule(
+        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
                 name, aware_event, callback, False, None, **kwargs
-            ),
-        )
+        ))
         return handle
 
     def run_at(self, callback, start, **kwargs):
@@ -1959,10 +1956,9 @@ class ADAPI:
                 "{}: run_at() Start time must be "
                 "in the future".format(self.name)
             )
-        handle = utils.run_coroutine_threadsafe(
-            self,
-            self.AD.sched.insert_schedule(name, aware_when, callback, False, None, **kwargs),
-        )
+        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
+            name, aware_when, callback, False, None, **kwargs
+        ))    
         return handle
 
     def run_daily(self, callback, start, **kwargs):
@@ -2195,7 +2191,7 @@ class ADAPI:
 
         handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
             name, event, callback, True, type_, **kwargs
-            ))
+        ))
         return handle
 
     def run_at_sunset(self, callback, **kwargs):
