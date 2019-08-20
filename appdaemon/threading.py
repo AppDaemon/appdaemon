@@ -530,7 +530,6 @@ class Threading:
                         "kwargs": kwargs
                     })
             else:
-                print("check and and dispatch state")
                 if "__duration" in kwargs and new != old:
                     # cancel timer
                     await self.AD.sched.cancel_timer(name, kwargs["__duration"])

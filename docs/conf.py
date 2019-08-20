@@ -22,7 +22,7 @@ import os
 #sys.path.insert(0, os.path.abspath('.'))
 
 
-autodoc_mock_imports = ['iso8601']
+autodoc_mock_imports = ['iso8601', 'dateutil']
 
 
 sys.path.insert(0, os.path.abspath('..'))
@@ -37,8 +37,11 @@ sys.path.insert(0, os.path.abspath('..'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    'sphinx.ext.autodoc', 'sphinx.ext.napoleon'
 ]
+
+
+autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -56,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'AppDaemon'
-copyright = '2018, Andrew Cockburn'
+copyright = '2019, Andrew Cockburn'
 author = 'Andrew Cockburn'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -276,7 +279,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'AppDaemon', 'AppDaemon Documentation',
-     author, 'AppDaemon', 'One line description of project.',
+     author, 'AppDaemon', 'Sandboxed pyhton Apps for automation',
      'Miscellaneous'),
 ]
 

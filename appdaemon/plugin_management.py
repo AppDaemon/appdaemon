@@ -165,7 +165,7 @@ class Plugins:
                 self.AD.state.set_namespace_state(namespace, state)
 
                 if not first_time:
-                    await self.AD.app_management.check_app_updates(self.get_plugin_from_namespace(namespace))
+                    await self.AD.app_management.check_app_updates(self.get_plugin_from_namespace(namespace), mode="init")
                 else:
                     self.logger.info("Got initial state from namespace %s", namespace)
 
