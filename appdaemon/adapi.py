@@ -42,6 +42,7 @@ class ADAPI:
             userlog = self.get_user_log(args["log"])
             if userlog is not None:
                 self.logger = userlog
+        self.dialogflow_v = 2
 
     @staticmethod
     def _sub_stack(msg):
@@ -759,11 +760,10 @@ class ADAPI:
         return None
 
     #
-    # Apiai
+    # Dialogflow
     #
 
-    @staticmethod
-    def get_apiai_intent(data):
+    def get_dialogflow_intent(self, data):
         """Gets the intent's action from the Google Home response.
 
         Args:
@@ -774,16 +774,20 @@ class ADAPI:
             or ``None``, if no action was received.
 
         Examples:
-            >>> intent = ADAPI.get_apiai_intent(data)
+            >>> intent = ADAPI.get_dialogflow_intent(data)
 
         """
-        if "queryResult" in data and "action" in data["result"]:
+        if "result" in data and "action" in data["result"]:
+            self.dialogflow_v = 1
             return data["result"]["action"]
+        elif "queryResult" in data and "action" in data["queryResult"]:
+            self.dialogflow_v = 2
+            return data["queryResult"]["action"]
         else:
             return None
 
     @staticmethod
-    def get_apiai_slot_value(data, slot=None):
+    def get_dialogflow_slot_value(data, slot=None):
         """Gets slots' values from the interaction model.
 
         Args:
@@ -795,30 +799,40 @@ class ADAPI:
             A string representing the value of the slot from the interaction model, or a hash of slots.
 
         Examples:
-            >>> beer_type = ADAPI.get_apiai_intent(data, "beer_type")
-            >>> all_slots = ADAPI.get_apiai_intent(data)
+            >>> beer_type = ADAPI.get_dialogflow_intent(data, "beer_type")
+            >>> all_slots = ADAPI.get_dialogflow_intent(data)
 
         """
-        if "queryResult" in data and \
-                "contexts" in data["result"]:
-            req = data.get('result')
-            contexts = req.get('contexts', [{}])
+        if "result" in data:
+            # using V1 API
+            contexts = data["result"]["contexts"][0]
             if contexts:
-                parameters = contexts[0].get('parameters')
+                parameters = contexts.get("parameters")
             else:
-                parameters = req.get('parameters')
+                parameters = data["result"]["parameters"]
             if slot is None:
                 return parameters
+            elif slot in parameters:
+                return parameters[slot]
             else:
-                if slot in parameters:
-                    return parameters[slot]
-                else:
-                    return None
+                return None
+        elif "queryResult" in data:
+            # using V2 API
+            contexts = data["queryResult"]["outputContexts"][0]
+            if contexts:
+                parameters = contexts.get("parameters")
+            else:
+                parameters = data["queryResult"]["parameters"]
+            if slot is None:
+                return parameters
+            elif slot in parameters:
+                return parameters[slot]
+            else:
+                return None
         else:
             return None
 
-    @staticmethod
-    def format_apiai_response(speech=None):
+    def format_dialogflow_response(speech=None):
         """Formats a response to be returned to Google Home, including speech.
 
         Args:
@@ -828,16 +842,24 @@ class ADAPI:
             None.
 
         Examples:
-            >>> ADAPI.format_apiai_response(speech = "Hello World")
+            >>> ADAPI.format_dialogflow_response(speech = "Hello World")
 
         """
-        speech = \
-            {
-                "speech": speech,
-                "source": "Appdaemon",
-                "displayText": speech
-            }
-
+        if self.dialogflow_v == 1:
+            speech = \
+                {
+                    "speech": speech,
+                    "source": "Appdaemon",
+                    "displayText": speech
+                }
+        elif self.dialogflow_v == 2:
+            speech = \
+                {
+                    "fulfillmentText": speech,
+                    "source": "Appdaemon"
+                }
+        else:
+            speech = None
         return speech
 
     #
