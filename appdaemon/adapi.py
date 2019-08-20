@@ -19,7 +19,10 @@ class ADAPI:
     #
     # Internal parameters
     #
-    def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
+
+    def __init__(
+        self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars
+    ):
         # Store args
 
         self.AD = ad
@@ -42,6 +45,7 @@ class ADAPI:
             userlog = self.get_user_log(args["log"])
             if userlog is not None:
                 self.logger = userlog
+        self.dialogflow_v = 2
 
     @staticmethod
     def _sub_stack(msg):
@@ -79,7 +83,9 @@ class ADAPI:
             level = "INFO"
         ascii_encode = kwargs.pop("ascii_encode", True)
         if ascii_encode is True:
-            safe_enc = lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+            safe_enc = (
+                lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
+            )
             msg = safe_enc(msg)
 
         logger.log(self._logging.log_levels[level], msg, *args, **kwargs)
@@ -226,7 +232,9 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_log for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.logging.cancel_log_callback(self.name, handle))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.logging.cancel_log_callback(self.name, handle)
+        )
 
     def get_main_log(self):
         """Returns the underlying logger object used for the main log.
@@ -472,10 +480,13 @@ class ADAPI:
 
     def _check_entity(self, namespace, entity):
         if "." not in entity:
-            raise ValueError(
-                "{}: Invalid entity ID: {}".format(self.name, entity))
-        if not utils.run_coroutine_threadsafe(self, self.AD.state.entity_exists(namespace, entity)):
-            self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
+            raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
+        if not utils.run_coroutine_threadsafe(
+            self, self.AD.state.entity_exists(namespace, entity)
+        ):
+            self.logger.warning(
+                "%s: Entity %s not found in namespace %s", self.name, entity, namespace
+            )
 
     def get_ad_version(self):
         """Returns a string with the current version of AppDaemon.
@@ -519,7 +530,9 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        return utils.run_coroutine_threadsafe(self, self.AD.state.entity_exists(namespace, entity_id))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.state.entity_exists(namespace, entity_id)
+        )
 
     def split_entity(self, entity_id, **kwargs):
         """Splits an entity into parts.
@@ -577,7 +590,9 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        utils.run_coroutine_threadsafe(self, self.AD.state.remove_entity(namespace, entity_id))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.state.remove_entity(namespace, entity_id)
+        )
         return None
 
     def split_device_list(self, devices):
@@ -621,7 +636,9 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        return utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_meta(namespace))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.plugins.get_plugin_meta(namespace)
+        )
 
     def friendly_name(self, entity_id, **kwargs):
         """Gets the Friendly Name of an entity.
@@ -759,85 +776,57 @@ class ADAPI:
         return None
 
     #
-    # Apiai
+    # Dialogflow
     #
 
-    @staticmethod
-    def get_apiai_intent(data):
-        """Gets the intent's action from the Google Home response.
-
-        Args:
-            data: Response received from Google Home.
-
-        Returns:
-            A string representing the Intent from the interaction model that was requested,
-            or ``None``, if no action was received.
-
-        Examples:
-            >>> intent = ADAPI.get_apiai_intent(data)
-
-        """
-        if "queryResult" in data and "action" in data["result"]:
+    def get_dialogflow_intent(self, data):
+        if "result" in data and "action" in data["result"]:
+            self.dialogflow_v = 1
             return data["result"]["action"]
+        elif "queryResult" in data and "action" in data["queryResult"]:
+            self.dialogflow_v = 2
+            return data["queryResult"]["action"]
         else:
             return None
 
     @staticmethod
-    def get_apiai_slot_value(data, slot=None):
-        """Gets slots' values from the interaction model.
-
-        Args:
-            data: Response received from Google Home.
-            slot (str): Name of the slot. If a name is not specified, all slots will be returned
-                as a dictionary. If a name is specified but is not found, ``None`` will be returned.
-
-        Returns:
-            A string representing the value of the slot from the interaction model, or a hash of slots.
-
-        Examples:
-            >>> beer_type = ADAPI.get_apiai_intent(data, "beer_type")
-            >>> all_slots = ADAPI.get_apiai_intent(data)
-
-        """
-        if "queryResult" in data and \
-                "contexts" in data["result"]:
-            req = data.get('result')
-            contexts = req.get('contexts', [{}])
+    def get_dialogflow_slot_value(data, slot=None):
+        if "result" in data:
+            # using V1 API
+            contexts = data["result"]["contexts"][0]
             if contexts:
-                parameters = contexts[0].get('parameters')
+                parameters = contexts.get("parameters")
             else:
-                parameters = req.get('parameters')
+                parameters = data["result"]["parameters"]
             if slot is None:
                 return parameters
+            elif slot in parameters:
+                return parameters[slot]
             else:
-                if slot in parameters:
-                    return parameters[slot]
-                else:
-                    return None
+                return None
+        elif "queryResult" in data:
+            # using V2 API
+            contexts = data["queryResult"]["outputContexts"][0]
+            if contexts:
+                parameters = contexts.get("parameters")
+            else:
+                parameters = data["queryResult"]["parameters"]
+            if slot is None:
+                return parameters
+            elif slot in parameters:
+                return parameters[slot]
+            else:
+                return None
         else:
             return None
 
-    @staticmethod
-    def format_apiai_response(speech=None):
-        """Formats a response to be returned to Google Home, including speech.
-
-        Args:
-            speech (str): The text for Google Home to say.
-
-        Returns:
-            None.
-
-        Examples:
-            >>> ADAPI.format_apiai_response(speech = "Hello World")
-
-        """
-        speech = \
-            {
-                "speech": speech,
-                "source": "Appdaemon",
-                "displayText": speech
-            }
-
+    def format_dialogflow_response(self, speech=None):
+        if self.dialogflow_v == 1:
+            speech = {"speech": speech, "source": "Appdaemon", "displayText": speech}
+        elif self.dialogflow_v == 2:
+            speech = {"fulfillmentText": speech, "source": "Appdaemon"}
+        else:
+            speech = None
         return speech
 
     #
@@ -856,36 +845,15 @@ class ADAPI:
         Returns:
             None.
 
-        Examples:
-            >>> ADAPI.format_alexa_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
-
+        response = {"shouldEndSession": True}
         """
-        response = \
-            {
-                "shouldEndSession": True
-            }
-
         if speech is not None:
-            response["outputSpeech"] = \
-                {
-                    "type": "PlainText",
-                    "text": speech
-                }
+            response["outputSpeech"] = {"type": "PlainText", "text": speech}
 
         if card is not None:
-            response["card"] = \
-                {
-                    "type": "Simple",
-                    "title": title,
-                    "content": card
-                }
+            response["card"] = {"type": "Simple", "title": title, "content": card}
 
-        speech = \
-            {
-                "version": "1.0",
-                "response": response,
-                "sessionAttributes": {}
-            }
+        speech = {"version": "1.0", "response": response, "sessionAttributes": {}}
 
         return speech
 
@@ -977,7 +945,6 @@ class ADAPI:
 
             >>> self.register_endpoint(my_callback)
             >>> self.register_callback(alexa_cb, "alexa")
-
         """
         if name is None:
             ep = self.name
@@ -1156,7 +1123,9 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_state for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.state.cancel_state_callback(handle, self.name))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.state.cancel_state_callback(handle, self.name)
+        )
 
     def info_listen_state(self, handle):
         """Gets information on state a callback from its handle.
@@ -1239,9 +1208,12 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.state.get_state(
-            self.name, namespace, entity_id, attribute, default, copy, **kwargs
-        ))
+        return utils.run_coroutine_threadsafe(
+            self,
+            self.AD.state.get_state(
+                self.name, namespace, entity_id, attribute, default, copy, **kwargs
+            ),
+        )
 
     def set_state(self, entity_id, **kwargs):
         """
@@ -1334,7 +1306,9 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.services.call_service(namespace, d, s, kwargs)
+        )
 
     #
     # Events
@@ -1418,7 +1392,9 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_event for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.events.cancel_event_callback(self.name, handle))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.events.cancel_event_callback(self.name, handle)
+        )
 
     def info_listen_event(self, handle):
         """Gets information on an event callback from its handle.
@@ -1434,7 +1410,9 @@ class ADAPI:
 
         """
         self.logger.debug("Calling info_listen_event for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.events.info_event_callback(self.name, handle))
+        return utils.run_coroutine_threadsafe(
+            self, self.AD.events.info_event_callback(self.name, handle)
+        )
 
     def fire_event(self, event, **kwargs):
         """Fires an event on the AppDaemon bus, for apps and plugins.
@@ -1462,7 +1440,9 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        utils.run_coroutine_threadsafe(self, self.AD.events.fire_event(namespace, event, **kwargs))
+        utils.run_coroutine_threadsafe(
+            self, self.AD.events.fire_event(namespace, event, **kwargs)
+        )
 
     #
     # Time
@@ -1899,7 +1879,9 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"].time()
+            when = utils.run_coroutine_threadsafe(
+                self, self.AD.sched._parse_time(start, self.name)
+            )["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
         name = self.name
@@ -1910,9 +1892,12 @@ class ADAPI:
         if aware_event < now:
             one_day = datetime.timedelta(days=1)
             aware_event = aware_event + one_day
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, aware_event, callback, False, None, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(
+                name, aware_event, callback, False, None, **kwargs
+            ),
+        )
         return handle
 
     def run_at(self, callback, start, **kwargs):
@@ -1972,7 +1957,9 @@ class ADAPI:
         if type(start) == datetime.datetime:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"]
+            when = utils.run_coroutine_threadsafe(
+                self, self.AD.sched._parse_time(start, self.name)
+            )["datetime"]
         else:
             raise ValueError("Invalid type for start")
         aware_when = self.AD.sched.convert_naive(when)
@@ -1980,12 +1967,14 @@ class ADAPI:
         now = self.get_now()
         if aware_when < now:
             raise ValueError(
-                "{}: run_at() Start time must be "
-                "in the future".format(self.name)
+                "{}: run_at() Start time must be " "in the future".format(self.name)
             )
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, aware_when, callback, False, None, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(
+                name, aware_when, callback, False, None, **kwargs
+            ),
+        )
         return handle
 
     def run_daily(self, callback, start, **kwargs):
@@ -2044,7 +2033,9 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            info = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))
+            info = utils.run_coroutine_threadsafe(
+                self, self.AD.sched._parse_time(start, self.name)
+            )
         else:
             raise ValueError("Invalid type for start")
 
@@ -2216,9 +2207,10 @@ class ADAPI:
         else:
             event = self.AD.sched.next_sunset()
 
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, event, callback, True, type_, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(
+            self,
+            self.AD.sched.insert_schedule(name, event, callback, True, type_, **kwargs),
+        )
         return handle
 
     def run_at_sunset(self, callback, **kwargs):
@@ -2267,7 +2259,9 @@ class ADAPI:
 
         """
         name = self.name
-        self.logger.debug("Registering run_at_sunset with kwargs = %s for %s", kwargs, name)
+        self.logger.debug(
+            "Registering run_at_sunset with kwargs = %s for %s", kwargs, name
+        )
         handle = self._schedule_sun(name, "next_setting", callback, **kwargs)
         return handle
 
@@ -2318,7 +2312,9 @@ class ADAPI:
 
         """
         name = self.name
-        self.logger.debug("Registering run_at_sunrise with kwargs = %s for %s", kwargs, name)
+        self.logger.debug(
+            "Registering run_at_sunrise with kwargs = %s for %s", kwargs, name
+        )
         handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
 
