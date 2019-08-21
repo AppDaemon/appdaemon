@@ -397,12 +397,12 @@ class Threading:
         self.AD.app_management.objects[name]["pin_thread"] = thread
 
     def validate_pin(self, name, kwargs):
+        valid = True
         if "pin_thread" in kwargs:
             if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.thread_count:
                 self.logger.warning("Invalid value for pin_thread (%s) in app: %s - discarding callback", kwargs["pin_thread"], name)
-                return False
-        else:
-            return True
+                valid = False
+        return valid
 
     async def get_pinned_apps(self, thread):
         id = int(thread.split("-")[1])
