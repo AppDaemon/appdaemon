@@ -832,7 +832,7 @@ class ADAPI:
         else:
             return None
 
-    def format_dialogflow_response(speech=None):
+    def format_dialogflow_response(self, speech=None):
         """Formats a response to be returned to Google Home, including speech.
 
         Args:
