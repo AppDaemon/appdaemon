@@ -1314,13 +1314,35 @@ class ADAPI:
         self.AD.services.register_service(namespace, d, s, cb)
 
     def call_service(self, service, **kwargs):
-        """
+        """Calls a HASS service within AppDaemon.
+
+        This function can call any service and provide any required parameters.
+        Available services can be found using the developer tools in the UI.
+        For `listed services`, the part before the first period is the ``domain``,
+        and the part after is the ``service name`. For instance, `light/turn_on`
+        has a domain of `light` and a service name of `turn_on`.
 
         Args:
-            service:
-            **kwargs:
+            service: The service name.
+
+        Keyword Args:
+            **kwargs: Each service has different parameter requirements. This argument
+                allows you to specify a comma-separated list of keyword value pairs, e.g.,
+                `entity_id = light.office_1`. These parameters will be different for
+                every service and can be discovered using the developer tools. Most all
+                service calls require an ``entity_id``.
+            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
+                the state of the given entity in the given namespace. On the other hand,
+                if no namespace is given, AppDaemon will use the last specified namespace
+                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
+                for a detailed description. In most cases, it is safe to ignore this parameter.
 
         Returns:
+            None.
+
+        Examples:
+            >>> self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
+            >>> self.call_service("notify/notify", title = "Hello", message = "Hello World")
 
         Todo:
             * Finish documentation
