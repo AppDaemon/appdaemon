@@ -1341,11 +1341,25 @@ class ADAPI:
             None.
 
         Examples:
+            HASS
+
             >>> self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
             >>> self.call_service("notify/notify", title = "Hello", message = "Hello World")
 
-        Todo:
-            * Finish documentation
+            MQTT
+
+            >>> call_service("mqtt/subscribe", topic="homeassistant/living_room/light", qos=2)
+            >>> call_service("mqtt/publish", topic="homeassistant/living_room/light", payload="on")
+
+            Utility
+
+            >>> call_service("app/restart", app="notify_app", namespace="appdaemon")
+            >>> call_service("app/stop", app="lights_app", namespace="appdaemon")
+            >>> call_service("app/reload", namespace="appdaemon")
+
+            For Utility, it is important that the `namespace` arg is se to ``appdaemon``
+            as no app can work within that `namespace`. If not namespace is specified,
+            calling this function will rise an error.
 
         """
         self._check_service(service)
