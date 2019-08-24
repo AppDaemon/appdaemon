@@ -1357,7 +1357,7 @@ class ADAPI:
             >>> call_service("app/stop", app="lights_app", namespace="appdaemon")
             >>> call_service("app/reload", namespace="appdaemon")
 
-            For Utility, it is important that the `namespace` arg is se to ``appdaemon``
+            For Utility, it is important that the `namespace` arg is set to ``appdaemon``
             as no app can work within that `namespace`. If not namespace is specified,
             calling this function will rise an error.
 
