@@ -165,12 +165,39 @@ Lets look at a couple more examples of widget definitions:
 
 .. code:: yaml
 
+    andrew_presence:
+        widget_type: device_tracker
+        title: Andrew
+        device: andrews_iphone
+
     clock:
         widget_type: clock
 
-    weather:
-        widget_type: weather
-        units: "&deg;F"
+    garage:
+        widget_type: switch
+        title: Garage
+        entity: switch.garage_door
+        icon_on: fas-car
+        icon_off: fas-car
+        warn: 1
+
+    light_level:
+        widget_type: sensor
+        title: Light Level
+        units: "lux"
+        precision: 0
+        shorten: 1
+        entity: sensor.side_multisensor_luminance_25_3
+
+    mode:
+        widget_type: sensor
+        title: House Mode
+        entity: input_select.house_mode
+
+    porch_motion:
+        widget_type: binary_sensor
+        title: Porch
+        entity: binary_sensor.porch_multisensor_sensor_27_0
         
     side_temperature:
         widget_type: sensor
@@ -186,41 +213,14 @@ Lets look at a couple more examples of widget definitions:
         precision: 0
         entity: sensor.side_humidity_corrected
 
-    andrew_presence:
-        widget_type: device_tracker
-        title: Andrew
-        device: andrews_iphone
+    weather:
+        widget_type: weather
+        units: "&deg;F"
 
     wendy_presence:
         widget_type: device_tracker
         title: Wendy
         device: wendys_iphone
-
-    mode:
-        widget_type: sensor
-        title: House Mode
-        entity: input_select.house_mode
-
-    light_level:
-        widget_type: sensor
-        title: Light Level
-        units: "lux"
-        precision: 0
-        shorten: 1
-        entity: sensor.side_multisensor_luminance_25_3
-            
-    porch_motion:
-        widget_type: binary_sensor
-        title: Porch
-        entity: binary_sensor.porch_multisensor_sensor_27_0
-
-    garage:
-        widget_type: switch
-        title: Garage
-        entity: switch.garage_door
-        icon_on: fas-car
-        icon_off: fas-car
-        warn: 1
 
 Now, instead of an entity id, we refer to the name of the widgets we just
 defined:
