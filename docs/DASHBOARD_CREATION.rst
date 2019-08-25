@@ -681,6 +681,131 @@ Widget Reference
 Here is the current list of widgets and their description and supported
 parameters:
 
+alarm
+~~~~~
+
+A widget to report on the state of an alarm and allow code entry
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the alarm to be monitored
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_style``
+-  ``panel_state_style``
+-  ``panel_code_style``
+-  ``panel_background_style``
+-  ``panel_button_style``
+
+binary_sensor
+~~~~~~~~~~~~~~
+
+A widget to monitor a binary\_sensor
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the binary\_sensor
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
+
+camera
+~~~~~~
+
+A widget to display a refreshing camera image on the dashboard
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity_picture``
+
+This can be found using the developer tools and will be one of the
+parameters associated with the camera you want to view. If you are using
+a password, you will need to append ``&api_password=<your password>`` to
+the end of the entity\_picture. It will look something like this:
+
+``http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>``
+
+If you are using SSL, remember to use the full DNS name and not the IP
+address.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``refresh`` - (seconds) if set, the camera image will refresh every
+   interval.
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+
+climate
+~~~~~~~
+
+A widget to monitor and control a climate entity
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the climate entity
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``step`` - the size of step in temperature when fading the slider up
+   or down
+-  ``units`` - the unit symbol to be displayed
+- ``precision`` - the number of digits to display after the decimal point
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``icon_up``
+-  ``icon_down``
+-  ``title_style``
+-  ``title2_style``
+-  ``level_style``
+-  ``level2_style``
+-  ``unit_style``
+-  ``unit2_style``
+-  ``level_up_style``
+-  ``level_down_style``
+
 clock
 ~~~~~
 
@@ -717,6 +842,1181 @@ Style Arguments:
 -  ``widget_style``
 -  ``time_style``
 -  ``date_style``
+
+cover
+~~~~~
+
+A widget to monitor and activate a cover. At this time only the open and
+close actions are supported.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the cover
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+device_tracker
+~~~~~~~~~~~~~~~
+
+A Widget that reports on device tracker status. It can also be
+optionally be used to toggle the status between "home" and "not\_home".
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``device`` - name of the device from ``known_devices.yaml``, *not*
+   the entity\_id.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``enable`` - set to 1 to enable the widget to toggle the
+   device\_tracker status
+-  ``state_text``
+-  ``state_map``
+-  ``active_map``
+
+Active map is used to specify states other than "home" that will be
+regarded as active, meaning the icon will light up. This can be useful
+if tracking a device tracker within the house using beacons for
+instance.
+
+Example:
+
+.. code:: yaml
+
+    wendy_presence_mapped:
+      widget_type: device_tracker
+      title: Wendy
+      title2: Mapped
+      device: wendys_iphone
+      active_map:
+        - home
+        - house
+        - back_yard
+        - upstairs
+
+In the absence of an active map, only the state ``home`` will be
+regarded as active.
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
+
+entitypicture
+~~~~~~
+
+A widget to display entity picture
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to display entity_picture attribute
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile.
+-  ``base_url`` - URL to prepend before content of entity_picture.
+
+Example:
+
+.. code:: yaml
+
+    entitypicture1:
+        widget_type: entitypicture
+        title: Weather by YR
+        entity: sensor.yr_symbol
+
+Example showing artwork of just playing an album on media player: (tested with Google Home)
+
+.. code:: yaml
+
+    entitypicture2:
+        widget_type: entitypicture
+        entity: media_player.bedroom
+        base_url: https://my_domain.duckdns.org:8123
+        image_style: "top: 0; bottom: 0; left: 0; right: 0;"
+
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``image_style``
+
+gauge
+~~~~~
+
+A widget to report on numeric values for sensors in Home Assistant in a
+gauge format.
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the sensor to be monitored
+-  ``max`` - maximum value to show
+-  ``min`` - minimum value to show
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``units`` - the unit symbol to be displayed, if not specified HAs
+   unit will be used, specify "" for no units
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``low_color``
+-  ``med_color``
+-  ``high_color``
+-  ``bgcolor``
+-  ``color``
+
+Note that unlike other widgets, the color settings require an actual
+color, rather than a CSS style.
+
+group
+~~~~~
+
+A widget to monitor and control a group of lights
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the group
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``monitored_entity`` - the actual entity to monitor
+
+Groups currently do no report back state changes correctly when
+attributes light brightness are changed. As a workaround, instead of
+looking for state changes in the group, we use ``monitored_entity``
+instead. This is not necessary of there are no dimmable lights in the
+group; however, if there are, it should be set to the entity\_id of one
+of the dimmable group members.
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``icon_on``
+-  ``icon_off``
+-  ``icon_up``
+-  ``icon_down``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``text_style``
+-  ``level_style``
+-  ``level_up_style``
+-  ``level_down_style``
+
+icon
+~~~~
+
+A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured in a similar manner to the following:
+
+.. code:: yaml
+
+   icon:
+     title: icon
+     widget_type: icon
+     entity: binary_sensor.basement_door_sensor
+     state_text: 1
+     icons:
+       "active":
+         icon: fas-glass
+         style: "color: green"
+       "inactive":
+         icon: fas-repeat
+         style: "color: blue"
+       "idle":
+         icon: fas-frown
+         style: "color: red"
+       "default":
+         icon: fas-rocket
+         style: "color: cyan"
+
+The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+
+The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the binary\_sensor
+-  ``icons`` - a list of icons and styles to be applied for various states.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
+
+iframe
+~~~~~~
+
+A widget to display other content within the dashboard
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``url_list`` - a list of 1 or more URLs to cycle though. or
+-  ``img_list`` - a list of 1 or more Image URLs to cycle through.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``refresh`` - (seconds) if set, the iframe widget will progress down
+   its list every refresh period, returning to the beginning when it
+   hits the end. Use this in conjunction with a single entry in the
+   ``url_list`` to have a single url refresh at a set interval.
+
+For regular HTTP sites, use the ``url_list`` argument, for images the
+``img_list`` argument should work better.
+
+Example:
+
+.. code:: yaml
+
+    iframe:
+        widget_type: iframe
+        title: Cats
+        refresh: 60
+        url_list:
+          - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
+          - https://www.pexels.com/photo/eyes-cat-coach-sofas-96938/
+          - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
+          - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
+          - https://www.pexels.com/photo/grey-fur-kitten-127028/
+          - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
+          - https://www.pexels.com/photo/cat-sleeping-62640/
+
+Content will be shown with scroll bars, which can be undesirable. For
+images this can be alleviated by using an image resizing service such as
+the one offered by
+`Google <https://carlo.zottmann.org/posts/2013/04/14/google-image-resizer.html>`__.
+
+.. code:: yaml
+
+    weather_frame:
+        widget_type: iframe
+        title: Radar
+        refresh: 300
+        frame_style: ""
+        img_list:
+          - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
+          - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+
+input_boolean
+~~~~~~~~~~~~~~
+
+A widget to monitor and activate an input\_boolean
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_boolean
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+input_number
+~~~~~~~~~~~~~
+
+A widget to monitor and control an input number
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_number
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``units`` - the unit symbol to be displayed
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
+   separator
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+- ``title_style``
+- ``title2_style``
+- ``minvalue_style``
+- ``maxvalue_style``
+- ``value_style``
+- ``slider_style``
+- ``slidercontainer_style``
+- ``widget_style``
+
+input_select
+~~~~~~~~~~~~
+
+A widget to display and select values from an input_select entity in Home Assistant.
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the sensor to be monitored
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``select_style``
+-  ``selectcontainer_style``
+
+input\_slider
+~~~~~~~~~~~~~
+
+An alternate widget to monitor and control an input number, using plus and minus buttons instead of a slider.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_number
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``units`` - the unit symbol to be displayed
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
+   separator
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+- ``title_style``
+- ``title2_style``
+- ``minvalue_style``
+- ``maxvalue_style``
+- ``value_style``
+- ``slider_style``
+- ``slidercontainer_style``
+- ``widget_style``
+
+javascript
+~~~~~~~~~~
+
+A widget to run an arbitary JavaScript command.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+- ``command`` - the JavaScript command to be run.
+
+e.g.
+
+.. code:: yaml
+   command: "alert('hello');"
+
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_active``
+-  ``icon_inactive``
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
+
+label
+~~~~~
+
+A widget to show a simple static text string
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``text`` - the text displayed on the tile
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``text_style``
+
+light
+~~~~~
+
+A widget to monitor and control a dimmable light
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the light
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``on_attributes`` - a list of supported HA attributes to set as
+   initial values for the light.
+
+Note that ``rgb_color`` and ``xy_color`` are not specified with list
+syntac as in Home Assistant scenes. See below for examples.
+
+e.g.
+
+.. code:: yaml
+
+    testlight2:
+        widget_type: light
+        entity: light.office_2
+        title: office_2
+        on_attributes:
+            brightness: 100
+            color_temp: 250
+
+or:
+
+.. code:: yaml
+
+    testlight2:
+        widget_type: light
+        entity: light.office_2
+        title: office_2
+        on_attributes:
+            brightness: 100
+            rgb_color: 128, 34, 56
+
+or:
+
+.. code:: yaml
+
+    testlight2:
+        widget_type: light
+        entity: light.office_2
+        title: office_2
+        on_attributes:
+            brightness: 100
+            xy_color: 0.4, 0.9
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``icon_on``
+-  ``icon_off``
+-  ``icon_up``
+-  ``icon_down``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``text_style``
+-  ``level_style``
+-  ``level_up_style``
+-  ``level_down_style``
+
+lock
+~~~~
+
+A widget to monitor and activate a lock
+
+Note that unlike HASS, Dashboard regards an unlocked lock as active. By
+contrast, the HASS UI shows a locked lock as "on". Since the purpose of
+the dashboard is to alert at a glance on anything that is unusual, I
+chose to make the unlocked state "active" which means in the default
+skin it is shown as red, whereas a locked icon is shown as gray. You can
+easily change this behavior by setting active and inactive styles if you
+prefer.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the lock
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+london_underground
+~~~~~~~~~~~~~~~~~~
+
+A widget to report on the status of a London Underground line and
+provide the reason for delays if there are any. Requires the London
+Underground sensor to be configured in Home Assistant. This widget is
+designed to be a 2x2 tile.
+
+It is recommended to update the background style to reflect the color
+of the underground line. An example would be as follows:
+
+.. code:: yaml
+
+  widget_style: "background-color: #0098D4"
+
+The colors of the various lines are:
+- Bakerloo: #B36305
+- Central: #E32017
+- Circle: #FFD300
+- District: #00782A
+- DLR: #00A4A7
+- Hammersmith & City: #F3A9BB
+- Jubilee: #A0A5A9
+- London Overground: #EE7C0E
+- Metropolitan: #9B0056
+- Northern: #000000
+- Piccadilly: #003688
+- Victoria: #0098D4
+- Waterloo & City: #95CDBA
+
+For smaller dashboards the Description text can be too long to fit in
+the widget properly. In that case, hide the text as follows:
+
+.. code:: yaml
+
+  state_text_style: "display: none"
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity to be monitored
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+
+Cosmetic Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``state_text_style``
+-  ``text_style``
+-  ``title_style``
+-  ``widget_style``
+
+media\_player
+~~~~~~~~~~~~~
+
+A widget to monitor and control a media player
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the media player
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``truncate_name`` - if specified, the name of the media will be
+   truncated to this length.
+-  ``step`` - the step (in percent) that the volume buttons will use.
+   (default, 10%)
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``icon_on``
+-  ``icon_off``
+-  ``icon_up``
+-  ``icon_down``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``text_style``
+-  ``level_style``
+-  ``level_up_style``
+-  ``level_down_style``
+
+mode
+~~~~
+
+A widget to track the state of an ``input_select`` by showing active
+when it is set to a specific value. Also allows scripts to be run when
+activated.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the ``input_select``
+-  ``mode`` - value of the input select to show as active
+-  ``script`` - script to run when pressed
+-  ``state_text``
+-  ``state_map``
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+navigate
+~~~~~~~~
+
+A widget to navigate to a new URL, intended to be used for switching
+between dashboards.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+None, but either ``url`` or ``dashboard`` must be specified.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``url`` - a url to navigate to. Use a full URL including the "http://"
+   or "https://" part.
+-  ``dashboard`` - a dashboard to navigate to e.g. ``MainPanel``
+-  ``title`` - the title displayed on the tile
+-  ``args`` - a list of arguments.
+-  ``skin`` - Skin to use with the new screen (for HADash URLs only)
+
+For an arbitrary URL, Args can be anything. When specifying a dashboard
+parameter, args have the following meaning:
+
+-  ``timeout`` - length of time to stay on the new dashboard
+-  ``return`` - dashboard to return to after the timeout has elapsed.
+-  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+
+Both ``timeout`` and ``return`` must be specified.
+
+If adding arguments, use the args variable. Do not append them to the URL
+or you may break skinning. Add arguments like this:
+
+.. code:: yaml
+
+    some_widget:
+        widget_type: navigate
+        title: Amazon
+        url: http://amazon.com
+        args:
+          arg1: fred
+          arg2: jim
+
+or:
+
+.. code:: yaml
+
+    some_widget:
+        widget_type: navigate
+        title: Sensors
+        dashboard: Sensors
+        args:
+          timeout: 10
+          return: Main
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_active``
+-  ``icon_inactive``
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
+
+person
+~~~~~~
+
+A Widget that reports on the status of a person. It can also be
+optionally be used to toggle the status between "home" and "not\_home".
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - entity of the person, e.g. ``person.andrew``.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``enable`` - set to 1 to enable the widget to toggle the
+   person status
+-  ``state_text``
+-  ``state_map``
+-  ``active_map``
+
+Active map is used to specify states other than "home" that will be
+regarded as active, meaning the icon will light up. This can be useful
+if tracking a device tracker within the house using beacons for
+instance.
+
+Example:
+
+.. code:: yaml
+
+    wendy_presence_mapped:
+      widget_type: person
+      title: Wendy
+      title2: Mapped
+      entity: person.wendy
+      active_map:
+        - home
+        - house
+        - back_yard
+        - upstairs
+
+In the absence of an active map, only the state ``home`` will be
+regarded as active.
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+-  ``state_text_style``
+
+radial
+~~~~~~
+
+A widget to display a numeric value as a gauge
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the alarm to be monitored
+- ``settings`` - a list if values describing the gauge with the following entries:
+
+- title - title of the guage
+- minValue - minimum value to display
+- maxValue - maximum value to display
+- majorTicks - Where to mark major values, a list
+- highights - color ranges, a list
+
+See the example below:
+
+.. code:: yaml
+
+      your_radial:
+        widget_type: radial
+        entity: sensor.your_sensor
+        settings:
+          title: any title
+          minValue: 0
+          maxValue: 100
+          majorTicks: [0,20,40,60,80,100]
+          highlights: [{'from': 0, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 25, 'to': 100, 'color': 'rgba(255, 0, 0, .3)'}]
+
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+None
+
+reload
+~~~~~~
+
+A widget to reload the current dashboard.
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+None.
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_active``
+-  ``icon_inactive``
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``icon_active_style``
+-  ``icon_inactive_style``
+
+rss
+~~~
+
+A widget to display an RSS feed.
+
+Note that the actual feeds are configured in appdaemon.yaml as follows:
+
+.. code:: yaml
+
+    hadashboard:
+
+      rss_feeds:
+        - feed: <feed_url>
+          target: <target_name>
+        - feed: <feed url>
+          target: <target_name>
+
+          ...
+
+      rss_update: <feed_refresh_interval>
+
+-  ``feed_url`` - fully qualified path to rss feed, e.g.,
+   ``http://rss.cnn.com/rss/cnn_topstories.rss``
+-  ``target name`` - the entity of the target RSS widget in the
+   dashboard definition file. This must be an arbitrary name prepended by ``rss.`` - e.g., ``rss.cnn_news``
+-  ``feed_refresh_interval`` - how often AppDaemon will refresh the RSS
+   feeds
+
+There is no limit to the number of feeds you configure, and you will
+need to configure one RSS widget to display each feed.
+
+The RSS news feed cannot be configured if you are still using the legacy
+``.cfg`` file type.
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the name of the configured feed - this must match the
+   ``target_name`` full target name configured in the AppDaemon configuration e.g. `rss.cnn_news`
+-  ``interval`` - the period between display of different items within
+   the feed
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``recent`` - the number of most recent stories that will be shown. If not specified, all stories in the feed will be shown.
+-  ``show_description`` - if set to ``1`` the widget will show a short description of the story as well as the title. Default is ``0``
+
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``text_style``
+
+scene
+~~~~~
+
+A widget to activate a scene
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the scene
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+script
+~~~~~~
+
+A widget to run a script
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the script
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+-  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
+-  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button)
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+sensor
+~~~~~~
+
+A widget to report on values for any sensor in Home Assistant
+
+The widget will detect whether or not it is showing a numeric value, and
+if so, it will use the numeric style. If it is showing text, it will use
+the text style, which among other things makes the text size smaller.
+To display an attribute of a sensor rather than the state itself add
+the attribute to the end of the sensor name. For example, to display the
+description of the sensor.dark_sky_summary sensor you would use the
+following entity definition: "sensor.dark_sky_summary.Description".
+
+Note that you can define a sub_entity to be an attribute of the entity
+using the entity_to_sub_entity_attribute argument, or an entity as an
+attribute of the sub_entity using the sub_entity_to_entity_attribute.
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the sensor to be monitored
+OR
+-  ``sub_entity`` - the entity\_id of the sensor to be monitored
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``units`` - the unit symbol to be displayed, if not specified HAs
+   unit will be used, specify "" for no units
+-  ``precision`` - the number of decimal places
+-  ``shorten`` - if set to one, the widget will abbreviate the readout
+   for high numbers, e.g. ``1.1K`` instead of ``1100``
+-  ``use_comma`` - if set to one\`, a comma will be used as the decimal
+   separator
+-  ``state_map``
+-  ``sub_entity`` - second entity to be displayed in the state text area
+-  ``sub_entity_map`` - state map for the sub\_entity
+-  ``entity_to_sub_entity_attribute`` - the attribute of the entity to use
+   as the sub_entity
+-  ``sub_entity_to_entity_attribute`` - the attribute of the sub_entity to
+   use as the entity
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``value_style``
+-  ``text_style``
+-  ``unit_style``
+-  ``container_style``
+-  ``state_text_style`` (used for styling of ``sub_entity``)
+
+switch
+~~~~~~
+
+A widget to monitor and activate a switch
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the switch
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+-  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
+-  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button)
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+temperature
+~~~~~~~~~~~
+
+A widget to report display a temperature using a thermometer style view
+
+Mandatory Arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the alarm to be monitored
+- ``settings`` - a list if values describing the thermometer with the following entries:
+
+- minValue - minimum value to display
+- maxValue - maximum value to display
+- width - width of the widget, set this to the same width as your cell size or less
+- height - height of the widget, set this to the same height as your cell size or less
+- majorTicks - Where to mark major values, a list
+- highights - color ranges, a list
+
+See the example below:
+
+.. code:: yaml
+
+   your_temperature:
+     widget_type: temperature
+     entity: sensor.your_sensor
+     settings:
+       minValue: 15
+       maxValue: 30
+       width: 120
+       height: 120
+       majorTicks: [15,20,25,30]
+       highlights: [{'from': 15, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 24, 'to': 30, 'color': 'rgba(255, 0, 0, .3)'}]
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+None
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+None
 
 weather
 ~~~~~~~
@@ -805,7 +2105,7 @@ weather_summary
 ~~~~~~~~~~~~~~~
 
 An icon and summary reflecting the weather forecast. Requires dark sky to be
-configured in Home Assistant and expects to be used with one of the 
+configured in Home Assistant and expects to be used with one of the
 following sensors:
 
 -  sensor.dark_sky_daily_summary
@@ -815,7 +2115,7 @@ following sensors:
 Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
--  ``entity`` - the entity to be monitored 
+-  ``entity`` - the entity to be monitored
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -830,1307 +2130,6 @@ Cosmetic Arguments:
 -  ``title_style``
 -  ``widget_style``
 
-london_underground
-~~~~~~~~~~~~~~~~~~
-
-A widget to report on the status of a London Underground line and
-provide the reason for delays if there are any. Requires the London
-Underground sensor to be configured in Home Assistant. This widget is
-designed to be a 2x2 tile.
-
-It is recommended to update the background style to reflect the color
-of the underground line. An example would be as follows:
-
-.. code:: yaml
-
-  widget_style: "background-color: #0098D4"
-
-The colors of the various lines are:
-- Bakerloo: #B36305
-- Central: #E32017
-- Circle: #FFD300
-- District: #00782A
-- DLR: #00A4A7
-- Hammersmith & City: #F3A9BB
-- Jubilee: #A0A5A9
-- London Overground: #EE7C0E
-- Metropolitan: #9B0056
-- Northern: #000000
-- Piccadilly: #003688
-- Victoria: #0098D4
-- Waterloo & City: #95CDBA
-
-For smaller dashboards the Description text can be too long to fit in
-the widget properly. In that case, hide the text as follows:
-
-.. code:: yaml
-
-  state_text_style: "display: none"
-
-Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity to be monitored 
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
-
-Cosmetic Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``state_text_style``
--  ``text_style``
--  ``title_style``
--  ``widget_style``
-
-sensor
-~~~~~~
-
-A widget to report on values for any sensor in Home Assistant
-
-The widget will detect whether or not it is showing a numeric value, and
-if so, it will use the numeric style. If it is showing text, it will use
-the text style, which among other things makes the text size smaller.
-To display an attribute of a sensor rather than the state itself add 
-the attribute to the end of the sensor name. For example, to display the
-description of the sensor.dark_sky_summary sensor you would use the 
-following entity definition: "sensor.dark_sky_summary.Description".
-
-Note that you can define a sub_entity to be an attribute of the entity
-using the entity_to_sub_entity_attribute argument, or an entity as an 
-attribute of the sub_entity using the sub_entity_to_entity_attribute.
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the sensor to be monitored
-OR
--  ``sub_entity`` - the entity\_id of the sensor to be monitored
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``units`` - the unit symbol to be displayed, if not specified HAs
-   unit will be used, specify "" for no units
--  ``precision`` - the number of decimal places
--  ``shorten`` - if set to one, the widget will abbreviate the readout
-   for high numbers, e.g. ``1.1K`` instead of ``1100``
--  ``use_comma`` - if set to one\`, a comma will be used as the decimal
-   separator
--  ``state_map``
--  ``sub_entity`` - second entity to be displayed in the state text area
--  ``sub_entity_map`` - state map for the sub\_entity
--  ``entity_to_sub_entity_attribute`` - the attribute of the entity to use
-   as the sub_entity
--  ``sub_entity_to_entity_attribute`` - the attribute of the sub_entity to
-   use as the entity
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``value_style``
--  ``text_style``
--  ``unit_style``
--  ``container_style``
--  ``state_text_style`` (used for styling of ``sub_entity``)
-
-input_select
-~~~~~~~~~~~~
-
-A widget to display and select values from an input_select entity in Home Assistant.
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the sensor to be monitored
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``select_style``
--  ``selectcontainer_style``
-
-rss
-~~~
-
-A widget to display an RSS feed.
-
-Note that the actual feeds are configured in appdaemon.yaml as follows:
-
-.. code:: yaml
-
-    hadashboard:
-
-      rss_feeds:
-        - feed: <feed_url>
-          target: <target_name>
-        - feed: <feed url>
-          target: <target_name>
-
-          ...
-
-      rss_update: <feed_refresh_interval>
-
--  ``feed_url`` - fully qualified path to rss feed, e.g.,
-   ``http://rss.cnn.com/rss/cnn_topstories.rss``
--  ``target name`` - the entity of the target RSS widget in the
-   dashboard definition file. This must be an arbitrary name prepended by ``rss.`` - e.g., ``rss.cnn_news``
--  ``feed_refresh_interval`` - how often AppDaemon will refresh the RSS
-   feeds
-
-There is no limit to the number of feeds you configure, and you will
-need to configure one RSS widget to display each feed.
-
-The RSS news feed cannot be configured if you are still using the legacy
-``.cfg`` file type.
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the name of the configured feed - this must match the
-   ``target_name`` full target name configured in the AppDaemon configuration e.g. `rss.cnn_news`
--  ``interval`` - the period between display of different items within
-   the feed
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``recent`` - the number of most recent stories that will be shown. If not specified, all stories in the feed will be shown.
--  ``show_description`` - if set to ``1`` the widget will show a short description of the story as well as the title. Default is ``0``
-
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``text_style``
-
-gauge
-~~~~~
-
-A widget to report on numeric values for sensors in Home Assistant in a
-gauge format.
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the sensor to be monitored
--  ``max`` - maximum value to show
--  ``min`` - minimum value to show
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``units`` - the unit symbol to be displayed, if not specified HAs
-   unit will be used, specify "" for no units
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``low_color``
--  ``med_color``
--  ``high_color``
--  ``bgcolor``
--  ``color``
-
-Note that unlike other widgets, the color settings require an actual
-color, rather than a CSS style.
-
-device\_tracker
-~~~~~~~~~~~~~~~
-
-A Widget that reports on device tracker status. It can also be
-optionally be used to toggle the status between "home" and "not\_home".
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``device`` - name of the device from ``known_devices.yaml``, *not*
-   the entity\_id.
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``enable`` - set to 1 to enable the widget to toggle the
-   device\_tracker status
--  ``state_text``
--  ``state_map``
--  ``active_map``
-
-Active map is used to specify states other than "home" that will be
-regarded as active, meaning the icon will light up. This can be useful
-if tracking a device tracker within the house using beacons for
-instance.
-
-Example:
-
-.. code:: yaml
-
-    wendy_presence_mapped:
-      widget_type: device_tracker
-      title: Wendy
-      title2: Mapped
-      device: wendys_iphone
-      active_map:
-        - home
-        - house
-        - back_yard
-        - upstairs
-
-In the absence of an active map, only the state ``home`` will be
-regarded as active.
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
--  ``state_text_style``
-
-person
-~~~~~~
-
-A Widget that reports on the status of a person. It can also be
-optionally be used to toggle the status between "home" and "not\_home".
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - entity of the person, e.g. ``person.andrew``.
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``enable`` - set to 1 to enable the widget to toggle the
-   person status
--  ``state_text``
--  ``state_map``
--  ``active_map``
-
-Active map is used to specify states other than "home" that will be
-regarded as active, meaning the icon will light up. This can be useful
-if tracking a device tracker within the house using beacons for
-instance.
-
-Example:
-
-.. code:: yaml
-
-    wendy_presence_mapped:
-      widget_type: person
-      title: Wendy
-      title2: Mapped
-      entity: person.wendy
-      active_map:
-        - home
-        - house
-        - back_yard
-        - upstairs
-
-In the absence of an active map, only the state ``home`` will be
-regarded as active.
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
--  ``state_text_style``
-
-
-
-label
-~~~~~
-
-A widget to show a simple static text string
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
-None
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``text`` - the text displayed on the tile
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``text_style``
-
-scene
-~~~~~
-
-A widget to activate a scene
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the scene
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
-
-script
-~~~~~~
-
-A widget to run a script
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the script
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
--  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
--  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button) 
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
-
-mode
-~~~~
-
-A widget to track the state of an ``input_select`` by showing active
-when it is set to a specific value. Also allows scripts to be run when
-activated.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the ``input_select``
--  ``mode`` - value of the input select to show as active
--  ``script`` - script to run when pressed
--  ``state_text``
--  ``state_map``
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
-
-switch
-~~~~~~
-
-A widget to monitor and activate a switch
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the switch
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
--  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
--  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button) 
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
-
-lock
-~~~~
-
-A widget to monitor and activate a lock
-
-Note that unlike HASS, Dashboard regards an unlocked lock as active. By
-contrast, the HASS UI shows a locked lock as "on". Since the purpose of
-the dashboard is to alert at a glance on anything that is unusual, I
-chose to make the unlocked state "active" which means in the default
-skin it is shown as red, whereas a locked icon is shown as gray. You can
-easily change this behavior by setting active and inactive styles if you
-prefer.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the lock
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
-
-cover
-~~~~~
-
-A widget to monitor and activate a cover. At this time only the open and
-close actions are supported.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the cover
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
-
-input\_boolean
-~~~~~~~~~~~~~~
-
-A widget to monitor and activate an input\_boolean
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the input\_boolean
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
-
-binary\_sensor
-~~~~~~~~~~~~~~
-
-A widget to monitor a binary\_sensor
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the binary\_sensor
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``widget_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``title_style``
--  ``title2_style``
--  ``state_text_style``
-
-icon
-~~~~
-
-A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured in a similar manner to the following:
-
-.. code:: yaml
-
-   icon:
-     title: icon
-     widget_type: icon
-     entity: binary_sensor.basement_door_sensor
-     state_text: 1
-     icons:
-       "active":
-         icon: fas-glass
-         style: "color: green"
-       "inactive":
-         icon: fas-repeat
-         style: "color: blue"
-       "idle":
-         icon: fas-frown
-         style: "color: red"
-       "default":
-         icon: fas-rocket
-         style: "color: cyan"
-
-The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
-
-The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the binary\_sensor
--  ``icons`` - a list of icons and styles to be applied for various states.
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``state_text``
--  ``state_map``
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``state_text_style``
-
-light
-~~~~~
-
-A widget to monitor and control a dimmable light
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the light
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``icon_on``
--  ``icon_off``
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``on_attributes`` - a list of supported HA attributes to set as
-   initial values for the light.
-
-Note that ``rgb_color`` and ``xy_color`` are not specified with list
-syntac as in Home Assistant scenes. See below for examples.
-
-e.g.
-
-.. code:: yaml
-
-    testlight2:
-        widget_type: light
-        entity: light.office_2
-        title: office_2
-        on_attributes:
-            brightness: 100
-            color_temp: 250
-
-or:
-
-.. code:: yaml
-
-    testlight2:
-        widget_type: light
-        entity: light.office_2
-        title: office_2
-        on_attributes:
-            brightness: 100
-            rgb_color: 128, 34, 56
-
-or:
-
-.. code:: yaml
-
-    testlight2:
-        widget_type: light
-        entity: light.office_2
-        title: office_2
-        on_attributes:
-            brightness: 100
-            xy_color: 0.4, 0.9
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``icon_on``
--  ``icon_off``
--  ``icon_up``
--  ``icon_down``
--  ``title_style``
--  ``title2_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``text_style``
--  ``level_style``
--  ``level_up_style``
--  ``level_down_style``
-
-input\_number
-~~~~~~~~~~~~~
-
-A widget to monitor and control an input number
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the input\_number
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``units`` - the unit symbol to be displayed
--  ``use_comma`` - if set to one, a comma will be used as the decimal
-   separator
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
-- ``title_style``
-- ``title2_style``
-- ``minvalue_style``
-- ``maxvalue_style``
-- ``value_style``
-- ``slider_style``
-- ``slidercontainer_style``
-- ``widget_style``
-
-input\_slider
-~~~~~~~~~~~~~
-
-An alternate widget to monitor and control an input number, using plus and minus buttons instead of a slider.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the input\_number
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``units`` - the unit symbol to be displayed
--  ``use_comma`` - if set to one, a comma will be used as the decimal
-   separator
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
-- ``title_style``
-- ``title2_style``
-- ``minvalue_style``
-- ``maxvalue_style``
-- ``value_style``
-- ``slider_style``
-- ``slidercontainer_style``
-- ``widget_style``
-
-climate
-~~~~~~~
-
-A widget to monitor and control a climate entity
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the climate entity
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``step`` - the size of step in temperature when fading the slider up
-   or down
--  ``units`` - the unit symbol to be displayed
-- ``precision`` - the number of digits to display after the decimal point
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``icon_up``
--  ``icon_down``
--  ``title_style``
--  ``title2_style``
--  ``level_style``
--  ``level2_style``
--  ``unit_style``
--  ``unit2_style``
--  ``level_up_style``
--  ``level_down_style``
-
-media\_player
-~~~~~~~~~~~~~
-
-A widget to monitor and control a media player
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the media player
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``truncate_name`` - if specified, the name of the media will be
-   truncated to this length.
--  ``step`` - the step (in percent) that the volume buttons will use.
-   (default, 10%)
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``icon_on``
--  ``icon_off``
--  ``icon_up``
--  ``icon_down``
--  ``title_style``
--  ``title2_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``text_style``
--  ``level_style``
--  ``level_up_style``
--  ``level_down_style``
-
-group
-~~~~~
-
-A widget to monitor and control a group of lights
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the group
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
--  ``monitored_entity`` - the actual entity to monitor
-
-Groups currently do no report back state changes correctly when
-attributes light brightness are changed. As a workaround, instead of
-looking for state changes in the group, we use ``monitored_entity``
-instead. This is not necessary of there are no dimmable lights in the
-group; however, if there are, it should be set to the entity\_id of one
-of the dimmable group members.
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``icon_on``
--  ``icon_off``
--  ``icon_up``
--  ``icon_down``
--  ``title_style``
--  ``title2_style``
--  ``icon_style_active``
--  ``icon_style_inactive``
--  ``text_style``
--  ``level_style``
--  ``level_up_style``
--  ``level_down_style``
-
-navigate
-~~~~~~~~
-
-A widget to navigate to a new URL, intended to be used for switching
-between dashboards.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
-None, but either ``url`` or ``dashboard`` must be specified.
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``url`` - a url to navigate to. Use a full URL including the "http://"
-   or "https://" part.
--  ``dashboard`` - a dashboard to navigate to e.g. ``MainPanel``
--  ``title`` - the title displayed on the tile
--  ``args`` - a list of arguments.
--  ``skin`` - Skin to use with the new screen (for HADash URLs only)
-
-For an arbitrary URL, Args can be anything. When specifying a dashboard
-parameter, args have the following meaning:
-
--  ``timeout`` - length of time to stay on the new dashboard
--  ``return`` - dashboard to return to after the timeout has elapsed.
--  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
-
-Both ``timeout`` and ``return`` must be specified.
-
-If adding arguments, use the args variable. Do not append them to the URL
-or you may break skinning. Add arguments like this:
-
-.. code:: yaml
-
-    some_widget:
-        widget_type: navigate
-        title: Amazon
-        url: http://amazon.com
-        args:
-          arg1: fred
-          arg2: jim
-
-or:
-
-.. code:: yaml
-
-    some_widget:
-        widget_type: navigate
-        title: Sensors
-        dashboard: Sensors
-        args:
-          timeout: 10
-          return: Main
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_active``
--  ``icon_inactive``
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``icon_active_style``
--  ``icon_inactive_style``
-
-reload
-~~~~~~
-
-A widget to reload the current dashboard.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
-None.
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_active``
--  ``icon_inactive``
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``icon_active_style``
--  ``icon_inactive_style``
-
-javascript
-~~~~~~~~~~
-
-A widget to run an arbitary JavaScript command.
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
-- ``command`` - the JavaScript command to be run.
-
-e.g.
-
-.. code:: yaml
-   command: "alert('hello');"
-
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``icon_active``
--  ``icon_inactive``
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``icon_active_style``
--  ``icon_inactive_style``
-
-iframe
-~~~~~~
-
-A widget to display other content within the dashboard
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``url_list`` - a list of 1 or more URLs to cycle though. or
--  ``img_list`` - a list of 1 or more Image URLs to cycle through.
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``refresh`` - (seconds) if set, the iframe widget will progress down
-   its list every refresh period, returning to the beginning when it
-   hits the end. Use this in conjunction with a single entry in the
-   ``url_list`` to have a single url refresh at a set interval.
-
-For regular HTTP sites, use the ``url_list`` argument, for images the
-``img_list`` argument should work better.
-
-Example:
-
-.. code:: yaml
-
-    iframe:
-        widget_type: iframe
-        title: Cats
-        refresh: 60
-        url_list: 
-          - https://www.pexels.com/photo/grey-and-white-short-fur-cat-104827/
-          - https://www.pexels.com/photo/eyes-cat-coach-sofas-96938/
-          - https://www.pexels.com/photo/silver-tabby-cat-lying-on-brown-wooden-surface-126407/
-          - https://www.pexels.com/photo/kitten-cat-rush-lucky-cat-45170/
-          - https://www.pexels.com/photo/grey-fur-kitten-127028/
-          - https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/
-          - https://www.pexels.com/photo/cat-sleeping-62640/
-
-Content will be shown with scroll bars, which can be undesirable. For
-images this can be alleviated by using an image resizing service such as
-the one offered by
-`Google <https://carlo.zottmann.org/posts/2013/04/14/google-image-resizer.html>`__.
-
-.. code:: yaml
-
-    weather_frame:
-        widget_type: iframe
-        title: Radar
-        refresh: 300
-        frame_style: ""
-        img_list: 
-          - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
-          - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
-
-entitypicture
-~~~~~~
-
-A widget to display entity picture
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity to display entity_picture attribute
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile.
--  ``base_url`` - URL to prepend before content of entity_picture.
-
-Example:
-
-.. code:: yaml
-
-    entitypicture1:
-        widget_type: entitypicture
-        title: Weather by YR
-        entity: sensor.yr_symbol
-
-Example showing artwork of just playing an album on media player: (tested with Google Home)
-
-.. code:: yaml
-
-    entitypicture2:
-        widget_type: entitypicture
-        entity: media_player.bedroom
-        base_url: https://my_domain.duckdns.org:8123
-        image_style: "top: 0; bottom: 0; left: 0; right: 0;"
-
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``image_style``
-
-camera
-~~~~~~
-
-A widget to display a refreshing camera image on the dashboard
-
-Mandatory Arguments
-^^^^^^^^^^^^^^^^^^^
-
--  ``entity_picture``
-
-This can be found using the developer tools and will be one of the
-parameters associated with the camera you want to view. If you are using
-a password, you will need to append ``&api_password=<your password>`` to
-the end of the entity\_picture. It will look something like this:
-
-``http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>``
-
-If you are using SSL, remember to use the full DNS name and not the IP
-address.
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``refresh`` - (seconds) if set, the camera image will refresh every
-   interval.
-
-Cosmetic Arguments
-^^^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
-
-alarm
-~~~~~
-
-A widget to report on the state of an alarm and allow code entry
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the alarm to be monitored
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
--  ``title`` - the title displayed on the tile
--  ``title2`` - a second line of title text
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
--  ``widget_style``
--  ``title_style``
--  ``title2_style``
--  ``state_style``
--  ``panel_state_style``
--  ``panel_code_style``
--  ``panel_background_style``
--  ``panel_button_style``
-
-Temperature
-~~~~~~~~~~~
-
-A widget to report display a temperature using a thermometer style view
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the alarm to be monitored
-- ``settings`` - a list if values describing the thermometer with the following entries:
-
-- minValue - minimum value to display
-- maxValue - maximum value to display
-- width - width of the widget, set this to the same width as your cell size or less
-- height - height of the widget, set this to the same height as your cell size or less
-- majorTicks - Where to mark major values, a list
-- highights - color ranges, a list
-
-See the example below:
-
-.. code:: yaml
-
-   your_temperature:
-     widget_type: temperature
-     entity: sensor.your_sensor
-     settings:
-       minValue: 15
-       maxValue: 30
-       width: 120
-       height: 120
-       majorTicks: [15,20,25,30]
-       highlights: [{'from': 15, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 24, 'to': 30, 'color': 'rgba(255, 0, 0, .3)'}]
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
-None
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
-None
-
-Radial
-~~~~~~
-
-A widget to display a numeric value as a gauge
-
-Mandatory Arguments:
-^^^^^^^^^^^^^^^^^^^^
-
--  ``entity`` - the entity\_id of the alarm to be monitored
-- ``settings`` - a list if values describing the gauge with the following entries:
-
-- title - title of the guage
-- minValue - minimum value to display
-- maxValue - maximum value to display
-- majorTicks - Where to mark major values, a list
-- highights - color ranges, a list
-
-See the example below:
-
-.. code:: yaml
-
-      your_radial:
-        widget_type: radial
-        entity: sensor.your_sensor
-        settings:
-          title: any title
-          minValue: 0
-          maxValue: 100
-          majorTicks: [0,20,40,60,80,100]
-          highlights: [{'from': 0, 'to': 18, 'color': 'rgba(0,0, 255, .3)'},{'from': 25, 'to': 100, 'color': 'rgba(255, 0, 0, .3)'}]
-
-
-Optional Arguments:
-^^^^^^^^^^^^^^^^^^^
-
-None
-
-Style Arguments:
-^^^^^^^^^^^^^^^^
-
-None
 
 Skins
 -----
