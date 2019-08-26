@@ -581,7 +581,8 @@ class ADAPI:
         utils.run_coroutine_threadsafe(self, self.AD.state.remove_entity(namespace, entity_id))
         return None
 
-    def split_device_list(self, devices):
+    @staticmethod
+    def split_device_list(devices):
         """Converts a comma-separated list of device types to an iterable list.
 
         This is intended to assist in use cases where the App takes a list of
