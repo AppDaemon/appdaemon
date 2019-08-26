@@ -77,7 +77,7 @@ If you see a way to improve on AppDaemon, We are pleased to receive Pull Request
 
 https://github.com/home-assistant/appdaemon
 
-Please note, if documentation is required to make sense of the PR, the PR will not be accepted without associated documentation.
+Please note, if documentation is required to make sense of the PR, the PR will not be accepted without it.
 
 Documentation
 -------------
