@@ -147,7 +147,7 @@ Utility
 .. automethod:: appdaemon.adapi.ADAPI.restart_app
 .. automethod:: appdaemon.adapi.ADAPI.reload_apps
 
-Apiai
+Dialogflow
 ~~~~~
 
 .. automethod:: appdaemon.adapi.ADAPI.get_dialogflow_intent
