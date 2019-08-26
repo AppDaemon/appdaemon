@@ -250,7 +250,7 @@ class AppManagement:
 
         else:
             self.logger.warning("Unable to find module module %s - '%s' is not initialized", app_args["module"], name)
-            self.increase_inactive_apps(name)
+            await self.increase_inactive_apps(name)
 
     async def read_config(self):
 
