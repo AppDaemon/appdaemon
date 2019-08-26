@@ -58,6 +58,7 @@ Change Log
 - Documentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
 - Added the ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 - Added the ability to listen to ``state_change`` events, without using listen_state() -  contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
+- APIAI updated to dialog flow - contributed by `engrbm87 <https://github.com/engrbm87>`__
 
 **Fixes**
 
