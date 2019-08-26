@@ -10,7 +10,13 @@ For the adventurous among you, it is possible to run the very latest dev code to
 
 Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
 
-To run a PIP install method dev version follow these steps:
+There are 2 different ways of installing via PIP. If we are running a beta, we will have a number of specific milestone builds. These will not install by default using the standard pip command line but can be installed if their exact version is given to the pip command:
+
+.. code:: bash
+
+    $ pip3 install appdaemon==<specific beta version>
+
+For non beta builds, when the goal is just to run the latest dev code, or if you want a local version of the dev code without installing it over the top of the stable code, take the following steps:
 
 Clone the Repository
 ~~~~~~~~~~~~~~~~~~~~
