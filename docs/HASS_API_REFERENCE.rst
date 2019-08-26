@@ -45,7 +45,8 @@ Database
 
 .. automethod:: appdaemon.plugins.hass.hassapi.Hass.get_history
 
-Read More
+See More
 ---------
 
-Read the `AppDaemon API Reference <AD_API_REFERENCE.html>`__ to learn other inherited helper functions.
+Read the `AppDaemon API Reference <AD_API_REFERENCE.html>`__ to learn other inherited helper functions that
+can be used by Hass applications.
