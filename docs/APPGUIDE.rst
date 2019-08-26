@@ -403,6 +403,8 @@ Once we have marked the global modules, the next step is to configure any apps t
 
 Or for multiple dependencies:
 
+.. code:: yaml
+
     app1:
       class: App
       module: app
@@ -588,9 +590,9 @@ according to some flag, e.g. a house mode flag.
 
 .. code:: yaml
 
-     Single value
+    # Single value
     constrain_input_select: input_select.house_mode,Day
-     or multiple values
+    # or multiple values
     constrain_input_select: input_select.house_mode,Day,Evening,Night
 
 presence
@@ -985,13 +987,12 @@ covers. AD receives important events from all of its plugins and communicates th
 Events and MQTT
 ~~~~~~~~~~~~~~~
 
-The MQTT plugin uses events as itsd primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. APps are able to subscribe to this event and process it appropriately.
+The MQTT plugin uses events as its primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. Apps are able to subscribe to this event and process it appropriately.
 
 Events and Home Assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
- We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them
-are:
+We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
 
 -  ``homeassistant_start``
 -  ``homeassistant_stop``
@@ -1175,7 +1176,7 @@ Use of Events for Interacting with HADashboard
 
 HADashboard listens for certain events. An event type of "hadashboard"
 will trigger certain actions such as page navigation. For more
-information see the ` Dashboard configuration pages <DASHBOARD.html>`__
+information see the `Dashboard configuration pages <DASHBOARD_INSTALL.html>`__
 
 AppDaemon provides convenience functions to assist with this.
 
@@ -1237,7 +1238,7 @@ a python Dictionary with an entry for each app, keyed on the App's name.
 
 .. code:: python
 
-    other_apps_arg = self.app_config["some_app"]["some_parameter"].
+    other_apps_arg = self.app_config["some_app"]["some_parameter"]
 
 
 AppDaemon also exposes the configurations from configured plugins. For example that of the HA plugin,
