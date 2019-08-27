@@ -2445,4 +2445,10 @@ class ADAPI:
         """
         return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
 
+    def run_coroutine(self, coro, callback=None, **kwargs):
+        async def run_coroutine_inner():
+            r = await coro
+            if callback is not None:
+                await utils.run_in_executor(self, callback, r, kwargs)
 
+        return self.AD.thread_async.call_async_no_wait(run_coroutine_inner)

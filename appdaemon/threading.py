@@ -8,6 +8,7 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
+import asyncio
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -573,7 +574,14 @@ class Threading:
             #
             # And Q
             #
-            self.select_q(myargs)
+
+            if asyncio.iscoroutinefunction(myargs["function"]): #check if the callback is a coroutine
+                print(myargs)
+                func = myargs["function"]
+                del myargs["function"]
+                self.AD.thread_async.call_async_no_wait(func, myargs)
+            else:
+                self.select_q(myargs)
             return True
         else:
             return False
