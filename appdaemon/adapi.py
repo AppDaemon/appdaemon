@@ -90,6 +90,7 @@ class ADAPI:
 
         Args:
             msg (str): The message to log.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             level (str, optional): The log level of the message - takes a string representing the
@@ -143,6 +144,7 @@ class ADAPI:
 
         Args:
             msg (str): The message to log.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             level (str, optional): The log level of the message - takes a string representing the
@@ -176,6 +178,7 @@ class ADAPI:
             callback (function): Function to be called when a message is logged.
             level (str): Logging level to be used - lower levels will not be forwarded
                 to the app (Default: ``"INFO"``).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             log (str, optional): Name of the log to listen to, default is all logs. The name
@@ -430,6 +433,9 @@ class ADAPI:
         or only when AD shutdown. This function also allows for users to manually
         execute the command as when needed.
 
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
@@ -497,6 +503,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -530,6 +537,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -558,6 +566,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -609,6 +618,9 @@ class ADAPI:
         For instance, for the HASS plugin, this will return Home Assistant configuration
         data such as latitude and longitude.
 
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
         Keyword Args:
             namespace (str): Select the namespace of the plugin for which data is desired.
 
@@ -630,6 +642,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -1043,6 +1056,7 @@ class ADAPI:
                 e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
                 devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
                 listen for state changes for just that entity.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             attribute (str, optional): Name of an attribute within the entity state object. If this
@@ -1170,6 +1184,7 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             None.
@@ -1225,6 +1240,7 @@ class ADAPI:
                 but also gives you write-access to the internal AppDaemon data structures,
                 which is dangerous. Only disable copying when you can guarantee not to modify
                 the returned state object, e.g., you do read-only operations.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace(str, optional): Namespace to use for the call. See the section on
@@ -1272,6 +1288,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             state: New state value to be set.
@@ -1322,7 +1339,7 @@ class ADAPI:
         Args:
             service:
             cb:
-            **kwargs:
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
 
@@ -1347,6 +1364,7 @@ class ADAPI:
 
         Args:
             service: The service name.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             **kwargs: Each service has different parameter requirements. This argument
@@ -1409,6 +1427,7 @@ class ADAPI:
                 Home Assistant event such as `service_registered` or an arbitrary
                 custom event such as `"MODE_CHANGE"`. If no event is specified,
                 `listen_event()` will subscribe to all events.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace(str, optional): Namespace to use for the call. See the section on
@@ -1501,6 +1520,7 @@ class ADAPI:
         Args:
             event: Name of the event. Can be a standard Home Assistant event such as
                 `service_registered` or an arbitrary custom event such as "MODE_CHANGE".
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace(str, optional): Namespace to use for the call. See the section on
@@ -1869,6 +1889,7 @@ class ADAPI:
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             delay (int): Delay, in seconds before the callback is invoked.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -1918,6 +1939,7 @@ class ADAPI:
                 string that specifies when the callback will occur. If the time
                 specified is in the past, the callback will occur the ``next day`` at
                 the specified time.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -1983,6 +2005,7 @@ class ADAPI:
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2061,6 +2084,7 @@ class ADAPI:
                 When specifying sunrise or sunset relative times using the ``parse_datetime()``
                 format, the time of the callback will be adjusted every day to track the actual
                 value of sunrise or sunset.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2137,6 +2161,7 @@ class ADAPI:
                 is in the past, the callback will occur the ``next hour`` at the specified
                 time. If time is not supplied, the callback will start an hour from the
                 time that ``run_hourly()`` was executed.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2185,6 +2210,7 @@ class ADAPI:
                 time specified is in the past, the callback will occur the ``next minute`` at
                 the specified time. If time is not supplied, the callback will start a
                 minute from the time that ``run_minutely()`` was executed.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2231,6 +2257,8 @@ class ADAPI:
             start: A Python ``datetime`` object that specifies when the initial callback
                 will occur.
             interval: Frequency (expressed in seconds) in which the callback should be executed.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2238,8 +2266,7 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2286,6 +2313,8 @@ class ADAPI:
         Args:
             callback: Function to be invoked at or around sunset. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Keyword Args:
             offset (int, optional): The time in seconds that the callback should be delayed after
@@ -2296,8 +2325,6 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2336,6 +2363,8 @@ class ADAPI:
         Args:
             callback: Function to be invoked at or around sunrise. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Keyword Args:
             offset (int, optional): The time in seconds that the callback should be delayed after
@@ -2346,8 +2375,6 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2434,7 +2461,8 @@ class ADAPI:
         Args:
             callback: Function to be run on the new thread.
             thread (int): Thread number (0 - number of threads).
-            **kwargs (optional): Zero or more keyword arguments.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Returns:
             None.
