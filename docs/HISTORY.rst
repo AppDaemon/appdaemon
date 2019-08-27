@@ -43,6 +43,7 @@ Change Log
 - Added the ability to register app services
 - Added sensors for different internal state of AD, that can be read by apps
 - Added Person widget
+- Added MQTT support for setting TLS version - contributed by `Miguel <https://github.com/mdps>`__
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
@@ -52,10 +53,12 @@ Change Log
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Allow to specify a MQTT message to be sent when AD shutsdown cleanly e.g. ``offline``
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
+- MQTT fix to subscribing using wildcards - contributed by `Daniel Lashua <https://github.com/dlashua>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
 - Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
 - Documentation fixes - contributed by `Brendon Baumgartner <https://github.com/bbrendon>`__
 - Documentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
+- Documentation fixes, updating and cleaning - contributed by `Humberto Rodríguez A. <https://github.com/rhumbertgz>`__
 - Added the ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 - Added the ability to listen to ``state_change`` events, without using listen_state() -  contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
 - APIAI updated to dialog flow - contributed by `engrbm87 <https://github.com/engrbm87>`__

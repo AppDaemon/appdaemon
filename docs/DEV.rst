@@ -10,7 +10,13 @@ For the adventurous among you, it is possible to run the very latest dev code to
 
 Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
 
-To run a PIP install method dev version follow these steps:
+There are 2 different ways of installing via PIP. If we are running a beta, we will have a number of specific milestone builds. These will not install by default using the standard pip command line but can be installed if their exact version is given to the pip command:
+
+.. code:: bash
+
+    $ pip3 install appdaemon==<specific beta version>
+
+For non beta builds, when the goal is just to run the latest dev code, or if you want a local version of the dev code without installing it over the top of the stable code, take the following steps:
 
 Clone the Repository
 ~~~~~~~~~~~~~~~~~~~~
@@ -34,7 +40,7 @@ To run the cloned version of AppDaemon, make sure you are in the ``appdaemon`` s
 
 .. code:: bash
 
-    $ python3 -m appdaemon.main -c <PATH To CONFIG DIRECTORY>
+    $ python3 -m appdaemon -c <PATH To CONFIG DIRECTORY>
 
 In most cases, it is possible to share config directories with other AppDaemon instances. However,  you must be aware of apps that use new features as they will likely cause errors for the stable version. If you prefer, you can create an entirely new conf directory for your dev environment.
 
@@ -71,7 +77,7 @@ If you see a way to improve on AppDaemon, We are pleased to receive Pull Request
 
 https://github.com/home-assistant/appdaemon
 
-Please note, if documentation is required to make sense of the PR, the PR will not be accepted without associated documentation.
+Please note, if documentation is required to make sense of the PR, the PR will not be accepted without it.
 
 Documentation
 -------------

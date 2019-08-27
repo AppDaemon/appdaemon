@@ -1537,7 +1537,7 @@ class ADAPI:
 
         """
         return datetime.datetime(*map(
-            int, re.split('[^\d]', s)[:-1]
+            int, re.split('[^\d]', utc_string)[:-1]
         )).timestamp() + self.get_tz_offset() * 60
 
     @staticmethod
@@ -2309,19 +2309,19 @@ class ADAPI:
         Examples:
             Example using timedelta.
 
-            >>> self.run_at_sunset(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds(), "Sunset -45 mins")
+            >>> self.run_at_sunset(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds())
 
             Or you can just do the math yourself.
 
-            >>> self.run_at_sunset(self.sun, offset = 30 * 60, "Sunset +30 mins")
+            >>> self.run_at_sunset(self.sun, offset = 30 * 60)
 
             Run at a random time +/- 60 minutes from sunset.
 
-            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 60*60, "Sunset, random +/- 60 mins")
+            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 60*60)
 
             Run at a random time between 30 and 60 minutes before sunset.
 
-            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60, "Sunset, random - 30 - 60 mins")
+            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
         name = self.name
@@ -2360,19 +2360,19 @@ class ADAPI:
         Examples:
             Run 45 minutes before sunset.
 
-            >>> self.run_at_sunrise(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds(), "Sunrise -45 mins")
+            >>> self.run_at_sunrise(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds())
 
             Or you can just do the math yourself.
 
-            >>> self.run_at_sunrise(self.sun, offset = 30 * 60, "Sunrise +30 mins")
+            >>> self.run_at_sunrise(self.sun, offset = 30 * 60)
 
             Run at a random time +/- 60 minutes from sunrise.
 
-            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 60*60, "Sunrise, random +/- 60 mins")
+            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 60*60)
 
             Run at a random time between 30 and 60 minutes before sunrise.
 
-            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60, "Sunrise, random - 30 - 60 mins")
+            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
         name = self.name
