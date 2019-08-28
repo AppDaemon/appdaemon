@@ -18,10 +18,11 @@ AppDaemon also provides a configurable dashboard (HADashboard) suitable for wall
 
 AppDaemon is developed and maintained by a small team of hard working folks:
 
-- `Andrew Cockburn <https://github.com/acockburn>`__ - AppDaemon founder, Chief Architect and Benevolent Dictator For Life
-- `Rene Tode <https://github.com/ReneTode>`__ - Head Product abuser and alternate point of view expert
-- `Odianosen Ejale <https://github.com/Odianosen25>`__ - MQTT Development and maintenance, fixer and tester
-- `Humberto Rodríguez Avila <https://github.com/rhumbertgz>`__ - Document Meister
+- `Andrew Cockburn <https://github.com/acockburn>`__ - AppDaemon founder, Chief Architect and Benevolent Dictator For Life.
+- `Rene Tode <https://github.com/ReneTode>`__ - Head Product abuser and alternate point of view expert.
+- `Odianosen Ejale <https://github.com/Odianosen25>`__ - MQTT Development and maintenance, fixer and tester.
+- `Humberto Rodríguez Avila <https://github.com/rhumbertgz>`__ - Document Meister.
+- `Daniel Lashua <https://github.com/swiftlyfalling>`__ - JS/CSS/HTML expert and the one that drives them all crazy.
 
 Contents:
 
@@ -44,3 +45,4 @@ Contents:
    UPGRADE_FROM_3.x
    UPGRADE_FROM_2.x
    HISTORY
+   AD_INDEX
