@@ -98,8 +98,8 @@ L
 -
 
 * `listen_state() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_state>`__
-* `listen_event() [AppDaemon API]<AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_event>`__
-* `listen_event() [MQTT API]<MQTT_API_REFERENCE.html#appdaemon.plugins.mqtt.mqttapi.Mqtt.listen_event>`__
+* `listen_event() [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_event>`__
+* `listen_event() [MQTT API] <MQTT_API_REFERENCE.html#appdaemon.plugins.mqtt.mqttapi.Mqtt.listen_event>`__
 * `log() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.log>`__
 * `listen_log() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_log>`__
 * `list_namespaces() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.list_namespaces>`__
