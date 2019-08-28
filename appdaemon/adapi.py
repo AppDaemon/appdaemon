@@ -2482,6 +2482,20 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
 
     def register_dependency(self, module):
+        """Register a global_module dependency from within an app module
+
+        Args:
+            module: the module you're registering a dependency on
+
+        Returns:
+            None
+
+        Examples:
+            >>> import somemodule
+            >>> # later
+            >>> self.register_dependency(somemodule)
+
+        """
         self.AD.app_management.register_dependency(self.name, module.__name__)
 
 
