@@ -277,7 +277,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         result = self.call_service(service, **kwargs)
         return result
 
-    def clientConnected(self, **kwargs):
+    def is_client_connected(self, **kwargs):
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 
         This a helper function used to check or confirm within an app if the plugin is connected
