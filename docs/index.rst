@@ -45,3 +45,4 @@ Contents:
    UPGRADE_FROM_3.x
    UPGRADE_FROM_2.x
    HISTORY
+   AD_INDEX
