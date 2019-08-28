@@ -57,7 +57,7 @@ Services
 .. automethod:: appdaemon.plugins.mqtt.mqttapi.Mqtt.mqtt_subscribe
 .. automethod:: appdaemon.plugins.mqtt.mqttapi.Mqtt.mqtt_unsubscribe
 .. automethod:: appdaemon.plugins.mqtt.mqttapi.Mqtt.mqtt_publish
-.. automethod:: appdaemon.plugins.mqtt.mqttapi.Mqtt.clientConnected
+.. automethod:: appdaemon.plugins.mqtt.mqttapi.Mqtt.is_client_connected
 
 
 Events
