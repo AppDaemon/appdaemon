@@ -673,7 +673,7 @@ class Dashboard:
                 widget_dirs = os.listdir(path=widget_dir)
                 for widget in widget_dirs:
                     if widget_dir == os.path.join(self.config_dir, "custom_widgets"):
-                        self.logger.info("Loading custom widget '%s'", widget)
+                        self.access.info("Loading custom widget '%s'", widget)
                     if os.path.isdir(os.path.join(widget_dir, widget)):
                         jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
                         csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
@@ -713,7 +713,7 @@ class Dashboard:
         #
         skindir = os.path.join(self.config_dir, "custom_css", skin)
         if os.path.isdir(skindir):
-            self.logger.info("Loading custom skin '%s'", skin)
+            self.access.info("Loading custom skin '%s'", skin)
         else:
             # Not a custom skin, try product skins
             skindir = os.path.join(self.css_dir, skin)
