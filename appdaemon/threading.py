@@ -574,7 +574,6 @@ class Threading:
             #
             # And Q
             #
-
             self.select_q(myargs)
             return True
         else:
