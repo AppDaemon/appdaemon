@@ -2468,7 +2468,7 @@ class ADAPI:
             except asyncio.CancelledError:
                 pass
 
-        f = self.AD.loop.create_task(coro)
+        f = self.AD.loop.run_coroutine_threadsafe(coro)
         if callback is not None:
             f.add_done_callback(callback_inner)
 
