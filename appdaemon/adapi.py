@@ -2446,9 +2446,14 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
 
     def run_coroutine(self, coro, callback=None, **kwargs):
-        async def run_coroutine_inner():
-            r = await coro
-            if callback is not None:
-                await utils.run_in_executor(self, callback, r, kwargs)
+        def callback_inner(f):
+            try:
+                callback(f.result(), kwargs)
+            except asyncio.CancelledError:
+                pass
 
-        return self.AD.thread_async.call_async_no_wait(run_coroutine_inner)
+        f = self.AD.loop.create_task(coro)
+        if callback is not None:
+            f.add_done_callback(callback_inner)
+
+        return f
