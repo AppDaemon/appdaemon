@@ -575,13 +575,7 @@ class Threading:
             # And Q
             #
 
-            if asyncio.iscoroutinefunction(myargs["function"]): #check if the callback is a coroutine
-                print(myargs)
-                func = myargs["function"]
-                del myargs["function"]
-                self.AD.thread_async.call_async_no_wait(func, myargs)
-            else:
-                self.select_q(myargs)
+            self.select_q(myargs)
             return True
         else:
             return False
