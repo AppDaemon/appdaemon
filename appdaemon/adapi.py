@@ -2446,6 +2446,22 @@ class ADAPI:
         return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
 
     def run_coroutine(self, coro, callback=None, **kwargs):
+        """Schedules a Coroutine to be executed
+
+        Args:
+            coro: the coroutine (not coroutine function) to be executed
+            callback: The non-async callback to be executed when complete
+            **kwargs: any additional keyword arguments to send the callback
+
+        Returns:
+            A Future, which can be cancelled by calling f.cancel()
+
+        Examples:
+            >>> f = self.run_coroutine(asyncio.sleep(3), self.coro_callback
+            >>>
+            >>> def coro_callback(self, result, kwargs):
+
+        """
         def callback_inner(f):
             try:
                 callback(f.result(), kwargs)
