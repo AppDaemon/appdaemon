@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import threading
 import datetime
 from queue import Queue
