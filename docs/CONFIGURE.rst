@@ -480,7 +480,7 @@ An example of the MQTT plugin could look like the following:
 Configuring a Test App
 ~~~~~~~~~~~~~~~~~~~~~~
 
-(This test app assumes the use of the HASS plugin, changes will be required to the app if another plugin is in use)
+`This test app assumes the use of the HASS plugin, changes will be required to the app if another plugin is in use`.
 
 To add an initial test app to match the configuration above, we need to
 first create an ``apps`` subdirectory under the conf directory. Then
