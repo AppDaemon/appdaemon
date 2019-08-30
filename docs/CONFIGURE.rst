@@ -161,7 +161,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 Secrets
 ~~~~~~~
 
-AppDaemon supports the use of secrets in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
+AppDaemon supports the use of `secrets` in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
 
 The ``secret:`` section is optional. If it doesn't exist, AppDaemon looks for a file called ``secrets.yaml`` in the config directory.
 
@@ -277,9 +277,10 @@ To configure the HASS plugin, in addition to the required parameters above, you 
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
 
-- appdaemon_startup_conditions - see "HASS Plugin Startup Conditions"
+- appdaemon_startup_conditions - see `HASS Plugin Startup Conditions"
 - plugin_startup_conditions - see "HASS Plugin Startup Conditions"
-e.g.:
+
+For example:
 
 .. code:: yaml
 
