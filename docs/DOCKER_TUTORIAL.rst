@@ -6,7 +6,7 @@ A quick tutorial to AppDaemon with Docker
 About Docker
 ------------
 
-Docker is a popular application container technology. Application
+`Docker <https://www.docker.com>`_ is a popular application container technology. Application
 containers allow an application to be built in a known-good state and
 run totally independent of other applications. This makes it easier to
 install complex software and removes concerns about application
@@ -33,8 +33,8 @@ Testing your System
 -------------------
 
 Our first step will be to verify that we can get AppDaemon running on
-our machine, which tests that we can successfully "pull" (download)
-software from Docker Hub, execute it and get output that AppDaemon is
+our machine, which tests that we can successfully *pull* (download)
+software from `Docker Hub <https://hub.docker.com/r/acockburn/appdaemon>`__, execute it and get output that AppDaemon is
 working. We will worry about our persistent (normal) configuration
 later.
 
@@ -70,7 +70,7 @@ HASS: Connected to Home Assistant 0.80.0
 
     2017-04-01 14:26:48.361140 INFO Connected to Home Assistant 0.80.0
 
-The 'apps' capability of AppDaemon is working, running the example Hello
+The `apps` capability of AppDaemon is working, running the example Hello
 World app
 
 ::
@@ -78,7 +78,7 @@ World app
     2017-04-01 14:26:48.330084 INFO hello_world: Hello from AppDaemon
     2017-04-01 14:26:48.333040 INFO hello_world: You are now ready to run Apps!
 
-The 'dashboard' capability of AppDaemon has started.
+The `dashboard` capability of AppDaemon has started.
 
 ::
 
@@ -266,7 +266,7 @@ the ``docker run`` command line
 Removing AppDaemon
 ------------------
 
-If you no longer want to use AppDaemon :confused:, use the following commands:
+If you no longer want to use AppDaemon ``confused``, use the following commands:
 
 ::
 
