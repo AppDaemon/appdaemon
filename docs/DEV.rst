@@ -6,9 +6,9 @@ If you want to help with the development of AppDaemon all assistance is grateful
 Running a Dev Version
 ---------------------
 
-For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. Be aware you use the dev branch at your own risk.  Although we try to keep things consistent and functional, we can't guarantee that things won't break. However, feedback from brave souls running the dev branch is always gratefully received!
+For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. Be aware you use the ``dev`` branch at your own risk.  Although we try to keep things consistent and functional, we can't guarantee that things won't break. However, feedback from brave souls running the dev branch is always gratefully received!
 
-Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
+Also, note, that to run a dev version you should be using the *PIP install method*. Docker builds are created for dev too, but there is no hass.io support.
 
 There are 2 different ways of installing via PIP. If we are running a beta, we will have a number of specific milestone builds. These will not install by default using the standard pip command line but can be installed if their exact version is given to the pip command:
 
@@ -16,7 +16,7 @@ There are 2 different ways of installing via PIP. If we are running a beta, we w
 
     $ pip3 install appdaemon==<specific beta version>
 
-For non beta builds, when the goal is just to run the latest dev code, or if you want a local version of the dev code without installing it over the top of the stable code, take the following steps:
+For non-beta builds, when the goal is just to run the latest dev code, or if you want a local version of the dev code without installing it over the top of the stable code, take the following steps:
 
 Clone the Repository
 ~~~~~~~~~~~~~~~~~~~~
@@ -82,18 +82,23 @@ Please note, if documentation is required to make sense of the PR, the PR will n
 Documentation
 -------------
 
-Assistance with the docs is always welcome, whether its fixing typos and incorrect information or reorganizing and adding to the docs to make them more helpful. To work on the docs, submit a pull request with the changes, and I will review and merge them in a usual way. I use ``readthedocs`` to build and host the docs, and you can easily set up a preview of your edits as follows:
+Assistance with the docs is always welcome, whether its fixing typos and incorrect information or reorganizing and
+adding to the docs to make them more helpful. To work on the docs, submit a pull request with the changes, and I
+will review and merge them in the usual way. I use `readthedocs` to build and host the docs, and you can easily
+set up a preview of your edits as follows:
 
-First, install sphinx:
+First, install sphinx.
 
 .. code:: bash
 
     $ pip3 install sphinx
 
-Then cd to the docs subdirectory, where all the    `rst` files are found, and run the following command:
+Then `cd` to the `docs` subdirectory, where all the `rst` files are found, and run the following command:
 
 .. code:: bash
 
     $ sphinx-autobuild -H 0.0.0.0 . _build_html
 
-Sphinx will take a minute or so to build the current version of the docs, and it will then be available on port 8000 (e.g., http://localhost:8080) of the machine hosting sphinx. As you make changes, sphinx will automatically detect them and update the browser page in real-time. When you finish your editing, stop sphinx by typing ctrl-c.
+Sphinx will take a minute or so to build the current version of the docs, and it will then be available on port 8000
+(e.g., http://localhost:8080) of the machine hosting sphinx. As you make changes. Sphinx will automatically detect them
+and update the browser page in real-time. When you finish your editing, stop sphinx by typing ctrl-c.

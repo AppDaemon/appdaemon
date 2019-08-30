@@ -158,10 +158,10 @@ The following items provide a high level of control over AppDaemon's internal fu
         fred:
           writeback: hybrid
 
-secrets
+Secrets
 ~~~~~~~
 
-AppDaemon supports the use of secrets in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
+AppDaemon supports the use of `secrets` in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
 
 The ``secret:`` section is optional. If it doesn't exist, AppDaemon looks for a file called ``secrets.yaml`` in the config directory.
 
@@ -277,9 +277,10 @@ To configure the HASS plugin, in addition to the required parameters above, you 
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
 
-- appdaemon_startup_conditions - see "HASS Plugin Startup Conditions"
-- plugin_startup_conditions - see "HASS Plugin Startup Conditions"
-e.g.:
+- appdaemon_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
+- plugin_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
+
+For example:
 
 .. code:: yaml
 
@@ -345,9 +346,9 @@ Copy this string and add it as the argument of the ``token`` directive in your H
 
     token: ABCDEF
 
-A real token will be a lot longer than this and will consist of a string of random letters and numbers, for example:
+A real token will be a lot longer than this and will consist of a string of random letters and numbers. For example:
 
-``eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIwZmRkYmE0YTM0MTY0M2U2ODg5NDdiNmYxNjlkM2IwOSIsImlhdCI6MTUzOTU0NzM4NCwiZXhwIjoxODU0OTA3Mzg0fQ.zNwQqxKkx2ppUIS9Mm7rSLFiyaTNDP5HIlg7_SnxsS8``
+``eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIwZmRkYmE0YTM0MTY0...``
 
 4. A reference to your new token will be shown in the Long-Lived tokens section, and you can revoke access via this token at any time by pressing the delete icon. The token will last for 10 years.
 
@@ -479,7 +480,7 @@ An example of the MQTT plugin could look like the following:
 Configuring a Test App
 ~~~~~~~~~~~~~~~~~~~~~~
 
-(This test app assumes the use of the HASS plugin, changes will be required to the app if another plugin is in use)
+`This test app assumes the use of the HASS plugin, changes will be required to the app if another plugin is in use`.
 
 To add an initial test app to match the configuration above, we need to
 first create an ``apps`` subdirectory under the conf directory. Then
@@ -518,7 +519,7 @@ when we first run it.
 Configuring the HTTP Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The HTTP component provides a unified front end to ``Apdaemon's Admin Interface, HADashboard, and the AppDaemon API. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
+The HTTP component provides a unified front end to `Apdaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
@@ -537,7 +538,7 @@ To password protect ``AppDaemon`` use the ``password`` directive:
       password: some_password
 
 Or you can use the secret function and place the actual password in your
-secrets.yaml file:
+``secrets.yaml`` file:
 
 .. code:: yaml
 
@@ -552,7 +553,7 @@ pointing to your certificate and keyfile:
       dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
 
 
-AppDaemon uses websockets as the default protocol for streaming events from AppDaemon to the dashboard and admin interface so the dashboard can respond to events in real-time. Some older devices, e.g., original iPad models, do not support websockets. In this case, you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws` which means the Websockets protocol will be used:
+AppDaemon uses websockets as the default protocol for streaming events from AppDaemon to the dashboard and admin interface so the dashboard can respond to events in real-time. Some older devices, e.g., original iPad models, do not support websockets. In this case, you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws`` which means the websockets protocol will be used:
 
 .. code:: yaml
 
@@ -563,7 +564,8 @@ Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configuration of the dashboard component (HADashboard) is described
-separately in the `Dashboard doc <DASHBOARD_INSTALL.html>`__ Note that the dashboard depends on the HTTP section being configured to correctly function.
+separately in the `Dashboard <DASHBOARD_INSTALL.html>`__ documentation.
+Note that the dashboard depends on the HTTP section being configured to correctly function.
 
 Configuring the API
 ~~~~~~~~~~~~~~~~~~~

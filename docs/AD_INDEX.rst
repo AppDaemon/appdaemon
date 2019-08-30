@@ -98,8 +98,8 @@ L
 -
 
 * `listen_state() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_state>`__
-* `listen_event() [AppDaemon API]<AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_event>`__
-* `listen_event() [MQTT API]<MQTT_API_REFERENCE.html#appdaemon.plugins.mqtt.mqttapi.Mqtt.listen_event>`__
+* `listen_event() [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_event>`__
+* `listen_event() [MQTT API] <MQTT_API_REFERENCE.html#appdaemon.plugins.mqtt.mqttapi.Mqtt.listen_event>`__
 * `log() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.log>`__
 * `listen_log() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_log>`__
 * `list_namespaces() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.list_namespaces>`__
@@ -145,7 +145,7 @@ R
 * `run_every() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.run_every>`__
 * `run_at_sunset() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.run_at_sunset>`__
 * `run_at_sunrise() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.run_at_sunrise>`__
-* `remove_entity() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_service>`__
+* `register_service() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_service>`__
 * `remove_entity() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.remove_entity>`__
 * `restart_app() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.restart_app>`__
 * `reload_apps() <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.reload_apps>`__
