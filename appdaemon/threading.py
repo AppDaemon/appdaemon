@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import threading
 import datetime
 from queue import Queue
@@ -578,6 +580,12 @@ class Threading:
         else:
             return False
 
+    def worker_call_function(self, func, *args, **kwargs):
+        if not asyncio.iscoroutinefunction(func):
+            func(*args, **kwargs)
+        else:
+            self.AD.thread_async.call_async_no_wait(func, *args, **kwargs)
+
     # noinspection PyBroadException
     def worker(self):
         thread_id = threading.current_thread().name
@@ -594,11 +602,13 @@ class Threading:
             callback = "{}() in {}".format(funcref.__name__, name)
             app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
             if app is not None:
+                func_args = []
+                func_kwargs = {}
                 try:
                     if _type == "scheduler":
                         if self.validate_callback_sig(name, "scheduler", funcref):
                             utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
-                            funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                            func_args = [self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"])]
                     elif _type == "state":
                         if self.validate_callback_sig(name, "state", funcref):
                             entity = args["entity"]
@@ -606,18 +616,20 @@ class Threading:
                             old_state = args["old_state"]
                             new_state = args["new_state"]
                             utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
-                            funcref(entity, attr, old_state, new_state,
-                                    self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
+                            func_args = [entity, attr, old_state, new_state,
+                                    self.AD.state.sanitize_state_kwargs(app, args["kwargs"])]
                     elif _type == "event":
                         data = args["data"]
                         if args["event"] == "__AD_LOG_EVENT":
                             if self.validate_callback_sig(name, "log_event", funcref):
                                 utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
-                                funcref(data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"])
+                                func_args = [data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"]]
                         else:
                             if self.validate_callback_sig(name, "event", funcref):
                                 utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
-                                funcref(args["event"], data, args["kwargs"])
+                                func_args = [args["event"], data, args["kwargs"]]
+                    
+                    self.worker_call_function(funcref, *func_args, **func_kwargs)
                 except:
                     error_logger.warning('-' * 60,)
                     error_logger.warning("Unexpected error in worker for App %s:", name)
