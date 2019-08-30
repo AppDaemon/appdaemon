@@ -519,7 +519,7 @@ when we first run it.
 Configuring the HTTP Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The HTTP component provides a unified front end to ``Apdaemon's Admin Interface, HADashboard, and the AppDaemon API. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
+The HTTP component provides a unified front end to `Apdaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
@@ -538,7 +538,7 @@ To password protect ``AppDaemon`` use the ``password`` directive:
       password: some_password
 
 Or you can use the secret function and place the actual password in your
-secrets.yaml file:
+``secrets.yaml`` file:
 
 .. code:: yaml
 
@@ -553,7 +553,7 @@ pointing to your certificate and keyfile:
       dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
 
 
-AppDaemon uses websockets as the default protocol for streaming events from AppDaemon to the dashboard and admin interface so the dashboard can respond to events in real-time. Some older devices, e.g., original iPad models, do not support websockets. In this case, you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws` which means the Websockets protocol will be used:
+AppDaemon uses websockets as the default protocol for streaming events from AppDaemon to the dashboard and admin interface so the dashboard can respond to events in real-time. Some older devices, e.g., original iPad models, do not support websockets. In this case, you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws`` which means the websockets protocol will be used:
 
 .. code:: yaml
 
@@ -564,7 +564,8 @@ Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configuration of the dashboard component (HADashboard) is described
-separately in the `Dashboard doc <DASHBOARD_INSTALL.html>`__ Note that the dashboard depends on the HTTP section being configured to correctly function.
+separately in the `Dashboard <DASHBOARD_INSTALL.html>`__ documentation.
+Note that the dashboard depends on the HTTP section being configured to correctly function.
 
 Configuring the API
 ~~~~~~~~~~~~~~~~~~~
