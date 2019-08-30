@@ -346,9 +346,9 @@ Copy this string and add it as the argument of the ``token`` directive in your H
 
     token: ABCDEF
 
-A real token will be a lot longer than this and will consist of a string of random letters and numbers, for example:
+A real token will be a lot longer than this and will consist of a string of random letters and numbers. For example:
 
-``eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIwZmRkYmE0YTM0MTY0M2U2ODg5NDdiNmYxNjlkM2IwOSIsImlhdCI6MTUzOTU0NzM4NCwiZXhwIjoxODU0OTA3Mzg0fQ.zNwQqxKkx2ppUIS9Mm7rSLFiyaTNDP5HIlg7_SnxsS8``
+``eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIwZmRkYmE0YTM0MTY0...``
 
 4. A reference to your new token will be shown in the Long-Lived tokens section, and you can revoke access via this token at any time by pressing the delete icon. The token will last for 10 years.
 
