@@ -1,4 +1,4 @@
-widget_type: baseiframe
+widget_type: basecamera
 fields:
   title: "{{title}}"
   frame_src: ""

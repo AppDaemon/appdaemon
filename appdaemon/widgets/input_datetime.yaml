@@ -1,0 +1,23 @@
+widget_type: basedatetime
+entity: "{{entity}}"
+fields:
+  title: "{{title}}"
+  title2: "{{title2}}"
+  value: "{{text}}"
+  unit: ""
+  state_text: ""
+  TextValue: ""
+static_css:
+  title_style: $label_title_style
+  title2_style: $label_title2_style
+  unit_style: ""
+  value_style: $label_text_style
+  state_text_style: $label_state_text_style
+  widget_style: $label_widget_style
+  container_style: $label_container_style
+post_service:
+  service: input_datetime/set_datetime
+  entity_id: "{{entity}}"
+css: []
+icons: []
+static_icons: []
