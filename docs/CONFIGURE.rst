@@ -277,8 +277,8 @@ To configure the HASS plugin, in addition to the required parameters above, you 
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
 
-- appdaemon_startup_conditions - see `HASS Plugin Startup Conditions"
-- plugin_startup_conditions - see "HASS Plugin Startup Conditions"
+- appdaemon_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
+- plugin_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
 
 For example:
 
