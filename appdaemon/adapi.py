@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import inspect
 import iso8601
@@ -2468,7 +2469,7 @@ class ADAPI:
             except asyncio.CancelledError:
                 pass
 
-        f = self.AD.loop.run_coroutine_threadsafe(coro)
+        f = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
         if callback is not None:
             f.add_done_callback(callback_inner)
 
