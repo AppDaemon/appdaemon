@@ -248,24 +248,11 @@ potentially very complex automations.
 If this has whet your appetite, feel free to give it a try. You can find
 installation instructions, `here <INSTALL.rst>`__, including full
 installation instructions, an API reference, and several fully
-fleshed-out `examples <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__.
+fleshed-out `examples <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__ and
+`tutorials <COMMUNITY_TUTORIALS.rst>`__.
 
 **Happy Automating!**
 
-Other Tutorials
----------------
-
-Here is a list of other tutorials that have been created by AppDaemon users:
-
-By Rene Tode:
-
-- `AppDaemon For Beginners <https://github.com/ReneTode/My-AppDaemon/tree/master/AppDaemon_for_Beginner>`__
-
-By Supahnoob:
-
-+ `AppDaemon Tutorial #1 Tracker-Notifier <https://community.home-assistant.io/t/appdaemon-tutorial-1-tracker-notifier/12545>`__
-+ `AppDaemon Tutorial #2 Errorlog Notifications <https://community.home-assistant.io/t/appdaemon-tutorial-2-errorlog-notifications/12907>`__
-+ `AppDaemon Tutorial #3 Utility Functions <https://community.home-assistant.io/t/appdaemon-tutorial-3-utility-functions/13247>`__
-+ `AppDaemon Tutorial #4 Libraries & Interactivity <https://community.home-assistant.io/t/appdaemon-tutorial-4-libraries-interactivity/14057>`__
+-- AppDaemon Team
 
 
