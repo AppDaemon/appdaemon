@@ -6,4 +6,6 @@ appdaemon:
       token:
 http:
   url:
+admin:
+api:
 hadashboard:
