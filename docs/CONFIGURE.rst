@@ -158,7 +158,7 @@ The following items provide a high level of control over AppDaemon's internal fu
         fred:
           writeback: hybrid
 
-secrets
+Secrets
 ~~~~~~~
 
 AppDaemon supports the use of secrets in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
