@@ -9,6 +9,7 @@ import cProfile
 import io
 import pstats
 import logging
+import asyncio
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -133,7 +134,10 @@ class AppManagement:
 
         try:
             if self.AD.threading.validate_callback_sig(name, "initialize", init):
-                await utils.run_in_executor(self, init)
+                if asyncio.iscoroutinefunction(init):
+                    await init()
+                else:
+                    await utils.run_in_executor(self, init)
                 await self.set_state(name, state="idle")
                 
                 await self.increase_active_apps(name)
@@ -161,7 +165,10 @@ class AppManagement:
 
         if term is not None:
             try:
-                await utils.run_in_executor(self, term)
+                if asyncio.iscoroutinefunction(term):
+                    await term()
+                else:
+                    await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
             except:
                 error_logger = logging.getLogger("Error.{}".format(name))
