@@ -589,7 +589,8 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        apiurl = "{}/api/events/{}".format(config["ha_url"], event)
+        event_clean = quote(event, safe="")
+        apiurl = "{}/api/events/{}".format(config["ha_url"], event_clean)
         try:
             r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
             r.raise_for_status()
