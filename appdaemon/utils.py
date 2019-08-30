@@ -17,7 +17,7 @@ import copy
 if platform.system() != "Windows":
     import pwd
 
-__version__ = "4.0.0b1"
+__version__ = "4.0.0b2"
 secrets = None
 
 class Formatter(object):

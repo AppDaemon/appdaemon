@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+4.0.0 Beta 2
+------------
+
+**Features**
+**Fixes**
+**Breaking Changes**
+
 4.0.0 Beta1 08/30/2019
 ----------------------
 
