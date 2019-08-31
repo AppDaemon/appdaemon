@@ -512,11 +512,12 @@ class ADAPI:
         """
         return await self.AD.app_management.get_app(name)
 
-    def _check_entity(self, namespace, entity):
+    @sync_wrapper
+    async def _check_entity(self, namespace, entity):
         if "." not in entity:
             raise ValueError(
                 "{}: Invalid entity ID: {}".format(self.name, entity))
-        if not utils.run_coroutine_threadsafe(self, self.AD.state.entity_exists(namespace, entity)):
+        if not await self.AD.state.entity_exists(namespace, entity):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
     def get_ad_version(self):
