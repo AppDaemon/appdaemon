@@ -251,6 +251,8 @@ def run_coroutine_threadsafe(self, coro):
             else:
                 print("Coroutine ({}) took too long, cancelling the task...".format(coro))
             future.cancel()
+    else:
+        self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
 
     return result
 
