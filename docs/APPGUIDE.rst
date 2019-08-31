@@ -557,10 +557,13 @@ callback that would otherwise be blocked due to constraint failure
 will now be called. Similarly, if one of the constraints becomes false,
 the next callback that would otherwise have been called will be blocked.
 
-AppDeamon itself supplies the time constraint:
+AppDaemon Constraints
+~~~~~~~~~~~~~~~~~~~~~~~
+
+AppDaemon itself supplies the time constraint:
 
 time
-~~~~
+^^^^
 
 The time constraint consists of 2 variables, ``constrain_start_time``
 and ``constrain_end_time``. Callbacks will only be executed if the
@@ -590,6 +593,7 @@ times that span midnight.
     # Run between 45 minutes before sunset and 45 minutes after sunrise the next day
     constrain_start_time: sunset - 00:45:00
     constrain_end_time: sunrise + 00:45:00
+
 
 days
 ^^^^

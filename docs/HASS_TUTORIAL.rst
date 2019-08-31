@@ -51,7 +51,7 @@ Restful API.
 Automations and Scripts, rather complement them. For a lot of things,
 automations work well and can be very succinct. However, there is a
 class of more complex automations for which they become harder to use,
-and AppDeamon then comes into its own. It brings quite a few things to
+and AppDaemon then comes into its own. It brings quite a few things to
 the table:
 
 -  New paradigm - some problems require a procedural and/or iterative
