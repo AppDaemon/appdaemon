@@ -583,7 +583,8 @@ class Threading:
         if not asyncio.iscoroutinefunction(func):
             func(*args, **kwargs)
         else:
-            self.AD.thread_async.call_async_no_wait(func, *args, **kwargs)
+            # self.AD.thread_async.call_async_no_wait(func, *args, **kwargs)
+            asyncio.run_coroutine_threadsafe(func(*args, **kwargs), self.AD.loop)
 
     # noinspection PyBroadException
     def worker(self):
