@@ -163,6 +163,9 @@ class AppManagement:
 
             term = self.objects[name]["object"].terminate
 
+        # clean up all hanging futures
+        self.objects[name]["object"]._cancel_futures()
+
         if term is not None:
             try:
                 if asyncio.iscoroutinefunction(term):
