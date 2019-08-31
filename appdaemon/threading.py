@@ -638,6 +638,9 @@ class Threading:
             
         return funcref, func_args, func_kwargs        
 
+    def get_callback_args(self, args):
+        return args["name"], args["type"], args["id"], args["objectid"]
+
     # noinspection PyBroadException
     def worker(self):
         thread_id = threading.current_thread().name
@@ -645,10 +648,7 @@ class Threading:
         while True:
             args = q.get()
             try:
-                name = args["name"]
-                _type = args["type"]
-                _id = args["id"]
-                objectid = args["objectid"]
+                name, _type, _id, objectid = self.get_callback_args(args)
                 app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
 
                 funcref, func_args, func_kwargs = self.determine_callback(app, args)
