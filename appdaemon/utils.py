@@ -240,11 +240,6 @@ async def run_in_executor(self, fn, *args, **kwargs):
 
 
 def run_coroutine_threadsafe(self, coro):
-    try:
-        return asyncio.ensure_future(coro)
-    except RuntimeError:
-        pass
-
     result = None
     if self.AD.loop.is_running():
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
