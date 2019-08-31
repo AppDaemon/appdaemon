@@ -577,25 +577,30 @@ class Threading:
             #
             if asyncio.iscoroutinefunction(myargs["function"]):
                 name = myargs["name"]
-                _type = myargs["type"]
-                _id = myargs["id"]
                 objectid = myargs["objectid"]
 
+                # needed for thread stats
+                # _type = myargs["type"]
+                # _id = myargs["id"]
+                # thread_id = threading.current_thread().name
+
                 app = await self.AD.app_management.get_app_instance(name, objectid)
+
                 funcref, func_args, func_kwargs = self.determine_callback(app, myargs)
-                asyncio.run_coroutine_threadsafe(funcref(*func_args, **func_kwargs), self.AD.loop)
+
+                # TODO: track async callback stats
+                # callback = "{}() in {}".format(funcref.__name__, name)
+                # await self.update_thread_info(thread_id, callback, name, _type, _id)
+
+                await funcref(*func_args, **func_kwargs)
+
+                # TODO: track async callback stats
+                # await self.update_thread_info(thread_id, "idle", name, _type, _id)
             else:
                 self.select_q(myargs)
             return True
         else:
             return False
-
-    # def worker_call_function(self, func, *args, **kwargs):
-    #     if not asyncio.iscoroutinefunction(func):
-    #         func(*args, **kwargs)
-    #     else:
-    #         # self.AD.thread_async.call_async_no_wait(func, *args, **kwargs)
-    #         asyncio.run_coroutine_threadsafe(func(*args, **kwargs), self.AD.loop)
 
     def determine_callback(self, app, args):
         _type = args["type"]
@@ -644,13 +649,13 @@ class Threading:
                 _type = args["type"]
                 _id = args["id"]
                 objectid = args["objectid"]
-
                 app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
 
                 funcref, func_args, func_kwargs = self.determine_callback(app, args)
                 callback = "{}() in {}".format(funcref.__name__, name)
-                funcref(*func_args, **func_kwargs)
+
                 utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
+                funcref(*func_args, **func_kwargs)
             except:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning('-' * 60,)
