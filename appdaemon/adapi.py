@@ -393,7 +393,7 @@ class ADAPI:
             >>> self.set_pin_thread(5)
 
         """
-        return self.AD.threading.set_pin_thread(self.name, thread)
+        return await self.AD.threading.set_pin_thread(self.name, thread)
 
     @sync_wrapper
     async def get_pin_thread(self):
