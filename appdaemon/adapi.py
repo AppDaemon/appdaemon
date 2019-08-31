@@ -2147,7 +2147,7 @@ class ADAPI:
         if info is None or info["sun"] is None:
             if when is None:
                 when = info["datetime"].time()
-            aware_now = self.get_now()
+            aware_now = await self.get_now()
             now = self.AD.sched.make_naive(aware_now)
             today = now.date()
             event = datetime.datetime.combine(today, when)
@@ -2200,7 +2200,7 @@ class ADAPI:
             >>> self.run_hourly(self.run_hourly_c, runtime)
 
         """
-        now = self.get_now()
+        now = await self.get_now()
         if start is None:
             event = now + datetime.timedelta(hours=1)
         else:
@@ -2249,7 +2249,7 @@ class ADAPI:
             >>> self.run_minutely(self.run_minutely_c, time)
 
         """
-        now = self.get_now()
+        now = await self.get_now()
         if start is None:
             event = now + datetime.timedelta(minutes=1)
         else:
@@ -2296,7 +2296,7 @@ class ADAPI:
 
         """
         name = self.name
-        now = self.get_now()
+        now = await self.get_now()
         aware_start = self.AD.sched.convert_naive(start)
         if aware_start < now:
             raise ValueError("start cannot be in the past")
