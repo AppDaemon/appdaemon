@@ -6,25 +6,11 @@ import re
 from datetime import timedelta
 from copy import deepcopy
 
+# needed for fake coro cb that looks like scheduler
+import uuid
+
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
-
-def sync_wrapper(coro):
-    def inner_sync_wrapper(self, *args, **kwargs):
-        try:
-            # do this first to get the exception
-            # otherwise the coro could be started and never awaited
-            asyncio.get_event_loop()
-
-            # don't use create_task. It's python3.7 only
-            f = asyncio.ensure_future(coro(self, *args, **kwargs))
-            self.AD.futures.add_future(self.name, f)
-        except RuntimeError:
-            f = utils.run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
-
-        return f
-    
-    return inner_sync_wrapper
 
 
 class ADAPI:
@@ -60,6 +46,7 @@ class ADAPI:
             userlog = self.get_user_log(args["log"])
             if userlog is not None:
                 self.logger = userlog
+        self.dialogflow_v = 2
 
     @staticmethod
     def _sub_stack(msg):
@@ -107,6 +94,7 @@ class ADAPI:
 
         Args:
             msg (str): The message to log.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             level (str, optional): The log level of the message - takes a string representing the
@@ -160,6 +148,7 @@ class ADAPI:
 
         Args:
             msg (str): The message to log.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             level (str, optional): The log level of the message - takes a string representing the
@@ -186,7 +175,7 @@ class ADAPI:
         """
         self._log(self.err, msg, *args, **kwargs)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def listen_log(self, callback, level="INFO", **kwargs):
         """Registers the App to receive a callback every time an App logs a message.
 
@@ -194,6 +183,7 @@ class ADAPI:
             callback (function): Function to be called when a message is logged.
             level (str): Logging level to be used - lower levels will not be forwarded
                 to the app (Default: ``"INFO"``).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             log (str, optional): Name of the log to listen to, default is all logs. The name
@@ -230,7 +220,7 @@ class ADAPI:
         return await self.AD.logging.add_log_callback(namespace, self.name,
             callback, level, **kwargs)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def cancel_listen_log(self, handle):
         """Cancels the log callback for the App.
 
@@ -345,7 +335,7 @@ class ADAPI:
     # Threading
     #
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def set_app_pin(self, pin):
         """Sets an App to be pinned or unpinned.
 
@@ -363,7 +353,7 @@ class ADAPI:
         """
         await self.AD.threading.set_app_pin(self.name, pin)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_app_pin(self):
         """Finds out if the current App is currently pinned or not.
 
@@ -377,7 +367,7 @@ class ADAPI:
         """
         return await self.AD.threading.get_app_pin(self.name)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def set_pin_thread(self, thread):
         """Sets the thread that the App will be pinned to.
 
@@ -396,7 +386,7 @@ class ADAPI:
         """
         return await self.AD.threading.set_pin_thread(self.name, thread)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_pin_thread(self):
         """Finds out which thread the App is pinned to.
 
@@ -433,7 +423,7 @@ class ADAPI:
         """Returns the App's namespace."""
         return self._namespace
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def list_namespaces(self):
         """Returns a list of available namespaces.
 
@@ -443,7 +433,7 @@ class ADAPI:
         """
         return await self.AD.state.list_namespaces()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def save_namespace(self, **kwargs):
         """Saves entities created in user-defined namespaces into a file.
 
@@ -453,6 +443,9 @@ class ADAPI:
         namespace, this function can be setup to constantly be running automatically
         or only when AD shutdown. This function also allows for users to manually
         execute the command as when needed.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -475,7 +468,7 @@ class ADAPI:
     # Utility
     #
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_app(self, name):
         """Gets the instantiated object of another app running within the system.
 
@@ -496,7 +489,7 @@ class ADAPI:
         """
         return await self.AD.app_management.get_app(name)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def _check_entity(self, namespace, entity):
         if "." not in entity:
             raise ValueError(
@@ -513,7 +506,7 @@ class ADAPI:
         """
         return utils.__version__
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def entity_exists(self, entity_id, **kwargs):
         """Checks the existence of an entity in Home Assistant.
 
@@ -524,6 +517,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -557,6 +551,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -577,7 +572,7 @@ class ADAPI:
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         return entity_id.split(".")
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def remove_entity(self, entity_id, **kwargs):
         """Deletes an entity created within a namespaces.
 
@@ -586,6 +581,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -609,7 +605,8 @@ class ADAPI:
         await self.AD.state.remove_entity(namespace, entity_id)
         return None
 
-    def split_device_list(self, devices):
+    @staticmethod
+    def split_device_list(devices):
         """Converts a comma-separated list of device types to an iterable list.
 
         This is intended to assist in use cases where the App takes a list of
@@ -630,12 +627,15 @@ class ADAPI:
         """
         return devices.split(",")
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_plugin_config(self, **kwargs):
         """Gets any useful metadata that the plugin may have available.
 
         For instance, for the HASS plugin, this will return Home Assistant configuration
         data such as latitude and longitude.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str): Select the namespace of the plugin for which data is desired.
@@ -658,6 +658,7 @@ class ADAPI:
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -684,7 +685,7 @@ class ADAPI:
                 return entity_id
         return None
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def set_production_mode(self, mode=True):
         """Deactivates or activates the production mode in AppDaemon.
 
@@ -790,11 +791,10 @@ class ADAPI:
         return None
 
     #
-    # Apiai
+    # Dialogflow
     #
 
-    @staticmethod
-    def get_apiai_intent(data):
+    def get_dialogflow_intent(self, data):
         """Gets the intent's action from the Google Home response.
 
         Args:
@@ -805,16 +805,20 @@ class ADAPI:
             or ``None``, if no action was received.
 
         Examples:
-            >>> intent = ADAPI.get_apiai_intent(data)
+            >>> intent = ADAPI.get_dialogflow_intent(data)
 
         """
-        if "queryResult" in data and "action" in data["result"]:
+        if "result" in data and "action" in data["result"]:
+            self.dialogflow_v = 1
             return data["result"]["action"]
+        elif "queryResult" in data and "action" in data["queryResult"]:
+            self.dialogflow_v = 2
+            return data["queryResult"]["action"]
         else:
             return None
 
     @staticmethod
-    def get_apiai_slot_value(data, slot=None):
+    def get_dialogflow_slot_value(data, slot=None):
         """Gets slots' values from the interaction model.
 
         Args:
@@ -826,30 +830,40 @@ class ADAPI:
             A string representing the value of the slot from the interaction model, or a hash of slots.
 
         Examples:
-            >>> beer_type = ADAPI.get_apiai_intent(data, "beer_type")
-            >>> all_slots = ADAPI.get_apiai_intent(data)
+            >>> beer_type = ADAPI.get_dialogflow_intent(data, "beer_type")
+            >>> all_slots = ADAPI.get_dialogflow_intent(data)
 
         """
-        if "queryResult" in data and \
-                "contexts" in data["result"]:
-            req = data.get('result')
-            contexts = req.get('contexts', [{}])
+        if "result" in data:
+            # using V1 API
+            contexts = data["result"]["contexts"][0]
             if contexts:
-                parameters = contexts[0].get('parameters')
+                parameters = contexts.get("parameters")
             else:
-                parameters = req.get('parameters')
+                parameters = data["result"]["parameters"]
             if slot is None:
                 return parameters
+            elif slot in parameters:
+                return parameters[slot]
             else:
-                if slot in parameters:
-                    return parameters[slot]
-                else:
-                    return None
+                return None
+        elif "queryResult" in data:
+            # using V2 API
+            contexts = data["queryResult"]["outputContexts"][0]
+            if contexts:
+                parameters = contexts.get("parameters")
+            else:
+                parameters = data["queryResult"]["parameters"]
+            if slot is None:
+                return parameters
+            elif slot in parameters:
+                return parameters[slot]
+            else:
+                return None
         else:
             return None
 
-    @staticmethod
-    def format_apiai_response(speech=None):
+    def format_dialogflow_response(self, speech=None):
         """Formats a response to be returned to Google Home, including speech.
 
         Args:
@@ -859,16 +873,24 @@ class ADAPI:
             None.
 
         Examples:
-            >>> ADAPI.format_apiai_response(speech = "Hello World")
+            >>> ADAPI.format_dialogflow_response(speech = "Hello World")
 
         """
-        speech = \
-            {
-                "speech": speech,
-                "source": "Appdaemon",
-                "displayText": speech
-            }
-
+        if self.dialogflow_v == 1:
+            speech = \
+                {
+                    "speech": speech,
+                    "source": "Appdaemon",
+                    "displayText": speech
+                }
+        elif self.dialogflow_v == 2:
+            speech = \
+                {
+                    "fulfillmentText": speech,
+                    "source": "Appdaemon"
+                }
+        else:
+            speech = None
         return speech
 
     #
@@ -991,7 +1013,7 @@ class ADAPI:
     # API
     #
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def register_endpoint(self, callback, name=None):
         """Registers an endpoint for API calls into the current App.
 
@@ -1021,7 +1043,7 @@ class ADAPI:
             self.logger.warning("register_endpoint for %s filed - HTTP component is not configured", name)
             return None
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def unregister_endpoint(self, handle):
         """Removes a previously registered endpoint.
 
@@ -1041,7 +1063,7 @@ class ADAPI:
     # State
     #
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def listen_state(self, callback, entity=None, **kwargs):
         """Registers a callback to react to state changes.
 
@@ -1054,6 +1076,7 @@ class ADAPI:
                 e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
                 devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
                 listen for state changes for just that entity.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             attribute (str, optional): Name of an attribute within the entity state object. If this
@@ -1172,7 +1195,7 @@ class ADAPI:
         return await self.AD.state.add_state_callback(name, namespace, entity, callback,
                                                                                      kwargs)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def cancel_listen_state(self, handle):
         """Cancels a ``listen_state()`` callback.
 
@@ -1182,6 +1205,7 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             None.
@@ -1193,7 +1217,7 @@ class ADAPI:
         self.logger.debug("Canceling listen_state for %s", self.name)
         await self.AD.state.cancel_state_callback(handle, self.name)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def info_listen_state(self, handle):
         """Gets information on state a callback from its handle.
 
@@ -1211,7 +1235,7 @@ class ADAPI:
         self.logger.debug("Calling info_listen_state for %s", self.name)
         return await self.AD.state.info_state_callback(handle, self.name)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
         """Gets the state of any component within Home Assistant.
 
@@ -1239,6 +1263,7 @@ class ADAPI:
                 but also gives you write-access to the internal AppDaemon data structures,
                 which is dangerous. Only disable copying when you can guarantee not to modify
                 the returned state object, e.g., you do read-only operations.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace(str, optional): Namespace to use for the call. See the section on
@@ -1280,13 +1305,14 @@ class ADAPI:
             self.name, namespace, entity_id, attribute, default, copy, **kwargs
         )
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def set_state(self, entity_id, **kwargs):
         """
         Updates the state of the specified entity.
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             state: New state value to be set.
@@ -1337,7 +1363,7 @@ class ADAPI:
         Args:
             service:
             cb:
-            **kwargs:
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
 
@@ -1351,7 +1377,7 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         self.AD.services.register_service(namespace, d, s, cb)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def call_service(self, service, **kwargs):
         """Calls a HASS service within AppDaemon.
 
@@ -1363,6 +1389,7 @@ class ADAPI:
 
         Args:
             service: The service name.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             **kwargs: Each service has different parameter requirements. This argument
@@ -1380,11 +1407,25 @@ class ADAPI:
             None.
 
         Examples:
+            HASS
+
             >>> self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
             >>> self.call_service("notify/notify", title = "Hello", message = "Hello World")
 
-        Todo:
-            * Finish documentation
+            MQTT
+
+            >>> call_service("mqtt/subscribe", topic="homeassistant/living_room/light", qos=2)
+            >>> call_service("mqtt/publish", topic="homeassistant/living_room/light", payload="on")
+
+            Utility
+
+            >>> call_service("app/restart", app="notify_app", namespace="appdaemon")
+            >>> call_service("app/stop", app="lights_app", namespace="appdaemon")
+            >>> call_service("app/reload", namespace="appdaemon")
+
+            For Utility, it is important that the `namespace` arg is set to ``appdaemon``
+            as no app can work within that `namespace`. If not namespace is specified,
+            calling this function will rise an error.
 
         """
         self._check_service(service)
@@ -1401,7 +1442,7 @@ class ADAPI:
     # Events
     #
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def listen_event(self, callback, event=None, **kwargs):
         """Registers a callback for a specific event, or any event.
 
@@ -1412,6 +1453,7 @@ class ADAPI:
                 Home Assistant event such as `service_registered` or an arbitrary
                 custom event such as `"MODE_CHANGE"`. If no event is specified,
                 `listen_event()` will subscribe to all events.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace(str, optional): Namespace to use for the call. See the section on
@@ -1466,7 +1508,7 @@ class ADAPI:
         return await self.AD.events.add_event_callback(_name, namespace, callback, event,
                                                                                       **kwargs)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def cancel_listen_event(self, handle):
         """Cancels a callback for a specific event.
 
@@ -1483,7 +1525,7 @@ class ADAPI:
         self.logger.debug("Canceling listen_event for %s", self.name)
         await self.AD.events.cancel_event_callback(self.name, handle)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def info_listen_event(self, handle):
         """Gets information on an event callback from its handle.
 
@@ -1500,13 +1542,14 @@ class ADAPI:
         self.logger.debug("Calling info_listen_event for %s", self.name)
         return await self.AD.events.info_event_callback(self.name, handle)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def fire_event(self, event, **kwargs):
         """Fires an event on the AppDaemon bus, for apps and plugins.
 
         Args:
             event: Name of the event. Can be a standard Home Assistant event such as
                 `service_registered` or an arbitrary custom event such as "MODE_CHANGE".
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace(str, optional): Namespace to use for the call. See the section on
@@ -1544,7 +1587,7 @@ class ADAPI:
 
         """
         return datetime.datetime(*map(
-            int, re.split('[^\d]', s)[:-1]
+            int, re.split('[^\d]', utc_string)[:-1]
         )).timestamp() + self.get_tz_offset() * 60
 
     @staticmethod
@@ -1580,7 +1623,7 @@ class ADAPI:
         """
         return iso8601.parse_date(utc)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def sun_up(self):
         """Determines if the sun is currently up.
 
@@ -1594,7 +1637,7 @@ class ADAPI:
         """
         return await self.AD.sched.sun_up()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def sun_down(self):
         """Determines if the sun is currently down.
 
@@ -1608,7 +1651,7 @@ class ADAPI:
         """
         return await self.AD.sched.sun_down()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def parse_time(self, time_str, name=None, aware=False):
         """Creates a `time` object from its string representation.
 
@@ -1645,7 +1688,7 @@ class ADAPI:
         """
         return await self.AD.sched.parse_time(time_str, name, aware)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def parse_datetime(self, time_str, name=None, aware=False):
         """Creates a `datetime` object from its string representation.
 
@@ -1691,7 +1734,7 @@ class ADAPI:
         """
         return await self.AD.sched.parse_datetime(time_str, name, aware)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_now(self):
         """Returns the current Local Date and Time.
 
@@ -1702,7 +1745,7 @@ class ADAPI:
         """
         return await self.AD.sched.get_now()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_now_ts(self):
         """Returns the current Local Timestamp.
 
@@ -1713,7 +1756,7 @@ class ADAPI:
         """
         return await self.AD.sched.get_now_ts()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def now_is_between(self, start_time, end_time, name=None):
         """Determines is the current `time` is within the specified start and end times.
 
@@ -1749,7 +1792,7 @@ class ADAPI:
         """
         return await self.AD.sched.now_is_between(start_time, end_time, name)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def sunrise(self, aware=False):
         """Returns a `datetime` object that represents the next time Sunrise will occur.
 
@@ -1764,7 +1807,7 @@ class ADAPI:
         """
         return await self.AD.sched.sunrise(aware)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def sunset(self, aware=False):
         """Returns a `datetime` object that represents the next time Sunset will occur.
 
@@ -1779,7 +1822,7 @@ class ADAPI:
         """
         return await self.AD.sched.sunset(aware)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def time(self):
         """Returns a localised `time` object representing the current Local Time.
 
@@ -1793,7 +1836,7 @@ class ADAPI:
         """
         return await self.AD.sched.get_now().astimezone(self.AD.tz).time()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def datetime(self, aware=False):
         """Returns a `datetime` object representing the current Local Date and Time.
 
@@ -1814,7 +1857,7 @@ class ADAPI:
         else:
             return await self.AD.sched.get_now_naive()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def date(self):
         """Returns a localised `date` object representing the current Local Date.
 
@@ -1836,7 +1879,7 @@ class ADAPI:
     # Scheduler
     #
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def cancel_timer(self, handle):
         """Cancels a previously created timer.
 
@@ -1854,7 +1897,7 @@ class ADAPI:
         self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
         await self.AD.sched.cancel_timer(name, handle)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def info_timer(self, handle):
         """Gets information on a scheduler event from its handle.
 
@@ -1876,7 +1919,7 @@ class ADAPI:
         """
         return await self.AD.sched.info_timer(handle, self.name)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_in(self, callback, delay, **kwargs):
         """Runs the callback in a defined number of seconds.
 
@@ -1890,6 +1933,7 @@ class ADAPI:
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             delay (int): Delay, in seconds before the callback is invoked.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -1927,7 +1971,7 @@ class ADAPI:
             name, exec_time, callback, False, None, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_once(self, callback, start, **kwargs):
         """Runs the callback once, at the specified time of day.
 
@@ -1939,6 +1983,7 @@ class ADAPI:
                 string that specifies when the callback will occur. If the time
                 specified is in the past, the callback will occur the ``next day`` at
                 the specified time.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -1994,7 +2039,7 @@ class ADAPI:
             name, aware_event, callback, False, None, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_at(self, callback, start, **kwargs):
         """Runs the callback once, at the specified time of day.
 
@@ -2004,6 +2049,7 @@ class ADAPI:
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2067,7 +2113,7 @@ class ADAPI:
             name, aware_when, callback, False, None, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_daily(self, callback, start, **kwargs):
         """Runs the callback at the same time every day.
 
@@ -2082,6 +2128,7 @@ class ADAPI:
                 When specifying sunrise or sunset relative times using the ``parse_datetime()``
                 format, the time of the callback will be adjusted every day to track the actual
                 value of sunrise or sunset.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2146,7 +2193,7 @@ class ADAPI:
             handle = await self.run_at_sunset(callback, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_hourly(self, callback, start, **kwargs):
         """Runs the callback at the same time every hour.
 
@@ -2159,6 +2206,7 @@ class ADAPI:
                 is in the past, the callback will occur the ``next hour`` at the specified
                 time. If time is not supplied, the callback will start an hour from the
                 time that ``run_hourly()`` was executed.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2195,7 +2243,7 @@ class ADAPI:
         handle = await self.run_every(callback, event, 60 * 60, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_minutely(self, callback, start, **kwargs):
         """Runs the callback at the same time every minute.
 
@@ -2208,6 +2256,7 @@ class ADAPI:
                 time specified is in the past, the callback will occur the ``next minute`` at
                 the specified time. If time is not supplied, the callback will start a
                 minute from the time that ``run_minutely()`` was executed.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2244,7 +2293,7 @@ class ADAPI:
         handle = await self.run_every(callback, event, 60, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_every(self, callback, start, interval, **kwargs):
         """Runs the callback with a configurable delay starting at a specific time.
 
@@ -2255,6 +2304,8 @@ class ADAPI:
             start: A Python ``datetime`` object that specifies when the initial callback
                 will occur.
             interval: Frequency (expressed in seconds) in which the callback should be executed.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Keyword Args:
             random_start (int): Start of range of the random time.
@@ -2262,8 +2313,7 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2292,7 +2342,7 @@ class ADAPI:
             None, interval=interval, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def _schedule_sun(self, name, type_, callback, **kwargs):
 
         if type_ == "next_rising":
@@ -2304,13 +2354,15 @@ class ADAPI:
             name, event, callback, True, type_, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_at_sunset(self, callback, **kwargs):
         """Runs a callback every day at or around sunset.
 
         Args:
             callback: Function to be invoked at or around sunset. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Keyword Args:
             offset (int, optional): The time in seconds that the callback should be delayed after
@@ -2321,8 +2373,6 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2335,19 +2385,19 @@ class ADAPI:
         Examples:
             Example using timedelta.
 
-            >>> self.run_at_sunset(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds(), "Sunset -45 mins")
+            >>> self.run_at_sunset(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds())
 
             Or you can just do the math yourself.
 
-            >>> self.run_at_sunset(self.sun, offset = 30 * 60, "Sunset +30 mins")
+            >>> self.run_at_sunset(self.sun, offset = 30 * 60)
 
             Run at a random time +/- 60 minutes from sunset.
 
-            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 60*60, "Sunset, random +/- 60 mins")
+            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 60*60)
 
             Run at a random time between 30 and 60 minutes before sunset.
 
-            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60, "Sunset, random - 30 - 60 mins")
+            >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
         name = self.name
@@ -2355,13 +2405,15 @@ class ADAPI:
         handle = await self._schedule_sun(name, "next_setting", callback, **kwargs)
         return handle
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def run_at_sunrise(self, callback, **kwargs):
         """Runs a callback every day at or around sunrise.
 
         Args:
             callback: Function to be invoked at or around sunrise. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Keyword Args:
             offset (int, optional): The time in seconds that the callback should be delayed after
@@ -2372,8 +2424,6 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
 
         Returns:
             A handle that can be used to cancel the timer.
@@ -2387,19 +2437,19 @@ class ADAPI:
         Examples:
             Run 45 minutes before sunset.
 
-            >>> self.run_at_sunrise(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds(), "Sunrise -45 mins")
+            >>> self.run_at_sunrise(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds())
 
             Or you can just do the math yourself.
 
-            >>> self.run_at_sunrise(self.sun, offset = 30 * 60, "Sunrise +30 mins")
+            >>> self.run_at_sunrise(self.sun, offset = 30 * 60)
 
             Run at a random time +/- 60 minutes from sunrise.
 
-            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 60*60, "Sunrise, random +/- 60 mins")
+            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 60*60)
 
             Run at a random time between 30 and 60 minutes before sunrise.
 
-            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60, "Sunrise, random - 30 - 60 mins")
+            >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
         name = self.name
@@ -2460,7 +2510,8 @@ class ADAPI:
         Args:
             callback: Function to be run on the new thread.
             thread (int): Thread number (0 - number of threads).
-            **kwargs (optional): Zero or more keyword arguments.
+            **kwargs: Arbitrary keyword parameters to be provided to the callback
+                function when it is invoked.
 
         Returns:
             None.
@@ -2471,7 +2522,7 @@ class ADAPI:
         """
         self.run_in(callback, 0, pin=False, pin_thread=thread, **kwargs)
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_thread_info(self):
         """Gets information on AppDaemon worker threads.
 
@@ -2484,7 +2535,7 @@ class ADAPI:
         """
         return await self.AD.threading.get_thread_info()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_scheduler_entries(self):
         """Gets information on AppDaemon scheduler entries.
 
@@ -2497,7 +2548,7 @@ class ADAPI:
         """
         return await self.AD.sched.get_scheduler_entries()
 
-    @sync_wrapper
+    @utils.sync_wrapper
     async def get_callback_entries(self):
         """Gets information on AppDaemon callback entries.
 
@@ -2528,9 +2579,25 @@ class ADAPI:
             >>> def coro_callback(self, result, kwargs):
 
         """
+        # get stuff we'll need to fake scheduler call
+        sched_data = {
+            "id": uuid.uuid4().hex,
+            "name": self.name,
+            "objectid": self.AD.app_management.objects[self.name]["id"],
+            "type": "scheduler",
+            "function": callback,
+            "pin_app": self.get_app_pin(),
+            "pin_thread": self.get_pin_thread(),
+        }
+
         def callback_inner(f):
             try:
-                callback(f.result(), kwargs)
+                # TODO: use our own callback type instead of borrowing
+                # from scheduler
+                kwargs["result"] = f.result()
+                sched_data["kwargs"] = kwargs
+                asyncio.ensure_future(self.AD.threading.dispatch_worker(self.name, sched_data))
+                # callback(f.result(), kwargs)
             except asyncio.CancelledError:
                 pass
 
@@ -2541,5 +2608,21 @@ class ADAPI:
         self.AD.futures.add_future(self.name, f)
         return f
 
+        return self.AD.thread_async.call_async_no_wait(run_coroutine_inner)
 
-        
+    def register_dependency(self, module):
+        """Register a global_module dependency from within an app module
+
+        Args:
+            module: the module you're registering a dependency on
+
+        Returns:
+            None
+
+        Examples:
+            >>> import somemodule
+            >>> # later
+            >>> self.register_dependency(somemodule)
+
+        """
+        self.AD.app_management.register_dependency(self.name, module.__name__)

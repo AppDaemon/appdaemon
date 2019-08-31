@@ -159,6 +159,24 @@ class StateAttrs(dict):
         self.__dict__ = device_dict
 
 
+def sync_wrapper(coro):
+    def inner_sync_wrapper(self, *args, **kwargs):
+        try:
+            # do this first to get the exception
+            # otherwise the coro could be started and never awaited
+            asyncio.get_event_loop()
+
+            # don't use create_task. It's python3.7 only
+            f = asyncio.ensure_future(coro(self, *args, **kwargs))
+            self.AD.futures.add_future(self.name, f)
+        except RuntimeError:
+            f = run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
+
+        return f
+    
+    return inner_sync_wrapper
+
+
 def _timeit(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
