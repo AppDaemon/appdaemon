@@ -9,6 +9,22 @@ from copy import deepcopy
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+def sync_wrapper(coro):
+    def inner_sync_wrapper(self, *args, **kwargs):
+        try:
+            # do this first to get the exception
+            # otherwise the coro could be started and never awaited
+            asyncio.get_event_loop()
+
+            # don't use create_task. It's python3.7 only
+            f = asyncio.ensure_future(coro(self, *args, **kwargs))
+        except RuntimeError:
+            f = utils.run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
+
+        return f
+    
+    return inner_sync_wrapper
+
 
 class ADAPI:
     """AppDaemon API class.
@@ -169,7 +185,8 @@ class ADAPI:
         """
         self._log(self.err, msg, *args, **kwargs)
 
-    def listen_log(self, callback, level="INFO", **kwargs):
+    @sync_wrapper
+    async def listen_log(self, callback, level="INFO", **kwargs):
         """Registers the App to receive a callback every time an App logs a message.
 
         Args:
@@ -209,11 +226,11 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        return utils.run_coroutine_threadsafe(self,
-                                              self.AD.logging.add_log_callback(namespace, self.name, callback, level,
-                                                                               **kwargs))
+        return await self.AD.logging.add_log_callback(namespace, self.name,
+            callback, level, **kwargs)
 
-    def cancel_listen_log(self, handle):
+    @sync_wrapper
+    async def cancel_listen_log(self, handle):
         """Cancels the log callback for the App.
 
         Args:
@@ -227,7 +244,7 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_log for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.logging.cancel_log_callback(self.name, handle))
+        await self.AD.logging.cancel_log_callback(self.name, handle)
 
     def get_main_log(self):
         """Returns the underlying logger object used for the main log.
@@ -327,7 +344,8 @@ class ADAPI:
     # Threading
     #
 
-    def set_app_pin(self, pin):
+    @sync_wrapper
+    async def set_app_pin(self, pin):
         """Sets an App to be pinned or unpinned.
 
         Args:
@@ -342,9 +360,10 @@ class ADAPI:
             >>> self.set_app_pin(True)
 
         """
-        utils.run_coroutine_threadsafe(self, self.AD.threading.set_app_pin(self.name, pin))
+        await self.AD.threading.set_app_pin(self.name, pin)
 
-    def get_app_pin(self):
+    @sync_wrapper
+    async def get_app_pin(self):
         """Finds out if the current App is currently pinned or not.
 
         Returns:
@@ -355,9 +374,10 @@ class ADAPI:
             >>>     self.log("App pinned!")
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.threading.get_app_pin(self.name))
+        return await self.AD.threading.get_app_pin(self.name)
 
-    def set_pin_thread(self, thread):
+    @sync_wrapper
+    async def set_pin_thread(self, thread):
         """Sets the thread that the App will be pinned to.
 
         Args:
@@ -373,9 +393,10 @@ class ADAPI:
             >>> self.set_pin_thread(5)
 
         """
-        utils.run_coroutine_threadsafe(self, self.AD.threading.set_pin_thread(self.name, thread))
+        return self.AD.threading.set_pin_thread(self.name, thread)
 
-    def get_pin_thread(self):
+    @sync_wrapper
+    async def get_pin_thread(self):
         """Finds out which thread the App is pinned to.
 
         Returns:
@@ -386,7 +407,7 @@ class ADAPI:
             >>> self.log(f"I'm pinned to thread: {thread}")
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.threading.get_pin_thread(self.name))
+        return await self.AD.threading.get_pin_thread(self.name)
 
     #
     # Namespace
@@ -411,16 +432,18 @@ class ADAPI:
         """Returns the App's namespace."""
         return self._namespace
 
-    def list_namespaces(self):
+    @sync_wrapper
+    async def list_namespaces(self):
         """Returns a list of available namespaces.
 
         Examples:
             >>> self.list_namespaces()
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.state.list_namespaces())
+        return await self.AD.state.list_namespaces()
 
-    def save_namespace(self, **kwargs):
+    @sync_wrapper
+    async def save_namespace(self, **kwargs):
         """Saves entities created in user-defined namespaces into a file.
 
         This way, when AD restarts these entities will be reloaded into AD with its
@@ -445,13 +468,14 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        utils.run_coroutine_threadsafe(self, self.AD.state.save_namespace(namespace))
+        await self.AD.state.save_namespace(namespace)
 
     #
     # Utility
     #
 
-    def get_app(self, name):
+    @sync_wrapper
+    async def get_app(self, name):
         """Gets the instantiated object of another app running within the system.
 
         This is useful for calling functions or accessing variables that reside
@@ -469,7 +493,7 @@ class ADAPI:
             >>> MyApp.turn_light_on()
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app(name))
+        return await self.AD.app_management.get_app(name)
 
     def _check_entity(self, namespace, entity):
         if "." not in entity:
@@ -487,7 +511,8 @@ class ADAPI:
         """
         return utils.__version__
 
-    def entity_exists(self, entity_id, **kwargs):
+    @sync_wrapper
+    async def entity_exists(self, entity_id, **kwargs):
         """Checks the existence of an entity in Home Assistant.
 
         When working with multiple Home Assistant instances, it is possible to specify the
@@ -520,7 +545,7 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        return utils.run_coroutine_threadsafe(self, self.AD.state.entity_exists(namespace, entity_id))
+        return await self.AD.state.entity_exists(namespace, entity_id)
 
     def split_entity(self, entity_id, **kwargs):
         """Splits an entity into parts.
@@ -550,7 +575,8 @@ class ADAPI:
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         return entity_id.split(".")
 
-    def remove_entity(self, entity_id, **kwargs):
+    @sync_wrapper
+    async def remove_entity(self, entity_id, **kwargs):
         """Deletes an entity created within a namespaces.
 
          If an entity was created, and its deemed no longer needed, by using this function,
@@ -578,7 +604,7 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        utils.run_coroutine_threadsafe(self, self.AD.state.remove_entity(namespace, entity_id))
+        await self.AD.state.remove_entity(namespace, entity_id)
         return None
 
     def split_device_list(self, devices):
@@ -602,7 +628,8 @@ class ADAPI:
         """
         return devices.split(",")
 
-    def get_plugin_config(self, **kwargs):
+    @sync_wrapper
+    async def get_plugin_config(self, **kwargs):
         """Gets any useful metadata that the plugin may have available.
 
         For instance, for the HASS plugin, this will return Home Assistant configuration
@@ -622,7 +649,7 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        return utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_meta(namespace))
+        return await self.AD.plugins.get_plugin_meta(namespace)
 
     def friendly_name(self, entity_id, **kwargs):
         """Gets the Friendly Name of an entity.
@@ -655,7 +682,8 @@ class ADAPI:
                 return entity_id
         return None
 
-    def set_production_mode(self, mode=True):
+    @sync_wrapper
+    async def set_production_mode(self, mode=True):
         """Deactivates or activates the production mode in AppDaemon.
 
         When called without declaring passing any arguments, mode defaults to ``True``.
@@ -671,7 +699,7 @@ class ADAPI:
         if not isinstance(mode, bool):
             self.logger.warning("%s not a valid parameter for Production Mode", mode)
             return None
-        utils.run_coroutine_threadsafe(self, self.AD.utility.set_production_mode(mode))
+        await self.AD.utility.set_production_mode(mode)
         return mode
 
     #
@@ -961,7 +989,8 @@ class ADAPI:
     # API
     #
 
-    def register_endpoint(self, callback, name=None):
+    @sync_wrapper
+    async def register_endpoint(self, callback, name=None):
         """Registers an endpoint for API calls into the current App.
 
         Args:
@@ -985,12 +1014,13 @@ class ADAPI:
         else:
             ep = name
         if self.AD.http is not None:
-            return utils.run_coroutine_threadsafe(self, self.AD.http.register_endpoint(callback, ep))
+            return await self.AD.http.register_endpoint(callback, ep)
         else:
             self.logger.warning("register_endpoint for %s filed - HTTP component is not configured", name)
             return None
 
-    def unregister_endpoint(self, handle):
+    @sync_wrapper
+    async def unregister_endpoint(self, handle):
         """Removes a previously registered endpoint.
 
         Args:
@@ -1003,13 +1033,14 @@ class ADAPI:
             >>> self.unregister_endpoint(handle)
 
         """
-        utils.run_coroutine_threadsafe(self, self.AD.http.unregister_endpoint(handle, self.name))
+        await self.AD.http.unregister_endpoint(handle, self.name)
 
     #
     # State
     #
 
-    def listen_state(self, callback, entity=None, **kwargs):
+    @sync_wrapper
+    async def listen_state(self, callback, entity=None, **kwargs):
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
@@ -1136,10 +1167,11 @@ class ADAPI:
             self._check_entity(namespace, entity)
 
         self.logger.debug("Calling listen_state for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.state.add_state_callback(name, namespace, entity, callback,
-                                                                                     kwargs))
+        return await self.AD.state.add_state_callback(name, namespace, entity, callback,
+                                                                                     kwargs)
 
-    def cancel_listen_state(self, handle):
+    @sync_wrapper
+    async def cancel_listen_state(self, handle):
         """Cancels a ``listen_state()`` callback.
 
         This will mean that the App will no longer be notified for the specific
@@ -1157,9 +1189,10 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_state for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.state.cancel_state_callback(handle, self.name))
+        await self.AD.state.cancel_state_callback(handle, self.name)
 
-    def info_listen_state(self, handle):
+    @sync_wrapper
+    async def info_listen_state(self, handle):
         """Gets information on state a callback from its handle.
 
         Args:
@@ -1174,9 +1207,10 @@ class ADAPI:
 
         """
         self.logger.debug("Calling info_listen_state for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.state.info_state_callback(handle, self.name))
+        return await self.AD.state.info_state_callback(handle, self.name)
 
-    def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
+    @sync_wrapper
+    async def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
         """Gets the state of any component within Home Assistant.
 
         State updates are continuously tracked, so this call runs locally and does not require
@@ -1240,11 +1274,12 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.state.get_state(
+        return await self.AD.state.get_state(
             self.name, namespace, entity_id, attribute, default, copy, **kwargs
-        ))
+        )
 
-    def set_state(self, entity_id, **kwargs):
+    @sync_wrapper
+    async def set_state(self, entity_id, **kwargs):
         """
         Updates the state of the specified entity.
 
@@ -1283,7 +1318,7 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.state.set_state(self.name, namespace, entity_id, **kwargs))
+        return await self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
 
     #
     # Service
@@ -1314,7 +1349,8 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         self.AD.services.register_service(namespace, d, s, cb)
 
-    def call_service(self, service, **kwargs):
+    @sync_wrapper
+    async def call_service(self, service, **kwargs):
         """Calls a HASS service within AppDaemon.
 
         This function can call any service and provide any required parameters.
@@ -1357,13 +1393,14 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
+        return await self.AD.services.call_service(namespace, d, s, kwargs)
 
     #
     # Events
     #
 
-    def listen_event(self, callback, event=None, **kwargs):
+    @sync_wrapper
+    async def listen_event(self, callback, event=None, **kwargs):
         """Registers a callback for a specific event, or any event.
 
         Args:
@@ -1424,10 +1461,11 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.events.add_event_callback(_name, namespace, callback, event,
-                                                                                      **kwargs))
+        return await self.AD.events.add_event_callback(_name, namespace, callback, event,
+                                                                                      **kwargs)
 
-    def cancel_listen_event(self, handle):
+    @sync_wrapper
+    async def cancel_listen_event(self, handle):
         """Cancels a callback for a specific event.
 
         Args:
@@ -1441,9 +1479,10 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_event for %s", self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.events.cancel_event_callback(self.name, handle))
+        await self.AD.events.cancel_event_callback(self.name, handle)
 
-    def info_listen_event(self, handle):
+    @sync_wrapper
+    async def info_listen_event(self, handle):
         """Gets information on an event callback from its handle.
 
         Args:
@@ -1457,9 +1496,10 @@ class ADAPI:
 
         """
         self.logger.debug("Calling info_listen_event for %s", self.name)
-        return utils.run_coroutine_threadsafe(self, self.AD.events.info_event_callback(self.name, handle))
+        return await self.AD.events.info_event_callback(self.name, handle)
 
-    def fire_event(self, event, **kwargs):
+    @sync_wrapper
+    async def fire_event(self, event, **kwargs):
         """Fires an event on the AppDaemon bus, for apps and plugins.
 
         Args:
@@ -1485,7 +1525,7 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        utils.run_coroutine_threadsafe(self, self.AD.events.fire_event(namespace, event, **kwargs))
+        await self.AD.events.fire_event(namespace, event, **kwargs)
 
     #
     # Time
@@ -1538,7 +1578,8 @@ class ADAPI:
         """
         return iso8601.parse_date(utc)
 
-    def sun_up(self):
+    @sync_wrapper
+    async def sun_up(self):
         """Determines if the sun is currently up.
 
         Returns:
@@ -1549,9 +1590,10 @@ class ADAPI:
             >>>    #do something
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.sun_up())
+        return await self.AD.sched.sun_up()
 
-    def sun_down(self):
+    @sync_wrapper
+    async def sun_down(self):
         """Determines if the sun is currently down.
 
         Returns:
@@ -1562,9 +1604,10 @@ class ADAPI:
             >>>    #do something
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.sun_down())
+        return await self.AD.sched.sun_down()
 
-    def parse_time(self, time_str, name=None, aware=False):
+    @sync_wrapper
+    async def parse_time(self, time_str, name=None, aware=False):
         """Creates a `time` object from its string representation.
 
         This functions takes a string representation of a time, or sunrise,
@@ -1598,9 +1641,10 @@ class ADAPI:
             05:33:17
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.parse_time(time_str, name, aware))
+        return await self.AD.sched.parse_time(time_str, name, aware)
 
-    def parse_datetime(self, time_str, name=None, aware=False):
+    @sync_wrapper
+    async def parse_datetime(self, time_str, name=None, aware=False):
         """Creates a `datetime` object from its string representation.
 
         This function takes a string representation of a date and time, or sunrise,
@@ -1643,9 +1687,10 @@ class ADAPI:
             >>> self.parse_datetime("sunrise + 01:00:00")
             2019-08-16 06:33:17
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.parse_datetime(time_str, name, aware))
+        return await self.AD.sched.parse_datetime(time_str, name, aware)
 
-    def get_now(self):
+    @sync_wrapper
+    async def get_now(self):
         """Returns the current Local Date and Time.
 
         Examples:
@@ -1653,9 +1698,10 @@ class ADAPI:
             2019-08-16 21:17:41.098813+00:00
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now())
+        return await self.AD.sched.get_now()
 
-    def get_now_ts(self):
+    @sync_wrapper
+    async def get_now_ts(self):
         """Returns the current Local Timestamp.
 
         Examples:
@@ -1663,9 +1709,10 @@ class ADAPI:
              1565990318.728324
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now_ts())
+        return await self.AD.sched.get_now_ts()
 
-    def now_is_between(self, start_time, end_time, name=None):
+    @sync_wrapper
+    async def now_is_between(self, start_time, end_time, name=None):
         """Determines is the current `time` is within the specified start and end times.
 
         This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
@@ -1698,9 +1745,10 @@ class ADAPI:
             >>>     #do something
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.now_is_between(start_time, end_time, name))
+        return await self.AD.sched.now_is_between(start_time, end_time, name)
 
-    def sunrise(self, aware=False):
+    @sync_wrapper
+    async def sunrise(self, aware=False):
         """Returns a `datetime` object that represents the next time Sunrise will occur.
 
         Args:
@@ -1712,9 +1760,10 @@ class ADAPI:
             2019-08-16 05:33:17
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.sunrise(aware))
+        return await self.AD.sched.sunrise(aware)
 
-    def sunset(self, aware=False):
+    @sync_wrapper
+    async def sunset(self, aware=False):
         """Returns a `datetime` object that represents the next time Sunset will occur.
 
         Args:
@@ -1726,9 +1775,10 @@ class ADAPI:
             2019-08-16 19:48:48
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.sunset(aware))
+        return await self.AD.sched.sunset(aware)
 
-    def time(self):
+    @sync_wrapper
+    async def time(self):
         """Returns a localised `time` object representing the current Local Time.
 
         Use this in preference to the standard Python ways to discover the current time,
@@ -1739,9 +1789,10 @@ class ADAPI:
             20:15:31.295751
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).time()
+        return await self.AD.sched.get_now().astimezone(self.AD.tz).time()
 
-    def datetime(self, aware=False):
+    @sync_wrapper
+    async def datetime(self, aware=False):
         """Returns a `datetime` object representing the current Local Date and Time.
 
         Use this in preference to the standard Python ways to discover the current
@@ -1757,11 +1808,12 @@ class ADAPI:
 
         """
         if aware is True:
-            return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz)
+            return await self.AD.sched.get_now().astimezone(self.AD.tz)
         else:
-            return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now_naive())
+            return await self.AD.sched.get_now_naive()
 
-    def date(self):
+    @sync_wrapper
+    async def date(self):
         """Returns a localised `date` object representing the current Local Date.
 
         Use this in preference to the standard Python ways to discover the current date,
@@ -1772,7 +1824,7 @@ class ADAPI:
             2019-08-15
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_now()).astimezone(self.AD.tz).date()
+        return await self.AD.sched.get_now().astimezone(self.AD.tz).date()
 
     def get_timezone(self):
         """Returns the current time zone."""
@@ -1782,7 +1834,8 @@ class ADAPI:
     # Scheduler
     #
 
-    def cancel_timer(self, handle):
+    @sync_wrapper
+    async def cancel_timer(self, handle):
         """Cancels a previously created timer.
 
         Args:
@@ -1797,9 +1850,10 @@ class ADAPI:
         """
         name = self.name
         self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
-        utils.run_coroutine_threadsafe(self, self.AD.sched.cancel_timer(name, handle))
+        await self.AD.sched.cancel_timer(name, handle)
 
-    def info_timer(self, handle):
+    @sync_wrapper
+    async def info_timer(self, handle):
         """Gets information on a scheduler event from its handle.
 
         Args:
@@ -1818,9 +1872,10 @@ class ADAPI:
             >>> time, interval, kwargs = self.info_timer(handle)
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.info_timer(handle, self.name))
+        return await self.AD.sched.info_timer(handle, self.name)
 
-    def run_in(self, callback, delay, **kwargs):
+    @sync_wrapper
+    async def run_in(self, callback, delay, **kwargs):
         """Runs the callback in a defined number of seconds.
 
         This is used to add a delay, for instance, a 60 second delay before
@@ -1865,13 +1920,13 @@ class ADAPI:
         self.logger.debug("Registering run_in in %s seconds for %s", delay, name)
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
-        exec_time = self.get_now() + timedelta(seconds=int(delay))
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs
-        ))
+        exec_time = await self.get_now() + timedelta(seconds=int(delay))
+        handle = await self.AD.sched.insert_schedule(
+            name, exec_time, callback, False, None, **kwargs)
         return handle
 
-    def run_once(self, callback, start, **kwargs):
+    @sync_wrapper
+    async def run_once(self, callback, start, **kwargs):
         """Runs the callback once, at the specified time of day.
 
         Args:
@@ -1922,23 +1977,23 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"].time()
+            when = await self.AD.sched._parse_time(start, self.name)["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
         name = self.name
-        now = self.get_now()
+        now = await self.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, when)
         aware_event = self.AD.sched.convert_naive(event)
         if aware_event < now:
             one_day = datetime.timedelta(days=1)
             aware_event = aware_event + one_day
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, aware_event, callback, False, None, **kwargs
-        ))
+        handle = await self.AD.sched.insert_schedule(
+            name, aware_event, callback, False, None, **kwargs)
         return handle
 
-    def run_at(self, callback, start, **kwargs):
+    @sync_wrapper
+    async def run_at(self, callback, start, **kwargs):
         """Runs the callback once, at the specified time of day.
 
         Args:
@@ -1995,23 +2050,23 @@ class ADAPI:
         if type(start) == datetime.datetime:
             when = start
         elif type(start) == str:
-            when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"]
+            when = await self.AD.sched._parse_time(start, self.name)["datetime"]
         else:
             raise ValueError("Invalid type for start")
         aware_when = self.AD.sched.convert_naive(when)
         name = self.name
-        now = self.get_now()
+        now = await self.get_now()
         if aware_when < now:
             raise ValueError(
                 "{}: run_at() Start time must be "
                 "in the future".format(self.name)
             )
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, aware_when, callback, False, None, **kwargs
-        ))
+        handle = await self.AD.sched.insert_schedule(
+            name, aware_when, callback, False, None, **kwargs)
         return handle
 
-    def run_daily(self, callback, start, **kwargs):
+    @sync_wrapper
+    async def run_daily(self, callback, start, **kwargs):
         """Runs the callback at the same time every day.
 
         Args:
@@ -2067,7 +2122,7 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            info = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))
+            info = await self.AD.sched._parse_time(start, self.name)
         else:
             raise ValueError("Invalid type for start")
 
@@ -2080,16 +2135,17 @@ class ADAPI:
             event = datetime.datetime.combine(today, when)
             if event < now:
                 event = event + datetime.timedelta(days=1)
-            handle = self.run_every(callback, event, 24 * 60 * 60, **kwargs)
+            handle = await self.run_every(callback, event, 24 * 60 * 60, **kwargs)
         elif info["sun"] == "sunrise":
             kwargs["offset"] = info["offset"]
-            handle = self.run_at_sunrise(callback, **kwargs)
+            handle = await self.run_at_sunrise(callback, **kwargs)
         else:
             kwargs["offset"] = info["offset"]
-            handle = self.run_at_sunset(callback, **kwargs)
+            handle = await self.run_at_sunset(callback, **kwargs)
         return handle
 
-    def run_hourly(self, callback, start, **kwargs):
+    @sync_wrapper
+    async def run_hourly(self, callback, start, **kwargs):
         """Runs the callback at the same time every hour.
 
         Args:
@@ -2134,10 +2190,11 @@ class ADAPI:
             event = event.replace(minute=start.minute, second=start.second)
             if event < now:
                 event = event + datetime.timedelta(hours=1)
-        handle = self.run_every(callback, event, 60 * 60, **kwargs)
+        handle = await self.run_every(callback, event, 60 * 60, **kwargs)
         return handle
 
-    def run_minutely(self, callback, start, **kwargs):
+    @sync_wrapper
+    async def run_minutely(self, callback, start, **kwargs):
         """Runs the callback at the same time every minute.
 
         Args:
@@ -2182,10 +2239,11 @@ class ADAPI:
             event = event.replace(second=start.second)
             if event < now:
                 event = event + datetime.timedelta(minutes=1)
-        handle = self.run_every(callback, event, 60, **kwargs)
+        handle = await self.run_every(callback, event, 60, **kwargs)
         return handle
 
-    def run_every(self, callback, start, interval, **kwargs):
+    @sync_wrapper
+    async def run_every(self, callback, start, interval, **kwargs):
         """Runs the callback with a configurable delay starting at a specific time.
 
         Args:
@@ -2227,24 +2285,25 @@ class ADAPI:
 
         self.logger.debug("Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name)
 
-        handle = utils.run_coroutine_threadsafe(self,
-                                                self.AD.sched.insert_schedule(name, aware_start, callback, True,
-                                                                              None, interval=interval, **kwargs))
+        handle = await self.AD.sched.insert_schedule(
+            name, aware_start, callback, True,
+            None, interval=interval, **kwargs)
         return handle
 
-    def _schedule_sun(self, name, type_, callback, **kwargs):
+    @sync_wrapper
+    async def _schedule_sun(self, name, type_, callback, **kwargs):
 
         if type_ == "next_rising":
             event = self.AD.sched.next_sunrise()
         else:
             event = self.AD.sched.next_sunset()
 
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, event, callback, True, type_, **kwargs
-        ))
+        handle = await self.AD.sched.insert_schedule(
+            name, event, callback, True, type_, **kwargs)
         return handle
 
-    def run_at_sunset(self, callback, **kwargs):
+    @sync_wrapper
+    async def run_at_sunset(self, callback, **kwargs):
         """Runs a callback every day at or around sunset.
 
         Args:
@@ -2291,10 +2350,11 @@ class ADAPI:
         """
         name = self.name
         self.logger.debug("Registering run_at_sunset with kwargs = %s for %s", kwargs, name)
-        handle = self._schedule_sun(name, "next_setting", callback, **kwargs)
+        handle = await self._schedule_sun(name, "next_setting", callback, **kwargs)
         return handle
 
-    def run_at_sunrise(self, callback, **kwargs):
+    @sync_wrapper
+    async def run_at_sunrise(self, callback, **kwargs):
         """Runs a callback every day at or around sunrise.
 
         Args:
@@ -2342,7 +2402,7 @@ class ADAPI:
         """
         name = self.name
         self.logger.debug("Registering run_at_sunrise with kwargs = %s for %s", kwargs, name)
-        handle = self._schedule_sun(name, "next_rising", callback, **kwargs)
+        handle = await self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
 
     #
@@ -2409,7 +2469,8 @@ class ADAPI:
         """
         self.run_in(callback, 0, pin=False, pin_thread=thread, **kwargs)
 
-    def get_thread_info(self):
+    @sync_wrapper
+    async def get_thread_info(self):
         """Gets information on AppDaemon worker threads.
 
         Returns:
@@ -2419,9 +2480,10 @@ class ADAPI:
             >>> thread_info = self.get_thread_info()
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.threading.get_thread_info())
+        return await self.AD.threading.get_thread_info()
 
-    def get_scheduler_entries(self):
+    @sync_wrapper
+    async def get_scheduler_entries(self):
         """Gets information on AppDaemon scheduler entries.
 
         Returns:
@@ -2431,9 +2493,10 @@ class ADAPI:
             >>> schedule = self.get_scheduler_entries()
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.sched.get_scheduler_entries())
+        return await self.AD.sched.get_scheduler_entries()
 
-    def get_callback_entries(self):
+    @sync_wrapper
+    async def get_callback_entries(self):
         """Gets information on AppDaemon callback entries.
 
         Returns:
@@ -2444,7 +2507,7 @@ class ADAPI:
             >>> callbacks = self.get_callback_entries()
 
         """
-        return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
+        return await self.AD.callbacks.get_callback_entries()
 
     def run_coroutine(self, coro, callback=None, **kwargs):
         """Schedules a Coroutine to be executed
@@ -2474,3 +2537,6 @@ class ADAPI:
             f.add_done_callback(callback_inner)
 
         return f
+
+
+        
