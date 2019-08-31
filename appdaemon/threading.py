@@ -579,7 +579,7 @@ class Threading:
                 name = myargs["name"]
                 objectid = myargs["objectid"]
 
-                # needed for thread stats
+                # TODO: needed for thread stats
                 # _type = myargs["type"]
                 # _id = myargs["id"]
                 # thread_id = threading.current_thread().name
@@ -592,10 +592,24 @@ class Threading:
                 # callback = "{}() in {}".format(funcref.__name__, name)
                 # await self.update_thread_info(thread_id, callback, name, _type, _id)
 
-                await funcref(*func_args, **func_kwargs)
+                try:
+                    await funcref(*func_args, **func_kwargs)
+                except:
+                    error_logger = logging.getLogger("Error.{}".format(name))
+                    error_logger.warning('-' * 60,)
+                    error_logger.warning("Unexpected error in worker for App %s:", name)
+                    error_logger.warning( "Worker Ags: %s", args)
+                    error_logger.warning('-' * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning('-' * 60)
+                    if self.AD.logging.separate_error_log() is True:
+                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+                finally:
+                    pass
+                    # TODO: track async callback stats
+                    # await self.update_thread_info(thread_id, "idle", name, _type, _id)
 
-                # TODO: track async callback stats
-                # await self.update_thread_info(thread_id, "idle", name, _type, _id)
+
             else:
                 self.select_q(myargs)
             return True
