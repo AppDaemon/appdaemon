@@ -163,9 +163,6 @@ class AppManagement:
 
             term = self.objects[name]["object"].terminate
 
-        # clean up all hanging futures
-        self.objects[name]["object"]._cancel_futures()
-
         if term is not None:
             try:
                 if asyncio.iscoroutinefunction(term):
@@ -189,6 +186,8 @@ class AppManagement:
         await self.increase_inactive_apps(name)
 
         await self.AD.callbacks.clear_callbacks(name)
+
+        self.AD.futures.cancel_futures(name)
 
         await self.AD.sched.terminate_app(name)
 

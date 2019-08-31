@@ -18,7 +18,7 @@ def sync_wrapper(coro):
 
             # don't use create_task. It's python3.7 only
             f = asyncio.ensure_future(coro(self, *args, **kwargs))
-            self._add_future(f)
+            self.AD.futures.add_future(self.name, f)
         except RuntimeError:
             f = utils.run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
 
@@ -53,7 +53,6 @@ class ADAPI:
         self.logger = self._logging.get_child(name)
         self.err = self._logging.get_error().getChild(name)
         self.user_logs = {}
-        self._futures = []
         if "log_level" in args:
             self.logger.setLevel(args["log_level"])
             self.err.setLevel(args["log_level"])
@@ -61,21 +60,6 @@ class ADAPI:
             userlog = self.get_user_log(args["log"])
             if userlog is not None:
                 self.logger = userlog
-
-    def _add_future(self, f):
-        self._clean_futures()
-        self._futures.append(f)
-
-
-    def _clean_futures(self):
-        for f in self._futures:
-            if f.done():
-                self._futures.remove(f)
-
-    def _cancel_futures(self):
-        for f in self._futures:
-            if not f.done():
-                f.cancel()
 
     @staticmethod
     def _sub_stack(msg):
@@ -2554,7 +2538,7 @@ class ADAPI:
         if callback is not None:
             f.add_done_callback(callback_inner)
 
-        self._add_future(f)
+        self.AD.futures.add_future(self.name, f)
         return f
 
 

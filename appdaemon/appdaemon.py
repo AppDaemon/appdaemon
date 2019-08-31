@@ -19,6 +19,7 @@ class AppDaemon:
         import appdaemon.threading
         import appdaemon.app_management as apps
         import appdaemon.callbacks as callbacks
+        import appdaemon.futures as futures
         import appdaemon.state as state
         import appdaemon.events as events
         import appdaemon.services as services
@@ -29,6 +30,7 @@ class AppDaemon:
         self.logger = logging.get_logger()
         self.threading = None
         self.callbacks = None
+        self.futures = None
         self.state = None
 
         self.config = kwargs
@@ -193,6 +195,12 @@ class AppDaemon:
         # Set up callbacks
         #
         self.callbacks = callbacks.Callbacks(self)
+
+        #
+        # Set up futures
+        #
+        self.futures = futures.Futures(self)
+
 
         if self.apps is True:
             if self.app_dir is None:
