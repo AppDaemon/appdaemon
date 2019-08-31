@@ -64,8 +64,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         return self.get_state(entity_id, **kwargs)
 
-    def anyone_home(self, **kwargs):
-        state = self.get_state(**kwargs)
+    @utils.sync_wrapper
+    async def anyone_home(self, **kwargs):
+        state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
             if thisdevice == "device_tracker":
@@ -73,8 +74,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                     return True
         return False
 
-    def everyone_home(self, **kwargs):
-        state = self.get_state(**kwargs)
+    @utils.sync_wrapper
+    async def everyone_home(self, **kwargs):
+        state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
             if thisdevice == "device_tracker":
@@ -82,8 +84,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                     return False
         return True
 
-    def noone_home(self, **kwargs):
-        state = self.get_state(**kwargs)
+    @utils.sync_wrapper
+    async def noone_home(self, **kwargs):
+        state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
             if thisdevice == "device_tracker":
@@ -138,12 +141,13 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     #
 
     @hass_check
-    def turn_on(self, entity_id, **kwargs):
+    @utils.sync_wrapper
+    async def turn_on(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -151,15 +155,16 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs["entity_id"] = entity_id
             
         rargs["namespace"] = namespace
-        self.call_service("homeassistant/turn_on", **rargs)
+        await self.call_service("homeassistant/turn_on", **rargs)
 
     @hass_check
-    def turn_off(self, entity_id, **kwargs):
+    @utils.sync_wrapper
+    async def turn_off(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -169,17 +174,18 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs["namespace"] = namespace
         device, entity = self.split_entity(entity_id)
         if device == "scene":
-            self.call_service("homeassistant/turn_on", **rargs)
+            await self.call_service("homeassistant/turn_on", **rargs)
         else:
-            self.call_service("homeassistant/turn_off", **rargs)
+            await self.call_service("homeassistant/turn_off", **rargs)
 
     @hass_check
-    def toggle(self, entity_id, **kwargs):
+    @utils.sync_wrapper
+    async def toggle(self, entity_id, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -187,15 +193,16 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs["entity_id"] = entity_id
             
         rargs["namespace"] = namespace
-        self.call_service("homeassistant/toggle", **rargs)
+        await self.call_service("homeassistant/toggle", **rargs)
 
     @hass_check
-    def set_value(self, entity_id, value, **kwargs):
+    @utils.sync_wrapper
+    async def set_value(self, entity_id, value, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
         else:
@@ -203,15 +210,16 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs["entity_id"] = entity_id
             rargs["value"] = value
         rargs["namespace"] = namespace
-        self.call_service("input_number/set_value", **rargs)
+        await self.call_service("input_number/set_value", **rargs)
 
     @hass_check
-    def set_textvalue(self, entity_id, value, **kwargs):
+    @utils.sync_wrapper
+    async def set_textvalue(self, entity_id, value, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
         else:
@@ -220,15 +228,16 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs["value"] = value
             
         rargs["namespace"] = namespace
-        self.call_service("input_text/set_value", **rargs)
+        await self.call_service("input_text/set_value", **rargs)
 
     @hass_check
-    def select_option(self, entity_id, option, **kwargs):
+    @utils.sync_wrapper
+    async def select_option(self, entity_id, option, **kwargs):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "option": option}
         else:
@@ -237,10 +246,11 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs["option"] = option
             
         rargs["namespace"] = namespace
-        self.call_service("input_select/select_option", **rargs)
+        await self.call_service("input_select/select_option", **rargs)
 
     @hass_check
-    def notify(self, message, **kwargs):
+    @utils.sync_wrapper
+    async def notify(self, message, **kwargs):
         kwargs["message"] = message
         if "name" in kwargs:
             service = "notify/{}".format(kwargs["name"])
@@ -248,27 +258,29 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         else:
             service = "notify/notify"
 
-        self.call_service(service, **kwargs)
+        await self.call_service(service, **kwargs)
 
     @hass_check
-    def persistent_notification(self, message, title=None, id=None):
+    @utils.sync_wrapper
+    async def persistent_notification(self, message, title=None, id=None):
         kwargs = {}
         kwargs["message"] = message
         if title is not None:
             kwargs["title"] = title
         if id is not None:
             kwargs["notification_id"] = id
-        self.call_service("persistent_notification/create", **kwargs)
+        await self.call_service("persistent_notification/create", **kwargs)
 
     @hass_check
-    def get_history(self, entity_id = "", **kwargs):
+    @utils.sync_wrapper
+    async def get_history(self, entity_id = "", **kwargs):
         namespace = self._get_namespace(**kwargs)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
         
         if entity_id != "":
-            self._check_entity(namespace, entity_id)
+            await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -277,5 +289,5 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             
         rargs["namespace"] = namespace
 
-        result = self.call_service("database/history", **rargs)
+        result = await self.call_service("database/history", **rargs)
         return result
