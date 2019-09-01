@@ -543,7 +543,8 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         return await self.AD.state.entity_exists(namespace, entity_id)
 
-    def split_entity(self, entity_id, **kwargs):
+    @utils.sync_wrapper
+    async def split_entity(self, entity_id, **kwargs):
         """Splits an entity into parts.
 
         This utility function will take a fully qualified entity id of the form ``light.hall_light``
@@ -569,7 +570,7 @@ class ADAPI:
             >>>     #do something specific to scenes
 
         """
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        await self._check_entity(self._get_namespace(**kwargs), entity_id)
         return entity_id.split(".")
 
     @utils.sync_wrapper
@@ -653,7 +654,8 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         return await self.AD.plugins.get_plugin_meta(namespace)
 
-    def friendly_name(self, entity_id, **kwargs):
+    @utils.sync_wrapper
+    async def friendly_name(self, entity_id, **kwargs):
         """Gets the Friendly Name of an entity.
 
         Args:
@@ -676,7 +678,7 @@ class ADAPI:
             device_tracker.andrew (Andrew Tracker) is on.
 
         """
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
+        await self._check_entity(self._get_namespace(**kwargs), entity_id)
         state = self.get_state(**kwargs)
         if entity_id in state:
             if "friendly_name" in state[entity_id]["attributes"]:
@@ -1189,7 +1191,7 @@ class ADAPI:
             del kwargs["namespace"]
         name = self.name
         if entity is not None and "." in entity:
-            self._check_entity(namespace, entity)
+            await self._check_entity(namespace, entity)
 
         self.logger.debug("Calling listen_state for %s", self.name)
         return await self.AD.state.add_state_callback(name, namespace, entity, callback,
@@ -1342,7 +1344,7 @@ class ADAPI:
         """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
         namespace = self._get_namespace(**kwargs)
-        self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity_id)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
