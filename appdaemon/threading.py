@@ -593,7 +593,8 @@ class Threading:
                 # await self.update_thread_info(thread_id, callback, name, _type, _id)
 
                 try:
-                    await funcref(*func_args, **func_kwargs)
+                    f = asyncio.ensure_future(funcref(*func_args, **func_kwargs))
+                    self.AD.futures.add_future(name, f)
                 except:
                     error_logger = logging.getLogger("Error.{}".format(name))
                     error_logger.warning('-' * 60,)
