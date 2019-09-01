@@ -906,7 +906,7 @@ class AppManagement:
 
         return apps
 
-    def register_dependency(self, app, module):
+    def register_module_dependency(self, app, module):
         if app not in self.global_module_dependencies:
             self.global_module_dependencies[app] = []
 
