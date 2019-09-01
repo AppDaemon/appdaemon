@@ -9,9 +9,7 @@ Examples
 --------
 
 Example apps that showcase most of these functions are available in the
-AppDaemon repository:
-
-`Apps <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__
+AppDaemon `repository <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__
 
 Anatomy of an App
 -----------------
@@ -25,11 +23,10 @@ code when those events occur, allowing the App to respond to the event
 with some kind of action.
 
 The first step is to create a unique file within the apps directory (as
-defined in the ``appdaemon`` section of configuration file - see `The
-Installation Page <INSTALL.html>`__ for further information on the
-configuration of AppDaemon itself). This file, is in fact, a Python
+defined `here <INSTALL.html>`__). This file, is in fact, a Python
 module, and is expected to contain one or more classes derived from a
-supplied ``appdaemon`` class or a custom plugin. For instance, hass support can be used by importing from the supplied ``hassapi`` module. The start of an App might look like this:
+supplied *AppDaemon class* or a *custom plugin*. For instance, hass support can be used
+by importing from the supplied ``hassapi`` module. The start of an App might look like this:
 
 .. code:: python
 
@@ -384,6 +381,8 @@ It is also possible to have multiple dependencies, added as a yaml list
 AppDaemon will write errors to the log if a dependency is missing and it
 will also detect circular dependencies.
 
+Dependencies can also be set using the ``register_dependency()`` api call.
+
 App Loading Priority
 --------------------
 
@@ -598,7 +597,7 @@ days
 ^^^^
 
 The day constraint consists of as list of days for which the callbacks
-will fire, e.g.
+will fire, e.g.,
 
 .. code:: yaml
 
@@ -622,7 +621,7 @@ input\_boolean
 ^^^^^^^^^^^^^^
 
 By default, the input\_boolean constraint prevents callbacks unless the
-specified input\_boolean is set to "on". This is useful to allow certain
+specified input\_boolean is set to ``on``. This is useful to allow certain
 Apps to be turned on and off from the user interface. For example:
 
 .. code:: yaml
@@ -633,8 +632,8 @@ Apps to be turned on and off from the user interface. For example:
       constrain_input_boolean: input_boolean.enable_motion_detection
 
 If you want to reverse the logic so the constraint is only called when
-the input\_boolean is off, use the optional state parameter by appending
-",off" to the argument, e.g.:
+the input\_boolean is off, use the optional state parameter by appending,
+``off`` to the argument, e.g.:
 
 .. code:: yaml
 
@@ -702,7 +701,7 @@ exhaustion, which would make the system run behind events. No events
 would be lost as they would be queued, but callbacks would be delayed,
 which is a bad thing.
 
-Given the above, NEVER use Python's ``time.sleep()`` if you want to
+Given the above, **NEVER** use Python's ``time.sleep()`` if you want to
 perform an operation some time in the future, as this will tie up a
 thread for the period of the sleep. Instead, use the scheduler's
 ``run_in()`` function which will allow you to delay without blocking any
@@ -1075,7 +1074,9 @@ keyword-value style arguments after the positional arguments. The
 parameters themselves are named identically to the previously described
 constraints and have identical functionality. For instance, adding:
 
-``constrain_presence="everyone"``
+.. code:: python
+
+    constrain_presence="everyone"
 
 to a HASS callback registration will ensure that the callback is only run if
 the callback conditions are met, and in addition everyone is present
@@ -1084,7 +1085,9 @@ they have no constraints.
 
 For example:
 
-``self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")``
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")
 
 User Arguments
 ^^^^^^^^^^^^^^
@@ -1097,7 +1100,9 @@ same as any constraint name for obvious reasons. For example, to pass
 the parameter ``arg1 = "home assistant"`` through to a callback you
 would register a callback as follows:
 
-``self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")``
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")
 
 Then in the callback it is presented back to the function as a
 dictionary and you could use it as follows:
@@ -1188,11 +1193,9 @@ usual AppDaemon calls.
 The Scheduler
 -------------
 
-AppDaemon contains a powerful scheduler that is able to run with 1
-second resolution to fire off specific events at set times, or after set
-delays, or even relative to sunrise and sunset. In general, events
-should be fired less than a second after specified but under certain
-circumstances there may be short additional delays.
+AppDaemon contains a powerful scheduler that is able to run with microsecond
+resolution to fire off specific events at set times, or after set
+delays, or even relative to sunrise and sunset.
 
 About Schedule Callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1301,8 +1304,7 @@ The MQTT plugin uses events as its primary (and only interface) to MQTT. The mod
 Events and Home Assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
- We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them
-are:
+We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
 
 -  ``homeassistant_start``
 -  ``homeassistant_stop``
@@ -1486,7 +1488,7 @@ Use of Events for Interacting with HADashboard
 
 HADashboard listens for certain events. An event type of "hadashboard"
 will trigger certain actions such as page navigation. For more
-information see the ` Dashboard configuration pages <DASHBOARD.html>`__
+information see the `Dashboard configuration pages <DASHBOARD.html>`__
 
 AppDaemon provides convenience functions to assist with this.
 
@@ -1825,7 +1827,7 @@ Below is an example of using curl to call into the App shown above:
 
 .. code:: bash
 
-    hass@Pegasus:~$ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/test_endpoint -d '{"type": "Hello World Test"}'
+    $ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/test_endpoint -d '{"type": "Hello World Test"}'
     HTTP/1.1 200 OK
     Content-Type: application/json; charset=utf-8
     Content-Length: 26
@@ -1838,7 +1840,7 @@ API Security
 ------------
 
 If you have added a key to the AppDaemon config, AppDaemon will expect
-to find a header called "x-ad-access" in the request with a value equal
+to find a header called "*x-ad-access*" in the request with a value equal
 to the configured key. A security key is added for the API with the
 ``api_key`` directive described in the `Installation
 Documentation <INSTALL.html>`__
@@ -1848,8 +1850,7 @@ of ``401 Not Authorized``. Here is a succesful curl example:
 
 .. code:: bash
 
-    hass@Pegasus:~$ curl -i -X POST -H "x-ad-access: fred" -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World
-     Test"}'
+    $ curl -i -X POST -H "x-ad-access: fred" -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World Test"}'
     HTTP/1.1 200 OK
     Content-Type: application/json; charset=utf-8
     Content-Length: 26
@@ -1862,7 +1863,7 @@ And an example of a missing key:
 
 .. code:: bash
 
-    hass@Pegasus:~$ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World Test"}'
+    $ curl -i -X POST -H "Content-Type: application/json" http://192.168.1.20:5050/api/appdaemon/api -d '{"type": "Hello World Test"}'
     HTTP/1.1 401 Unauthorized
     Content-Length: 112
     Content-Type: text/plain; charset=utf-8
@@ -2030,10 +2031,10 @@ want to configure.
 
             return random.choice(responses)
 
-Google API.AI
+Dialogflow API
 -------------
 
-Similarly, Google's API.AI for Google home is supported - here is the Google version of the same App. To set up API.AI with your google home refer to the `apiai` component in home-assistant. Once it is setup you can use the AppDaemon API as the webhook.
+Similarly, Dialogflow API for Google home is supported - here is the Google version of the same App. To set up Dialogflow with your google home refer to the `apiai` component in home-assistant. Once it is setup you can use the AppDaemon API as the webhook.
 
 .. code:: python
 
@@ -2047,10 +2048,10 @@ Similarly, Google's API.AI for Google home is supported - here is the Google ver
             pass
 
         def api_call(self, data):
-            intent = self.get_apiai_intent(data)
+            intent = self.get_dialogflow_intent(data)
 
             if intent is None:
-                self.log("Apiai error encountered: Result is empty")
+                self.log("Dialogflow error encountered: Result is empty")
                 return "", 201
 
             intents = {
@@ -2060,10 +2061,10 @@ Similarly, Google's API.AI for Google home is supported - here is the Google ver
 
             if intent in intents:
                 speech = intents[intent](data)
-                response = self.format_apiai_response(speech)
-                self.log("Recieved Apai request: {}, answering: {}".format(intent, speech))
+                response = self.format_dialogflow_response(speech)
+                self.log("Recieved Dialogflow request: {}, answering: {}".format(intent, speech))
             else:
-                response = self.format_apaiai_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
+                response = self.format_dialogflow_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
 
             return response, 200
 
@@ -2072,7 +2073,7 @@ Similarly, Google's API.AI for Google home is supported - here is the Google ver
             return response
 
         def LocateIntent(self, data):
-            user = self.get_apiai_slot_value(data, "User")
+            user = self.get_dialogflow_slot_value(data, "User")
 
             if user is not None:
                 if user.lower() == "jack":
@@ -2241,38 +2242,44 @@ Similarly:
     self.listen_state(callback, namespace="hass2")
     self.set_namespace("dummy1")
 
-This code fragment will achieve the same result as above since the namespace is being overridden, and will keep the same value for that callback regardless of what the namespace is set to.
+This code fragment will achieve the same result as above since the namespace is being overridden, and will
+keep the same value for that callback regardless of what the namespace is set to.
 
 User Defined Namespaces
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Each plugin has it's own unique namespace as described above, and they are pretty much in control of those namespaces. It is possible to set a state in a plugin managed namespace which can be used as a temporary variable or even as a way of signalling other apps using ``listen_+state()`` however this is not recommended:
+Each plugin has it's own unique namespace as described above, and they are pretty much in control of those
+namespaces. It is possible to set a state in a plugin managed namespace which can be used as a temporary
+variable or even as a way of signalling other apps using ``listen_state()`` however this is not recommended:
 
 - Plugin managed namespaces may be overwritten at any time by the plugin
-- They will likely be overwritten whenthe plugin restarts even if AppDaemon does not
+- They will likely be overwritten when the plugin restarts even if AppDaemon does not
 - They will not survive a restart of AppDaemon because it is regarded as the job of the plugin to reconstruct it's state and it knows nothing about any additional variables you have added. Although this technique can still be useful, for example, to add sensors to Home Assistant, a better alternative for Apps to use are User Defined Namespaces.
 
 
-A User Defined Namespace is a new area of storage for entities that is not managed by a plugin. UDMs are guaranteed not to be changed by any plugin and are available to all apps just the same as a plugin-based namespace. UDMs also survive AppDaemon restarts and crashes, creating durable storage for saving the information and communicating with other apps via ``listen_state()`` and ``set_state()``.
+A User Defined Namespace is a new area of storage for entities that is not managed by a plugin. UDMs are guaranteed
+not to be changed by any plugin and are available to all apps just the same as a plugin-based namespace. UDMs also
+survive AppDaemon restarts and crashes, creating durable storage for saving the information and communicating with
+other apps via ``listen_state()`` and ``set_state()``.
 
 They are configured in the ``appdaemon.yaml`` file as follows:
 
 .. code:: yaml
 
-namespaces:
-    my_namespace:
-      # writeback is safe, performance or hybrid
-      writeback: safe
-    my_namespace2:
-      writeback: performance
-    my_namespace3:
-      writeback: hybrid
+    namespaces:
+        my_namespace:
+          # writeback is safe, performance or hybrid
+          writeback: safe
+        my_namespace2:
+          writeback: performance
+        my_namespace3:
+          writeback: hybrid
 
 Here we are defining 3 new namespaces - you can have as many as you want. Ther names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
 
-- safe - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible performance impact for systems with slower disks, or that set state on many UDMs at a time.
-- performance - the namespace is written when AD exits, meaning that all processing is in memory for the best performance. Although this style of UDM will survive a restart, data may be lost if AppDaemon or the host crashes.
-- hybrid - a compromise setting in which the namespaces are saved periodically (once each time around the utility loop, usually once every second- with this setting a maximum of 1 second of data will be lost if AppDaemon crashes.
+- ``safe`` - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible performance impact for systems with slower disks, or that set state on many UDMs at a time.
+- ``performance`` - the namespace is written when AD exits, meaning that all processing is in memory for the best performance. Although this style of UDM will survive a restart, data may be lost if AppDaemon or the host crashes.
+- ``hybrid`` - a compromise setting in which the namespaces are saved periodically (once each time around the utility loop, usually once every second- with this setting a maximum of 1 second of data will be lost if AppDaemon crashes.
 
 Using Multiple APIs From One App
 --------------------------------

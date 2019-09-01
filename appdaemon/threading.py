@@ -464,6 +464,9 @@ class Threading:
                                  old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
         executed = False
         #kwargs["handle"] = uuid_
+        #
+        #
+        #
         if attribute == "all":
             executed = await self.dispatch_worker(name, {
                 "id": uuid_,
@@ -480,6 +483,11 @@ class Threading:
                 "kwargs": kwargs,
             })
         else:
+            #
+            # Let's figure out if we need to run a callback
+            #
+            # Start by figuring out what the incoming old value was
+            #
             if old_state is None:
                 old = None
             else:
@@ -489,6 +497,9 @@ class Threading:
                     old = old_state['attributes'][attribute]
                 else:
                     old = None
+            #
+            # Now the incoming new value
+            #
             if new_state is None:
                 new = None
             else:
@@ -499,42 +510,71 @@ class Threading:
                 else:
                     new = None
 
-            if (cold is None or cold == old) and (cnew is None or cnew == new) and new != old:
-                if "duration" in kwargs:
-                    # Set a timer
-                    exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(kwargs["duration"]))
 
-                    #check if it is a oneshot and store handle
-                    if kwargs.get("oneshot", False):
-                        kwargs["__handle"] = uuid_
-
-                    kwargs["__duration"] = await self.AD.sched.insert_schedule(
-                        name, exec_time, funcref, False, None,
-                        __entity=entity,
-                        __attribute=attribute,
-                        __old_state=old,
-                        __new_state=new, **kwargs
-                    )
-                else:
-                    # Do it now
-                    executed = await self.dispatch_worker(name, {
-                        "id": uuid_,
-                        "name": name,
-                        "objectid": self.AD.app_management.objects[name]["id"],
-                        "type": "state",
-                        "function": funcref,
-                        "attribute": attribute,
-                        "entity": entity,
-                        "new_state": new,
-                        "old_state": old,
-                        "pin_app": pin_app,
-                        "pin_thread": pin_thread,
-                        "kwargs": kwargs
-                    })
-            else:
-                if "__duration" in kwargs and new != old:
-                    # cancel timer
+            #
+            # Don't do anything unless there has been a change
+            #
+            if new != old:
+                if "__duration" in kwargs:
+                    #
+                    # We have a pending timer for this, but we are coming around again.
+                    # Either we will start a new timer if the conditions are met
+                    # Or we won't if they are not.
+                    # Either way, we cancel the old timer
+                    #
                     await self.AD.sched.cancel_timer(name, kwargs["__duration"])
+
+                #
+                # Check if we care about the change
+                #
+                if (cold is None or cold == old) and (cnew is None or cnew == new):
+                    #
+                    # We do!
+                    #
+
+                    if "duration" in kwargs:
+                        #
+                        # Set a timer
+                        #
+                        exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(kwargs["duration"]))
+
+                        #
+                        # If it's a oneshot, scheduler will delete the callback once it has executed,
+                        # We need to give it the handle so it knows what to delete
+                        #
+                        if kwargs.get("oneshot", False):
+                            kwargs["__handle"] = uuid_
+
+                        #
+                        # We're not executing the callback immediately so let's schedule it
+                        # Unless we intercede and cancel it, the callback will happen in "duration" seconds
+                        #
+
+                        kwargs["__duration"] = await self.AD.sched.insert_schedule(
+                            name, exec_time, funcref, False, None,
+                            __entity=entity,
+                            __attribute=attribute,
+                            __old_state=old,
+                            __new_state=new, **kwargs
+                        )
+                    else:
+                        #
+                        # Not a delay so make the callback immediately
+                        #
+                        executed = await self.dispatch_worker(name, {
+                            "id": uuid_,
+                            "name": name,
+                            "objectid": self.AD.app_management.objects[name]["id"],
+                            "type": "state",
+                            "function": funcref,
+                            "attribute": attribute,
+                            "entity": entity,
+                            "new_state": new,
+                            "old_state": old,
+                            "pin_app": pin_app,
+                            "pin_thread": pin_thread,
+                            "kwargs": kwargs
+                        })
 
         return executed
 

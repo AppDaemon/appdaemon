@@ -9,7 +9,11 @@ from appdaemon.appdaemon import AppDaemon
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+from functools import wraps
+
+
 def hass_check(func):
+    @wraps(func)
     def func_wrapper(*args, **kwargs):
         self = args[0]
         ns = self._get_namespace(**kwargs)
@@ -55,17 +59,102 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     #
 
     def get_trackers(self, **kwargs):
+        """Returns a list of all device tracker names.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Examples:
+            >>> trackers = self.get_trackers()
+            >>> for tracker in trackers:
+            >>>     do something
+
+        """
         return (key for key, value in self.get_state("device_tracker", **kwargs).items())
 
     def get_tracker_details(self, **kwargs):
+        """Returns a list of all device trackers and their associated state.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Examples:
+            >>> trackers = self.get_tracker_details()
+            >>> for tracker in trackers:
+            >>>     do something
+
+        """
         return self.get_state("device_tracker", **kwargs)
 
     def get_tracker_state(self, entity_id, **kwargs):
+        """Gets the state of a tracker.
+
+        Args:
+            entity_id (str): Fully qualified entity id of the device tracker to query, e.g.,
+                ``device_tracker.andrew``.
+           **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            The values returned depend in part on the
+            configuration and type of device trackers in the system. Simpler tracker
+            types like ``Locative`` or ``NMAP`` will return one of 2 states:
+
+            -  ``home``
+            -  ``not_home``
+
+            Some types of device tracker are in addition able to supply locations
+            that have been configured as Geofences, in which case the name of that
+            location can be returned.
+
+        Examples:
+            >>> trackers = self.get_trackers()
+            >>> for tracker in trackers:
+            >>>     self.log("{} is {}".format(tracker, self.get_tracker_state(tracker)))
+
+        """
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         return self.get_state(entity_id, **kwargs)
 
     @utils.sync_wrapper
     async def anyone_home(self, **kwargs):
+        """Determines if the house/apartment is occupied.
+
+        A convenience function to determine if one or more person is home. Use
+        this in preference to getting the state of ``group.all_devices()`` as it
+        avoids a race condition when using state change callbacks for device
+        trackers.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            Returns ``True`` if anyone is at home, ``False`` otherwise.
+
+        Examples:
+            >>> if self.anyone_home():
+            >>>     do something
+
+        """
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
@@ -76,6 +165,28 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     async def everyone_home(self, **kwargs):
+        """Determine if all family's members at home.
+
+        A convenience function to determine if everyone is home. Use this in
+        preference to getting the state of ``group.all_devices()`` as it avoids
+        a race condition when using state change callbacks for device trackers.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            Returns ``True`` if everyone is at home, ``False`` otherwise.
+
+        Examples:
+            >>> if self.everyone_home():
+            >>>    do something
+
+        """
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
@@ -86,6 +197,28 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     async def noone_home(self, **kwargs):
+        """Determines if the house/apartment is empty.
+
+        A convenience function to determine if no people are at home. Use this
+        in preference to getting the state of ``group.all_devices()`` as it avoids
+        a race condition when using state change callbacks for device trackers.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            Returns ``True`` if no one is home, ``False`` otherwise.
+
+        Examples:
+            >>> if self.noone_home():
+            >>>     do something
+
+        """
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = entity_id.split(".")
@@ -143,6 +276,40 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def turn_on(self, entity_id, **kwargs):
+        """Turns `on` a Home Assistant entity.
+
+        This is a convenience function for the ``homassistant.turn_on``
+        function. It can turn ``on`` pretty much anything in Home Assistant
+        that can be turned ``on`` or ``run`` (e.g., `Lights`, `Switches`,
+        `Scenes`, `Scripts`, etc.).
+
+        Args:
+            entity_id (str): Fully qualified id of the thing to be turned ``on`` (e.g.,
+                `light.office_lamp`, `scene.downstairs_on`).
+            **kwargs (optional): Zero or more keyword arguments.
+
+         Keyword Args:
+             namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            Turn `on` a switch.
+
+            >>> self.turn_on("switch.backyard_lights")
+
+            Turn `on` a scene.
+
+            >>> self.turn_on("scene.bedroom_on")
+
+            Turn `on` a light and set its color to green.
+
+            >>> self.turn_on("light.office_1", color_name = "green")
+
+        """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -160,6 +327,35 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def turn_off(self, entity_id, **kwargs):
+        """Turns `off` a Home Assistant entity.
+
+        This is a convenience function for the ``homassistant.turn_off``
+        function. It can turn ``off`` pretty much anything in Home Assistant
+        that can be turned ``off`` (e.g., `Lights`, `Switches`, etc.).
+
+        Args:
+            entity_id (str): Fully qualified id of the thing to be turned ``off`` (e.g.,
+                `light.office_lamp`, `scene.downstairs_on`).
+            **kwargs (optional): Zero or more keyword arguments.
+
+         Keyword Args:
+             namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            Turn `off` a switch.
+
+            >>> self.turn_off("switch.backyard_lights")
+
+            Turn `off` a scene.
+
+            >>> self.turn_off("scene.bedroom_on")
+
+        """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -181,6 +377,30 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def toggle(self, entity_id, **kwargs):
+        """Toggles between ``on`` and ``off`` for the selected entity.
+
+        This is a convenience function for the ``homassistant.toggle`` function.
+        It is able to flip the state of pretty much anything in Home Assistant
+        that can be turned ``on`` or ``off``.
+
+        Args:
+            entity_id (str): Fully qualified id of the thing to be turned ``off`` (e.g.,
+                `light.office_lamp`, `scene.downstairs_on`).
+            **kwargs (optional): Zero or more keyword arguments.
+
+         Keyword Args:
+             namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.toggle("switch.backyard_lights")
+            >>> self.toggle("light.office_1", color_name = "green")
+
+        """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -198,6 +418,29 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def set_value(self, entity_id, value, **kwargs):
+        """Sets the value of an `input_number`.
+
+        This is a convenience function for the ``input_number.set_value``
+        function. It can set the value of an ``input_number`` in Home Assistant.
+
+        Args:
+            entity_id (str): Fully qualified id of `input_number` to be changed (e.g.,
+                `input_number.alarm_hour`).
+            value (int or float): The new value to set the `input_number` to.
+            **kwargs (optional): Zero or more keyword arguments.
+
+         Keyword Args:
+             namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.set_value("input_number.alarm_hour", 6)
+
+        """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -215,6 +458,29 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def set_textvalue(self, entity_id, value, **kwargs):
+        """Sets the value of an `input_text`.
+
+        This is a convenience function for the ``input_text.set_value``
+        function. It can set the value of an `input_text` in Home Assistant.
+
+        Args:
+            entity_id (str): Fully qualified id of `input_text` to be changed (e.g.,
+                `input_text.text1`).
+            value (str): The new value to set the `input_text` to.
+            **kwargs (optional): Zero or more keyword arguments.
+
+         Keyword Args:
+             namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.set_textvalue("input_text.text1", "hello world")
+
+        """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -233,6 +499,32 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def select_option(self, entity_id, option, **kwargs):
+        """Sets the value of an `input_option`.
+
+        This is a convenience function for the ``input_select.select_option``
+        function. It can set the value of an `input_select` in Home Assistant.
+
+        Args:
+            entity_id (str): Fully qualified id of `input_select` to be changed (e.g.,
+                `input_select.mode`).
+            option (str): The new value to set the `input_select` to.
+            **kwargs (optional): Zero or more keyword arguments.
+
+         Keyword Args:
+             namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.select_option("input_select.mode", "Day")
+
+        Todo:
+            * Is option always a str?
+
+        """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -251,6 +543,31 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def notify(self, message, **kwargs):
+        """Sends a notification.
+
+        This is a convenience function for the ``notify.notify`` service. It
+        will send a notification to a named notification service. If the name is
+        not specified, it will default to ``notify/notify``.
+
+        Args:
+            message (str): Message to be sent to the notification service.
+            **kwargs (optional): Zero or more keyword arguments.
+
+         Keyword Args:
+             title (str, optional): Title of the notification.
+             name (str, optional): Name of the notification service.
+             namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.notify("Switching mode to Evening")
+            >>> self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
+
+        """
         kwargs["message"] = message
         if "name" in kwargs:
             service = "notify/{}".format(kwargs["name"])
@@ -263,6 +580,19 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def persistent_notification(self, message, title=None, id=None):
+        """
+
+        Args:
+            message:
+            title:
+            id:
+
+        Returns:
+
+        Todo:
+            * Finish
+
+        """
         kwargs = {}
         kwargs["message"] = message
         if title is not None:
@@ -274,6 +604,67 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     @hass_check
     @utils.sync_wrapper
     async def get_history(self, entity_id = "", **kwargs):
+        """Gets access to the HA Database.
+
+        This is a convenience function that allows accessing the HA Database, so the
+        history state of a device can be retrieved. It allows for a level of flexibility
+        when retrieving the data, and returns it as a dictionary list. Caution must be
+        taken when using this, as depending on the size of the database, it can take
+        a long time to process.
+
+        Args:
+            entity_id (str): Fully qualified id of the device to be querying, e.g.,
+                ``light.office_lamp`` or ``scene.downstairs_on`` This can be any entity_id
+                in the database. If this is left empty, the state of all entities will be
+                retrieved within the specified time. If both ``end_time`` and ``start_time``
+                explained below are declared, and ``entity_id`` is specified, the specified
+                ``entity_id`` will be ignored and the history states of `all` entity_id in
+                the database will be retrieved within the specified time.
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            days (int, optional): The days from the present-day walking backwards that is
+                required from the database.
+            start_time (optional): The start time from when the data should be retrieved.
+                This should be the furthest time backwards, like if we wanted to get data from
+                now until two days ago. Your start time will be the last two days datetime.
+                ``start_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00``
+                or a ``datetime.datetime`` object.
+            end_time (optional): The end time from when the data should be retrieved. This should
+                be the latest time like if we wanted to get data from now until two days ago. Your
+                end time will be today's datetime ``end_time`` time can be either a UTC aware time
+                string like ``2019-04-16 12:00:03+01:00`` or a ``datetime.datetime`` object. It should
+                be noted that it is not possible to declare only ``end_time``. If only ``end_time``
+                is declared without ``start_time`` or ``days``, it will revert to default to the latest
+                history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
+                If ``entity_id`` is specified, ``end_time`` will be ignored.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            An iterable list of entity_ids and their history state.
+
+        Examples:
+            Get device state over the last 5 days.
+
+            >>> data = self.get_history("light.office_lamp", days = 5)
+
+            Get device state over the last 2 days and walk forward.
+
+            >>> import datetime
+            >>> from datetime import timedelta
+            >>> start_time = datetime.datetime.now() - timedelta(days = 2)
+            >>> data = self.get_history("light.office_lamp", start_time = start_time)
+
+            Get device state from yesterday and walk 5 days back.
+
+            >>> import datetime
+            >>> from datetime import timedelta
+            >>> end_time = datetime.datetime.now() - timedelta(days = 1)
+            >>> data = self.get_history(end_time = end_time, days = 5)
+
+        """
         namespace = self._get_namespace(**kwargs)
 
         if "namespace" in kwargs:

@@ -2,9 +2,9 @@ AppDaemon Tutorial for HASS Users
 =================================
 
 AppDaemon is a subsystem to complement Home Assistant's
-Automation and Scripting components. ``AppDaemon`` is a Python daemon
+Automation and Scripting components. AppDaemon, is a Python daemon
 that consumes events from Home Assistant and feeds them to snippets of
-Python code called "Apps". An App is a Python class that is instantiated
+Python code called *Apps*. An App is a Python class that is instantiated
 possibly multiple times from AppDaemon and registers callbacks for
 various system events. It is also able to inspect and set state and call
 services. The API provides a rich environment suited to home automation
@@ -16,18 +16,18 @@ Another Take on Automation
 If you haven't yet read Paulus' excellent Blog entry on `Perfect Home
 Automation <https://home-assistant.io/blog/2016/01/19/perfect-home-automation/>`__
 I would encourage you to take a look. As a veteran of several Home
-Automation systems with varying degrees of success, it was this article
+Automation systems with varying degrees of success, it wrote this article
 more than anything else that convinced me that Home Assistant had the
 right philosophy behind it and was on the right track. One of the most
 important points made is that being able to control your lights from
 your phone, 9 times out of 10 is harder than using a light switch. 
 However, Home Automation becomes helpful when you start removing the
-need to use a phone or the switch - the "Automation" in Home Automation.
+need to use a phone or the switch - the *Automation* in Home Automation.
 A surprisingly large number of systems out there miss this essential
 point and have limited abilities to automate anything which is why a
 robust and open system such as Home Assistant is such an important part
 of the equation in bring this all together in the vast and chaotic
-ecosystem that is the "Internet of Things".
+ecosystem that is the *Internet of Things*.
 
 So given the importance of Automation, what should Automation allow us
 to do? I am a pragmatist at heart, so I judge individual systems by the
@@ -47,7 +47,7 @@ In my opinion, Home Assistant accomplishes the majority of these very
 well with a combination of Automations, Scripts, and Templates, and its
 Restful API.
 
-So why ``AppDaemon``? AppDaemon is not meant to replace Home Assistant
+**So why AppDaemon**? AppDaemon is not meant to replace Home Assistant
 Automations and Scripts, rather complement them. For a lot of things,
 automations work well and can be very succinct. However, there is a
 class of more complex automations for which they become harder to use,
@@ -55,13 +55,13 @@ and AppDeamon then comes into its own. It brings quite a few things to
 the table:
 
 -  New paradigm - some problems require a procedural and/or iterative
-   approach, and ``AppDaemon`` Apps are a much more natural fit for
+   approach, and `AppDaemon` Apps are a much more natural fit for
    this. Recent enhancements to Home Assistant scripts and templates
    have made huge strides, but for the most complex scenarios, Apps can
    do things that Automations can't
 -  Ease of use - AppDaemon's API is full of helper functions that make
    programming as easy and natural as possible. The functions and their
-   operation are as "Pythonic" as possible, experienced Python
+   operation are as *Pythonic* as possible, experienced Python
    programmers should feel right at home.
 -  Reuse - write a piece of code once and instantiate it as an app as
    many times as you need with different parameters e.g., a motion light
@@ -73,7 +73,7 @@ the table:
    thanks to its loose coupling. However, it is better than that - the
    user can make changes to code and AppDaemon will automatically reload
    the code, figure out which Apps were using it and restart them to use
-   the new code with out the need to restart ``AppDaemon`` itself. It is
+   the new code with out the need to restart *AppDaemon* itself. It is
    also possible to change parameters for an individual or multiple apps
    and have them picked up dynamically, and for a final trick, removing
    or adding apps is also picked up dynamically. Testing cycles become a
@@ -89,14 +89,14 @@ the table:
    nothing is off-limits!
 
 It is, in fact, a testament to Home Assistant's open nature that a
-component like ``AppDaemon`` can be integrated so neatly and closely
+component like *AppDaemon* can be integrated so neatly and closely
 that it acts in all ways like an extension of the system, not a second-class citizen. 
 Part of the strength of Home Assistant's underlying
 design is that it makes no assumptions whatever about what it is
 controlling or reacting to, or reporting state on. This is made
 achievable in part by the great flexibility of Python as a programming
 environment for Home Assistant, and carrying that forward has enabled me
-to use the same philosophy for ``AppDaemon`` - it took surprisingly
+to use the same philosophy for *AppDaemon* - it took surprisingly
 little code to be able to respond to basic events and call services in a
 completely open-ended manner - the bulk of the work after that was
 adding additional functions to make things that were already possible
@@ -227,7 +227,7 @@ would have provided parameters for the sensor, the light to activate on
 motion, the warning light and even the number of flashes and delay
 between flashes.
 
-In addition, Apps can write to ``AppDaemon``'s logfiles, and there is a
+In addition, Apps can write to *AppDaemon's* logfiles, and there is a
 system of constraints that allows you to control when and under what
 circumstances Apps and callbacks are active to keep the logic clean and
 simple.
@@ -236,7 +236,7 @@ Final Thoughts
 --------------
 
 I have spent the last few weeks moving all of my (fairly complex)
-automations over to ``AppDaemon`` and so far it is working very
+automations over to *AppDaemon* and so far it is working very
 reliably.
 
 Some people will maybe look at all of this and say "what use is this, I
@@ -248,24 +248,11 @@ potentially very complex automations.
 If this has whet your appetite, feel free to give it a try. You can find
 installation instructions, `here <INSTALL.rst>`__, including full
 installation instructions, an API reference, and several fully
-fleshed-out examples.
+fleshed-out `examples <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__ and
+`tutorials <COMMUNITY_TUTORIALS.rst>`__.
 
-Happy Automating!
+**Happy Automating!**
 
-Other Tutorials
----------------
-
-Here is a list of other tutorials that have been created by AppDaemon users:
-
-By Rene Tode:
-
-- `AppDaemon For Beginners <https://github.com/ReneTode/My-AppDaemon/tree/master/AppDaemon_for_Beginner>`__
-
-By Supahnoob:
-
-+ `AppDaemon Tutorial #1 Tracker-Notifier <https://community.home-assistant.io/t/appdaemon-tutorial-1-tracker-notifier/12545>`__
-+ `AppDaemon Tutorial #2 Errorlog Notifications <https://community.home-assistant.io/t/appdaemon-tutorial-2-errorlog-notifications/12907>`__
-+ `AppDaemon Tutorial #3 Utility Functions <https://community.home-assistant.io/t/appdaemon-tutorial-3-utility-functions/13247>`__
-+ `AppDaemon Tutorial #4 Libraries & Interactivity <https://community.home-assistant.io/t/appdaemon-tutorial-4-libraries-interactivity/14057>`__
+-- AppDaemon Team
 
 

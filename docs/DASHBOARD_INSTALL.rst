@@ -8,7 +8,6 @@ mounted, and is optimized for distance viewing.
 .. figure:: images/dash.png
    :alt: UI
 
-   UI
 
 Installation and Configuration
 ------------------------------
@@ -18,10 +17,7 @@ the `AppDaemon Installation Documentation <INSTALL.html>`__.
 
 When you have AppDaemon installed and running, configuration of the
 Dashboard is pretty simple. You just need to add a ``hadashboard`` directive to the
-appdaemon.yaml file
-
-
-For instance:
+``appdaemon.yaml`` file. For instance:
 
 .. code:: yaml
 
@@ -34,9 +30,7 @@ For instance:
 By default, dashboards are searched for under the config directory in a
 sub directory called ``dashboards``. Optionally, you can place your
 dashboards in a directory other than under the config directory using
-the ``dashboard_dir`` directive.
-
-e.g.:
+the ``dashboard_dir`` directive. For example:
 
 .. code:: yaml
 
@@ -68,7 +62,7 @@ called ``Hello.dash`` and paste in the following:
 
 When you have added the lines to the config and created the dashboards
 directory and test dashbboard, restart AppDaemon and you will be ready
-to go. If you navigate to the top level, e.g.
+to go. If you navigate to the top level, e.g.,
 ``http://192.168.1.20:5050`` in the case above, you will see a welcome
 page with a list of configured dashboards. If you haven't yet configured
 any the list will be empty.
@@ -104,13 +98,13 @@ loaded. You can also force a recompilation by adding the parameter
 
 By default, information and errors around access to the Dashboard will
 go to the same place as AppDaemon's log. To split the page access out to
-a different file, use the ``access_log`` directives in the ``logs`` section, e.g.:
+a different file, use the ``access_log`` directives in the ``logs`` section. For example:
 
 .. code:: yaml
 
-logs:
-  access_log:
-    filename: /export/pegasus/hass/appdaemon_test/logs/access.log
+    logs:
+      access_log:
+        filename: /export/pegasus/hass/appdaemon_test/logs/access.log
 
 To force dashboard recompilation of all dashboards after a restart, use:
 

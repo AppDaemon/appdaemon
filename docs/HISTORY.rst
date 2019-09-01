@@ -1,8 +1,15 @@
 Change Log
 ==========
 
-4.0.0 Beta1
-----------------
+4.0.0 Beta 2
+------------
+
+**Features**
+**Fixes**
+**Breaking Changes**
+
+4.0.0 Beta1 08/30/2019
+----------------------
 
 **Features**
 
@@ -43,10 +50,12 @@ Change Log
 - Added the ability to register app services
 - Added sensors for different internal state of AD, that can be read by apps
 - Added Person widget
+- Much reworking of docs
+- Added `register_dependency()` for dynamic dependencies in apps
+- Added MQTT support for setting TLS version - contributed by `Miguel <https://github.com/mdps>`__
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
 - added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
-- Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
 - Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
 - Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
@@ -56,8 +65,10 @@ Change Log
 - Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
 - Documentation fixes - contributed by `Brendon Baumgartner <https://github.com/bbrendon>`__
 - Documentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
+- Documentation fixes, updating and cleaning - contributed by `Humberto Rodríguez A. <https://github.com/rhumbertgz>`__
 - Added the ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
 - Added the ability to listen to ``state_change`` events, without using listen_state() -  contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
+- APIAI updated to dialog flow - contributed by `engrbm87 <https://github.com/engrbm87>`__
 
 **Fixes**
 
@@ -71,11 +82,13 @@ Change Log
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
 - Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
+- Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
 - Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann <https://github.com/fhirschmann>`__
 - Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 - Fix for ``log_type`` flag in ``listen_log`` callback
 - Relative paths for appdaemon's config directory now work corrcetly
 - Fix to Dialogflow after format changes
+- MQTT fix to subscribing using wildcards - contributed by `Daniel Lashua <https://github.com/dlashua>`__
 
 **Breaking Changes**
 
@@ -98,7 +111,7 @@ Change Log
 - Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
 - As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
 - In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
-
+- MQTT client status api change from ``clientConnected`` to ``is_client_connected``  
 
 3.0.4 04/04/2019
 ----------------

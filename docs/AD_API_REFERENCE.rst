@@ -147,12 +147,12 @@ Utility
 .. automethod:: appdaemon.adapi.ADAPI.restart_app
 .. automethod:: appdaemon.adapi.ADAPI.reload_apps
 
-Apiai
+Dialogflow
 ~~~~~
 
-.. automethod:: appdaemon.adapi.ADAPI.get_apiai_intent
-.. automethod:: appdaemon.adapi.ADAPI.get_apiai_slot_value
-.. automethod:: appdaemon.adapi.ADAPI.format_apiai_response
+.. automethod:: appdaemon.adapi.ADAPI.get_dialogflow_intent
+.. automethod:: appdaemon.adapi.ADAPI.get_dialogflow_slot_value
+.. automethod:: appdaemon.adapi.ADAPI.format_dialogflow_response
 
 Alexa
 ~~~~~
@@ -175,3 +175,4 @@ Other
 .. automethod:: appdaemon.adapi.ADAPI.get_thread_info
 .. automethod:: appdaemon.adapi.ADAPI.get_scheduler_entries
 .. automethod:: appdaemon.adapi.ADAPI.get_callback_entries
+.. automethod:: appdaemon.adapi.ADAPI.register_dependency

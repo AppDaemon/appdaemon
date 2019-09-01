@@ -36,6 +36,7 @@ class AppManagement:
 
         self.app_config_file_modified = 0
         self.app_config = {}
+        self.global_module_dependencies = {}
 
         self.app_config_file = config
 
@@ -182,7 +183,10 @@ class AppManagement:
 
         if name in self.objects:
             del self.objects[name]
-            
+
+        if name in self.global_module_dependencies:
+            del self.global_module_dependencies[name]
+
         await self.increase_inactive_apps(name)
 
         await self.AD.callbacks.clear_callbacks(name)
@@ -259,7 +263,7 @@ class AppManagement:
 
         else:
             self.logger.warning("Unable to find module module %s - '%s' is not initialized", app_args["module"], name)
-            self.increase_inactive_apps(name)
+            await self.increase_inactive_apps(name)
 
     async def read_config(self):
 
@@ -904,7 +908,19 @@ class AppManagement:
                     if gm == module:
                         apps.append(app)
 
+        for app, gms in self.global_module_dependencies.items():
+            for gm in gms:
+                if gm == module:
+                    apps.append(app)
+
         return apps
+
+    def register_dependency(self, app, module):
+        if app not in self.global_module_dependencies:
+            self.global_module_dependencies[app] = []
+
+        if module not in self.global_module_dependencies[app]:
+            self.global_module_dependencies[app].append(module)
 
     async def manage_services(self, namespace, domain, service, kwargs):
         app = None
