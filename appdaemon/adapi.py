@@ -2540,5 +2540,21 @@ class ADAPI:
         for module in modules:
             self.AD.app_management.register_module_dependency(self.name, module.__name__)
 
+    def depends_on_app(self, *apps):
+        """Register app dependency for an app
 
+        Args:
+            *args: apps to register a dependency on
+
+        Returns:
+            None
+
+        Examples:
+            >>> self.depends_on_app('test')
+            >>> self.get_app('test').dothing()
+
+        """
+        for app in apps:
+            print("{} depends on app {}".format(self.name, app))
+            self.AD.app_management.register_app_dependency(self.name, app)
 

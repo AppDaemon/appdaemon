@@ -36,6 +36,7 @@ class AppManagement:
         self.app_config_file_modified = 0
         self.app_config = {}
         self.global_module_dependencies = {}
+        self.app_dependencies = {}
 
         self.app_config_file = config
 
@@ -179,6 +180,9 @@ class AppManagement:
 
         if name in self.global_module_dependencies:
             del self.global_module_dependencies[name]
+
+        if name in self.app_dependencies:
+            del self.app_dependencies[name]
 
         await self.increase_inactive_apps(name)
 
@@ -854,6 +858,14 @@ class AppManagement:
                         if new_deps is not None:
                             deps.append(new_deps)
 
+        for app in self.app_dependencies:            
+            if dependee in self.app_dependencies[app]:                
+                if app not in deps:
+                    deps.append(app)
+                    new_deps = self.get_dependent_apps(app, deps)
+                    if new_deps is not None:
+                        deps.append(new_deps)
+
     def topological_sort(self, source):
 
         pending = [(name, set(deps)) for name, deps in source]  # copy deps so we can modify set in-place
@@ -912,6 +924,13 @@ class AppManagement:
 
         if module not in self.global_module_dependencies[app]:
             self.global_module_dependencies[app].append(module)
+
+    def register_app_dependency(self, app, depended_app):
+        if app not in self.app_dependencies:
+            self.app_dependencies[app] = []
+
+        if depended_app not in self.app_dependencies[app]:
+            self.app_dependencies[app].append(depended_app)
 
     async def manage_services(self, namespace, domain, service, kwargs):
         app = None
