@@ -2564,6 +2564,9 @@ class ADAPI:
         """
         return await self.AD.callbacks.get_callback_entries()
 
+    async def run_in_executor(self, func, *args):
+        return await self.AD.loop.run_in_executor(self.AD.executor, func, *args)
+
     @utils.sync_wrapper
     async def ensure_future(self, coro, callback=None, **kwargs):
         """Schedules a Coroutine to be executed
