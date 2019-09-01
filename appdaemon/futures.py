@@ -21,7 +21,8 @@ class Futures:
     def remove_future(self, name, f):
         if name in self.futures:
             self.futures[name].remove(f)
-            self.AD.logger.debug('Future removed from registry {}'.format(f))
+        
+        self.AD.logger.debug('Future removed from registry {}'.format(f))
 
         if f.cancelled():
             return
@@ -39,5 +40,5 @@ class Futures:
 
         for f in self.futures[name]:
             if not f.done():
-                self.AD.logger.debug('Removing Future {}'.format(f))
-                self.remove_future(name, f)
+                self.AD.logger.debug('Cancelling Future {}'.format(f))
+                f.cancel()
