@@ -80,6 +80,10 @@ class State:
             else:
                 pin_thread = self.AD.app_management.objects[name]["pin_thread"]
 
+            #
+            # Add the callback
+            #
+
             if name not in self.AD.callbacks.callbacks:
                 self.AD.callbacks.callbacks[name] = {}
 
@@ -96,6 +100,15 @@ class State:
                 "kwargs": kwargs
             }
 
+            #
+            # If we have a timeout parameter, add a scheduler entry to delete the callback later
+            #
+            if "timeout" in kwargs:
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+
+                kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                    name, exec_time, None, False, None, __handle=handle,
+                )
             #
             # In the case of a quick_start parameter,
             # start the clock immediately if the device is already in the new state

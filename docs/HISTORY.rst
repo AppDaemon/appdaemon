@@ -5,6 +5,9 @@ Change Log
 ------------
 
 **Features**
+
+- Added a ``timeout`` parameter to ``listen_state()`` to delete the callback after a pre-determined interval.
+
 **Fixes**
 **Breaking Changes**
 

@@ -1087,6 +1087,12 @@ class ADAPI:
                 If you use ``duration`` when listening for an entire device type rather than a specific
                 entity, or for all state changes, you may get unpredictable results, so it is recommended
                 that this parameter is only used in conjunction with the state of specific entities.
+
+            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
+                 but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
+                 occured that would trigger a duration timer, the duration timer will still be fired even though the
+                 callback has been deleted.
+
             immediate (bool, optional): It enables the countdown for a delay parameter to start
                 at the time, if given. If the ``duration`` parameter is not given, the callback runs immediately.
                 What this means is that after the callback is registered, rather than requiring one or more
