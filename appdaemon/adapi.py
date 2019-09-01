@@ -2611,8 +2611,6 @@ class ADAPI:
         self.AD.futures.add_future(self.name, f)
         return f
 
-        return self.AD.thread_async.call_async_no_wait(run_coroutine_inner)
-
     def register_dependency(self, module):
         """Register a global_module dependency from within an app module
 
