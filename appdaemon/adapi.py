@@ -2565,7 +2565,7 @@ class ADAPI:
         return await self.AD.callbacks.get_callback_entries()
 
     @utils.sync_wrapper
-    async def run_coroutine(self, coro, callback=None, **kwargs):
+    async def ensure_future(self, coro, callback=None, **kwargs):
         """Schedules a Coroutine to be executed
 
         Args:
