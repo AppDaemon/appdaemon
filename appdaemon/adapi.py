@@ -2596,7 +2596,8 @@ class ADAPI:
                 # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
-                asyncio.ensure_future(self.AD.threading.dispatch_worker(self.name, sched_data))
+                cb_f = asyncio.ensure_future(self.AD.threading.dispatch_worker(self.name, sched_data))
+                self.AD.futures.add_future(self.name, cb_f)
                 # callback(f.result(), kwargs)
             except asyncio.CancelledError:
                 pass
