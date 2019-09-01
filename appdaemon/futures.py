@@ -23,12 +23,15 @@ class Futures:
             self.futures[name].remove(f)
             self.AD.logger.debug('Future removed from registry {}'.format(f))
 
-        try:
-            f = f.exception()
-            if f is not None:
-                raise f
-        except asyncio.CancelledError:
-            self.AD.logger.debug('Future was cancelled. {}'.format(f))
+        if f.cancelled():
+            return
+
+        if f.cancel():
+            return
+
+        f = f.exception()
+        if f is not None:
+            raise f
 
     def cancel_futures(self, name):
         if name not in self.futures:
@@ -36,6 +39,5 @@ class Futures:
 
         for f in self.futures[name]:
             if not f.done():
-                self.AD.logger.debug('Cancelling Future {}'.format(f))
-                f.cancel()
+                self.AD.logger.debug('Removing Future {}'.format(f))
                 self.remove_future(name, f)
