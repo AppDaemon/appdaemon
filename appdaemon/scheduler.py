@@ -110,11 +110,16 @@ class Scheduler:
                     remove = args["kwargs"].get("oneshot", False)
                     if remove is True:
                         await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
-            elif "__handle" in args["kwargs"]:
+            elif "__state_handle" in args["kwargs"]:
                 #
-                # It's a timeout entry - just delete the callback
+                # It's a state timeout entry - just delete the callback
                 #
-                await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
+                await self.AD.state.cancel_state_callback(args["kwargs"]["__state_handle"], name)
+            elif "__event_handle" in args["kwargs"]:
+                #
+                # It's an event timeout entry - just delete the callback
+                #
+                await self.AD.events.cancel_event_callback(name, args["kwargs"]["__event_handle"])
             else:
                 #
                 # A regular callback
@@ -284,7 +289,7 @@ class Scheduler:
         }
 
         if callback == None:
-            function_name = "cancel_state_callback"
+            function_name = "cancel_callback"
         else:
             function_name = callback.__name__
 

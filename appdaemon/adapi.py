@@ -1442,8 +1442,13 @@ class ADAPI:
                 for namespace has special significance, and means that the callback will
                 listen to state updates from any plugin.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
+
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
+
+            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
+                 but after ``timeout`` seconds, the callback will be removed.
+
             **kwargs (optional): One or more keyword value pairs representing App specific
                 parameters to supply to the callback. If the keywords match values within the
                 event data, they will act as filters, meaning that if they don't match the

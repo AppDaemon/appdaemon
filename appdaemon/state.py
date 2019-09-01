@@ -107,7 +107,7 @@ class State:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name, exec_time, None, False, None, __handle=handle,
+                    name, exec_time, None, False, None, __state_handle=handle,
                 )
             #
             # In the case of a quick_start parameter,
