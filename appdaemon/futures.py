@@ -38,3 +38,4 @@ class Futures:
             if not f.done():
                 self.AD.logger.debug('Cancelling Future {}'.format(f))
                 f.cancel()
+                self.remove_future(name, f)
