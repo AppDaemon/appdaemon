@@ -2564,7 +2564,8 @@ class ADAPI:
         """
         return await self.AD.callbacks.get_callback_entries()
 
-    def run_coroutine(self, coro, callback=None, **kwargs):
+    @utils.sync_wrapper
+    async def run_coroutine(self, coro, callback=None, **kwargs):
         """Schedules a Coroutine to be executed
 
         Args:
@@ -2588,8 +2589,8 @@ class ADAPI:
             "objectid": self.AD.app_management.objects[self.name]["id"],
             "type": "scheduler",
             "function": callback,
-            "pin_app": self.get_app_pin(),
-            "pin_thread": self.get_pin_thread(),
+            "pin_app": await self.get_app_pin(),
+            "pin_thread": await self.get_pin_thread(),
         }
 
         def callback_inner(f):
@@ -2598,13 +2599,13 @@ class ADAPI:
                 # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
-                cb_f = asyncio.ensure_future(self.AD.threading.dispatch_worker(self.name, sched_data))
-                self.AD.futures.add_future(self.name, cb_f)
+                self.run_coroutine(self.AD.threading.dispatch_worker(self.name, sched_data))
+
                 # callback(f.result(), kwargs)
             except asyncio.CancelledError:
                 pass
 
-        f = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
+        f = asyncio.ensure_future(coro)
         if callback is not None:
             f.add_done_callback(callback_inner)
 
