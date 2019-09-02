@@ -1087,6 +1087,12 @@ class ADAPI:
                 If you use ``duration`` when listening for an entire device type rather than a specific
                 entity, or for all state changes, you may get unpredictable results, so it is recommended
                 that this parameter is only used in conjunction with the state of specific entities.
+
+            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
+                 but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
+                 occured that would trigger a duration timer, the duration timer will still be fired even though the
+                 callback has been deleted.
+
             immediate (bool, optional): It enables the countdown for a delay parameter to start
                 at the time, if given. If the ``duration`` parameter is not given, the callback runs immediately.
                 What this means is that after the callback is registered, rather than requiring one or more
@@ -1436,8 +1442,13 @@ class ADAPI:
                 for namespace has special significance, and means that the callback will
                 listen to state updates from any plugin.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
+
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
+
+            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
+                 but after ``timeout`` seconds, the callback will be removed.
+
             **kwargs (optional): One or more keyword value pairs representing App specific
                 parameters to supply to the callback. If the keywords match values within the
                 event data, they will act as filters, meaning that if they don't match the
@@ -2509,5 +2520,22 @@ class ADAPI:
 
         """
         return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
+
+    def register_dependency(self, module):
+        """Register a global_module dependency from within an app module
+
+        Args:
+            module: the module you're registering a dependency on
+
+        Returns:
+            None
+
+        Examples:
+            >>> import somemodule
+            >>> # later
+            >>> self.register_dependency(somemodule)
+
+        """
+        self.AD.app_management.register_dependency(self.name, module.__name__)
 
 

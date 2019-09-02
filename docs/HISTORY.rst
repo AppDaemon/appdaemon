@@ -1,8 +1,20 @@
 Change Log
 ==========
 
-4.0.0 Beta1
-----------------
+4.0.0 Beta 2
+------------
+
+**Features**
+
+- Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
+
+**Fixes**
+**Breaking Changes**
+
+- ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
+
+4.0.0 Beta1 08/30/2019
+----------------------
 
 **Features**
 
@@ -44,6 +56,7 @@ Change Log
 - Added sensors for different internal state of AD, that can be read by apps
 - Added Person widget
 - Much reworking of docs
+- Added `register_dependency()` for dynamic dependencies in apps
 - Added MQTT support for setting TLS version - contributed by `Miguel <https://github.com/mdps>`__
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
