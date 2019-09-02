@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 - Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
+- Added render_template() handling
 
 **Fixes**
 **Breaking Changes**

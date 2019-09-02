@@ -29,6 +29,7 @@ Services
 .. automethod:: appdaemon.plugins.hass.hassapi.Hass.set_textvalue
 .. automethod:: appdaemon.plugins.hass.hassapi.Hass.select_option
 .. automethod:: appdaemon.plugins.hass.hassapi.Hass.notify
+.. automethod:: appdaemon.plugins.hass.hassapi.Hass.render_template
 
 Presence
 --------
