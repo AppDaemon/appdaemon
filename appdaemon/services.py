@@ -78,7 +78,7 @@ class Services:
         for step in seq:
             for command, parameters in step.items():
                 if command == "sleep":
-                    await asyncio.sleep(int(parameters))
+                    await asyncio.sleep(float(parameters))
                 else:
                     domain, service = str.split(command, ".")
 
