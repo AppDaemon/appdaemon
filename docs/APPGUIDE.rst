@@ -615,7 +615,7 @@ The HASS plugin supplies several additional different types of constraints:
 -  input\_boolean
 -  input\_select
 -  presence
--  time
+-  time (see `AppDaemon Constraints <APPGUIDE.html#time>`__)
 
 They are described individually below.
 
