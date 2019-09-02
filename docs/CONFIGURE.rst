@@ -2,7 +2,7 @@ Configuration
 -------------
 
 When you have AppDaemon (AD) installed by either method you are ready to
-start working on the appdaemon.yaml file. For docker users, you will
+start working on the ``appdaemon.yaml`` file. For docker users, you will
 already have a skeleton to work with. For pip users, you need to create
 a configuration directory somewhere (e.g., ``/home/homeassistant/conf``)
 and create a file in there called ``appdaemon.yaml``.
@@ -360,7 +360,7 @@ HASS Plugin Startup Conditions
 
 The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
 
-- appdaemon_startup_conditions - conditions that must be met when appdeamon starts up
+- appdaemon_startup_conditions - conditions that must be met when AppDaemon starts up
 - plugin_startup_conditions - conditions that must be met when HASS restarts while AppDaemon is up
 
 AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. Each set of conditions takes the same format, and there are 3 types of conditions:
