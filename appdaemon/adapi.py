@@ -2537,16 +2537,10 @@ class ADAPI:
             >>> self.depends_on_module([somemodule)
 
         """
-        for module in modules:
-            module_name = None
-            if isinstance(module, str):
-                module_name = module
-            elif isinstance(module, object) and module.__class__.__name__ == "module":
-                module_name = module.__name__
-
-            if module_name is None:
-                raise Exception("'{}' is not a valid global module.".format(module))
-
-            self.AD.app_management.register_module_dependency(self.name, module_name)
+        return utils.run_coroutine_threadsafe(
+            self,
+            self.AD.app_management.register_module_dependency(
+                self.name,
+                *modules))
 
 

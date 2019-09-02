@@ -906,19 +906,28 @@ class AppManagement:
 
         return apps
 
-    def register_module_dependency(self, app, module):
-        
-        if not (
-                "global_modules" in self.app_config 
-                and module in self.app_config["global_modules"]):
-            
-            raise Exception("'{}' is not a valid global module".format(module))
+    async def register_module_dependency(self, app, *modules):
+        for module in modules:
+            module_name = None
+            if isinstance(module, str):
+                module_name = module
+            elif isinstance(module, object) and module.__class__.__name__ == "module":
+                module_name = module.__name__
 
-        if app not in self.global_module_dependencies:
-            self.global_module_dependencies[app] = []
+            if module_name is None:
+                raise Exception("'{}' is not a valid global module.".format(module))
 
-        if module not in self.global_module_dependencies[app]:
-            self.global_module_dependencies[app].append(module)
+            if not (
+                    "global_modules" in self.app_config 
+                    and module_name in self.app_config["global_modules"]):
+                
+                raise Exception("'{}' is not a valid global module".format(module))
+
+            if app not in self.global_module_dependencies:
+                self.global_module_dependencies[app] = []
+
+            if module_name not in self.global_module_dependencies[app]:
+                self.global_module_dependencies[app].append(module_name)
 
     async def manage_services(self, namespace, domain, service, kwargs):
         app = None
