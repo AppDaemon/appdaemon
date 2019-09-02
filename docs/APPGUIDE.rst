@@ -381,6 +381,8 @@ It is also possible to have multiple dependencies, added as a yaml list
 AppDaemon will write errors to the log if a dependency is missing and it
 will also detect circular dependencies.
 
+Dependencies can also be set using the ``register_dependency()`` api call.
+
 App Loading Priority
 --------------------
 
@@ -1195,11 +1197,9 @@ usual AppDaemon calls.
 The Scheduler
 -------------
 
-AppDaemon contains a powerful scheduler that is able to run with 1
-second resolution to fire off specific events at set times, or after set
-delays, or even relative to sunrise and sunset. In general, events
-should be fired less than a second after specified but under certain
-circumstances there may be short additional delays.
+AppDaemon contains a powerful scheduler that is able to run with microsecond
+resolution to fire off specific events at set times, or after set
+delays, or even relative to sunrise and sunset.
 
 About Schedule Callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~

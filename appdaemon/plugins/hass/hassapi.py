@@ -1,4 +1,5 @@
 import requests
+from ast import literal_eval
 
 import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
@@ -670,3 +671,42 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         result = self.call_service("database/history", **rargs)
         return result
+
+    @hass_check
+    def render_template(self, template, **kwargs):
+        """Renders a Home Assistant Template
+
+        Args:
+            template (str): The Home Assistant Template to be rendered.
+
+        Keyword Args:
+            None.
+
+        Returns:
+            The rendered template in a native Python type.
+
+        Examples:
+            >>> self.render_template("{{ states('sun.sun') }}")
+            Returns (str) above_horizon
+
+            >>> self.render_template("{{ is_state('sun.sun', 'above_horizon') }}")
+            Returns (bool) True
+
+            >>> self.render_template("{{ states('sensor.outside_temp') }}")
+            Returns (float) 97.2
+
+        """
+        namespace = self._get_namespace(**kwargs)
+
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        rargs = kwargs
+        rargs["namespace"] = namespace
+        rargs["template"] = template
+
+        result = self.call_service("template/render", **rargs)
+        try:
+            return literal_eval(result)
+        except (SyntaxError, ValueError):
+            return result

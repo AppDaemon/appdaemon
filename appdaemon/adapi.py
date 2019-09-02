@@ -1087,6 +1087,12 @@ class ADAPI:
                 If you use ``duration`` when listening for an entire device type rather than a specific
                 entity, or for all state changes, you may get unpredictable results, so it is recommended
                 that this parameter is only used in conjunction with the state of specific entities.
+
+            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
+                 but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
+                 occured that would trigger a duration timer, the duration timer will still be fired even though the
+                 callback has been deleted.
+
             immediate (bool, optional): It enables the countdown for a delay parameter to start
                 at the time, if given. If the ``duration`` parameter is not given, the callback runs immediately.
                 What this means is that after the callback is registered, rather than requiring one or more
@@ -1413,6 +1419,40 @@ class ADAPI:
 
         return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
 
+    def run_sequence(self, sequence, **kwargs):
+        """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file, and are sequences of
+        service calls.
+
+        Args:
+            sequence: The sequence name.
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
+                the state of the given entity in the given namespace. On the other hand,
+                if no namespace is given, AppDaemon will use the last specified namespace
+                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
+                for a detailed description. In most cases, it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            HASS
+
+            >>> self.run_sequence("Front Rooom Scene")
+
+        """
+
+        namespace = self._get_namespace(**kwargs)
+
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        _name = self.name
+        self.logger.debug("Calling listen_event for %s", self.name)
+        self.AD.thread_async.call_async_no_wait(self.AD.services.run_sequence, _name, namespace, sequence, **kwargs)
+
     #
     # Events
     #
@@ -1436,8 +1476,13 @@ class ADAPI:
                 for namespace has special significance, and means that the callback will
                 listen to state updates from any plugin.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
+
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
+
+            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
+                 but after ``timeout`` seconds, the callback will be removed.
+
             **kwargs (optional): One or more keyword value pairs representing App specific
                 parameters to supply to the callback. If the keywords match values within the
                 event data, they will act as filters, meaning that if they don't match the
@@ -2509,5 +2554,27 @@ class ADAPI:
 
         """
         return utils.run_coroutine_threadsafe(self, self.AD.callbacks.get_callback_entries())
+
+    def depends_on_module(self, *modules):
+        """Register a global_modules dependency for an app
+
+        Args:
+            *args: modules to register a dependency on
+
+        Returns:
+            None
+
+        Examples:
+            >>> import somemodule
+            >>> import anothermodule
+            >>> # later
+            >>> self.depends_on_module([somemodule)
+
+        """
+        return utils.run_coroutine_threadsafe(
+            self,
+            self.AD.app_management.register_module_dependency(
+                self.name,
+                *modules))
 
 

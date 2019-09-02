@@ -88,6 +88,9 @@ class Scheduler:
                 return
             # Call function
             if "__entity" in args["kwargs"]:
+                #
+                # it's a "duration" entry
+                #
                 executed = await self.AD.threading.dispatch_worker(name, {
                     "id": uuid_,
                     "name": name,
@@ -107,7 +110,24 @@ class Scheduler:
                     remove = args["kwargs"].get("oneshot", False)
                     if remove is True:
                         await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
+                        
+                        if "__timeout" in kwargs: #meaning there is a timeout for this callback
+                            await self.cancel_timer(name, kwargs["__timeout"]) #cancel it as no more needed
+                            
+            elif "__state_handle" in args["kwargs"]:
+                #
+                # It's a state timeout entry - just delete the callback
+                #
+                await self.AD.state.cancel_state_callback(args["kwargs"]["__state_handle"], name)
+            elif "__event_handle" in args["kwargs"]:
+                #
+                # It's an event timeout entry - just delete the callback
+                #
+                await self.AD.events.cancel_event_callback(name, args["kwargs"]["__event_handle"])
             else:
+                #
+                # A regular callback
+                #
                 await self.AD.threading.dispatch_worker(name, {
                     "id": uuid_,
                     "name": name,
@@ -272,12 +292,17 @@ class Scheduler:
             "kwargs": kwargs
         }
 
+        if callback == None:
+            function_name = "cancel_callback"
+        else:
+            function_name = callback.__name__
+
         await self.AD.state.add_entity("admin", "scheduler_callback.{}".format(handle), "active",
                                                                          {
                                                                              "app": name,
                                                                              "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
                                                                              "repeat": str(datetime.timedelta(seconds=interval)),
-                                                                             "function": callback.__name__,
+                                                                             "function": function_name,
                                                                              "pinned": pin_app,
                                                                              "pinned_thread": pin_thread,
                                                                              "fired": 0,

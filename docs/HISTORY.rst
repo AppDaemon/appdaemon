@@ -1,8 +1,25 @@
 Change Log
 ==========
 
-4.0.0 Beta1
-----------------
+4.0.0 Beta 2
+------------
+
+**Features**
+
+- Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
+- Added render_template() handling
+- global_modules can now be decalred in multipl yaml files
+
+**Fixes**
+
+- Fixed a bug in global_modules that caused a exception
+
+**Breaking Changes**
+
+- ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
+
+4.0.0 Beta1 (2019-08-30)
+------------------------
 
 **Features**
 
@@ -44,6 +61,7 @@ Change Log
 - Added sensors for different internal state of AD, that can be read by apps
 - Added Person widget
 - Much reworking of docs
+- Added `register_dependency()` for dynamic dependencies in apps
 - Added MQTT support for setting TLS version - contributed by `Miguel <https://github.com/mdps>`__
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
@@ -105,23 +123,23 @@ Change Log
 - In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
 - MQTT client status api change from ``clientConnected`` to ``is_client_connected``  
 
-3.0.4 04/04/2019
-----------------
+3.0.4 (2019-04-04)
+------------------
 
 **Fixes**
 
 - Use yaml.Safeloader to work around known security issue with PyYaml - contributed by `mvn23 <https://github.com/mvn23>`__
 - Unpinned PyYaml
 
-3.0.3 04/02/2019
-----------------
+3.0.3 (2019-04-02)
+------------------
 
 **Fixes**
 
 - Pinned PyYaml to 3.13 to avoid a known issue
 
-3.0.2 10/31/2018
-----------------
+3.0.2 (2018-10-31)
+------------------
 
 **Features**
 
@@ -168,7 +186,7 @@ Change Log
 
 While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
 
-3.0.1 (2018-04-14)
+3.0.1 (2018-04-18)
 ------------------
 
 **Features**
@@ -511,7 +529,7 @@ None
 
 None
 
-2.1.3 (2017-08-11)
+2.1.3 (2017-08-10)
 ------------------
 
 **Features**
@@ -528,7 +546,7 @@ None
 
 None
 
-2.1.2 (2017-08-11)
+2.1.2 (2017-08-08)
 -----
 
 **Features**
@@ -545,7 +563,7 @@ None
 
 None
 
-2.1.0 (2017-08-11)
+2.1.0 (2017-08-08)
 ------------------
 
 **Features**
@@ -1161,7 +1179,7 @@ None
 -  ``run_at_sunrise(``) and ``run_at_sunset()`` no longer take a fixed
    offset parameter, it is now a keyword, e.g. ``offset = 60``
 
-1.2.2 (2016-31-09)
+1.2.2 (2016-08-31)
 ------------------
 
 **Features**
@@ -1179,7 +1197,7 @@ None
 
 None
 
-1.2.1 (2016-26-09)
+1.2.1 (2016-08-26)
 ------------------
 
 **Features**
@@ -1194,7 +1212,7 @@ None
 
 None
 
-1.2.0 (2016-24-09)
+1.2.0 (2016-08-24)
 ------------------
 
 **Features**
@@ -1210,14 +1228,14 @@ None
 
 None
 
-1.1.1 (2016-23-09)
+1.1.1 (2016-08-23)
 ------------------
 
 **Fixes**
 
 -  Fix init scripts
 
-1.1.0 (2016-21-09)
+1.1.0 (2016-08-21)
 ------------------
 
 **Features**
