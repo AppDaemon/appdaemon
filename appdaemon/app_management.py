@@ -919,6 +919,13 @@ class AppManagement:
         return apps
 
     def register_module_dependency(self, app, module):
+        
+        if not (
+                "global_modules" in self.app_config 
+                and module in self.app_config["global_modules"]):
+            
+            raise Exception("'{}' is not a valid global module".format(module))
+
         if app not in self.global_module_dependencies:
             self.global_module_dependencies[app] = []
 
