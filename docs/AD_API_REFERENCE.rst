@@ -175,4 +175,4 @@ Other
 .. automethod:: appdaemon.adapi.ADAPI.get_thread_info
 .. automethod:: appdaemon.adapi.ADAPI.get_scheduler_entries
 .. automethod:: appdaemon.adapi.ADAPI.get_callback_entries
-.. automethod:: appdaemon.adapi.ADAPI.register_dependency
+.. automethod:: appdaemon.adapi.ADAPI.depends_on_module
