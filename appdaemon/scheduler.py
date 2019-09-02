@@ -112,7 +112,7 @@ class Scheduler:
                         await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
                         
                         if "__timeout" in kwargs: #meaning there is a timeout for this callback
-                            await self.cancel_timer(name, kwargs["__timeout"]) #cancel it as no more handle
+                            await self.cancel_timer(name, kwargs["__timeout"]) #cancel it as no more needed
                             
             elif "__state_handle" in args["kwargs"]:
                 #
