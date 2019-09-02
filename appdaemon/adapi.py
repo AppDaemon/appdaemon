@@ -1419,6 +1419,40 @@ class ADAPI:
 
         return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
 
+    def run_sequence(self, sequence, **kwargs):
+        """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file, and are sequences of
+        service calls.
+
+        Args:
+            sequence: The sequence name.
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
+                the state of the given entity in the given namespace. On the other hand,
+                if no namespace is given, AppDaemon will use the last specified namespace
+                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
+                for a detailed description. In most cases, it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            HASS
+
+            >>> self.run_sequence("Front Rooom Scene")
+
+        """
+
+        namespace = self._get_namespace(**kwargs)
+
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        _name = self.name
+        self.logger.debug("Calling listen_event for %s", self.name)
+        self.AD.thread_async.call_async_no_wait(self.AD.services.run_sequence, _name, namespace, sequence, **kwargs)
+
     #
     # Events
     #

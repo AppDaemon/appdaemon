@@ -60,6 +60,7 @@ class AppManagement:
 
         self.active_apps = []
         self.inactive_apps = []
+        self.non_apps = ["global_modules", "sequence"]
 
     async def set_state(self, name, **kwargs):
         if name.find(".") == -1: #not a fully qualified entity name
@@ -276,6 +277,9 @@ class AppManagement:
                                 for app in config:
                                     if config[app] is not None:
                                         if app == "global_modules":
+                                            #
+                                            # Check the parameter format for string or list
+                                            #
                                             if isinstance(config[app], str):
                                                 valid_apps[app] = [config[app]]
                                             elif isinstance(config[app], list):
@@ -283,7 +287,11 @@ class AppManagement:
                                             else:
                                                 if self.AD.invalid_yaml_warnings:
                                                     self.logger.warning("global_modules should be a list or a string in File '%s' - ignoring", file)
- 
+                                        elif app == "sequence":
+                                            #
+                                            # We don't care what it looks like just pass it through
+                                            #
+                                            valid_apps[app] = config[app]
                                         elif "class" in config[app] and "module" in config[app]:
                                             valid_apps[app] = config[app]
                                         else:
@@ -300,12 +308,17 @@ class AppManagement:
                                     if app in new_config:
                                         new_config[app].extend(valid_apps[app])
                                         continue
+                                if app == "sequence":
+                                    if app in new_config:
+                                        new_config[app] = {**new_config[app], **valid_apps[app]}
+                                        continue
 
                                 if app in new_config:
                                     self.logger.warning("File '%s' duplicate app: %s - ignoring", os.path.join(root, file), app)
                                 else:
                                     new_config[app] = valid_apps[app]
 
+        self.AD.services.sequence = new_config.get("sequence", {})
         return new_config
 
     # Run in executor
@@ -408,7 +421,7 @@ class AppManagement:
                 # Check for changes
 
                 for name in self.app_config:
-                    if name == "global_modules":
+                    if name in self.non_apps:
                         continue
 
                     if name in new_config:
@@ -433,7 +446,7 @@ class AppManagement:
                         await self.remove_entity(name)
 
                 for name in new_config:
-                    if name == "global_modules":
+                    if name in self.non_apps:
                         continue
 
                     if name not in self.app_config:
@@ -444,7 +457,7 @@ class AppManagement:
                             self.logger.info("App '%s' added", name)
                             initialize_apps[name] = 1
                             await self.add_entity(name, "loaded", {"callbacks": 0, "args": new_config[name]})
-                        elif name == "global_modules":
+                        elif name in self.non_apps:
                             pass
                         else:
                             if self.AD.invalid_yaml_warnings:
@@ -454,8 +467,9 @@ class AppManagement:
                 self.app_config = new_config
                 total_apps = len(self.app_config)
 
-                if "global_modules" in self.app_config:
-                    total_apps -=1 # remove one
+                for name in self.non_apps:
+                    if name in self.app_config:
+                        total_apps -=1 # remove one
 
                 #if silent is False:
                 self.logger.info("Found %s total number of apps", total_apps)
@@ -491,7 +505,7 @@ class AppManagement:
         for name in self.app_config:
             if "disable" in self.app_config[name] and self.app_config[name]["disable"] is True:
                 pass
-            elif name == "global_modules":
+            elif name in self.non_apps:
                 pass
             else:
                 c += 1
@@ -707,7 +721,7 @@ class AppManagement:
             # This is a restart of one of the plugins so check which apps need to be restarted
             for app in self.app_config:
                 reload = False
-                if app == "global_modules":
+                if app in self.non_apps:
                     continue
                 if "plugin" in self.app_config[app]:
                     for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
@@ -904,7 +918,7 @@ class AppManagement:
     def apps_per_module(self, module):
         apps = []
         for app in self.app_config:
-            if app != "global_modules" and self.app_config[app]["module"] == module:
+            if app not in self.non_apps and self.app_config[app]["module"] == module:
                 apps.append(app)
 
         return apps

@@ -86,6 +86,7 @@ Under Development
 
 .. automethod:: appdaemon.adapi.ADAPI.register_service
 .. automethod:: appdaemon.adapi.ADAPI.call_service
+.. automethod:: appdaemon.adapi.ADAPI.run_sequence
 
 Events
 ~~~~~~
