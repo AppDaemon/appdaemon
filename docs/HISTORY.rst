@@ -8,8 +8,12 @@ Change Log
 
 - Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
 - Added render_template() handling
+- global_modules can now be decalred in multipl yaml files
 
 **Fixes**
+
+- Fixed a bug in global_modules that caused a exception
+
 **Breaking Changes**
 
 - ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
