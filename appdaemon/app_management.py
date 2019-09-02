@@ -276,7 +276,14 @@ class AppManagement:
                                 for app in config:
                                     if config[app] is not None:
                                         if app == "global_modules":
-                                            valid_apps[app] = config[app]
+                                            if isinstance(config[app], str):
+                                                valid_apps[app] = [config[app]]
+                                            elif isinstance(config[app], list):
+                                                valid_apps[app] = config[app]
+                                            else:
+                                                if self.AD.invalid_yaml_warnings:
+                                                    self.logger.warning("global_modules should be a list or a string in File '%s' - ignoring", file)
+ 
                                         elif "class" in config[app] and "module" in config[app]:
                                             valid_apps[app] = config[app]
                                         else:
@@ -289,6 +296,11 @@ class AppManagement:
                             if new_config is None:
                                 new_config = {}
                             for app in valid_apps:
+                                if app == "global_modules":
+                                    if app in new_config:
+                                        new_config[app].extend(valid_apps[app])
+                                        continue
+
                                 if app in new_config:
                                     self.logger.warning("File '%s' duplicate app: %s - ignoring", os.path.join(root, file), app)
                                 else:
@@ -396,6 +408,9 @@ class AppManagement:
                 # Check for changes
 
                 for name in self.app_config:
+                    if name == "global_modules":
+                        continue
+
                     if name in new_config:
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
@@ -418,6 +433,9 @@ class AppManagement:
                         await self.remove_entity(name)
 
                 for name in new_config:
+                    if name == "global_modules":
+                        continue
+
                     if name not in self.app_config:
                         #
                         # New section added!
