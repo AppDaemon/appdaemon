@@ -906,12 +906,26 @@ class AppManagement:
 
         return apps
 
-    def register_dependency(self, app, module):
-        if app not in self.global_module_dependencies:
-            self.global_module_dependencies[app] = []
+    async def register_module_dependency(self, name, *modules):
+        for module in modules:
+            module_name = None
+            if isinstance(module, str):
+                module_name = module
+            elif isinstance(module, object) and module.__class__.__name__ == "module":
+                module_name = module.__name__
 
-        if module not in self.global_module_dependencies[app]:
-            self.global_module_dependencies[app].append(module)
+            if (
+                    module_name is not None
+                    and "global_modules" in self.app_config 
+                    and module_name in self.app_config["global_modules"]):
+
+                if name not in self.global_module_dependencies:
+                    self.global_module_dependencies[name] = []
+
+                if module_name not in self.global_module_dependencies[name]:
+                    self.global_module_dependencies[name].append(module_name)
+            else:
+                self.logger.warning("Module %s not in global_modules in register_module_dependency() for %s", module_name, name)
 
     async def manage_services(self, namespace, domain, service, kwargs):
         app = None
