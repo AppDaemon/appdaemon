@@ -679,7 +679,7 @@ class ADAPI:
 
         """
         await self._check_entity(self._get_namespace(**kwargs), entity_id)
-        state = self.get_state(**kwargs)
+        state = await self.get_state(**kwargs)
         if entity_id in state:
             if "friendly_name" in state[entity_id]["attributes"]:
                 return state[entity_id]["attributes"]["friendly_name"]
