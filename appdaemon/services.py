@@ -1,5 +1,6 @@
 import threading
 import traceback
+import asyncio
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -12,6 +13,7 @@ class Services:
         self.services = {}
         self.services_lock = threading.RLock()
         self.logger = ad.logging.get_child("_services")
+        self.sequence = {}
 
     def register_service(self, namespace, domain, service, callback):
         self.logger.debug("register_service called: %s.%s.%s -> %s", namespace, domain, service, callback)
@@ -65,3 +67,24 @@ class Services:
                 self.logger.warning(traceback.format_exc())
                 self.logger.warning('-' * 60)
                 return None
+
+    async def run_sequence(self, _name, namespace, sequence, **kwargs):
+        if sequence not in self.sequence:
+            self.logger.warning("Unknown sequence (%s) in call_service", sequence)
+            return None
+
+        seq = self.sequence[sequence]
+
+        for step in seq:
+            for command, parameters in step.items():
+                if command == "sleep":
+                    await asyncio.sleep(float(parameters))
+                else:
+                    domain, service = str.split(command, ".")
+                    if "namespace" in parameters:
+                        ns = parameters["namespace"]
+                        del parameters["namespace"]
+                    else:
+                        ns = namespace
+
+                    await self.call_service(ns, domain, service, parameters)

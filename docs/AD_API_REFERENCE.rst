@@ -86,6 +86,7 @@ Under Development
 
 .. automethod:: appdaemon.adapi.ADAPI.register_service
 .. automethod:: appdaemon.adapi.ADAPI.call_service
+.. automethod:: appdaemon.adapi.ADAPI.run_sequence
 
 Events
 ~~~~~~
@@ -175,4 +176,4 @@ Other
 .. automethod:: appdaemon.adapi.ADAPI.get_thread_info
 .. automethod:: appdaemon.adapi.ADAPI.get_scheduler_entries
 .. automethod:: appdaemon.adapi.ADAPI.get_callback_entries
-.. automethod:: appdaemon.adapi.ADAPI.register_dependency
+.. automethod:: appdaemon.adapi.ADAPI.depends_on_module

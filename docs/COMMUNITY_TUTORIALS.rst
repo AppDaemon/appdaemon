@@ -9,7 +9,7 @@ Here is a list of other tutorials that have been created by AppDaemon users:
 - `AppDaemon Tutorial #3 Utility Functions <https://community.home-assistant.io/t/appdaemon-tutorial-3-utility-functions/13247>`__
 - `AppDaemon Tutorial #4 Libraries & Interactivity <https://community.home-assistant.io/t/appdaemon-tutorial-4-libraries-interactivity/14057>`__
 - `Home Presence Appdaemon App <https://community.home-assistant.io/t/home-presence-appdaemon-app/66098>`__
-- `App #1: Doorbell notification <https://community.home-assistant.io/t/app-1-doorbell-notification/128934/5>`__
+- `App #1: Doorbell notification <https://community.home-assistant.io/t/app-1-doorbell-notification/128934>`__
 - `App #2: Smart Light <https://community.home-assistant.io/t/app-2-smart-light/129011>`__
 - `App #3: Smart Radiator <https://community.home-assistant.io/t/app-3-smart-radiator/129095>`__
 - `App #4: Boiler Alert <https://community.home-assistant.io/t/app-4-boiler-alert/129110>`__

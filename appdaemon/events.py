@@ -5,6 +5,7 @@ Module to handle all events within AppDameon.
 import uuid
 from copy import deepcopy
 import traceback
+import datetime
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -65,6 +66,13 @@ class Events:
                 "kwargs": kwargs
             }
 
+            if "timeout" in kwargs:
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+
+                kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                    _name, exec_time, None, False, None, __event_handle=handle,
+                )
+
             await self.AD.state.add_entity("admin", "event_callback.{}".format(handle), "active", {"app": _name, "event_name": event, "function": cb.__name__, "pinned": pin_app, "pinned_thread": pin_thread, "fired": 0, "executed": 0, "kwargs": kwargs})
             return handle
         else:
@@ -79,8 +87,7 @@ class Events:
         """
         if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
             del self.AD.callbacks.callbacks[name][handle]
-            await self.AD.state.remove_entity("admin",
-                                                "event_callback.{}".format(handle))
+            await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
         if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
             del self.AD.callbacks.callbacks[name]
 

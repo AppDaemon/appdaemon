@@ -1577,6 +1577,7 @@ Style Arguments:
 -  ``title_style``
 -  ``title2_style``
 
+
 navigate
 ~~~~~~~~
 
@@ -1591,8 +1592,8 @@ None, but either ``url`` or ``dashboard`` must be specified.
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``url`` - a url to navigate to. Use a full URL including the "http://"
-   or "https://" part.
+-  ``url`` - a url to navigate to. Use a full URL including the `http://`
+   or `https://` part.
 -  ``dashboard`` - a dashboard to navigate to e.g. ``MainPanel``
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.
