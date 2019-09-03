@@ -2679,6 +2679,6 @@ class ADAPI:
         """
         return await self.AD.app_management.register_module_dependency(
             self.name,
-            *modules))
+            *modules)
 
 
