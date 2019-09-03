@@ -81,5 +81,10 @@ class Services:
                     await asyncio.sleep(float(parameters))
                 else:
                     domain, service = str.split(command, ".")
+                    if "namespace" in parameters:
+                        ns = parameters["namespace"]
+                        del parameters["namespace"]
+                    else:
+                        ns = namespace
 
-                    await self.call_service(namespace, domain, service, parameters)
+                    await self.call_service(ns, domain, service, parameters)
