@@ -86,7 +86,7 @@ class Services:
                 if command == "sleep":
                     await asyncio.sleep(float(parameters))
                 else:
-                    domain, service = str.split(command, ".")
+                    domain, service = str.split(command, "/")
                     if "namespace" in parameters:
                         ns = parameters["namespace"]
                         del parameters["namespace"]

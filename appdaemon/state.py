@@ -18,11 +18,6 @@ class State:
         self.state["admin"] = {}
         self.logger = ad.logging.get_child("_state")
 
-        # Register services
-
-        self.AD.services.register_service("appdaemon", "state", "set", self.state_services)
-
-
         # Initialize User Defined Namespaces
 
         nspath = os.path.join(self.AD.config_dir, "namespaces")

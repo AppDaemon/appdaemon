@@ -5,12 +5,10 @@ state_inactive: "not_home"
 enable: 0
 state_text: 1
 post_service_active:
-    service_namespace: appdaemon
     service: state/set
     entity_id: "{{entity}}"
     state: home
 post_service_inactive:
-    service_namespace: appdaemon
     service: state/set
     entity_id: "{{entity}}"
     state: not_home

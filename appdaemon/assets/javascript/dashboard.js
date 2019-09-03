@@ -278,10 +278,6 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         ns = parameters.namespace;
         args["namespace"] = parameters.namespace;
-        if ("service_namespace" in args)
-        {
-            ns = args.service_namespace
-        }
 
         service_url = child.url + "/api/appdaemon/service/" + ns + "/" + args["service"];
         $.ajax({

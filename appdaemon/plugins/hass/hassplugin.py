@@ -98,6 +98,12 @@ class HassPlugin(PluginBase):
             self.plugin_startup_conditions = args["plugin_startup_conditions"]
         else:
             self.plugin_startup_conditions = None
+
+        #
+        # Register set_state service
+        #
+        self.AD.services.register_service(self.namespace, "state", "set", self.AD.state.state_services)
+
         #
         # Set up HTTP Client
         #

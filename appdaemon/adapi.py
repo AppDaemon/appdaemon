@@ -1439,11 +1439,11 @@ class ADAPI:
             None.
 
         Examples:
-            Run a predefined sequence called "Front Room Scene".
+            Run a yaml-defined sequence called "Front Room Scene".
 
             >>> self.run_sequence("Front Room Scene")
 
-            Run a literal script.
+            Run an inline sequence.
 
             >>> self.run_sequence([{"light.turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
             {"entity_id": "light.office_1"}}])

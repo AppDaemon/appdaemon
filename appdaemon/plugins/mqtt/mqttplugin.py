@@ -128,6 +128,12 @@ class MqttPlugin(PluginBase):
             "force_state" : self.mqtt_client_force_start
                             }
 
+        #
+        # Register set_state service
+        #
+        self.AD.services.register_service(self.namespace, "state", "set", self.AD.state.state_services)
+
+
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
