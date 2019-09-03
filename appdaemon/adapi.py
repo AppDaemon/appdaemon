@@ -2660,7 +2660,8 @@ class ADAPI:
         self.AD.futures.add_future(self.name, f)
         return f
 
-    def depends_on_module(self, *modules):
+    @utils.sync_wrapper
+    async def depends_on_module(self, *modules):
         """Register a global_modules dependency for an app
 
         Args:
@@ -2676,10 +2677,8 @@ class ADAPI:
             >>> self.depends_on_module([somemodule)
 
         """
-        return utils.run_coroutine_threadsafe(
-            self,
-            self.AD.app_management.register_module_dependency(
-                self.name,
-                *modules))
+        return await self.AD.app_management.register_module_dependency(
+            self.name,
+            *modules))
 
 
