@@ -747,23 +747,14 @@ A widget to display a refreshing camera image on the dashboard
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
--  ``entity_picture``
-
-This can be found using the developer tools and will be one of the
-parameters associated with the camera you want to view. If you are using
-a password, you will need to append ``&api_password=<your password>`` to
-the end of the entity\_picture. It will look something like this:
-
-``http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>``
-
-If you are using SSL, remember to use the full DNS name and not the IP
-address.
+-  ``entity`` - the entity\_id of the camera
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``refresh`` - (seconds) if set, the camera image will refresh every
-   interval.
+   interval. Default is 10 seconds.
+-  ``stream`` - if set, the image will stream live data instead of refreshing. When set, ``refresh`` is ignored.
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
@@ -1191,6 +1182,52 @@ Cosmetic Arguments
 -  ``widget_style``
 -  ``icon_style_active``
 -  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
+input_datetime
+~~~~~~~~~~~~~~
+
+A widget to monitor and set an input\_datetime
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_datetime
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+
+input_text
+~~~~~~~~~~~~~~
+
+A widget to monitor and set an input\_text
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_text
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
 -  ``title_style``
 -  ``title2_style``
 
