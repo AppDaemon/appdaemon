@@ -68,6 +68,12 @@ class Utility:
 
             self.logger.debug("Starting timer loop")
 
+            #
+            # Register set_state services
+            #
+            for ns in await self.AD.state.list_namespaces():
+                self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+
             self.AD.loop.create_task(self.AD.sched.loop())
 
             if self.AD.apps is True:

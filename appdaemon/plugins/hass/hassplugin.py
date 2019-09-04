@@ -98,6 +98,7 @@ class HassPlugin(PluginBase):
             self.plugin_startup_conditions = args["plugin_startup_conditions"]
         else:
             self.plugin_startup_conditions = None
+
         #
         # Set up HTTP Client
         #
