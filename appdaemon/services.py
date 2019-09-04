@@ -62,7 +62,7 @@ class Services:
                 return await funcref(ns, domain, service, data)
             except:
                 self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error in namespace setup")
+                self.logger.warning("Unexpected error in call_service()")
                 self.logger.warning('-' * 60)
                 self.logger.warning(traceback.format_exc())
                 self.logger.warning('-' * 60)
