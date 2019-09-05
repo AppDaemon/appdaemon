@@ -1194,10 +1194,36 @@ Cosmetic Arguments
 -  ``title_style``
 -  ``title2_style``
 
+input_datetime
+~~~~~~~~~~~~~~
+
+A widget to monitor and control an input\_datetime
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_datetime
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``container_style``
+-  ``date_style``
+-  ``time_style``
+
 input_number
 ~~~~~~~~~~~~~
 
-A widget to monitor and control an input number
+A widget to monitor and control an input\_number
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1280,6 +1306,32 @@ Cosmetic Arguments
 - ``slider_style``
 - ``slidercontainer_style``
 - ``widget_style``
+
+input_text
+~~~~~~~~~~~~~~
+
+A widget to monitor and control an input\_text
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_text
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``container_style``
+-  ``text_style``
+
 
 javascript
 ~~~~~~~~~~
