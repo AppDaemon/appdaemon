@@ -126,6 +126,15 @@ device_tracker_title2_style: $style_title2
 device_tracker_widget_style: $background_style
 device_tracker_state_text_style: "color: $white"
 
+person_icon_on: fas-user
+person_icon_off: fas-user
+person_icon_style_active: $style_active
+person_icon_style_inactive: $style_inactive
+person_title_style: $style_title
+person_title2_style: $style_title2
+person_widget_style: $background_style
+person_state_text_style: "color: $white"
+
 input_boolean_icon_on: fas-sliders-h
 input_boolean_icon_off: fas-sliders-h
 input_boolean_icon_style_active: $style_active
