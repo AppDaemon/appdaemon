@@ -748,6 +748,9 @@ Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` the entity\_id of the camera
+-  ``base_url`` the URL to your Home Assistant install. If you wish to access
+   your dashboard from an external network, then this needs to be the
+   external URL to Home Assistant.
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^

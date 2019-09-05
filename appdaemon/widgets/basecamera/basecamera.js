@@ -28,21 +28,18 @@ function basecamera(widget_id, url, skin, parameters)
 
      function refresh_frame(self)
     {
-        if ("base_uri" in self.parameters && "access_token" in self) {
+        if ("base_url" in self.parameters && "access_token" in self) {
             var endpoint = '/api/camera_proxy/'
             if ('stream' in self.parameters && self.parameters.stream) {
                 endpoint = '/api/camera_proxy_stream/'
             }
 
-             var url = self.parameters.base_uri + endpoint + self.parameters.entity + '?token=' + self.access_token 
+             var url = self.parameters.base_url + endpoint + self.parameters.entity + '?token=' + self.access_token 
         } 
         else 
         {
             var url = '/images/Blank.gif'
         }
-
-
-         console.log(url)
 
          if (url.indexOf('?') > -1)
         {
@@ -66,7 +63,6 @@ function basecamera(widget_id, url, skin, parameters)
  
         if (refresh > 0)
         {
-            console.log('setting timeout ' + refresh.toString())
             clearTimeout(self.timeout)
             self.timeout = setTimeout(function() {refresh_frame(self)}, refresh * 1000);
         }
