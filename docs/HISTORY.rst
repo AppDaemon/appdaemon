@@ -8,9 +8,11 @@ Change Log
 
 - Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
 - Added render_template() handling
-- global_modules can now be declared in multipl yaml files
+- global_modules can now be declared in multiple yaml files
 - It is now possible to inject arbitrary headers in served http content
 - Updated camera widget now supports streams and token refreshing
+- Added input_text and input_datetime widgets
+- bumped aiohttp to 3.6.0
 
 **Fixes**
 

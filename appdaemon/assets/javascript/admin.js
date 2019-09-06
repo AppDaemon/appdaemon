@@ -609,7 +609,7 @@ function admin_stream(stream, transport)
         };
 
         webSocket.onclose = function (event) {
-            //window.alert("Server closed connection")
+            // window.alert("Server closed connection")
             // window.location.reload(false);
         };
 

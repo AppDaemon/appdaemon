@@ -105,11 +105,12 @@ class ADStream:
     async def on_shutdown(self, application):
         for ws in application['websockets']:
             try:
-                await ws.close(code=aiohttp.WSCloseCode.GOING_AWAY,
-                                message='Server shutdown')
+                print(ws.closed)
+                await ws.close()
+                print("done")
             except:
                 self.logger.debug('-' * 60)
-                self.logger.warning("Unexpeced error in on_shutdown()")
+                self.logger.warning("Unexpected error in on_shutdown()")
                 self.logger.debug('-' * 60)
                 self.logger.debug(traceback.format_exc())
                 self.logger.debug('-' * 60)

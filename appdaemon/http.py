@@ -139,8 +139,6 @@ class HTTP:
             if self.host == "":
                 raise ValueError("Invalid host for 'url'")
 
-            self.logger.info("Running on port %s", self.port)
-
             self.app = web.Application()
 
             if "headers" in self.http:
@@ -276,10 +274,11 @@ class HTTP:
             # Finish up and start the server
             #
 
-            handler = self.app.make_handler()
+            #handler = self.app.make_handler()
 
-            f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
-            loop.create_task(f)
+            #f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
+            #loop.create_task(f)
+
             if self.dashboard_obj is not None:
                 loop.create_task(self.update_rss())
 
@@ -289,6 +288,22 @@ class HTTP:
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
+
+    async def start_server(self):
+
+        self.logger.info("Running on port %s", self.port)
+
+        self.runner = web.AppRunner(self.app)
+        await self.runner.setup()
+        site = web.TCPSite(self.runner, '0.0.0.0', int(self.port))
+        await site.start()
+
+    async def stop_server(self):
+        self.logger.info("Shutting down webserver")
+        #
+        # We sjould do this nut it makes AD hang so ...
+        #
+        #await self.runner.cleanup()
 
     async def add_response_headers(self, request, response):
         for header, value in self.http['headers'].items():
