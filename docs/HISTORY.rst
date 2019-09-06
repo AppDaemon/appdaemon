@@ -8,9 +8,9 @@ Change Log
 
 - Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
 - Added render_template() handling
-- global_modules can now be decalred in multipl yaml files
+- global_modules can now be declared in multipl yaml files
 - It is now possible to inject arbitrary headers in served http content
-- Updated camera widget
+- Updated camera widget now supports streams and token refreshing
 
 **Fixes**
 
