@@ -560,6 +560,22 @@ AppDaemon uses websockets as the default protocol for streaming events from AppD
     http:
         transport: socketio
 
+Additionally, arbitrary headers can be supplied in all server responses from AppDaemon with this configuration:
+
+.. code:: yaml
+
+    http:
+      headers:
+        My-Header-Here: "The Value Of My Header"
+
+Headers are especially useful for dealing with CORS. In order to allow CORS from any domain, consider the following configuration:
+
+.. code:: yaml
+
+    http:
+      headers:
+        Access-Control-Allow-Origin: "*"
+
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

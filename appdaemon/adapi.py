@@ -1424,7 +1424,8 @@ class ADAPI:
         service calls.
 
         Args:
-            sequence: The sequence name.
+            sequence: The sequence name, refering to the correct entry in apps.yamk, or a dict containing
+                actual commands to run
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1438,9 +1439,15 @@ class ADAPI:
             None.
 
         Examples:
-            HASS
+            Run a yaml-defined sequence called "Front Room Scene".
 
-            >>> self.run_sequence("Front Rooom Scene")
+            >>> self.run_sequence("Front Room Scene")
+
+            Run an inline sequence.
+
+            >>> self.run_sequence([{"light.turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
+            {"entity_id": "light.office_1"}}])
+
 
         """
 

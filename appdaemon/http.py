@@ -143,6 +143,9 @@ class HTTP:
 
             self.app = web.Application()
 
+            if "headers" in self.http:
+                self.app.on_response_prepare.append(self.add_response_headers)
+
             # Setup event stream
 
             self.stream = stream.ADStream(self.AD, self.app, self.transport, self.on_connect, self.on_message)
@@ -286,6 +289,10 @@ class HTTP:
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
+
+    async def add_response_headers(self, request, response):
+        for header, value in self.http['headers'].items():
+            response.headers[header] = value
 
     def stop(self):
         self.stopping = True

@@ -766,7 +766,7 @@ class AppManagement:
                 self.logger.warning("Removing associated apps:")
                 module = self.get_module_from_path(mod["name"])
                 for app in self.app_config:
-                    if self.app_config[app]["module"] == module:
+                    if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
                         if apps["init"] and app in apps["init"]:
                             del apps["init"][app]
                             self.logger.warning("%s", app)

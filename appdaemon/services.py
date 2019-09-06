@@ -47,7 +47,7 @@ class Services:
                 self.logger.warning("Unknown service (%s/%s/%s) in call_service", namespace, domain, service)
                 return None
 
-            # If we have namespace in data it's an override for the domain of the eventual serice call, as distinct
+            # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
             # needs to operate on a different namespace, e.g. "default"
 
@@ -62,24 +62,35 @@ class Services:
                 return await funcref(ns, domain, service, data)
             except:
                 self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error in namespace setup")
+                self.logger.warning("Unexpected error in call_service()")
                 self.logger.warning('-' * 60)
                 self.logger.warning(traceback.format_exc())
                 self.logger.warning('-' * 60)
                 return None
 
     async def run_sequence(self, _name, namespace, sequence, **kwargs):
-        if sequence not in self.sequence:
-            self.logger.warning("Unknown sequence (%s) in call_service", sequence)
-            return None
+        if isinstance(sequence, str):
+            if sequence not in self.sequence:
+                self.logger.warning('Unknown sequence "%s" in call_service', sequence)
+                return None
 
-        seq = self.sequence[sequence]
+            seq = self.sequence[sequence]
+        else:
+            #
+            # Assume it's a dict with the actual commands in it
+            #
+            seq = sequence
 
         for step in seq:
             for command, parameters in step.items():
                 if command == "sleep":
                     await asyncio.sleep(float(parameters))
                 else:
-                    domain, service = str.split(command, ".")
+                    domain, service = str.split(command, "/")
+                    if "namespace" in parameters:
+                        ns = parameters["namespace"]
+                        del parameters["namespace"]
+                    else:
+                        ns = namespace
 
-                    await self.call_service(namespace, domain, service, parameters)
+                    await self.call_service(ns, domain, service, parameters)
