@@ -656,9 +656,9 @@ according to some flag, e.g., a house mode flag.
 
 .. code:: yaml
 
-     Single value
+    # Single value
     constrain_input_select: input_select.house_mode,Day
-     or multiple values
+    # or multiple values
     constrain_input_select: input_select.house_mode,Day,Evening,Night
 
 presence
