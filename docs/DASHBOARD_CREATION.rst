@@ -747,23 +747,19 @@ A widget to display a refreshing camera image on the dashboard
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
--  ``entity_picture``
-
-This can be found using the developer tools and will be one of the
-parameters associated with the camera you want to view. If you are using
-a password, you will need to append ``&api_password=<your password>`` to
-the end of the entity\_picture. It will look something like this:
-
-``http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>``
-
-If you are using SSL, remember to use the full DNS name and not the IP
-address.
+-  ``entity`` the entity\_id of the camera
+-  ``base_url`` the URL to your Home Assistant install. If you wish to access
+   your dashboard from an external network, then this needs to be the
+   external URL to Home Assistant.
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``refresh`` - (seconds) if set, the camera image will refresh every
-   interval.
+   interval. Use 0 to indicate no refresh at all. Default is 10 seconds for 
+   non-streaming cameras and 0 for streaming cameras.
+- ``stream`` - If set to "on" live data will be streamed to the dashboard
+   instead of needing to be refreshed.
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
