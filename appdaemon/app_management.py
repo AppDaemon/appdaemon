@@ -472,7 +472,7 @@ class AppManagement:
                         total_apps -=1 # remove one
 
                 #if silent is False:
-                self.logger.info("Found %s total number of apps", total_apps)
+                self.logger.info("Found %s total apps", total_apps)
                 
                 await self.set_state(self.total_apps_sensor, state=total_apps)
                 

@@ -10,6 +10,7 @@ Change Log
 - Added render_template() handling
 - global_modules can now be decalred in multipl yaml files
 - It is now possible to inject arbitrary headers in served http content
+- Updated camera widget
 
 **Fixes**
 
@@ -18,6 +19,7 @@ Change Log
 **Breaking Changes**
 
 - ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
+- The camera widget has changed parameters - check the docs for details
 
 4.0.0 Beta1 (2019-08-30)
 ------------------------
@@ -37,7 +39,7 @@ Change Log
 - Added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIs to remove duplication
-- Moved `contrain_days` from being Hass only to all app, regardless of plugin used
+- Moved `constrain_days` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
 - Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
