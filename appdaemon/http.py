@@ -582,12 +582,48 @@ class HTTP:
 
             self.logger.debug("call_service() args = %s", args)
 
-            await self.AD.services.call_service(namespace, domain, service, args)
-            return web.Response(status=200)
+            res = await self.AD.services.call_service(namespace, domain, service, args)
+            return web.json_response({"result" : res})
 
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in call_service()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return web.Response(status=500)
+
+    # noinspection PyUnusedLocal
+    @securedata
+    async def fire_event(self, request):
+        try:
+            try:
+                data = await request.json()
+            except json.decoder.JSONDecodeError:
+                return self.get_response(request, 400, "JSON Decode Error")
+
+            args = {}
+            namespace = request.match_info.get('namespace')
+            event = request.match_info.get('event')
+            #
+            # Some value munging for dashboard
+            #
+            for key in data:
+                if key == "event":
+                    pass
+
+                else:
+                    args[key] = data[key]
+
+            self.logger.debug("fire_event() args = %s", args)
+
+            await self.AD.events.fire_event(namespace, event, **args)
+
+            return web.Response(status=200)
+
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in fire_event()")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
@@ -614,6 +650,7 @@ class HTTP:
 
     def setup_api_routes(self):
         self.app.router.add_post('/api/appdaemon/service/{namespace}/{domain}/{service}', self.call_service)
+        self.app.router.add_post('/api/appdaemon/event/{namespace}/{event}', self.fire_event)
         self.app.router.add_get('/api/appdaemon/service/', self.get_services)
         self.app.router.add_get('/api/appdaemon/state/{namespace}/{entity}', self.get_entity)
         self.app.router.add_get('/api/appdaemon/state/{namespace}', self.get_namespace)
@@ -801,4 +838,3 @@ class HTTP:
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
-
