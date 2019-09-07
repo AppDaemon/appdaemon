@@ -98,6 +98,7 @@ class HassPlugin(PluginBase):
             self.plugin_startup_conditions = args["plugin_startup_conditions"]
         else:
             self.plugin_startup_conditions = None
+
         #
         # Set up HTTP Client
         #
@@ -389,6 +390,13 @@ class HassPlugin(PluginBase):
     @hass_check
     async def call_plugin_service(self, namespace, domain, service, data):
         self.logger.debug("call_plugin_service() namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data)
+
+        #
+        # If data is a string just assume it's an entity_id
+        #
+        if isinstance(data, str):
+            data = {"entity_id": data}
+
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
@@ -453,8 +461,12 @@ class HassPlugin(PluginBase):
 
             apiurl = "{}/api/history/period{}{}{}".format(config["ha_url"], timeStamp, filter_entity_id, eTime)
 
+        elif domain == "template":
+            apiurl = "{}/api/template".format(config["ha_url"])
+            
         else:
             apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
+
         try:
             if domain == "database":
                 r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
@@ -462,7 +474,10 @@ class HassPlugin(PluginBase):
                 r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
                 
             if r.status == 200 or r.status == 201:
-                result = await r.json()
+                if domain == "template":
+                    result = await r.text()
+                else:
+                    result = await r.json()
             else:
                 self.logger.warning("Error calling Home Assistant service %s/%s/%s", namespace, domain, service)
                 txt = await r.text()
@@ -570,6 +585,7 @@ class HassPlugin(PluginBase):
             r.raise_for_status()
             services = await r.json()
             services.append({"domain": "database","services": ["history"]}) #manually added HASS history service
+            services.append({"domain": "template","services": ["render"]})
 
             return services
         except:

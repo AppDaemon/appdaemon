@@ -55,6 +55,10 @@ class Utility:
         await self.AD.threading.create_initial_threads()
         await self.AD.app_management.init_admin_stats()
 
+        #
+        # Start the web server
+        #
+        await self.AD.http.start_server()
 
         #
         # Wait for all plugins to initialize
@@ -67,6 +71,12 @@ class Utility:
             # Create timer loop
 
             self.logger.debug("Starting timer loop")
+
+            #
+            # Register set_state services
+            #
+            for ns in await self.AD.state.list_namespaces():
+                self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
 
             self.AD.loop.create_task(self.AD.sched.loop())
 
@@ -153,8 +163,20 @@ class Utility:
 
                 await asyncio.sleep(self.AD.utility_delay)
 
+            #
+            # Shutting down now
+            #
+
+            #
+            # Stop apps
+            #
             if self.AD.app_management is not None:
                 await self.AD.app_management.terminate()
+
+            #
+            # Shutdown webserver
+            #
+            await self.AD.http.stop_server()
 
     async def set_production_mode(self, mode=True):
         if mode is True:

@@ -58,7 +58,7 @@ To install the dev build as a package, change to the ``appdaemon`` directory and
 Updating AppDaemon to the latest dev version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When the dev version has been updated, and you want to pull over the latest changes, run the following command from the ``appdeamon`` directory:
+When the dev version has been updated, and you want to pull over the latest changes, run the following command from the ``appdaemon`` directory:
 
 .. code:: bash
 

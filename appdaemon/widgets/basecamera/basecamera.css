@@ -1,0 +1,38 @@
+.widget-basecamera-{{id}} .title {
+	position: absolute;
+	bottom: 0px;
+    margin: 0px 0px 0px 0px;
+	width: 100%;
+}
+
+ .widget-basecamera-{{id}} .outer-frame {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    z-index: 1;
+    border: none;
+}
+
+ .widget-basecamera-{{id}} .outer-image {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    z-index: 0;
+    border: none;
+}
+
+ .widget-basecamera-{{id}} .scaled-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+ .widget-basecamera-{{id}} .img-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+} 

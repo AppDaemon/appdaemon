@@ -747,23 +747,19 @@ A widget to display a refreshing camera image on the dashboard
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
 
--  ``entity_picture``
-
-This can be found using the developer tools and will be one of the
-parameters associated with the camera you want to view. If you are using
-a password, you will need to append ``&api_password=<your password>`` to
-the end of the entity\_picture. It will look something like this:
-
-``http://192.168.1.20:8123/api/camera_proxy/camera.living_room?token=<your token>&api_password=<redacted>``
-
-If you are using SSL, remember to use the full DNS name and not the IP
-address.
+-  ``entity`` the entity\_id of the camera
+-  ``base_url`` the URL to your Home Assistant install. If you wish to access
+   your dashboard from an external network, then this needs to be the
+   external URL to Home Assistant.
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``refresh`` - (seconds) if set, the camera image will refresh every
-   interval.
+   interval. Use 0 to indicate no refresh at all. Default is 10 seconds for 
+   non-streaming cameras and 0 for streaming cameras.
+- ``stream`` - If set to "on" live data will be streamed to the dashboard
+   instead of needing to be refreshed.
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
@@ -1194,10 +1190,36 @@ Cosmetic Arguments
 -  ``title_style``
 -  ``title2_style``
 
+input_datetime
+~~~~~~~~~~~~~~
+
+A widget to monitor and control an input\_datetime
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_datetime
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``container_style``
+-  ``date_style``
+-  ``time_style``
+
 input_number
 ~~~~~~~~~~~~~
 
-A widget to monitor and control an input number
+A widget to monitor and control an input\_number
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1280,6 +1302,32 @@ Cosmetic Arguments
 - ``slider_style``
 - ``slidercontainer_style``
 - ``widget_style``
+
+input_text
+~~~~~~~~~~~~~~
+
+A widget to monitor and control an input\_text
+
+Mandatory Arguments
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the input\_text
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+
+Cosmetic Arguments
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``title2_style``
+-  ``container_style``
+-  ``text_style``
+
 
 javascript
 ~~~~~~~~~~
@@ -1577,6 +1625,7 @@ Style Arguments:
 -  ``title_style``
 -  ``title2_style``
 
+
 navigate
 ~~~~~~~~
 
@@ -1591,8 +1640,8 @@ None, but either ``url`` or ``dashboard`` must be specified.
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``url`` - a url to navigate to. Use a full URL including the "http://"
-   or "https://" part.
+-  ``url`` - a url to navigate to. Use a full URL including the `http://`
+   or `https://` part.
 -  ``dashboard`` - a dashboard to navigate to e.g. ``MainPanel``
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.

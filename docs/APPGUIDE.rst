@@ -559,10 +559,13 @@ callback that would otherwise be blocked due to constraint failure
 will now be called. Similarly, if one of the constraints becomes false,
 the next callback that would otherwise have been called will be blocked.
 
-AppDeamon itself supplies the time constraint:
+AppDaemon Constraints
+~~~~~~~~~~~~~~~~~~~~~~~
+
+AppDaemon itself supplies the time constraint:
 
 time
-~~~~
+^^^^
 
 The time constraint consists of 2 variables, ``constrain_start_time``
 and ``constrain_end_time``. Callbacks will only be executed if the
@@ -593,6 +596,7 @@ times that span midnight.
     constrain_start_time: sunset - 00:45:00
     constrain_end_time: sunrise + 00:45:00
 
+
 days
 ^^^^
 
@@ -613,7 +617,7 @@ The HASS plugin supplies several additional different types of constraints:
 -  input\_boolean
 -  input\_select
 -  presence
--  time
+-  time (see `AppDaemon Constraints <APPGUIDE.html#time>`__)
 
 They are described individually below.
 
@@ -652,9 +656,9 @@ according to some flag, e.g., a house mode flag.
 
 .. code:: yaml
 
-     Single value
+    # Single value
     constrain_input_select: input_select.house_mode,Day
-     or multiple values
+    # or multiple values
     constrain_input_select: input_select.house_mode,Day,Evening,Night
 
 presence

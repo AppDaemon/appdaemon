@@ -127,7 +127,6 @@ class MqttPlugin(PluginBase):
             "timeout" : self.mqtt_client_timeout,
             "force_state" : self.mqtt_client_force_start
                             }
-
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True

@@ -1,0 +1,33 @@
+.widget-basetext-{{id}} .value {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.widget-basetext-{{id}} .valueunit {
+        position: absolute;
+	width: 100%;
+        top: 41px;
+	vertical-align: middle;
+}
+
+.widget-basetext-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-basetext-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
+
+.widget-basetext-{{id}} .inputtext {
+        width: 85%;
+        height: 16px;
+	border: 1px solid black;
+	padding: 2px;
+	margin: 1px;
+	text-align: left;
+	background-color: #999;
+}
