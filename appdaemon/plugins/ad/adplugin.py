@@ -6,7 +6,6 @@ import traceback
 import aiohttp
 import pytz
 from deepdiff import DeepDiff
-import datetime
 from urllib.parse import quote
 
 import appdaemon.utils as utils
