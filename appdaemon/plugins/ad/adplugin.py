@@ -161,7 +161,7 @@ class AdPlugin(PluginBase):
         return accept, ns
 
     #
-    # Get HASS Metadata
+    # Get AD Metadata
     #
 
     async def get_metadata(self):
@@ -206,7 +206,7 @@ class AdPlugin(PluginBase):
 
                 res = await utils.run_in_executor(self, self.ws.recv)
                 #result = json.loads(res)
-                result = {"type": res} #just to avoid breaking
+                result = {"type": res} #just to avoid breaking for now
 
                 self.logger.info("Connected to AppDaemon %s", res)
                 #
