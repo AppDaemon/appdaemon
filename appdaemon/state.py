@@ -483,7 +483,7 @@ class State:
 
     def save_all_namespaces(self):
         for ns in self.AD.namespaces:
-                self.state[ns].save()
+            self.state[ns].save()
 
     def save_hybrid_namespaces(self):
         for ns in self.AD.namespaces:
