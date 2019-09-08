@@ -541,6 +541,22 @@ class HTTP:
             self.logger.warning('-' * 60)
             return self.get_response(request, 500, "Unexpected error in get_state()")
 
+    @securedata
+    async def get_logs(self, request):
+        try:
+            self.logger.debug("get_logs() called")
+
+            logs = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
+
+            return web.json_response({"logs": logs})
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_logs()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_logs()")
+
     # noinspection PyUnusedLocal
     @securedata
     async def call_service(self, request):
@@ -620,6 +636,7 @@ class HTTP:
         self.app.router.add_get('/api/appdaemon/state/{namespace}/', self.get_namespace_entities)
         self.app.router.add_get('/api/appdaemon/state/', self.get_namespaces)
         self.app.router.add_get('/api/appdaemon/state', self.get_state)
+        self.app.router.add_get('/api/appdaemon/logs', self.get_logs)
         self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
         self.app.router.add_get('/api/appdaemon', self.get_ad)
 
