@@ -146,7 +146,7 @@ class HTTP:
 
             # Setup event stream
 
-            self.stream = stream.ADStream(self.AD, self.app, self.transport, self.on_connect, self.on_message)
+            self.stream = stream.ADStream(self.AD, self.app, self.transport)
 
             self.loop = loop
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
@@ -619,12 +619,6 @@ class HTTP:
         #self.logger.debug("stream_update() %s:%s", namespace, data)
         data["namespace"] = namespace
         self.AD.thread_async.call_async_no_wait(self.stream.send_update, data)
-
-    async def on_message(self, data):
-        self.access.info("New dashboard connected: %s", data)
-
-    async def on_connect(self):
-        pass
 
     # Routes, Status and Templates
 

@@ -27,15 +27,13 @@ class DashStream(socketio.AsyncNamespace):
 
 class ADStream:
 
-    def __init__(self, ad: AppDaemon, app, transport, on_connect, on_msg):
+    def __init__(self, ad: AppDaemon, app, transport):
 
         self.AD = ad
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
         self.app = app
         self.transport = transport
-        self.on_connect = on_connect
-        self.on_msg = on_msg
 
         if self.transport == "ws":
             self.app['websockets'] = {}
@@ -79,22 +77,23 @@ class ADStream:
         await ws.prepare(request)
 
         request.app['websockets'][ws] = {}
+        rh = RequestHandler(self.AD, ws, self.app)
         # noinspection PyBroadException
         try:
             while True:
                 msg = await ws.receive()
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    await self.on_msg(msg.data)
-                    request.app['websockets'][ws]["dashboard"] = msg.data
+                    await rh._handle(msg.data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except:
             self.logger.debug('-' * 60)
             self.logger.debug("Unexpected client disconnection")
-            self.access.info("Unexpected client disconnection")
+            self.access.info("Unexpected client disconnection {}".format(e))
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
+            await ws.close()
         finally:
             request.app['websockets'].pop(ws, None)
 
@@ -115,3 +114,84 @@ class ADStream:
                 self.logger.debug(traceback.format_exc())
                 self.logger.debug('-' * 60)
 
+## Any method here that doesn't begin with "_" will be exposed to the websocket
+## directly. Only Create public methods here if you wish to make them
+## websocket commands.
+class RequestHandler:
+
+    def __init__(self, ad: AppDaemon, ws, app):
+        self.AD = ad
+        self.ws = ws
+        self.app = app
+        self.authed = False
+
+        self.logger = ad.logging.get_child("_stream")
+
+
+        if self.AD.http.password is None:
+            self.authed = True
+
+    async def _handle(self, rawmsg):
+        try:
+            msg = json.loads(rawmsg)
+        except ValueError:
+            return await self._response_error('bad json data')
+
+        if "request_type" not in msg:
+            return await self._response_error('invalid request')
+
+        if msg['request_type'][0] == '_':
+            return await self._response_error('forbidden request')
+
+        if not hasattr(self, msg['request_type']):
+            return await self._response_error('unavailable request')
+
+        fn = getattr(self, msg['request_type'])
+
+        if not callable(fn):
+            return await self._response_error('uncallable request')
+
+        return await fn(msg)
+
+    async def _response(self, type, data={}):
+        data["response_type"] = type
+        await self.ws.send_json(data)
+
+    async def _response_unauthed_error(self):
+        return await self._response_error('unauthorized')
+
+    async def _response_error(self, error):
+        await self._response('error', {"msg": error})
+    
+    async def hello(self, data):
+        if self.AD.http.password is None:
+            self.logger.info('Password Not In Config')
+            self.authed = True
+
+        self.logger.info(self.AD.http.password)
+
+        if not self.authed:
+            if "password" in data:
+                if data['password'] == self.AD.http.password:
+                    self.authed = True
+                else:
+                    self.logger.info('Password in Data does not match Config')
+            else:
+                self.logger.info('Password Not in Data')
+
+        if not self.authed:
+            return await self._response_unauthed_error()
+
+        if "client_name" not in data:
+            return await self._response_unauthed_error()
+
+        # this enables the event stream for this socket connection
+        self.app['websockets'][self.ws]['dashboard'] = data['client_name']
+        return await self._response('authed')
+
+    async def get_state(self, data):
+        if not self.authed:
+            return await self._response_unauthed_error()
+
+        ret = self.AD.state.get_entity()
+        return await self._response('get_state', ret)
