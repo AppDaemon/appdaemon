@@ -46,14 +46,48 @@ class ADStream:
 
     async def send_update(self, data):
         try:
-            jdata = json.dumps(data)
-
             if self.transport == "ws":
                 if len(self.app['websockets']) > 0:
-                    self.logger.debug("Sending data: %s", jdata)
+                    self.logger.debug("Sending data: %s", json.dumps(data))
                     for ws in self.app['websockets']:
-                        if "dashboard" in self.app['websockets'][ws]:
-                            await ws.send_str(jdata)
+                        rh = self.app['websockets'][ws]
+                        if data['event_type'] == 'state_changed':
+                            for sub in rh.subscriptions['state']:
+                                if sub['namespace'].endswith('*'):
+                                    if not data['namespace'].startswith(sub['namespace'][:-1]):
+                                        continue
+                                else:
+                                    if not data['namespace'] == sub['namespace']:
+                                        continue
+                            
+                                if sub['entity_id'].endswith('*'):
+                                    if not data['data']['entity_id'].startswith(sub['entity_id'][:-1]):
+                                        continue
+                                else:
+                                    if not data['data']['entity_id'] == sub['entity_id']:
+                                        continue
+                                
+                                await ws.send_json(data)
+                                break
+                        else:
+                            for sub in rh.subscriptions['event']:
+                                if sub['namespace'].endswith('*'):
+                                    if not data['namespace'].startswith(sub['namespace'][:-1]):
+                                        continue
+                                else:
+                                    if not data['namespace'] == sub['namespace']:
+                                        continue
+                            
+                                if sub['event'].endswith('*'):
+                                    if not data['event_type'].startswith(sub['event'][:-1]):
+                                        continue
+                                else:
+                                    if not data['event_type'] == sub['event']:
+                                        continue
+                                
+                                await ws.send_json(data)
+                                break
+
 
             else:
                 await self.dash_stream.emit('down', jdata)
@@ -63,10 +97,12 @@ class ADStream:
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s",e)
             self.logger.debug('-' * 60)
-        except:
+        except Exception as e:
             self.logger.debug('-' * 60)
             self.logger.debug("Client disconnected unexpectedly")
             self.access.info("Client disconnected unexpectedly")
+            self.logger.info("Data is: %s", data)
+            self.logger.info("Error is: %s",e)
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
@@ -76,8 +112,9 @@ class ADStream:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
 
-        request.app['websockets'][ws] = {}
         rh = RequestHandler(self.AD, ws, self.app)
+        request.app['websockets'][ws] = rh
+
         # noinspection PyBroadException
         try:
             while True:
@@ -86,7 +123,7 @@ class ADStream:
                     await rh._handle(msg.data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
-        except:
+        except Exception as e:
             self.logger.debug('-' * 60)
             self.logger.debug("Unexpected client disconnection")
             self.access.info("Unexpected client disconnection {}".format(e))
@@ -124,6 +161,10 @@ class RequestHandler:
         self.ws = ws
         self.app = app
         self.authed = False
+        self.subscriptions = {
+            'state': [],
+            'event': [],
+        }
 
         self.logger = ad.logging.get_child("_stream")
 
@@ -185,8 +226,6 @@ class RequestHandler:
         if "client_name" not in data:
             return await self._response_unauthed_error()
 
-        # this enables the event stream for this socket connection
-        self.app['websockets'][self.ws]['dashboard'] = data['client_name']
         return await self._response('authed')
 
     async def get_state(self, data):
@@ -195,3 +234,33 @@ class RequestHandler:
 
         ret = self.AD.state.get_entity()
         return await self._response('get_state', ret)
+
+    async def listen_state(self, data):
+        if not self.authed:
+            return await self._response_unauthed_error()
+
+        if "namespace" not in data:
+            return await self._response_error('invalid listen_state namespace')
+
+        if "entity_id" not in data:
+            return await self._response_error('invalid listen_state entity_id')
+
+        self.subscriptions['state'].append({
+            "namespace": data['namespace'],
+            "entity_id": data['entity_id']
+        })
+
+    async def listen_event(self, data):
+        if not self.authed:
+            return await self._response_unauthed_error()
+
+        if "namespace" not in data:
+            return await self._response_error('invalid listen_event namespace')
+
+        if "event" not in data:
+            return await self._response_error('invalid listen_event event')
+
+        self.subscriptions['event'].append({
+            "namespace": data['namespace'],
+            "event": data['event']
+        })
