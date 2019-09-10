@@ -101,11 +101,7 @@ class AdPlugin(PluginBase):
         for local, remote in rn.items():
             self.remote_namespaces[remote] = local
 
-        #
-        # Set up HTTP Client
-        #
-        conn = aiohttp.TCPConnector()
-        self.session = aiohttp.ClientSession(connector=conn)
+        self.session = None
 
         self.logger.info("AD Plugin initialization complete")
 
@@ -407,6 +403,14 @@ class AdPlugin(PluginBase):
     async def get_ad_services(self):
         try:
             self.logger.debug("get_ad_services()")
+
+            if self.session is None:
+                #
+                # Set up HTTP Client
+                #
+                conn = aiohttp.TCPConnector()
+                self.session = aiohttp.ClientSession(connector=conn)
+
             if self.api_key is not None:
                 headers = {'x-ad-access': self.api_key, "Content-Type" : "application/json"}
             else:
