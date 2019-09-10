@@ -241,8 +241,8 @@ class RequestHandler:
         if not self.authed:
             return await self._response_unauthed_error()
 
-        ret = self.AD.state.get_entity()
-        return await self._response('get_state', ret)
+        data = self.AD.state.get_entity()
+        return await self._response('get_state', {"data": data})
 
     async def listen_state(self, data):
         if not self.authed:
