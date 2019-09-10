@@ -1,3 +1,18 @@
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
 
 function ha_status(stream, dash, widgets, transport)
 {
@@ -8,12 +23,47 @@ function ha_status(stream, dash, widgets, transport)
 
         webSocket.onopen = function (event)
         {
-            webSocket.send(dash);
+            var request = {
+                request_type: 'hello',
+                client_name: dash,
+            }
+
+            if (getCookie('adcreds') !== '') {
+                request['cookie'] = getCookie('adcreds')
+            }
+
+            webSocket.send(JSON.stringify(request));
         };
 
         webSocket.onmessage = function (event)
         {
             var data = JSON.parse(event.data);
+
+            // Stream Authorized            
+            if (data.response_type === "authed")
+            {
+                webSocket.send(JSON.stringify({
+                    request_type: 'listen_state',
+                    namespace: '*',
+                    entity_id: '*',
+                }))
+        
+                webSocket.send(JSON.stringify({
+                    request_type: 'listen_event',
+                    namespace: '*',
+                    event: '*',
+                }))
+
+                return
+            }
+
+            // Stream Error
+            if (data.response_type === "error")
+            {
+                console.log('Stream Error', data.msg)
+                webSocket.refresh()
+                return
+            }
 
             update_dash(data)
         };
