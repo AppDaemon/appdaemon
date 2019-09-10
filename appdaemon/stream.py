@@ -3,8 +3,10 @@ import json
 import aiohttp
 from aiohttp import web
 import traceback
+import bcrypt
 
 from appdaemon.appdaemon import AppDaemon
+import appdaemon.utils as utils
 
 
 # socketio handler
@@ -203,22 +205,41 @@ class RequestHandler:
 
     async def _response_error(self, error):
         await self._response('error', {"msg": error})
-    
+
+    async def _check_adcookie(self, cookie):
+        return await utils.run_in_executor(
+            self,
+            bcrypt.checkpw,
+            str.encode(self.AD.http.password),
+            str.encode(cookie))
+
+    async def _auth_data(self, data):
+        self.logger.info("auth data {}".format(data))
+        if "password" in data:
+            if data['password'] == self.AD.http.password:
+                self.authed = True
+                return
+            else:
+                self.logger.info('Password in Data does not match Config')
+        else:
+            self.logger.info('Password Not in Data')
+
+        if "cookie" in data:
+            if await self._check_adcookie(data['cookie']):
+                self.authed = True
+                return
+            else:
+                self.logger.info('Cookie in Data does not match Config')
+        else:
+            self.logger.info('Cookie not in Data')
+
     async def hello(self, data):
         if self.AD.http.password is None:
             self.logger.info('Password Not In Config')
             self.authed = True
 
-        self.logger.info(self.AD.http.password)
-
         if not self.authed:
-            if "password" in data:
-                if data['password'] == self.AD.http.password:
-                    self.authed = True
-                else:
-                    self.logger.info('Password in Data does not match Config')
-            else:
-                self.logger.info('Password Not in Data')
+            await self._auth_data(data)
 
         if not self.authed:
             return await self._response_unauthed_error()
