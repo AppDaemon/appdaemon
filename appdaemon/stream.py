@@ -99,12 +99,10 @@ class ADStream:
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s",e)
             self.logger.debug('-' * 60)
-        except Exception as e:
+        except:
             self.logger.debug('-' * 60)
             self.logger.debug("Client disconnected unexpectedly")
             self.access.info("Client disconnected unexpectedly")
-            self.logger.info("Data is: %s", data)
-            self.logger.info("Error is: %s",e)
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
@@ -125,10 +123,10 @@ class ADStream:
                     await rh._handle(msg.data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
-        except Exception as e:
+        except:
             self.logger.debug('-' * 60)
             self.logger.debug("Unexpected client disconnection")
-            self.access.info("Unexpected client disconnection {}".format(e))
+            self.access.info("Unexpected client disconnection")
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
@@ -214,28 +212,18 @@ class RequestHandler:
             str.encode(cookie))
 
     async def _auth_data(self, data):
-        self.logger.info("auth data {}".format(data))
         if "password" in data:
             if data['password'] == self.AD.http.password:
                 self.authed = True
                 return
-            else:
-                self.logger.info('Password in Data does not match Config')
-        else:
-            self.logger.info('Password Not in Data')
 
         if "cookie" in data:
             if await self._check_adcookie(data['cookie']):
                 self.authed = True
                 return
-            else:
-                self.logger.info('Cookie in Data does not match Config')
-        else:
-            self.logger.info('Cookie not in Data')
 
     async def hello(self, data):
         if self.AD.http.password is None:
-            self.logger.info('Password Not In Config')
             self.authed = True
 
         if not self.authed:
