@@ -1,3 +1,19 @@
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
 function dom_ready(transport)
 {
     window.ready = false;
@@ -599,12 +615,48 @@ function admin_stream(stream, transport)
         var webSocket = new ReconnectingWebSocket(stream);
 
         webSocket.onopen = function (event) {
-            webSocket.send("Admin Browser");
+            var request = {
+                request_type: 'hello',
+                client_name: 'Admin Browser',
+            }
+
+            if (getCookie('adcreds') !== '') {
+                request['cookie'] = getCookie('adcreds')
+            }
+
+            webSocket.send(JSON.stringify(request));
             get_state(create_tables);
         };
 
         webSocket.onmessage = function (event) {
             var data = JSON.parse(event.data);
+
+            // Stream Authorized            
+            if (data.response_type === "authed")
+            {
+                webSocket.send(JSON.stringify({
+                    request_type: 'listen_state',
+                    namespace: '*',
+                    entity_id: '*',
+                }))
+        
+                webSocket.send(JSON.stringify({
+                    request_type: 'listen_event',
+                    namespace: '*',
+                    event: '*',
+                }))
+
+                return
+            }
+
+            // Stream Error
+            if (data.response_type === "error")
+            {
+                console.log('Stream Error', data.msg)
+                webSocket.refresh()
+                return
+            }
+            
             update_admin(data)
         };
 
