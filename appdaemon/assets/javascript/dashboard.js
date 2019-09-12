@@ -25,11 +25,13 @@ function ha_status(stream, dash, widgets, transport)
         {
             var request = {
                 request_type: 'hello',
-                client_name: dash,
+                data: {
+                    client_name: dash,
+                }
             }
 
             if (getCookie('adcreds') !== '') {
-                request['cookie'] = getCookie('adcreds')
+                request['data']['cookie'] = getCookie('adcreds')
             }
 
             webSocket.send(JSON.stringify(request));
@@ -40,18 +42,22 @@ function ha_status(stream, dash, widgets, transport)
             var data = JSON.parse(event.data);
 
             // Stream Authorized            
-            if (data.response_type === "authed")
+            if (data.response_type === "hello" && data.response_success === true)
             {
                 webSocket.send(JSON.stringify({
                     request_type: 'listen_state',
-                    namespace: '*',
-                    entity_id: '*',
+                    data: {
+                        namespace: '*',
+                        entity_id: '*',
+                    }
                 }))
         
                 webSocket.send(JSON.stringify({
                     request_type: 'listen_event',
-                    namespace: '*',
-                    event: '*',
+                    data: {
+                        namespace: '*',
+                        event: '*',
+                    }
                 }))
 
                 return

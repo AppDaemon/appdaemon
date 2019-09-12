@@ -617,11 +617,13 @@ function admin_stream(stream, transport)
         webSocket.onopen = function (event) {
             var request = {
                 request_type: 'hello',
-                client_name: 'Admin Browser',
+                data: {
+                    client_name: 'Admin Browser',
+                }
             }
 
             if (getCookie('adcreds') !== '') {
-                request['cookie'] = getCookie('adcreds')
+                request['data']['cookie'] = getCookie('adcreds')
             }
 
             webSocket.send(JSON.stringify(request));
@@ -632,18 +634,22 @@ function admin_stream(stream, transport)
             var data = JSON.parse(event.data);
 
             // Stream Authorized            
-            if (data.response_type === "authed")
+            if (data.response_type === "hello" && data.response_success === true)
             {
                 webSocket.send(JSON.stringify({
                     request_type: 'listen_state',
-                    namespace: '*',
-                    entity_id: '*',
+                    data: {
+                        namespace: '*',
+                        entity_id: '*',
+                    }
                 }))
         
                 webSocket.send(JSON.stringify({
                     request_type: 'listen_event',
-                    namespace: '*',
-                    event: '*',
+                    data: {
+                        namespace: '*',
+                        event: '*',
+                    }
                 }))
 
                 return
