@@ -124,12 +124,12 @@ class ADStream:
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except:
-            self.logger.debug('-' * 60)
-            self.logger.debug("Unexpected client disconnection")
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected client disconnection")
             self.access.info("Unexpected client disconnection")
-            self.logger.debug('-' * 60)
-            self.logger.debug(traceback.format_exc())
-            self.logger.debug('-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
             await ws.close()
         finally:
             request.app['websockets'].pop(ws, None)
@@ -236,6 +236,35 @@ class RequestHandler:
             return await self._response_unauthed_error()
 
         return await self._response('authed')
+
+    async def call_service(self, data):
+        if not self.authed:
+            return await self._response_unauthed_error()
+
+        if "namespace" not in data:
+            return await self._response_error('invalid call_service namespace')
+
+        if "service" not in data:
+            return await self._response_error('invalid call_service service')
+        else:
+            service = data['service']
+
+        if "domain" not in data:
+            d, s = service.split("/")
+            if d and s:
+                domain = d
+                service = s
+            else:
+                return await self._response_error('invalid call_service domain')
+        else:
+            domain = data['domain']
+
+        if "data" not in data:
+            service_data = {}
+        else:
+            service_data = data['data']
+
+        return await self.AD.services.call_service(data['namespace'], domain, service, service_data)
 
     async def get_state(self, data):
         if not self.authed:
