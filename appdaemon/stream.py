@@ -321,12 +321,12 @@ class RequestHandler:
             raise RequestHandlerException('unauthorized')
 
         namespace = data.get('namespace', None)
-        entity = data.get('entity', None)
+        entity_id = data.get('entity_id', None)
 
-        if entity is not None and namespace is None:
-            raise RequestHandlerException('entity cannoy be set without namespace')
+        if entity_id is not None and namespace is None:
+            raise RequestHandlerException('entity_id cannoy be set without namespace')
 
-        return self.AD.state.get_entity(namespace, entity)                
+        return self.AD.state.get_entity(namespace, entity_id)                
 
     async def listen_state(self, data):
         if not self.authed:
