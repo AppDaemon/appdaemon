@@ -4,6 +4,7 @@ import aiohttp
 from aiohttp import web
 import traceback
 import bcrypt
+import uuid
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
@@ -54,7 +55,7 @@ class ADStream:
                     for ws in self.app['websockets']:
                         rh = self.app['websockets'][ws]
                         if data['event_type'] == 'state_changed':
-                            for sub in rh.subscriptions['state']:
+                            for handle, sub in rh.subscriptions['state'].items():
                                 if sub['namespace'].endswith('*'):
                                     if not data['namespace'].startswith(sub['namespace'][:-1]):
                                         continue
@@ -72,7 +73,7 @@ class ADStream:
                                 await ws.send_json(data)
                                 break
                         else:
-                            for sub in rh.subscriptions['event']:
+                            for handle, sub in rh.subscriptions['event'].items():
                                 if sub['namespace'].endswith('*'):
                                     if not data['namespace'].startswith(sub['namespace'][:-1]):
                                         continue
@@ -162,8 +163,8 @@ class RequestHandler:
         self.app = app
         self.authed = False
         self.subscriptions = {
-            'state': [],
-            'event': [],
+            'state': {},
+            'event': {},
         }
 
         self.logger = ad.logging.get_child("_stream")
@@ -179,6 +180,7 @@ class RequestHandler:
             response['response_id'] = msg['request_id']
         response['response_success'] = True
         response['data'] = data
+        response['request'] = msg
 
         await self.ws.send_json(response)
 
@@ -199,8 +201,6 @@ class RequestHandler:
         except ValueError:
             return await self._response_error(rawmsg, 'bad json data')
 
-        self.logger.info(msg)
-
         if "request_type" not in msg:
             return await self._response_error(msg, 'invalid request')
 
@@ -217,8 +217,6 @@ class RequestHandler:
 
         request_data = msg.get('data', {})
         request_id = msg.get('request_id', None)
-
-        self.logger.info("trying {}".format(request_data))
 
         try:
             data = await fn(request_data)
@@ -262,7 +260,7 @@ class RequestHandler:
             raise RequestHandlerException('authorization failed')
 
         response_data = {
-            "version": self.AD.state.get_entity('admin', 'sensor.appdaemon_version')['state']
+            "version": utils.__version__
         }
 
         return response_data
@@ -338,12 +336,31 @@ class RequestHandler:
         if "entity_id" not in data:
             raise RequestHandlerException('invalid entity_id')
 
-        self.subscriptions['state'].append({
+        handle = data.get('handle', uuid.uuid4().hex)
+        
+        if handle in self.subscriptions['state']:
+            raise RequestHandlerException('handle already exists')
+
+        self.subscriptions['state'][handle] = {
             "namespace": data['namespace'],
             "entity_id": data['entity_id']
-        })
+        }
 
-        return
+        return handle
+
+    async def cancel_listen_state(self, data):
+        if not self.authed:
+            raise RequestHandlerException('unauthorized')
+
+        if "handle" not in data:
+            raise RequestHandlerException('invalid handle')
+
+        if data['handle'] not in self.subscriptions['state']:
+            raise RequestHandlerException('invalid handle')
+
+        del self.subscriptions['state'][data['handle']]
+
+        return True
 
     async def listen_event(self, data):
         if not self.authed:
@@ -355,12 +372,31 @@ class RequestHandler:
         if "event" not in data:
             raise RequestHandlerException('invalid event')
 
-        self.subscriptions['event'].append({
+        handle = data.get('handle', uuid.uuid4().hex)
+
+        if handle in self.subscriptions['state']:
+            raise RequestHandlerException('handle already exists')
+
+        self.subscriptions['event'][handle] = {
             "namespace": data['namespace'],
             "event": data['event']
-        })
+        }
 
-        return
+        return handle
+
+    async def cancel_listen_event(self, data):
+        if not self.authed:
+            raise RequestHandlerException('unauthorized')
+
+        if "handle" not in data:
+            raise RequestHandlerException('invalid handle')
+
+        if data['handle'] not in self.subscriptions['event']:
+            raise RequestHandlerException('invalid handle')
+
+        del self.subscriptions['event'][data['handle']]
+
+        return True
 
 
 class RequestHandlerException(Exception):
