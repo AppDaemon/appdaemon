@@ -273,7 +273,7 @@ class RequestHandler:
     async def get_services(self, data):
         if not self.authed:
             raise Exception('unauthorized')
-        
+
         return self.AD.services.list_services()
 
     async def fire_event(self, data):
@@ -323,7 +323,10 @@ class RequestHandler:
         if not self.authed:
             raise Exception('unauthorized')
 
-        return self.AD.state.get_entity()
+        namespace = data.get('namespace', None)
+        entity = data.get('entity', None)
+
+        return self.AD.state.get_entity(namespace, entity)
 
     async def listen_state(self, data):
         if not self.authed:
