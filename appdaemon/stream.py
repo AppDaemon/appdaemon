@@ -316,32 +316,17 @@ class RequestHandler:
 
         return await self.AD.services.call_service(data['namespace'], domain, service, service_data)
 
-    async def get_all_states(self, data):
-        if not self.authed:
-            raise RequestHandlerException('unauthorized')
-
-        return self.AD.state.get_entity()
-
-    async def get_namespace_states(self, data):
-        if not self.authed:
-            raise RequestHandlerException('unauthorized')
-
-        if "namespace" not in data:
-            raise RequestHandlerException('invalid namespace')
-
-        return self.AD.state.get_entity(data['namespace'])
-
     async def get_state(self, data):
         if not self.authed:
             raise RequestHandlerException('unauthorized')
 
-        if "namespace" not in data:
-            raise RequestHandlerException('invalid namespace')
+        namespace = data.get('namespace', None)
+        entity = data.get('entity', None)
 
-        if "entity" not in data:
-            raise RequestHandlerException('invalid entity')
+        if entity is not None and namespace is None:
+            raise RequestHandlerException('entity cannoy be set without namespace')
 
-        return self.AD.state.get_entity(data['namespace'], data['entity'])                
+        return self.AD.state.get_entity(namespace, entity)                
 
     async def listen_state(self, data):
         if not self.authed:
