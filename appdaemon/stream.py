@@ -220,22 +220,15 @@ class RequestHandler:
 
         self.logger.info("trying {}".format(request_data))
 
-        success = False
         try:
             data = await fn(request_data)
-            success = True
+            if data is not None or request_id is not None:
+                return await self._response_success(msg, data)
+        except RequestHandlerException as e:
+            return await self._response_error(msg, str(e))
         except Exception as e:
-            self.logger.info('RequestHandler Exception %s', str(e))
-            success = False
-            data = str(e)
-
-        if success is False:
-            return await self._response_error(msg, data)
-
-        if data is not None or request_id is not None:
-            return await self._response_success(msg, data)
-        
-        return
+            await self._response_error(msg, "Unknown error occured, check AppDaemon logs: {}".format(str(e)))
+            raise
 
     async def _check_adcookie(self, cookie):
         return await utils.run_in_executor(
@@ -257,7 +250,7 @@ class RequestHandler:
 
     async def hello(self, data):
         if "client_name" not in data:
-            raise Exception('client_name required')
+            raise RequestHandlerException('client_name required')
 
         if self.AD.http.password is None:
             self.authed = True
@@ -266,25 +259,29 @@ class RequestHandler:
             await self._auth_data(data)
 
         if not self.authed:
-            raise Exception('authorization failed')
+            raise RequestHandlerException('authorization failed')
 
-        return True
+        response_data = {
+            "version": self.AD.state.get_entity('admin', 'sensor.appdaemon_version')['state']
+        }
+
+        return response_data
 
     async def get_services(self, data):
         if not self.authed:
-            raise Exception('unauthorized')
+            raise RequestHandlerException('unauthorized')
 
         return self.AD.services.list_services()
 
     async def fire_event(self, data):
         if not self.authed:
-            raise Exception('unauthorized')
+            raise RequestHandlerException('unauthorized')
 
         if "namespace" not in data:
-            raise Exception('invalid namespace')
+            raise RequestHandlerException('invalid namespace')
 
         if "event" not in data:
-            raise Exception('invalid event')
+            raise RequestHandlerException('invalid event')
 
         event_data = data.get('data', {})
 
@@ -292,13 +289,13 @@ class RequestHandler:
 
     async def call_service(self, data):
         if not self.authed:
-            raise Exception('unauthorized')
+            raise RequestHandlerException('unauthorized')
 
         if "namespace" not in data:
-            raise Exception('invalid namespace')
+            raise RequestHandlerException('invalid namespace')
 
         if "service" not in data:
-            raise Exception('invalid service')
+            raise RequestHandlerException('invalid service')
         else:
             service = data['service']
 
@@ -308,7 +305,7 @@ class RequestHandler:
                 domain = d
                 service = s
             else:
-                raise Exception('invalid domain')
+                raise RequestHandlerException('invalid domain')
         else:
             domain = data['domain']
 
@@ -319,24 +316,42 @@ class RequestHandler:
 
         return await self.AD.services.call_service(data['namespace'], domain, service, service_data)
 
+    async def get_all_states(self, data):
+        if not self.authed:
+            raise RequestHandlerException('unauthorized')
+
+        return self.AD.state.get_entity()
+
+    async def get_namespace_states(self, data):
+        if not self.authed:
+            raise RequestHandlerException('unauthorized')
+
+        if "namespace" not in data:
+            raise RequestHandlerException('invalid namespace')
+
+        return self.AD.state.get_entity(data['namespace'])
+
     async def get_state(self, data):
         if not self.authed:
-            raise Exception('unauthorized')
+            raise RequestHandlerException('unauthorized')
 
-        namespace = data.get('namespace', None)
-        entity = data.get('entity', None)
+        if "namespace" not in data:
+            raise RequestHandlerException('invalid namespace')
 
-        return self.AD.state.get_entity(namespace, entity)
+        if "entity" not in data:
+            raise RequestHandlerException('invalid entity')
+
+        return self.AD.state.get_entity(data['namespace'], data['entity'])                
 
     async def listen_state(self, data):
         if not self.authed:
-            raise Exception('unauthorized')
+            raise RequestHandlerException('unauthorized')
 
         if "namespace" not in data:
-            raise Exception('invalid namespace')
+            raise RequestHandlerException('invalid namespace')
 
         if "entity_id" not in data:
-            raise Exception('invalid entity_id')
+            raise RequestHandlerException('invalid entity_id')
 
         self.subscriptions['state'].append({
             "namespace": data['namespace'],
@@ -347,13 +362,13 @@ class RequestHandler:
 
     async def listen_event(self, data):
         if not self.authed:
-            raise Exception('unauthorized')
+            raise RequestHanderException('unauthorized')
 
         if "namespace" not in data:
-            raise Exception('invalid namespace')
+            raise RequestHandlerException('invalid namespace')
 
         if "event" not in data:
-            raise Exception('invalid event')
+            raise RequestHandlerException('invalid event')
 
         self.subscriptions['event'].append({
             "namespace": data['namespace'],
@@ -361,3 +376,7 @@ class RequestHandler:
         })
 
         return
+
+
+class RequestHandlerException(Exception):
+    pass
