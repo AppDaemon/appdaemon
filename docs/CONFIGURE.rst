@@ -523,10 +523,11 @@ The HTTP component provides a unified front end to `Apdaemon's Admin Interface`,
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
-.. code::
+.. code:: yaml
 
-http:
-url: http://192.168.1.20:5050
+    http:
+        url: http://192.168.1.20:5050
+
 
 -  ``url`` - the URL you want the HTTP component to listen on
 
@@ -588,11 +589,23 @@ Configuring the API
 
 The AppDaemon App API is configured by adding a top-level directive to appdaemon.yaml:
 
-.. code::
+.. code:: yaml
 
     api:
 
 It takes no arguments.
+
+Configuring the Admin Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Admin GUI is configured by first adding the HTTP Component and then also adding the top-level directive to appdaemon.yaml:
+
+.. code:: yaml
+
+    admin:
+
+It takes no arguments. The Interface can be accessed using a web browser and pointing it to the HTTP component URL.
+
 
 Example Apps
 ------------
