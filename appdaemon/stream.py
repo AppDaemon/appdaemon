@@ -172,37 +172,70 @@ class RequestHandler:
         if self.AD.http.password is None:
             self.authed = True
 
+    async def _response_success(self, msg, data={}):
+        response = {}
+        response['response_type'] = msg['request_type']
+        if "request_id" in msg:
+            response['response_id'] = msg['request_id']
+        response['response_success'] = True
+        response['data'] = data
+
+        await self.ws.send_json(response)
+
+    async def _response_error(self, msg, error):
+        response = {}
+        response['response_type'] = msg['request_type']
+        if "request_id" in msg:
+            response['response_id'] = msg['request_id']
+        response['response_success'] = False
+        response['response_error'] = error
+        response['request'] = msg
+
+        await self.ws.send_json(response)
+
     async def _handle(self, rawmsg):
         try:
             msg = json.loads(rawmsg)
         except ValueError:
-            return await self._response_error('bad json data')
+            return await self._response_error(rawmsg, 'bad json data')
+
+        self.logger.info(msg)
 
         if "request_type" not in msg:
-            return await self._response_error('invalid request')
+            return await self._response_error(msg, 'invalid request')
 
         if msg['request_type'][0] == '_':
-            return await self._response_error('forbidden request')
+            return await self._response_error(msg, 'forbidden request')
 
         if not hasattr(self, msg['request_type']):
-            return await self._response_error('unavailable request')
+            return await self._response_error(msg, 'unavailable request')
 
         fn = getattr(self, msg['request_type'])
 
         if not callable(fn):
-            return await self._response_error('uncallable request')
+            return await self._response_error(msg, 'uncallable request')
 
-        return await fn(msg)
+        request_data = msg.get('data', {})
+        request_id = msg.get('request_id', None)
 
-    async def _response(self, type, data={}):
-        data["response_type"] = type
-        await self.ws.send_json(data)
+        self.logger.info("trying {}".format(request_data))
 
-    async def _response_unauthed_error(self):
-        return await self._response_error('unauthorized')
+        success = False
+        try:
+            data = await fn(request_data)
+            success = True
+        except Exception as e:
+            self.logger.info('RequestHandler Exception %s', str(e))
+            success = False
+            data = str(e)
 
-    async def _response_error(self, error):
-        await self._response('error', {"msg": error})
+        if success is False:
+            return await self._response_error(msg, data)
+
+        if data is not None or request_id is not None:
+            return await self._response_success(msg, data)
+        
+        return
 
     async def _check_adcookie(self, cookie):
         return await utils.run_in_executor(
@@ -223,6 +256,9 @@ class RequestHandler:
                 return
 
     async def hello(self, data):
+        if "client_name" not in data:
+            raise Exception('client_name required')
+
         if self.AD.http.password is None:
             self.authed = True
 
@@ -230,22 +266,19 @@ class RequestHandler:
             await self._auth_data(data)
 
         if not self.authed:
-            return await self._response_unauthed_error()
+            raise Exception('authorization failed')
 
-        if "client_name" not in data:
-            return await self._response_unauthed_error()
-
-        return await self._response('authed')
+        return True
 
     async def call_service(self, data):
         if not self.authed:
-            return await self._response_unauthed_error()
+            raise Exception('unauthorized')
 
         if "namespace" not in data:
-            return await self._response_error('invalid call_service namespace')
+            raise Exception('invalid namespace')
 
         if "service" not in data:
-            return await self._response_error('invalid call_service service')
+            raise Exception('invalid service')
         else:
             service = data['service']
 
@@ -255,7 +288,7 @@ class RequestHandler:
                 domain = d
                 service = s
             else:
-                return await self._response_error('invalid call_service domain')
+                raise Exception('invalid domain')
         else:
             domain = data['domain']
 
@@ -268,37 +301,40 @@ class RequestHandler:
 
     async def get_state(self, data):
         if not self.authed:
-            return await self._response_unauthed_error()
+            raise Exception('unauthorized')
 
-        data = self.AD.state.get_entity()
-        return await self._response('get_state', {"data": data})
+        return self.AD.state.get_entity()
 
     async def listen_state(self, data):
         if not self.authed:
-            return await self._response_unauthed_error()
+            raise Exception('unauthorized')
 
         if "namespace" not in data:
-            return await self._response_error('invalid listen_state namespace')
+            raise Exception('invalid namespace')
 
         if "entity_id" not in data:
-            return await self._response_error('invalid listen_state entity_id')
+            raise Exception('invalid entity_id')
 
         self.subscriptions['state'].append({
             "namespace": data['namespace'],
             "entity_id": data['entity_id']
         })
 
+        return
+
     async def listen_event(self, data):
         if not self.authed:
-            return await self._response_unauthed_error()
+            raise Exception('unauthorized')
 
         if "namespace" not in data:
-            return await self._response_error('invalid listen_event namespace')
+            raise Exception('invalid namespace')
 
         if "event" not in data:
-            return await self._response_error('invalid listen_event event')
+            raise Exception('invalid event')
 
         self.subscriptions['event'].append({
             "namespace": data['namespace'],
             "event": data['event']
         })
+
+        return
