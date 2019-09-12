@@ -270,6 +270,20 @@ class RequestHandler:
 
         return True
 
+    async def fire_event(self, data):
+        if not self.authed:
+            raise Exception('unauthorized')
+
+        if "namespace" not in data:
+            raise Exception('invalid namespace')
+
+        if "event" not in data:
+            raise Exception('invalid event')
+
+        event_data = data.get('data', {})
+
+        return await self.AD.events.fire_event(data['namespace'], data['event'], **event_data)
+
     async def call_service(self, data):
         if not self.authed:
             raise Exception('unauthorized')
