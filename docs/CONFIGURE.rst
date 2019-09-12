@@ -523,10 +523,11 @@ The HTTP component provides a unified front end to `Apdaemon's Admin Interface`,
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
-.. code::
+.. code:: yaml
 
-http:
-url: http://192.168.1.20:5050
+    http:
+        url: http://192.168.1.20:5050
+
 
 -  ``url`` - the URL you want the HTTP component to listen on
 
@@ -588,11 +589,34 @@ Configuring the API
 
 The AppDaemon App API is configured by adding a top-level directive to appdaemon.yaml:
 
-.. code::
+.. code:: yaml
 
     api:
 
 It takes no arguments.
+
+Configuring the Admin Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Admin Interface, new in 4.0 is a new front end to AppDaemon that allows you to monitor it's inner workings such as
+thread activity, registered callbacks and entities. Over time it is expected to evolve into a full management tool
+for AppDaemon allowing the user to configure, troubleshoot and monitor all of AppDaemon's functions.
+
+The Admin Interface is configured by first adding the HTTP Component and then also adding the top-level directive to appdaemon.yaml:
+
+.. code:: yaml
+
+    admin:
+
+The Interface can be accessed using a web browser and pointing it to the HTTP component URL.
+
+the `admin` directive takes a number of configuration items:
+
+- ``title:`` The title to be used for the browser window
+- ``stats_update:`` Frequency with which stats are updated in the interface. Allowed values are ``none``, ``batch``,
+``realtime`` (default). ``none`` will turn off updates, ``batch`` will update the stats every time the utility loop
+executes, usually every second. ``realtime`` is recommended for most applications, although if you have a very busy
+system, operating with sub-second callbacks you may prefer to use ``batch`` for performance reasons.
 
 Example Apps
 ------------
