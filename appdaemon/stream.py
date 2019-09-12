@@ -270,6 +270,12 @@ class RequestHandler:
 
         return True
 
+    async def get_services(self, data):
+        if not self.authed:
+            raise Exception('unauthorized')
+        
+        return self.AD.services.list_services()
+
     async def fire_event(self, data):
         if not self.authed:
             raise Exception('unauthorized')
