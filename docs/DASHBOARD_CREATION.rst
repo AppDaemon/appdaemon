@@ -718,7 +718,7 @@ binary_sensor
 
 A widget to monitor a binary\_sensor
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
@@ -748,24 +748,22 @@ camera
 .. figure:: images/camera.png
    :alt: camera
 
-A widget to display a refreshing camera image on the dashboard
+A widget to display a refreshing camera image on the dashboard.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``entity`` the entity\_id of the camera
--  ``base_url`` the URL to your Home Assistant install. If you wish to access
-   your dashboard from an external network, then this needs to be the
-   external URL to Home Assistant.
+-   ``entity`` the entity\_id of the camera
+-   ``base_url`` the URL to your Home Assistant install. If you wish to access
+    your dashboard from an external network, then this needs to be the external
+    URL to Home Assistant.
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``refresh`` - (seconds) if set, the camera image will refresh every
-   interval. Use 0 to indicate no refresh at all. Default is 10 seconds for 
-   non-streaming cameras and 0 for streaming cameras.
-- ``stream`` - If set to "on" live data will be streamed to the dashboard
-   instead of needing to be refreshed.
+-  ``refresh`` (seconds) -  if set, the camera image will refresh every interval. Use 0 to indicate no refresh at all. Default is 10 seconds for non-streaming cameras and 0 for streaming cameras.
+-  ``stream`` - If set to `on` live data will be streamed to the dashboard instead of needing to be refreshed.
+
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
@@ -780,7 +778,7 @@ climate
 
 A widget to monitor and control a climate entity
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the climate entity
@@ -857,7 +855,7 @@ cover
 A widget to monitor and activate a cover. At this time only the open and
 close actions are supported.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the cover
@@ -948,7 +946,7 @@ entitypicture
 
 A widget to display entity picture
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity to display entity_picture attribute
@@ -1031,7 +1029,7 @@ group
 
 A widget to monitor and control a group of lights
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the group
@@ -1099,7 +1097,7 @@ The icons list is mandatory, and each entry must contain both an icon and a styl
 
 The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
@@ -1128,7 +1126,7 @@ iframe
 
 A widget to display other content within the dashboard
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``url_list`` - a list of 1 or more URLs to cycle though. or
@@ -1192,7 +1190,7 @@ input_boolean
 
 A widget to monitor and activate an input\_boolean
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_boolean
@@ -1223,7 +1221,7 @@ input_datetime
 
 A widget to monitor and control an input\_datetime
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_datetime
@@ -1251,7 +1249,7 @@ input_number
 
 A widget to monitor and control an input\_number
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_number
@@ -1311,7 +1309,7 @@ input_slider
 
 An alternate widget to monitor and control an input number, using plus and minus buttons instead of a slider.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_number
@@ -1344,7 +1342,7 @@ input_text
 
 A widget to monitor and control an input\_text
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_text
@@ -1372,7 +1370,7 @@ javascript
 
 A widget to run an arbitrary JavaScript command.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 - ``command`` - the JavaScript command to be run.
@@ -1402,12 +1400,12 @@ Cosmetic Arguments
 
 label
 ~~~~~
-.. figure:: images/label.png
+.. figure:: images/text_label.png
    :alt: label
 
 A widget to show a simple static text string
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 None
@@ -1434,7 +1432,7 @@ light
 
 A widget to monitor and control a dimmable light
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the light
@@ -1518,7 +1516,7 @@ skin it is shown as red, whereas a locked icon is shown as gray. You can
 easily change this behavior by setting active and inactive styles if you
 prefer.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the lock
@@ -1606,7 +1604,7 @@ media_player
 
 A widget to monitor and control a media player
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the media player
@@ -1647,7 +1645,7 @@ A widget to track the state of an ``input_select`` by showing active
 when it is set to a specific value. Also allows scripts to be run when
 activated.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the ``input_select``
@@ -1682,7 +1680,7 @@ navigate
 A widget to navigate to a new URL, intended to be used for switching
 between dashboards.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 None, but either ``url`` or ``dashboard`` must be specified.
@@ -1852,7 +1850,7 @@ reload
 
 A widget to reload the current dashboard.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 None.
@@ -1942,7 +1940,7 @@ scene
 
 A widget to activate a scene
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the scene
@@ -1973,7 +1971,7 @@ script
 
 A widget to run a script
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the script
@@ -2066,7 +2064,7 @@ switch
 
 A widget to monitor and activate a switch
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the switch
