@@ -611,7 +611,7 @@ navigate
 
 Force any connected dashboards to navigate to a new page
 
-Arguments
+Arguments:
 ^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
@@ -731,7 +731,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -765,7 +765,7 @@ Optional Arguments:
 -  ``stream`` - If set to `on` live data will be streamed to the dashboard instead of needing to be refreshed.
 
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -793,7 +793,7 @@ Optional Arguments:
 -  ``units`` - the unit symbol to be displayed
 - ``precision`` - the number of digits to display after the decimal point
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -868,7 +868,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -977,7 +977,7 @@ Example showing artwork of just playing an album on media player: (tested with G
         image_style: "top: 0; bottom: 0; left: 0; right: 0;"
 
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1048,7 +1048,7 @@ instead. This is not necessary of there are no dimmable lights in the
 group; however, if there are, it should be set to the entity\_id of one
 of the dimmable group members.
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1111,7 +1111,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1177,7 +1177,7 @@ the one offered by
           - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
           - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1203,7 +1203,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -1232,7 +1232,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1263,7 +1263,7 @@ Optional Arguments:
 -  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 - ``title_style``
@@ -1323,7 +1323,7 @@ Optional Arguments:
 -  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 - ``title_style``
@@ -1353,7 +1353,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1387,7 +1387,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
@@ -1417,7 +1417,7 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``text`` - the text displayed on the tile
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1484,7 +1484,7 @@ or:
             brightness: 100
             xy_color: 0.4, 0.9
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1529,7 +1529,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -1589,7 +1589,7 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 
-Cosmetic Arguments:
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``state_text_style``
@@ -1619,7 +1619,7 @@ Optional Arguments:
 -  ``step`` - the step (in percent) that the volume buttons will use.
    (default, 10%)
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1729,7 +1729,7 @@ or:
           timeout: 10
           return: Main
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
@@ -1861,7 +1861,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
@@ -2079,7 +2079,7 @@ Optional Arguments:
 -  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
 -  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button)
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -2210,7 +2210,7 @@ Example with default values:
         forecast_precip_probability: sensor.dark_sky_precip_probability_1
         forecast_precip_type: sensor.dark_sky_precip_1
 
-Cosmetic Arguments:
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -2243,7 +2243,7 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 
-Cosmetic Arguments:
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``state_text_style``
