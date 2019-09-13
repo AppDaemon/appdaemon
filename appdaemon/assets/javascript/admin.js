@@ -623,7 +623,9 @@ function admin_stream(stream, transport)
             }
 
             if (getCookie('adcreds') !== '') {
-                request['data']['cookie'] = getCookie('adcreds')
+                var creds = getCookie('adcreds')
+                creds = creds.substring(1, (creds.length - 1))
+                request['data']['cookie'] = creds
             }
 
             webSocket.send(JSON.stringify(request));
