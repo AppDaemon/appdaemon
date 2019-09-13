@@ -374,7 +374,7 @@ class RequestHandler:
 
         handle = data.get('handle', uuid.uuid4().hex)
 
-        if handle in self.subscriptions['state']:
+        if handle in self.subscriptions['event']:
             raise RequestHandlerException('handle already exists')
 
         self.subscriptions['event'][handle] = {
