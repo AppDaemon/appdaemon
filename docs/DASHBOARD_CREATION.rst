@@ -683,6 +683,8 @@ parameters:
 
 alarm
 ~~~~~
+.. figure:: images/alarm.png
+   :alt: alarm
 
 A widget to report on the state of an alarm and allow code entry
 
@@ -711,6 +713,8 @@ Style Arguments:
 
 binary_sensor
 ~~~~~~~~~~~~~~
+.. figure:: images/binary_sensor.png
+   :alt: binary sensor
 
 A widget to monitor a binary\_sensor
 
@@ -741,6 +745,8 @@ Cosmetic Arguments
 
 camera
 ~~~~~~
+.. figure:: images/camera.png
+   :alt: camera
 
 A widget to display a refreshing camera image on the dashboard
 
@@ -769,6 +775,8 @@ Cosmetic Arguments
 
 climate
 ~~~~~~~
+.. figure:: images/climate.png
+   :alt: climate
 
 A widget to monitor and control a climate entity
 
@@ -804,6 +812,8 @@ Cosmetic Arguments
 
 clock
 ~~~~~
+.. figure:: images/clock.png
+   :alt: clock
 
 A simple 12 hour clock with the date. Not currently very customizable
 but it will be improved upon.
@@ -841,6 +851,8 @@ Style Arguments:
 
 cover
 ~~~~~
+.. figure:: images/cover.png
+   :alt: cover
 
 A widget to monitor and activate a cover. At this time only the open and
 close actions are supported.
@@ -871,6 +883,8 @@ Cosmetic Arguments
 
 device_tracker
 ~~~~~~~~~~~~~~~
+.. figure:: images/device_tracker.png
+   :alt: device tracker
 
 A Widget that reports on device tracker status. It can also be
 optionally be used to toggle the status between "home" and "not\_home".
@@ -929,6 +943,8 @@ Style Arguments:
 
 entitypicture
 ~~~~~~
+.. figure:: images/entity_picture.png
+   :alt: entity picture
 
 A widget to display entity picture
 
@@ -972,6 +988,8 @@ Cosmetic Arguments
 
 gauge
 ~~~~~
+.. figure:: images/guage.png
+   :alt: guage
 
 A widget to report on numeric values for sensors in Home Assistant in a
 gauge format.
@@ -1008,6 +1026,8 @@ color, rather than a CSS style.
 
 group
 ~~~~~
+.. figure:: images/group.png
+   :alt: group
 
 A widget to monitor and control a group of lights
 
@@ -1049,6 +1069,8 @@ Cosmetic Arguments
 
 icon
 ~~~~
+.. figure:: images/icon.png
+   :alt: icon
 
 A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured in a similar manner to the following:
 
@@ -1101,6 +1123,8 @@ Cosmetic Arguments
 
 iframe
 ~~~~~~
+.. figure:: images/iframe.png
+   :alt: iframe
 
 A widget to display other content within the dashboard
 
@@ -1163,6 +1187,8 @@ Cosmetic Arguments
 
 input_boolean
 ~~~~~~~~~~~~~~
+.. figure:: images/input_boolean.png
+   :alt: input boolean
 
 A widget to monitor and activate an input\_boolean
 
@@ -1192,6 +1218,8 @@ Cosmetic Arguments
 
 input_datetime
 ~~~~~~~~~~~~~~
+.. figure:: images/input_datetime.png
+   :alt: input datetime
 
 A widget to monitor and control an input\_datetime
 
@@ -1218,6 +1246,8 @@ Cosmetic Arguments
 
 input_number
 ~~~~~~~~~~~~~
+.. figure:: images/input_number.png
+   :alt: input number
 
 A widget to monitor and control an input\_number
 
@@ -1249,6 +1279,8 @@ Cosmetic Arguments
 
 input_select
 ~~~~~~~~~~~~
+.. figure:: images/input_select.png
+   :alt: input select
 
 A widget to display and select values from an input_select entity in Home Assistant.
 
@@ -1272,8 +1304,10 @@ Style Arguments:
 -  ``select_style``
 -  ``selectcontainer_style``
 
-input\_slider
+input_slider
 ~~~~~~~~~~~~~
+.. figure:: images/input_slider.png
+   :alt: input slider
 
 An alternate widget to monitor and control an input number, using plus and minus buttons instead of a slider.
 
@@ -1305,6 +1339,8 @@ Cosmetic Arguments
 
 input_text
 ~~~~~~~~~~~~~~
+.. figure:: images/input_text.png
+   :alt: input text
 
 A widget to monitor and control an input\_text
 
@@ -1331,8 +1367,10 @@ Cosmetic Arguments
 
 javascript
 ~~~~~~~~~~
+.. figure:: images/javascript.png
+   :alt: javascript
 
-A widget to run an arbitary JavaScript command.
+A widget to run an arbitrary JavaScript command.
 
 Mandatory Arguments
 ^^^^^^^^^^^^^^^^^^^
@@ -1364,6 +1402,8 @@ Cosmetic Arguments
 
 label
 ~~~~~
+.. figure:: images/label.png
+   :alt: label
 
 A widget to show a simple static text string
 
@@ -1389,6 +1429,8 @@ Cosmetic Arguments
 
 light
 ~~~~~
+.. figure:: images/light.png
+   :alt: light
 
 A widget to monitor and control a dimmable light
 
@@ -1408,9 +1450,7 @@ Optional Arguments:
    initial values for the light.
 
 Note that ``rgb_color`` and ``xy_color`` are not specified with list
-syntac as in Home Assistant scenes. See below for examples.
-
-e.g.
+syntax as in Home Assistant scenes. See below for examples.
 
 .. code:: yaml
 
@@ -1465,6 +1505,8 @@ Cosmetic Arguments
 
 lock
 ~~~~
+.. figure:: images/lock.png
+   :alt: lock
 
 A widget to monitor and activate a lock
 
@@ -1502,6 +1544,8 @@ Cosmetic Arguments
 
 london_underground
 ~~~~~~~~~~~~~~~~~~
+.. figure:: images/london_underground.png
+   :alt: london underground
 
 A widget to report on the status of a London Underground line and
 provide the reason for delays if there are any. Requires the London
@@ -1555,8 +1599,10 @@ Cosmetic Arguments:
 -  ``title_style``
 -  ``widget_style``
 
-media\_player
+media_player
 ~~~~~~~~~~~~~
+.. figure:: images/media_player.png
+   :alt: media player
 
 A widget to monitor and control a media player
 
@@ -1594,6 +1640,8 @@ Cosmetic Arguments
 
 mode
 ~~~~
+.. figure:: images/mode.png
+   :alt: mode
 
 A widget to track the state of an ``input_select`` by showing active
 when it is set to a specific value. Also allows scripts to be run when
@@ -1628,6 +1676,8 @@ Style Arguments:
 
 navigate
 ~~~~~~~~
+.. figure:: images/navigate.png
+   :alt: navigate
 
 A widget to navigate to a new URL, intended to be used for switching
 between dashboards.
@@ -1694,6 +1744,8 @@ Cosmetic Arguments
 
 person
 ~~~~~~
+.. figure:: images/person.png
+   :alt: person
 
 A Widget that reports on the status of a person. It can also be
 optionally be used to toggle the status between "home" and "not\_home".
@@ -1751,6 +1803,8 @@ Style Arguments:
 
 radial
 ~~~~~~
+.. figure:: images/radial.png
+   :alt: radial
 
 A widget to display a numeric value as a gauge
 
@@ -1793,6 +1847,8 @@ None
 
 reload
 ~~~~~~
+.. figure:: images/reload.png
+   :alt: reload
 
 A widget to reload the current dashboard.
 
@@ -1820,6 +1876,8 @@ Cosmetic Arguments
 
 rss
 ~~~
+.. figure:: images/rss.png
+   :alt: rss
 
 A widget to display an RSS feed.
 
@@ -1879,6 +1937,8 @@ Style Arguments:
 
 scene
 ~~~~~
+.. figure:: images/scene.png
+   :alt: scene
 
 A widget to activate a scene
 
@@ -1908,6 +1968,8 @@ Style Arguments:
 
 script
 ~~~~~~
+.. figure:: images/script.png
+   :alt: script
 
 A widget to run a script
 
@@ -1939,6 +2001,8 @@ Style Arguments:
 
 sensor
 ~~~~~~
+.. figure:: images/sensor.png
+   :alt: sensor
 
 A widget to report on values for any sensor in Home Assistant
 
@@ -1958,7 +2022,9 @@ Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
-OR
+
+Or
+
 -  ``sub_entity`` - the entity\_id of the sensor to be monitored
 
 Optional Arguments:
@@ -1995,6 +2061,8 @@ Style Arguments:
 
 switch
 ~~~~~~
+.. figure:: images/switch.png
+   :alt: switch
 
 A widget to monitor and activate a switch
 
@@ -2026,6 +2094,8 @@ Cosmetic Arguments
 
 temperature
 ~~~~~~~~~~~
+.. figure:: images/temperature.png
+   :alt: temperature
 
 A widget to report display a temperature using a thermometer style view
 
@@ -2040,7 +2110,7 @@ Mandatory Arguments:
 - width - width of the widget, set this to the same width as your cell size or less
 - height - height of the widget, set this to the same height as your cell size or less
 - majorTicks - Where to mark major values, a list
-- highights - color ranges, a list
+- highlights - color ranges, a list
 
 See the example below:
 
@@ -2069,6 +2139,8 @@ None
 
 weather
 ~~~~~~~
+.. figure:: images/weather.png
+   :alt: weather
 
 Up to date weather reports. By default, it's configured to work with dark sky
 sensor. To use all the features, you need to add these sensors to
@@ -2152,6 +2224,8 @@ Cosmetic Arguments:
 
 weather_summary
 ~~~~~~~~~~~~~~~
+.. figure:: images/weather_summary.png
+   :alt: weather summary
 
 An icon and summary reflecting the weather forecast. Requires dark sky to be
 configured in Home Assistant and expects to be used with one of the
