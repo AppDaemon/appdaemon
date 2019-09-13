@@ -1425,7 +1425,7 @@ Cosmetic Arguments
 -  ``widget_style``
 -  ``title_style``
 -  ``title2_style``
--  ``text_style``
+-  ``value_style`` - changes the style from the text
 
 light
 ~~~~~

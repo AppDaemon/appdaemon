@@ -99,11 +99,7 @@ class HassPlugin(PluginBase):
         else:
             self.plugin_startup_conditions = None
 
-        #
-        # Set up HTTP Client
-        #
-        conn = aiohttp.TCPConnector()
-        self.session = aiohttp.ClientSession(connector=conn)
+        self.session = None
 
         self.logger.info("HASS Plugin initialization complete")
 
@@ -121,6 +117,7 @@ class HassPlugin(PluginBase):
     #
 
     async def get_complete_state(self):
+
         hass_state = await self.get_hass_state()
         states = {}     
         for state in hass_state:
@@ -499,6 +496,7 @@ class HassPlugin(PluginBase):
             return None
 
     async def get_hass_state(self, entity_id=None):
+
         if self.token is not None:
             headers = {'Authorization': "Bearer {}".format(self.token)}
         elif self.ha_key is not None:
@@ -543,6 +541,13 @@ class HassPlugin(PluginBase):
 
     async def get_hass_config(self):
         try:
+            if self.session is None:
+                #
+                # Set up HTTP Client
+                #
+                conn = aiohttp.TCPConnector()
+                self.session = aiohttp.ClientSession(connector=conn)
+
             self.logger.debug("get_ha_config()")
             if self.token is not None:
                 headers = {'Authorization': "Bearer {}".format(self.token)}
