@@ -463,8 +463,14 @@ class Dashboard:
         return lines
     
     def _load_yaml(self, stream):
+        myyaml = None
         yaml.add_constructor('!secret', ha._secret_yaml, Loader=yaml.SafeLoader)
-        return yaml.load(stream, Loader=yaml.SafeLoader)
+        try:
+            myyaml = yaml.load(stream, Loader=yaml.SafeLoader)
+        except ValueError as v:
+            self.logger.warning(str(v))
+
+        return myyaml
 
     def _create_dash(self, name, css_vars):
         dash, layout, occupied, includes = self._create_sub_dash(name, "dash", 0, {}, [], 1, css_vars, None)

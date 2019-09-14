@@ -379,7 +379,6 @@ class HTTP:
 
     async def update_rss(self):
         # Grab RSS Feeds
-
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
                 try:
@@ -388,14 +387,13 @@ class HTTP:
 
                         for feed_data in self.rss_feeds:
                             feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
-
                             if "bozo_exception" in feed:
                                 self.logger.warning("Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"])
                             else:
                                 new_state = {"feed": feed}
 
-                                # RSS Feeds always live in the default namespace
-                                self.AD.state.set_state("default", feed_data["target"], new_state)
+                                # RSS Feeds always live in the admin namespace
+                                await self.AD.state.set_state("rss", "admin", feed_data["target"], state=new_state)
 
                     await asyncio.sleep(1)
                 except:
