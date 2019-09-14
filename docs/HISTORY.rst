@@ -14,6 +14,7 @@ Change Log
 - Added input_text and input_datetime widgets
 - bumped aiohttp to 3.6.0
 
+
 **Fixes**
 
 - Fixed a bug in global_modules that caused a exception

@@ -144,7 +144,7 @@ class ADMain():
             loop.run_until_complete(asyncio.gather(*pending))
 
             #
-            # Now we are sutting down - perform and necessary cleanup
+            # Now we are shutting down - perform any necessary cleanup
             #
 
             self.AD.terminate()

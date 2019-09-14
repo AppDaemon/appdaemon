@@ -611,7 +611,7 @@ navigate
 
 Force any connected dashboards to navigate to a new page
 
-Arguments
+Arguments:
 ^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
@@ -683,6 +683,8 @@ parameters:
 
 alarm
 ~~~~~
+.. figure:: images/alarm.png
+   :alt: alarm
 
 A widget to report on the state of an alarm and allow code entry
 
@@ -711,10 +713,12 @@ Style Arguments:
 
 binary_sensor
 ~~~~~~~~~~~~~~
+.. figure:: images/binary_sensor.png
+   :alt: binary sensor
 
 A widget to monitor a binary\_sensor
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
@@ -727,7 +731,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -741,27 +745,27 @@ Cosmetic Arguments
 
 camera
 ~~~~~~
+.. figure:: images/camera.png
+   :alt: camera
 
-A widget to display a refreshing camera image on the dashboard
+A widget to display a refreshing camera image on the dashboard.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``entity`` the entity\_id of the camera
--  ``base_url`` the URL to your Home Assistant install. If you wish to access
-   your dashboard from an external network, then this needs to be the
-   external URL to Home Assistant.
+-   ``entity`` the entity\_id of the camera
+-   ``base_url`` the URL to your Home Assistant install. If you wish to access
+    your dashboard from an external network, then this needs to be the external
+    URL to Home Assistant.
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
--  ``refresh`` - (seconds) if set, the camera image will refresh every
-   interval. Use 0 to indicate no refresh at all. Default is 10 seconds for 
-   non-streaming cameras and 0 for streaming cameras.
-- ``stream`` - If set to "on" live data will be streamed to the dashboard
-   instead of needing to be refreshed.
+-  ``refresh`` (seconds) -  if set, the camera image will refresh every interval. Use 0 to indicate no refresh at all. Default is 10 seconds for non-streaming cameras and 0 for streaming cameras.
+-  ``stream`` - If set to `on` live data will be streamed to the dashboard instead of needing to be refreshed.
 
-Cosmetic Arguments
+
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -769,10 +773,12 @@ Cosmetic Arguments
 
 climate
 ~~~~~~~
+.. figure:: images/climate.png
+   :alt: climate
 
 A widget to monitor and control a climate entity
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the climate entity
@@ -787,7 +793,7 @@ Optional Arguments:
 -  ``units`` - the unit symbol to be displayed
 - ``precision`` - the number of digits to display after the decimal point
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -804,6 +810,8 @@ Cosmetic Arguments
 
 clock
 ~~~~~
+.. figure:: images/clock.png
+   :alt: clock
 
 A simple 12 hour clock with the date. Not currently very customizable
 but it will be improved upon.
@@ -841,11 +849,13 @@ Style Arguments:
 
 cover
 ~~~~~
+.. figure:: images/cover.png
+   :alt: cover
 
 A widget to monitor and activate a cover. At this time only the open and
 close actions are supported.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the cover
@@ -858,7 +868,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -871,6 +881,8 @@ Cosmetic Arguments
 
 device_tracker
 ~~~~~~~~~~~~~~~
+.. figure:: images/device_tracker.png
+   :alt: device tracker
 
 A Widget that reports on device tracker status. It can also be
 optionally be used to toggle the status between "home" and "not\_home".
@@ -929,10 +941,12 @@ Style Arguments:
 
 entitypicture
 ~~~~~~
+.. figure:: images/entity_picture.png
+   :alt: entity picture
 
 A widget to display entity picture
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity to display entity_picture attribute
@@ -963,7 +977,7 @@ Example showing artwork of just playing an album on media player: (tested with G
         image_style: "top: 0; bottom: 0; left: 0; right: 0;"
 
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -972,6 +986,8 @@ Cosmetic Arguments
 
 gauge
 ~~~~~
+.. figure:: images/guage.png
+   :alt: guage
 
 A widget to report on numeric values for sensors in Home Assistant in a
 gauge format.
@@ -1008,10 +1024,12 @@ color, rather than a CSS style.
 
 group
 ~~~~~
+.. figure:: images/group.png
+   :alt: group
 
 A widget to monitor and control a group of lights
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the group
@@ -1030,7 +1048,7 @@ instead. This is not necessary of there are no dimmable lights in the
 group; however, if there are, it should be set to the entity\_id of one
 of the dimmable group members.
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1049,6 +1067,8 @@ Cosmetic Arguments
 
 icon
 ~~~~
+.. figure:: images/icon.png
+   :alt: icon
 
 A widget to monitor the state of an entity and display a different icon and style for each listed state, and is configured in a similar manner to the following:
 
@@ -1077,7 +1097,7 @@ The icons list is mandatory, and each entry must contain both an icon and a styl
 
 The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
@@ -1091,7 +1111,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1101,10 +1121,12 @@ Cosmetic Arguments
 
 iframe
 ~~~~~~
+.. figure:: images/iframe.png
+   :alt: iframe
 
 A widget to display other content within the dashboard
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``url_list`` - a list of 1 or more URLs to cycle though. or
@@ -1155,7 +1177,7 @@ the one offered by
           - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
           - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif&container=focus&refresh=240&resize_h=640&resize_h=640
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1163,10 +1185,12 @@ Cosmetic Arguments
 
 input_boolean
 ~~~~~~~~~~~~~~
+.. figure:: images/input_boolean.png
+   :alt: input boolean
 
 A widget to monitor and activate an input\_boolean
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_boolean
@@ -1179,7 +1203,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -1192,10 +1216,12 @@ Cosmetic Arguments
 
 input_datetime
 ~~~~~~~~~~~~~~
+.. figure:: images/input_datetime.png
+   :alt: input datetime
 
 A widget to monitor and control an input\_datetime
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_datetime
@@ -1206,7 +1232,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1218,10 +1244,12 @@ Cosmetic Arguments
 
 input_number
 ~~~~~~~~~~~~~
+.. figure:: images/input_number.png
+   :alt: input number
 
 A widget to monitor and control an input\_number
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_number
@@ -1235,7 +1263,7 @@ Optional Arguments:
 -  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 - ``title_style``
@@ -1249,6 +1277,8 @@ Cosmetic Arguments
 
 input_select
 ~~~~~~~~~~~~
+.. figure:: images/input_select.png
+   :alt: input select
 
 A widget to display and select values from an input_select entity in Home Assistant.
 
@@ -1272,12 +1302,14 @@ Style Arguments:
 -  ``select_style``
 -  ``selectcontainer_style``
 
-input\_slider
+input_slider
 ~~~~~~~~~~~~~
+.. figure:: images/input_slider.png
+   :alt: input slider
 
 An alternate widget to monitor and control an input number, using plus and minus buttons instead of a slider.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_number
@@ -1291,7 +1323,7 @@ Optional Arguments:
 -  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 - ``title_style``
@@ -1305,10 +1337,12 @@ Cosmetic Arguments
 
 input_text
 ~~~~~~~~~~~~~~
+.. figure:: images/input_text.png
+   :alt: input text
 
 A widget to monitor and control an input\_text
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_text
@@ -1319,7 +1353,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1331,10 +1365,12 @@ Cosmetic Arguments
 
 javascript
 ~~~~~~~~~~
+.. figure:: images/javascript.png
+   :alt: javascript
 
-A widget to run an arbitary JavaScript command.
+A widget to run an arbitrary JavaScript command.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 - ``command`` - the JavaScript command to be run.
@@ -1351,7 +1387,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
@@ -1364,10 +1400,12 @@ Cosmetic Arguments
 
 label
 ~~~~~
+.. figure:: images/text_label.png
+   :alt: label
 
 A widget to show a simple static text string
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 None
@@ -1379,20 +1417,22 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``text`` - the text displayed on the tile
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
 -  ``title_style``
 -  ``title2_style``
--  ``text_style``
+-  ``value_style`` - changes the style from the text
 
 light
 ~~~~~
+.. figure:: images/light.png
+   :alt: light
 
 A widget to monitor and control a dimmable light
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the light
@@ -1408,9 +1448,7 @@ Optional Arguments:
    initial values for the light.
 
 Note that ``rgb_color`` and ``xy_color`` are not specified with list
-syntac as in Home Assistant scenes. See below for examples.
-
-e.g.
+syntax as in Home Assistant scenes. See below for examples.
 
 .. code:: yaml
 
@@ -1446,7 +1484,7 @@ or:
             brightness: 100
             xy_color: 0.4, 0.9
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1465,6 +1503,8 @@ Cosmetic Arguments
 
 lock
 ~~~~
+.. figure:: images/lock.png
+   :alt: lock
 
 A widget to monitor and activate a lock
 
@@ -1476,7 +1516,7 @@ skin it is shown as red, whereas a locked icon is shown as gray. You can
 easily change this behavior by setting active and inactive styles if you
 prefer.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the lock
@@ -1489,7 +1529,7 @@ Optional Arguments:
 -  ``state_text``
 -  ``state_map``
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -1502,6 +1542,8 @@ Cosmetic Arguments
 
 london_underground
 ~~~~~~~~~~~~~~~~~~
+.. figure:: images/london_underground.png
+   :alt: london underground
 
 A widget to report on the status of a London Underground line and
 provide the reason for delays if there are any. Requires the London
@@ -1547,7 +1589,7 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 
-Cosmetic Arguments:
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``state_text_style``
@@ -1555,12 +1597,14 @@ Cosmetic Arguments:
 -  ``title_style``
 -  ``widget_style``
 
-media\_player
+media_player
 ~~~~~~~~~~~~~
+.. figure:: images/media_player.png
+   :alt: media player
 
 A widget to monitor and control a media player
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the media player
@@ -1575,7 +1619,7 @@ Optional Arguments:
 -  ``step`` - the step (in percent) that the volume buttons will use.
    (default, 10%)
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -1594,12 +1638,14 @@ Cosmetic Arguments
 
 mode
 ~~~~
+.. figure:: images/mode.png
+   :alt: mode
 
 A widget to track the state of an ``input_select`` by showing active
 when it is set to a specific value. Also allows scripts to be run when
 activated.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the ``input_select``
@@ -1628,11 +1674,13 @@ Style Arguments:
 
 navigate
 ~~~~~~~~
+.. figure:: images/navigate.png
+   :alt: navigate
 
 A widget to navigate to a new URL, intended to be used for switching
 between dashboards.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 None, but either ``url`` or ``dashboard`` must be specified.
@@ -1681,7 +1729,7 @@ or:
           timeout: 10
           return: Main
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
@@ -1694,6 +1742,8 @@ Cosmetic Arguments
 
 person
 ~~~~~~
+.. figure:: images/person.png
+   :alt: person
 
 A Widget that reports on the status of a person. It can also be
 optionally be used to toggle the status between "home" and "not\_home".
@@ -1751,6 +1801,8 @@ Style Arguments:
 
 radial
 ~~~~~~
+.. figure:: images/radial.png
+   :alt: radial
 
 A widget to display a numeric value as a gauge
 
@@ -1793,10 +1845,12 @@ None
 
 reload
 ~~~~~~
+.. figure:: images/reload.png
+   :alt: reload
 
 A widget to reload the current dashboard.
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 None.
@@ -1807,7 +1861,7 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``title2`` - a second line of title text
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_active``
@@ -1820,6 +1874,8 @@ Cosmetic Arguments
 
 rss
 ~~~
+.. figure:: images/rss.png
+   :alt: rss
 
 A widget to display an RSS feed.
 
@@ -1879,10 +1935,12 @@ Style Arguments:
 
 scene
 ~~~~~
+.. figure:: images/scene.png
+   :alt: scene
 
 A widget to activate a scene
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the scene
@@ -1908,10 +1966,12 @@ Style Arguments:
 
 script
 ~~~~~~
+.. figure:: images/script.png
+   :alt: script
 
 A widget to run a script
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the script
@@ -1939,6 +1999,8 @@ Style Arguments:
 
 sensor
 ~~~~~~
+.. figure:: images/sensor.png
+   :alt: sensor
 
 A widget to report on values for any sensor in Home Assistant
 
@@ -1958,7 +2020,9 @@ Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sensor to be monitored
-OR
+
+Or
+
 -  ``sub_entity`` - the entity\_id of the sensor to be monitored
 
 Optional Arguments:
@@ -1995,10 +2059,12 @@ Style Arguments:
 
 switch
 ~~~~~~
+.. figure:: images/switch.png
+   :alt: switch
 
 A widget to monitor and activate a switch
 
-Mandatory Arguments
+Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the switch
@@ -2013,7 +2079,7 @@ Optional Arguments:
 -  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
 -  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button)
 
-Cosmetic Arguments
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^
 
 -  ``icon_on``
@@ -2026,6 +2092,8 @@ Cosmetic Arguments
 
 temperature
 ~~~~~~~~~~~
+.. figure:: images/temperature.png
+   :alt: temperature
 
 A widget to report display a temperature using a thermometer style view
 
@@ -2040,7 +2108,7 @@ Mandatory Arguments:
 - width - width of the widget, set this to the same width as your cell size or less
 - height - height of the widget, set this to the same height as your cell size or less
 - majorTicks - Where to mark major values, a list
-- highights - color ranges, a list
+- highlights - color ranges, a list
 
 See the example below:
 
@@ -2069,6 +2137,8 @@ None
 
 weather
 ~~~~~~~
+.. figure:: images/weather.png
+   :alt: weather
 
 Up to date weather reports. By default, it's configured to work with dark sky
 sensor. To use all the features, you need to add these sensors to
@@ -2140,7 +2210,7 @@ Example with default values:
         forecast_precip_probability: sensor.dark_sky_precip_probability_1
         forecast_precip_type: sensor.dark_sky_precip_1
 
-Cosmetic Arguments:
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``widget_style``
@@ -2152,6 +2222,8 @@ Cosmetic Arguments:
 
 weather_summary
 ~~~~~~~~~~~~~~~
+.. figure:: images/weather_summary.png
+   :alt: weather summary
 
 An icon and summary reflecting the weather forecast. Requires dark sky to be
 configured in Home Assistant and expects to be used with one of the
@@ -2171,7 +2243,7 @@ Optional Arguments:
 
 -  ``title`` - the title displayed on the tile
 
-Cosmetic Arguments:
+Style Arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``state_text_style``
