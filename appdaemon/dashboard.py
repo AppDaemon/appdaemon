@@ -314,7 +314,7 @@ class Dashboard:
                     widget = yamlfd.read()
                 final_widget = self._load_yaml(widget)
             except yaml.YAMLError as exc:
-                self._log_error(dash, name, "Error in widget definition '%s':", widget_type)
+                self._log_error(dash, name, "Error in widget definition '%s':".format(widget_type))
                 self._log_yaml_dash_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
 
