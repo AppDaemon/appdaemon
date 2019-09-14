@@ -221,7 +221,7 @@ class AppDaemon:
         # Set up Executor ThreadPool
         #
         if "threadpool_workers" in kwargs:
-            self.threadpool_workers = kwargs["threadpool_workers"]
+            self.threadpool_workers = int(kwargs["threadpool_workers"])
             
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
