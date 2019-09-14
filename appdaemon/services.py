@@ -24,6 +24,12 @@ class Services:
             if domain not in self.services[namespace]:
                 self.services[namespace][domain] = {}
             self.services[namespace][domain][service] = {"callback": callback, **kwargs}
+            
+            data = {
+                "event_type": "service_registered", 
+                    "data": {"domain": domain, "service" : service}
+                }
+            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     def list_services(self):
         result = []
