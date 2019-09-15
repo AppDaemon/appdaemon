@@ -163,7 +163,7 @@ class AdPlugin(PluginBase):
             if namespace in ad_state:
                 state = ad_state[namespace]
             else:
-                state = {}
+                continue
 
             accept, ns = await self.process_namespace(namespace)
             
@@ -277,8 +277,7 @@ class AdPlugin(PluginBase):
 
                 states = await self.get_complete_state()
 
-                for ns in states:
-                    namespaces.append(ns)
+                namespaces.extend(list(states.keys()))
 
                 #
                 # Subscribe to event stream
