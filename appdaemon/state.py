@@ -26,14 +26,8 @@ class State:
                 os.makedirs(nspath)
             for ns in self.AD.namespaces:
                 self.logger.info("User Defined Namespace '%s' initialized", ns)
-                writeback = "safe"
-                if "writeback" in self.AD.namespaces[ns]:
-                    writeback = self.AD.namespaces[ns]["writeback"]
-
-                safe = False
-                if writeback == "safe":
-                    safe = True
-
+                writeback = self.AD.namespaces[ns].get("writeback", "safe")
+                safe = bool(writeback == "safe")
                 self.state[ns] = utils.PersistentDict(os.path.join(nspath, ns), safe)
         except:
                 self.logger.warning('-' * 60)
@@ -472,19 +466,19 @@ class State:
 
     async def save_namespace(self, namespace):
         if namespace in self.AD.namespaces:
-            self.state[namespace].save()
+            self.state[namespace].sync()
         else:
             self.logger.warning("Namespace: %s cannot be saved", namespace)
         return None
 
     def save_all_namespaces(self):
         for ns in self.AD.namespaces:
-                self.state[ns].save()
+            self.state[ns].sync()
 
     def save_hybrid_namespaces(self):
         for ns in self.AD.namespaces:
-            if self.AD.namespaces[ns]["writeback"] == "hybrid":
-                self.state[ns].save()
+            if self.AD.namespaces[ns].get("writeback") == "hybrid":
+                self.state[ns].sync()
 
     #
     # Utilities

@@ -7,7 +7,7 @@ import time
 import cProfile
 import io
 import pstats
-import json
+import shelve
 import threading
 import datetime
 import dateutil.parser
@@ -68,56 +68,65 @@ class Formatter(object):
         return '(%s)' % (','.join(items) + self.lfchar + self.htchar * indent)
 
 
-class PersistentDict(dict):
-
+class PersistentDict(shelve.DbfilenameShelf):
     """
-    Persistent Dictionary subclass that uses JSON to persist its contents
+    Dict-like object that uses a Shelf to persist its contents.
     """
-
-    #TODO - this all runs in the loop at the moment ...
 
     def __init__(self, filename, safe, *args, **kwargs):
-        super().__init__(**kwargs)
-        self.filename = filename
+        # writeback=True allows for mutating objects in place, like with a dict.
+        super().__init__(filename, writeback=True)
         self.safe = safe
-        self.lock = threading.RLock()
-        self._load()
+        self.rlock = threading.RLock()
+        self.update(*args, **kwargs)
 
-    def _load(self):
-        with self.lock:
-            if os.path.isfile(self.filename) and os.path.getsize(self.filename) > 0:
-                with open(self.filename, 'r') as fh:
-                    self.update(False, json.load(fh))
+    def __contains__(self, key):
+        with self.rlock:
+            return super().__contains__(key)
 
-    def save(self):
-        with self.lock:
-            with open(self.filename, 'w') as fh:
-                json.dump(self, fh)
-
-    def __getitem__(self, key):
-        return dict.__getitem__(self, key)
-
-    def __setitem__(self, key, val):
-        dict.__setitem__(self, key, val)
-        if self.safe is True:
-            self.save()
-
-    def __repr__(self):
-        dictrepr = dict.__repr__(self)
-        return '%s(%s)' % (type(self).__name__, dictrepr)
+    def __copy__(self):
+        return dict(self)
 
     def __deepcopy__(self, memo):
-        result = {}
-        for key in self.keys():
-            result[key] = self.__getitem__(key)
+        return copy.deepcopy(dict(self), memo=memo)
 
-        return copy.deepcopy(result)
+    def __delitem__(self, key):
+        with self.rlock:
+            super().__delitem__(key)
+
+    def __getitem__(self, key):
+        with self.rlock:
+            return super().__getitem__(key)
+
+    def __iter__(self):
+        with self.rlock:
+            for item in super().__iter__():
+                yield item
+
+    def __len__(self):
+        with self.rlock:
+            return super().__len__()
+
+    def __repr__(self):
+        return "%s(%r)" % (type(self).__name__, dict(self))
+
+    def __setitem__(self, key, val):
+        with self.rlock:
+            super().__setitem__(key, val)
+            if self.safe:
+                self.sync()
+
+    def sync(self):
+        with self.rlock:
+            super().sync()
 
     def update(self, save=True, *args, **kwargs):
-        for k, v in dict(*args, **kwargs).items():
-            self[k] = v
-            if self.safe is True and save is True:
-                self.save()
+        with self.rlock:
+            for key, value in dict(*args, **kwargs).items():
+                # use super().__setitem__() to prevent multiple save() calls
+                super().__setitem__(key, value)
+                if self.safe and save:
+                    self.sync()
 
 
 class AttrDict(dict):
