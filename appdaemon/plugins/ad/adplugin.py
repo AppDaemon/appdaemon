@@ -7,6 +7,7 @@ import aiohttp
 import pytz
 from deepdiff import DeepDiff
 from urllib.parse import quote
+import uuid
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -40,11 +41,11 @@ class AdPlugin(PluginBase):
         self.stopping = False
         self.ws = None
         self.reading_messages = False
-        self.remote_namespaces = {}
+        self.stream_results = {}
+        self.rm_ns = {}
+        self.is_booting = True
 
         self.logger.info("AD Plugin Initializing")
-
-        self.name = name
 
         if "namespace" in args:
             self.namespace = args["namespace"]
@@ -56,6 +57,8 @@ class AdPlugin(PluginBase):
         else:
             self.ad_url = None
             self.logger.warning("ad_url not found in AD configuration - module not initialized")
+            raise ValueError("AppDaemon requires remote AD's URL, and none provided in plugin config")
+
         
         if "api_key" in args:
             self.api_key = args["api_key"]
@@ -73,25 +76,53 @@ class AdPlugin(PluginBase):
             self.cert_verify = True
 
         if "api_ssl_certificate" in args:
-            self.api_ssl_certificate = args["api_ssl_certificate"]
+            api_ssl_certificate = args["api_ssl_certificate"]
         else:
-            self.api_ssl_certificate = None
+            api_ssl_certificate = None
 
         if "api_ssl_key" in args:
-            self.api_ssl_key = args["api_ssl_key"]
+            api_ssl_key = args["api_ssl_key"]
         else:
-            self.api_ssl_key = None
+            api_ssl_key = None
 
-        if "timeout" in args:
-            self.timeout = args["timeout"]
+        if "client_name" in args:
+            self.client_name = args["client_name"]
         else:
-            self.timeout = None
-
-        if "commtype" in args:
-            self.commtype = args["commtype"]
-        else:
-            self.commtype = "WS"
+            self.client_name = self.name
         
+        check_hostname = args.get("check_hostname", False)
+
+        #
+        # Setup SSL
+        #
+
+        if api_ssl_certificate != None:
+            try:
+                self.ssl_context = ssl.create_default_context()
+                self.ssl_context.check_hostname = check_hostname
+
+                cert = {}
+
+                if api_ssl_certificate != None:
+                    cert.update({"certfile":api_ssl_certificate})
+                
+                if api_ssl_key != None:
+                    cert.update({"keyfile":api_ssl_key})
+
+                if cert != {}:
+                    self.ssl_context.load_cert_chain(**cert)
+
+            except ssl.SSLError as s:
+                self.logger.debug("Could not initialize AD Client SSL Context because %s", s)
+                self.logger.critical("Could not initialize AD Client SSL Context. Will not be using SSL for CLient Authentication")
+                self.ssl_context = None
+        else:
+            self.ssl_context = None
+
+        if "subscriptions" in args:
+            self.subscriptions = args["subscriptions"]
+        else:
+            self.subscriptions = None
 
         rn = self.config.get("remote_namespaces", {})
 
@@ -99,14 +130,15 @@ class AdPlugin(PluginBase):
             raise ValueError("AppDaemon requires remote namespace mapping and none provided in plugin config")
 
         for local, remote in rn.items():
-            self.remote_namespaces[remote] = local
+            self.rm_ns[remote] = local
 
         self.session = None
 
         self.logger.info("AD Plugin initialization complete")
 
         self.metadata = {
-            "version": "1.0"}
+            "version": "1.0"
+            }
 
     async def am_reading_messages(self):
         return(self.reading_messages)
@@ -114,6 +146,7 @@ class AdPlugin(PluginBase):
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
+
         if self.ws is not None:
             self.ws.close()
 
@@ -126,9 +159,9 @@ class AdPlugin(PluginBase):
 
         states = {}
 
-        for namespace in self.remote_namespaces:
-            if namespace in ad_state["state"]:
-                state = ad_state["state"][namespace]
+        for namespace in self.rm_ns:
+            if namespace in ad_state:
+                state = ad_state[namespace]
             else:
                 state = {}
 
@@ -139,16 +172,15 @@ class AdPlugin(PluginBase):
 
             states[ns] = state
 
-        self.logger.debug("Got state")
         self.logger.debug("*** Sending Complete State: %s ***", states)
         return states
 
     async def process_namespace(self, namespace):
-        accept= True
+        accept = True
         ns = None
 
-        if namespace in self.remote_namespaces:
-            ns = self.remote_namespaces[namespace]
+        if namespace in self.rm_ns:
+            ns = self.rm_ns[namespace]
         
         else:
             accept = False
@@ -167,16 +199,12 @@ class AdPlugin(PluginBase):
     #
 
     async def get_updates(self):
-
-        _id = 0
-
         already_notified = False
         first_time = True
         while not self.stopping:
-            _id += 1
             try:
                 #
-                # Connect to websocket interface
+                # First Connect to websocket interface
                 #
                 url = self.ad_url
                 if url.startswith('https://'):
@@ -195,60 +223,50 @@ class AdPlugin(PluginBase):
                     "{}/stream".format(url), sslopt=sslopt
                 )
 
-                data = "{} ADPlugin".format(self.name)
+                #
+                # Setup Initial authorizations
+                #
 
-                await utils.run_in_executor(self, self.ws.send, data)
+                self.logger.info("Using Client name %r to subscribe", self.client_name)
+
+                data = {"request_type" : "hello", 
+                        "data" : { 
+                            "client_name" : self.client_name,
+                                "password" : self.api_key
+                                    }
+                        }
+
+                await utils.run_in_executor(self, self.ws.send, json.dumps(data))
 
                 res = await utils.run_in_executor(self, self.ws.recv)
-                #result = json.loads(res)
-                result = {"type": res} #just to avoid breaking for now
+                result = json.loads(res)
 
-                self.logger.info("Connected to AppDaemon %s", res)
-                #
-                # Check if auth required, if so send password
-                #
-                if result["type"] == "auth_required":
-                    if self.api_key is not None:
-                        auth = json.dumps({
-                            "type": "auth",
-                            "api_password": self.api_key
-                        })
-                    else:
-                        raise ValueError("AppDaemon requires authentication and none provided in plugin config")
+                self.logger.debug(result)
 
-                    await utils.run_in_executor(self, self.ws.send, auth)
-                    result = json.loads(self.ws.recv())
-                    if result["type"] != "auth_ok":
-                        self.logger.warning("Error in authentication")
-                        raise ValueError("Error in authentication")
-                #
-                # Subscribe to event stream
-                #
-                sub = json.dumps({
-                    "id": _id,
-                    "type": "subscribe_events"
-                })
+                if result["response_success"] == True:
+                    # We are good to go
+                    self.logger.info("Connected to AppDaemon with Version %s", result["data"]["version"])
 
-                #await utils.run_in_executor(self, self.ws.send, sub)
-                #result = json.loads(self.ws.recv())
-                #if not (result["id"] == _id and result["type"] == "result" and
-                #                result["success"] is True):
-                #    self.logger.warning("Unable to subscribe to AppDaemon events, id = %s", _id)
-                #    self.logger.warning(result)
-                #    raise ValueError("Error subscribing to AppDaemon Events")
+                else:
+                    self.logger.warning("Unable to Authenticate to AppDaemon with Error %s", result["response_error"])
+                    self.logger.debug("%s", result)
+                    raise ValueError("Error Connecting to AppDaemon Instance using URL %s", self.ad_url)
 
                 #
-                # Register Services
+                # Register Services with Local Services registeration first
                 #
-                self.services = await self.get_ad_services()
 
-                state_services = self.services["state"]
+                self.AD.services.register_service(self.namespace, "stream", "subscribe", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "stream", "unsubscribe", self.call_plugin_service)
+
+                services = await self.get_ad_services()
+
                 namespaces = []
 
-                for services in state_services:
-                    namespace = services["namespace"]
-                    domain = services["domain"]
-                    service = services["service"]
+                for serv in services:
+                    namespace = serv["namespace"]
+                    domain = serv["domain"]
+                    service = serv["service"]
 
                     accept, ns = await self.process_namespace(namespace)
 
@@ -257,12 +275,33 @@ class AdPlugin(PluginBase):
 
                     self.AD.services.register_service(ns, domain, service, self.call_plugin_service)
 
-                # We are good to go
-                self.reading_messages = True
                 states = await self.get_complete_state()
 
                 for ns in states:
                     namespaces.append(ns)
+
+                #
+                # Subscribe to event stream
+                #
+                
+                if self.subscriptions != None:
+                    if "state" in self.subscriptions:
+                        for subscription in self.subscriptions["state"]:
+                            namespace = subscription["namespace"]
+                            accept = await self.check_namespace(namespace)
+
+                            if accept is True:
+                                result = await self.stream_subscribe("state", subscription)
+                                self.logger.info("Handle for Subscription %r is %r", subscription, result)
+
+                    if "event" in self.subscriptions:
+                        for subscription in self.subscriptions["event"]:
+                            namespace = subscription["namespace"]
+                            accept = await self.check_namespace(namespace)
+
+                            if accept is True:
+                                result = await self.stream_subscribe("event", subscription)
+                                self.logger.info("Handle for Subscription %r is %r", subscription, result)
 
                 namespace = {"namespace" : self.namespace, "remote_namespaces" : namespaces}
 
@@ -270,30 +309,45 @@ class AdPlugin(PluginBase):
 
                 first_time = False
                 already_notified = False
+                self.is_booting = False
 
                 #
-                # Loop forever consuming events
+                # Finally Loop forever consuming events
                 #
+
+                self.reading_messages = True
+
                 while not self.stopping:
-                    ret = await utils.run_in_executor(self, self.ws.recv)
-                    result = json.loads(ret)
+                    res = await utils.run_in_executor(self, self.ws.recv)
 
-                    #if not (result["id"] == _id and result["event_type"] == "event"):
-                    #    self.logger.warning("Unexpected result from AppDaemon, id = %s", _id)
-                    #    self.logger.warning(result)
-                    
-                    namespace = result["namespace"]
-                    del result["namespace"]
+                    result = json.loads(res)
+                    self.logger.debug("%s", result)
 
-                    accept, ns = await self.process_namespace(namespace)
+                    if "response_type" in result: #not an event stream
+                        if "response_id" in result: #its for a message with expected result
+                            response_id = result.get("response_id")
 
-                    if accept == True: #accept data
-                        await self.AD.events.process_event(ns, result)
+                            if response_id in self.stream_results: #if to be picked up
+                                self.stream_results[response_id]["response"] = result
+                                self.stream_results[response_id]["event"].set() #time for pickup
 
-                self.reading_messages = False
+                    else:
+                        namespace = result.pop("namespace")
+
+                        accept, ns = await self.process_namespace(namespace)
+
+                        if accept == True: #accept data
+                            if result["event_type"] == "service_registered": #a service was registered
+                                domain = result["data"]["domain"]
+                                service = result["data"]["service"]
+                                self.AD.services.register_service(ns, domain, service, self.call_plugin_service)
+
+                            else:
+                                await self.AD.events.process_event(ns, result)                
 
             except:
                 self.reading_messages = False
+                self.is_booting = True
                 if not already_notified:
                     await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True
@@ -307,7 +361,7 @@ class AdPlugin(PluginBase):
                     await asyncio.sleep(5)
 
         self.logger.info("Disconnecting from AppDaemon")
-
+    
     def get_namespace(self):
         return self.namespace
 
@@ -326,144 +380,241 @@ class AdPlugin(PluginBase):
     @ad_check
     async def call_plugin_service(self, namespace, domain, service, data):
         self.logger.debug("call_plugin_service() namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data)
+        res = None
 
-        config = (await self.AD.plugins.get_plugin_object(self.namespace)).config
-        
-        if "api_key" in config:
-            headers = {'x-ad-access': config["api_key"]}
-        else:
-            headers = {}
+        if namespace == self.namespace and domain == "stream": #its a service to the stream
+            if service == "subscribe":
+                if "type" in data:
+                    subscribe_type = data["type"]
 
-        if namespace not in list(self.remote_namespaces.values()):
-            self.logger.warning("Unidentified namespace given as %s", namespace)
-            return None
-
-        else:
-            ns = list(self.remote_namespaces.keys())[list(self.remote_namespaces.values()).index(namespace)]
-
-        apiurl = "{}/api/appdaemon/service/{}/{}/{}".format(config["ad_url"], ns, domain, service)
-
-        try:
+                    if "subscription" in data:
+                        res = await self.stream_subscribe(subscribe_type, data["subscription"])
+                
+                else:
+                    self.logger.warning("Stream Type not given in data %s", data)
             
-            r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
+            elif service == "unsubscribe":
+                if "type" in data:
+                    unsubscribe_type = data["type"]
+
+                    if "handle" in data:
+                        res = await self.stream_unsubscribe(unsubscribe_type, data["handle"])
+
+                    else:
+                        self.logger.warning("No handle provided, please provide handle")
+                else:
+                    self.logger.warning("Cancel Type not given in data %s", data)
             
-            if r.status == 200 or r.status == 201:
-                result = await r.json()
-
-                print(result)
-
             else:
-                self.logger.warning("Error calling AppDaemon service %s/%s/%s", namespace, domain, service)
-                txt = await r.text()
-                self.logger.warning("Code: %s, error: %s", r.status, txt)
-                result = None
+                self.logger.warning("Unrecognised service given %s", service)
 
-            return result
+            return res
 
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning("Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data)
-        except aiohttp.client_exceptions.ServerDisconnectedError:
-            self.logger.warning("AD Disconnected unexpectedly during call_service()")
-        except:
-            self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error during call_plugin_service()")
-            self.logger.warning("Service: %s.%s.%s Arguments: %s", namespace, domain, service, data)
-            self.logger.warning('-' * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
-            return None
+        if namespace not in list(self.rm_ns.values()):
+            self.logger.warning("Unidentified namespace given as %s", namespace)
+            return res
+
+        else:
+            ns = list(self.rm_ns.keys())[list(self.rm_ns.values()).index(namespace)]
+
+        request_id = uuid.uuid4().hex
+        kwargs = {
+            "request_type": "call_service",
+            "request_id" : request_id,
+            "data" : {
+            "namespace" : ns,
+            "service" : service,
+            "domain" : domain,
+            "data" : data
+            }
+        }
+
+        res = await self.process_request(request_id, kwargs)
+
+        if res != None:
+            res = res["data"]
+        
+        return res
+    
+    async def stream_subscribe(self, subscribe_type, data):
+        self.logger.debug("stream_subscribe() subscribe_type=%s data=%s", subscribe_type, data)
+        request_id = uuid.uuid4().hex
+        result = None
+
+        if subscribe_type == "state":
+            kwargs = {
+                "request_type": "listen_state", 
+                "request_id" : request_id
+            }
+
+            kwargs["data"] = {}
+            kwargs["data"].update(data)
+
+            res = await self.process_request(request_id, kwargs)
+            
+            if res != None:
+                result = res["data"]
+
+        if subscribe_type == "event":
+            kwargs = {
+                "request_type": "listen_event",
+                "request_id" : request_id
+            }
+
+            kwargs["data"] = {}
+            kwargs["data"].update(data)
+
+            res = await self.process_request(request_id, kwargs)
+            
+            if res != None:
+                result = res["data"]
+        
+        return result
+    
+    async def stream_unsubscribe(self, unsubscribe_type, handle):
+        self.logger.debug("stream_unsubscribe() unsubscribe_type=%s handle=%s", unsubscribe_type, handle)
+        request_id = uuid.uuid4().hex
+        result = None
+
+        if unsubscribe_type == "state":
+            request_type = "cancel_listen_state"
+        
+        elif unsubscribe_type == "event":
+            request_type = "cancel_listen_event"
+        
+        else:
+            self.logger.warning("Unidentified unsubscribe type given as %s", unsubscribe_type)
+
+        kwargs = {
+                "request_type": request_type, 
+                "request_id" : request_id,
+                "data" : {
+                    "handle" : handle
+                }
+            }
+
+        res = await self.process_request(request_id, kwargs)
+            
+        if res != None:
+            result = res["data"]
+
+        return result
 
     async def get_ad_state(self, entity_id=None):
+        self.logger.debug("get_ad_state()")
 
-        if self.api_key is not None:
-            headers = {'x-ad-access': self.api_key}
-        else:
-            headers = {}
+        state = {}
 
-        if entity_id is None:
-            apiurl = "{}/api/appdaemon/state".format(self.ad_url)
-        else:
-            apiurl = "{}/api/appdaemon/state/{}".format(self.ad_url, entity_id)
+        for namespace in list(self.rm_ns.keys()):
+            request_id = uuid.uuid4().hex
+            kwargs = {
+                "request_type": "get_state",
+                "request_id" : request_id,
+                "data" : {
+                    "namespace" : namespace
+                }
+            }
 
-        self.logger.debug("get_ad_state: url is %s", apiurl)
+            result = await self.process_request(request_id, kwargs)
 
-        r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
+            if result != None:
+                if result["data"] != None:
+                    state[namespace] = result["data"]
+                
+                else:
+                    self.logger.warning("No state data available for Namespace %r", namespace)
 
-        if r.status == 200 or r.status == 201:
-            state = await r.json()
-
-        else:
-            self.logger.warning("Error getting AppDaemon state for %s", entity_id)
-            txt = await r.text()
-            self.logger.warning("Code: %s, error: %s", r.status, txt)
-            state = None
-
+            else:
+                state[namespace] = {}
+            
         return state
 
     async def get_ad_services(self):
-        try:
-            self.logger.debug("get_ad_services()")
+        self.logger.debug("get_ad_services()")
 
-            if self.session is None:
-                #
-                # Set up HTTP Client
-                #
-                conn = aiohttp.TCPConnector()
-                self.session = aiohttp.ClientSession(connector=conn)
+        services = {}
+        request_id = uuid.uuid4().hex
+        kwargs = {
+            "request_type": "get_services",
+            "request_id" : request_id
+        }
 
-            if self.api_key is not None:
-                headers = {'x-ad-access': self.api_key, "Content-Type" : "application/json"}
-            else:
-                headers = {}
+        result = await self.process_request(request_id, kwargs)
 
-            apiurl = "{}/api/appdaemon/service/".format(self.ad_url)
-
-            self.logger.debug("get_ad_services: url is %s", apiurl)
-            r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
-
-            r.raise_for_status()
-
-            services = await r.json()
-
-            return services
-        except:
-            self.logger.warning("Error getting services - retrying")
-            raise
+        if result != None:
+            services = result["data"]
+        
+        return services
 
     @ad_check
-    async def fire_plugin_event(self, event, namespace, **kwargs):
-        self.logger.debug("fire_event: %s, %s %s", event, namespace, kwargs)
-
-        config = (await self.AD.plugins.get_plugin_object(self.namespace)).config
-
-        if "api_key" in config:
-            headers = {'x-ad-access': config["api_key"]}
-        else:
-            headers = {}
+    async def fire_plugin_event(self, event, namespace, **data):
+        self.logger.debug("fire_event: %s, %s %s", event, namespace, data)
 
         event_clean = quote(event, safe="")
 
-        if namespace not in list(self.remote_namespaces.values()):
+        if namespace not in list(self.rm_ns.values()):
             self.logger.warning("Unidentified namespace given as %s", namespace)
             return None
 
         else:
-            ns = list(self.remote_namespaces.keys())[list(self.remote_namespaces.values()).index(namespace)]
+            ns = list(self.rm_ns.keys())[list(self.rm_ns.values()).index(namespace)]
 
-        apiurl = "{}/api/appdaemon/event/{}/{}".format(config["ad_url"], ns, event_clean)
-        try:
-            r = await self.session.post(apiurl, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
-            r.raise_for_status()
-            state = await r.json(content_type="application/octet-stream")
-            return state
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning("Timeout in fire_event(%s, %s, %s)", event, namespace, kwargs)
-        except aiohttp.client_exceptions.ServerDisconnectedError:
-            self.logger.warning("AD Disconnected unexpectedly during fire_event()")
-        except:
-            self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error fire_plugin_event()")
-            self.logger.warning('-' * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
-            return None
+        request_id = uuid.uuid4().hex
+        kwargs = {
+            "request_type": "fire_event", 
+            "data" : { 
+            "namespace" : ns,
+            "event" : event,
+            "data" : data
+            }
+        }
+        await utils.run_in_executor(self, self.ws.send, json.dumps(kwargs))
+        
+        return None
+    
+    async def process_request(self, request_id, data):
+        res = None
+        result = None
+
+        if self.is_booting == True:
+            await utils.run_in_executor(self, self.ws.send, json.dumps(data))
+            res = await utils.run_in_executor(self, self.ws.recv)
+        else:
+            self.stream_results[request_id] = {}
+            self.stream_results[request_id]["event"] = asyncio.Event()
+            await utils.run_in_executor(self, self.ws.send, json.dumps(data))
+
+            try:
+                await asyncio.wait_for(self.stream_results[request_id]["event"].wait(), 5.0)
+                res = self.stream_results[request_id]["response"]
+                del self.stream_results[request_id]
+            except asyncio.TimeoutError:
+                self.logger.warning("Timeout Error occured while processing %s", data["request_type"])
+                self.logger.debug("Timeout Error occured while trying to process data %s", data)
+
+        if res != None:
+            try:
+                result = json.loads(res)
+            except:
+                result = res
+
+        return result
+
+    async def check_namespace(self, namespace):
+        accept = False
+
+        if namespace.endswith("*"):
+            for ns in self.rm_ns:
+                if ns.startswith(namespace[:-1]):
+                    accept = True
+                    break
+            
+            if not accept:
+                self.logger.warning("Cannot Subscribe to Namespace %r, as not defined in remote namespaces", namespace)
+        else:
+            if namespace in self.rm_ns:
+                accept = True
+            else:
+                self.logger.warning("Cannot Subscribe to Namespace %r, as not defined in remote namespaces", namespace)
+        
+        return accept
