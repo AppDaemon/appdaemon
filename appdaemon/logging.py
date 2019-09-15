@@ -388,8 +388,6 @@ class Logging:
 
         return logger
 
-    # Reading Logs
-
     # Run in executor
     def get_admin_logs(self):
         # Force main logs to be first in a specific order

@@ -3,6 +3,7 @@ import traceback
 import asyncio
 
 from appdaemon.appdaemon import AppDaemon
+import appdaemon.utils as utils
 
 
 class Services:
@@ -15,14 +16,14 @@ class Services:
         self.logger = ad.logging.get_child("_services")
         self.sequence = {}
 
-    def register_service(self, namespace, domain, service, callback):
+    def register_service(self, namespace, domain, service, callback, **kwargs):
         self.logger.debug("register_service called: %s.%s.%s -> %s", namespace, domain, service, callback)
         with self.services_lock:
             if namespace not in self.services:
                 self.services[namespace] = {}
             if domain not in self.services[namespace]:
                 self.services[namespace][domain] = {}
-            self.services[namespace][domain][service] = callback
+            self.services[namespace][domain][service] = {"callback": callback, **kwargs}
 
     def list_services(self):
         result = []
@@ -58,8 +59,30 @@ class Services:
                 ns = namespace
 
             try:
-                funcref = self.services[namespace][domain][service]
-                return await funcref(ns, domain, service, data)
+                funcref = self.services[namespace][domain][service]["callback"]
+
+                # Decide whether or not to call this as async
+
+                # Default to true
+                isasync = True
+
+                if "__async" in self.services[namespace][domain][service]:
+                    # We have a kwarg to tell us what to do
+                    if self.services[namespace][domain][service]["__async"] == "auto":
+                        # We decide based on introspection
+                        if not asyncio.iscoroutinefunction(funcref):
+                            isasync = False
+                    else:
+                        # We do what the kwarg tells us
+                        isasync = self.services[namespace][domain][service]["__async"]
+
+                if isasync is True:
+                    # it's a coroutine just await it.
+                    return await funcref(ns, domain, service, data)
+                else:
+                    # It's not a coroutine, , run it in an executor
+                    return await utils.run_in_executor(self, funcref, ns, domain, service, data)
+
             except:
                 self.logger.warning('-' * 60)
                 self.logger.warning("Unexpected error in call_service()")
