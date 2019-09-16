@@ -143,7 +143,7 @@ class Plugins:
             return self.plugin_objs[namespace]["object"]
 
         for name in self.plugins:
-            if self.plugins[name]["type"] == "ad" and "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
+            if "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
                 return self.plugin_objs[self.plugins[name]["namespace"]]["object"]
 
         return None
