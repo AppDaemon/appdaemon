@@ -1364,6 +1364,10 @@ class ADAPI:
         self.logger.debug("register_service: %s/%s, %s", d, s, kwargs)
 
         namespace = self._get_namespace(**kwargs)
+        
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
     def call_service(self, service, **kwargs):
