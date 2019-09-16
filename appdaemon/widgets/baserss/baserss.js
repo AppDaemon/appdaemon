@@ -16,9 +16,9 @@ function baserss(widget_id, url, skin, parameters)
     self.parameters = parameters;
 
     //
-    // RSS Info is always in the default namespace
+    // RSS Info is always in the admin namespace
     //
-    self.parameters.namespace = "default";
+    self.parameters.namespace = "admin";
        
     var callbacks = [];
 
@@ -63,16 +63,16 @@ function baserss(widget_id, url, skin, parameters)
 
     function set_value(self, state)
     {
-        self.story = 0
-        clearTimeout(self.timer)
-        show_next_story(self)
+        self.story = 0;
+        clearTimeout(self.timer);
+        show_next_story(self);
         self.timer = setInterval(show_next_story, self.parameters.interval * 1000, self);
     }
 
     function show_next_story(self)
     {
-        var stories = self.entity_state[parameters.entity].feed.entries;
-        self.set_field(self, "text", stories[self.story].title)
+        var stories = self.entity_state[parameters.entity].state.feed.entries;
+        self.set_field(self, "text", stories[self.story].title);
         if ("show_description" in self.parameters && self.parameters.show_description === 1)
         {
             if ("summary" in stories[self.story])

@@ -13,6 +13,7 @@ Change Log
 - Updated camera widget now supports streams and token refreshing
 - Added input_text and input_datetime widgets
 - bumped aiohttp to 3.6.0
+- Added the ability to cointrol the number of threadpool workers
 
 
 **Fixes**

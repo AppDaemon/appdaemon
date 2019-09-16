@@ -1,5 +1,4 @@
 import socketio
-import json
 import aiohttp
 from aiohttp import web
 import traceback
@@ -8,7 +7,10 @@ import uuid
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1493f2dd732abe5e6f5ef71696711b5e0e197c62
 
 # socketio handler
 
@@ -49,6 +51,11 @@ class ADStream:
 
     async def send_update(self, data):
         try:
+<<<<<<< HEAD
+=======
+            jdata = utils.convert_json(data)
+
+>>>>>>> 1493f2dd732abe5e6f5ef71696711b5e0e197c62
             if self.transport == "ws":
                 if len(self.app['websockets']) > 0:
                     self.logger.debug("Sending data: %s", json.dumps(data))
@@ -96,7 +103,7 @@ class ADStream:
                 await self.dash_stream.emit('down', jdata)
         except TypeError as e:
             self.logger.debug('-' * 60)
-            self.logger.warning("Unexpected error in JSON conversion")
+            self.logger.warning("Unexpected error in JSON conversion when writing to stream")
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s",e)
             self.logger.debug('-' * 60)

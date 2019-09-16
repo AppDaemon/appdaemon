@@ -8,6 +8,7 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
+import iso8601
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -44,6 +45,12 @@ class Threading:
 
         self.last_stats_time = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
         self.callback_list = []
+
+    async def get_q_update(self):
+        for thread in self.threads:
+            qsize = self.get_q(thread).qsize()
+            await self.set_state("_threading", "admin", "thread.{}".format(thread), q=qsize)
+
 
     async def get_callback_update(self):
         now = datetime.datetime.now()
@@ -251,9 +258,22 @@ class Threading:
                                             , dur)
 
     async def check_q_size(self, warning_step, warning_iterations):
-        if self.total_q_size() > self.AD.qsize_warning_threshold:
+        totalqsize = 0
+        for thread in self.threads:
+            totalqsize += self.threads[thread]["queue"].qsize()
+
+        if totalqsize > self.AD.qsize_warning_threshold:
             if (warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations) or warning_iterations == self.AD.qsize_warning_iterations:
-                self.logger.warning("Queue size is %s, suspect thread starvation", self.total_q_size())
+
+                for thread in self.threads:
+                    qsize = self.threads[thread]["queue"].qsize()
+                    if qsize > 0:
+                        self.logger.warning("Queue size for thread %s is %s, callback is '%s' called at %s - possible thread starvation",
+                                        thread, qsize,
+                                        await self.get_state("_threading", "admin", "thread.{}".format(thread)),
+                                        iso8601.parse_date(await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="time_called"))
+                                            )
+
                 await self.dump_threads()
                 warning_step = 0
             warning_step += 1
