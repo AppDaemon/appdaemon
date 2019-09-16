@@ -546,7 +546,7 @@ class HassPlugin(PluginBase):
                 # Set up HTTP Client
                 #
                 conn = aiohttp.TCPConnector()
-                self.session = aiohttp.ClientSession(connector=conn)
+                self.session = aiohttp.ClientSession(connector=conn, json_serialize=utils.convert_json)
 
             self.logger.debug("get_ha_config()")
             if self.token is not None:
