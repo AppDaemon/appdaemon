@@ -49,9 +49,10 @@ class ADStream:
 
     async def send_update(self, data):
         try:
+            jdata = utils.convert_json(data)
             if self.transport == "ws":
                 if len(self.app['websockets']) > 0:
-                    self.logger.debug("Sending data: %s", json.dumps(data))
+                    self.logger.debug("Sending data: %s", jdata)
                     for ws in self.app['websockets']:
                         rh = self.app['websockets'][ws]
                         if data['event_type'] == 'state_changed':
@@ -70,7 +71,7 @@ class ADStream:
                                     if not data['data']['entity_id'] == sub['entity_id']:
                                         continue
                                 
-                                await ws.send_json(data)
+                                await ws.send_str(jdata)
                                 break
                         else:
                             for handle, sub in rh.subscriptions['event'].items():
@@ -88,7 +89,7 @@ class ADStream:
                                     if not data['event_type'] == sub['event']:
                                         continue
                                 
-                                await ws.send_json(data)
+                                await ws.send_str(jdata)
                                 break
 
 
@@ -96,7 +97,7 @@ class ADStream:
                 await self.dash_stream.emit('down', jdata)
         except TypeError as e:
             self.logger.debug('-' * 60)
-            self.logger.warning("Unexpected error in JSON conversion")
+            self.logger.warning("Unexpected error in JSON conversion when writing to stream")
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s",e)
             self.logger.debug('-' * 60)

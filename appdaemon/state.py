@@ -415,7 +415,7 @@ class State:
             del kwargs["entity_id"]
 
         if service == "set":
-            await self.set_state(domain, namespace, entity_id, **kwargs)
+            return await self.set_state(domain, namespace, entity_id, **kwargs)
         else:
             self.logger.warning("Unknown service in set_state service call: %s", kwargs)
 
@@ -468,7 +468,11 @@ class State:
         self.state[namespace] = state
 
     def update_namespace_state(self, namespace, state):
-        self.state[namespace].update(state)
+        if isinstance(namespace, list): #if its a list, meaning multiple namespaces to be updated
+            for ns in namespace:
+                self.state[ns].update(state[ns])
+        else:
+            self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
         if namespace in self.AD.namespaces:
@@ -479,7 +483,7 @@ class State:
 
     def save_all_namespaces(self):
         for ns in self.AD.namespaces:
-                self.state[ns].save()
+            self.state[ns].save()
 
     def save_hybrid_namespaces(self):
         for ns in self.AD.namespaces:
@@ -497,4 +501,3 @@ class State:
             "__entity", "__duration", "__old_state", "__new_state",
             "oneshot", "pin_app", "pin_thread", "__delay"
         ] + app.list_constraints())
- 

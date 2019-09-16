@@ -76,7 +76,8 @@ class Utility:
             # Register set_state services
             #
             for ns in await self.AD.state.list_namespaces():
-                self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+                if ns == "default" or ns in self.AD.plugins.plugin_objs or ns in self.AD.namespaces: #meaning only default or it belongs to a local plugin. Don't allow for Admin/appdaemon/global or AD2AD plugin namespaces
+                    self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
 
             self.AD.loop.create_task(self.AD.sched.loop())
 

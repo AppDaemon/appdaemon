@@ -1324,11 +1324,12 @@ class ADAPI:
         """
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
         namespace = self._get_namespace(**kwargs)
-        self._check_entity(namespace, entity_id)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
 
-        return utils.run_coroutine_threadsafe(self, self.AD.state.set_state(self.name, namespace, entity_id, **kwargs))
+        self._check_entity(namespace, entity_id)
+
+        kwargs["entity_id"] = entity_id
+
+        return self.call_service("state/set", **kwargs)
 
     #
     # Service
@@ -1465,6 +1466,7 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
+        
         self.AD.thread_async.call_async_no_wait(self.AD.services.run_sequence, _name, namespace, sequence, **kwargs)
 
     #
@@ -1617,7 +1619,7 @@ class ADAPI:
 
         """
         return datetime.datetime(*map(
-            int, re.split('[^\d]', utc_string)[:-1]
+            int, re.split(r'[^\d]', utc_string)[:-1]
         )).timestamp() + self.get_tz_offset() * 60
 
     @staticmethod
@@ -2036,13 +2038,18 @@ class ADAPI:
             >>> handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
 
         """
+
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
             when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
+
         name = self.name
+
+        self.logger.debug("Registering run_once at %s for %s", when, name)
+
         now = self.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, when)
@@ -2116,8 +2123,12 @@ class ADAPI:
             when = utils.run_coroutine_threadsafe(self, self.AD.sched._parse_time(start, self.name))["datetime"]
         else:
             raise ValueError("Invalid type for start")
+
         aware_when = self.AD.sched.convert_naive(when)
         name = self.name
+
+        self.logger.debug("Registering run_at at %s for %s", when, name)
+
         now = self.get_now()
         if aware_when < now:
             raise ValueError(
@@ -2590,5 +2601,3 @@ class ADAPI:
             self.AD.app_management.register_module_dependency(
                 self.name,
                 *modules))
-
-
