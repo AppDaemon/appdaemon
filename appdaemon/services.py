@@ -54,6 +54,9 @@ class Services:
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
             # needs to operate on a different namespace, e.g. "default"
+            
+            if "__name" in data:
+                del data["__name"]
 
             if "namespace" in data:
                 ns = data["namespace"]
