@@ -1427,6 +1427,8 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
+            
+        kwargs["__name"] = self.name
 
         return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
 
