@@ -82,6 +82,7 @@ class AppDaemon:
         utils.process_arg(self, "time_zone", kwargs)
 
         self.tz = None
+        self.loop = loop
 
         self.logfile = None
         self.errfile = None
@@ -212,8 +213,6 @@ class AppDaemon:
             # threading setup
 
             self.threading = appdaemon.threading.Threading(self, kwargs)
-
-        self.loop = loop
 
         self.stopping = False
         
