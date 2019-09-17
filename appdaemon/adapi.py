@@ -209,9 +209,8 @@ class ADAPI:
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
+        namespace = kwargs.pop("namespace", "admin")
+        
         return utils.run_coroutine_threadsafe(self,
                                               self.AD.logging.add_log_callback(namespace, self.name, callback, level,
                                                                                **kwargs))
