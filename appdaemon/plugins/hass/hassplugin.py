@@ -13,8 +13,10 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.plugin_management import PluginBase
 
+
 async def no_func():
     pass
+
 
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
@@ -100,6 +102,8 @@ class HassPlugin(PluginBase):
             self.plugin_startup_conditions = None
 
         self.session = None
+        self.first_time = False
+        self.already_notified = False
 
         self.logger.info("HASS Plugin initialization complete")
 
@@ -119,7 +123,7 @@ class HassPlugin(PluginBase):
     async def get_complete_state(self):
 
         hass_state = await self.get_hass_state()
-        states = {}     
+        states = {}
         for state in hass_state:
             states[state["entity_id"]] = state
         self.logger.debug("Got state")
@@ -162,7 +166,8 @@ class HassPlugin(PluginBase):
                 if "value" in entry:
                     print(entry["value"], state[entry["entity"]])
                     print(DeepDiff(state[entry["entity"]], entry["value"]))
-                    if entry["entity"] in state and "values_changed" not in DeepDiff(entry["value"], state[entry["entity"]]):
+                    if entry["entity"] in state and "values_changed" not in DeepDiff(entry["value"],
+                                                                                     state[entry["entity"]]):
                         self.logger.info("Startup condition met: %s=%s", entry["entity"], entry["value"])
                         state_start = True
                 elif entry["entity"] in state:
@@ -182,7 +187,8 @@ class HassPlugin(PluginBase):
                         if entry["event_type"] == event["event_type"]:
                             if "values_changed" not in DeepDiff(event["data"], entry["data"]):
                                 event_start = True
-                                self.logger.info("Startup condition met: event type %s, data = %s fired", event["event_type"], entry["data"])
+                                self.logger.info("Startup condition met: event type %s, data = %s fired",
+                                                 event["event_type"], entry["data"])
 
             else:
                 event_start = True
@@ -194,7 +200,6 @@ class HassPlugin(PluginBase):
             await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
             self.first_time = False
             self.already_notified = False
-
 
     async def get_updates(self):
 
@@ -257,7 +262,7 @@ class HassPlugin(PluginBase):
                 await utils.run_in_executor(self, self.ws.send, sub)
                 result = json.loads(self.ws.recv())
                 if not (result["id"] == _id and result["type"] == "result" and
-                                result["success"] is True):
+                        result["success"] is True):
                     self.logger.warning("Unable to subscribe to HA events, id = %s", _id)
                     self.logger.warning(result)
                     raise ValueError("Error subscribing to HA Events")
@@ -278,13 +283,13 @@ class HassPlugin(PluginBase):
                 self.logger.info("Evaluating startup conditions")
                 await self.evaluate_started(False, self.hass_booting)
 
-                #state = await self.get_complete_state()
-                #self.reading_messages = True
+                # state = await self.get_complete_state()
+                # self.reading_messages = True
 
-                #await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state,
-                                                            #self.first_time)
-                #self.first_time = False
-                #self.already_notified = False
+                # await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state,
+                # self.first_time)
+                # self.first_time = False
+                # self.already_notified = False
 
                 #
                 # Loop forever consuming events
@@ -354,7 +359,7 @@ class HassPlugin(PluginBase):
 
         if "token" in config:
             headers = {'Authorization': "Bearer {}".format(config["token"])}
-        elif "ha_key"  in config:
+        elif "ha_key" in config:
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
@@ -366,7 +371,7 @@ class HassPlugin(PluginBase):
                 state = await r.json()
                 self.logger.debug("return = %s", state)
             else:
-                self.logger.warning("Error setting Home Assistant state %s.%s, %s", namespace, entity_id, kwargs )
+                self.logger.warning("Error setting Home Assistant state %s.%s, %s", namespace, entity_id, kwargs)
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 state = None
@@ -431,28 +436,32 @@ class HassPlugin(PluginBase):
                 else:
                     raise ValueError("Invalid type for end time")
 
-            if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
+            # if both are declared, it can't process entity_id
+            if sTime != "" and eTime != "":
                 filter_entity_id = ""
-            
-            elif (filter_entity_id != "" and sTime == "") and "days" in data: #if starttime is not declared and entity_id is declared, and days specified
-                sTime = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
-                
-            elif filter_entity_id == "" and sTime != "" and eTime == "" and "days" in data: #if starttime is declared and entity_id is not declared, and days specified
-                eTime = sTime + datetime.timedelta(days = days)
-                
-            elif filter_entity_id == "" and eTime != "" and sTime == "" and "days" in data: #if endtime is declared and entity_id is not declared, and days specified
-                sTime = eTime - datetime.timedelta(days = days)
-            
+
+            # if start time (sTime) is not declared and entity_id is declared, and days specified
+            elif (filter_entity_id != "" and sTime == "") and "days" in data:
+                sTime = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days=days)
+
+            # if start time (sTime) is declared and entity_id is not declared, and days specified
+            elif filter_entity_id == "" and sTime != "" and eTime == "" and "days" in data:
+                eTime = sTime + datetime.timedelta(days=days)
+
+            # if endtime (eTime) is declared and entity_id is not declared, and days specified
+            elif filter_entity_id == "" and eTime != "" and sTime == "" and "days" in data:
+                sTime = eTime - datetime.timedelta(days=days)
+
             if sTime != "":
                 timeStamp = "/{}".format(utils.dt_to_str(sTime.replace(microsecond=0), self.AD.tz))
 
-                if filter_entity_id != "": #if entity_id is specified, end_time cannot be used
+                if filter_entity_id != "":  # if entity_id is specified, end_time cannot be used
                     eTime = ""
 
                 if eTime != "":
                     eTime = "?end_time={}".format(quote(utils.dt_to_str(eTime.replace(microsecond=0), self.AD.tz)))
 
-            else: #if no start_time is specified, other parameters are invalid
+            else:  # if no start_time is specified, other parameters are invalid
                 timeStamp = ""
                 eTime = ""
 
@@ -460,7 +469,7 @@ class HassPlugin(PluginBase):
 
         elif domain == "template":
             apiurl = "{}/api/template".format(config["ha_url"])
-            
+
         else:
             apiurl = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
 
@@ -469,7 +478,7 @@ class HassPlugin(PluginBase):
                 r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             else:
                 r = await self.session.post(apiurl, headers=headers, json=data, verify_ssl=self.cert_verify)
-                
+
             if r.status == 200 or r.status == 201:
                 if domain == "template":
                     result = await r.text()
@@ -589,8 +598,8 @@ class HassPlugin(PluginBase):
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            services.append({"domain": "database","services": ["history"]}) #manually added HASS history service
-            services.append({"domain": "template","services": ["render"]})
+            services.append({"domain": "database", "services": ["history"]})  # manually added HASS history service
+            services.append({"domain": "template", "services": ["render"]})
 
             return services
         except:
