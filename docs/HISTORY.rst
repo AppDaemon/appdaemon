@@ -25,6 +25,7 @@ Change Log
 
 - ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
 - The camera widget has changed parameters - check the docs for details
+- Moved the `log events` from global to `admin` namespace. if `listen_log` is just used for listening to logs, it shouldn't matter
 
 4.0.0 Beta1 (2019-08-30)
 ------------------------
