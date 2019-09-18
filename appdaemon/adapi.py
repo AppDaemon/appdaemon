@@ -1617,7 +1617,7 @@ class ADAPI:
 
         """
         return datetime.datetime(*map(
-            int, re.split('[^\d]', utc_string)[:-1]
+            int, re.split(r'[^\d]', utc_string)[:-1]
         )).timestamp() + self.get_tz_offset() * 60
 
     @staticmethod

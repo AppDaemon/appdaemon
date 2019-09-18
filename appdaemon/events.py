@@ -43,7 +43,7 @@ class Events:
             if "pin" in kwargs:
                 pin_app = kwargs["pin_app"]
             else:
-                pin_app = self.AD.app_management.objects[name]["pin_app"]
+                pin_app = self.AD.app_management.objects[_name]["pin_app"]
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
@@ -180,7 +180,7 @@ class Events:
                     self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
                     return
 
-            if self.AD.apps is True and namespace != "admin":
+            if self.AD.apps is True:  # and namespace != "admin":
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
 

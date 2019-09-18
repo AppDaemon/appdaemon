@@ -131,7 +131,7 @@ class LogSubscriptionHandler(StreamHandler):
                     return
                 record.ts = datetime.datetime.fromtimestamp(record.created)
                 self.AD.thread_async.call_async_no_wait(
-                    self.AD.events.process_event, "global",
+                    self.AD.events.process_event, "admin",
                     {"event_type": "__AD_LOG_EVENT",
                      "data":
                          {
