@@ -379,7 +379,6 @@ class HTTP:
 
     async def update_rss(self):
         # Grab RSS Feeds
-
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
                 try:
@@ -388,14 +387,13 @@ class HTTP:
 
                         for feed_data in self.rss_feeds:
                             feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
-
                             if "bozo_exception" in feed:
                                 self.logger.warning("Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"])
                             else:
                                 new_state = {"feed": feed}
 
-                                # RSS Feeds always live in the default namespace
-                                self.AD.state.set_state("default", feed_data["target"], new_state)
+                                # RSS Feeds always live in the admin namespace
+                                await self.AD.state.set_state("rss", "admin", feed_data["target"], state=new_state)
 
                     await asyncio.sleep(1)
                 except:
@@ -411,7 +409,7 @@ class HTTP:
 
     @securedata
     async def get_ad(self, request):
-        return web.json_response({"state": {"status": "active"}})
+        return web.json_response({"state": {"status": "active"}}, dumps=utils.convert_json)
 
     @securedata
     async def get_entity(self, request):
@@ -426,7 +424,7 @@ class HTTP:
 
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_entity()")
@@ -450,7 +448,7 @@ class HTTP:
             if state is None:
                 return self.get_response(request, 404, "Namespace Not Found")
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_namespace()")
@@ -475,7 +473,7 @@ class HTTP:
             if state is None:
                 return self.get_response(request, 404, "Namespace Not Found")
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_namespace_entities()")
@@ -493,7 +491,7 @@ class HTTP:
             state = await self.AD.state.list_namespaces()
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_namespaces()")
@@ -511,7 +509,7 @@ class HTTP:
             state = self.AD.services.list_services()
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_services()")
@@ -532,7 +530,7 @@ class HTTP:
 
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_state()")
@@ -548,7 +546,7 @@ class HTTP:
 
             logs = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
 
-            return web.json_response({"logs": logs})
+            return web.json_response({"logs": logs}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_logs()")
@@ -725,7 +723,7 @@ class HTTP:
         response = "OK"
         self.access.info("API Call to %s: status: %s %s", app, code, response)
 
-        return web.json_response(ret, status = code)
+        return web.json_response(ret, status = code, dumps=utils.convert_json)
 
     # Routes, Status and Templates
 
