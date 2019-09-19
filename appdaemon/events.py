@@ -28,11 +28,11 @@ class Events:
         """Adds a callback for an event which is called internally by apps.
 
         Args:
-            name (str): name of the app.
-            namespace  (str): namespace of the event.
-            cb: callback.
-            event (str): name of the event.
-            **kwargs: list of values to filter on, and additional arguments to pass to the callback.
+            name (str): Name of the app.
+            namespace  (str): Namespace of the event.
+            cb: Callback function.
+            event (str): Name of the event.
+            **kwargs: List of values to filter on, and additional arguments to pass to the callback.
 
         Returns:
             ``None`` or the reference to the callback handle.
@@ -85,8 +85,9 @@ class Events:
         """Cancels an event callback.
 
         Args:
-            name (str): app or module name.
-            handle: previously supplied callback handle for the callback.
+
+            name (str): Name of the app or module.
+            handle: Previously supplied callback handle for the callback.
 
         Returns:
             None.
@@ -103,8 +104,9 @@ class Events:
         """Gets the information of an event callback.
 
         Args:
-            name (str): name of the app or subsystem.
-            handle: previously supplied handle for the callback.
+
+            name (str): Name of the app or subsystem.
+            handle: Previously supplied handle for the callback.
 
         Returns:
             A dictionary of callback entries or rise a ``ValueError`` if an invalid handle is provided.
@@ -123,9 +125,9 @@ class Events:
         If the namespace does not have a plugin associated with it, the event will be fired locally. If a plugin is associated, the firing of the event will be delegated to the plugin, under the understanding that when the event is fired, the plugin will notify appdaemon that it occured, usually via the system the plugin is communicating with.
 
         Args:
-            namespace (str): namespace for the event to be fired in.
-            event (str): name of the event.
-            **kwargs: arguments to associate with the event.
+            namespace (str): Namespace for the event to be fired in.
+            event (str): Name of the event.
+            **kwargs: Arguments to associate with the event.
 
         Returns:
             None.
@@ -146,8 +148,8 @@ class Events:
         """Processes an event that has been received either locally or from a plugin.
 
         Args:
-            namespace (str): namespace the event was fired in.
-            data: data associated with the event.
+            namespace (str): Namespace the event was fired in.
+            data: Data associated with the event.
 
         Returns:
             None.
@@ -220,7 +222,8 @@ class Events:
         ``True`` the resulting logging event will be suppressed.
 
         Args:
-            name (str): name of the app.
+
+            name (str): Name of the app.
 
         """
 
@@ -242,8 +245,8 @@ class Events:
         Locate any callbacks that may be registered for this event, check for filters and if appropriate, dispatch the event for further checking and eventual action.
 
         Args:
-            namespace (str): namespace of the event.
-            data: data associated with the event.
+            namespace (str): Namespace of the event.
+            data: Data associated with the event.
 
         Returns:
             None.
