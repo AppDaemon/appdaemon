@@ -180,7 +180,8 @@ class Events:
                     self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
                     return
 
-            if self.AD.apps is True and namespace != "admin":
+            if self.AD.apps is True:# and namespace != "admin":
+
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
 
