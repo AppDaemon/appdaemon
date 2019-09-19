@@ -134,12 +134,12 @@ class AppManagement:
         # Call its initialize function
 
         try:
-            if self.AD.threading.validate_callback_sig(name, "initialize", init):
-                await utils.run_in_executor(self, init)
-                await self.set_state(name, state="idle")
-                
-                await self.increase_active_apps(name)
-                
+            await utils.run_in_executor(self, init)
+            await self.set_state(name, state="idle")
+            await self.increase_active_apps(name)
+
+        except TypeError as e:
+            self.AD.threading.report_callback_sig(name, "initialize", init, {})
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -165,6 +165,9 @@ class AppManagement:
             try:
                 await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
+
+            except TypeError as e:
+                self.AD.threading.report_callback_sig(name, "terminate", term, {})
             except:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning('-' * 60)

@@ -673,7 +673,7 @@ If multiple namespaces are in use, HADasboard is able to specify either at the d
         precision: 0
         entity: sensor.side_humidity_corrected
 
-One caveat to namespaces is that the RSS widget always works with the default namespace - since the RSS feeds are supplied by AppDaemon itself, and not one of the plugins.
+One caveat to namespaces is that the RSS widget always works with the admin namespace - since the RSS feeds are supplied by AppDaemon itself, and not one of the plugins.
 
 Widget Reference
 ----------------
@@ -1904,9 +1904,6 @@ Note that the actual feeds are configured in appdaemon.yaml as follows:
 
 There is no limit to the number of feeds you configure, and you will
 need to configure one RSS widget to display each feed.
-
-The RSS news feed cannot be configured if you are still using the legacy
-``.cfg`` file type.
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
