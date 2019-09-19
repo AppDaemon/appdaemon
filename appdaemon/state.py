@@ -194,7 +194,7 @@ class State:
             for uuid_ in self.AD.callbacks.callbacks[name]:
                 callback = self.AD.callbacks.callbacks[name][uuid_]
                 if callback["type"] == "state" and (callback["namespace"] == namespace or
-                    callback["namespace"] == "global" or namespace == "global"):
+                   callback["namespace"] == "global" or namespace == "global"):
                     cdevice = None
                     centity = None
                     if callback["entity"] is not None:
