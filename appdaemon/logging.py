@@ -72,9 +72,7 @@ class DuplicateFilter(logging.Filter):
 
 class AppNameFormatter(logging.Formatter):
 
-    """
-    Logger formatter to add 'appname' as an interpolatable field
-    """
+    """Logger formatter to add 'appname' as an interpolatable field."""
 
     def __init__(self, fmt=None, datefmt=None, style=None):
         super().__init__(fmt, datefmt, style)
@@ -110,9 +108,10 @@ class AppNameFormatter(logging.Formatter):
 
 class LogSubscriptionHandler(StreamHandler):
 
-    """
-    Handle apps that subscribe to logs
-    This Handler requires that it's formatter is an instance of AppNameFormatter
+    """Handle apps that subscribe to logs.
+
+    This Handler requires that it's formatter is an instance of AppNameFormatter.
+
     """
 
     def __init__(self, ad: AppDaemon, type):

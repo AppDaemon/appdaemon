@@ -85,7 +85,6 @@ class Events:
         """Cancels an event callback.
 
         Args:
-
             name (str): Name of the app or module.
             handle: Previously supplied callback handle for the callback.
 
@@ -104,7 +103,6 @@ class Events:
         """Gets the information of an event callback.
 
         Args:
-
             name (str): Name of the app or subsystem.
             handle: Previously supplied handle for the callback.
 
@@ -222,7 +220,6 @@ class Events:
         ``True`` the resulting logging event will be suppressed.
 
         Args:
-
             name (str): Name of the app.
 
         """
