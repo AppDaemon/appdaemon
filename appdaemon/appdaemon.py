@@ -82,6 +82,7 @@ class AppDaemon:
         utils.process_arg(self, "time_zone", kwargs)
 
         self.tz = None
+        self.loop = loop
 
         self.logfile = None
         self.errfile = None
@@ -213,10 +214,14 @@ class AppDaemon:
 
             self.threading = appdaemon.threading.Threading(self, kwargs)
 
-        self.loop = loop
-
         self.stopping = False
-
+        
+        #
+        # Set up Executor ThreadPool
+        #
+        if "threadpool_workers" in kwargs:
+            self.threadpool_workers = int(kwargs["threadpool_workers"])
+            
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         # Initialize Plugins
