@@ -181,6 +181,7 @@ class Events:
                     return
 
             if self.AD.apps is True:# and namespace != "admin":
+
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
 
