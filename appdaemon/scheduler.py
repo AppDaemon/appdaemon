@@ -177,10 +177,10 @@ class Scheduler:
         latitude = self.AD.latitude
         longitude = self.AD.longitude
 
-        if -90 > latitude < 90:
+        if latitude < -90 or latitude > 90:
             raise ValueError("Latitude needs to be -90 .. 90")
 
-        if -180 > longitude < 180:
+        if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
         elevation = self.AD.elevation

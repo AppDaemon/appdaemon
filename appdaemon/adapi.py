@@ -209,9 +209,8 @@ class ADAPI:
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
+        namespace = kwargs.pop("namespace", "admin")
+        
         return utils.run_coroutine_threadsafe(self,
                                               self.AD.logging.add_log_callback(namespace, self.name, callback, level,
                                                                                **kwargs))
@@ -1364,6 +1363,10 @@ class ADAPI:
         self.logger.debug("register_service: %s/%s, %s", d, s, kwargs)
 
         namespace = self._get_namespace(**kwargs)
+        
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
     def call_service(self, service, **kwargs):
@@ -1423,6 +1426,8 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
+            
+        kwargs["__name"] = self.name
 
         return utils.run_coroutine_threadsafe(self, self.AD.services.call_service(namespace, d, s, kwargs))
 
@@ -1617,7 +1622,7 @@ class ADAPI:
 
         """
         return datetime.datetime(*map(
-            int, re.split('[^\d]', utc_string)[:-1]
+            int, re.split(r'[^\d]', utc_string)[:-1]
         )).timestamp() + self.get_tz_offset() * 60
 
     @staticmethod
