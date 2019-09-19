@@ -104,7 +104,7 @@ class HassPlugin(PluginBase):
         self.logger.info("HASS Plugin initialization complete")
 
     async def am_reading_messages(self):
-        return(self.reading_messages)
+        return self.reading_messages
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
