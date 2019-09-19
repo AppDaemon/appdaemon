@@ -13,8 +13,10 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.plugin_management import PluginBase
 
+
 async def no_func():
     pass
+
 
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
@@ -100,6 +102,9 @@ class HassPlugin(PluginBase):
             self.plugin_startup_conditions = None
 
         self.session = None
+        self.first_time = False
+        self.already_notified = False
+        self.services = None
 
         self.logger.info("HASS Plugin initialization complete")
 
@@ -195,7 +200,6 @@ class HassPlugin(PluginBase):
             self.first_time = False
             self.already_notified = False
 
-
     async def get_updates(self):
 
         _id = 0
@@ -257,7 +261,7 @@ class HassPlugin(PluginBase):
                 await utils.run_in_executor(self, self.ws.send, sub)
                 result = json.loads(self.ws.recv())
                 if not (result["id"] == _id and result["type"] == "result" and
-                                result["success"] is True):
+                        result["success"] is True):
                     self.logger.warning("Unable to subscribe to HA events, id = %s", _id)
                     self.logger.warning(result)
                     raise ValueError("Error subscribing to HA Events")
