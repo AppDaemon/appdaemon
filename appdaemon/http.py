@@ -382,7 +382,7 @@ class HTTP:
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
                 try:
-                    if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
+                    if self.rss_last_update is None or (self.rss_last_update + self.rss_update) <= time.time():
                         self.rss_last_update = time.time()
 
                         for feed_data in self.rss_feeds:
