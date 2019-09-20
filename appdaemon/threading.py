@@ -636,46 +636,78 @@ class Threading:
             # And Q
             #
             if asyncio.iscoroutinefunction(myargs["function"]):
-                name = myargs["name"]
-                objectid = myargs["objectid"]
-
-                # TODO: needed for thread stats
-                # _type = myargs["type"]
-                # _id = myargs["id"]
-                # thread_id = threading.current_thread().name
-
-                app = await self.AD.app_management.get_app_instance(name, objectid)
-
-                funcref, func_args, func_kwargs = self.determine_callback(app, myargs)
-
-                # TODO: track async callback stats
-                # callback = "{}() in {}".format(funcref.__name__, name)
-                # await self.update_thread_info(thread_id, callback, name, _type, _id)
-
-                try:
-                    f = asyncio.ensure_future(funcref(*func_args, **func_kwargs))
-                    self.AD.futures.add_future(name, f)
-                except:
-                    error_logger = logging.getLogger("Error.{}".format(name))
-                    error_logger.warning('-' * 60,)
-                    error_logger.warning("Unexpected error in worker for App %s:", name)
-                    error_logger.warning( "Worker Ags: %s", args)
-                    error_logger.warning('-' * 60)
-                    error_logger.warning(traceback.format_exc())
-                    error_logger.warning('-' * 60)
-                    if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
-                finally:
-                    pass
-                    # TODO: track async callback stats
-                    # await self.update_thread_info(thread_id, "idle", name, _type, _id)
-
-
+                await self.async_worker(myargs)
             else:
                 self.select_q(myargs)
             return True
         else:
             return False
+
+    # noinspection PyBroadException
+    async def async_worker(self, args):
+        thread_id = threading.current_thread().name
+        _type = args["type"]
+        funcref = args["function"]
+        _id = args["id"]
+        objectid = args["objectid"]
+        name = args["name"]
+        error_logger = logging.getLogger("Error.{}".format(name))
+        args["kwargs"]["__thread_id"] = thread_id
+        callback = "{}() in {}".format(funcref.__name__, name)
+        app = await self.AD.app_management.get_app_instance(name, objectid)
+        if app is not None:
+            try:
+                if _type == "scheduler":
+                    try:
+                        # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                        await funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                    except TypeError as e:
+                        self.report_callback_sig(name, "scheduler", funcref, args)
+
+                elif _type == "state":
+                    try:
+                        entity = args["entity"]
+                        attr = args["attribute"]
+                        old_state = args["old_state"]
+                        new_state = args["new_state"]
+                        # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                        await funcref(entity, attr, old_state, new_state,
+                                self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
+                    except TypeError as e:
+                        self.report_callback_sig(name, "state", funcref, args)
+
+                elif _type == "event":
+                    data = args["data"]
+                    if args["event"] == "__AD_LOG_EVENT":
+                        try:
+                            # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                            await funcref(data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"])
+                        except TypeError as e:
+                            self.report_callback_sig(name, "log_event", funcref, args)
+
+                    else:
+                        try:
+                            # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                            await funcref(args["event"], data, args["kwargs"])
+                        except TypeError as e:
+                            self.report_callback_sig(name, "event", funcref, args)
+
+            except:
+                error_logger.warning('-' * 60)
+                error_logger.warning("Unexpected error in worker for App %s:", name)
+                error_logger.warning( "Worker Ags: %s", args)
+                error_logger.warning('-' * 60)
+                error_logger.warning(traceback.format_exc())
+                error_logger.warning('-' * 60)
+                if self.AD.logging.separate_error_log() is True:
+                    self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+            finally:
+                pass
+                # await self.update_thread_info(thread_id, "idle", name, _type, _id)
+
+        else:
+            if not self.AD.stopping:
+                self.logger.warning("Found stale callback for %s - discarding", name)
 
     # noinspection PyBroadException
     def worker(self):
