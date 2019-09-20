@@ -846,7 +846,8 @@ class Dashboard:
             else:
                 dash_list = []
 
-            if errors != []:
+            # add errors if we got any
+            if errors:
                 params = {"title": self.title, "errors": errors, "name": name.lower(), "dash_list": dash_list}
 
                 env = Environment(
