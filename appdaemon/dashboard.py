@@ -825,7 +825,7 @@ class Dashboard:
             dash = self._conditional_compile(name, skin, recompile)
 
             if dash is None:
-                errors = ["An unrecoverable error occured - check log for details"]
+                errors = ["An unrecoverable error occurred - check log for details"]
                 head_includes = []
                 body_includes = []
             else:
