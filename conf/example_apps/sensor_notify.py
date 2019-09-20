@@ -22,7 +22,7 @@ class SensorNotification(hass.Hass):
     self.listen_state(self.state, self.args["sensor"])
 
   def in_range(self, value):
-    if int(value) >= int(self.args["range_min"]) and int(value) <= int(self.args["range_max"]):
+    if int(self.args["range_min"]) <= int(value) <= int(self.args["range_max"]):
       return True
     else:
       return False
