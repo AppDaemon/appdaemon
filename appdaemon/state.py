@@ -13,9 +13,7 @@ class State:
 
         self.AD = ad
 
-        self.state = {}
-        self.state["default"] = {}
-        self.state["admin"] = {}
+        self.state = {"default": {}, "admin": {}}
         self.logger = ad.logging.get_child("_state")
 
         # Initialize User Defined Namespaces
