@@ -239,7 +239,8 @@ class Events:
     async def process_event_callbacks(self, namespace, data):
         """Processes a pure event callback.
 
-        Locate any callbacks that may be registered for this event, check for filters and if appropriate, dispatch the event for further checking and eventual action.
+        Locate any callbacks that may be registered for this event, check for filters and if appropriate,
+        dispatch the event for further checking and eventual action.
 
         Args:
             namespace (str): Namespace of the event.
