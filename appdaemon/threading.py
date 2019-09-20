@@ -674,6 +674,45 @@ class Threading:
         else:
             return False
 
+    def determine_callback(self, app, args):	
+        _type = args["type"]	
+        funcref = args["function"]	
+        _id = args["id"]	
+        name = args["name"]	
+        args["kwargs"]["__thread_id"] = threading.current_thread().name	
+
+        if app is None:	
+            if not self.AD.stopping:	
+                self.logger.warning("Found stale callback for %s - discarding", name)	
+                return	
+
+        func_args = []	
+        func_kwargs = {}	
+        if _type == "scheduler":	
+            if self.validate_callback_sig(name, "scheduler", funcref):	
+                func_args = [self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"])]	
+        elif _type == "state":	
+            if self.validate_callback_sig(name, "state", funcref):	
+                entity = args["entity"]	
+                attr = args["attribute"]	
+                old_state = args["old_state"]	
+                new_state = args["new_state"]	
+                func_args = [entity, attr, old_state, new_state,	
+                        self.AD.state.sanitize_state_kwargs(app, args["kwargs"])]	
+        elif _type == "event":	
+            data = args["data"]	
+            if args["event"] == "__AD_LOG_EVENT":	
+                if self.validate_callback_sig(name, "log_event", funcref):	
+                    func_args = [data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"]]	
+            else:	
+                if self.validate_callback_sig(name, "event", funcref):	
+                    func_args = [args["event"], data, args["kwargs"]]	
+
+        return funcref, func_args, func_kwargs        	
+
+    def get_callback_args(self, args):	
+        return args["name"], args["type"], args["id"], args["objectid"]
+
     # noinspection PyBroadException
     def worker(self):
         thread_id = threading.current_thread().name
