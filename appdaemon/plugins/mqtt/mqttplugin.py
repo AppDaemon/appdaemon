@@ -148,7 +148,8 @@ class MqttPlugin(PluginBase):
     def mqtt_on_connect(self, client, userdata, flags, rc):
         try:
             err_msg = ""
-            if rc == 0: #means connection was successful
+            # means connection was successful
+            if rc == 0:
                 self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos, retain=self.mqtt_on_connect_retain)
 
                 self.logger.info("Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
@@ -186,17 +187,20 @@ class MqttPlugin(PluginBase):
             else:
                 err_msg = "Connection was refused. Please check configuration settings"
 
-            if err_msg != "": #means there was an err
+            # means there was an error
+            if err_msg != "":
                 self.logger.critical("Could not complete MQTT Plugin initialization, for %s", err_msg)
 
-            self.mqtt_connect_event.set() # continue processing
+            # continue processing
+            self.mqtt_connect_event.set()
         except:
             self.logger.critical("There was an error while trying to setup the Mqtt Service")
             self.logger.debug('There was an error while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
 
     def mqtt_on_disconnect(self,  client, userdata, rc):
         try:
-            if rc != 0 and not self.stopping: #unexpected disconnection
+            # unexpected disconnection
+            if rc != 0 and not self.stopping:
                 self.initialized = False
                 self.mqtt_connected = False
                 self.logger.critical("MQTT Client Disconnected Abruptly. Will attempt reconnection")
@@ -345,18 +349,21 @@ class MqttPlugin(PluginBase):
                     except asyncio.TimeoutError:
                         self.logger.critical("Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
 
-                        if self.mqtt_client_force_start: #meaning it should start anyway even if broker is down
+                        # meaning it should start anyway even if broker is down
+                        if self.mqtt_client_force_start:
                             self.mqtt_connected = True
                         else:
                             self.mqtt_client.loop_stop()
-                            self.mqtt_client.disconnect() #disconnect so it won't attempt reconnection if the broker was to come up
+                            # disconnect so it won't attempt reconnection if the broker was to come up
+                            self.mqtt_client.disconnect()
 
                     first_time_service = False
 
                 state = await self.get_complete_state()
                 meta = await self.get_metadata()
 
-                if self.mqtt_connected : #meaning the client has connected to the broker
+                # meaning the client has connected to the broker
+                if self.mqtt_connected:
                     await self.AD.plugins.notify_plugin_started(self.name, self.namespace, meta, state, first_time)
                     already_notified = False
                     already_initialized = True
@@ -383,7 +390,8 @@ class MqttPlugin(PluginBase):
 
     def start_mqtt_service(self, first_time):
         try:
-            self.mqtt_connect_event.clear() # used to wait for connection
+            # used to wait for connection
+            self.mqtt_connect_event.clear()
             if first_time:
                 if self.mqtt_client_user != None:
                     self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
