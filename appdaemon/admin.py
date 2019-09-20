@@ -75,7 +75,7 @@ class Admin:
             template = env.get_template("admin.jinja2")
             rendered_template = await utils.run_in_executor(self, template.render, params)
 
-            return (rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
