@@ -350,7 +350,7 @@ class ADAPI:
         """Finds out if the current App is currently pinned or not.
 
         Returns:
-            bool: True if the App is pinned, False otherwise.
+            bool: ``True`` if the App is pinned, ``False`` otherwise.
 
         Examples:
             >>> if self.get_app_pin(True):
