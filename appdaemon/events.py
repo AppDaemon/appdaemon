@@ -120,7 +120,10 @@ class Events:
     async def fire_event(self, namespace, event, **kwargs):
         """Fires an event.
 
-        If the namespace does not have a plugin associated with it, the event will be fired locally. If a plugin is associated, the firing of the event will be delegated to the plugin, under the understanding that when the event is fired, the plugin will notify appdaemon that it occured, usually via the system the plugin is communicating with.
+        If the namespace does not have a plugin associated with it, the event will be fired locally.
+        If a plugin is associated, the firing of the event will be delegated to the plugin, under the
+        understanding that when the event is fired, the plugin will notify appdaemon that it occurred,
+        usually via the system the plugin is communicating with.
 
         Args:
             namespace (str): Namespace for the event to be fired in.
@@ -173,7 +176,7 @@ class Events:
                     self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
 
                     if self.AD.apps is True and namespace != "admin":
-                        # Process state changecallbacks
+                        # Process state change callbacks
                         if data['event_type'] == "state_changed":
                             await self.AD.state.process_state_callbacks(namespace, data)
                 else:
