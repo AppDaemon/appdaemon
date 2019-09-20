@@ -13,6 +13,7 @@ import logging
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+
 class AppManagement:
 
     def __init__(self, ad: AppDaemon, config):

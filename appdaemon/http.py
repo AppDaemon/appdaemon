@@ -20,6 +20,7 @@ import appdaemon.admin as adadmin
 
 from appdaemon.appdaemon import AppDaemon
 
+
 def securedata(myfunc):
     """
     Take care of streams and service calls

@@ -1,6 +1,7 @@
 import asyncio
 from appdaemon.appdaemon import AppDaemon
 
+
 class AdminLoop:
 
     def __init__(self, ad: AppDaemon):

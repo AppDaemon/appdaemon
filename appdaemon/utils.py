@@ -21,6 +21,7 @@ if platform.system() != "Windows":
 __version__ = "4.0.0b2"
 secrets = None
 
+
 class Formatter(object):
     def __init__(self):
         self.types = {}

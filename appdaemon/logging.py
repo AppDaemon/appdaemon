@@ -11,6 +11,7 @@ import appdaemon.utils as utils
 
 from appdaemon.thread_async import AppDaemon
 
+
 class DuplicateFilter(logging.Filter):
 
     def __init__(self, logger, threshold, delay, timeout):
