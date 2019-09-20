@@ -13,8 +13,10 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.plugin_management import PluginBase
 
+
 async def no_func():
     pass
+
 
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
