@@ -64,7 +64,8 @@ class AppManagement:
         self.non_apps = ["global_modules", "sequence"]
 
     async def set_state(self, name, **kwargs):
-        if name.find(".") == -1: #not a fully qualified entity name
+        # not a fully qualified entity name
+        if name.find(".") == -1:
             entity_id = "app.{}".format(name)
         else:
             entity_id = name
@@ -72,7 +73,8 @@ class AppManagement:
         await self.AD.state.set_state("_app_management", "admin", entity_id, **kwargs)
 
     async def get_state(self, name, **kwargs):
-        if name.find(".") == -1: #not a fully qualified entity name
+        # not a fully qualified entity name
+        if name.find(".") == -1:
             entity_id = "app.{}".format(name)
         else:
             entity_id = name
@@ -80,7 +82,8 @@ class AppManagement:
         return await self.AD.state.get_state("_app_management", "admin", entity_id, **kwargs)
 
     async def add_entity(self, name, state, attributes):
-        if name.find(".") == -1: #not a fully qualified entity name
+        # not a fully qualified entity name
+        if name.find(".") == -1:
             entity_id = "app.{}".format(name)
         else:
             entity_id = name
@@ -132,8 +135,8 @@ class AppManagement:
             self.logger.warning("Unable to find module %s - initialize() skipped", name)
             await self.increase_inactive_apps(name)
             return
-        # Call its initialize function
 
+        # Call its initialize function
         try:
             await utils.run_in_executor(self, init)
             await self.set_state(name, state="idle")
@@ -157,9 +160,9 @@ class AppManagement:
         term = None
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
             self.logger.info("Calling terminate() for {}".format(name))
+
             # Call terminate directly rather than via worker thread
             # so we know terminate has completed before we move on
-
             term = self.objects[name]["object"].terminate
 
         if term is not None:
