@@ -666,7 +666,6 @@ class HTTP:
         else:
             self.app.router.add_get('/', self.error_page)
 
-
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
         self.app.router.add_get('/{name}', self.load_dash)
