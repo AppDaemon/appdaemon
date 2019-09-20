@@ -418,8 +418,7 @@ class MqttPlugin(PluginBase):
 
                 self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
 
-            self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port,
-                                        self.mqtt_client_timeout)
+            self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port, self.mqtt_client_timeout)
             self.mqtt_client.loop_start()
         except Exception as e:
             self.logger.critical("There was an error while trying to setup the Mqtt Service. Error was: %s", e)
