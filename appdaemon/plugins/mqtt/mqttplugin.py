@@ -127,7 +127,8 @@ class MqttPlugin(PluginBase):
             "tls_version": self.mqtt_tls_version,
             "timeout": self.mqtt_client_timeout,
             "force_state": self.mqtt_client_force_start
-                            }
+        }
+
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
@@ -226,7 +227,6 @@ class MqttPlugin(PluginBase):
         except:
             self.logger.critical("There was an error while processing an MQTT message")
             self.logger.debug('There was an error while processing an MQTT message, with Traceback: %s', traceback.format_exc())
-
 
     async def call_plugin_service(self, namespace, domain, service, kwargs):
 
