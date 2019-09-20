@@ -685,20 +685,22 @@ class Scheduler:
     #
     # Utilities
     #
-
-    def sanitize_timer_kwargs(self, app, kwargs):
+    @staticmethod
+    def sanitize_timer_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(kwargs_copy, [
             "interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"
         ] + app.list_constraints())
 
-    def myround(self, x, base=1, prec=10):
+    @staticmethod
+    def myround(x, base=1, prec=10):
         if base == 0:
             return x
         else:
             return round(base * round(float(x) / base), prec)
 
-    def my_dt_round(self, dt, base=1, prec=10):
+    @staticmethod
+    def my_dt_round(dt, base=1, prec=10):
         if base == 0:
             return dt
         else:
