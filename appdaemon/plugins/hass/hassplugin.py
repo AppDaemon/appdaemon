@@ -200,7 +200,6 @@ class HassPlugin(PluginBase):
     async def get_updates(self):
 
         _id = 0
-
         self.already_notified = False
         self.first_time = True
         while not self.stopping:
@@ -432,28 +431,33 @@ class HassPlugin(PluginBase):
                 else:
                     raise ValueError("Invalid type for end time")
 
-            if sTime != "" and eTime != "": #if both are declared, it can't process entity_id
+            # if both are declared, it can't process entity_id
+            if sTime != "" and eTime != "":
                 filter_entity_id = ""
-            
-            elif (filter_entity_id != "" and sTime == "") and "days" in data: #if starttime is not declared and entity_id is declared, and days specified
+
+            # if start_time is not declared and entity_id is declared, and days specified
+            elif (filter_entity_id != "" and sTime == "") and "days" in data:
                 sTime = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
-                
-            elif filter_entity_id == "" and sTime != "" and eTime == "" and "days" in data: #if starttime is declared and entity_id is not declared, and days specified
+
+            # if start_time is declared and entity_id is not declared, and days specified
+            elif filter_entity_id == "" and sTime != "" and eTime == "" and "days" in data:
                 eTime = sTime + datetime.timedelta(days = days)
-                
-            elif filter_entity_id == "" and eTime != "" and sTime == "" and "days" in data: #if endtime is declared and entity_id is not declared, and days specified
+
+            # if end_time is declared and entity_id is not declared, and days specified
+            elif filter_entity_id == "" and eTime != "" and sTime == "" and "days" in data:
                 sTime = eTime - datetime.timedelta(days = days)
             
             if sTime != "":
                 timeStamp = "/{}".format(utils.dt_to_str(sTime.replace(microsecond=0), self.AD.tz))
-
-                if filter_entity_id != "": #if entity_id is specified, end_time cannot be used
+                # if entity_id is specified, end_time cannot be used
+                if filter_entity_id != "":
                     eTime = ""
 
                 if eTime != "":
                     eTime = "?end_time={}".format(quote(utils.dt_to_str(eTime.replace(microsecond=0), self.AD.tz)))
 
-            else: #if no start_time is specified, other parameters are invalid
+            # if no start_time is specified, other parameters are invalid
+            else:
                 timeStamp = ""
                 eTime = ""
 
@@ -590,7 +594,8 @@ class HassPlugin(PluginBase):
             r = await self.session.get(apiurl, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            services.append({"domain": "database","services": ["history"]}) #manually added HASS history service
+            # manually added HASS history service
+            services.append({"domain": "database","services": ["history"]})
             services.append({"domain": "template","services": ["render"]})
 
             return services
