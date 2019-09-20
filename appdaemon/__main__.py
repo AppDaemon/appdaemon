@@ -159,7 +159,7 @@ class ADMain():
 
             self.logger.debug("End Loop")
 
-            self.logger.info("AppDeamon Exited")
+            self.logger.info("AppDaemon Exited")
 
     # noinspection PyBroadException
     def main(self):
