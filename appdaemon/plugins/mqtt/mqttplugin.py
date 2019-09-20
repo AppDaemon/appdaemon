@@ -8,6 +8,7 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.plugin_management import PluginBase
 
+
 class MqttPlugin(PluginBase):
 
     def __init__(self, ad: AppDaemon, name, args):
