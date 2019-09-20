@@ -24,7 +24,6 @@ import appdaemon.http as adhttp
 import appdaemon.logging as logging
 
 
-
 class ADMain():
 
     """
