@@ -879,7 +879,7 @@ class Dashboard:
                 template = env.get_template("dashboard.jinja2")
                 rendered_template = template.render(params)
 
-            return(rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
