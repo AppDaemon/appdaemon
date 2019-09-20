@@ -25,7 +25,7 @@ def hass_check(func):
         else:
             return func(*args, **kwargs)
 
-    return (func_wrapper)
+    return func_wrapper
 
 
 class HassPlugin(PluginBase):
