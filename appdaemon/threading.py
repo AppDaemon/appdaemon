@@ -644,6 +644,7 @@ class Threading:
             return False
 
     # noinspection PyBroadException
+    # TODO: update threads
     async def async_worker(self, args):
         thread_id = threading.current_thread().name
         _type = args["type"]
