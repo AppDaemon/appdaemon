@@ -710,7 +710,6 @@ class Scheduler:
             aware_result = pytz.utc.localize(result)
             return aware_result
 
-
     def convert_naive(self, dt):
         # Is it naive?
         result = None

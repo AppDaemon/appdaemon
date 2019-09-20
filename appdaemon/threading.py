@@ -52,7 +52,6 @@ class Threading:
             qsize = self.get_q(thread).qsize()
             await self.set_state("_threading", "admin", "thread.{}".format(thread), q=qsize)
 
-
     async def get_callback_update(self):
         now = datetime.datetime.now()
         self.callback_list.append(
@@ -363,7 +362,6 @@ class Threading:
             await self.set_state("_threading", "admin", "thread.{}".format(name), state="idle", is_alive=True)
 
         self.threads[name]["thread"] = t
-
 
     async def calculate_pin_threads(self):
 

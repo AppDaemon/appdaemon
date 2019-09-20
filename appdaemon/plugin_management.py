@@ -117,7 +117,6 @@ class Plugins:
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin]["object"].stop()
 
-
     def run_plugin_utility(self):
         for plugin in self.plugin_objs:
             if hasattr(self.plugin_objs[plugin]["object"].utility(), "utility"):

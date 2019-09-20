@@ -193,8 +193,10 @@ def _profile_this(fn):
 
     return profiled_fn
 
+
 def format_seconds(secs):
     return str(timedelta(seconds=secs))
+
 
 def get_kwargs(kwargs):
     result = ""

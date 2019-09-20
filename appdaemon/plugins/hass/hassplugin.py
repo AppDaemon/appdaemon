@@ -197,7 +197,6 @@ class HassPlugin(PluginBase):
             self.first_time = False
             self.already_notified = False
 
-
     async def get_updates(self):
 
         _id = 0

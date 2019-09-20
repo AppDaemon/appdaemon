@@ -238,7 +238,6 @@ class Dashboard:
         else:
             return value, {}
 
-
     # noinspection PyUnresolvedReferences
     def _load_widget(self, dash, includes, name, css_vars, global_parameters):
         instantiated_widget = None

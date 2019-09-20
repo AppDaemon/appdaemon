@@ -991,7 +991,6 @@ class AppManagement:
         elif service == "reload":
             await self.check_app_updates(mode="init")
 
-
     async def increase_active_apps(self, name):
         if name not in self.active_apps:
             self.active_apps.append(name)            
