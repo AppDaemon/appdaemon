@@ -706,8 +706,7 @@ class Dashboard:
                 name = file.replace('.dash', '')
                 dash_list[name] = "{}/{}".format(self.base_url, name)
 
-        params = {"dash_list": dash_list}
-        params["main"] = "1"
+        params = {"dash_list": dash_list, "main": "1"}
 
         return params
 
