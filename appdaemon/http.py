@@ -151,6 +151,7 @@ class HTTP:
             self.loop = loop
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
+            #TODO the `context` local varialble is never used after its initialization, maybe it can be removed
             if self.ssl_certificate is not None and self.ssl_key is not None:
                 context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
                 context.load_cert_chain(self.ssl_certificate, self.ssl_key)
