@@ -583,8 +583,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             * Finish
 
         """
-        kwargs = {}
-        kwargs["message"] = message
+        kwargs = {"message": message}
         if title is not None:
             kwargs["title"] = title
         if id is not None:
