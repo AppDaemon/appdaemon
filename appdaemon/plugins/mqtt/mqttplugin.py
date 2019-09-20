@@ -423,6 +423,6 @@ class MqttPlugin(PluginBase):
         except Exception as e:
             self.logger.critical("There was an error while trying to setup the Mqtt Service. Error was: %s", e)
             self.logger.debug("There was an error while trying to setup the MQTT Service. Error: %s, with Traceback: %s", e, traceback.format_exc())
-            self.logger.debug('There was an error while trying to setup the MQTT Service, with Traceback: %s',traceback.format_exc())
+            self.logger.debug('There was an error while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
 
         return
