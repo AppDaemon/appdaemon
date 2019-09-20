@@ -285,15 +285,16 @@ class Events:
 
                         if _run:
                             if name in self.AD.app_management.objects:
-                                await self.AD.threading.dispatch_worker(name, {
-                                    "id": uuid_,
-                                    "name": name,
-                                    "objectid": self.AD.app_management.objects[name]["id"],
-                                    "type": "event",
-                                    "event": data['event_type'],
-                                    "function": callback["function"],
-                                    "data": data["data"],
-                                    "pin_app": callback["pin_app"],
-                                    "pin_thread": callback["pin_thread"],
-                                    "kwargs": callback["kwargs"]
-                                })
+                                await self.AD.threading.dispatch_worker(name,
+                                                                        {
+                                                                            "id": uuid_,
+                                                                            "name": name,
+                                                                            "objectid": self.AD.app_management.objects[name]["id"],
+                                                                            "type": "event",
+                                                                            "event": data['event_type'],
+                                                                            "function": callback["function"],
+                                                                            "data": data["data"],
+                                                                            "pin_app": callback["pin_app"],
+                                                                            "pin_thread": callback["pin_thread"],
+                                                                            "kwargs": callback["kwargs"]
+                                                                        })
