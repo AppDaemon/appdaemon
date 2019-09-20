@@ -2590,10 +2590,6 @@ class ADAPI:
             >>> self.depends_on_module([somemodule)
 
         """
-        return utils.run_coroutine_threadsafe(
-            self,
-            self.AD.app_management.register_module_dependency(
-                self.name,
-                *modules))
+        return utils.run_coroutine_threadsafe(self, self.AD.app_management.register_module_dependency(self.name, *modules))
 
 
