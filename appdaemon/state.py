@@ -166,8 +166,7 @@ class State:
 
         if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
             del self.AD.callbacks.callbacks[name][handle]
-            await self.AD.state.remove_entity("admin",
-                                                "state_callback.{}".format(handle))
+            await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
         if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
             del self.AD.callbacks.callbacks[name]
 
