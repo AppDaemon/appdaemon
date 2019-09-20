@@ -1900,7 +1900,8 @@ class ADAPI:
             20:15:31.295751
 
         """
-        return await self.AD.sched.get_now().astimezone(self.AD.tz).time()
+        now = await self.AD.sched.get_now()
+        return now.astimezone(self.AD.tz).time()
 
     @utils.sync_wrapper
     async def datetime(self, aware=False):
@@ -1919,7 +1920,8 @@ class ADAPI:
 
         """
         if aware is True:
-            return await self.AD.sched.get_now().astimezone(self.AD.tz)
+            now = await self.AD.sched.get_now()
+            return now.astimezone(self.AD.tz)
         else:
             return await self.AD.sched.get_now_naive()
 
@@ -1935,7 +1937,8 @@ class ADAPI:
             2019-08-15
 
         """
-        return await self.AD.sched.get_now().astimezone(self.AD.tz).date()
+        now = await self.AD.sched.get_now()
+        return now.astimezone(self.AD.tz).date()
 
     def get_timezone(self):
         """Returns the current time zone."""
@@ -2090,7 +2093,8 @@ class ADAPI:
         if type(start) == datetime.time:
             when = start
         elif type(start) == str:
-            when = await self.AD.sched._parse_time(start, self.name)["datetime"].time()
+            start_time_obj = await self.AD.sched._parse_time(start, self.name)
+            when = start_time_obj["datetime"].time()
         else:
             raise ValueError("Invalid type for start")
         name = self.name
@@ -2164,7 +2168,8 @@ class ADAPI:
         if type(start) == datetime.datetime:
             when = start
         elif type(start) == str:
-            when = await self.AD.sched._parse_time(start, self.name)["datetime"]
+            start_time_obj = await self.AD.sched._parse_time(start, self.name)
+            when = start_time_obj["datetime"]
         else:
             raise ValueError("Invalid type for start")
         aware_when = self.AD.sched.convert_naive(when)
