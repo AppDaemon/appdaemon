@@ -8,7 +8,14 @@ Change Log
 
 - Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
 - Added render_template() handling
-- global_modules can now be decalred in multipl yaml files
+- global_modules can now be declared in multiple yaml files
+- It is now possible to inject arbitrary headers in served http content
+- Updated camera widget now supports streams and token refreshing
+- Added input_text and input_datetime widgets
+- bumped aiohttp to 3.6.0
+- Added the ability to cointrol the number of threadpool workers
+- Each time a new service is registered, a ``service_registered`` event is fired, which can be picked up by apps 
+
 
 **Fixes**
 
@@ -17,6 +24,8 @@ Change Log
 **Breaking Changes**
 
 - ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
+- The camera widget has changed parameters - check the docs for details
+- Moved the `log events` from global to `admin` namespace. if `listen_log` is just used for listening to logs, it shouldn't matter
 
 4.0.0 Beta1 (2019-08-30)
 ------------------------
@@ -36,7 +45,7 @@ Change Log
 - Added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIs to remove duplication
-- Moved `contrain_days` from being Hass only to all app, regardless of plugin used
+- Moved `constrain_days` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
 - Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 

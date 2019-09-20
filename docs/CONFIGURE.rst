@@ -140,6 +140,7 @@ The following items provide a high level of control over AppDaemon's internal fu
    running the apps. Normally, AppDaemon will create enough threads to provide one per app, or default to 10 if app pinning is turned off. Setting this to a value will turn off automatic thread management.
 -  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and locking of instance variables
 -  ``pin_threads`` (optional) - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. Default is to use all threads for pinned apps.
+- ``threadpool_workers`` (optional) - the number of max_workers threads to be used by AD internally to execute calls asynchronously. This defaults to ``10``.
 - ``load_distribution`` - Algorithm to use for load balancing between unpinned apps. Can be ``roundrobin`` (the default), ``random`` or ``load``
 -  ``timewarp`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
 -  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
@@ -523,10 +524,11 @@ The HTTP component provides a unified front end to `Apdaemon's Admin Interface`,
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
-.. code::
+.. code:: yaml
 
-http:
-url: http://192.168.1.20:5050
+    http:
+        url: http://192.168.1.20:5050
+
 
 -  ``url`` - the URL you want the HTTP component to listen on
 
@@ -560,6 +562,22 @@ AppDaemon uses websockets as the default protocol for streaming events from AppD
     http:
         transport: socketio
 
+Additionally, arbitrary headers can be supplied in all server responses from AppDaemon with this configuration:
+
+.. code:: yaml
+
+    http:
+      headers:
+        My-Header-Here: "The Value Of My Header"
+
+Headers are especially useful for dealing with CORS. In order to allow CORS from any domain, consider the following configuration:
+
+.. code:: yaml
+
+    http:
+      headers:
+        Access-Control-Allow-Origin: "*"
+
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -572,11 +590,34 @@ Configuring the API
 
 The AppDaemon App API is configured by adding a top-level directive to appdaemon.yaml:
 
-.. code::
+.. code:: yaml
 
     api:
 
 It takes no arguments.
+
+Configuring the Admin Interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Admin Interface, new in 4.0 is a new front end to AppDaemon that allows you to monitor it's inner workings such as
+thread activity, registered callbacks and entities. Over time it is expected to evolve into a full management tool
+for AppDaemon allowing the user to configure, troubleshoot and monitor all of AppDaemon's functions.
+
+The Admin Interface is configured by first adding the HTTP Component and then also adding the top-level directive to appdaemon.yaml:
+
+.. code:: yaml
+
+    admin:
+
+The Interface can be accessed using a web browser and pointing it to the HTTP component URL.
+
+the `admin` directive takes a number of configuration items:
+
+- ``title:`` The title to be used for the browser window
+- ``stats_update:`` Frequency with which stats are updated in the interface. Allowed values are ``none``, ``batch``,
+``realtime`` (default). ``none`` will turn off updates, ``batch`` will update the stats every time the utility loop
+executes, usually every second. ``realtime`` is recommended for most applications, although if you have a very busy
+system, operating with sub-second callbacks you may prefer to use ``batch`` for performance reasons.
 
 Example Apps
 ------------

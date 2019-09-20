@@ -1,7 +1,9 @@
 Internal Documentation
 ----------------------
 
-These notes are intended to assist anyone that wants to understand AppDaemon's internals better. Most modules are used from within the AppDaemon object, which is a centralized depository of configuration information and references to the other objects and subsystems within AppDaemon.
+These notes are intended to assist anyone that wants to understand AppDaemon's internals better.
+Most modules are used from within the AppDaemon object, which is a centralized depository of
+configuration information and references to the other objects and subsystems within AppDaemon.
 
 appdaemon object
 ================

@@ -135,15 +135,15 @@ class AppManagement:
         # Call its initialize function
 
         try:
-            if self.AD.threading.validate_callback_sig(name, "initialize", init):
-                if asyncio.iscoroutinefunction(init):
-                    await init()
-                else:
-                    await utils.run_in_executor(self, init)
-                await self.set_state(name, state="idle")
-                
-                await self.increase_active_apps(name)
-                
+            if asyncio.iscoroutinefunction(init):
+                await init()
+            else:
+                await utils.run_in_executor(self, init)
+            await self.set_state(name, state="idle")
+            await self.increase_active_apps(name)
+
+        except TypeError as e:
+            self.AD.threading.report_callback_sig(name, "initialize", init, {})
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning('-' * 60)
@@ -172,6 +172,9 @@ class AppManagement:
                 else:
                     await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
+
+            except TypeError as e:
+                self.AD.threading.report_callback_sig(name, "terminate", term, {})
             except:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning('-' * 60)
@@ -481,7 +484,7 @@ class AppManagement:
                         total_apps -=1 # remove one
 
                 #if silent is False:
-                self.logger.info("Found %s total number of apps", total_apps)
+                self.logger.info("Found %s total apps", total_apps)
                 
                 await self.set_state(self.total_apps_sensor, state=total_apps)
                 
@@ -775,7 +778,7 @@ class AppManagement:
                 self.logger.warning("Removing associated apps:")
                 module = self.get_module_from_path(mod["name"])
                 for app in self.app_config:
-                    if self.app_config[app]["module"] == module:
+                    if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
                         if apps["init"] and app in apps["init"]:
                             del apps["init"][app]
                             self.logger.warning("%s", app)

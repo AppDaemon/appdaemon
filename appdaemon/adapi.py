@@ -214,9 +214,8 @@ class ADAPI:
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
+        namespace = kwargs.pop("namespace", "admin")
+
         return await self.AD.logging.add_log_callback(namespace, self.name,
             callback, level, **kwargs)
 
@@ -358,7 +357,7 @@ class ADAPI:
         """Finds out if the current App is currently pinned or not.
 
         Returns:
-            bool: True if the App is pinned, False otherwise.
+            bool: ``True`` if the App is pinned, ``False`` otherwise.
 
         Examples:
             >>> if self.get_app_pin(True):
@@ -1366,24 +1365,35 @@ class ADAPI:
             raise ValueError("Invalid Service Name: {}".format(service))
 
     def register_service(self, service, cb, **kwargs):
-        """
+        """Register a service that can be called from other apps, the REST API and the Event Stream
+
+        Using this function, an App can register a function to be available in the service registry.
+        This will automatically make it available to other apps using the `call_service()` API call, as well as publish
+        it as a service in the REST API and make it available to the `call_service` command in the event stream.
 
         Args:
-            service:
-            cb:
-            **kwargs (optional): Zero or more keyword arguments.
+            service: Name of the service, in the format `domain/service`. If the domain does not exist it will be created
+            cb: A reference to the function to be called when the service is requested. This function may be a regular
+                function, or it may be asynch. Note that if it is an async function, it will run on AppDaemon's main loop
+                meaning that any issues with the service could result in a delay of AppDaemon's core functions.
 
         Returns:
+            None
 
-        Todo:
-            * Finish documentation
+        Examples:
+            >>> self.register_service("myservices/service1", mycallback)
+
         """
         self._check_service(service)
         d, s = service.split("/")
         self.logger.debug("register_service: %s/%s, %s", d, s, kwargs)
 
         namespace = self._get_namespace(**kwargs)
-        self.AD.services.register_service(namespace, d, s, cb)
+        
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+            
+        self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
     @utils.sync_wrapper
     async def call_service(self, service, **kwargs):
@@ -1443,6 +1453,8 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
+            
+        kwargs["__name"] = self.name
 
         return await self.AD.services.call_service(namespace, d, s, kwargs)
 
@@ -1451,7 +1463,7 @@ class ADAPI:
         service calls.
 
         Args:
-            sequence: The sequence name, refering to the correct entry in apps.yamk, or a dict containing
+            sequence: The sequence name, referring to the correct entry in apps.yaml, or a dict containing
                 actual commands to run
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -1641,7 +1653,7 @@ class ADAPI:
 
         """
         return datetime.datetime(*map(
-            int, re.split('[^\d]', utc_string)[:-1]
+            int, re.split(r'[^\d]', utc_string)[:-1]
         )).timestamp() + self.get_tz_offset() * 60
 
     @staticmethod

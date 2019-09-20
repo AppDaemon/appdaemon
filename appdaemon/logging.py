@@ -72,9 +72,7 @@ class DuplicateFilter(logging.Filter):
 
 class AppNameFormatter(logging.Formatter):
 
-    """
-    Logger formatter to add 'appname' as an interpolatable field
-    """
+    """Logger formatter to add 'appname' as an interpolatable field."""
 
     def __init__(self, fmt=None, datefmt=None, style=None):
         super().__init__(fmt, datefmt, style)
@@ -110,9 +108,10 @@ class AppNameFormatter(logging.Formatter):
 
 class LogSubscriptionHandler(StreamHandler):
 
-    """
-    Handle apps that subscribe to logs
-    This Handler requires that it's formatter is an instance of AppNameFormatter
+    """Handle apps that subscribe to logs.
+
+    This Handler requires that it's formatter is an instance of AppNameFormatter.
+
     """
 
     def __init__(self, ad: AppDaemon, type):
@@ -132,7 +131,7 @@ class LogSubscriptionHandler(StreamHandler):
                     return
                 record.ts = datetime.datetime.fromtimestamp(record.created)
                 self.AD.thread_async.call_async_no_wait(
-                    self.AD.events.process_event, "global",
+                    self.AD.events.process_event, "admin",
                     {"event_type": "__AD_LOG_EVENT",
                      "data":
                          {
@@ -387,8 +386,6 @@ class Logging:
             logger.setLevel(self.AD.loglevel)
 
         return logger
-
-    # Reading Logs
 
     # Run in executor
     def get_admin_logs(self):

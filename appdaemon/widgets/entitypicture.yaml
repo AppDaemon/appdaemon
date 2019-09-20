@@ -1,5 +1,5 @@
 widget_type: baseentitypicture
-entity: {{entity}}
+entity: "{{entity}}"
 fields:
   title: ""
   base_url: ""

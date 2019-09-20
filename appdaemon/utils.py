@@ -12,6 +12,7 @@ import threading
 import datetime
 import dateutil.parser
 import copy
+import json
 
 
 if platform.system() != "Windows":
@@ -429,3 +430,6 @@ def dt_to_str(dt, tz=None):
             return dt.astimezone(tz).isoformat()
         else:
             return dt.isoformat()
+
+def convert_json(data, **kwargs):
+    return json.dumps(data, default=str, **kwargs)

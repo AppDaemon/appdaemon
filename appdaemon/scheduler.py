@@ -111,8 +111,8 @@ class Scheduler:
                     if remove is True:
                         await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
                         
-                        if "__timeout" in kwargs: #meaning there is a timeout for this callback
-                            await self.cancel_timer(name, kwargs["__timeout"]) #cancel it as no more needed
+                        if "__timeout" in args["kwargs"]: #meaning there is a timeout for this callback
+                            await self.cancel_timer(name, args["kwargs"]["__timeout"]) #cancel it as no more needed
                             
             elif "__state_handle" in args["kwargs"]:
                 #
@@ -177,10 +177,10 @@ class Scheduler:
         latitude = self.AD.latitude
         longitude = self.AD.longitude
 
-        if -90 > latitude < 90:
+        if latitude < -90 or latitude > 90:
             raise ValueError("Latitude needs to be -90 .. 90")
 
-        if -180 > longitude < 180:
+        if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
         elevation = self.AD.elevation

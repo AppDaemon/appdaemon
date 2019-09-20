@@ -1,0 +1,42 @@
+.widget-basedatetime-{{id}} .value {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.widget-basedatetime-{{id}} .valueunit {
+	position: absolute;
+        top: 41px;
+	width: 100%;
+	vertical-align: middle;
+}
+
+.widget-basedatetime-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-basedatetime-{{id}} .title2 {
+	position: absolute;
+	top: 23px;
+	width: 100%;
+}
+
+
+.widget-basedatetime-{{id}} input {
+        width: 85%;
+        height: 16px;
+	border: 1px solid black;
+	padding: 2px;
+	margin: 1px;
+	text-align: center;
+	vertical-align: middle;
+	background-color: #999;
+}
+
+.widget-basedatetime-{{id}} input ::-webkit-clear-button {
+    display: none;
+    -webkit-appearance: none;
+    margin: 0;
+    font-size: 0px;
+}

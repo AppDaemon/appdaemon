@@ -1,0 +1,22 @@
+widget_type: basetext
+entity: "{{entity}}"
+fields:
+  title: "{{title}}"
+  title2: "{{title2}}"
+  value: "{{text}}"
+  unit: ""
+  state_text: ""
+  TextValue: ""
+static_css:
+  title_style: $input_text_title_style
+  title2_style: $input_text_title2_style
+  text_style: $input_text_text_style
+  widget_style: $input_text_widget_style
+  container_style: $input_text_container_style
+post_service:
+  service: input_text/set_value
+  entity_id: "{{entity}}"
+  value: "{{value}}"
+css: []
+icons: []
+static_icons: []

@@ -1,4 +1,3 @@
-import asyncio
 import threading
 import datetime
 from queue import Queue
@@ -9,7 +8,7 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
-import functools
+import iso8601
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -46,6 +45,12 @@ class Threading:
 
         self.last_stats_time = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
         self.callback_list = []
+
+    async def get_q_update(self):
+        for thread in self.threads:
+            qsize = self.get_q(thread).qsize()
+            await self.set_state("_threading", "admin", "thread.{}".format(thread), q=qsize)
+
 
     async def get_callback_update(self):
         now = datetime.datetime.now()
@@ -253,9 +258,22 @@ class Threading:
                                             , dur)
 
     async def check_q_size(self, warning_step, warning_iterations):
-        if self.total_q_size() > self.AD.qsize_warning_threshold:
+        totalqsize = 0
+        for thread in self.threads:
+            totalqsize += self.threads[thread]["queue"].qsize()
+
+        if totalqsize > self.AD.qsize_warning_threshold:
             if (warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations) or warning_iterations == self.AD.qsize_warning_iterations:
-                self.logger.warning("Queue size is %s, suspect thread starvation", self.total_q_size())
+
+                for thread in self.threads:
+                    qsize = self.threads[thread]["queue"].qsize()
+                    if qsize > 0:
+                        self.logger.warning("Queue size for thread %s is %s, callback is '%s' called at %s - possible thread starvation",
+                                        thread, qsize,
+                                        await self.get_state("_threading", "admin", "thread.{}".format(thread)),
+                                        iso8601.parse_date(await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="time_called"))
+                                            )
+
                 await self.dump_threads()
                 warning_step = 0
             warning_step += 1
@@ -649,52 +667,11 @@ class Threading:
                     pass
                     # TODO: track async callback stats
                     # await self.update_thread_info(thread_id, "idle", name, _type, _id)
-
-
             else:
                 self.select_q(myargs)
             return True
         else:
             return False
-
-    def determine_callback(self, app, args):
-        _type = args["type"]
-        funcref = args["function"]
-        _id = args["id"]
-        name = args["name"]
-        args["kwargs"]["__thread_id"] = threading.current_thread().name
-
-        if app is None:
-            if not self.AD.stopping:
-                self.logger.warning("Found stale callback for %s - discarding", name)
-                return
-
-        func_args = []
-        func_kwargs = {}
-        if _type == "scheduler":
-            if self.validate_callback_sig(name, "scheduler", funcref):
-                func_args = [self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"])]
-        elif _type == "state":
-            if self.validate_callback_sig(name, "state", funcref):
-                entity = args["entity"]
-                attr = args["attribute"]
-                old_state = args["old_state"]
-                new_state = args["new_state"]
-                func_args = [entity, attr, old_state, new_state,
-                        self.AD.state.sanitize_state_kwargs(app, args["kwargs"])]
-        elif _type == "event":
-            data = args["data"]
-            if args["event"] == "__AD_LOG_EVENT":
-                if self.validate_callback_sig(name, "log_event", funcref):
-                    func_args = [data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"]]
-            else:
-                if self.validate_callback_sig(name, "event", funcref):
-                    func_args = [args["event"], data, args["kwargs"]]
-            
-        return funcref, func_args, func_kwargs        
-
-    def get_callback_args(self, args):
-        return args["name"], args["type"], args["id"], args["objectid"]
 
     # noinspection PyBroadException
     def worker(self):
@@ -702,48 +679,95 @@ class Threading:
         q = self.get_q(thread_id)
         while True:
             args = q.get()
-            try:
-                name, _type, _id, objectid = self.get_callback_args(args)
-                app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
+            _type = args["type"]
+            funcref = args["function"]
+            _id = args["id"]
+            objectid = args["objectid"]
+            name = args["name"]
+            error_logger = logging.getLogger("Error.{}".format(name))
+            args["kwargs"]["__thread_id"] = thread_id
+            callback = "{}() in {}".format(funcref.__name__, name)
+            app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
+            if app is not None:
+                try:
+                    if _type == "scheduler":
+                        try:
+                            utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
+                            funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                        except TypeError as e:
+                            self.report_callback_sig(name, "scheduler", funcref, args)
 
-                funcref, func_args, func_kwargs = self.determine_callback(app, args)
-                callback = "{}() in {}".format(funcref.__name__, name)
+                    elif _type == "state":
+                        try:
+                            entity = args["entity"]
+                            attr = args["attribute"]
+                            old_state = args["old_state"]
+                            new_state = args["new_state"]
+                            utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
+                            funcref(entity, attr, old_state, new_state,
+                                    self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
+                        except TypeError as e:
+                            self.report_callback_sig(name, "state", funcref, args)
 
-                utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
-                funcref(*func_args, **func_kwargs)
-            except:
-                error_logger = logging.getLogger("Error.{}".format(name))
-                error_logger.warning('-' * 60,)
-                error_logger.warning("Unexpected error in worker for App %s:", name)
-                error_logger.warning( "Worker Ags: %s", args)
-                error_logger.warning('-' * 60)
-                error_logger.warning(traceback.format_exc())
-                error_logger.warning('-' * 60)
-                if self.AD.logging.separate_error_log() is True:
-                    self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
-            finally:
-                utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, "idle", name, _type, _id))
+                    elif _type == "event":
+                        data = args["data"]
+                        if args["event"] == "__AD_LOG_EVENT":
+                            try:
+                                utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
+                                funcref(data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"])
+                            except TypeError as e:
+                                self.report_callback_sig(name, "log_event", funcref, args)
+
+                        else:
+                            try:
+                                utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
+                                funcref(args["event"], data, args["kwargs"])
+                            except TypeError as e:
+                                self.report_callback_sig(name, "event", funcref, args)
+
+                except:
+                    error_logger.warning('-' * 60)
+                    error_logger.warning("Unexpected error in worker for App %s:", name)
+                    error_logger.warning( "Worker Ags: %s", args)
+                    error_logger.warning('-' * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning('-' * 60)
+                    if self.AD.logging.separate_error_log() is True:
+                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+                finally:
+                    utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, "idle", name, _type, _id))
+
+            else:
+                if not self.AD.stopping:
+                    self.logger.warning("Found stale callback for %s - discarding", name)
 
             q.task_done()
 
-    def validate_callback_sig(self, name, type, funcref):
+    def report_callback_sig(self, name, type, funcref, args):
+
         callback_args = {
             "scheduler": {"count": 1, "signature": "f(self, kwargs)"},
             "state": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
             "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
             "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
-            "initialize": {"count": 0, "signature": "initialize()"}
+            "initialize": {"count": 0, "signature": "initialize()"},
+            "terminate": {"count": 0, "signature": "terminate()"}
         }
 
         sig = inspect.signature(funcref)
 
         if type in callback_args:
             if len(sig.parameters) != callback_args[type]["count"]:
-                self.logger.warning("Incorrect signature type for callback %s() in %s, should be %s - discarding", funcref.__name__, name, callback_args[type]["signature"])
-                return False
-            else:
-                return True
+                self.logger.warning("Suspect incorrect signature type for callback %s() in %s, should be %s - discarding", funcref.__name__, name, callback_args[type]["signature"])
+            error_logger = logging.getLogger("Error.{}".format(name))
+            error_logger.warning('-' * 60)
+            error_logger.warning("Unexpected error in worker for App %s:", name)
+            error_logger.warning("Worker Ags: %s", args)
+            error_logger.warning('-' * 60)
+            error_logger.warning(traceback.format_exc())
+            error_logger.warning('-' * 60)
+            if self.AD.logging.separate_error_log() is True:
+                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+
         else:
             self.logger.error("Unknown callback type: %s", type)
-
-        return False

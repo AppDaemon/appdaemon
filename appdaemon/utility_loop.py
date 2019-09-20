@@ -1,6 +1,4 @@
-"""
-Module to handle utility functions within AppDameon.
-"""
+"""Module to handle utility functions within AppDaemon."""
 
 import asyncio
 import datetime
@@ -12,18 +10,16 @@ from appdaemon.appdaemon import AppDaemon
 
 class Utility:
 
-    """
-    Class that uncludes the utility loop.
+    """Class that includes the utility loop.
 
-    Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes
+    Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes.
     """
 
     def __init__(self, ad: AppDaemon):
+        """Constructor.
 
-        """
-        Constructor.
-
-        :param ad: Reference to the AppDaemon object
+        Args:
+            ad: Reference to the AppDaemon object
         """
 
         self.AD = ad
@@ -31,20 +27,21 @@ class Utility:
         self.logger = ad.logging.get_child("_utility")
 
     def stop(self):
+        """Called by the AppDaemon object to terminate the loop cleanly
 
-        """
-        Called by the AppDaemon object to terminate the loop cleanly
+        Returns:
+            None
+
         """
 
         self.logger.debug("stop() called for utility")
         self.stopping = True
 
     async def loop(self):
+        """The main utility loop.
 
-        """
-        The main utility loop.
-
-        Loops until stop() is called, checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes
+        Loops until stop() is called, checks for file changes, overdue threads, thread starvation,
+        and schedules regular state refreshes.
         """
 
         #
@@ -55,6 +52,10 @@ class Utility:
         await self.AD.threading.create_initial_threads()
         await self.AD.app_management.init_admin_stats()
 
+        #
+        # Start the web server
+        #
+        await self.AD.http.start_server()
 
         #
         # Wait for all plugins to initialize
@@ -159,8 +160,20 @@ class Utility:
 
                 await asyncio.sleep(self.AD.utility_delay)
 
+            #
+            # Shutting down now
+            #
+
+            #
+            # Stop apps
+            #
             if self.AD.app_management is not None:
                 await self.AD.app_management.terminate()
+
+            #
+            # Shutdown webserver
+            #
+            await self.AD.http.stop_server()
 
     async def set_production_mode(self, mode=True):
         if mode is True:

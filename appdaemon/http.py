@@ -139,9 +139,10 @@ class HTTP:
             if self.host == "":
                 raise ValueError("Invalid host for 'url'")
 
-            self.logger.info("Running on port %s", self.port)
-
             self.app = web.Application()
+
+            if "headers" in self.http:
+                self.app.on_response_prepare.append(self.add_response_headers)
 
             # Setup event stream
 
@@ -273,10 +274,11 @@ class HTTP:
             # Finish up and start the server
             #
 
-            handler = self.app.make_handler()
+            #handler = self.app.make_handler()
 
-            f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
-            loop.create_task(f)
+            #f = loop.create_server(handler, "0.0.0.0", int(self.port), ssl=context)
+            #loop.create_task(f)
+
             if self.dashboard_obj is not None:
                 loop.create_task(self.update_rss())
 
@@ -286,6 +288,26 @@ class HTTP:
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
+
+    async def start_server(self):
+
+        self.logger.info("Running on port %s", self.port)
+
+        self.runner = web.AppRunner(self.app)
+        await self.runner.setup()
+        site = web.TCPSite(self.runner, '0.0.0.0', int(self.port))
+        await site.start()
+
+    async def stop_server(self):
+        self.logger.info("Shutting down webserver")
+        #
+        # We sjould do this nut it makes AD hang so ...
+        #
+        #await self.runner.cleanup()
+
+    async def add_response_headers(self, request, response):
+        for header, value in self.http['headers'].items():
+            response.headers[header] = value
 
     def stop(self):
         self.stopping = True
@@ -357,7 +379,6 @@ class HTTP:
 
     async def update_rss(self):
         # Grab RSS Feeds
-
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
                 try:
@@ -366,14 +387,13 @@ class HTTP:
 
                         for feed_data in self.rss_feeds:
                             feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
-
                             if "bozo_exception" in feed:
                                 self.logger.warning("Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"])
                             else:
                                 new_state = {"feed": feed}
 
-                                # RSS Feeds always live in the default namespace
-                                self.AD.state.set_state("default", feed_data["target"], new_state)
+                                # RSS Feeds always live in the admin namespace
+                                await self.AD.state.set_state("rss", "admin", feed_data["target"], state=new_state)
 
                     await asyncio.sleep(1)
                 except:
@@ -389,7 +409,7 @@ class HTTP:
 
     @securedata
     async def get_ad(self, request):
-        return web.json_response({"state": {"status": "active"}})
+        return web.json_response({"state": {"status": "active"}}, dumps=utils.convert_json)
 
     @securedata
     async def get_entity(self, request):
@@ -404,7 +424,7 @@ class HTTP:
 
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_entity()")
@@ -428,7 +448,7 @@ class HTTP:
             if state is None:
                 return self.get_response(request, 404, "Namespace Not Found")
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_namespace()")
@@ -453,7 +473,7 @@ class HTTP:
             if state is None:
                 return self.get_response(request, 404, "Namespace Not Found")
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_namespace_entities()")
@@ -471,7 +491,7 @@ class HTTP:
             state = await self.AD.state.list_namespaces()
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_namespaces()")
@@ -489,7 +509,7 @@ class HTTP:
             state = self.AD.services.list_services()
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_services()")
@@ -510,7 +530,7 @@ class HTTP:
 
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state})
+            return web.json_response({"state": state}, dumps=utils.convert_json)
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error in get_state()")
@@ -518,6 +538,22 @@ class HTTP:
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
             return self.get_response(request, 500, "Unexpected error in get_state()")
+
+    @securedata
+    async def get_logs(self, request):
+        try:
+            self.logger.debug("get_logs() called")
+
+            logs = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
+
+            return web.json_response({"logs": logs}, dumps=utils.convert_json)
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error in get_logs()")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
+            return self.get_response(request, 500, "Unexpected error in get_logs()")
 
     # noinspection PyUnusedLocal
     @securedata
@@ -598,6 +634,7 @@ class HTTP:
         self.app.router.add_get('/api/appdaemon/state/{namespace}/', self.get_namespace_entities)
         self.app.router.add_get('/api/appdaemon/state/', self.get_namespaces)
         self.app.router.add_get('/api/appdaemon/state', self.get_state)
+        self.app.router.add_get('/api/appdaemon/logs', self.get_logs)
         self.app.router.add_post('/api/appdaemon/{app}', self.call_api)
         self.app.router.add_get('/api/appdaemon', self.get_ad)
 
@@ -686,7 +723,7 @@ class HTTP:
         response = "OK"
         self.access.info("API Call to %s: status: %s %s", app, code, response)
 
-        return web.json_response(ret, status = code)
+        return web.json_response(ret, status = code, dumps=utils.convert_json)
 
     # Routes, Status and Templates
 
