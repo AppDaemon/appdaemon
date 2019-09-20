@@ -381,7 +381,7 @@ class Scheduler:
                 if self.realtime is True:
                     self.now = now
                 else:
-                    if result == True:
+                    if result:
                         # We got kicked so lets figure out the elapsed pseudo time
                         delta = (now - self.last_fired).total_seconds() * self.AD.timewarp
                     else:
