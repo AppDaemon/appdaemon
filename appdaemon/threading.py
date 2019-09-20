@@ -8,6 +8,7 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
+import asyncio
 import iso8601
 
 from appdaemon import utils as utils
