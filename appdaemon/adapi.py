@@ -2035,7 +2035,7 @@ class ADAPI:
         self.logger.debug("Registering run_in in %s seconds for %s", delay, name)
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
-        exec_time = self.get_now() + timedelta(seconds=int(delay))
+        exec_time = await self.get_now() + timedelta(seconds=int(delay))
         handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(name, exec_time, callback,
                                                                                     False, None, **kwargs))
         return handle
