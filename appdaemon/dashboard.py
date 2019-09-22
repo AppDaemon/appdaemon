@@ -410,8 +410,7 @@ class Dashboard:
 
             if name != "spacer":
                 sanitized_name = name.replace(".", "-").replace("_", "-").lower()
-                widget = {}
-                widget["id"] = "{}-{}".format(page, sanitized_name)
+                widget = {"id": "{}-{}".format(page, sanitized_name)}
 
                 if self._widget_exists(dash["widgets"], widget["id"]):
                     self.logger.warning("Duplicate widget name '%s' - ignored", name)
@@ -707,8 +706,7 @@ class Dashboard:
                 name = file.replace('.dash', '')
                 dash_list[name] = "{}/{}".format(self.base_url, name)
 
-        params = {"dash_list": dash_list}
-        params["main"] = "1"
+        params = {"dash_list": dash_list, "main": "1"}
 
         return params
 
