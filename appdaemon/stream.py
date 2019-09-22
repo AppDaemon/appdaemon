@@ -7,13 +7,9 @@ import uuid
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
-<<<<<<< HEAD
 
-=======
->>>>>>> 1493f2dd732abe5e6f5ef71696711b5e0e197c62
 
 # socketio handler
-
 class DashStream(socketio.AsyncNamespace):
 
     def __init__(self, ADStream, path, AD):
@@ -51,11 +47,8 @@ class ADStream:
 
     async def send_update(self, data):
         try:
-<<<<<<< HEAD
-=======
             jdata = utils.convert_json(data)
 
->>>>>>> 1493f2dd732abe5e6f5ef71696711b5e0e197c62
             if self.transport == "ws":
                 if len(self.app['websockets']) > 0:
                     self.logger.debug("Sending data: %s", json.dumps(data))
