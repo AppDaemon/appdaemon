@@ -70,7 +70,7 @@ class ADStream:
                             await self.streams[stream].stream_send(data)
                             break
                     else:
-                        for handle, sub in self.streams[stream].subscriptions['state'].items():
+                        for handle, sub in self.streams[stream].subscriptions['event'].items():
                             if sub['namespace'].endswith('*'):
                                 if not data['namespace'].startswith(sub['namespace'][:-1]):
                                     continue
@@ -88,11 +88,11 @@ class ADStream:
                             await self.streams[stream].stream_send(data)
                             break
         except:
-            self.logger.debug('-' * 60)
-            self.logger.debug("Unexpected error during 'send_update()'")
-            self.logger.debug('-' * 60)
-            self.logger.debug(traceback.format_exc())
-            self.logger.debug('-' * 60)
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error during 'send_update()'")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)
 
     #@securedata
     async def wshandler(self, request):
@@ -163,7 +163,7 @@ class RequestHandler:
         try:
             self.logger.debug("--> %s", data)
             if self.transport == "ws":
-                await self.stream.send_json(data)
+                await self.stream.send_json(data, dumps=utils.convert_json)
             else:
                 #TODO replace with SocksJS
                 jdata = utils.convert_json(data)
