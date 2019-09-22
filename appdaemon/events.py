@@ -120,7 +120,10 @@ class Events:
     async def fire_event(self, namespace, event, **kwargs):
         """Fires an event.
 
-        If the namespace does not have a plugin associated with it, the event will be fired locally. If a plugin is associated, the firing of the event will be delegated to the plugin, under the understanding that when the event is fired, the plugin will notify appdaemon that it occured, usually via the system the plugin is communicating with.
+        If the namespace does not have a plugin associated with it, the event will be fired locally.
+        If a plugin is associated, the firing of the event will be delegated to the plugin, under the
+        understanding that when the event is fired, the plugin will notify appdaemon that it occurred,
+        usually via the system the plugin is communicating with.
 
         Args:
             namespace (str): Namespace for the event to be fired in.
@@ -237,7 +240,8 @@ class Events:
     async def process_event_callbacks(self, namespace, data):
         """Processes a pure event callback.
 
-        Locate any callbacks that may be registered for this event, check for filters and if appropriate, dispatch the event for further checking and eventual action.
+        Locate any callbacks that may be registered for this event, check for filters and if appropriate,
+        dispatch the event for further checking and eventual action.
 
         Args:
             namespace (str): Namespace of the event.

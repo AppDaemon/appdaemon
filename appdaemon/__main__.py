@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-"""
-AppDaemon main() module.
+"""AppDaemon main() module.
 
 AppDaemon module that contains main() along with argument parsing, instantiation of the AppDaemon and HTTP Objects,
 also creates the loop and kicks everything off
+
 """
 
 import sys
@@ -24,16 +24,14 @@ import appdaemon.http as adhttp
 import appdaemon.logging as logging
 
 
+
 class ADMain:
     """
     Class to encapsulate all main() functionality.
     """
 
     def __init__(self):
-
-        """
-        Constructor.
-        """
+        """Constructor."""
 
         self.logging = None
         self.error = None
@@ -42,9 +40,7 @@ class ADMain:
         self.http_object = None
 
     def init_signals(self):
-        """
-        Setup signal handling.
-        """
+        """Setup signal handling."""
 
         # Windows does not support SIGUSR1 or SIGUSR2
         if platform.system() != "Windows":
@@ -55,16 +51,19 @@ class ADMain:
 
     # noinspection PyUnusedLocal
     def handle_sig(self, signum, frame):
-
-        """
-        Function to handle signals.
+        """Function to handle signals.
 
         SIGUSR1 will result in internal info being dumped to the DIAG log
         SIGHUP will force a reload of all apps
         SIGINT and SIGTEM both result in AD shutting down
 
-        :param signum: signal number being processed
-        :param frame: frame - unused
+        Args:
+            signum: Signal number being processed.
+            frame: frame - unused
+
+        Returns:
+            None.
+
         """
 
         if signum == signal.SIGUSR1:
@@ -83,11 +82,10 @@ class ADMain:
             self.stop()
 
     def stop(self):
+        """Called by the signal handler to shut AD down.
 
-        """
-        Called by the signal handler to shut AD down.
-
-        :return: None
+        Returns:
+            None.
         """
 
         self.logger.info("AppDaemon is shutting down")
@@ -97,17 +95,18 @@ class ADMain:
 
     # noinspection PyBroadException,PyBroadException
     def run(self, appdaemon, hadashboard, admin, api, http):
+        """ Start AppDaemon up after initial argument parsing.
 
-        """
-        Start AppDaemon up after initial argument parsing.
+        Args:
+            appdaemon: Config for AppDaemon Object.
+            hadashboard: Config for HADashboard Object.
+            admin: Config for admin Object.
+            api: Config for API Object
+            http: Config for HTTP Object
 
-        Create loop, creat AppDaemon and HTTP Objects.
+        Returns:
+            None.
 
-        :param appdaemon: Config for AppDaemon Object
-        :param hadashboard: Config for HADashboard Object
-        :param admin: Config for admin Object
-        :param api: Config for API Object
-        :param http: Config for HTTP Object
         """
 
         try:
@@ -155,11 +154,10 @@ class ADMain:
 
     # noinspection PyBroadException
     def main(self):
-
-        """
-        Initial AppDaemon entry point.
+        """Initial AppDaemon entry point.
 
         Parse command line arguments, load configuration, set up logging.
+
         """
 
         self.init_signals()
@@ -380,9 +378,7 @@ class ADMain:
             self.run(appdaemon, hadashboard, admin, api, http)
 
 def main():
-    """
-    Called when run from the command line.
-    """
+    """Called when run from the command line."""
     admain = ADMain()
     admain.main()
 

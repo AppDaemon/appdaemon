@@ -13,8 +13,8 @@ class MqttPlugin(PluginBase):
 
     def __init__(self, ad: AppDaemon, name, args):
         super().__init__(ad, name, args)
-
         """Initialize MQTT Plugin."""
+
         self.AD = ad
         self.stopping = False
         self.config = args
