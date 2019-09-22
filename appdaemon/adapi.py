@@ -1987,9 +1987,8 @@ class ADAPI:
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
         exec_time = self.get_now() + timedelta(seconds=int(delay))
-        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs
-        ))
+        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(name, exec_time, callback,
+                                                                                    False, None, **kwargs))
         return handle
 
     def run_once(self, callback, start, **kwargs):
@@ -2590,10 +2589,6 @@ class ADAPI:
             >>> self.depends_on_module([somemodule)
 
         """
-        return utils.run_coroutine_threadsafe(
-            self,
-            self.AD.app_management.register_module_dependency(
-                self.name,
-                *modules))
+        return utils.run_coroutine_threadsafe(self, self.AD.app_management.register_module_dependency(self.name, *modules))
 
 

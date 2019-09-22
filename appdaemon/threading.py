@@ -13,6 +13,7 @@ import iso8601
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+
 class Threading:
 
     def __init__(self, ad: AppDaemon, kwargs):
@@ -50,7 +51,6 @@ class Threading:
         for thread in self.threads:
             qsize = self.get_q(thread).qsize()
             await self.set_state("_threading", "admin", "thread.{}".format(thread), q=qsize)
-
 
     async def get_callback_update(self):
         now = datetime.datetime.now()
@@ -362,7 +362,6 @@ class Threading:
             await self.set_state("_threading", "admin", "thread.{}".format(name), state="idle", is_alive=True)
 
         self.threads[name]["thread"] = t
-
 
     async def calculate_pin_threads(self):
 

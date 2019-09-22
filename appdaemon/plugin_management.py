@@ -7,6 +7,7 @@ import async_timeout
 
 from appdaemon.appdaemon import AppDaemon
 
+
 class PluginBase:
 
     """
@@ -17,7 +18,6 @@ class PluginBase:
 
         self.AD = ad
         self.logger = self.AD.logging.get_child(name)
-
 
     def set_log_level(self, level):
         self.logger.setLevel(self.AD.logging.log_levels[level])
@@ -116,7 +116,6 @@ class Plugins:
         self.stopping = True
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin]["object"].stop()
-
 
     def run_plugin_utility(self):
         for plugin in self.plugin_objs:

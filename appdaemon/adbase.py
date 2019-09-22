@@ -82,7 +82,6 @@ class ADBase:
 
         self.constraints = []
 
-
     #
     # API/Plugin
     #

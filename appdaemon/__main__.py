@@ -24,9 +24,7 @@ import appdaemon.http as adhttp
 import appdaemon.logging as logging
 
 
-
 class ADMain:
-
     """
     Class to encapsulate all main() functionality.
     """

@@ -13,8 +13,10 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.plugin_management import PluginBase
 
+
 async def no_func():
     pass
+
 
 def hass_check(func):
     def func_wrapper(*args, **kwargs):
@@ -197,11 +199,9 @@ class HassPlugin(PluginBase):
             self.first_time = False
             self.already_notified = False
 
-
     async def get_updates(self):
 
         _id = 0
-
         self.already_notified = False
         self.first_time = True
         while not self.stopping:
@@ -435,16 +435,20 @@ class HassPlugin(PluginBase):
                 else:
                     raise ValueError("Invalid type for end time")
 
-            if start_time != "" and end_time != "": #if both are declared, it can't process entity_id
+            #if both are declared, it can't process entity_id
+            if start_time != "" and end_time != "":
                 filter_entity_id = ""
             
-            elif (filter_entity_id != "" and start_time == "") and "days" in data: #if starttime is not declared and entity_id is declared, and days specified
+            #if starttime is not declared and entity_id is declared, and days specified
+            elif (filter_entity_id != "" and start_time == "") and "days" in data:
                 start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
                 
-            elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in data: #if starttime is declared and entity_id is not declared, and days specified
+            #if starttime is declared and entity_id is not declared, and days specified
+            elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in data:
                 end_time = start_time + datetime.timedelta(days = days)
-                
-            elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in data: #if endtime is declared and entity_id is not declared, and days specified
+            
+            #if endtime is declared and entity_id is not declared, and days specified
+            elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in data:
                 start_time = end_time - datetime.timedelta(days = days)
             
             if start_time != "":
@@ -456,8 +460,9 @@ class HassPlugin(PluginBase):
                 if end_time != "":
                     end_time = "?end_time={}".format(quote(utils.dt_to_str(end_time.replace(microsecond=0), self.AD.tz)))
 
-            else: #if no start_time is specified, other parameters are invalid
-                timestamp = ""
+            # if no start_time is specified, other parameters are invalid
+            else:
+                timeStamp = ""
                 end_time = ""
 
             api_url = "{}/api/history/period{}{}{}".format(config["ha_url"], timestamp, filter_entity_id, end_time)
@@ -593,7 +598,8 @@ class HassPlugin(PluginBase):
             r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            services.append({"domain": "database","services": ["history"]}) #manually added HASS history service
+            # manually added HASS history service
+            services.append({"domain": "database","services": ["history"]})
             services.append({"domain": "template","services": ["render"]})
 
             return services

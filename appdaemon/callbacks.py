@@ -2,6 +2,7 @@
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+
 class Callbacks:
 
     def __init__(self, ad: AppDaemon):
@@ -11,7 +12,6 @@ class Callbacks:
         self.callbacks = {}
         self.logger = ad.logging.get_child("_callbacks")
         self.diag = ad.logging.get_diag()
-
 
     #
     # Diagnostic
@@ -69,6 +69,5 @@ class Callbacks:
                 if self.callbacks[name][cid]["type"] == "state":
                     await self.AD.state.remove_entity("admin",
                                                         "state_callback.{}".format(cid))
-
             del self.callbacks[name]
 

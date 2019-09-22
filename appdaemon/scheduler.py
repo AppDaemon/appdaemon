@@ -297,18 +297,20 @@ class Scheduler:
         else:
             function_name = callback.__name__
 
-        await self.AD.state.add_entity("admin", "scheduler_callback.{}".format(handle), "active",
-                                                                         {
-                                                                             "app": name,
-                                                                             "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
-                                                                             "repeat": str(datetime.timedelta(seconds=interval)),
-                                                                             "function": function_name,
-                                                                             "pinned": pin_app,
-                                                                             "pinned_thread": pin_thread,
-                                                                             "fired": 0,
-                                                                             "executed": 0,
-                                                                             "kwargs": kwargs
-                                                                         })
+        await self.AD.state.add_entity("admin",
+                                       "scheduler_callback.{}".format(handle),
+                                       "active",
+                                       {
+                                           "app": name,
+                                           "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
+                                           "repeat": str(datetime.timedelta(seconds=interval)),
+                                           "function": function_name,
+                                           "pinned": pin_app,
+                                           "pinned_thread": pin_thread,
+                                           "fired": 0,
+                                           "executed": 0,
+                                           "kwargs": kwargs
+                                       })
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
 
         if self.active is True:
@@ -707,7 +709,6 @@ class Scheduler:
             result = datetime.datetime.utcfromtimestamp(rounded)
             aware_result = pytz.utc.localize(result)
             return aware_result
-
 
     def convert_naive(self, dt):
         # Is it naive?

@@ -20,6 +20,7 @@ import appdaemon.admin as adadmin
 
 from appdaemon.appdaemon import AppDaemon
 
+
 def securedata(myfunc):
     """
     Take care of streams and service calls
@@ -665,7 +666,6 @@ class HTTP:
             self.app.router.add_get('/', self.list_dash)
         else:
             self.app.router.add_get('/', self.error_page)
-
 
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
