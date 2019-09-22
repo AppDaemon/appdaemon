@@ -4,6 +4,7 @@ from aiohttp import web
 import traceback
 import bcrypt
 import uuid
+import json
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
@@ -35,9 +36,9 @@ class ADStream:
         self.access = ad.logging.get_access()
         self.app = app
         self.transport = transport
+        self.streams = {}
 
         if self.transport == "ws":
-            self.app['websockets'] = {}
             self.app.router.add_get('/stream', self.wshandler)
         else:
             self.dash_stream = DashStream(self, '/stream', self.AD)
@@ -47,52 +48,125 @@ class ADStream:
 
     async def send_update(self, data):
         try:
-            jdata = utils.convert_json(data)
+            if len(self.streams) > 0:
+                self.logger.debug("Sending data: %s", data)
+                for stream in self.streams:
+                    if data['event_type'] == 'state_changed':
+                        for handle, sub in self.streams[stream].subscriptions['state'].items():
+                            if sub['namespace'].endswith('*'):
+                                if not data['namespace'].startswith(sub['namespace'][:-1]):
+                                    continue
+                            else:
+                                if not data['namespace'] == sub['namespace']:
+                                    continue
 
+                            if sub['entity_id'].endswith('*'):
+                                if not data['data']['entity_id'].startswith(sub['entity_id'][:-1]):
+                                    continue
+                            else:
+                                if not data['data']['entity_id'] == sub['entity_id']:
+                                    continue
+
+                            await self.streams[stream].stream_send(data)
+                            break
+                    else:
+                        for handle, sub in self.streams[stream].subscriptions['state'].items():
+                            if sub['namespace'].endswith('*'):
+                                if not data['namespace'].startswith(sub['namespace'][:-1]):
+                                    continue
+                            else:
+                                if not data['namespace'] == sub['namespace']:
+                                    continue
+
+                            if sub['event'].endswith('*'):
+                                if not data['event_type'].startswith(sub['event'][:-1]):
+                                    continue
+                            else:
+                                if not data['event_type'] == sub['event']:
+                                    continue
+
+                            await self.streams[stream].stream_send(data)
+                            break
+        except:
+            self.logger.debug('-' * 60)
+            self.logger.debug("Unexpected error during 'send_update()'")
+            self.logger.debug('-' * 60)
+            self.logger.debug(traceback.format_exc())
+            self.logger.debug('-' * 60)
+
+    #@securedata
+    async def wshandler(self, request):
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        rh = RequestHandler(self.AD, self.transport, ws)
+        handle = uuid.uuid4().hex
+        self.streams[handle] = rh
+
+        # noinspection PyBroadException
+        try:
+            while True:
+                msg = await ws.receive()
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    await rh._handle(msg.data)
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    self.access.info("WebSocket connection closed with exception {}", ws.exception())
+        except:
+            self.logger.debug('-' * 60)
+            self.logger.debug("Unexpected client disconnection")
+            self.access.info("Unexpected client disconnection")
+            self.logger.debug('-' * 60)
+            self.logger.debug(traceback.format_exc())
+            self.logger.debug('-' * 60)
+            #await ws.close()
+        finally:
+            self.streams.pop(handle, None)
+
+        return ws
+
+    # Websockets Handler
+
+    async def on_shutdown(self, application):
+        for stream in self.streams:
+            try:
+                await self.streams[stream].stream.close()
+            except:
+                self.logger.debug('-' * 60)
+                self.logger.warning("Unexpected error in on_shutdown()")
+                self.logger.debug('-' * 60)
+                self.logger.debug(traceback.format_exc())
+                self.logger.debug('-' * 60)
+
+## Any method here that doesn't begin with "_" will be exposed to the stream
+## directly. Only Create public methods here if you wish to make them
+## stream commands.
+class RequestHandler:
+
+    def __init__(self, ad: AppDaemon, transport, stream):
+        self.AD = ad
+        self.transport = transport
+        self.stream = stream
+        self.authed = False
+        self.subscriptions = {
+            'state': {},
+            'event': {},
+        }
+
+        self.logger = ad.logging.get_child("_stream")
+        self.access = ad.logging.get_access()
+
+
+        if self.AD.http.password is None:
+            self.authed = True
+
+    async def stream_send(self, data):
+        try:
+            self.logger.debug("--> %s", data)
             if self.transport == "ws":
-                if len(self.app['websockets']) > 0:
-                    self.logger.debug("Sending data: %s", json.dumps(data))
-                    for ws in self.app['websockets']:
-                        rh = self.app['websockets'][ws]
-                        if data['event_type'] == 'state_changed':
-                            for handle, sub in rh.subscriptions['state'].items():
-                                if sub['namespace'].endswith('*'):
-                                    if not data['namespace'].startswith(sub['namespace'][:-1]):
-                                        continue
-                                else:
-                                    if not data['namespace'] == sub['namespace']:
-                                        continue
-                            
-                                if sub['entity_id'].endswith('*'):
-                                    if not data['data']['entity_id'].startswith(sub['entity_id'][:-1]):
-                                        continue
-                                else:
-                                    if not data['data']['entity_id'] == sub['entity_id']:
-                                        continue
-                                
-                                await ws.send_json(data)
-                                break
-                        else:
-                            for handle, sub in rh.subscriptions['event'].items():
-                                if sub['namespace'].endswith('*'):
-                                    if not data['namespace'].startswith(sub['namespace'][:-1]):
-                                        continue
-                                else:
-                                    if not data['namespace'] == sub['namespace']:
-                                        continue
-                            
-                                if sub['event'].endswith('*'):
-                                    if not data['event_type'].startswith(sub['event'][:-1]):
-                                        continue
-                                else:
-                                    if not data['event_type'] == sub['event']:
-                                        continue
-                                
-                                await ws.send_json(data)
-                                break
-
-
+                await self.stream.send_json(data)
             else:
+                #TODO replace with SocksJS
+                jdata = utils.convert_json(data)
                 await self.dash_stream.emit('down', jdata)
         except TypeError as e:
             self.logger.debug('-' * 60)
@@ -108,70 +182,6 @@ class ADStream:
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
 
-    #@securedata
-    async def wshandler(self, request):
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
-
-        rh = RequestHandler(self.AD, ws, self.app)
-        request.app['websockets'][ws] = rh
-
-        # noinspection PyBroadException
-        try:
-            while True:
-                msg = await ws.receive()
-                if msg.type == aiohttp.WSMsgType.TEXT:
-                    await rh._handle(msg.data)
-                elif msg.type == aiohttp.WSMsgType.ERROR:
-                    self.access.info("WebSocket connection closed with exception {}", ws.exception())
-        except:
-            self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected client disconnection")
-            self.access.info("Unexpected client disconnection")
-            self.logger.warning('-' * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
-            await ws.close()
-        finally:
-            request.app['websockets'].pop(ws, None)
-
-        return ws
-
-    # Websockets Handler
-
-    async def on_shutdown(self, application):
-        for ws in application['websockets']:
-            try:
-                print(ws.closed)
-                await ws.close()
-                print("done")
-            except:
-                self.logger.debug('-' * 60)
-                self.logger.warning("Unexpected error in on_shutdown()")
-                self.logger.debug('-' * 60)
-                self.logger.debug(traceback.format_exc())
-                self.logger.debug('-' * 60)
-
-## Any method here that doesn't begin with "_" will be exposed to the websocket
-## directly. Only Create public methods here if you wish to make them
-## websocket commands.
-class RequestHandler:
-
-    def __init__(self, ad: AppDaemon, ws, app):
-        self.AD = ad
-        self.ws = ws
-        self.app = app
-        self.authed = False
-        self.subscriptions = {
-            'state': {},
-            'event': {},
-        }
-
-        self.logger = ad.logging.get_child("_stream")
-
-
-        if self.AD.http.password is None:
-            self.authed = True
 
     async def _response_success(self, msg, data={}):
         response = {}
@@ -182,7 +192,7 @@ class RequestHandler:
         response['data'] = data
         response['request'] = msg
 
-        await self.ws.send_json(response)
+        await self.stream_send(response)
 
     async def _response_error(self, msg, error):
         response = {}
@@ -193,9 +203,10 @@ class RequestHandler:
         response['response_error'] = error
         response['request'] = msg
 
-        await self.ws.send_json(response)
+        await self.stream_send(response)
 
     async def _handle(self, rawmsg):
+        self.logger.debug("<-- %s", rawmsg)
         try:
             msg = json.loads(rawmsg)
         except ValueError:
@@ -259,6 +270,7 @@ class RequestHandler:
         if not self.authed:
             raise RequestHandlerException('authorization failed')
 
+        self.access.info("New client %s connected", data["client_name"])
         response_data = {
             "version": utils.__version__
         }
@@ -364,7 +376,7 @@ class RequestHandler:
 
     async def listen_event(self, data):
         if not self.authed:
-            raise RequestHanderException('unauthorized')
+            raise RequestHandlerException('unauthorized')
 
         if "namespace" not in data:
             raise RequestHandlerException('invalid namespace')

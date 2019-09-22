@@ -4,10 +4,10 @@ function getCookie(cname) {
     var ca = decodedCookie.split(';');
     for(var i = 0; i <ca.length; i++) {
         var c = ca[i];
-        while (c.charAt(0) == ' ') {
+        while (c.charAt(0) === ' ') {
             c = c.substring(1);
         }
-        if (c.indexOf(name) == 0) {
+        if (c.indexOf(name) === 0) {
             return c.substring(name.length, c.length);
         }
     }
@@ -26,13 +26,13 @@ function ha_status(stream, dash, widgets, transport)
             var request = {
                 request_type: 'hello',
                 data: {
-                    client_name: dash,
+                    client_name: dash
                 }
-            }
+            };
 
             if (getCookie('adcreds') !== '') {
-                var creds = getCookie('adcreds')
-                creds = creds.substring(1, (creds.length - 1))
+                var creds = getCookie('adcreds');
+                creds = creds.substring(1, (creds.length - 1));
                 request['data']['cookie'] = creds
             }
 
@@ -50,17 +50,17 @@ function ha_status(stream, dash, widgets, transport)
                     request_type: 'listen_state',
                     data: {
                         namespace: '*',
-                        entity_id: '*',
+                        entity_id: '*'
                     }
-                }))
+                }));
         
                 webSocket.send(JSON.stringify({
                     request_type: 'listen_event',
                     data: {
                         namespace: '*',
-                        event: '*',
+                        event: '*'
                     }
-                }))
+                }));
 
                 return
             }
@@ -68,8 +68,8 @@ function ha_status(stream, dash, widgets, transport)
             // Stream Error
             if (data.response_type === "error")
             {
-                console.log('Stream Error', data.msg)
-                webSocket.refresh()
+                console.log('Stream Error', data.msg);
+                webSocket.refresh();
                 return
             }
 
