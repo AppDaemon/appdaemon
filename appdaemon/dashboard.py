@@ -826,8 +826,7 @@ class Dashboard:
 
             if dash is None:
                 errors = ["An unrecoverable error occured - check log for details"]
-                head_includes = []
-                body_includes = []
+
             else:
                 errors = dash["errors"]
 
