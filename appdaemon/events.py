@@ -24,11 +24,11 @@ class Events:
         # Events
         #
 
-    async def add_event_callback(self, name, namespace, cb, event, **kwargs):
+    async def add_event_callback(self, __name, namespace, cb, event, **kwargs):
         """Adds a callback for an event which is called internally by apps.
 
         Args:
-            name (str): Name of the app.
+            __name (str): Name of the app.
             namespace  (str): Namespace of the event.
             cb: Callback function.
             event (str): Name of the event.
@@ -39,24 +39,24 @@ class Events:
 
         """
 
-        if self.AD.threading.validate_pin(name, kwargs) is True:
+        if self.AD.threading.validate_pin(__name, kwargs) is True:
             if "pin" in kwargs:
                 pin_app = kwargs["pin_app"]
             else:
-                pin_app = self.AD.app_management.objects[name]["pin_app"]
+                pin_app = self.AD.app_management.objects[__name]["pin_app"]
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
                 pin_app = True
             else:
-                pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+                pin_thread = self.AD.app_management.objects[__name]["pin_thread"]
 
-            if name not in self.AD.callbacks.callbacks:
-                self.AD.callbacks.callbacks[name] = {}
+            if __name not in self.AD.callbacks.callbacks:
+                self.AD.callbacks.callbacks[__name] = {}
             handle = uuid.uuid4().hex
-            self.AD.callbacks.callbacks[name][handle] = {
-                "name": name,
-                "id": self.AD.app_management.objects[name]["id"],
+            self.AD.callbacks.callbacks[__name][handle] = {
+                "name": __name,
+                "id": self.AD.app_management.objects[__name]["id"],
                 "type": "event",
                 "function": cb,
                 "namespace": namespace,
@@ -70,11 +70,11 @@ class Events:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name, exec_time, None, False, None, __event_handle=handle,
+                    __name, exec_time, None, False, None, __event_handle=handle,
                 )
 
             await self.AD.state.add_entity("admin", "event_callback.{}".format(handle), "active",
-                                           {"app": name, "event_name": event, "function": cb.__name__,
+                                           {"app": __name, "event_name": event, "function": cb.__name__,
                                             "pinned": pin_app, "pinned_thread": pin_thread, "fired": 0,
                                             "executed": 0, "kwargs": kwargs})
             return handle
