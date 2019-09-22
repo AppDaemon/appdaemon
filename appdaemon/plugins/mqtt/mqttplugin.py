@@ -54,11 +54,11 @@ class MqttPlugin(PluginBase):
         if self.mqtt_client_topics == "NONE":
             self.mqtt_client_topics = []
 
-        if self.mqtt_will_topic == None:
+        if self.mqtt_will_topic is None:
             self.mqtt_will_topic = status_topic
             self.logger.info("Using %r as Will Topic", status_topic)
         
-        if self.mqtt_on_connect_topic == None:
+        if self.mqtt_on_connect_topic is None:
             self.mqtt_on_connect_topic = status_topic
             self.logger.info("Using %r as Birth Topic", status_topic)
 
@@ -88,7 +88,7 @@ class MqttPlugin(PluginBase):
 
         self.mqtt_client_timeout = self.config.get('client_timeout', 60)
 
-        if mqtt_client_id == None:
+        if mqtt_client_id is None:
             mqtt_client_id = 'appdaemon_{}_client'.format(self.name.lower())
             self.logger.info("Using %s as Client ID", mqtt_client_id)
 
@@ -393,20 +393,20 @@ class MqttPlugin(PluginBase):
             # used to wait for connection
             self.mqtt_connect_event.clear()
             if first_time:
-                if self.mqtt_client_user != None:
+                if self.mqtt_client_user is not None:
                     self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
 
                 set_tls = False
                 auth = {"tls_version" : self.mqtt_tls_version}
-                if self.mqtt_client_tls_ca_cert != None:
+                if self.mqtt_client_tls_ca_cert is not None:
                     auth.update({"ca_certs" : self.mqtt_client_tls_ca_cert})
                     set_tls = True
                 
-                if self.mqtt_client_tls_client_cert != None:
+                if self.mqtt_client_tls_client_cert is not None:
                     auth.update({"certfile" : self.mqtt_client_tls_client_cert})
                     set_tls = True
                   
-                if self.mqtt_client_tls_client_key != None:
+                if self.mqtt_client_tls_client_key is not None:
                     auth.update({"keyfile" : self.mqtt_client_tls_client_key})
                     set_tls = True
                    

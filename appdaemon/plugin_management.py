@@ -126,7 +126,7 @@ class Plugins:
 
         if meta is not None:
             for key in self.required_meta:
-                if getattr(self.AD, key) == None:
+                if getattr(self.AD, key) is None:
                     if key in meta:
                         # We have a value so override
                         setattr(self.AD, key, meta[key])
@@ -228,7 +228,7 @@ class Plugins:
     def required_meta_check(self):
         OK = True
         for key in self.required_meta:
-            if getattr(self.AD, key) == None:
+            if getattr(self.AD, key) is None:
                 # No value so bail
                 self.logger.error("Required attribute not set or obtainable from any plugin: %s", key)
                 OK = False

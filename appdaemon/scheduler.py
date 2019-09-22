@@ -292,7 +292,7 @@ class Scheduler:
             "kwargs": kwargs
         }
 
-        if callback == None:
+        if callback is None:
             function_name = "cancel_callback"
         else:
             function_name = callback.__name__
