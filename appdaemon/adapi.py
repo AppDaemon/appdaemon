@@ -2035,9 +2035,9 @@ class ADAPI:
         self.logger.debug("Registering run_in in %s seconds for %s", delay, name)
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
-        exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(delay))
-        handle = await self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs)
+        exec_time = self.get_now() + timedelta(seconds=int(delay))
+        handle = utils.run_coroutine_threadsafe(self, self.AD.sched.insert_schedule(name, exec_time, callback,
+                                                                                    False, None, **kwargs))
         return handle
 
     @utils.sync_wrapper
@@ -2686,13 +2686,13 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def depends_on_module(self, *modules):
-        """Register a global_modules dependency for an app
+        """Registers a global_modules dependency for an app.
 
         Args:
-            *args: modules to register a dependency on
+            *modules: Modules to register a dependency on.
 
         Returns:
-            None
+            None.
 
         Examples:
             >>> import somemodule
@@ -2702,7 +2702,8 @@ class ADAPI:
 
         """
         return await self.AD.app_management.register_module_dependency(
-            self.name,
-            *modules)
+                                                                        self.name,
+                                                                        *modules
+                                                                      )
 
 

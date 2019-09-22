@@ -59,7 +59,7 @@ A simple logs section might look like this:
         name: TestLog
         filename: /export/pegasus/hass/appdaemon_test/logs/test.log
 
-All directives are optional with the exception of ``name`` for user defined logs. The dircetives have the following meanings:
+All directives are optional with the exception of ``name`` for user defined logs. The directives have the following meanings:
 
 The directives are as follows:
 

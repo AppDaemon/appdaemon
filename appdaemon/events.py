@@ -120,7 +120,10 @@ class Events:
     async def fire_event(self, namespace, event, **kwargs):
         """Fires an event.
 
-        If the namespace does not have a plugin associated with it, the event will be fired locally. If a plugin is associated, the firing of the event will be delegated to the plugin, under the understanding that when the event is fired, the plugin will notify appdaemon that it occured, usually via the system the plugin is communicating with.
+        If the namespace does not have a plugin associated with it, the event will be fired locally.
+        If a plugin is associated, the firing of the event will be delegated to the plugin, under the
+        understanding that when the event is fired, the plugin will notify appdaemon that it occurred,
+        usually via the system the plugin is communicating with.
 
         Args:
             namespace (str): Namespace for the event to be fired in.
@@ -173,9 +176,7 @@ class Events:
                     self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
 
                     if self.AD.apps is True and namespace != "admin":
-                        # Process state changecallbacks
-                        if data['event_type'] == "state_changed":
-                            await self.AD.state.process_state_callbacks(namespace, data)
+                        await self.AD.state.process_state_callbacks(namespace, data)
                 else:
                     self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
                     return
@@ -239,7 +240,8 @@ class Events:
     async def process_event_callbacks(self, namespace, data):
         """Processes a pure event callback.
 
-        Locate any callbacks that may be registered for this event, check for filters and if appropriate, dispatch the event for further checking and eventual action.
+        Locate any callbacks that may be registered for this event, check for filters and if appropriate,
+        dispatch the event for further checking and eventual action.
 
         Args:
             namespace (str): Namespace of the event.
@@ -285,15 +287,16 @@ class Events:
 
                         if _run:
                             if name in self.AD.app_management.objects:
-                                await self.AD.threading.dispatch_worker(name, {
-                                    "id": uuid_,
-                                    "name": name,
-                                    "objectid": self.AD.app_management.objects[name]["id"],
-                                    "type": "event",
-                                    "event": data['event_type'],
-                                    "function": callback["function"],
-                                    "data": data["data"],
-                                    "pin_app": callback["pin_app"],
-                                    "pin_thread": callback["pin_thread"],
-                                    "kwargs": callback["kwargs"]
-                                })
+                                await self.AD.threading.dispatch_worker(name,
+                                                                        {
+                                                                            "id": uuid_,
+                                                                            "name": name,
+                                                                            "objectid": self.AD.app_management.objects[name]["id"],
+                                                                            "type": "event",
+                                                                            "event": data['event_type'],
+                                                                            "function": callback["function"],
+                                                                            "data": data["data"],
+                                                                            "pin_app": callback["pin_app"],
+                                                                            "pin_thread": callback["pin_thread"],
+                                                                            "kwargs": callback["kwargs"]
+                                                                        })
