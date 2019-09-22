@@ -123,7 +123,7 @@ class AppManagement:
     async def initialize_app(self, name):
         if name in self.objects:
             init = getattr(self.objects[name]["object"], "initialize", None)
-            if init == None:
+            if init is None:
                 self.logger.warning("Unable to find initialize() function in module %s - skipped", name)
                 await self.increase_inactive_apps(name)
                 return
