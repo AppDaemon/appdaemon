@@ -7,15 +7,14 @@ import datetime
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+
 class State:
 
     def __init__(self, ad: AppDaemon):
 
         self.AD = ad
 
-        self.state = {}
-        self.state["default"] = {}
-        self.state["admin"] = {}
+        self.state = {"default": {}, "admin": {}}
         self.logger = ad.logging.get_child("_state")
 
         # Initialize User Defined Namespaces
@@ -120,16 +119,16 @@ class State:
                     if "attribute" in kwargs:
                         __attribute = kwargs["attribute"]
                     if "new" in kwargs:
-                        if __attribute == None and self.state[namespace][entity]["state"] == kwargs["new"]:
+                        if __attribute is None and self.state[namespace][entity]["state"] == kwargs["new"]:
                             __new_state = kwargs["new"]
-                        elif __attribute != None and __attribute in self.state[namespace][entity]["attributes"] and self.state[namespace][entity]["attributes"][__attribute] == kwargs["new"]:
+                        elif __attribute is not None and __attribute in self.state[namespace][entity]["attributes"] and self.state[namespace][entity]["attributes"][__attribute] == kwargs["new"]:
                             __new_state = kwargs["new"]
                         else:
                             run = False
                     else: #use the present state of the entity
-                        if __attribute == None and "state" in self.state[namespace][entity]:
+                        if __attribute is None and "state" in self.state[namespace][entity]:
                             __new_state = self.state[namespace][entity]["state"]
-                        elif __attribute != None:
+                        elif __attribute is not None:
                             if __attribute in self.state[namespace][entity]["attributes"]:
                                 __new_state = self.state[namespace][entity]["attributes"][__attribute]
                             elif __attribute == "all":
@@ -165,8 +164,7 @@ class State:
 
         if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
             del self.AD.callbacks.callbacks[name][handle]
-            await self.AD.state.remove_entity("admin",
-                                                "state_callback.{}".format(handle))
+            await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
         if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
             del self.AD.callbacks.callbacks[name]
 
@@ -195,8 +193,8 @@ class State:
         for name in self.AD.callbacks.callbacks.keys():
             for uuid_ in self.AD.callbacks.callbacks[name]:
                 callback = self.AD.callbacks.callbacks[name][uuid_]
-                if callback["type"] == "state" and (callback["namespace"] == namespace or callback[
-                    "namespace"] == "global" or namespace == "global"):
+                if callback["type"] == "state" and (callback["namespace"] == namespace or
+                   callback["namespace"] == "global" or namespace == "global"):
                     cdevice = None
                     centity = None
                     if callback["entity"] is not None:
@@ -489,8 +487,8 @@ class State:
     #
     # Utilities
     #
-
-    def sanitize_state_kwargs(self, app, kwargs):
+    @staticmethod
+    def sanitize_state_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(kwargs_copy, [
             "old", "new", "__attribute", "duration", "state",

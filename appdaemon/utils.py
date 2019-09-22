@@ -21,6 +21,7 @@ if platform.system() != "Windows":
 __version__ = "4.0.0b2"
 secrets = None
 
+
 class Formatter(object):
     def __init__(self):
         self.types = {}
@@ -192,8 +193,10 @@ def _profile_this(fn):
 
     return profiled_fn
 
+
 def format_seconds(secs):
     return str(timedelta(seconds=secs))
+
 
 def get_kwargs(kwargs):
     result = ""
@@ -255,6 +258,7 @@ def run_coroutine_threadsafe(self, coro):
 
     return result
 
+
 def deepcopy(data):
 
     result = None
@@ -287,6 +291,7 @@ def deepcopy(data):
 
     return result
 
+
 def find_path(name):
     for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
                  os.path.join(os.path.sep, "etc", "appdaemon")]:
@@ -302,11 +307,13 @@ def single_or_list(field):
     else:
         return [field]
 
+
 def _sanitize_kwargs(kwargs, keys):
     for key in keys:
         if key in kwargs:
             del kwargs[key]
     return kwargs
+
 
 def process_arg(self, arg, args, **kwargs):
     if args:
@@ -327,8 +334,10 @@ def process_arg(self, arg, args, **kwargs):
             else:
                 setattr(self, arg, value)
 
+
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
+
 
 def check_path(type, logger, inpath, pathtype="directory", permissions=None):
     #disable checks for windows platform
@@ -399,8 +408,10 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):
         # We just have to skip most of these tests
         pass
 
+
 def str_to_dt(time):
     return dateutil.parser.parse(time)
+
 
 def dt_to_str(dt, tz=None):
     if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
@@ -410,6 +421,7 @@ def dt_to_str(dt, tz=None):
             return dt.astimezone(tz).isoformat()
         else:
             return dt.isoformat()
+
 
 def convert_json(data, **kwargs):
     return json.dumps(data, default=str, **kwargs)

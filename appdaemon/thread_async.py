@@ -37,7 +37,7 @@ class ThreadAsync:
                     function = args["function"]
                     myargs = args["args"]
                     mykwargs = args["kwargs"]
-                    result = asyncio.ensure_future(function(*myargs, **mykwargs))
+                    asyncio.ensure_future(function(*myargs, **mykwargs))
                     #self.logger.debug("calling task_done()")
                     #self.appq.task_done()
             except:

@@ -176,9 +176,7 @@ class Events:
                     self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
 
                     if self.AD.apps is True and namespace != "admin":
-                        # Process state change callbacks
-                        if data['event_type'] == "state_changed":
-                            await self.AD.state.process_state_callbacks(namespace, data)
+                        await self.AD.state.process_state_callbacks(namespace, data)
                 else:
                     self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
                     return
@@ -289,15 +287,16 @@ class Events:
 
                         if _run:
                             if name in self.AD.app_management.objects:
-                                await self.AD.threading.dispatch_worker(name, {
-                                    "id": uuid_,
-                                    "name": name,
-                                    "objectid": self.AD.app_management.objects[name]["id"],
-                                    "type": "event",
-                                    "event": data['event_type'],
-                                    "function": callback["function"],
-                                    "data": data["data"],
-                                    "pin_app": callback["pin_app"],
-                                    "pin_thread": callback["pin_thread"],
-                                    "kwargs": callback["kwargs"]
-                                })
+                                await self.AD.threading.dispatch_worker(name,
+                                                                        {
+                                                                            "id": uuid_,
+                                                                            "name": name,
+                                                                            "objectid": self.AD.app_management.objects[name]["id"],
+                                                                            "type": "event",
+                                                                            "event": data['event_type'],
+                                                                            "function": callback["function"],
+                                                                            "data": data["data"],
+                                                                            "pin_app": callback["pin_app"],
+                                                                            "pin_thread": callback["pin_thread"],
+                                                                            "kwargs": callback["kwargs"]
+                                                                        })

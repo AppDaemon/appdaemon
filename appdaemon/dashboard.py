@@ -238,7 +238,6 @@ class Dashboard:
         else:
             return value, {}
 
-
     # noinspection PyUnresolvedReferences
     def _load_widget(self, dash, includes, name, css_vars, global_parameters):
         instantiated_widget = None
@@ -373,10 +372,12 @@ class Dashboard:
             # Return some valid data so the browser will render a blank widget
             return self.error_widget("Unable to find widget type '%s'", widget_type)
 
-    def error_widget(self, error):
+    @staticmethod
+    def error_widget(error):
         return {"widget_type": "baseerror", "fields": {"err": error}, "static_css":{"widget_style": ""}}
 
-    def _widget_exists(self, widgets, _id):
+    @staticmethod
+    def _widget_exists(widgets, _id):
         for widge in widgets:
             if widge["id"] == _id:
                 return True
@@ -385,12 +386,12 @@ class Dashboard:
     def _add_layout(self, value, layout, occupied, dash, page, includes, css_vars, global_parameters):
         if value is None:
             return
-        widgetdimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
+        widget_dimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
         value = ''.join(value.split())
         widgets = value.split(",")
         column = 1
         for wid in widgets:
-            size = widgetdimensions.search(wid)
+            size = widget_dimensions.search(wid)
             if size:
                 name = size.group(1)
                 xsize = size.group(2)
@@ -410,8 +411,7 @@ class Dashboard:
 
             if name != "spacer":
                 sanitized_name = name.replace(".", "-").replace("_", "-").lower()
-                widget = {}
-                widget["id"] = "{}-{}".format(page, sanitized_name)
+                widget = {"id": "{}-{}".format(page, sanitized_name)}
 
                 if self._widget_exists(dash["widgets"], widget["id"]):
                     self.logger.warning("Duplicate widget name '%s' - ignored", name)
@@ -426,7 +426,8 @@ class Dashboard:
                     occupied["{}x{}".format(x, y)] = 1
             column += int(xsize)
 
-    def _merge_dashes(self, dash1, dash2):
+    @staticmethod
+    def _merge_dashes(dash1, dash2):
         for key in dash2:
             if key == "widgets":
                 for widget in dash2["widgets"]:
@@ -451,7 +452,8 @@ class Dashboard:
         for line in self._yaml_error_lines(exc):
             self._log_error(dash, name, line)
 
-    def _yaml_error_lines(self, exc):
+    @staticmethod
+    def _yaml_error_lines(exc):
         lines = []
         if hasattr(exc, 'problem_mark'):
             lines.append("parser says")
@@ -551,7 +553,8 @@ class Dashboard:
 
         return dash, layout, occupied, includes
 
-    def _latest_file(self, path):
+    @staticmethod
+    def _latest_file(path):
         late_file = datetime.datetime.fromtimestamp(86400)
         for root, subdirs, files in os.walk(path):
             for file in files:
@@ -707,8 +710,7 @@ class Dashboard:
                 name = file.replace('.dash', '')
                 dash_list[name] = "{}/{}".format(self.base_url, name)
 
-        params = {"dash_list": dash_list}
-        params["main"] = "1"
+        params = {"dash_list": dash_list, "main": "1"}
 
         return params
 
@@ -826,8 +828,7 @@ class Dashboard:
 
             if dash is None:
                 errors = ["An unrecoverable error occured - check log for details"]
-                head_includes = []
-                body_includes = []
+
             else:
                 errors = dash["errors"]
 
@@ -879,7 +880,7 @@ class Dashboard:
                 template = env.get_template("dashboard.jinja2")
                 rendered_template = template.render(params)
 
-            return(rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
@@ -899,7 +900,7 @@ class Dashboard:
         template = env.get_template("list.jinja2")
         rendered_template = template.render(params)
 
-        return (rendered_template)
+        return rendered_template
 
     def get_dashboard_list(self, paramOverwrite=None):
 
@@ -916,4 +917,4 @@ class Dashboard:
         template = env.get_template("list.jinja2")
         rendered_template = template.render(dash)
 
-        return (rendered_template)
+        return rendered_template
