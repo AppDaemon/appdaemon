@@ -43,7 +43,7 @@ class Calendar(hass.Hass):
             'location': e.location,
             'begin': e.begin.isoformat(),
             'end': e.end.isoformat(),
-        } for e in ical.events if e.begin > now and e.begin < future][:self.max_events]
+        } for e in ical.events if now < e.begin < future][:self.max_events]
 
         self.set_app_state(self.entity, {
             'state': "",
