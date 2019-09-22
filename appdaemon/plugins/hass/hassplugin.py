@@ -100,6 +100,9 @@ class HassPlugin(PluginBase):
             self.plugin_startup_conditions = None
 
         self.session = None
+        self.first_time = False
+        self.already_notified = False
+        self.services = None
 
         self.logger.info("HASS Plugin initialization complete")
 

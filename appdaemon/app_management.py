@@ -24,8 +24,8 @@ class AppManagement:
         self.monitored_files = {}
         self.filter_files = {}
         self.modules = {}
-
         self.objects = {}
+        self.check_app_updates_profile_stats = None
 
         # Initialize config file tracking
 
