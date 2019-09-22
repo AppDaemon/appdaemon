@@ -25,7 +25,7 @@ import appdaemon.logging as logging
 
 
 
-class ADMain():
+class ADMain:
 
     """
     Class to encapsulate all main() functionality.
@@ -131,12 +131,6 @@ class ADMain():
                     self.logger.info("HTTP configured but no consumers are configured - disabling")
                 else:
                     self.logger.info("HTTP is disabled")
-                appdaemon = None
-                hadashboard = None
-                admin = None
-                api = False
-
-
 
             self.logger.debug("Start Main Loop")
 

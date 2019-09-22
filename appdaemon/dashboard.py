@@ -410,8 +410,7 @@ class Dashboard:
 
             if name != "spacer":
                 sanitized_name = name.replace(".", "-").replace("_", "-").lower()
-                widget = {}
-                widget["id"] = "{}-{}".format(page, sanitized_name)
+                widget = {"id": "{}-{}".format(page, sanitized_name)}
 
                 if self._widget_exists(dash["widgets"], widget["id"]):
                     self.logger.warning("Duplicate widget name '%s' - ignored", name)
@@ -707,8 +706,7 @@ class Dashboard:
                 name = file.replace('.dash', '')
                 dash_list[name] = "{}/{}".format(self.base_url, name)
 
-        params = {"dash_list": dash_list}
-        params["main"] = "1"
+        params = {"dash_list": dash_list, "main": "1"}
 
         return params
 
@@ -826,8 +824,7 @@ class Dashboard:
 
             if dash is None:
                 errors = ["An unrecoverable error occured - check log for details"]
-                head_includes = []
-                body_includes = []
+
             else:
                 errors = dash["errors"]
 
@@ -879,7 +876,7 @@ class Dashboard:
                 template = env.get_template("dashboard.jinja2")
                 rendered_template = template.render(params)
 
-            return(rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
@@ -899,7 +896,7 @@ class Dashboard:
         template = env.get_template("list.jinja2")
         rendered_template = template.render(params)
 
-        return (rendered_template)
+        return rendered_template
 
     def get_dashboard_list(self, paramOverwrite=None):
 
@@ -916,4 +913,4 @@ class Dashboard:
         template = env.get_template("list.jinja2")
         rendered_template = template.render(dash)
 
-        return (rendered_template)
+        return rendered_template

@@ -25,7 +25,7 @@ def hass_check(func):
         else:
             return func(*args, **kwargs)
 
-    return (func_wrapper)
+    return func_wrapper
 
 
 class HassPlugin(PluginBase):
@@ -100,6 +100,9 @@ class HassPlugin(PluginBase):
             self.plugin_startup_conditions = None
 
         self.session = None
+        self.first_time = False
+        self.already_notified = False
+        self.services = None
 
         self.logger.info("HASS Plugin initialization complete")
 
@@ -147,7 +150,6 @@ class HassPlugin(PluginBase):
         state_start = False
         event_start = False
         if startup_conditions is None:
-            delay_start = True
             state_start = True
             event_start = True
         else:
@@ -347,6 +349,8 @@ class HassPlugin(PluginBase):
     async def set_plugin_state(self, namespace, entity_id, **kwargs):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
+
+        #TODO cert_path is not used
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
@@ -358,8 +362,8 @@ class HassPlugin(PluginBase):
             headers = {'x-ha-access': config["ha_key"]}
         else:
             headers = {}
-            r = None
         api_url = "{}/api/states/{}".format(config["ha_url"], entity_id)
+
         try:
             r = await self.session.post(api_url, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
             if r.status == 200 or r.status == 201:
@@ -524,7 +528,7 @@ class HassPlugin(PluginBase):
             self.logger.warning("Value for '%s' not found in metadata for plugin %s", key, self.name)
             raise ValueError
         try:
-            value = float(meta[key])
+            float(meta[key])
         except:
             self.logger.warning("Invalid value for '%s' ('%s') in metadata for plugin %s", key, meta[key], self.name)
             raise
@@ -534,7 +538,7 @@ class HassPlugin(PluginBase):
             self.logger.warning("Value for 'time_zone' not found in metadata for plugin %s", self.name)
             raise ValueError
         try:
-            tz = pytz.timezone(meta["time_zone"])
+            pytz.timezone(meta["time_zone"])
         except pytz.exceptions.UnknownTimeZoneError:
             self.logger.warning("Invalid value for 'time_zone' ('%s') in metadata for plugin %s", meta["time_zone"], self.name)
             raise

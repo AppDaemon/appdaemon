@@ -82,7 +82,7 @@ class Secure(hass.Hass):
         for zone in self.args["zones"]:
             for entity in self.args["zones"][zone]:
                 if entity == id:
-                    return(self.args["zones"][zone][entity])
+                    return self.args["zones"][zone][entity]
         return None
 
     def list_entities(self):
@@ -289,10 +289,10 @@ class Secure(hass.Hass):
         self.log("System is arming")
 
     def armed_alert(self):
-        self.log(("System is armed"))
+        self.log("System is armed")
 
     def disarmed_alert(self):
-        self.log(("System is disarmed"))
+        self.log("System is disarmed")
 
     def triggered_alert(self):
         self.log("Alarm is about to go off")

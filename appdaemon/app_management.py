@@ -24,8 +24,8 @@ class AppManagement:
         self.monitored_files = {}
         self.filter_files = {}
         self.modules = {}
-
         self.objects = {}
+        self.check_app_updates_profile_stats = None
 
         # Initialize config file tracking
 
@@ -123,7 +123,7 @@ class AppManagement:
     async def initialize_app(self, name):
         if name in self.objects:
             init = getattr(self.objects[name]["object"], "initialize", None)
-            if init == None:
+            if init is None:
                 self.logger.warning("Unable to find initialize() function in module %s - skipped", name)
                 await self.increase_inactive_apps(name)
                 return
@@ -138,7 +138,7 @@ class AppManagement:
             await self.set_state(name, state="idle")
             await self.increase_active_apps(name)
 
-        except TypeError as e:
+        except TypeError:
             self.AD.threading.report_callback_sig(name, "initialize", init, {})
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
@@ -166,7 +166,7 @@ class AppManagement:
                 await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
 
-            except TypeError as e:
+            except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
             except:
                 error_logger = logging.getLogger("Error.{}".format(name))
@@ -613,7 +613,7 @@ class AppManagement:
                                 command_line = filter["command_line"].replace("$1", infile)
                                 command_line = command_line.replace("$2", outfile)
                                 try:
-                                    p = subprocess.Popen(command_line, shell=True)
+                                    subprocess.Popen(command_line, shell=True)
                                 except:
                                     self.logger.warning('-' * 60)
                                     self.logger.warning("Unexpected running filter on: %s:", infile)
