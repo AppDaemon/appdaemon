@@ -372,10 +372,12 @@ class Dashboard:
             # Return some valid data so the browser will render a blank widget
             return self.error_widget("Unable to find widget type '%s'", widget_type)
 
-    def error_widget(self, error):
+    @staticmethod
+    def error_widget(error):
         return {"widget_type": "baseerror", "fields": {"err": error}, "static_css":{"widget_style": ""}}
 
-    def _widget_exists(self, widgets, _id):
+    @staticmethod
+    def _widget_exists(widgets, _id):
         for widge in widgets:
             if widge["id"] == _id:
                 return True
@@ -424,7 +426,8 @@ class Dashboard:
                     occupied["{}x{}".format(x, y)] = 1
             column += int(xsize)
 
-    def _merge_dashes(self, dash1, dash2):
+    @staticmethod
+    def _merge_dashes(dash1, dash2):
         for key in dash2:
             if key == "widgets":
                 for widget in dash2["widgets"]:
@@ -449,7 +452,8 @@ class Dashboard:
         for line in self._yaml_error_lines(exc):
             self._log_error(dash, name, line)
 
-    def _yaml_error_lines(self, exc):
+    @staticmethod
+    def _yaml_error_lines(exc):
         lines = []
         if hasattr(exc, 'problem_mark'):
             lines.append("parser says")
@@ -549,7 +553,8 @@ class Dashboard:
 
         return dash, layout, occupied, includes
 
-    def _latest_file(self, path):
+    @staticmethod
+    def _latest_file(path):
         late_file = datetime.datetime.fromtimestamp(86400)
         for root, subdirs, files in os.walk(path):
             for file in files:

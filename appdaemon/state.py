@@ -487,8 +487,8 @@ class State:
     #
     # Utilities
     #
-
-    def sanitize_state_kwargs(self, app, kwargs):
+    @staticmethod
+    def sanitize_state_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(kwargs_copy, [
             "old", "new", "__attribute", "duration", "state",
