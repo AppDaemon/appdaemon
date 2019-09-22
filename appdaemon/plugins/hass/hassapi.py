@@ -28,7 +28,7 @@ def hass_check(func):
         else:
             return func(*args, **kwargs)
 
-    return (func_wrapper)
+    return func_wrapper
 
 
 #
@@ -583,8 +583,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             * Finish
 
         """
-        kwargs = {}
-        kwargs["message"] = message
+        kwargs = {"message": message}
         if title is not None:
             kwargs["title"] = title
         if id is not None:

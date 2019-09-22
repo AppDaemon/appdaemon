@@ -13,6 +13,7 @@ import iso8601
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+
 class Threading:
 
     def __init__(self, ad: AppDaemon, kwargs):
@@ -50,7 +51,6 @@ class Threading:
         for thread in self.threads:
             qsize = self.get_q(thread).qsize()
             await self.set_state("_threading", "admin", "thread.{}".format(thread), q=qsize)
-
 
     async def get_callback_update(self):
         now = datetime.datetime.now()
@@ -363,7 +363,6 @@ class Threading:
 
         self.threads[name]["thread"] = t
 
-
     async def calculate_pin_threads(self):
 
         if self.pin_threads == 0:
@@ -659,7 +658,7 @@ class Threading:
                         try:
                             utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
                             funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                        except TypeError as e:
+                        except TypeError:
                             self.report_callback_sig(name, "scheduler", funcref, args)
 
                     elif _type == "state":
@@ -671,7 +670,7 @@ class Threading:
                             utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
                             funcref(entity, attr, old_state, new_state,
                                     self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
-                        except TypeError as e:
+                        except TypeError:
                             self.report_callback_sig(name, "state", funcref, args)
 
                     elif _type == "event":
@@ -680,14 +679,14 @@ class Threading:
                             try:
                                 utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
                                 funcref(data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"])
-                            except TypeError as e:
+                            except TypeError:
                                 self.report_callback_sig(name, "log_event", funcref, args)
 
                         else:
                             try:
                                 utils.run_coroutine_threadsafe(self, self.update_thread_info(thread_id, callback, name, _type, _id))
                                 funcref(args["event"], data, args["kwargs"])
-                            except TypeError as e:
+                            except TypeError:
                                 self.report_callback_sig(name, "event", funcref, args)
 
                 except:

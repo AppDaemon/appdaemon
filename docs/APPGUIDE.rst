@@ -1513,7 +1513,7 @@ convenience methods ``log()`` and ``error()``, which are provided as
 part of parent ``AppDaemon`` class, and the call will automatically
 pre-pend the name of the App making the call.
 
-The functions are based on the Python ``logging`` module and are able to pass through parameters for interpolation, and additional parameters such as ``exc_info`` just as with the usual style of invocation. Use of loggers interpolation method over the use of ``format()`` is recomended for performance reasons, as logger will only interpolate of the line is actually written whereas ``format()`` will always do the substitution.
+The functions are based on the Python ``logging`` module and are able to pass through parameters for interpolation, and additional parameters such as ``exc_info`` just as with the usual style of invocation. Use of loggers interpolation method over the use of ``format()`` is recommended for performance reasons, as logger will only interpolate of the line is actually written whereas ``format()`` will always do the substitution.
 
 The ``-D`` option of AppDaemon can be used to specify a global logging level, and Apps can individually have their logging level set as required. This can be achieved using the ``set_log_level()`` API call, or by using the special ``debug`` argument to the apps settings in ``apps.yaml``:
 
@@ -1527,9 +1527,9 @@ In addition, apps can select a default log for the `log()` call using the `log` 
 
     log: test_log
 
-If an App has set a default log other than one of the 4 built in logs, these logs can still be accessed specifically using either the `log=` parameter of the `log()` call, or by getting the appropriate logger object using the `get_user_log()` call, whcih also works for default logs.
+If an App has set a default log other than one of the 4 built in logs, these logs can still be accessed specifically using either the `log=` parameter of the `log()` call, or by getting the appropriate logger object using the `get_user_log()` call, which also works for default logs.
 
-ApDaemon loggin also allows you to use placeholders for the module,
+AppDaemon's logging mechanism also allows you to use placeholders for the module,
 function, and line number. If you include the following in the test of
 your message:
 
@@ -1712,7 +1712,7 @@ time with the ``-e`` flag as follows:
     2016-09-06 17:16:00 INFO Loading Module: /export/hass/appdaemon_test/conf/test_apps/sunset.py
     ..,
 
-The ``-e`` flag is most useful when used in conjuntion with the ``-s``
+The ``-e`` flag is most useful when used in conjunction with the ``-s``
 flag and optionally the ``-t`` flag. For example, to run from just
 before sunset, for an hour, as fast as possible:
 
@@ -1958,7 +1958,7 @@ want to configure.
             if intent in intents:
                 speech, card, title = intents[intent](data)
                 response = self.format_alexa_response(speech = speech, card = card, title = title)
-                self.log("Recieved Alexa request: {}, answering: {}".format(intent, speech))
+                self.log("Received Alexa request: {}, answering: {}".format(intent, speech))
             else:
                 response = self.format_alexa_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
 
@@ -2029,7 +2029,7 @@ want to configure.
                 "Jack is on the windowsill behind the bed",
                 "Jack is out checking on his clown suit",
                 "Jack is eating his treats",
-                "Jack just went out for a walk in the neigbourhood",
+                "Jack just went out for a walk in the neighbourhood",
                 "Jack is by his bowl waiting for treats"
             ]
 
