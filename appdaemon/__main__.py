@@ -25,7 +25,7 @@ import appdaemon.logging as logging
 
 
 
-class ADMain():
+class ADMain:
 
     """
     Class to encapsulate all main() functionality.

@@ -879,7 +879,7 @@ class Dashboard:
                 template = env.get_template("dashboard.jinja2")
                 rendered_template = template.render(params)
 
-            return(rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
@@ -899,7 +899,7 @@ class Dashboard:
         template = env.get_template("list.jinja2")
         rendered_template = template.render(params)
 
-        return (rendered_template)
+        return rendered_template
 
     def get_dashboard_list(self, paramOverwrite=None):
 
@@ -916,4 +916,4 @@ class Dashboard:
         template = env.get_template("list.jinja2")
         rendered_template = template.render(dash)
 
-        return (rendered_template)
+        return rendered_template

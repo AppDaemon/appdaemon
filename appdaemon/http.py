@@ -786,7 +786,7 @@ class HTTP:
             template = env.get_template("logon.jinja2")
             rendered_template = template.render(params)
 
-            return (rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
@@ -808,7 +808,7 @@ class HTTP:
             template = env.get_template("error.jinja2")
             rendered_template = template.render(params)
 
-            return (rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
