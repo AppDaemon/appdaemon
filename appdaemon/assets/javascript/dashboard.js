@@ -1,3 +1,18 @@
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
 
 function ha_status(stream, dash, widgets, transport)
 {
@@ -8,12 +23,55 @@ function ha_status(stream, dash, widgets, transport)
 
         webSocket.onopen = function (event)
         {
-            webSocket.send(dash);
+            var request = {
+                request_type: 'hello',
+                data: {
+                    client_name: dash,
+                }
+            }
+
+            if (getCookie('adcreds') !== '') {
+                var creds = getCookie('adcreds')
+                creds = creds.substring(1, (creds.length - 1))
+                request['data']['cookie'] = creds
+            }
+
+            webSocket.send(JSON.stringify(request));
         };
 
         webSocket.onmessage = function (event)
         {
             var data = JSON.parse(event.data);
+
+            // Stream Authorized            
+            if (data.response_type === "hello" && data.response_success === true)
+            {
+                webSocket.send(JSON.stringify({
+                    request_type: 'listen_state',
+                    data: {
+                        namespace: '*',
+                        entity_id: '*',
+                    }
+                }))
+        
+                webSocket.send(JSON.stringify({
+                    request_type: 'listen_event',
+                    data: {
+                        namespace: '*',
+                        event: '*',
+                    }
+                }))
+
+                return
+            }
+
+            // Stream Error
+            if (data.response_type === "error")
+            {
+                console.log('Stream Error', data.msg)
+                webSocket.refresh()
+                return
+            }
 
             update_dash(data)
         };

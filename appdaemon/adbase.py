@@ -19,7 +19,7 @@ class Entities:
 #
 
 def app_lock(f):
-    """ Synchronization decorator. """
+    """Synchronization decorator."""
 
     @wraps(f)
     def f_app_lock(*args, **kw):
@@ -34,7 +34,7 @@ def app_lock(f):
 
 
 def global_lock(f):
-    """ Synchronization decorator. """
+    """Synchronization decorator."""
 
     @wraps(f)
     def f_global_lock(*args, **kw):
@@ -81,7 +81,6 @@ class ADBase:
         self.lock = threading.RLock()
 
         self.constraints = []
-
 
     #
     # API/Plugin

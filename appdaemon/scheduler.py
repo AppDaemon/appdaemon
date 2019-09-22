@@ -292,23 +292,25 @@ class Scheduler:
             "kwargs": kwargs
         }
 
-        if callback == None:
+        if callback is None:
             function_name = "cancel_callback"
         else:
             function_name = callback.__name__
 
-        await self.AD.state.add_entity("admin", "scheduler_callback.{}".format(handle), "active",
-                                                                         {
-                                                                             "app": name,
-                                                                             "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
-                                                                             "repeat": str(datetime.timedelta(seconds=interval)),
-                                                                             "function": function_name,
-                                                                             "pinned": pin_app,
-                                                                             "pinned_thread": pin_thread,
-                                                                             "fired": 0,
-                                                                             "executed": 0,
-                                                                             "kwargs": kwargs
-                                                                         })
+        await self.AD.state.add_entity("admin",
+                                       "scheduler_callback.{}".format(handle),
+                                       "active",
+                                       {
+                                           "app": name,
+                                           "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
+                                           "repeat": str(datetime.timedelta(seconds=interval)),
+                                           "function": function_name,
+                                           "pinned": pin_app,
+                                           "pinned_thread": pin_thread,
+                                           "fired": 0,
+                                           "executed": 0,
+                                           "kwargs": kwargs
+                                       })
                 # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
 
         if self.active is True:
@@ -685,20 +687,22 @@ class Scheduler:
     #
     # Utilities
     #
-
-    def sanitize_timer_kwargs(self, app, kwargs):
+    @staticmethod
+    def sanitize_timer_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(kwargs_copy, [
             "interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"
         ] + app.list_constraints())
 
-    def myround(self, x, base=1, prec=10):
+    @staticmethod
+    def myround(x, base=1, prec=10):
         if base == 0:
             return x
         else:
             return round(base * round(float(x) / base), prec)
 
-    def my_dt_round(self, dt, base=1, prec=10):
+    @staticmethod
+    def my_dt_round(dt, base=1, prec=10):
         if base == 0:
             return dt
         else:
@@ -707,7 +711,6 @@ class Scheduler:
             result = datetime.datetime.utcfromtimestamp(rounded)
             aware_result = pytz.utc.localize(result)
             return aware_result
-
 
     def convert_naive(self, dt):
         # Is it naive?

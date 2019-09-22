@@ -49,10 +49,7 @@ class Admin:
     async def admin_page(self, scheme, url):
 
         try:
-            params = {}
-
-            params["transport"] = self.transport
-            params["title"] = self.title
+            params = {"transport": self.transport, "title": self.title}
 
             if self.AD.http.dashboard_obj is not None:
                 params["dashboard"] = True
@@ -75,7 +72,7 @@ class Admin:
             template = env.get_template("admin.jinja2")
             rendered_template = await utils.run_in_executor(self, template.render, params)
 
-            return (rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)

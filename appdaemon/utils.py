@@ -21,6 +21,7 @@ if platform.system() != "Windows":
 __version__ = "4.0.0b2"
 secrets = None
 
+
 class Formatter(object):
     def __init__(self):
         self.types = {}
@@ -160,6 +161,24 @@ class StateAttrs(dict):
         self.__dict__ = device_dict
 
 
+def sync_wrapper(coro):
+    def inner_sync_wrapper(self, *args, **kwargs):
+        try:
+            # do this first to get the exception
+            # otherwise the coro could be started and never awaited
+            asyncio.get_event_loop()
+
+            # don't use create_task. It's python3.7 only
+            f = asyncio.ensure_future(coro(self, *args, **kwargs))
+            self.AD.futures.add_future(self.name, f)
+        except RuntimeError:
+            f = run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
+
+        return f
+    
+    return inner_sync_wrapper
+
+
 def _timeit(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
@@ -192,8 +211,10 @@ def _profile_this(fn):
 
     return profiled_fn
 
+
 def format_seconds(secs):
     return str(timedelta(seconds=secs))
+
 
 def get_kwargs(kwargs):
     result = ""
@@ -252,8 +273,11 @@ def run_coroutine_threadsafe(self, coro):
             else:
                 print("Coroutine ({}) took too long, cancelling the task...".format(coro))
             future.cancel()
+    else:
+        self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
 
     return result
+
 
 def deepcopy(data):
 
@@ -287,6 +311,7 @@ def deepcopy(data):
 
     return result
 
+
 def find_path(name):
     for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
                  os.path.join(os.path.sep, "etc", "appdaemon")]:
@@ -302,11 +327,13 @@ def single_or_list(field):
     else:
         return [field]
 
+
 def _sanitize_kwargs(kwargs, keys):
     for key in keys:
         if key in kwargs:
             del kwargs[key]
     return kwargs
+
 
 def process_arg(self, arg, args, **kwargs):
     if args:
@@ -327,8 +354,10 @@ def process_arg(self, arg, args, **kwargs):
             else:
                 setattr(self, arg, value)
 
+
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
+
 
 def check_path(type, logger, inpath, pathtype="directory", permissions=None):
     #disable checks for windows platform
@@ -399,8 +428,10 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):
         # We just have to skip most of these tests
         pass
 
+
 def str_to_dt(time):
     return dateutil.parser.parse(time)
+
 
 def dt_to_str(dt, tz=None):
     if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
@@ -410,6 +441,7 @@ def dt_to_str(dt, tz=None):
             return dt.astimezone(tz).isoformat()
         else:
             return dt.isoformat()
+
 
 def convert_json(data, **kwargs):
     return json.dumps(data, default=str, **kwargs)

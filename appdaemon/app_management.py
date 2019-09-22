@@ -9,9 +9,11 @@ import cProfile
 import io
 import pstats
 import logging
+import asyncio
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+
 
 class AppManagement:
 
@@ -24,8 +26,8 @@ class AppManagement:
         self.monitored_files = {}
         self.filter_files = {}
         self.modules = {}
-
         self.objects = {}
+        self.check_app_updates_profile_stats = None
 
         # Initialize config file tracking
 
@@ -63,7 +65,8 @@ class AppManagement:
         self.non_apps = ["global_modules", "sequence"]
 
     async def set_state(self, name, **kwargs):
-        if name.find(".") == -1: #not a fully qualified entity name
+        # not a fully qualified entity name
+        if name.find(".") == -1:
             entity_id = "app.{}".format(name)
         else:
             entity_id = name
@@ -71,7 +74,8 @@ class AppManagement:
         await self.AD.state.set_state("_app_management", "admin", entity_id, **kwargs)
 
     async def get_state(self, name, **kwargs):
-        if name.find(".") == -1: #not a fully qualified entity name
+        # not a fully qualified entity name
+        if name.find(".") == -1:
             entity_id = "app.{}".format(name)
         else:
             entity_id = name
@@ -79,7 +83,8 @@ class AppManagement:
         return await self.AD.state.get_state("_app_management", "admin", entity_id, **kwargs)
 
     async def add_entity(self, name, state, attributes):
-        if name.find(".") == -1: #not a fully qualified entity name
+        # not a fully qualified entity name
+        if name.find(".") == -1:
             entity_id = "app.{}".format(name)
         else:
             entity_id = name
@@ -123,7 +128,7 @@ class AppManagement:
     async def initialize_app(self, name):
         if name in self.objects:
             init = getattr(self.objects[name]["object"], "initialize", None)
-            if init == None:
+            if init is None:
                 self.logger.warning("Unable to find initialize() function in module %s - skipped", name)
                 await self.increase_inactive_apps(name)
                 return
@@ -131,14 +136,17 @@ class AppManagement:
             self.logger.warning("Unable to find module %s - initialize() skipped", name)
             await self.increase_inactive_apps(name)
             return
-        # Call its initialize function
 
+        # Call its initialize function
         try:
-            await utils.run_in_executor(self, init)
+            if asyncio.iscoroutinefunction(init):
+                await init()
+            else:
+                await utils.run_in_executor(self, init)
             await self.set_state(name, state="idle")
             await self.increase_active_apps(name)
 
-        except TypeError as e:
+        except TypeError:
             self.AD.threading.report_callback_sig(name, "initialize", init, {})
         except:
             error_logger = logging.getLogger("Error.{}".format(name))
@@ -156,17 +164,20 @@ class AppManagement:
         term = None
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
             self.logger.info("Calling terminate() for {}".format(name))
+
             # Call terminate directly rather than via worker thread
             # so we know terminate has completed before we move on
-
             term = self.objects[name]["object"].terminate
 
         if term is not None:
             try:
-                await utils.run_in_executor(self, term)
+                if asyncio.iscoroutinefunction(term):
+                    await term()
+                else:
+                    await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
 
-            except TypeError as e:
+            except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
             except:
                 error_logger = logging.getLogger("Error.{}".format(name))
@@ -187,6 +198,8 @@ class AppManagement:
         await self.increase_inactive_apps(name)
 
         await self.AD.callbacks.clear_callbacks(name)
+
+        self.AD.futures.cancel_futures(name)
 
         await self.AD.sched.terminate_app(name)
 
@@ -613,7 +626,7 @@ class AppManagement:
                                 command_line = filter["command_line"].replace("$1", infile)
                                 command_line = command_line.replace("$2", outfile)
                                 try:
-                                    p = subprocess.Popen(command_line, shell=True)
+                                    subprocess.Popen(command_line, shell=True)
                                 except:
                                     self.logger.warning('-' * 60)
                                     self.logger.warning("Unexpected running filter on: %s:", infile)
@@ -989,7 +1002,6 @@ class AppManagement:
 
         elif service == "reload":
             await self.check_app_updates(mode="init")
-
 
     async def increase_active_apps(self, name):
         if name not in self.active_apps:

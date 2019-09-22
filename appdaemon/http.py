@@ -20,6 +20,7 @@ import appdaemon.admin as adadmin
 
 from appdaemon.appdaemon import AppDaemon
 
+
 def securedata(myfunc):
     """
     Take care of streams and service calls
@@ -146,11 +147,12 @@ class HTTP:
 
             # Setup event stream
 
-            self.stream = stream.ADStream(self.AD, self.app, self.transport, self.on_connect, self.on_message)
+            self.stream = stream.ADStream(self.AD, self.app, self.transport)
 
             self.loop = loop
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
+            #TODO the `context` local varialble is never used after its initialization, maybe it can be removed
             if self.ssl_certificate is not None and self.ssl_key is not None:
                 context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
                 context.load_cert_chain(self.ssl_certificate, self.ssl_key)
@@ -382,7 +384,7 @@ class HTTP:
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
                 try:
-                    if self.rss_last_update == None or (self.rss_last_update + self.rss_update) <= time.time():
+                    if self.rss_last_update is None or (self.rss_last_update + self.rss_update) <= time.time():
                         self.rss_last_update = time.time()
 
                         for feed_data in self.rss_feeds:
@@ -618,12 +620,6 @@ class HTTP:
         data["namespace"] = namespace
         self.AD.thread_async.call_async_no_wait(self.stream.send_update, data)
 
-    async def on_message(self, data):
-        self.access.info("New dashboard connected: %s", data)
-
-    async def on_connect(self):
-        pass
-
     # Routes, Status and Templates
 
     def setup_api_routes(self):
@@ -664,7 +660,6 @@ class HTTP:
             self.app.router.add_get('/', self.list_dash)
         else:
             self.app.router.add_get('/', self.error_page)
-
 
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
@@ -786,7 +781,7 @@ class HTTP:
             template = env.get_template("logon.jinja2")
             rendered_template = template.render(params)
 
-            return (rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
@@ -808,7 +803,7 @@ class HTTP:
             template = env.get_template("error.jinja2")
             rendered_template = template.render(params)
 
-            return (rendered_template)
+            return rendered_template
 
         except:
             self.logger.warning('-' * 60)
