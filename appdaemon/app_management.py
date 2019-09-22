@@ -9,6 +9,7 @@ import cProfile
 import io
 import pstats
 import logging
+import asyncio
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -138,7 +139,10 @@ class AppManagement:
 
         # Call its initialize function
         try:
-            await utils.run_in_executor(self, init)
+            if asyncio.iscoroutinefunction(init):
+                await init()
+            else:
+                await utils.run_in_executor(self, init)
             await self.set_state(name, state="idle")
             await self.increase_active_apps(name)
 
@@ -167,7 +171,10 @@ class AppManagement:
 
         if term is not None:
             try:
-                await utils.run_in_executor(self, term)
+                if asyncio.iscoroutinefunction(term):
+                    await term()
+                else:
+                    await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
 
             except TypeError:
@@ -191,6 +198,8 @@ class AppManagement:
         await self.increase_inactive_apps(name)
 
         await self.AD.callbacks.clear_callbacks(name)
+
+        self.AD.futures.cancel_futures(name)
 
         await self.AD.sched.terminate_app(name)
 
