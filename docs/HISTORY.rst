@@ -14,7 +14,9 @@ Change Log
 - Added input_text and input_datetime widgets
 - bumped aiohttp to 3.6.0
 - Added the ability to cointrol the number of threadpool workers
-- Each time a new service is registered, a ``service_registered`` event is fired, which can be picked up by apps 
+- Each time a new service is registered, a ``service_registered`` event is fired, which can be picked up by apps
+- Added support for async apps
+- Added authorization to stream as well as command semantics for various functions
 
 
 **Fixes**
