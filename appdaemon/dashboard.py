@@ -385,12 +385,12 @@ class Dashboard:
     def _add_layout(self, value, layout, occupied, dash, page, includes, css_vars, global_parameters):
         if value is None:
             return
-        widgetdimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
+        widget_dimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
         value = ''.join(value.split())
         widgets = value.split(",")
         column = 1
         for wid in widgets:
-            size = widgetdimensions.search(wid)
+            size = widget_dimensions.search(wid)
             if size:
                 name = size.group(1)
                 xsize = size.group(2)

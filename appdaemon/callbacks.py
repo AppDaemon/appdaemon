@@ -62,13 +62,13 @@ class Callbacks:
     async def clear_callbacks(self, name):
         self.logger.debug("Clearing callbacks for %s", name)
         if name in self.callbacks:
-            for id in self.callbacks[name]:
-                if self.callbacks[name][id]["type"] == "event":
+            for cid in self.callbacks[name]:
+                if self.callbacks[name][cid]["type"] == "event":
                     await self.AD.state.remove_entity("admin",
-                                                        "event_callback.{}".format(id))
-                if self.callbacks[name][id]["type"] == "state":
+                                                        "event_callback.{}".format(cid))
+                if self.callbacks[name][cid]["type"] == "state":
                     await self.AD.state.remove_entity("admin",
-                                                        "state_callback.{}".format(id))
+                                                        "state_callback.{}".format(cid))
 
             del self.callbacks[name]
 
