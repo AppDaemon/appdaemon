@@ -17,6 +17,7 @@ Change Log
 - Each time a new service is registered, a ``service_registered`` event is fired, which can be picked up by apps
 - Added support for async apps
 - Added authorization to stream as well as command semantics for various functions
+- Changed namespaces inplementation to use shelve instead of JSON enabling non JSON-serializable objects to be stored and also potential performance increases  - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
 
 
 **Fixes**
@@ -28,6 +29,7 @@ Change Log
 - ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
 - The camera widget has changed parameters - check the docs for details
 - Moved the `log events` from global to `admin` namespace. if `listen_log` is just used for listening to logs, it shouldn't matter
+- If you have used persistent namespaces in the previous beta it is necessary to delete all saved namespaces by removing all files in the `namespaces` subdirectory under your appdaemon config directory
 
 4.0.0 Beta1 (2019-08-30)
 ------------------------
