@@ -489,4 +489,3 @@ class State:
             "__entity", "__duration", "__old_state", "__new_state",
             "oneshot", "pin_app", "pin_thread", "__delay"
         ] + app.list_constraints())
- 

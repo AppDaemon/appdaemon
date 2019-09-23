@@ -46,4 +46,3 @@ class MiniMote(hass.Hass):
     if toggle in self.args:
       self.log("Toggling {}".format(self.args[toggle]))
       self.toggle(self.args[toggle])
-      

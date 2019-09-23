@@ -110,4 +110,3 @@ class SmartHeat(hass.Hass):
       self.log("Turning heat off")
       for tstat in self.split_device_list(self.args["thermostats"]):
         self.call_service("climate/set_temperature", entity_id=tstat, temperature=self.args["off_temp"])
-      

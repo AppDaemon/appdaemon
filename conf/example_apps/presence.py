@@ -88,7 +88,3 @@ class Presence(hass.Hass):
       self.turn_on(self.args["day_scene_present"])
     else:
       self.turn_on(self.args["night_scene_present"])
-     
-    
-    
-    
