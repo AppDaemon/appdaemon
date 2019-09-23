@@ -199,8 +199,7 @@ class RequestHandler:
 
 
     async def _response_success(self, msg, data={}):
-        response = {}
-        response['response_type'] = msg['request_type']
+        response = {'response_type': msg['request_type']}
         if "request_id" in msg:
             response['response_id'] = msg['request_id']
         response['response_success'] = True
@@ -210,8 +209,7 @@ class RequestHandler:
         await self.stream_send(response)
 
     async def _response_error(self, msg, error):
-        response = {}
-        response['response_type'] = msg['request_type']
+        response = {'response_type': msg['request_type']}
         if "request_id" in msg:
             response['response_id'] = msg['request_id']
         response['response_success'] = False
