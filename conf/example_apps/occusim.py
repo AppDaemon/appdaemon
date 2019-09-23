@@ -52,8 +52,7 @@ class OccuSim(hass.Hass):
       step = "step_" + step + "_"
       if (step + "start") in self.args:
         stepname = self.args[step + "name"]
-        cbargs = {}
-        cbargs["step"] = stepname
+        cbargs = {"step": stepname}
         if (step + "days") in self.args:
           cbargs["days"] = self.args[step + "days"]
         span = 0
@@ -93,8 +92,7 @@ class OccuSim(hass.Hass):
         if (step + "relative") in self.args:
           stepname = self.args[step + "name"]
           if stepname not in events:
-            cbargs = {}
-            cbargs["step"] = stepname
+            cbargs = {"step": stepname}
             if (step + "days") in self.args:
               cbargs["days"] = self.args[step + "days"]
             span = 0

@@ -362,8 +362,7 @@ class State:
             new_state = self.state[namespace][entity_id]
         else:
             # Its a new state entry
-            new_state = {}
-            new_state["attributes"] = {}
+            new_state = {"attributes": {}}
 
         if "state" in kwargs:
             new_state["state"] = kwargs["state"]
