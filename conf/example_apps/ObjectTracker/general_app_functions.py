@@ -72,7 +72,7 @@ class general_fnc(hass.Hass):
             set_object.write(str_complete_time)
             set_object.close()
         except:
-            self.log( "couldnt save the time from: " + object_name + " in " + complete_file_name, level = "INFO")
+            self.log( "couldn't save the time from: " + object_name + " in " + complete_file_name, level = "INFO")
             
 
     def reformat_time(self, time_format):

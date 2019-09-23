@@ -19,7 +19,7 @@ startup.
 
 Arguments:
  - cache: Location, on disk, where the events are stored
- - evnets: List of events to monitor, and later publish
+ - events: List of events to monitor, and later publish
 
 """
 class Cache(hass.Hass):
