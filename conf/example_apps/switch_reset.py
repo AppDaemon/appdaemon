@@ -42,7 +42,7 @@ class SwitchReset(hass.Hass):
   
   def set_switches(self, kwargs):
     self.log_notify("Setting switches")
-    # Find out what devices are avaiable.
+    # Find out what devices are available.
     # If we don't know about it initialize, if we do set the switch appropriately
     state = self.get_state()
     for entity in state:
@@ -51,7 +51,7 @@ class SwitchReset(hass.Hass):
         if entity in self.device_db:
           if self.device_db[entity] != state[entity]["state"]:
             self.log_notify("Setting {} to {} (was {})".format(entity, self.device_db[entity], state[entity]["state"]))
-            new_state = self.set_state(entity, state = self.device_db[entity])
+            new_state = self.set_state(entity, state=self.device_db[entity])
         else:
           self.log_notify("Adding {}, setting value to current state ({})".format(entity, state[entity]["state"]))
           self.device_db[entity] = state[entity]["state"]

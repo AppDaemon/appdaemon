@@ -28,7 +28,7 @@ import globals
 # e.g.:
 #
 # sound = self.get_app("Sound")
-# sound.tts("Warning: Intuder alert", 0.5, 10)#
+# sound.tts("Warning: Intruder alert", 0.5, 10)#
 #
 # SOUND:
 # sound = self.get_app("Sound")
@@ -72,20 +72,20 @@ class Sound(hass.Hass):
           # Save current volume
           volume = self.get_state(self.args["player"], attribute="volume_level")
           # Set to the desired volume
-          self.call_service("media_player/volume_set", entity_id = self.args["player"], volume_level = data["volume"])
+          self.call_service("media_player/volume_set", entity_id=self.args["player"], volume_level=data["volume"])
           if data["type"] == "tts":
             # Call TTS service
-            self.call_service("tts/amazon_polly_say", entity_id = self.args["player"], message = data["text"])
+            self.call_service("tts/amazon_polly_say", entity_id=self.args["player"], message=data["text"])
           if data["type"] == "play":
             netpath = netpath = 'http://{}:{}/local/{}/{}'.format(self.args["ip"], self.args["port"], self.args["base"], data["path"])
-            self.call_service("media_player/play_media", entity_id = self.args["player"], media_content_id = netpath, media_content_type = data["content"])
+            self.call_service("media_player/play_media", entity_id=self.args["player"], media_content_id = netpath, media_content_type=data["content"])
 
           # Sleep to allow message to complete before restoring volume
           time.sleep(int(data["length"]))
           # Restore volume
-          self.call_service("media_player/volume_set", entity_id = self.args["player"], volume_level = volume)
+          self.call_service("media_player/volume_set", entity_id=self.args["player"], volume_level=volume)
           # Set state locally as well to avoid race condition
-          self.set_state(self.args["player"], attributes = {"volume_level": volume})
+          self.set_state(self.args["player"], attributes={"volume_level": volume})
       except:
         self.log("Error")
         self.log(sys.exc_info())

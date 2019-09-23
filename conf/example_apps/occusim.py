@@ -64,7 +64,7 @@ class OccuSim(hass.Hass):
         start_p = self.args[step + "start"]
         start = self.parse_time(start_p)
         end_p = self.args.get(step + "end")
-        if end_p != None: 
+        if end_p is not None:
           end = self.parse_time(end_p)
           start_ts = datetime.datetime.combine(self.date(), start).timestamp()
           end_ts = datetime.datetime.combine(self.date(), end).timestamp()
@@ -108,7 +108,7 @@ class OccuSim(hass.Hass):
               start_offset = self.parse_time(start_offset_p)
               start = events[steprelative]["event"] + datetime.timedelta(hours=start_offset.hour, minutes=start_offset.minute, seconds=start_offset.second)
               end_offset_p = self.args.get(step + "end_offset")
-              if end_offset_p != None:
+              if end_offset_p is not None:
                 end_offset = self.parse_time(end_offset_p)
                 end = events[steprelative]["event"] + datetime.timedelta(hours=end_offset.hour, minutes=end_offset.minute, seconds=end_offset.second)
                 span = int(end.timestamp() - start.timestamp())
@@ -241,5 +241,3 @@ class OccuSim(hass.Hass):
       self.log(message)
     if "notify" in self.args:
       self.notify(message, name=globals.notify)
-  
-    

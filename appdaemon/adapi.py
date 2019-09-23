@@ -216,8 +216,7 @@ class ADAPI:
         """
         namespace = kwargs.pop("namespace", "admin")
 
-        return await self.AD.logging.add_log_callback(namespace, self.name,
-            callback, level, **kwargs)
+        return await self.AD.logging.add_log_callback(namespace, self.name, callback, level, **kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_log(self, handle):
@@ -496,7 +495,8 @@ class ADAPI:
         if not await self.AD.state.entity_exists(namespace, entity):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
-    def get_ad_version(self):
+    @staticmethod
+    def get_ad_version():
         """Returns a string with the current version of AppDaemon.
 
         Examples:
@@ -1199,8 +1199,7 @@ class ADAPI:
             await self._check_entity(namespace, entity)
 
         self.logger.debug("Calling listen_state for %s", self.name)
-        return await self.AD.state.add_state_callback(name, namespace, entity, callback,
-                                                                                     kwargs)
+        return await self.AD.state.add_state_callback(name, namespace, entity, callback, kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_state(self, handle):
@@ -1212,7 +1211,6 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
-            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             None.
@@ -1571,8 +1569,7 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
-        return await self.AD.events.add_event_callback(_name, namespace, callback, event,
-                                                                                      **kwargs)
+        return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_event(self, handle):

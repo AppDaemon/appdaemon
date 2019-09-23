@@ -147,11 +147,11 @@ class Scheduler:
                 else:
                     # Not sunrise or sunset so just increment
                     # the timestamp with the repeat interval
-                    args["basetime"] += timedelta(seconds = args["interval"])
+                    args["basetime"] += timedelta(seconds=args["interval"])
                     args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
                 # Update entity
 
-                await self.AD.state.set_state("_scheduler", "admin", "scheduler_callback.{}".format(uuid_), execution_time = utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz))
+                await self.AD.state.set_state("_scheduler", "admin", "scheduler_callback.{}".format(uuid_), execution_time=utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz))
             else:
                 # Otherwise just delete
                 await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(uuid_))
@@ -233,7 +233,8 @@ class Scheduler:
 
         return next_setting_dt
 
-    def get_offset(self, kwargs):
+    @staticmethod
+    def get_offset(kwargs):
         if "offset" in kwargs["kwargs"]:
             if "random_start" in kwargs["kwargs"] \
                     or "random_end" in kwargs["kwargs"]:

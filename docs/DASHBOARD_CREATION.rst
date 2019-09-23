@@ -62,7 +62,7 @@ These are all fairly self-explanatory:
 -  ``scalable`` - if set to ``False`` this parameter will disable resizing and double-tap zooming on iOS devices, default is not to disable zooming.
 -  ``global_parameters`` - a list of parameters that will be applied to
    every widget. If the widget does not accept that parameter, it will be
-   ignored. Global parameters can be overriden at the widget definition
+   ignored. Global parameters can be overridden at the widget definition
    if desired. This is useful for instance if you want to use commas as
    decimals for all of your widgets. This will also apply to widgets
    defined with just their entity ids so they will not require a formal
@@ -71,7 +71,7 @@ These are all fairly self-explanatory:
    Within the ``global`` parameters it is also possible to set parameters at the device level by including a ``device`` entry (see above for an example). Under device you can add an entry for any widget type, then under that, list global parameters that will be applied to just that widget type. For instance, in the example above, the default step size for all media players is set to 5% rather than the default 10%.
 
 The very simplest dashboard needs a layout so it can understand where to
-place the widgets. We use a ``layout`` directive to tell HADasboard how
+place the widgets. We use a ``layout`` directive to tell HADashboard how
 to place them. Here is an example:
 
 .. code:: yaml
@@ -96,7 +96,7 @@ the widget in columns and the height of the widget in rows. For
 instance, ``(2x1)`` would refer to a widget 2 cells wide and 1 cell
 high. If you leave of the sizing information, the widget will use the
 ``widget_size`` dashboard parameter if specified, or default to
-``(1x1)`` if not. HADasboard will do its best to calculate the right
+``(1x1)`` if not. HADashboard will do its best to calculate the right
 layout from what you give it but expect strange behavior if you add too
 many widgets on a line.
 
@@ -475,7 +475,7 @@ As is usual with CSS you can feed it multiple parameters at once, e.g.:
 
 You can use any valid CSS style here although you should probably steer
 away from some of the formatting types as they may interact badly with
-HADasboards formatting. Widget level styles will correctly override just
+HADashboards formatting. Widget level styles will correctly override just
 the style in the skin they are replacing.
 
 In the case of the clock widget, it also supports ``date_style`` and
@@ -632,7 +632,7 @@ Namespaces
 
 For a full explanation of namespaces see the ``Writing AppDaemon Apps`` Section of the guide. Namespaces may be ignored in HADashboard if only one plugin is in use.
 
-If multiple namespaces are in use, HADasboard is able to specify either at the dashboard level or the widget level which namespace to use. This is achieved by use of the ``namespace`` parameter. This parameter may be specified for each individual widget if desired. If it is specified as one of the global parameters, it will apply to all widgets but may be overridden for individual widgets. If not specified as a global parameter, the default namespace will be used for any widgets that do not override it. For example:
+If multiple namespaces are in use, HADashboard is able to specify either at the dashboard level or the widget level which namespace to use. This is achieved by use of the ``namespace`` parameter. This parameter may be specified for each individual widget if desired. If it is specified as one of the global parameters, it will apply to all widgets but may be overridden for individual widgets. If not specified as a global parameter, the default namespace will be used for any widgets that do not override it. For example:
 
 .. code:: yaml
 
@@ -1816,7 +1816,7 @@ Mandatory Arguments:
 - minValue - minimum value to display
 - maxValue - maximum value to display
 - majorTicks - Where to mark major values, a list
-- highights - color ranges, a list
+- highlights - color ranges, a list
 
 See the example below:
 
@@ -2258,7 +2258,7 @@ dashboard URL. Skin names are sticky if you use the Navigate widget to
 switch between dashboards and will stay in force until another skin or
 no skin is specified.
 
-HADasboard currently has the following skins available:
+HADashboard currently has the following skins available:
 
 -  default - the classic HADashboard skin, very simple
 -  obsidian, contributed by ``@rpitera``

@@ -258,8 +258,7 @@ class HassPlugin(PluginBase):
                 })
                 await utils.run_in_executor(self, self.ws.send, sub)
                 result = json.loads(self.ws.recv())
-                if not (result["id"] == _id and result["type"] == "result" and
-                                result["success"] is True):
+                if not (result["id"] == _id and result["type"] == "result" and result["success"] is True):
                     self.logger.warning("Unable to subscribe to HA events, id = %s", _id)
                     self.logger.warning(result)
                     raise ValueError("Error subscribing to HA Events")
@@ -441,15 +440,15 @@ class HassPlugin(PluginBase):
             
             #if starttime is not declared and entity_id is declared, and days specified
             elif (filter_entity_id != "" and start_time == "") and "days" in data:
-                start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days = days)
+                start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days=days)
                 
             #if starttime is declared and entity_id is not declared, and days specified
             elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in data:
-                end_time = start_time + datetime.timedelta(days = days)
+                end_time = start_time + datetime.timedelta(days=days)
             
             #if endtime is declared and entity_id is not declared, and days specified
             elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in data:
-                start_time = end_time - datetime.timedelta(days = days)
+                start_time = end_time - datetime.timedelta(days=days)
             
             if start_time != "":
                 timestamp = "/{}".format(utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz))
@@ -462,7 +461,7 @@ class HassPlugin(PluginBase):
 
             # if no start_time is specified, other parameters are invalid
             else:
-                timeStamp = ""
+                timestamp = ""
                 end_time = ""
 
             api_url = "{}/api/history/period{}{}{}".format(config["ha_url"], timestamp, filter_entity_id, end_time)

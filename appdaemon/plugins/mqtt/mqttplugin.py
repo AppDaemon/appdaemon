@@ -92,13 +92,13 @@ class MqttPlugin(PluginBase):
             mqtt_client_id = 'appdaemon_{}_client'.format(self.name.lower())
             self.logger.info("Using %s as Client ID", mqtt_client_id)
 
-        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport= mqtt_transport)
+        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport=mqtt_transport)
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
 
         self.loop = self.AD.loop # get AD loop
-        self.mqtt_connect_event = asyncio.Event(loop = self.loop)
+        self.mqtt_connect_event = asyncio.Event(loop=self.loop)
         self.mqtt_wildcards = list()
         self.mqtt_metadata = {
             "version": "1.0",

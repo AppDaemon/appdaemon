@@ -42,7 +42,8 @@ class Formatter(object):
         formater = self.types[type(value) if type(value) in self.types else object]
         return formater(self, value, self.indent)
 
-    def format_object(self, value, indent):
+    @staticmethod
+    def format_object(value, indent):
         return repr(value)
 
     def format_dict(self, value, indent):
@@ -402,8 +403,7 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):
                 fullpath = False
             elif not os.path.isdir(directory):
                 if os.path.isfile(directory):
-                    logger.warning("%s: %s exists, but is a file instead of a directory", type,
-    directory)
+                    logger.warning("%s: %s exists, but is a file instead of a directory", type, directory)
                     fullpath = False
             else:
                 owner = find_owner(directory)

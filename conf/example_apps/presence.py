@@ -30,11 +30,11 @@ class Presence(hass.Hass):
     # Subscribe to presence changes
     
     self.listen_state(self.presence_change, "device_tracker")
-    self.listen_state(self.everyone_left, "group.all_devices", old = "home", new = "not_home")
-    self.listen_state(self.someone_home, "group.all_devices", old = "not_home", new = "home")
+    self.listen_state(self.everyone_left, "group.all_devices", old="home", new="not_home")
+    self.listen_state(self.someone_home, "group.all_devices", old="not_home", new="home")
     self.listen_event(self.presence_event, "PRESENCE_CHANGE")
-    self.set_state("sensor.andrew_tracker", state = "away")
-    self.set_state("sensor.wendy_tracker", state = "away")
+    self.set_state("sensor.andrew_tracker", state="away")
+    self.set_state("sensor.wendy_tracker", state="away")
 
   def presence_event(self, event_name, data, kwargs):
     # Listen for a PRESENCE_CHANGE custom event
@@ -45,12 +45,12 @@ class Presence(hass.Hass):
         tracker = globals.andrew_tracker_id
     elif event_tracker == "Wendy":
         tracker = globals.wendy_tracker_id
-    self.call_service("device_tracker/see", dev_id = tracker, location_name = event_type)
+    self.call_service("device_tracker/see", dev_id=tracker, location_name=event_type)
     
   def presence_change(self, entity, attribute, old, new, kwargs):
     person = self.friendly_name(entity)
     tracker_entity = "sensor.{}_tracker".format(person.lower())
-    self.set_state(tracker_entity, state = new)
+    self.set_state(tracker_entity, state=new)
     if old != new: 
       if new == "not_home":
         place = "is away"
@@ -81,14 +81,10 @@ class Presence(hass.Hass):
   def someone_home(self, entity, attribute, old, new, kwargs):
     self.log("Someone came home")
     if "vacation" in self.args:
-      self.set_state(self.args["vacation"], state = "off")
+      self.set_state(self.args["vacation"], state="off")
     valid_modes = self.split_device_list(self.args["input_select"])
     input_select = valid_modes.pop(0)
     if self.get_state(input_select) in valid_modes:
       self.turn_on(self.args["day_scene_present"])
     else:
       self.turn_on(self.args["night_scene_present"])
-     
-    
-    
-    
