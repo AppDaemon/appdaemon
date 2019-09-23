@@ -71,7 +71,7 @@ class AppManagement:
         else:
             entity_id = name
 
-        await self.AD.state.set_state("_app_management", "admin", entity_id, **kwargs)
+        await self.AD.state.set_state("_app_management", "admin", entity_id, _silent=True, **kwargs)
 
     async def get_state(self, name, **kwargs):
         # not a fully qualified entity name

@@ -422,7 +422,8 @@ class State:
         self.logger.debug("Old state: %s", old_state)
         self.logger.debug("New state: %s", new_state)
         if not await self.AD.state.entity_exists(namespace, entity_id):
-            self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
+            if not ("_silent" in kwargs and kwargs["_silent"] is True):
+                self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
 
         # Fire the plugin's state update if it has one
 
