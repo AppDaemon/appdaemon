@@ -158,7 +158,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         """
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
-            thisdevice, thisentity = entity_id.split(".")
+            thisdevice, thisentity = await self.split_entity(entity_id)
             if thisdevice == "device_tracker":
                 if state[entity_id]["state"] == "home":
                     return True
@@ -190,7 +190,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         """
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
-            thisdevice, thisentity = entity_id.split(".")
+            thisdevice, thisentity = await self.split_entity(entity_id)
             if thisdevice == "device_tracker":
                 if state[entity_id]["state"] != "home":
                     return False
@@ -222,7 +222,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         """
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
-            thisdevice, thisentity = entity_id.split(".")
+            thisdevice, thisentity = await self.split_entity(entity_id)
             if thisdevice == "device_tracker":
                 if state[entity_id]["state"] == "home":
                     return False
@@ -361,7 +361,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         if "namespace" in kwargs:
             del kwargs["namespace"]
             
-        await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -369,7 +368,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs["entity_id"] = entity_id
 
         rargs["namespace"] = namespace
-        device, entity = self.split_entity(entity_id)
+        device, entity = await self.split_entity(entity_id)
         if device == "scene":
             await self.call_service("homeassistant/turn_on", **rargs)
         else:
