@@ -45,9 +45,10 @@ class general_fnc(hass.Hass):
         new_entity=new_entity.replace(".","")
         new_entity=new_entity.replace("(","")
         new_entity=new_entity.replace(")","")
-        self.set_state("controle." + new_entity, state = str_update_time) 
+        self.set_state("controle." + new_entity, state = str_update_time)
 
-    def check_last_update_time(self, objects_dir, object_name):
+    @staticmethod
+    def check_last_update_time(objects_dir, object_name):
         if platform.system()=="windows":
             complete_file_name = objects_dir + "\\lut_" + object_name + ".py"
         else:
@@ -73,9 +74,9 @@ class general_fnc(hass.Hass):
             set_object.close()
         except:
             self.log( "couldnt save the time from: " + object_name + " in " + complete_file_name, level = "INFO")
-            
 
-    def reformat_time(self, time_format):
+    @staticmethod
+    def reformat_time(time_format):
         new_time_format = ""
         for counter in range(0,len(time_format)):
             if time_format[counter]!=" " and time_format[counter]!="-" and time_format[counter]!=":" and time_format[counter]!="\\":

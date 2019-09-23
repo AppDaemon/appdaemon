@@ -179,7 +179,8 @@ class Dashboard:
 
         return fields
 
-    def _get_styles(self, style_str, name, field):
+    @staticmethod
+    def _get_styles(style_str, name, field):
         #
         # Parse styles in order from a string and allow later entries to override earlier ones
         #

@@ -641,7 +641,8 @@ class AppManagement:
                 return True
         return False
 
-    def check_file(self, file):
+    @staticmethod
+    def check_file(file):
         fh = open(file)
         fh.close()
 
