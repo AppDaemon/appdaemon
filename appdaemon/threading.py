@@ -255,8 +255,7 @@ class Threading:
                     dur = (await self.AD.sched.get_now() - start).total_seconds()
                     if dur >= self.AD.thread_duration_warning_threshold and dur % self.AD.thread_duration_warning_threshold == 0:
                         self.logger.warning("Excessive time spent in callback: %s - %s",
-                                            await self.get_state("_threading", "admin", "thread.{}".format(thread_id),
-                                                           attribute="callback")
+                                            await self.get_state("_threading", "admin", "thread.{}".format(thread_id), attribute="callback")
                                             , dur)
 
     async def check_q_size(self, warning_step, warning_iterations):
@@ -271,9 +270,9 @@ class Threading:
                     qsize = self.threads[thread]["queue"].qsize()
                     if qsize > 0:
                         self.logger.warning("Queue size for thread %s is %s, callback is '%s' called at %s - possible thread starvation",
-                                        thread, qsize,
-                                        await self.get_state("_threading", "admin", "thread.{}".format(thread)),
-                                        iso8601.parse_date(await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="time_called"))
+                                            thread, qsize,
+                                            await self.get_state("_threading", "admin", "thread.{}".format(thread)),
+                                            iso8601.parse_date(await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="time_called"))
                                             )
 
                 await self.dump_threads()
@@ -348,12 +347,12 @@ class Threading:
         t.setName(name)
         if id is None:
             await self.add_entity("admin", "thread.{}".format(name), "idle",
-                                 {
-                                     "q": 0,
-                                     "is_alive": True,
-                                     "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
-                                 }
-                                 )
+                                  {
+                                      "q": 0,
+                                      "is_alive": True,
+                                      "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
+                                  }
+                                  )
             self.threads[name] = {}
             self.threads[name]["queue"] = Queue(maxsize=0)
             t.start()
@@ -480,7 +479,7 @@ class Threading:
     #
 
     async def check_and_dispatch_state(self, name, funcref, entity, attribute, new_state,
-                                 old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
+                                       old_state, cold, cnew, kwargs, uuid_, pin_app, pin_thread):
         executed = False
         #kwargs["handle"] = uuid_
         #
@@ -671,8 +670,7 @@ class Threading:
                         old_state = args["old_state"]
                         new_state = args["new_state"]
                         # await self.update_thread_info(thread_id, callback, name, _type, _id)
-                        await funcref(entity, attr, old_state, new_state,
-                                self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
+                        await funcref(entity, attr, old_state, new_state, self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
                     except TypeError as e:
                         self.report_callback_sig(name, "state", funcref, args)
 

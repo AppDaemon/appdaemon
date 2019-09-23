@@ -64,10 +64,8 @@ class Callbacks:
         if name in self.callbacks:
             for cid in self.callbacks[name]:
                 if self.callbacks[name][cid]["type"] == "event":
-                    await self.AD.state.remove_entity("admin",
-                                                        "event_callback.{}".format(cid))
+                    await self.AD.state.remove_entity("admin", "event_callback.{}".format(cid))
                 if self.callbacks[name][cid]["type"] == "state":
-                    await self.AD.state.remove_entity("admin",
-                                                        "state_callback.{}".format(cid))
+                    await self.AD.state.remove_entity("admin", "state_callback.{}".format(cid))
             del self.callbacks[name]
 

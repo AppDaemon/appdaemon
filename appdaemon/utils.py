@@ -402,8 +402,7 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):
                 fullpath = False
             elif not os.path.isdir(directory):
                 if os.path.isfile(directory):
-                    logger.warning("%s: %s exists, but is a file instead of a directory", type,
-    directory)
+                    logger.warning("%s: %s exists, but is a file instead of a directory", type, directory)
                     fullpath = False
             else:
                 owner = find_owner(directory)

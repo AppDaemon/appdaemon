@@ -258,8 +258,7 @@ class HassPlugin(PluginBase):
                 })
                 await utils.run_in_executor(self, self.ws.send, sub)
                 result = json.loads(self.ws.recv())
-                if not (result["id"] == _id and result["type"] == "result" and
-                                result["success"] is True):
+                if not (result["id"] == _id and result["type"] == "result" and result["success"] is True):
                     self.logger.warning("Unable to subscribe to HA events, id = %s", _id)
                     self.logger.warning(result)
                     raise ValueError("Error subscribing to HA Events")
