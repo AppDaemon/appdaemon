@@ -241,5 +241,3 @@ class OccuSim(hass.Hass):
       self.log(message)
     if "notify" in self.args:
       self.notify(message, name=globals.notify)
-  
-    

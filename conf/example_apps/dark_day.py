@@ -24,7 +24,7 @@ class DarkDay(hass.Hass):
   def initialize(self):
     
     self.active = False
-    self.set_state("sensor.dark_day", state = 0)
+    self.set_state("sensor.dark_day", state=0)
     self.listen_state(self.light_event, self.args["sensor"])
 
   def light_event(self, entity, attribute, old, new, kwargs):
@@ -34,19 +34,19 @@ class DarkDay(hass.Hass):
     if self.now_is_between(self.args["start_time"], self.args["end_time"]):
       if lux < 200 and not self.active:
         self.active = True
-        self.set_state("sensor.dark_day", state = 1)
+        self.set_state("sensor.dark_day", state=1)
         if "entity_on" in self.args:
           self.log("Low light detected: turning {} on".format(self.args["entity_on"]))
           self.turn_on(self.args["entity_on"])
 
       if lux > 400 and self.active:
         self.active = False
-        self.set_state("sensor.dark_day", state = 0)
+        self.set_state("sensor.dark_day", state=0)
         if "entity_off" in self.args:
           self.log("Brighter light detected: turning {} off".format(self.args["entity_off"]))
           self.turn_off(self.args["entity_off"])
     else:
       # We are now dormant so set self.active false
       self.active = False
-      self.set_state("sensor.dark_day", state = 0)
+      self.set_state("sensor.dark_day", state=0)
 

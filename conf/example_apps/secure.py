@@ -30,7 +30,7 @@ class Secure(hass.Hass):
             if data["service"] == "alarm_arm_home" or data["service"] == "alarm_arm_away":
                 insecure, message = self.query_house({"type": data["service"]})
                 if insecure:
-                    self.call_service("alarm_control_panel/alarm_disarm", entity_id = self.args["alarm_entity"], code = self.args["alarm_code"])
+                    self.call_service("alarm_control_panel/alarm_disarm", entity_id=self.args["alarm_entity"], code=self.args["alarm_code"])
 
     def alarm_state(self, entity, attribute, old, new, kwargs):
         if old == "disarmed" and new == "pending":
@@ -157,7 +157,7 @@ class Secure(hass.Hass):
                     service = entity["service"]
                     self.log("Calling {} -> {} on {}".format(service, desired_state, id))
                     self.attempted_items.append(id)
-                    self.listen_state(self.state_change, id, new = desired_state)
+                    self.listen_state(self.state_change, id, new=desired_state)
                     self.call_service(service, entity_id=id)
                     self.secured_items.append(id)
                 else:
@@ -206,7 +206,7 @@ class Secure(hass.Hass):
         else:
             return messages
 
-    def report(self, all_secure = False):
+    def report(self, all_secure=False):
 
             if all_secure:
 

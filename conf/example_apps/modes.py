@@ -109,7 +109,7 @@ class Modes(hass.Hass):
 
     self.notify("Switching mode to Evening", name=globals.notify)
 
-  def night(self, quiet = False, alexa = False):
+  def night(self, quiet=False, alexa=False):
     #
     #Set the house up for night
     #
@@ -149,13 +149,14 @@ class Modes(hass.Hass):
                     ]
     else:
         secmess = "Good night - try not to wake Wendy up"
+
     secargs = {"type" : "secure",
-                    "secure_message": secmess,
-                    "not_secure_message": "The house is not secure",
-                    "insecure_message": "The following items are not secure: ",
-                    "securing_message": "I have secured the following items: ",
-                    "failed_message: ": "The following items failed to secure: ",
-                    "secure": 1}
+               "secure_message": secmess,
+               "not_secure_message": "The house is not secure",
+               "insecure_message": "The following items are not secure: ",
+               "securing_message": "I have secured the following items: ",
+               "failed_message: ": "The following items failed to secure: ",
+               "secure": 1}
 
     if alexa:
         secargs["caller"] = "alexa"

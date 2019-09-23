@@ -51,5 +51,5 @@ class Battery(hass.Hass):
       message += "{}: {}\n".format(device, values[device])
       
     if low or ("always_send" in self.args and self.args["always_send"] == "1") or ("force" in kwargs and kwargs["force"] == 1):
-      self.notify(message, title="Home Assistant Battery Report", name = "andrew_mail")
+      self.notify(message, title="Home Assistant Battery Report", name="andrew_mail")
     

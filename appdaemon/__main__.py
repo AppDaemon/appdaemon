@@ -24,7 +24,6 @@ import appdaemon.http as adhttp
 import appdaemon.logging as logging
 
 
-
 class ADMain:
     """
     Class to encapsulate all main() functionality.
@@ -333,7 +332,6 @@ class ADMain:
         if "time_zone" in config["appdaemon"]:
             self.logging.set_tz(pytz.timezone(config["appdaemon"]["time_zone"]))
 
-
         # Startup message
 
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
@@ -377,10 +375,12 @@ class ADMain:
         else:
             self.run(appdaemon, hadashboard, admin, api, http)
 
+
 def main():
     """Called when run from the command line."""
     admain = ADMain()
     admain.main()
+
 
 if __name__ == "__main__":
     main()
