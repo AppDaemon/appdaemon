@@ -31,4 +31,4 @@ class Commute(hass.Hass):
         message = "Commute warning - current travel time from work to home is {} minutes".format(commute)
         self.log(message)
         for destination in self.args["notify"]:
-            self.notify(message, title="Commute Warning", name = destination)
+            self.notify(message, title="Commute Warning", name=destination)
