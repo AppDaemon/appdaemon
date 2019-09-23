@@ -1850,7 +1850,7 @@ to the configured key. A security key is added for the API with the
 Documentation <INSTALL.html>`__
 
 If these conditions are not met, the call will fail with a return code
-of ``401 Not Authorized``. Here is a succesful curl example:
+of ``401 Not Authorized``. Here is a successful curl example:
 
 .. code:: bash
 
@@ -1989,9 +1989,9 @@ want to configure.
 
         def HouseStatus(self):
 
-            status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
-            status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
-            status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
+            status = "The downstairs temperature is {} degrees fahrenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
+            status += "The upstairs temperature is {} degrees fahrenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
+            status += "The outside temperature is {} degrees fahrenheit,".format(self.entities.sensor.side_temp_corrected.state)
             status += self.Wendy()
             status += self.Andrew()
             status += self.Jack()
@@ -2066,7 +2066,7 @@ Similarly, Dialogflow API for Google home is supported - here is the Google vers
             if intent in intents:
                 speech = intents[intent](data)
                 response = self.format_dialogflow_response(speech)
-                self.log("Recieved Dialogflow request: {}, answering: {}".format(intent, speech))
+                self.log("Received Dialogflow request: {}, answering: {}".format(intent, speech))
             else:
                 response = self.format_dialogflow_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
 
@@ -2097,9 +2097,9 @@ Similarly, Dialogflow API for Google home is supported - here is the Google vers
 
         def HouseStatus(self):
 
-            status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
-            status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
-            status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
+            status = "The downstairs temperature is {} degrees fahrenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
+            status += "The upstairs temperature is {} degrees fahrenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
+            status += "The outside temperature is {} degrees fahrenheit,".format(self.entities.sensor.side_temp_corrected.state)
             status += self.Wendy()
             status += self.Andrew()
             status += self.Jack()
@@ -2137,7 +2137,7 @@ Similarly, Dialogflow API for Google home is supported - here is the Google vers
                 "Jack is on the windowsill behind the bed",
                 "Jack is out checking on his clown suit",
                 "Jack is eating his treats",
-                "Jack just went out for a walk in the neigbourhood",
+                "Jack just went out for a walk in the neighbourhood",
                 "Jack is by his bowl waiting for treats"
             ]
 
