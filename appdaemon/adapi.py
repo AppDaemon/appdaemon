@@ -11,7 +11,6 @@ import uuid
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
-import appdaemon.conditions as conditions
 
 class ADAPI:
     """AppDaemon API class.
@@ -47,18 +46,6 @@ class ADAPI:
             if userlog is not None:
                 self.logger = userlog
         self.dialogflow_v = 2
-
-        self._conditions = {}
-
-        self.register_condition('all', conditions.AllCondition)
-        self.register_condition('any', conditions.AnyCondition)
-        self.register_condition('state', conditions.StateCondition)
-        self.register_condition('time', conditions.TimeCondition)
-        self.register_condition('days', conditions.DaysCondition)
-
-        self.register_constraint('constrain_all')
-        self.register_constraint('constrain_any')
-        self.register_constraint('constrain')
 
     @staticmethod
     def _sub_stack(msg):
@@ -2720,98 +2707,3 @@ class ADAPI:
                                                                         self.name,
                                                                         *modules
                                                                       )
-
-    def register_condition(self, name, cls):
-        """Register a Condition
-
-        Args:
-            name: Name to reference the condition with
-            cls: Class to implement the condition. Must be an extension of
-                appdaemon.conditions.AbstractCondition
-
-        Returns:
-            None.
-        """
-
-        self._conditions[name] = cls
-
-    def get_condition(self, name, config):
-        """Instantiate a Condition
-
-        Args:
-            name: Name of the condition (as used in register_condition())
-            config: the config to be sent to the condition.
-
-        Returns:
-            the Condition object (allowing for check() and listen() methods)
-        """
-
-        try:
-            return self._conditions[name](self, config)
-        except KeyError:
-            raise KeyError("{} is not a registered condition".format(name))
-
-    def constrain(self, v_dict):
-        """Universal Constraint
-
-        Uses a dict like the following:
-        
-        >>> dict:
-        >>>   any:
-        >>>     - constraint
-        >>>     - constraint
-
-        or
-
-        >>> dict:
-        >>>   all:
-        >>>     - constraint
-        >>>     - constraint
-
-        Each constraint above take a form like the following:
-
-        >>> dict:
-        >>>   all:
-        >>>     - constraint_or_condition_name: string_based_config
-        >>>     - constraint_or_condition_name:
-        >>>         dict_based: config
-        >>>         items_go: right_here
-
-        constraint_or_condition name can be any registered condition name as
-        well as any registered_constraint. In addition, if the constraint name
-        starts with "constrain_" you can omit that in the dict key.
-        """
-        
-        if not isinstance(v_dict, dict):
-            return None
-
-        if len(v_dict) != 1:
-            return None
-
-        if "any" in v_dict:
-            return self.constrain_any(self, v_dict['any'])
-
-        if "all" in v_dict:
-            return self.constrain_all(self, v_dict['all'])
-
-        return None
-
-    def constrain_all(self, v_list):
-        """Universal All Constraint
-
-        Performs a Universal Constraint (as seen in constrain()) with the
-        initial dict_level "all".
-        """
-
-        cond = self.get_condition('all', v_list)
-        return cond.check()
-
-    def constrain_any(self, v_list):
-        """Universal Any Constraint
-
-        Performs a Universal Constraint (as seen in constrain()) with the
-        initial dict_level "any".
-        """
-
-        cond = self.get_condition('any', v_list)
-        return cond.check()
