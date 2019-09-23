@@ -208,7 +208,7 @@ class Dashboard:
                 result[key] = line
         return result
    
-    def _do_subs(self, value, _vars):
+    def _do_subs(self, value, _vars={}):
         if isinstance(value, dict):
             result = {}
             templates = {}
