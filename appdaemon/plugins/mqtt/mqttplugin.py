@@ -410,7 +410,7 @@ class MqttPlugin(PluginBase):
                     auth.update({"keyfile" : self.mqtt_client_tls_client_key})
                     set_tls = True
                    
-                if set_tls == True:                    
+                if set_tls is True:
                     self.mqtt_client.tls_set(**auth)
 
                     if not self.mqtt_verify_cert:
