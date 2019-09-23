@@ -369,7 +369,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs["entity_id"] = entity_id
 
         rargs["namespace"] = namespace
-        device, entity = self.split_entity(entity_id)
+        device, entity = await self.split_entity(entity_id)
         if device == "scene":
             await self.call_service("homeassistant/turn_on", **rargs)
         else:

@@ -1213,7 +1213,6 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
-            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             None.

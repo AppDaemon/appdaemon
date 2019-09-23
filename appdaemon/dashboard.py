@@ -892,7 +892,7 @@ class Dashboard:
             return self.html_error()
 
     def html_error(self):
-        params = {"errors": ["An unrecoverable error occured fetching dashboard, check log for details"]}
+        params = {"errors": ["An unrecoverable error occurred fetching dashboard, check log for details"]}
         env = Environment(
             loader=FileSystemLoader(self.template_dir),
             autoescape=select_autoescape(['html', 'xml'])
