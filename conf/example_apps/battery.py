@@ -35,7 +35,7 @@ class Battery(hass.Hass):
             battery = devices[device]["attributes"]["battery"]
           if "battery_level" in devices[device]["attributes"]:
             battery = devices[device]["attributes"]["battery_level"]
-          if battery != None:
+          if battery is not None:
             if battery < int(self.args["threshold"]):
               low.append(device)
             values[device] = battery
