@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import appdaemon.utils as utils
 import datetime
 
-SEP_NAMESPACE = "://"
+SEP_NAMESPACE = ":"
 SEP_ATTRIBUTE = "#"
 
 DEFAULT_OPERATOR = "=="
