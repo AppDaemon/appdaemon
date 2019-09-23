@@ -326,7 +326,7 @@ class Threading:
                              q=self.threads[thread_id]["queue"].qsize(),
                              state=callback,
                              time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
-                             is_alive = self.threads[thread_id]["thread"].is_alive(),
+                             is_alive=self.threads[thread_id]["thread"].is_alive(),
                              pinned_apps=await self.get_pinned_apps(thread_id)
                              )
         await self.set_state("_threading", "admin", "app.{}".format(app), state=callback)

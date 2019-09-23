@@ -261,9 +261,9 @@ class HTTP:
                                                            dashboard_dir=self.dashboard_dir,
                                                            fa4compatibility=self.fa4compatibility,
                                                            transport=self.transport,
-                                                           javascript_dir = self.javascript_dir,
-                                                           template_dir = self.template_dir,
-                                                           css_dir = self.css_dir,
+                                                           javascript_dir=self.javascript_dir,
+                                                           template_dir=self.template_dir,
+                                                           css_dir=self.css_dir,
                                                            fonts_dir=self.fonts_dir,
                                                            webfonts_dir=self.webfonts_dir,
                                                            images_dir=self.images_dir)
@@ -718,7 +718,7 @@ class HTTP:
         response = "OK"
         self.access.info("API Call to %s: status: %s %s", app, code, response)
 
-        return web.json_response(ret, status = code, dumps=utils.convert_json)
+        return web.json_response(ret, status=code, dumps=utils.convert_json)
 
     # Routes, Status and Templates
 

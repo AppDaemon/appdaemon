@@ -1013,8 +1013,8 @@ class AppManagement:
         active_apps = len(self.active_apps)
         inactive_apps = len(self.inactive_apps)
 
-        await self.set_state(self.active_apps_sensor, state = active_apps)
-        await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
+        await self.set_state(self.active_apps_sensor, state=active_apps)
+        await self.set_state(self.inactive_apps_sensor, state=inactive_apps)
 
     async def increase_inactive_apps(self, name):
         if name not in self.inactive_apps:
@@ -1026,5 +1026,5 @@ class AppManagement:
         inactive_apps = len(self.inactive_apps)
         active_apps = len(self.active_apps)
 
-        await self.set_state(self.active_apps_sensor, state = active_apps)
-        await self.set_state(self.inactive_apps_sensor, state = inactive_apps)
+        await self.set_state(self.active_apps_sensor, state=active_apps)
+        await self.set_state(self.inactive_apps_sensor, state=inactive_apps)

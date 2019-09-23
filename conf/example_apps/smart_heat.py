@@ -102,12 +102,12 @@ class SmartHeat(hass.Hass):
       self.state = "on"
       self.log("Turning heat on")
       for tstat in self.split_device_list(self.args["thermostats"]):
-        self.call_service("climate/set_temperature", entity_id = tstat, temperature = self.args["on_temp"])
+        self.call_service("climate/set_temperature", entity_id=tstat, temperature=self.args["on_temp"])
       
   def heat_off(self):
     if self.state == "on":
       self.state = "off"    
       self.log("Turning heat off")
       for tstat in self.split_device_list(self.args["thermostats"]):
-        self.call_service("climate/set_temperature", entity_id = tstat, temperature = self.args["off_temp"])
+        self.call_service("climate/set_temperature", entity_id=tstat, temperature=self.args["off_temp"])
       

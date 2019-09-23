@@ -34,7 +34,7 @@ class general_fnc(hass.Hass):
             try:
                 old_time = datetime.datetime.strptime(str_old_time, "%Y-%m-%d %H:%M:%S")
             except:
-                self.log( "strptime gives err on: " + str_old_time, level = "INFO")
+                self.log( "strptime gives err on: " + str_old_time, level="INFO")
                 return
             gone_by_time = update_time - old_time
             str_update_time = str(gone_by_time)[:-7] + " ago"
@@ -45,7 +45,7 @@ class general_fnc(hass.Hass):
         new_entity=new_entity.replace(".","")
         new_entity=new_entity.replace("(","")
         new_entity=new_entity.replace(")","")
-        self.set_state("controle." + new_entity, state = str_update_time) 
+        self.set_state("controle." + new_entity, state=str_update_time)
 
     def check_last_update_time(self, objects_dir, object_name):
         if platform.system()=="windows":
@@ -72,7 +72,7 @@ class general_fnc(hass.Hass):
             set_object.write(str_complete_time)
             set_object.close()
         except:
-            self.log( "couldnt save the time from: " + object_name + " in " + complete_file_name, level = "INFO")
+            self.log( "couldnt save the time from: " + object_name + " in " + complete_file_name, level="INFO")
             
 
     def reformat_time(self, time_format):

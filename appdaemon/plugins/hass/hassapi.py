@@ -603,7 +603,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @hass_check
     @utils.sync_wrapper
-    async def get_history(self, entity_id = "", **kwargs):
+    async def get_history(self, entity_id="", **kwargs):
         """Gets access to the HA Database.
 
         This is a convenience function that allows accessing the HA Database, so the

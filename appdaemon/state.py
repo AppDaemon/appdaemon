@@ -294,7 +294,7 @@ class State:
                 }
             await self.AD.events.process_event(namespace, data)
 
-    async def add_entity(self, namespace, entity, state, attributes = None):
+    async def add_entity(self, namespace, entity, state, attributes=None):
         if attributes is None:
             attrs = {}
         else:

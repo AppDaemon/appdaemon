@@ -51,7 +51,7 @@ class SwitchReset(hass.Hass):
         if entity in self.device_db:
           if self.device_db[entity] != state[entity]["state"]:
             self.log_notify("Setting {} to {} (was {})".format(entity, self.device_db[entity], state[entity]["state"]))
-            new_state = self.set_state(entity, state = self.device_db[entity])
+            new_state = self.set_state(entity, state=self.device_db[entity])
         else:
           self.log_notify("Adding {}, setting value to current state ({})".format(entity, state[entity]["state"]))
           self.device_db[entity] = state[entity]["state"]

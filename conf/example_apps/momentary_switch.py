@@ -21,7 +21,7 @@ class MomentarySwitch(hass.Hass):
 
   def state_change(self, entity, attribute, old, new, kwargs):
     self.log_notify("{} turned {}".format(entity, new))
-    self.run_in(self.switch_off, self.args["delay"], switch = entity)
+    self.run_in(self.switch_off, self.args["delay"], switch=entity)
   
   def switch_off(self, kwargs):
     self.log_notify("Turning {} off".format(kwargs["switch"]))

@@ -21,10 +21,10 @@ class Alexa(hass.Hass):
 
         if intent in intents:
             speech, card, title = intents[intent](data)
-            response = self.format_alexa_response(speech = speech, card = card, title = title)
+            response = self.format_alexa_response(speech=speech, card=card, title=title)
             self.log("Recieved Alexa request: {}, answering: {}".format(intent, speech))
         else:
-            response = self.format_alexa_response(speech = "I'm sorry, the {} does not exist within AppDaemon".format(intent))
+            response = self.format_alexa_response(speech="I'm sorry, the {} does not exist within AppDaemon".format(intent))
 
         return response, 200
 

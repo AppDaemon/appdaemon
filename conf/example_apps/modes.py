@@ -109,7 +109,7 @@ class Modes(hass.Hass):
 
     self.notify("Switching mode to Evening", name=globals.notify)
 
-  def night(self, quiet = False, alexa = False):
+  def night(self, quiet=False, alexa=False):
     #
     #Set the house up for night
     #
