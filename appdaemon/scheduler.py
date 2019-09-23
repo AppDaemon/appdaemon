@@ -233,7 +233,8 @@ class Scheduler:
 
         return next_setting_dt
 
-    def get_offset(self, kwargs):
+    @staticmethod
+    def get_offset(kwargs):
         if "offset" in kwargs["kwargs"]:
             if "random_start" in kwargs["kwargs"] \
                     or "random_end" in kwargs["kwargs"]:

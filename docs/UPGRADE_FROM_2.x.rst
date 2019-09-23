@@ -116,11 +116,11 @@ The same argument as the logs - not strictly relevant to AppDaemon, more a conce
 
 - apps.yaml in the config directory has now been deprecated
 
-One of the new features in 3.0 is that it is now possible to split the apps.yaml into multiple files. You are free to do this in any way you want and place the yaml files with any name, anywhere in the directoty hierarchy under the appdir. Apart from flexibility, another reason for this was to prepare the way for later features around configuration tools and automatic app installs. For now, the only necessary step is to move your apps.yaml file from the config dircetory into the apps directory. If you do not, you will get a warning but everything should still work for now. If you do stick with apps.yaml at in the config directory for now, any other yaml files in the apps directory will be ignored.
+One of the new features in 3.0 is that it is now possible to split the apps.yaml into multiple files. You are free to do this in any way you want and place the yaml files with any name, anywhere in the directory hierarchy under the appdir. Apart from flexibility, another reason for this was to prepare the way for later features around configuration tools and automatic app installs. For now, the only necessary step is to move your apps.yaml file from the config directory into the apps directory. If you do not, you will get a warning but everything should still work for now. If you do stick with apps.yaml at in the config directory for now, any other yaml files in the apps directory will be ignored.
 
 - select_value() has been renamed to set_value() to harmonize with HASS
 
-A minor change just to reflect the recent changes to HASS in this area, e.g ``input_slider`` being renamed to ``input_number`` and the sevice name changing.
+A minor change just to reflect the recent changes to HASS in this area, e.g ``input_slider`` being renamed to ``input_number`` and the service name changing.
 
 - It is no longer possible to automatically migrate from the legacy cfg style of config, and support for cfg files has been dropped.
 

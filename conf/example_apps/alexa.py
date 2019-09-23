@@ -53,9 +53,9 @@ class Alexa(hass.Hass):
 
     def HouseStatus(self):
 
-        status = "The downstairs temperature is {} degrees farenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
-        status += "The upstairs temperature is {} degrees farenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
-        status += "The outside temperature is {} degrees farenheit,".format(self.entities.sensor.side_temp_corrected.state)
+        status = "The downstairs temperature is {} degrees fahrenheit,".format(self.entities.sensor.downstairs_thermostat_temperature.state)
+        status += "The upstairs temperature is {} degrees fahrenheit,".format(self.entities.sensor.upstairs_thermostat_temperature.state)
+        status += "The outside temperature is {} degrees fahrenheit,".format(self.entities.sensor.side_temp_corrected.state)
         status += self.Wendy()
         status += self.Andrew()
         status += self.Jack()

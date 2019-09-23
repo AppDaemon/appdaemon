@@ -28,7 +28,7 @@ import globals
 # e.g.:
 #
 # sound = self.get_app("Sound")
-# sound.tts("Warning: Intuder alert", 0.5, 10)#
+# sound.tts("Warning: Intruder alert", 0.5, 10)#
 #
 # SOUND:
 # sound = self.get_app("Sound")

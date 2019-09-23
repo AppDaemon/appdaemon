@@ -42,7 +42,8 @@ class Formatter(object):
         formater = self.types[type(value) if type(value) in self.types else object]
         return formater(self, value, self.indent)
 
-    def format_object(self, value, indent):
+    @staticmethod
+    def format_object(value, indent):
         return repr(value)
 
     def format_dict(self, value, indent):

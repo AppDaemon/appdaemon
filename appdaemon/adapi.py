@@ -495,7 +495,8 @@ class ADAPI:
         if not await self.AD.state.entity_exists(namespace, entity):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
-    def get_ad_version(self):
+    @staticmethod
+    def get_ad_version():
         """Returns a string with the current version of AppDaemon.
 
         Examples:
@@ -1210,7 +1211,6 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
-            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             None.

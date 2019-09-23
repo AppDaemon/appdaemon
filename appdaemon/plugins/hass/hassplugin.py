@@ -461,7 +461,7 @@ class HassPlugin(PluginBase):
 
             # if no start_time is specified, other parameters are invalid
             else:
-                timeStamp = ""
+                timestamp = ""
                 end_time = ""
 
             api_url = "{}/api/history/period{}{}{}".format(config["ha_url"], timestamp, filter_entity_id, end_time)
