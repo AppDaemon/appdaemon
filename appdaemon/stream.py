@@ -5,6 +5,7 @@ import traceback
 import bcrypt
 import uuid
 import json
+import threading
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
@@ -37,6 +38,7 @@ class ADStream:
         self.app = app
         self.transport = transport
         self.streams = {}
+        self.streams_lock = threading.RLock()
 
         if self.transport == "ws":
             self.app.router.add_get('/stream', self.wshandler)
@@ -48,45 +50,46 @@ class ADStream:
 
     async def send_update(self, data):
         try:
-            if len(self.streams) > 0:
-                self.logger.debug("Sending data: %s", data)
-                for stream in self.streams:
-                    if data['event_type'] == 'state_changed':
-                        for handle, sub in self.streams[stream].subscriptions['state'].items():
-                            if sub['namespace'].endswith('*'):
-                                if not data['namespace'].startswith(sub['namespace'][:-1]):
-                                    continue
-                            else:
-                                if not data['namespace'] == sub['namespace']:
-                                    continue
+            with self.streams_lock:
+                if len(self.streams) > 0:
+                    self.logger.debug("Sending data: %s", data)
+                    for stream in self.streams:
+                        if data['event_type'] == 'state_changed':
+                            for handle, sub in self.streams[stream].subscriptions['state'].items():
+                                if sub['namespace'].endswith('*'):
+                                    if not data['namespace'].startswith(sub['namespace'][:-1]):
+                                        continue
+                                else:
+                                    if not data['namespace'] == sub['namespace']:
+                                        continue
 
-                            if sub['entity_id'].endswith('*'):
-                                if not data['data']['entity_id'].startswith(sub['entity_id'][:-1]):
-                                    continue
-                            else:
-                                if not data['data']['entity_id'] == sub['entity_id']:
-                                    continue
+                                if sub['entity_id'].endswith('*'):
+                                    if not data['data']['entity_id'].startswith(sub['entity_id'][:-1]):
+                                        continue
+                                else:
+                                    if not data['data']['entity_id'] == sub['entity_id']:
+                                        continue
 
-                            await self.streams[stream].stream_send(data)
-                            break
-                    else:
-                        for handle, sub in self.streams[stream].subscriptions['event'].items():
-                            if sub['namespace'].endswith('*'):
-                                if not data['namespace'].startswith(sub['namespace'][:-1]):
-                                    continue
-                            else:
-                                if not data['namespace'] == sub['namespace']:
-                                    continue
+                                await self.streams[stream].stream_send(data)
+                                break
+                        else:
+                            for handle, sub in self.streams[stream].subscriptions['event'].items():
+                                if sub['namespace'].endswith('*'):
+                                    if not data['namespace'].startswith(sub['namespace'][:-1]):
+                                        continue
+                                else:
+                                    if not data['namespace'] == sub['namespace']:
+                                        continue
 
-                            if sub['event'].endswith('*'):
-                                if not data['event_type'].startswith(sub['event'][:-1]):
-                                    continue
-                            else:
-                                if not data['event_type'] == sub['event']:
-                                    continue
+                                if sub['event'].endswith('*'):
+                                    if not data['event_type'].startswith(sub['event'][:-1]):
+                                        continue
+                                else:
+                                    if not data['event_type'] == sub['event']:
+                                        continue
 
-                            await self.streams[stream].stream_send(data)
-                            break
+                                await self.streams[stream].stream_send(data)
+                                break
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error during 'send_update()'")
@@ -101,7 +104,8 @@ class ADStream:
 
         rh = RequestHandler(self.AD, self.transport, ws)
         handle = uuid.uuid4().hex
-        self.streams[handle] = rh
+        with self.streams_lock:
+            self.streams[handle] = rh
 
         # noinspection PyBroadException
         try:
@@ -120,22 +124,33 @@ class ADStream:
             self.logger.debug('-' * 60)
             #await ws.close()
         finally:
-            self.streams.pop(handle, None)
+            with self.streams_lock:
+                self.streams.pop(handle, None)
 
         return ws
 
     # Websockets Handler
 
     async def on_shutdown(self, application):
-        for stream in self.streams:
-            try:
-                await self.streams[stream].stream.close()
-            except:
-                self.logger.debug('-' * 60)
-                self.logger.warning("Unexpected error in on_shutdown()")
-                self.logger.debug('-' * 60)
-                self.logger.debug(traceback.format_exc())
-                self.logger.debug('-' * 60)
+        with self.streams_lock:
+            for stream in self.streams:
+                try:
+                    await self.streams[stream].stream.close()
+                except:
+                    self.logger.debug('-' * 60)
+                    self.logger.warning("Unexpected error in on_shutdown()")
+                    self.logger.debug('-' * 60)
+                    self.logger.debug(traceback.format_exc())
+                    self.logger.debug('-' * 60)
+            for stream in self.streams:
+                try:
+                    await self.streams[stream].stream.close()
+                except:
+                    self.logger.debug('-' * 60)
+                    self.logger.warning("Unexpected error in on_shutdown()")
+                    self.logger.debug('-' * 60)
+                    self.logger.debug(traceback.format_exc())
+                    self.logger.debug('-' * 60)
 
 ## Any method here that doesn't begin with "_" will be exposed to the stream
 ## directly. Only Create public methods here if you wish to make them
