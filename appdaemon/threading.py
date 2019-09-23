@@ -148,6 +148,7 @@ class Threading:
                                   "q": 0,
                                   "is_alive": True,
                                   "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
+                                  "pinned_apps": []
                               }
                               )
 
