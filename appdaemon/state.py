@@ -38,7 +38,7 @@ class State:
 
             if namespace in self.state: #it already exists
                 self.logger.warning("Namespace %s already exists", namespace)
-                return
+                return False
             
             with self.state_lock:
                 safe = bool(writeback == "safe")
