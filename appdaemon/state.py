@@ -16,24 +16,94 @@ class State:
 
         self.state = {"default": {}, "admin": {}}
         self.logger = ad.logging.get_child("_state")
+        self.state_lock = threading.RLock()
+        self.app_created_namespaces = []
 
         # Initialize User Defined Namespaces
 
+        for ns in self.AD.namespaces:
+            writeback = self.AD.namespaces[ns].get("writeback", "safe")
+            self.create_namespace(ns, writeback, "_state")
+           
+    def create_namespace(self, namespace, writeback="safe", name=None):
+        executed = True
         nspath = os.path.join(self.AD.config_dir, "namespaces")
         try:
             if not os.path.isdir(nspath):
                 os.makedirs(nspath)
-            for ns in self.AD.namespaces:
-                self.logger.info("User Defined Namespace '%s' initialized", ns)
-                writeback = self.AD.namespaces[ns].get("writeback", "safe")
+
+            safe = False
+            if writeback == "safe":
+                safe = True
+
+            if namespace in self.state: #it already exists
+                self.logger.warning("Namespace %s already exists", namespace)
+                return
+            
+            with self.state_lock:
                 safe = bool(writeback == "safe")
-                self.state[ns] = utils.PersistentDict(os.path.join(nspath, ns), safe)
+                self.state[namespace] = utils.PersistentDict(os.path.join(nspath, namespace), safe)
+
+                self.logger.info("User Defined Namespace '%s' initialized", namespace)
+
+                if name != "_state": #meaning its not from the start if AD
+                    self.app_created_namespaces.append(namespace)
+
+                    data = {
+                            "event_type": "__AD_NAMESPACE_ADDED",
+                            "data":
+                                {
+                                    "namespace": namespace,
+                                    "writeback": writeback
+                                }
+                            }
+
+                    self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+                    if self.AD.http is not None:
+                        self.AD.loop.create_task(self.AD.http.admin_page("/"))
+                        
         except:
+                executed = False
                 self.logger.warning('-' * 60)
                 self.logger.warning("Unexpected error in namespace setup")
                 self.logger.warning('-' * 60)
                 self.logger.warning(traceback.format_exc())
                 self.logger.warning('-' * 60)
+        
+        return executed
+    
+    def delete_namespace(self, namespace):
+        executed = True
+        if namespace in self.app_created_namespaces:
+            with self.state_lock:
+                self.state.pop(namespace)
+                self.app_created_namespaces.remove(namespace)
+
+                self.logger.warning("Namespace %s, has ben deleted", namespace)
+
+                data =  {
+                        "event_type": "__AD_NAMESPACE_REMOVED",
+                        "data":
+                            {
+                                "namespace": namespace
+                            }
+                        }
+
+                self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+                if self.AD.http is not None:
+                    self.AD.loop.create_task(self.AD.http.admin_page("/"))
+        
+        elif namespace in self.state and namespace not in self.app_created_namespaces:
+            self.logger.warning("Cannot delete namespace %s, as not an app defined namespace", namespace)
+            executed = False
+        
+        else:
+            self.logger.warning("Namespace %s doesn't exists", namespace)
+            executed = False
+        
+        return executed
 
     async def list_namespaces(self):
         ns = []
@@ -461,7 +531,11 @@ class State:
         self.state[namespace] = state
 
     def update_namespace_state(self, namespace, state):
-        self.state[namespace].update(state)
+        if isinstance(namespace, list): #if its a list, meaning multiple namespaces to be updated
+            for ns in namespace:
+                self.state[ns].update(state[ns])
+        else:
+            self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
         if namespace in self.AD.namespaces:
