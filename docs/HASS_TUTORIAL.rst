@@ -247,7 +247,7 @@ will seem a more natural, powerful and nimble way of building
 potentially very complex automations.
 
 If this has whet your appetite, feel free to give it a try. You can find
-installation instructions, `here <INSTALL.rst>`__, including full
+installation instructions, `here <https://appdaemon.readthedocs.io/en/latest/INSTALL.html>`__, including full
 installation instructions, an API reference, and a number of fully
 fleshed out examples.
 
