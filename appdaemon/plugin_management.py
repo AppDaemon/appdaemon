@@ -182,7 +182,9 @@ class Plugins:
 
                 if namespaces != []: # there are multiple namesapces
                     for namesp in namespaces:
-                        self.AD.state.set_namespace_state(namesp, state[namesp])
+
+                        if state[namesp] != None:
+                            self.AD.state.set_namespace_state(namesp, state[namesp])
 
                     # AD plugin has no namespace for data of its own
 
