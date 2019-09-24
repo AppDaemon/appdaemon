@@ -365,6 +365,9 @@ function update_admin(data)
         state = data.data.new_state.state;
         attributes = data.data.new_state.attributes;
         item = window[namespace + "_table"].get("name", entity);
+
+        // TODO: This breaks if a new entity shows up
+
         item[0].values({name: entity, state: state, last_changed: last_changed, attributes: JSON.stringify(attributes)});
         if (namespace === "admin")
         {
