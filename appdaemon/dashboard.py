@@ -371,7 +371,7 @@ class Dashboard:
             self.logger.warning("Unable to find widget type '%s'", widget_type)
             self.logger.warning(traceback.format_exc())
             # Return some valid data so the browser will render a blank widget
-            return self.error_widget("Unable to find widget type '%s'", widget_type)
+            return self.error_widget("Unable to find widget type '{}'".format(widget_type))
 
     @staticmethod
     def error_widget(error):
