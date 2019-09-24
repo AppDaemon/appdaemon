@@ -39,6 +39,10 @@ class ADStream:
         self.transport = transport
         self.streams = {}
         self.streams_lock = threading.RLock()
+        
+        self._stream_lock = threading.RLock()
+        self.local_stream_callbacks = {}
+        self.external_stream_callbacks = {}
 
         if self.transport == "ws":
             self.app.router.add_get('/stream', self.wshandler)
@@ -90,12 +94,48 @@ class ADStream:
 
                                 await self.streams[stream].stream_send(data)
                                 break
+                                
+                if len(self.local_stream_callbacks) > 0:
+                    for client_name, cb in self.local_stream_callbacks.items():
+                        if "__AD_ORIGIN" in data["data"] and client_name == data["data"]["__AD_ORIGIN"]:
+                            continue #meaning it shouldn't be sent to the orinating end point
+                        
+                        asyncio.ensure_future(cb(data))
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error during 'send_update()'")
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
+    
+    def local_stream_register(self, name, cb):
+        self.logger.debug("local_register_stream called: %s -> %s", name, cb)
+
+        with self._stream_lock:
+            self.local_stream_callbacks[name] = cb
+
+    def local_stream_unregister(self, name):
+        self.logger.debug("local_stream_unregister called: %s", name)
+        with self._stream_lock:
+            if name in self.local_stream_callbacks:
+                del self.local_stream_callbacks[name]
+    
+    def external_stream_register(self, name, client_name, cb):
+        self.logger.debug("external_register_stream called: %s %s -> %s", name, client_name, cb)
+
+        with self._stream_lock:
+            if client_name not in self.external_stream_callbacks:
+                self.external_stream_callbacks[client_name] = {}
+            
+            self.external_stream_callbacks[client_name][name] = cb
+
+    def external_stream_unregister(self, name):
+        self.logger.debug("external_stream_unregister called: %s", name)
+
+        with self._stream_lock:
+            for client_name in self.external_stream_callbacks:
+                if name in self.external_stream_callbacks[client_name]:
+                    del self.external_stream_callbacks[client_name][name]
 
     #@securedata
     async def wshandler(self, request):
@@ -117,13 +157,16 @@ class ADStream:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except:
             self.logger.debug('-' * 60)
-            self.logger.debug("Unexpected client disconnection")
-            self.access.info("Unexpected client disconnection")
+            self.logger.debug("Unexpected client disconnection from %s", rh.client_name)
+            self.access.info("Unexpected client disconnection from %s", rh.client_name)
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
             #await ws.close()
         finally:
+            event_data = {'client_name' : rh.client_name}
+            await self.AD.events.fire_event('admin', '__WEBSOCKET_DISCONNECTED', **event_data)
+            
             with self.streams_lock:
                 self.streams.pop(handle, None)
 
@@ -162,6 +205,7 @@ class RequestHandler:
         self.transport = transport
         self.stream = stream
         self.authed = False
+        self.client_name = None
         self.subscriptions = {
             'state': {},
             'event': {},
@@ -275,6 +319,8 @@ class RequestHandler:
     async def hello(self, data):
         if "client_name" not in data:
             raise RequestHandlerException('client_name required')
+        else:
+            self.client_name = data["client_name"]
 
         if self.AD.http.password is None:
             self.authed = True
@@ -289,6 +335,10 @@ class RequestHandler:
         response_data = {
             "version": utils.__version__
         }
+        
+        event_data = {'client_name' : data["client_name"]}
+
+        await self.AD.events.fire_event('admin', '__WEBSOCKET_CONNECTED', **event_data)
 
         return response_data
 
@@ -349,9 +399,9 @@ class RequestHandler:
         entity_id = data.get('entity_id', None)
 
         if entity_id is not None and namespace is None:
-            raise RequestHandlerException('entity_id cannoy be set without namespace')
+            raise RequestHandlerException('entity_id cannot be set without namespace')
 
-        return self.AD.state.get_entity(namespace, entity_id)                
+        return self.AD.state.get_entity(namespace, entity_id, self.client_name)          
 
     async def listen_state(self, data):
         if not self.authed:
@@ -424,6 +474,33 @@ class RequestHandler:
         del self.subscriptions['event'][data['handle']]
 
         return True
+    
+    async def forwarded_stream(self, data):
+        if not self.authed:
+            raise RequestHandlerException('unauthorized')
+
+        if "namespace" not in data:
+            raise RequestHandlerException('invalid namespace')
+
+        for cn in self.external_stream_callbacks:
+            if cn.endswith('*'):
+                if not self.client_name.startswith(cn[:-1]):
+                    continue
+            else:
+                if not cn == self.client_name:
+                    continue
+
+            for name in self.external_stream_callbacks[cn]:
+                cb = self.external_stream_callbacks[cn][name]
+
+                try:
+                    asyncio.ensure_future(cb(data))
+                except:
+                    self.logger.debug('-' * 60)
+                    self.logger.warning("Unexpected error while processing forwarded_stream for %s", name)
+                    self.logger.debug('-' * 60)
+                    self.logger.debug(traceback.format_exc())
+                    self.logger.debug('-' * 60)
 
 
 class RequestHandlerException(Exception):
