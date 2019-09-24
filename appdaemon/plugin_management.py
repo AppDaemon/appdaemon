@@ -139,8 +139,8 @@ class Plugins:
     def get_plugin(self, plugin):
         return self.plugins[plugin]
 
-    async def get_plugin_object(self, name):
-        if name in self.plugin_objs:
+    async def get_plugin_object(self, namespace):
+        if namespace in self.plugin_objs:
             return self.plugin_objs[name]["object"]
         
         for name in self.plugins:
