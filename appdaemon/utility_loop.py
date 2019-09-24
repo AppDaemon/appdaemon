@@ -76,6 +76,11 @@ class Utility:
                 if ns == "default" or ns in self.AD.plugins.plugin_objs or ns in self.AD.namespaces: #meaning only default or it belongs to a local plugin. Don't allow for Admin/appdaemon/global namespaces
                     self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
 
+            #
+            # Register run_sequence service
+            #
+            self.AD.services.register_service("rules", "sequence", "run", self.AD.services.run_sequence_service)
+
             self.AD.loop.create_task(self.AD.sched.loop())
 
             if self.AD.apps is True:
