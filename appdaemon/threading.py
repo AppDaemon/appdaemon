@@ -142,6 +142,16 @@ class Threading:
         for i in range(self.total_threads):
             await self.add_thread(True)
 
+        # Add thread object to track async
+        await self.add_entity("admin", "thread.async", "idle",
+                              {
+                                  "q": 0,
+                                  "is_alive": True,
+                                  "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
+                                  "pinned_apps": []
+                              }
+                              )
+
     def get_q(self, thread_id):
         return self.threads[thread_id]["queue"]
 
@@ -321,12 +331,21 @@ class Threading:
 
         # Update thread info
 
-        await self.set_state("_threading", "admin", "thread.{}".format(thread_id),
-                             q=self.threads[thread_id]["queue"].qsize(),
-                             state=callback,
-                             time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
-                             is_alive=self.threads[thread_id]["thread"].is_alive(),
-                             pinned_apps=await self.get_pinned_apps(thread_id)
+        if thread_id == "async":
+            await self.set_state("_threading", "admin", "thread.{}".format(thread_id),
+                                 q=0,
+                                 state=callback,
+                                 time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
+                                 is_alive=True,
+                                 pinned_apps=[]
+                             )
+        else:
+            await self.set_state("_threading", "admin", "thread.{}".format(thread_id),
+                                 q=self.threads[thread_id]["queue"].qsize(),
+                                 state=callback,
+                                 time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
+                                 is_alive=self.threads[thread_id]["thread"].is_alive(),
+                                 pinned_apps=await self.get_pinned_apps(thread_id)
                              )
         await self.set_state("_threading", "admin", "app.{}".format(app), state=callback)
 
@@ -642,7 +661,6 @@ class Threading:
             return False
 
     # noinspection PyBroadException
-    # TODO: update threads
     async def async_worker(self, args):
         thread_id = threading.current_thread().name
         _type = args["type"]
@@ -658,7 +676,7 @@ class Threading:
             try:
                 if _type == "scheduler":
                     try:
-                        # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                        await self.update_thread_info("async", callback, name, _type, _id)
                         await funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                     except TypeError as e:
                         self.report_callback_sig(name, "scheduler", funcref, args)
@@ -669,7 +687,7 @@ class Threading:
                         attr = args["attribute"]
                         old_state = args["old_state"]
                         new_state = args["new_state"]
-                        # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                        await self.update_thread_info("async", callback, name, _type, _id)
                         await funcref(entity, attr, old_state, new_state, self.AD.state.sanitize_state_kwargs(app, args["kwargs"]))
                     except TypeError as e:
                         self.report_callback_sig(name, "state", funcref, args)
@@ -678,14 +696,14 @@ class Threading:
                     data = args["data"]
                     if args["event"] == "__AD_LOG_EVENT":
                         try:
-                            # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                            await self.update_thread_info("async", callback, name, _type, _id)
                             await funcref(data["app_name"], data["ts"], data["level"], data["log_type"], data["message"], args["kwargs"])
                         except TypeError as e:
                             self.report_callback_sig(name, "log_event", funcref, args)
 
                     else:
                         try:
-                            # await self.update_thread_info(thread_id, callback, name, _type, _id)
+                            await self.update_thread_info("async", callback, name, _type, _id)
                             await funcref(args["event"], data, args["kwargs"])
                         except TypeError as e:
                             self.report_callback_sig(name, "event", funcref, args)
@@ -701,7 +719,7 @@ class Threading:
                     self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
             finally:
                 pass
-                # await self.update_thread_info(thread_id, "idle", name, _type, _id)
+                await self.update_thread_info("async", "idle", name, _type, _id)
 
         else:
             if not self.AD.stopping:
