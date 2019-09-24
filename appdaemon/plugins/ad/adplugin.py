@@ -623,10 +623,12 @@ class AdPlugin(PluginBase):
                     state[namespace] = result["data"]
                 
                 else:
+                    state[namespace] = None
                     self.logger.warning("No state data available for Namespace %r", self.rm_ns[namespace])
 
             else:
-                state[namespace] = {}
+                state[namespace] = None
+                self.logger.warning("There was an error while processing data for Namespace %r", self.rm_ns[namespace])
             
         return state
 
