@@ -15,7 +15,7 @@ class State:
 
         self.AD = ad
 
-        self.state = {"default": {}, "admin": {}, "rules": {}}
+        self.state = {"default": {}, "admin": {}}
         self.logger = ad.logging.get_child("_state")
         self.state_lock = threading.RLock()
         self.app_created_namespaces = []
@@ -533,7 +533,8 @@ class State:
     def update_namespace_state(self, namespace, state):
         if isinstance(namespace, list): #if its a list, meaning multiple namespaces to be updated
             for ns in namespace:
-                self.state[ns].update(state[ns])
+                if state[ns] != None:
+                    self.state[ns].update(state[ns])
         else:
             self.state[namespace].update(state)
 
