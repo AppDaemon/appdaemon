@@ -306,7 +306,17 @@ class AdPlugin(PluginBase):
                         self.non_restricted_namespaces = [self.non_restricted_namespaces]
 
                     # register callback to get local stream
-                    self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream)
+
+                    allowed_namespaces = []
+                    if self.non_restricted_namespaces != []: #only allowed namespaces
+                        allowed_namespaces.extend(self.non_restricted_namespaces)
+
+                    if allowed_namespaces != []:
+                        for namespace in allowed_namespaces:
+                            self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream, namespace=namespace)
+                    
+                    else: #subscribe to all events
+                        self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream, namespace="*")
 
                     #setup to receive instructions for this local endpoint
                     subscription = {"namespace" : "{}*".format(self.client_name),
