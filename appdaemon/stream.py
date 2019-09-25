@@ -6,6 +6,7 @@ import bcrypt
 import uuid
 import json
 import threading
+import asyncio
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
@@ -96,11 +97,27 @@ class ADStream:
                                 break
                                 
                 if len(self.local_stream_callbacks) > 0:
-                    for client_name, cb in self.local_stream_callbacks.items():
+                    for client_name in self.local_stream_callbacks:
                         if "__AD_ORIGIN" in data["data"] and client_name == data["data"]["__AD_ORIGIN"]:
                             continue #meaning it shouldn't be sent to the orinating end point
+
+                        namespaces = self.local_stream_callbacks[client_name]["namespaces"]
+                        callback = self.local_stream_callbacks[client_name]["callback"]
+
+                        if namespaces == []: #no namespace specified
+                            continue
+
+                        else:
+
+                            for namespace in namespaces:
+                                if namespace.endswith('*'):
+                                    if not data['namespace'].startswith(namespace[:-1]):
+                                        continue
+                                else:
+                                    if not data['namespace'] == namespace:
+                                        continue
                         
-                        asyncio.ensure_future(cb(data))
+                                asyncio.ensure_future(callback(data))
         except:
             self.logger.warning('-' * 60)
             self.logger.warning("Unexpected error during 'send_update()'")
@@ -108,16 +125,32 @@ class ADStream:
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
     
-    def local_stream_register(self, name, cb):
-        self.logger.debug("local_register_stream called: %s -> %s", name, cb)
+    def local_stream_register(self, name, callback, **kwargs):
+        self.logger.debug("local_register_stream called: %s, %s -> %s", name, kwargs, callback)
 
         with self._stream_lock:
-            self.local_stream_callbacks[name] = cb
+            if name not in self.local_stream_callbacks:
+                self.local_stream_callbacks[name] = {}
+                self.local_stream_callbacks[name]["namespaces"] = []
+            
+            self.local_stream_callbacks[name]["callback"] = callback
 
-    def local_stream_unregister(self, name):
-        self.logger.debug("local_stream_unregister called: %s", name)
+            if "namespace" in kwargs and kwargs["namespace"] not in self.local_stream_callbacks[name]["namespaces"]:
+                self.local_stream_callbacks[name]["namespaces"].append(kwargs["namespace"])
+
+    def local_stream_unregister(self, name, **kwargs):
+        self.logger.debug("local_stream_unregister called: %s, %s", name, kwargs)
         with self._stream_lock:
             if name in self.local_stream_callbacks:
+                if "namespace" in kwargs:
+                    if kwargs["namespace"] in self.local_stream_callbacks[name]["namespaces"]:
+                        self.local_stream_callbacks[name]["namespaces"].remove(kwargs["namespace"])
+                    
+                    else:
+                        self.logger.warning("Unrecognised namespace called in local_stream_unregister: %s", kwargs["namespace"])
+
+                    return
+
                 del self.local_stream_callbacks[name]
     
     def external_stream_register(self, name, client_name, cb):
