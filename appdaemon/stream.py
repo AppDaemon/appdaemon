@@ -125,8 +125,8 @@ class ADStream:
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
     
-    def local_stream_register(self, name, callback, **kwargs):
-        self.logger.debug("local_register_stream called: %s, %s -> %s", name, kwargs, callback)
+    def local_stream_register(self, name, callback, namespace=None):
+        self.logger.debug("local_register_stream called: %s, %s -> %s", name, namespace, callback)
 
         with self._stream_lock:
             if name not in self.local_stream_callbacks:
@@ -135,19 +135,19 @@ class ADStream:
             
             self.local_stream_callbacks[name]["callback"] = callback
 
-            if "namespace" in kwargs and kwargs["namespace"] not in self.local_stream_callbacks[name]["namespaces"]:
-                self.local_stream_callbacks[name]["namespaces"].append(kwargs["namespace"])
+            if namespace != None and namespace not in self.local_stream_callbacks[name]["namespaces"]:
+                self.local_stream_callbacks[name]["namespaces"].append(namespace)
 
-    def local_stream_unregister(self, name, **kwargs):
-        self.logger.debug("local_stream_unregister called: %s, %s", name, kwargs)
+    def local_stream_unregister(self, name, namespace=None):
+        self.logger.debug("local_stream_unregister called: %s, %s", name, namespace)
         with self._stream_lock:
             if name in self.local_stream_callbacks:
-                if "namespace" in kwargs:
-                    if kwargs["namespace"] in self.local_stream_callbacks[name]["namespaces"]:
-                        self.local_stream_callbacks[name]["namespaces"].remove(kwargs["namespace"])
+                if namespace != None:
+                    if namespace in self.local_stream_callbacks[name]["namespaces"]:
+                        self.local_stream_callbacks[name]["namespaces"].remove(namespace)
                     
                     else:
-                        self.logger.warning("Unrecognised namespace called in local_stream_unregister: %s", kwargs["namespace"])
+                        self.logger.warning("Unrecognised namespace called in local_stream_unregister: %s", namespace)
 
                     return
 
