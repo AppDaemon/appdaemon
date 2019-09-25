@@ -313,10 +313,10 @@ class AdPlugin(PluginBase):
 
                     if allowed_namespaces != []:
                         for namespace in allowed_namespaces:
-                            self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream, namespace=namespace)
+                            self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream, namespace)
                     
                     else: #subscribe to all events
-                        self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream, namespace="*")
+                        self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream, "*")
 
                     #setup to receive instructions for this local endpoint
                     subscription = {"namespace" : "{}*".format(self.client_name),
