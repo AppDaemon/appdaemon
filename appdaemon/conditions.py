@@ -9,6 +9,70 @@ DEFAULT_OPERATOR = "=="
 DEFAULT_VALUE = "on"
 DEFAULT_ATTRIBUTE = "state"
 
+DEFAULT_APP_NAME = "ctest"
+
+
+class ConditionManager:
+    def __init__(self, AD):
+        self.AD = AD
+        self._conditions = {}
+
+        self.register_condition('all', AllCondition)
+        self.register_condition('any', AnyCondition)
+        self.register_condition('state', StateCondition)
+        self.register_condition('time', TimeCondition)
+        self.register_condition('days', DaysCondition)
+
+    def register_condition(self, name, cls):
+        """Register a Condition
+
+        Args:
+            name: Name to reference the condition with
+            cls: Class to implement the condition. Must be an extension of
+                appdaemon.conditions.AbstractCondition
+
+        Returns:
+            None.
+        """
+
+        if name in self._conditions:
+            raise KeyError('Condition named {} already registered.'.format(
+                name))
+
+        self._conditions[name] = cls
+
+    def unregister_condition(self, name):
+        """Unregister a Condition
+
+        Args:
+            name: Name to reference the condition with
+
+        Returns:
+            None.
+        """
+
+        if name not in self._conditions:
+            raise KeyError('Condition named {} not registered.'.format(
+                name))
+
+        del self._conditions[name]
+
+    def get_condition(self, name, config):
+        """Instantiate a Condition
+
+        Args:
+            name: Name of the condition (as used in register_condition())
+            config: the config to be sent to the condition.
+
+        Returns:
+            the Condition object (allowing for check() and listen() methods)
+        """
+
+        try:
+            return self._conditions[name](self.AD, config)
+        except KeyError:
+            raise KeyError("{} is not a registered condition".format(name))
+
 
 class AbstractCondition(ABC):
 
@@ -49,10 +113,9 @@ class AbstractCondition(ABC):
         pass
 
     # leave these methods
-    def __init__(self, app, config):
-        self.app = app
-        self.AD = app.AD
-        self.name = app.name
+    def __init__(self, AD, config):
+        self.name = DEFAULT_APP_NAME
+        self.AD = AD
         self.listener = None
         self.__state = None
 
@@ -90,7 +153,7 @@ class AbstractCondition(ABC):
         KWArgs:
             immediate: if True, the callback will fire immediately with the
                        state of the condition
-            
+
             **:        any additional desired keywords to be sent to the
                        callback
 
@@ -128,24 +191,64 @@ class TimeCondition(AbstractCondition):
         self.times = self.parse_config()
 
     async def update(self):
-        return await self.app.now_is_between(
+        return await self.AD.sched.now_is_between(
             self.times['start'],
-            self.times['end'])
+            self.times['end'],
+            None)
 
     async def setup_listener(self):
-        handle = await self.app.run_daily(self.timer_callback, self.times['start'])
+        # get today
+        now = await self.sched.get_now_naive()
+        today = now.date()
+
+        # make a start date time
+        if type(self.times['start']) == datetime.time:
+            when_start = self.times['start']
+        elif type(self.times['start']) == str:
+            parsed_start = await self.AD.sched._parse_time(
+                self.times['start'], None)
+            when_start = parsed_start['datetime'].time()
+        else:
+            raise ValueError("Invalid type for start")
+        dt_start = datetime.datetime.combine(today, when_start)
+        if dt_start < now:
+            dt_start = dt_start + datetime.timedelta(days=1)
+
+        # make an end date time
+        if type(self.times['end']) == datetime.time:
+            when_end = self.times['end']
+        elif type(self.times['end']) == str:
+            parsed_end = await self.AD.sched._parse_time(
+                self.times['end'], None)
+            when_end = parsed_end['datetime'].time()
+        else:
+            raise ValueError("Invalid type for end")
+        dt_end = datetime.datetime.combine(today, when_end)
+        if dt_end < now:
+            dt_end = dt_start + datetime.timedelta(days=1)
+
+        handle = await self.AD.sched.insert_schedule(
+            self.name,
+            dt_start,
+            self.timer_callback,
+            True,
+            None,
+            interval=24 * 60 * 60)
         self.cancel_handles.append(handle)
 
-        end_time = (
-            datetime.datetime.strptime(self.times['end'], "%H:%M:%S")
-            + datetime.timedelta(seconds=1))
-        handle = await self.app.run_daily(self.timer_callback, end_time.time())
+        handle = await self.AD.sched.insert_schedule(
+            self.name,
+            dt_end,
+            self.timer_callback,
+            True,
+            None,
+            interval=24 * 60 * 60)
         self.cancel_handles.append(handle)
 
     async def destroy_listener(self):
         while self.cancel_handles:
             cancel_handle = self.cancel_handles.pop()
-            await self.app.cancel_timer(cancel_handle)
+            await self.AD.sched.cancel_timer(self.name, cancel_handle)
 
     # helping methods
     def parse_config(self):
@@ -181,20 +284,36 @@ class DaysCondition(AbstractCondition):
         self.daylist = self.parse_config()
 
     async def update(self):
-        now = await self.app.datetime()
+        now = await self.AD.sched.get_now_naive()
         if now.weekday() not in self.daylist:
             return False
         else:
             return True
 
     async def setup_listener(self):
-        handle = await self.app.run_daily(self.timer_callback, "00:00:01")
+        # get today
+        now = await self.AD.sched.get_now_naive()
+        today = now.date()
+
+        # make a start date time
+        when_start = datetime.time(hour=0, minute=0, second=1)
+        dt_start = datetime.datetime.combine(today, when_start)
+        if dt_start < now:
+            dt_start = dt_start + datetime.timedelta(days=1)
+
+        handle = await self.AD.sched.insert_schedule(
+            self.name,
+            dt_start,
+            self.timer_callback,
+            True,
+            None,
+            interval=24 * 60 * 60)
         self.cancel_handles.append(handle)
 
     async def destroy_listener(self):
         while self.cancel_handles:
             cancel_handle = self.cancel_handles.pop()
-            await self.app.cancel_timer(cancel_handle)
+            await self.AD.sched.cancel_timer(self.name, cancel_handle)
 
     # helping methods
     async def timer_callback(self, kwargs):
@@ -208,27 +327,27 @@ class DaysCondition(AbstractCondition):
         return ret
 
 
-class ConstraintCondition(AbstractCondition):
+# class ConstraintCondition(AbstractCondition):
 
-    # required methods
-    def initialize(self):
-        pass
+#     # required methods
+#     def initialize(self):
+#         pass
 
-    async def setup_listener(self):
-        raise Exception(
-            "A Constraint, '{}', cannot be listened to".format(
-                self.config['name']
-            ))
+#     async def setup_listener(self):
+#         raise Exception(
+#             "A Constraint, '{}', cannot be listened to".format(
+#                 self.config['name']
+#             ))
 
-    async def destroy_listener(self):
-        raise Exception(
-            "A Constraint, '{}', cannot be cancelled".format(
-                self.config['name']
-            ))
+#     async def destroy_listener(self):
+#         raise Exception(
+#             "A Constraint, '{}', cannot be cancelled".format(
+#                 self.config['name']
+#             ))
 
-    async def update(self):
-        fn = getattr(self.app, self.config['name'])
-        return fn(self.config['value'])
+#     async def update(self):
+#         fn = getattr(self.app, self.config['name'])
+#         return fn(self.config['value'])
 
 
 class AbstractLogicalCondition(AbstractCondition):
@@ -271,21 +390,9 @@ class AbstractLogicalCondition(AbstractCondition):
             condition_name = list(c_one.keys())[0]
             condition_parameter = c_one[condition_name]
 
-            try:
-                cond_obj = self.app.get_condition(condition_name, condition_parameter)
-            except KeyError:
-                alt_name = "constrain_" + condition_name
-                if condition_name in self.app.list_constraints():
-                    constraint_name = condition_name
-                elif alt_name in self.app.list_constraints():
-                    constraint_name = alt_name
-                else:
-                    raise
-
-                cond_obj = ConstraintCondition(self.app, {
-                    "name": constraint_name,
-                    "value": condition_parameter
-                })
+            cond_obj = self.AD.conditions.get_condition(
+                condition_name,
+                condition_parameter)
 
             ret.append(cond_obj)
 
@@ -335,23 +442,27 @@ class StateCondition(AbstractCondition):
         self.handle = False
 
     async def update(self):
-        entity_value = await self.app.get_state(
+        entity_value = await self.AD.state.get_state(
+            self.name,
+            self.entity['namespace'],
             self.entity['entity_id'],
-            namespace=self.entity['namespace'],
-            attribute=self.entity['attribute'])
+            self.entity['attribute'],
+            None,
+            True)
 
         return self.compare_value(
             entity_value, self.operator, self.value)
 
     async def setup_listener(self):
-        self.handle = await self.app.listen_state(
-            self.state_callback,
+        self.handle = await self.AD.state.add_state_callback(
+            self.name,
+            self.entity['namespace'],
             self.entity['entity_id'],
-            namespace=self.entity['namespace'],
-            attribute=self.entity['attribute'])
+            self.state_callback,
+            {})
 
     async def destroy_listener(self):
-        await self.app.cancel_listen_state(self.handle)
+        await self.AD.state.cancel_state_callback(self.handle, self.name)
         self.handle = None
 
     # helping methods
@@ -428,7 +539,7 @@ class StateCondition(AbstractCondition):
 
     def parse_entity_id_string(self, e_str):
         r = {
-            "namespace": self.app._namespace,
+            "namespace": 'default',
             "entity_id": None,
             "attribute": DEFAULT_ATTRIBUTE,
         }
@@ -476,7 +587,5 @@ class StateCondition(AbstractCondition):
         if len(e_dict) != 3:
             raise ValueError(
                 'extra keys are present in entity_id dict')
-
-        self.app._check_entity(e_dict['namespace'], e_dict['entity_id'])
 
         return

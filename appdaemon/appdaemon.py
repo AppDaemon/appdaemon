@@ -24,6 +24,7 @@ class AppDaemon:
         import appdaemon.events as events
         import appdaemon.services as services
         import appdaemon.scheduler as scheduler
+        import appdaemon.conditions as conditions
 
         self.logging = logging
         self.logging.register_ad(self)
@@ -32,6 +33,7 @@ class AppDaemon:
         self.callbacks = None
         self.futures = None
         self.state = None
+        self.conditions = None
 
         self.config = kwargs
         self.booted = "booting"
@@ -201,6 +203,11 @@ class AppDaemon:
         # Set up futures
         #
         self.futures = futures.Futures(self)
+
+        #
+        # Set up conditions
+        #
+        self.conditions = conditions.ConditionManager(self)
 
 
         if self.apps is True:
