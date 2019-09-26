@@ -5,7 +5,6 @@ from copy import deepcopy
 import appdaemon.utils as utils
 import appdaemon.adapi as adapi
 from appdaemon.appdaemon import AppDaemon
-import appdaemon.conditions as conditions
 
 
 class Entities:

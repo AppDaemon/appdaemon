@@ -12,6 +12,7 @@ import uuid
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+
 class ADAPI:
     """AppDaemon API class.
 
@@ -2707,3 +2708,5 @@ class ADAPI:
                                                                         self.name,
                                                                         *modules
                                                                       )
+
+
