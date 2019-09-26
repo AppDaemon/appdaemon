@@ -1,3 +1,4 @@
+# pylama:ignore=E501
 import asyncio
 import datetime
 import inspect
@@ -1387,10 +1388,10 @@ class ADAPI:
         self.logger.debug("register_service: %s/%s, %s", d, s, kwargs)
 
         namespace = self._get_namespace(**kwargs)
-        
+
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
     @utils.sync_wrapper
@@ -1451,7 +1452,7 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         kwargs["__name"] = self.name
 
         return await self.AD.services.call_service(namespace, d, s, kwargs)
@@ -2040,7 +2041,7 @@ class ADAPI:
             False,
             None,
             **kwargs)
-            
+
         return handle
 
     @utils.sync_wrapper
@@ -2709,4 +2710,10 @@ class ADAPI:
                                                                         *modules
                                                                       )
 
+    def create_condition(self, condition_type, config):
+        return self.AD.conditions.create_condition(config, config)
 
+    @utils.sync_wrapper
+    async def create_condition_entity(self, condition_type, name=None):
+        return await self.AD.conditions.create_condition_entity(
+            condition_type, name)
