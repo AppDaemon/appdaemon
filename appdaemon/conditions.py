@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import appdaemon.utils as utils
 import datetime
+import uuid
 
 SEP_NAMESPACE = ":"
 SEP_ATTRIBUTE = "#"
@@ -11,19 +12,27 @@ DEFAULT_ATTRIBUTE = "state"
 
 DEFAULT_APP_NAME = "ctest"
 
+ENTITY_NAMESPACE = "rules"
+ENTITY_CLASS = "condition"
+
 
 class ConditionManager:
     def __init__(self, AD):
         self.AD = AD
-        self._conditions = {}
+        self._condition_types = {}
+        self._cancels = []
 
-        self.register_condition('all', AllCondition)
-        self.register_condition('any', AnyCondition)
-        self.register_condition('state', StateCondition)
-        self.register_condition('time', TimeCondition)
-        self.register_condition('days', DaysCondition)
+        self.register_condition_type('all', AllCondition)
+        self.register_condition_type('any', AnyCondition)
+        self.register_condition_type('state', StateCondition)
+        self.register_condition_type('time', TimeCondition)
+        self.register_condition_type('days', DaysCondition)
 
-    def register_condition(self, name, cls):
+    def terminate(self):
+        for cancel in self._cancels:
+            cancel()
+
+    def register_condition_type(self, name, cls):
         """Register a Condition
 
         Args:
@@ -35,13 +44,13 @@ class ConditionManager:
             None.
         """
 
-        if name in self._conditions:
+        if name in self._condition_types:
             raise KeyError('Condition named {} already registered.'.format(
                 name))
 
-        self._conditions[name] = cls
+        self._condition_types[name] = cls
 
-    def unregister_condition(self, name):
+    def unregister_condition_type(self, name):
         """Unregister a Condition
 
         Args:
@@ -51,17 +60,18 @@ class ConditionManager:
             None.
         """
 
-        if name not in self._conditions:
+        if name not in self._condition_types:
             raise KeyError('Condition named {} not registered.'.format(
                 name))
 
-        del self._conditions[name]
+        del self._condition_types[name]
 
-    def get_condition(self, name, config):
+    def create_condition(self, condition_type, config):
         """Instantiate a Condition
 
         Args:
-            name: Name of the condition (as used in register_condition())
+            condition_type: type of condition (as used in
+                register_condition_type())
             config: the config to be sent to the condition.
 
         Returns:
@@ -69,9 +79,47 @@ class ConditionManager:
         """
 
         try:
-            return self._conditions[name](self.AD, config)
+            return self._condition_types[condition_type](self.AD, config)
         except KeyError:
-            raise KeyError("{} is not a registered condition".format(name))
+            raise KeyError("{} is not a registered condition".format(
+                condition_type))
+
+    async def create_condition_entity(self, condition_type, config, name=None):
+        """Create an entity for a condition
+
+        Args:
+            condition_type: type of condition (as used in
+                register_condition_type())
+            name: entity name to use for condition. If None a uuid will be
+                created for you.
+
+        Returns:
+            entity_id of the condition entity
+        """
+
+        condition = self.create_condition(condition_type, config)
+        return await self.create_entity_from_condition(condition, name)
+
+    async def create_entity_from_condition(self, condition, name=None):
+        if name is None:
+            name = uuid.uuid4().hex
+
+        entity_id = ENTITY_CLASS + '.' + name
+
+        if await self.AD.state.entity_exists(ENTITY_NAMESPACE, entity_id):
+            raise KeyError('entity already exists: {}'.format(entity_id))
+
+        if not isinstance(condition, AbstractCondition):
+            raise ValueError('entities can only be created from Conditions')
+
+        def entity_callback(value, kwargs):
+            pass
+            # TODO add proper set_state code here
+            # set_state(entity_id, state=value, namespace=ENTITY_NAMESPACE)
+
+        self.cancels.append(await condition.listen(entity_callback))
+
+        return entity_id
 
 
 class AbstractCondition(ABC):
@@ -390,7 +438,7 @@ class AbstractLogicalCondition(AbstractCondition):
             condition_name = list(c_one.keys())[0]
             condition_parameter = c_one[condition_name]
 
-            cond_obj = self.AD.conditions.get_condition(
+            cond_obj = self.AD.conditions.create_condition(
                 condition_name,
                 condition_parameter)
 
