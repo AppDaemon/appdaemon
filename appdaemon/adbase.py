@@ -1,3 +1,4 @@
+# pylama:ignore=E501
 import threading
 from functools import wraps
 from copy import deepcopy
@@ -82,6 +83,9 @@ class ADBase:
 
         self.constraints = []
 
+        self.register_constraint('constrain_condition_all')
+        self.register_constraint('constrain_condition_any')
+
     #
     # API/Plugin
     #
@@ -106,3 +110,11 @@ class ADBase:
 
     def list_constraints(self):
         return self.constraints
+
+    def constrain_condition_all(self, value):
+        cond = self.AD.conditions.create_condition('all', value)
+        return cond.check()
+
+    def constrain_condition_any(self, value):
+        cond = self.AD.conditions.create_condition('any', value)
+        return cond.check()
