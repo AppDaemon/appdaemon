@@ -318,7 +318,7 @@ class AdPlugin(PluginBase):
                     else: #subscribe to all events
                         self.AD.http.stream.local_register_stream(self.client_name, self.forward_local_stream, "*")
 
-                    #setup to receive instructions for this local endpoint
+                    #setup to receive instructions for this local instance from the remote one
                     subscription = {"namespace" : "{}*".format(self.client_name),
                                     "event" : "*"
                                 }
@@ -339,7 +339,7 @@ class AdPlugin(PluginBase):
                     result = json.loads(res)
                     self.logger.debug("%s", result)
 
-                    if "response_type" in result: #not an event stream
+                    if "response_type" in result: #not an event stream but a response type
                         if "response_id" in result: #its for a message with expected result
                             response_id = result.get("response_id")
 
@@ -354,6 +354,7 @@ class AdPlugin(PluginBase):
 
                         if accept == True: #accept data
                             res = None
+                            response = None
                             if result["data"].get("__AD_ORIGIN", None) == self.client_name:
                                 pass #it originated from this instance so disregard it
 
@@ -365,7 +366,7 @@ class AdPlugin(PluginBase):
                             elif result["event_type"] == "get_state": #get state
                                 entity_id = result["data"].get("entity_id", None)
                                 res = self.AD.state.get_entity(ns, entity_id, self.client_name)  
-                                event = "get_state_response"
+                                response = "get_state_response"
                             
                             elif result["event_type"] == "get_services": #get services
                                 services = self.AD.services.list_services()
@@ -378,14 +379,14 @@ class AdPlugin(PluginBase):
                                         if service["namespace"] == ns:
                                             res.update(service)
 
-                                event = "get_services_response"
+                                response = "get_services_response"
                             
                             elif result["event_type"] == "call_service": #a service call is being made by remote device
                                 domain = result["data"]["domain"]
                                 service = result["data"]["service"]
                                 service_data = result["data"]["data"]
                                 res = await self.AD.services.call_service(ns, domain, service, service_data)
-                                event = "call_service_response"
+                                response = "call_service_response"
 
                             else:
                                 result["data"]["__AD_ORIGIN"] = self.client_name
@@ -393,20 +394,24 @@ class AdPlugin(PluginBase):
 
                             if res != None:
                                 data = {}
-                                data["result"] = res
                                 data["__AD_ORIGIN"] = self.client_name
+                                data["response"] = res
+
+                                request_id = result.pop("request_id", uuid.uuid4().hex)
 
                                 if ns == None:
                                     ns = self.client_name
 
                                 kwargs = {
-                                    "request_type": "fire_event", 
-                                    "data" : { 
+                                    "request_type": "forwarded_stream",
+                                    "data" : {
                                     "namespace" : ns,
-                                    "event" : event,
+                                    "response_type" : response,
+                                    "response_id" : request_id,
                                     "data" : data
                                     }
                                 }
+
                                 await utils.run_in_executor(self, self.ws.send, json.dumps(kwargs))
 
             except:
@@ -754,7 +759,7 @@ class AdPlugin(PluginBase):
         await asyncio.sleep(1)
         namespace = subscription["namespace"]
 
-        if namespace.startswith(self.client_name):
+        if namespace.startswith(self.client_name): #for local instance remote subscription
             accept = True
         else:
             accept = await self.check_namespace(namespace, self.rm_ns)
