@@ -68,7 +68,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     #
 
     @utils.sync_wrapper
-    def listen_event(self, callback, event=None, **kwargs):
+    async def listen_event(self, callback, event=None, **kwargs):
         """Listens for changes within the MQTT plugin.
 
         Unlike other plugins, MQTT does not keep state. All MQTT messages will have an event
@@ -279,7 +279,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         return result
     
     @utils.sync_wrapper
-    def is_client_connected(self, **kwargs):
+    async def is_client_connected(self, **kwargs):
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 
         This a helper function used to check or confirm within an app if the plugin is connected
