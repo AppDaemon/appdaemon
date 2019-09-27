@@ -75,6 +75,11 @@ class Utility:
             for ns in await self.AD.state.list_namespaces():
                 self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
 
+            #
+            # Register run_sequence service
+            #
+            self.AD.services.register_service("rules", "sequence", "run", self.AD.services.run_sequence_service)
+
             self.AD.loop.create_task(self.AD.sched.loop())
 
             if self.AD.apps is True:

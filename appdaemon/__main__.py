@@ -37,6 +37,7 @@ class ADMain:
         self.diag = None
         self.AD = None
         self.http_object = None
+        self.logger = None
 
     def init_signals(self):
         """Setup signal handling."""
