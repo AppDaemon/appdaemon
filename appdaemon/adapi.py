@@ -2652,9 +2652,9 @@ class ADAPI:
             A Future, which can be cancelled by calling f.cancel()
 
         Examples:
-            >>> f = self.run_coroutine(asyncio.sleep(3), self.coro_callback
+            >>> f = self.ensure_future(asyncio.sleep(3), callback=self.coro_callback)
             >>>
-            >>> def coro_callback(self, result, kwargs):
+            >>> def coro_callback(self, kwargs):
 
         """
         # get stuff we'll need to fake scheduler call
@@ -2674,7 +2674,7 @@ class ADAPI:
                 # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
-                self.run_coroutine(self.AD.threading.dispatch_worker(self.name, sched_data))
+                self.ensure_future(self.AD.threading.dispatch_worker(self.name, sched_data))
 
                 # callback(f.result(), kwargs)
             except asyncio.CancelledError:
