@@ -27,12 +27,7 @@ class Futures:
         if f.cancelled():
             return
 
-        if f.cancel():
-            return
-
-        f = f.exception()
-        if f is not None:
-            raise f
+        f.cancel()
 
     def cancel_futures(self, name):
         if name not in self.futures:
