@@ -1729,7 +1729,7 @@ class ADAPI:
 
                     b. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
                     with an optional positive or negative offset in Hours Minutes and seconds.
-
+            name (str, optional): Name of the calling app or module. It is used only for logging purposes.
             aware (bool, optional): If ``True`` the created time object will be aware of timezone.
 
         Returns:
@@ -1772,6 +1772,7 @@ class ADAPI:
 
                 If the ``HH:MM:SS`` format is used, the resulting datetime object will have
                 today's date.
+            name (str, optional): Name of the calling app or module. It is used only for logging purposes.
             aware (bool, optional): If ``True`` the created datetime object will be aware
                 of timezone.
 
@@ -1828,8 +1829,9 @@ class ADAPI:
         implementation can correctly handle transitions across midnight.
 
         Args:
-            start_time (str): A string representation of the start time
-            end_time (str): A string representation of the end time
+            start_time (str): A string representation of the start time.
+            end_time (str): A string representation of the end time.
+            name (str, optional): Name of the calling app or module. It is used only for logging purposes.
 
         Returns:
             bool: ``True`` if the current time is within the specified start and end times,
