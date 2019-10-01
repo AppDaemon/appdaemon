@@ -2711,4 +2711,22 @@ class ADAPI:
                                                                         *modules
                                                                       )
 
+    async def sleep(self, delay, result=None):
+        """Pause execution for a certain time span
+        (not available in sync apps)
+
+        Args:
+            delay: number of seconds to pause
+            result: optional result to return upon delay completion
+
+        Returns:
+            result or None.
+
+        Examples:
+            >>> async def myfunction(self):
+            >>>     await self.sleep(5)
+        """
+        
+        return await asyncio.sleep(delay, result=result)
+
 
