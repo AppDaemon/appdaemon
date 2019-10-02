@@ -2638,8 +2638,8 @@ class ADAPI:
         """
         return await self.AD.callbacks.get_callback_entries()
 
-    async def run_in_executor(self, func, *args):
-        return await utils.run_in_executor(self, func, *args)
+    async def run_in_executor(self, func, *args, **kwargs):
+        return await utils.run_in_executor(self, func, *args, **kwargs)
 
     @utils.sync_wrapper
     async def ensure_future(self, coro, callback=None, **kwargs):
