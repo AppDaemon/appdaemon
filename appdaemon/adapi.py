@@ -1729,7 +1729,7 @@ class ADAPI:
 
                     b. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
                     with an optional positive or negative offset in Hours Minutes and seconds.
-
+            name (str, optional): Name of the calling app or module. It is used only for logging purposes.
             aware (bool, optional): If ``True`` the created time object will be aware of timezone.
 
         Returns:
@@ -1772,6 +1772,7 @@ class ADAPI:
 
                 If the ``HH:MM:SS`` format is used, the resulting datetime object will have
                 today's date.
+            name (str, optional): Name of the calling app or module. It is used only for logging purposes.
             aware (bool, optional): If ``True`` the created datetime object will be aware
                 of timezone.
 
@@ -1828,8 +1829,9 @@ class ADAPI:
         implementation can correctly handle transitions across midnight.
 
         Args:
-            start_time (str): A string representation of the start time
-            end_time (str): A string representation of the end time
+            start_time (str): A string representation of the start time.
+            end_time (str): A string representation of the end time.
+            name (str, optional): Name of the calling app or module. It is used only for logging purposes.
 
         Returns:
             bool: ``True`` if the current time is within the specified start and end times,
@@ -2652,9 +2654,9 @@ class ADAPI:
             A Future, which can be cancelled by calling f.cancel()
 
         Examples:
-            >>> f = self.run_coroutine(asyncio.sleep(3), self.coro_callback
+            >>> f = self.ensure_future(asyncio.sleep(3), callback=self.coro_callback)
             >>>
-            >>> def coro_callback(self, result, kwargs):
+            >>> def coro_callback(self, kwargs):
 
         """
         # get stuff we'll need to fake scheduler call
@@ -2674,7 +2676,7 @@ class ADAPI:
                 # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
-                self.run_coroutine(self.AD.threading.dispatch_worker(self.name, sched_data))
+                self.ensure_future(self.AD.threading.dispatch_worker(self.name, sched_data))
 
                 # callback(f.result(), kwargs)
             except asyncio.CancelledError:
