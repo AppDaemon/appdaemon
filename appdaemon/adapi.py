@@ -2638,11 +2638,11 @@ class ADAPI:
         """
         return await self.AD.callbacks.get_callback_entries()
 
-    async def run_in_executor(self, func, *args):
-        return await self.AD.loop.run_in_executor(self.AD.executor, func, *args)
+    async def run_in_executor(self, func, *args, **kwargs):
+        return await utils.run_in_executor(self, func, *args, **kwargs)
 
     @utils.sync_wrapper
-    async def ensure_future(self, coro, callback=None, **kwargs):
+    async def create_task(self, coro, callback=None, **kwargs):
         """Schedules a Coroutine to be executed
 
         Args:
@@ -2654,7 +2654,7 @@ class ADAPI:
             A Future, which can be cancelled by calling f.cancel()
 
         Examples:
-            >>> f = self.ensure_future(asyncio.sleep(3), callback=self.coro_callback)
+            >>> f = self.create_task(asyncio.sleep(3), callback=self.coro_callback)
             >>>
             >>> def coro_callback(self, kwargs):
 
@@ -2676,7 +2676,7 @@ class ADAPI:
                 # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
-                self.ensure_future(self.AD.threading.dispatch_worker(self.name, sched_data))
+                self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
 
                 # callback(f.result(), kwargs)
             except asyncio.CancelledError:

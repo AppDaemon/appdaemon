@@ -13,6 +13,7 @@ import datetime
 import dateutil.parser
 import copy
 import json
+from functools import wraps
 
 
 if platform.system() != "Windows":
@@ -172,6 +173,7 @@ class StateAttrs(dict):
 
 
 def sync_wrapper(coro):
+    @wraps(coro)
     def inner_sync_wrapper(self, *args, **kwargs):
         is_async = None
         try:

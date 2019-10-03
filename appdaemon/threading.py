@@ -653,7 +653,8 @@ class Threading:
             # And Q
             #
             if asyncio.iscoroutinefunction(myargs["function"]):
-                await self.async_worker(myargs)
+                f = asyncio.ensure_future(self.async_worker(myargs))
+                self.AD.futures.add_future(name, f)
             else:
                 self.select_q(myargs)
             return True
