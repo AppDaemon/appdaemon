@@ -67,7 +67,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     # Override listen_event()
     #
 
-    def listen_event(self, cb, event=None, **kwargs):
+    @utils.sync_wrapper
+    async def listen_event(self, callback, event=None, **kwargs):
         """Listens for changes within the MQTT plugin.
 
         Unlike other plugins, MQTT does not keep state. All MQTT messages will have an event
@@ -75,7 +76,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         required in the plugin configuration.
 
         Args:
-            cb: Function to be invoked when the requested event occurs. It must conform
+            callback: Function to be invoked when the requested event occurs. It must conform
                 to the standard Event Callback format documented `Here <APPGUIDE.html#about-event-callbacks>`__.
             event: Name of the event to subscribe to. Can be the declared ``event_name`` parameter
                 as specified in the plugin configuration. If no event is specified, ``listen_event()``
@@ -134,15 +135,15 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         if 'wildcard' in kwargs:
             wildcard = kwargs['wildcard']
             if wildcard[-2:] == '/#' and len(wildcard.split('/')[0]) >= 1:
-                plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(namespace))
-                utils.run_coroutine_threadsafe(self, plugin.process_mqtt_wildcard(kwargs['wildcard']))
+                plugin = await self.AD.plugins.get_plugin_object(namespace)
+                await plugin.process_mqtt_wildcard(kwargs['wildcard'])
             else:
                 self.logger.warning(
                     "Using %s as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered",
                     wildcard)
                 return
 
-        return super(Mqtt, self).listen_event(cb, event, **kwargs)
+        return super(Mqtt, self).listen_event(callback, event, **kwargs)
 
     #
     # service calls
@@ -276,8 +277,9 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         service = 'mqtt/unsubscribe'
         result = self.call_service(service, **kwargs)
         return result
-
-    def is_client_connected(self, **kwargs):
+    
+    @utils.sync_wrapper
+    async def is_client_connected(self, **kwargs):
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 
         This a helper function used to check or confirm within an app if the plugin is connected
@@ -312,5 +314,5 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(namespace))
-        return utils.run_coroutine_threadsafe(self, plugin.mqtt_client_state())
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        return await plugin.mqtt_client_state()
