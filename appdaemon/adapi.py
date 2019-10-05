@@ -2726,6 +2726,15 @@ class ADAPI:
             >>> async def myfunction(self):
             >>>     await self.sleep(5)
         """
+        is_async = None
+        try:
+            asyncio.get_event_loop()
+            is_async = True
+        except RuntimeError:
+            is_async = False
+
+        if not is_async:
+            raise RuntimeError("The sleep method is for use in ASYNC methods only")
         
         return await asyncio.sleep(delay, result=result)
 
