@@ -1476,7 +1476,7 @@ class ADAPI:
             None.
 
         Examples:
-            Run a yaml-defined sequence called "Front Room Scene".
+            Run a yaml-defined sequence called "sequence.front_room_scene".
 
             >>> self.run_sequence("sequence.front_room_scene")
 
