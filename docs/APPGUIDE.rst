@@ -2408,7 +2408,7 @@ A predefined sequence is created by addin a ``sequence`` section to your apps.ya
 multiple files, you can have sequences defined in each one if desired. For clarity, it is strongly recommended that
 sequences are created in their own standalone yaml files, ideally in a separate directory from the app argument files.
 
-An example of a simple sequence to create a scene might be:
+An example of a simple sequence entry to create a couple of scenes might be:
 
 .. code:: yaml
 
@@ -2422,6 +2422,13 @@ An example of a simple sequence to create a scene might be:
         - homeassistant/turn_on:
             entity_id: light.office_2
             brightness: 254
+      office_off:
+        name: Office Off
+        steps:
+        - homeassistant/turn_off:
+            entity_id: light.office_1
+        - homeassistant/turn_off:
+            entity_id: light.office_2
 
 
 The name of the sequence defined above is ``sequence.office_on``. The ``name`` entry is optional and is used to provide
