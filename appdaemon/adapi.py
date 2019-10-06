@@ -1495,7 +1495,7 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling run_sequence() for %s", self.name)
-        self.AD.thread_async.call_async_no_wait(self.AD.services.run_sequence, _name, namespace, sequence, **kwargs)
+        self.AD.thread_async.call_async_no_wait(self.AD.sequences.run_sequence, _name, namespace, sequence, **kwargs)
 
     #
     # Events
