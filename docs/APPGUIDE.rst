@@ -2480,6 +2480,9 @@ basis if required.
             brightness: 254
             namespace: "hass2"
 
+Just like app parameters and code, sequences will be reloaded after any change has been made allowing scenes to be
+developed and modified without restarting AppDaemon.
+
 Running a Sequence
 ~~~~~~~~~~~~~~~~~~
 
