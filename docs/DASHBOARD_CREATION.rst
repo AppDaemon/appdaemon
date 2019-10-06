@@ -1994,6 +1994,37 @@ Style Arguments:
 -  ``title_style``
 -  ``title2_style``
 
+scene
+~~~~~
+.. figure:: images/sequence.png
+   :alt: sequence
+
+A widget to run a sequence
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity\_id of the sequence e.g. ``sequence.office_on``
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile
+-  ``title2`` - a second line of title text
+-  ``state_text``
+-  ``state_map``
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+-  ``icon_on``
+-  ``icon_off``
+-  ``widget_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``title_style``
+-  ``title2_style``
+
 sensor
 ~~~~~~
 .. figure:: images/sensor.png

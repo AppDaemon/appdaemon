@@ -2384,8 +2384,120 @@ You can use this with 2 separate constraints like so:
         handle = self.run_every(self.up_callback, time, 1, sun="up")
         handle = self.run_every(self.down_callback, time, 1, sun="down")
 
+Sequences
+---------
+
+AppDaemon supports `sequences` as a simple way of re-using predefined steps of commands. The initial usecase for sequences
+is to allow users to create scenes within AppDaemon, however they are useful for many other things. Sequences
+are fairly simple and allow the user to define 2 types of activity:
+
+- A call_service command with arbitrary parameters
+- A configurable delay between steps.
+
+In the case of a scene, of course you would not want to use the delay, and would just list all the devices to be switched
+on or off, however, if you wanted a light to come on for 30 seconds, you could use a script to turn the light on,
+wait 30 seconds and then turn it off. Unlike in synchronous apps, delays are fine in scripts as they will
+not hold the apps_thread up.
+
+There are 2 types of sequence - predefined sequences and inline sequences.
+
+Defining a Sequence
+~~~~~~~~~~~~~~~~~~~
+
+A predefined sequence is created by addin a ``sequence`` section to your apps.yaml file. If you have apps.yaml split into
+multiple files, you can have sequences defined in each one if desired. For clarity, it is strongly recommended that
+sequences are created in their own standalone yaml files, ideally in a separate directory from the app argument files.
+
+An example of a simple sequence to create a scene might be:
+
+.. code:: yaml
+
+    sequence:
+      office_on:
+        name: Office On
+        steps:
+        - homeassistant/turn_on:
+            entity_id: light.office_1
+            brightness: 254
+        - homeassistant/turn_on:
+            entity_id: light.office_2
+            brightness: 254
 
 
+The name of the sequence defined above is ``sequence.office_on``. The ``name`` entry is optional and is used to provide
+a friendly name for HADashboard. The ``steps`` entry is simply a list of steps to be taken. They will be processed in
+the order defined, however without any delays the steps will be processed practically instantaneously.
+
+A sequence to turn a light on then off after a delay might look like this:
+
+.. code:: yaml
+
+    sequence:
+      outside_motion_light:
+        name: Outside Motion
+        steps:
+        - homeassistant/turn_on:
+            entity_id: light.outside
+            brightness: 254
+        - sleep: 30
+        - homeassistant/turn_off:
+            entity_id: light.outside
+
+If you prefer, you can use YAML's inline capabilities for a more compact representation that looks better for longer sequences:
+
+.. code:: yaml
+
+    sequence:
+      outside_motion_light:
+        name: Outside Motion
+        steps:
+        - homeassistant/turn_on: {"entity_id": "light.outside", "brightness": 254}
+        - sleep: 30
+        - homeassistant/turn_off: {"entity_id": "light.outside"}
+
+By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
+basis if required.
+
+.. code:: yaml
+
+    sequence:
+      office_on:
+        name: Office On
+        steps:
+        - homeassistant/turn_on:
+            entity_id: light.office_1
+            brightness: 254
+            namespace: "hass1"
+        - homeassistant/turn_on:
+            entity_id: light.office_2
+            brightness: 254
+            namespace: "hass2"
+
+Running a Sequence
+~~~~~~~~~~~~~~~~~~
+
+Once you have the sequence defined, you can run it in one of 2 ways:
+
+- using the ``self.run_sequence()`` ap[i call
+- Using a sequence widget in HADashboard
+
+A call to run the above sequence would look like this:
+
+.. code:: python
+
+    self.run_sequence("sequence.outside_motion_light")
 
 
+Inline Sequences
+~~~~~~~~~~~~~~~~
+
+Sequences can be run without the need to predefine them by specifying the steps to the ``run_sequence()`` command like so:
+
+.. code:: python
+
+     self.run_sequence([
+            {'light/turn_on': {'entity_id': 'light.office_1', 'brightness': '5', 'color_name': 'white', 'namespace': 'default'}},
+            {'sleep': 1},
+            {'light/turn_off': {'entity_id': 'light.office_1'}},
+            ])
 

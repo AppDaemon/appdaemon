@@ -107,6 +107,15 @@ scene_title2_style: $style_title2
 scene_widget_style: $background_style
 scene_state_text_style: "color: red; font-weight: bold"
 
+sequence_icon_on: fas-square
+sequence_icon_off: fas-square
+sequence_icon_style_active: $style_active
+sequence_icon_style_inactive: $style_inactive
+sequence_title_style: $style_title
+sequence_title2_style: $style_title2
+sequence_widget_style: $background_style
+sequence_state_text_style: "color: red; font-weight: bold"
+
 mode_icon_on: fas-arrows-alt
 mode_icon_off: fas-arrows-alt
 mode_icon_style_active: $style_active
