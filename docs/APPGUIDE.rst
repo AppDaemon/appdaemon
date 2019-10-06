@@ -2431,7 +2431,7 @@ An example of a simple sequence entry to create a couple of scenes might be:
             entity_id: light.office_2
 
 
-The name of the sequences defined above are ``sequence.office_on`` and ``sequence.office_off``. The ``name`` entry is optional and is used to provide
+The names of the sequences defined above are ``sequence.office_on`` and ``sequence.office_off``. The ``name`` entry is optional and is used to provide
 a friendly name for HADashboard. The ``steps`` entry is simply a list of steps to be taken. They will be processed in
 the order defined, however without any delays the steps will be processed practically instantaneously.
 
@@ -2485,7 +2485,7 @@ Running a Sequence
 
 Once you have the sequence defined, you can run it in one of 2 ways:
 
-- using the ``self.run_sequence()`` ap[i call
+- using the ``self.run_sequence()`` api call
 - Using a sequence widget in HADashboard
 
 A call to run the above sequence would look like this:
