@@ -115,7 +115,7 @@ class Services:
 
     async def add_sequences(self, sequences):
         for sequence in sequences:
-            await self.AD.state.add_entity("rules", "sequence.{}".format(sequence), "idle", attributes={"steps": sequences[sequence]})
+            await self.AD.state.add_entity("rules", "sequence.{}".format(sequence), "idle", attributes={"friendly_name": sequences[sequence].get("name", sequence), "steps": sequences[sequence]["steps"]})
 
     async def run_sequence(self, _name, namespace, sequence):
 
