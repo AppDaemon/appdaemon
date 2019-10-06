@@ -57,23 +57,34 @@ class Sequences:
         # OK, lets run it
         #
 
-        await self.AD.state.set_state("_services", "rules", entity_id, state="active")
+        coro = self.do_steps(namespace, entity_id, seq, ephemeral_entity)
+        future = asyncio.ensure_future(coro)
 
-        for step in seq:
-            for command, parameters in step.items():
-                if command == "sleep":
-                    await asyncio.sleep(float(parameters))
-                else:
-                    domain, service = str.split(command, "/")
-                    if "namespace" in parameters:
-                        ns = parameters["namespace"]
-                        del parameters["namespace"]
+        return future
+
+    async def cancel_sequence(self, _name, handle):
+        handle.cancel()
+
+    async def do_steps(self, namespace, entity_id, seq, ephemeral_entity):
+
+        await self.AD.state.set_state("_sequences", "rules", entity_id, state="active")
+
+        try:
+            for step in seq:
+                for command, parameters in step.items():
+                    if command == "sleep":
+                        await asyncio.sleep(float(parameters))
                     else:
-                        ns = namespace
+                        domain, service = str.split(command, "/")
+                        if "namespace" in parameters:
+                            ns = parameters["namespace"]
+                            del parameters["namespace"]
+                        else:
+                            ns = namespace
 
-                    await self.AD.services.call_service(ns, domain, service, parameters)
+                        await self.AD.services.call_service(ns, domain, service, parameters)
+        finally:
+            await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
-        await self.AD.state.set_state("_services", "rules", entity_id, state="idle")
-
-        if ephemeral_entity is True:
-            await self.AD.state.remove_entity("rules", entity_id)
+            if ephemeral_entity is True:
+                await self.AD.state.remove_entity("rules", entity_id)

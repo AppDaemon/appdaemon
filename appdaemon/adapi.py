@@ -1456,7 +1456,8 @@ class ADAPI:
 
         return await self.AD.services.call_service(namespace, d, s, kwargs)
 
-    def run_sequence(self, sequence, **kwargs):
+    @utils.sync_wrapper
+    async def run_sequence(self, sequence, **kwargs):
         """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
         service calls.
 
@@ -1473,16 +1474,16 @@ class ADAPI:
                 for a detailed description. In most cases, it is safe to ignore this parameter.
 
         Returns:
-            None.
+            A handle that can be used with `cancel_sequence()` to terminate the script.
 
         Examples:
             Run a yaml-defined sequence called "sequence.front_room_scene".
 
-            >>> self.run_sequence("sequence.front_room_scene")
+            >>> handle = self.run_sequence("sequence.front_room_scene")
 
             Run an inline sequence.
 
-            >>> self.run_sequence([{"light.turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
+            >>> handle = self.run_sequence([{"light.turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
             {"entity_id": "light.office_1"}}])
 
 
@@ -1495,7 +1496,27 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling run_sequence() for %s", self.name)
-        self.AD.thread_async.call_async_no_wait(self.AD.sequences.run_sequence, _name, namespace, sequence, **kwargs)
+        return await self.AD.sequences.run_sequence( _name, namespace, sequence, **kwargs)
+
+    @utils.sync_wrapper
+    async def cancel_sequence(self, handle):
+        """Cancel an AppDaemon Sequence.
+
+        Args:
+            handle: The handle returned by the `run_sequence()` call
+
+        Returns:
+            None.
+
+        Examples:
+
+            >>> self.run_sequence(handle)
+
+        """
+
+        _name = self.name
+        self.logger.debug("Calling run_sequence() for %s", self.name)
+        await self.AD.sequences.cancel_sequence( _name, handle)
 
     #
     # Events
