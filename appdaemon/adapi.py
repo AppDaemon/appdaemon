@@ -1457,7 +1457,7 @@ class ADAPI:
         return await self.AD.services.call_service(namespace, d, s, kwargs)
 
     def run_sequence(self, sequence, **kwargs):
-        """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file, and are sequences of
+        """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
         service calls.
 
         Args:
@@ -1478,7 +1478,7 @@ class ADAPI:
         Examples:
             Run a yaml-defined sequence called "Front Room Scene".
 
-            >>> self.run_sequence("Front Room Scene")
+            >>> self.run_sequence("sequence.front_room_scene")
 
             Run an inline sequence.
 
