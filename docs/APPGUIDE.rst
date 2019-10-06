@@ -2431,7 +2431,7 @@ An example of a simple sequence entry to create a couple of scenes might be:
             entity_id: light.office_2
 
 
-The name of the sequence defined above is ``sequence.office_on``. The ``name`` entry is optional and is used to provide
+The name of the sequences defined above are ``sequence.office_on`` and ``sequence.office_off``. The ``name`` entry is optional and is used to provide
 a friendly name for HADashboard. The ``steps`` entry is simply a list of steps to be taken. They will be processed in
 the order defined, however without any delays the steps will be processed practically instantaneously.
 
