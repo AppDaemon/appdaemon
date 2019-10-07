@@ -2497,7 +2497,7 @@ A call to run the above sequence would look like this:
 
     handle = self.run_sequence("sequence.outside_motion_light")
 
-The handle value can be used to terminate a running sequence by suppliting it to the ``cancel_sequence()` call.
+The handle value can be used to terminate a running sequence by suppliting it to the ``cancel_sequence()`` call.
 
 When an app is terminated or reloaded, all running sequences that it started are immediately terminated. There is no way
 to terminate a sequence started using HADashboard.
