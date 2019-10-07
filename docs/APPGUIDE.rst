@@ -2462,6 +2462,21 @@ If you prefer, you can use YAML's inline capabilities for a more compact represe
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
+Sequences can be cretaed that will loop forever by adding the value ``loop: True`` to the sequence:
+
+.. code:: yaml
+
+    sequence:
+      outside_motion_light:
+        name: Outside Motion
+        loop; True
+        steps:
+        - homeassistant/turn_on: {"entity_id": "light.outside", "brightness": 254}
+        - sleep: 30
+        - homeassistant/turn_off: {"entity_id": "light.outside"}
+
+This sequence once started will loop until either the sequence is cancelled, the app is restarted or terminated, or AppDaemon is shutdown.
+
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
 basis if required.
 

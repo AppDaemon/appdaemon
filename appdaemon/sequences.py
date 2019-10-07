@@ -27,12 +27,13 @@ class Sequences:
         for sequence in sequences:
             await self.AD.state.add_entity("rules", "sequence.{}".format(sequence), "idle",
                                            attributes={"friendly_name": sequences[sequence].get("name", sequence),
+                                                       "loop": sequences[sequence].get("loop", False),
                                                        "steps": sequences[sequence]["steps"]})
 
 
     async def run_sequence(self, _name, namespace, sequence):
         ephemeral_entity = False
-
+        loop = False
         if isinstance(sequence, str):
             entity_id = sequence
             if await self.AD.state.entity_exists("rules", entity_id) is False:
@@ -41,6 +42,7 @@ class Sequences:
 
             entity = await self.AD.state.get_state("_services", "rules", sequence, attribute="all")
             seq = entity["attributes"]["steps"]
+            loop = entity["attributes"]["loop"]
         else:
             #
             # Assume it's a list with the actual commands in it
@@ -57,7 +59,7 @@ class Sequences:
         # OK, lets run it
         #
 
-        coro = self.do_steps(namespace, entity_id, seq, ephemeral_entity)
+        coro = self.do_steps(namespace, entity_id, seq, ephemeral_entity, loop)
         future = asyncio.ensure_future(coro)
         self.AD.futures.add_future(_name, future)
 
@@ -66,24 +68,27 @@ class Sequences:
     async def cancel_sequence(self, _name, future):
         future.cancel()
 
-    async def do_steps(self, namespace, entity_id, seq, ephemeral_entity):
+    async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):
 
         await self.AD.state.set_state("_sequences", "rules", entity_id, state="active")
 
         try:
-            for step in seq:
-                for command, parameters in step.items():
-                    if command == "sleep":
-                        await asyncio.sleep(float(parameters))
-                    else:
-                        domain, service = str.split(command, "/")
-                        if "namespace" in parameters:
-                            ns = parameters["namespace"]
-                            del parameters["namespace"]
+            while True:
+                for step in seq:
+                    for command, parameters in step.items():
+                        if command == "sleep":
+                            await asyncio.sleep(float(parameters))
                         else:
-                            ns = namespace
+                            domain, service = str.split(command, "/")
+                            if "namespace" in parameters:
+                                ns = parameters["namespace"]
+                                del parameters["namespace"]
+                            else:
+                                ns = namespace
 
-                        await self.AD.services.call_service(ns, domain, service, parameters)
+                            await self.AD.services.call_service(ns, domain, service, parameters)
+                if loop is not True:
+                    break
         finally:
             await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
