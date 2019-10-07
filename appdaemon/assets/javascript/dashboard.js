@@ -256,7 +256,17 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.get_state = function(child, base_url, entity)
     {
-        state_url = base_url + "/api/appdaemon/state/" + parameters.namespace + "/" + entity.entity;
+        console.log(parameters)
+        if ("resident_namespace" in parameters)
+        {
+            ns = parameters.resident_namespace
+        }
+        else
+        {
+            ns = parameters.namespace;
+        }
+        state_url = base_url + "/api/appdaemon/state/" + ns + "/" + entity.entity;
+        console.log(state_url)
         $.ajax
         ({
             url: state_url,
@@ -334,7 +344,14 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     
     this.call_service = function(child, args)
     {
-        ns = parameters.namespace;
+        if ("resident_namespace" in parameters)
+        {
+            ns = parameters.resident_namespace
+        }
+        else
+        {
+            ns = parameters.namespace;
+        }
         args["namespace"] = parameters.namespace;
 
         service_url = child.url + "/api/appdaemon/service/" + ns + "/" + args["service"];

@@ -17,6 +17,8 @@ Change Log
 - Each time a new service is registered, a ``service_registered`` event is fired, which can be picked up by apps
 - Added support for async apps
 - Added authorization to stream as well as command semantics for various functions
+- Added sequences
+- Added sequence widget
 - Changed namespaces implementation to use shelve instead of JSON enabling non JSON-serializable objects to be stored and also potential performance increases  - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
 
 **Fixes**

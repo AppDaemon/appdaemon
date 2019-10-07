@@ -78,7 +78,7 @@ class Utility:
             #
             # Register run_sequence service
             #
-            self.AD.services.register_service("rules", "sequence", "run", self.AD.services.run_sequence_service)
+            self.AD.services.register_service("rules", "sequence", "run", self.AD.sequences.run_sequence_service)
 
             self.AD.loop.create_task(self.AD.sched.loop())
 

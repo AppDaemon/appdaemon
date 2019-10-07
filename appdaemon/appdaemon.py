@@ -23,6 +23,7 @@ class AppDaemon:
         import appdaemon.state as state
         import appdaemon.events as events
         import appdaemon.services as services
+        import appdaemon.sequences as sequences
         import appdaemon.scheduler as scheduler
 
         self.logging = logging
@@ -175,6 +176,11 @@ class AppDaemon:
         # Set up services
         #
         self.services = services.Services(self)
+
+        #
+        # Set up sequences
+        #
+        self.sequences = sequences.Sequences(self)
 
         #
         # Set up scheduler

@@ -334,7 +334,7 @@ class AppManagement:
                                 else:
                                     new_config[app] = valid_apps[app]
 
-        await self.AD.services.add_sequences(new_config.get("sequence", {}))
+        await self.AD.sequences.add_sequences(new_config.get("sequence", {}))
         return new_config
 
     # Run in executor
