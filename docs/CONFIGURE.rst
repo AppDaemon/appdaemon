@@ -619,7 +619,8 @@ Accessing Directories via Apps
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Directories used by AD internally either declared by the user or not, can be accessed by the user via apps. The following directories
-are available.
+are available:
+
 - ``configuration``: self.config_dir
 - ``apps``: self.app_dir
 - ``dashboard``: self.dashboard_dir
