@@ -294,3 +294,6 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+# omit class name during the generation of the doc
+add_module_names = False
