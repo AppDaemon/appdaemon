@@ -615,8 +615,8 @@ the `admin` directive takes a number of configuration items:
 executes, usually every second. ``realtime`` is recommended for most applications, although if you have a very busy
 system, operating with sub-second callbacks you may prefer to use ``batch`` for performance reasons.
 
-Accessing Directories
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Accessing Directories via Apps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Directories used by AD internally either declared by the user or not, can be accessed by the user via apps. The following directories
 are available:
