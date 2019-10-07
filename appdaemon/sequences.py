@@ -59,11 +59,12 @@ class Sequences:
 
         coro = self.do_steps(namespace, entity_id, seq, ephemeral_entity)
         future = asyncio.ensure_future(coro)
+        self.AD.futures.add_future(_name, future)
 
         return future
 
-    async def cancel_sequence(self, _name, handle):
-        handle.cancel()
+    async def cancel_sequence(self, _name, future):
+        self.AD.futures.remove_future(_name, future)
 
     async def do_steps(self, namespace, entity_id, seq, ephemeral_entity):
 

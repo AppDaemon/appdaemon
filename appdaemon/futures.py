@@ -1,7 +1,6 @@
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 import functools
-import asyncio
 
 class Futures:
 
@@ -19,10 +18,10 @@ class Futures:
         self.AD.logger.debug('Registered a future in {}: {}'.format(name, f))
 
     def remove_future(self, name, f):
-        if name in self.futures:
+        if name in self.futures and f in self.futures[name]:
             self.futures[name].remove(f)
         
-        self.AD.logger.debug('Future removed from registry {}'.format(f))
+            self.AD.logger.debug('Future removed from registry {}'.format(f))
 
         if f.cancelled():
             return

@@ -2495,8 +2495,12 @@ A call to run the above sequence would look like this:
 
 .. code:: python
 
-    self.run_sequence("sequence.outside_motion_light")
+    handle = self.run_sequence("sequence.outside_motion_light")
 
+The handle value can be used to terminate a running sequence by suppliting it to the ``cancel_sequence()` call.
+
+When an app is terminated or reloaded, all running sequences that it started are immediately terminated. There is no way
+to terminate a sequence started using HADashboard.
 
 Inline Sequences
 ~~~~~~~~~~~~~~~~
@@ -2505,7 +2509,7 @@ Sequences can be run without the need to predefine them by specifying the steps 
 
 .. code:: python
 
-     self.run_sequence([
+     handle = self.run_sequence([
             {'light/turn_on': {'entity_id': 'light.office_1', 'brightness': '5', 'color_name': 'white', 'namespace': 'default'}},
             {'sleep': 1},
             {'light/turn_off': {'entity_id': 'light.office_1'}},
