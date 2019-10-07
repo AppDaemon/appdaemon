@@ -64,7 +64,7 @@ class Sequences:
         return future
 
     async def cancel_sequence(self, _name, future):
-        self.AD.futures.remove_future(_name, future)
+        future.cancel()
 
     async def do_steps(self, namespace, entity_id, seq, ephemeral_entity):
 
