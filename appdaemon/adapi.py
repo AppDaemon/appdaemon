@@ -2667,7 +2667,7 @@ class ADAPI:
         """Schedules a Coroutine to be executed
 
         Args:
-            coro: the coroutine (not coroutine function) to be executed
+            coro: the coroutine object (not coroutine function) to be executed
             callback: The non-async callback to be executed when complete
             **kwargs: any additional keyword arguments to send the callback
 
