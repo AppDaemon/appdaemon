@@ -26,6 +26,7 @@ Change Log
 **Fixes**
 
 - Fixed a bug in global_modules that caused a exception
+- Fixed icon bug in weather widget - contributed by `Roeland Van Lembergen <https://github.com/clayhill>`__
 
 **Breaking Changes**
 
