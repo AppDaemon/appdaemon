@@ -109,10 +109,6 @@ The ``appdaemon:`` section has a number of directives:
 -  ``longitude`` (required) - longitude for AppDaemon to use.
 -  ``elevation`` (required) - elevation for AppDaemon to use.
 -  ``time_zone`` (required) - timezone for AppDaemon to use.
--  ``api_key`` (optional) - adds the requirement for AppDaemon API calls to provide a key in the header of a request.
--  ``api_ssl_certificate`` (optional) - certificate to use when running
-   the API over SSL.
--  ``api_ssl_key`` (optional) - key to use when running the API over SSL.
 -  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
@@ -618,6 +614,17 @@ the `admin` directive takes a number of configuration items:
 ``realtime`` (default). ``none`` will turn off updates, ``batch`` will update the stats every time the utility loop
 executes, usually every second. ``realtime`` is recommended for most applications, although if you have a very busy
 system, operating with sub-second callbacks you may prefer to use ``batch`` for performance reasons.
+
+Accessing Directories via Apps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Directories used by AD internally either declared by the user or not, can be accessed by the user via apps. The following directories
+are available:
+
+- ``configuration``: self.config_dir
+- ``apps``: self.app_dir
+- ``dashboard``: self.dashboard_dir
+
 
 Example Apps
 ------------
