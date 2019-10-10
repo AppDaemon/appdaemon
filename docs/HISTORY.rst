@@ -21,6 +21,7 @@ Change Log
 - Added sequence widget
 - Added app access to dashboard directory using `self.dashboard_dir`
 - Changed namespaces implementation to use shelve instead of JSON enabling non JSON-serializable objects to be stored and also potential performance increases  - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- MDI updated to version 4.4.95 - contributed by `Roeland Van Lembergen <https://github.com/clayhill>`__
 
 **Fixes**
 
