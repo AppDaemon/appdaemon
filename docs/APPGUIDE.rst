@@ -1613,11 +1613,6 @@ your message:
 They will automatically be expanded to the appropriate values in the log
 message.
 
-User Defined Logs
------------------
-
-
-
 Getting Information in Apps and Sharing information between Apps
 ----------------------------------------------------------------
 
