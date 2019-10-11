@@ -1,7 +1,6 @@
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 import functools
-import asyncio
 
 class Futures:
 

@@ -74,7 +74,7 @@ function baseweather(widget_id, url, skin, parameters)
 
     function OnStateAvailable(self, state)
     {
-        field = self.entities_map[state.entity_id] 
+        field = self.entities_map[state.entity_id]
         if (field == 'temperature')
         {
             self.set_field(self, "unit", state.attributes.unit_of_measurement)
@@ -86,19 +86,25 @@ function baseweather(widget_id, url, skin, parameters)
         else if (field == 'pressure')
         {
             self.set_field(self, "pressure_unit", state.attributes.unit_of_measurement)
-        } 
+        }
         else if (field == 'precip_intensity')
         {
             self.set_field(self, "rain_unit", state.attributes.unit_of_measurement)
-        } 
+        }
         set_view(self, state)
     }
 
     function set_view(self, state)
     {
-        field = self.entities_map[state.entity_id] 
+        field = self.entities_map[state.entity_id]
         if (field)
         {
+            if (field == 'icon' || field == 'forecast_icon')
+            {
+                self.set_field(self, field, state.state)
+                return
+            }
+
             if (field == 'precip_type')
             {
                 self.set_field(self, "precip_type_icon", self.parameters.icons[state.state])

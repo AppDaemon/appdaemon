@@ -80,6 +80,9 @@ class Utility:
             #
             self.AD.services.register_service("rules", "sequence", "run", self.AD.sequences.run_sequence_service)
 
+            #
+            # Start the scheduler
+            #
             self.AD.loop.create_task(self.AD.sched.loop())
 
             if self.AD.apps is True:

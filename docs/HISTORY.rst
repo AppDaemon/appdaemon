@@ -12,25 +12,27 @@ Change Log
 - It is now possible to inject arbitrary headers in served http content
 - Updated camera widget now supports streams and token refreshing
 - Added input_text and input_datetime widgets
-- bumped aiohttp to 3.6.0
-- Added the ability to cointrol the number of threadpool workers
+- Added the ability to control the number of threadpool workers
 - Each time a new service is registered, a ``service_registered`` event is fired, which can be picked up by apps
 - Added support for async apps
 - Added authorization to stream as well as command semantics for various functions
 - Added sequences
 - Added sequence widget
+- Added app access to dashboard directory using ``self.dashboard_dir``
 - Changed namespaces implementation to use shelve instead of JSON enabling non JSON-serializable objects to be stored and also potential performance increases  - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- MDI updated to version 4.4.95 - contributed by `Roeland Van Lembergen <https://github.com/clayhill>`__
 
 **Fixes**
 
 - Fixed a bug in global_modules that caused a exception
+- Fixed icon bug in weather widget - contributed by `Roeland Van Lembergen <https://github.com/clayhill>`__
 
 **Breaking Changes**
 
 - ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
 - The camera widget has changed parameters - check the docs for details
-- Moved the `log events` from global to `admin` namespace. if `listen_log` is just used for listening to logs, it shouldn't matter
-- If you have used persistent namespaces in the previous beta it is necessary to delete all saved namespaces by removing all files in the `namespaces` subdirectory under your appdaemon config directory
+- Moved the ``log events`` from global to ``admin`` namespace. if ``listen_log`` is just used for listening to logs, it shouldn't matter
+- If you have used persistent namespaces in the previous beta it is necessary to delete all saved namespaces by removing all files in the ``namespaces`` subdirectory under your appdaemon config directory
 
 4.0.0 Beta1 (2019-08-30)
 ------------------------
@@ -50,7 +52,7 @@ Change Log
 - Added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
 - reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
 - Refactored plugin APIs to remove duplication
-- Moved `constrain_days` from being Hass only to all app, regardless of plugin used
+- Moved ``constrain_days`` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
 - Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
@@ -69,13 +71,13 @@ Change Log
 - Added the ability to delete an AD app generated entity from any namespace
 - Added the ability to get the history of entities from HASS database
 - Added the ability to force a start of the MQTT plugin, even if not connected to broker at startup
-- Added the ability to set AD's `production_mode` from within apps
+- Added the ability to set AD's ``production_mode`` from within apps
 - Added the ability to start, stop, restart and reload apps from either other apps or REST API
 - Added the ability to register app services
 - Added sensors for different internal state of AD, that can be read by apps
 - Added Person widget
 - Much reworking of docs
-- Added `register_dependency()` for dynamic dependencies in apps
+- Added ``register_dependency()`` for dynamic dependencies in apps
 - Added MQTT support for setting TLS version - contributed by `Miguel <https://github.com/mdps>`__
 - Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
 - Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
