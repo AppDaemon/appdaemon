@@ -1011,7 +1011,7 @@ ASYNC Advantages
 ASYNC Caveats
 ~~~~~~~~~~~~~
 
-The AppDaemon implementation of ASYNC apps utilizes the same loop as the AppDaemon core. This means that a badly behaved app will not just tie up an individual thread, it can potentially tie up all other apps, and the internals of AppDaemon. For this reaosn it is recommended that only experienced users create apps with this model.
+The AppDaemon implementation of ASYNC apps utilizes the same loop as the AppDaemon core. This means that a badly behaved app will not just tie up an individual app, it can potentially tie up all other apps, and the internals of AppDaemon. For this reason it is recommended that only experienced users create apps with this model.
 
 
 ASYNC Tools
@@ -1032,7 +1032,7 @@ A standard pattern for running I/O intensive tasks such as file or network acces
 Sleeping
 ^^^^^^^^
 
-Sleeping in Apps is perfectly fine using the async model. For this purpose AppDaemon provides the ``sleep()`` function.
+Sleeping in Apps is perfectly fine using the async model. For this purpose AppDaemon provides the ``sleep()`` function. If this function is used in a non-async callback it will raise an exception.
 
 ASYNC Threading Considerations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
