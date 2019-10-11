@@ -134,6 +134,13 @@ Threading
 .. autofunction:: appdaemon.adapi.ADAPI.set_pin_thread
 .. autofunction:: appdaemon.adapi.ADAPI.get_pin_thread
 
+Async
+~~~~~
+
+.. autofunction:: appdaemon.adapi.ADAPI.create_task
+.. autofunction:: appdaemon.adapi.ADAPI.run_in_executor
+.. autofunction:: appdaemon.adapi.ADAPI.sleep
+
 
 Utility
 ~~~~~~~

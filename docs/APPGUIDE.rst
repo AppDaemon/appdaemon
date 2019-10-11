@@ -971,6 +971,77 @@ A Final Thought on Threading and Pinning
 
 Although pinning and scheduling has been thoroughly tested, in current real-world applications for AppDaemon, very few of these considerations matter, since in most cases AppDaemon will be able to respond to a callback immediately, and it is unlikely that any significant scheduler queueing will occur unless there are problems with apps blocking threads. At the rate that most people are using AppDaemon, events come in a few times a second, and modern hardware can usually handle the load pretty easily. The considerations above will start to matter more when event rates become a lot faster, by at least an order of magnitude. That is now a possibility with the recent upgrade to the scheduler allowing sub-second tick times, so the ability to lock and pin apps were added in anticipation of new applications for AppDaemon that may require more robust management of apps and much higher event rates.
 
+ASYNC Apps
+----------
+
+Note: This is an advanced feature and should only be used if you unserstand the usage and implications of async programming in Python. If you do not, then the previously described threaded model of apps is much safer and easier to work with.
+
+AppDaemon supports the use of async libraries from within apps as well as allowing a partial or complete async programming model. Operation is transparent and is managed by AppDaemon. If you want a particular callback to be a coroutine, simply declare it with the async keyword as for any other coroutine. AppDaemon will detect this and arrange for the callback to be executed by scheduling it on the loop. This also works for ``initialize()`` and ``terminate()``. Apps can be a mix of sync and async callbacks as desired. A fully async app might look like this:
+
+.. code:: PYTHON
+
+    import hassapi as hass
+
+    class AsyncApp(hass.Hass):
+
+        async def initialize(self):
+            # Maybe access an async library to initialize something
+            self.run_in(self.hass_cb, 10)
+
+        async def my_function(self):
+            # More async stuff here
+
+        async def hass_cb(self, kwargs):
+            # do some async stuff
+
+            # Sleeps are perfectly acceptable
+            self.sleep(10)
+
+            # Call another coroutine
+            await my_function()
+
+ASYNC Advantages
+~~~~~~~~~~~~~~~~
+
+- Programming using async constructs can seem natural to advanced users who have used it before, and in some cases can provide performance benefits depending on the exact nature of the task.
+- Some external libraries are designed to be used in an async environmant and prior to AppDaemon async support it was not possible to make use of such libraries.
+- Scheduling heavily concurrent tasks is very easy using async
+- Using ``sleep()`` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
+
+ASYNC Caveats
+~~~~~~~~~~~~~
+
+The AppDaemon implementation of ASYNC apps utilizes the same loop as the AppDaemon core. This means that a badly behaved app will not just tie up an individual thread, it can potentially tie up all other apps, and the internals of AppDaemon. For this reaosn it is recommended that only experienced users create apps with this model.
+
+
+ASYNC Tools
+~~~~~~~~~~~
+
+AppDaemon supplies a number of helper functions to make things a little easier:
+
+Creating Tasks
+^^^^^^^^^^^^^^
+
+For additional multitasking, Apps are fully able to create tasks or futures, however, the app has the responsibility to manage them. In particular, any created tasks or futures must be completed or actively cancelled when the app is terminated or reloaded. If this is not the case the code will not reload correctly due to Pyhton's garbage collection strategy. To assist with this, AppDameon has a ``create_task()`` call, which returns a future. Tasks created in this way can be manipulated as desired, however, AppDaemon keeps track of them and will automatically cancel any outstanding futures if the app terminates or reloads. For this reason, AppDaemon's ``create_task()`` is the recommended way of doing this.
+
+Use of Executors
+^^^^^^^^^^^^^^^^
+
+A standard pattern for running I/O intensive tasks such as file or network access in the async programming model is to use executor threads for these types of activities. AppDaemon supplies the ``run_in_executor()`` function to facilitate this, which uses a predefined threadpool for execution. As mentioned above, holding up the loop with any kind of blocking activity is harmful not only to the app but all other apps and AppDaemon's internals, so always use an executor for any function that may require it.
+
+Sleeping
+^^^^^^^^
+
+Sleeping in Apps is perfectly fine using the async model. For this purpose AppDaemon provides the ``sleep()`` function.
+
+ASYNC Threading Considerations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Bear in mind, that although the async programming model is single threaded, in an event driven environment such as AppDaemon, concurrency is still possible, wheras in the pinned threading model it is eliminated. This may lead to requirements to lock data structures in async apps.
+- By default, AppDaemon creates a thread for each App (unless you are managing the threads yourself). For a fully async app, the thread will be created but never used.
+- If you have a 100% async environment, you can prevent creation of any threads by setting ``total_threads: 0`` in ``appdaemon.yaml``
+
+
 State Operations
 ----------------
 
