@@ -83,6 +83,7 @@ class HTTP:
 
         self.appdaemon = appdaemon
         self.dashboard = dashboard
+        self.dashboard_dir = None
         self.admin = admin
         self.http = http
         self.api = api
@@ -199,8 +200,7 @@ class HTTP:
 
             if dashboard is not None:
                 self.logger.info("Starting Dashboards")
-
-                self.dashboard_dir = None
+                
                 self._process_arg("dashboard_dir", dashboard)
 
                 self.compile_on_start = True
