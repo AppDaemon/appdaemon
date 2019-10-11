@@ -1,0 +1,16 @@
+widget_type: baseAdminLog
+fields:
+  entity: "{{entity}}"
+  title: "{{title}}"
+  max_loglines: 10
+  special_css: {}
+  log_style: ""
+  logline_style: ""
+  replace_text: {}
+icons: []
+static_css:
+  widget_style: $sensor_widget_style
+  title_style: $sensor_title_style
+  container_style: $sensor_container_style
+css: []
+static_icons: []

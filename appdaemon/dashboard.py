@@ -10,6 +10,7 @@ import cProfile
 import io
 import pstats
 import datetime
+from collections import OrderedDict
 
 import appdaemon.utils as ha
 
@@ -702,8 +703,8 @@ class Dashboard:
             return {}
 
         files = os.listdir(self.dashboard_dir)
-        dash_list = {}
-        for file in files:
+        dash_list = OrderedDict()
+        for file in sorted(files):
             if file.endswith('.pydash'):
                 name = file.replace('.pydash', '')
                 dash_list[name] = "{}/{}".format(self.base_url, name)

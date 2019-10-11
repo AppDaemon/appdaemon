@@ -1,0 +1,13 @@
+widget_type: baseAdminSummary
+entities: {}
+fields:
+  title: "{{title}}"
+  table: {}
+  value: ""
+static_css:
+  title_style: $sensor_title_style
+  widget_style: $sensor_widget_style
+  container_style: $sensor_container_style
+css: []
+icons: []
+static_icons: []
