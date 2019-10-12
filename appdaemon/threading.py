@@ -181,6 +181,22 @@ class Threading:
             i += 1
         return id
 
+    async def get_thread_info(self):
+        info = {}
+        info["max_busy_time"] = await self.get_state("_threading", "admin", "sensor.threads_max_busy_time")
+        info["last_action_time"] = await self.get_state("_threading", "admin", "sensor.threads_last_action_time")
+        info["current_busy"] = await self.get_state("_threading", "admin", "sensor.threads_current_busy")
+        info["max_busy"] = await self.get_state("_threading", "admin", "sensor.threads_max_busy")
+        info["threads"] = {}
+        for thread in sorted(self.threads, key=self.natural_keys):
+            if thread not in info["threads"]:
+                info["threads"][thread] = {}
+            t = await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="all")
+            info["threads"][thread]["time_called"] = t["attributes"]["time_called"]
+            info["threads"][thread]["callback"] = t["state"]
+            info["threads"][thread]["is_alive"] = t["attributes"]["is_alive"]
+        return info
+
     async def dump_threads(self):
         self.diag.info("--------------------------------------------------")
         self.diag.info("Threads")
