@@ -928,7 +928,7 @@ class AppManagement:
                     for dep in pend[1]:
                         deps += "{} ".format(dep)
                     self.logger.warning("%s depends on %s", pend[0], deps)
-                raise ValueError("cyclic dependancy detected")
+                raise ValueError("cyclic dependency detected")
             pending = next_pending
             emitted = next_emitted
 
@@ -985,7 +985,7 @@ class AppManagement:
             pass
 
         else:
-            self.logger.warning("App not specified when calling '%s' serivce. Specify App", service)
+            self.logger.warning("App not specified when calling '%s' service. Specify App", service)
             return None
 
         if service != "reload" and app not in self.app_config:

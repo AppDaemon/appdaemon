@@ -1112,7 +1112,7 @@ class ADAPI:
 
             timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
                  but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
-                 occured that would trigger a duration timer, the duration timer will still be fired even though the
+                 occurred that would trigger a duration timer, the duration timer will still be fired even though the
                  callback has been deleted.
 
             immediate (bool, optional): It enables the countdown for a delay parameter to start
