@@ -1004,7 +1004,7 @@ ASYNC Advantages
 ~~~~~~~~~~~~~~~~
 
 - Programming using async constructs can seem natural to advanced users who have used it before, and in some cases can provide performance benefits depending on the exact nature of the task.
-- Some external libraries are designed to be used in an async environmant and prior to AppDaemon async support it was not possible to make use of such libraries.
+- Some external libraries are designed to be used in an async environment and prior to AppDaemon async support it was not possible to make use of such libraries.
 - Scheduling heavily concurrent tasks is very easy using async
 - Using ``sleep()`` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
 
@@ -1022,7 +1022,7 @@ AppDaemon supplies a number of helper functions to make things a little easier:
 Creating Tasks
 ^^^^^^^^^^^^^^
 
-For additional multitasking, Apps are fully able to create tasks or futures, however, the app has the responsibility to manage them. In particular, any created tasks or futures must be completed or actively cancelled when the app is terminated or reloaded. If this is not the case the code will not reload correctly due to Pyhton's garbage collection strategy. To assist with this, AppDameon has a ``create_task()`` call, which returns a future. Tasks created in this way can be manipulated as desired, however, AppDaemon keeps track of them and will automatically cancel any outstanding futures if the app terminates or reloads. For this reason, AppDaemon's ``create_task()`` is the recommended way of doing this.
+For additional multitasking, Apps are fully able to create tasks or futures, however, the app has the responsibility to manage them. In particular, any created tasks or futures must be completed or actively cancelled when the app is terminated or reloaded. If this is not the case the code will not reload correctly due to Pyhton's garbage collection strategy. To assist with this, AppDaemon has a ``create_task()`` call, which returns a future. Tasks created in this way can be manipulated as desired, however, AppDaemon keeps track of them and will automatically cancel any outstanding futures if the app terminates or reloads. For this reason, AppDaemon's ``create_task()`` is the recommended way of doing this.
 
 Use of Executors
 ^^^^^^^^^^^^^^^^
@@ -2578,7 +2578,7 @@ A call to run the above sequence would look like this:
 
     handle = self.run_sequence("sequence.outside_motion_light")
 
-The handle value can be used to terminate a running sequence by suppliting it to the ``cancel_sequence()`` call.
+The handle value can be used to terminate a running sequence by supplying it to the ``cancel_sequence()`` call.
 
 When an app is terminated or reloaded, all running sequences that it started are immediately terminated. There is no way
 to terminate a sequence started using HADashboard.
