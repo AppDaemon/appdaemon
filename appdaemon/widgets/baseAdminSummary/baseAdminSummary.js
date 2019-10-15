@@ -33,12 +33,13 @@ function baseAdminSummary(widget_id, url, skin, parameters)
         counter = 0
         for (let entity in parameters.entities)
         {
+            counter_str = counter.toString()
             monitored_entities.push({"entity": entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate})
-            window[self.widget_id]["entities"][counter.toString()] = {}
-            window[self.widget_id]["entities"][counter.toString()]["name"] = entity
-            window[self.widget_id]["entities"][counter.toString()]["title"] = parameters.entities[entity]["title"]
-            window[self.widget_id]["entities"][counter.toString()]["title_style"] = parameters.entities[entity]["title_style"]
-            window[self.widget_id]["entities"][counter.toString()]["sensor_style"] = parameters.entities[entity]["sensor_style"]
+            window[self.widget_id]["entities"][counter_str] = {}
+            window[self.widget_id]["entities"][counter_str]["name"] = entity
+            window[self.widget_id]["entities"][counter_str]["title"] = parameters.entities[entity]["title"]
+            window[self.widget_id]["entities"][counter_str]["title_style"] = parameters.entities[entity]["title_style"]
+            window[self.widget_id]["entities"][counter_str]["sensor_style"] = parameters.entities[entity]["sensor_style"]
             counter = counter + 1
         }
         window[self.widget_id]["entity_amount"] = counter
