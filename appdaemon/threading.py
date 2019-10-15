@@ -270,7 +270,7 @@ class Threading:
     async def check_overdue_and_dead_threads(self):
         if self.AD.sched.realtime is True and self.AD.thread_duration_warning_threshold != 0:
             for thread_id in self.threads:
-                if self.threads[thread_id]["thread"].isAlive() is not True:
+                if self.threads[thread_id]["thread"].is_alive() is not True:
                     self.logger.critical("Thread %s has died", thread_id)
                     self.logger.critical("Pinned apps were: %s", await self.get_pinned_apps(thread_id))
                     self.logger.critical("Thread will be restarted")
