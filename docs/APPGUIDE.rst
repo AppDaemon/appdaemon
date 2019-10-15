@@ -995,10 +995,28 @@ AppDaemon supports the use of async libraries from within apps as well as allowi
             # do some async stuff
 
             # Sleeps are perfectly acceptable
-            self.sleep(10)
+            await self.sleep(10)
 
             # Call another coroutine
             await my_function()
+            
+When writing ASYNC apps, please be aware that most of the methods available in ADAPI (generally referenced as ``self.method_name()`` in an app) are async methods. While these coroutines are automatically turned into a ``future`` for you, if you intend to use the data they return you'll need to ``await`` them.
+
+This will not give the expected result:
+
+.. code:: PYTHON
+    
+    async def some_method(self):
+        handle = self.run_in(self.cb, 30)
+
+This, however, will:
+
+.. code:: PYTHON
+
+    async def some_method(self):
+        handle = await self.run_in(self.cb, 30)
+        
+If you do not need to use the return result of the method, and you do not need to know that it has completed before executing the next line of your code, then you do not need to ``await`` the method.
 
 ASYNC Advantages
 ~~~~~~~~~~~~~~~~
