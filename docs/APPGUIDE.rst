@@ -978,10 +978,10 @@ Note: This is an advanced feature and should only be used if you understand the 
 in Python. If you do not, then the previously described threaded model of apps is much safer and easier to work with.
 
 AppDaemon supports the use of async libraries from within apps as well as allowing a partial or complete async programming
-model. The operation is transparent and is managed by AppDaemon. To convert a particular callback into a coroutine, you
-need to declare it with the async keyword as for any other coroutine. AppDaemon will detect this and arrange for the
-callback to be executed by scheduling it on the loop. This also works for ``initialize()`` and ``terminate()``. Apps can
-be a mix of sync and async callbacks as desired. A fully async app might look like this:
+model. Callback functions can be converted into coroutines by using the `async` keyword during their declaration.
+AppDaemon will automatically detect all the App's coroutines and will schedule their execution on the main async loop.
+This also works for ``initialize()`` and ``terminate()``. Apps can be a mix of `sync` and `async` callbacks as desired.
+A fully async app might look like this:
 
 .. code:: PYTHON
 
