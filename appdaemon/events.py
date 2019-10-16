@@ -286,6 +286,7 @@ class Events:
                                 _run = False
 
                         if _run:
+                            callback["kwargs"]["user_id"] = data["context"].get("user_id")
                             if name in self.AD.app_management.objects:
                                 await self.AD.threading.dispatch_worker(name,
                                                                         {
