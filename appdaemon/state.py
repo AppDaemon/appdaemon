@@ -204,7 +204,8 @@ class State:
 
                     cold = callback["kwargs"].get("old")
                     cnew = callback["kwargs"].get("new")
-
+                    callback["kwargs"]["user_id"] = state["context"].get("user_id")
+                    
                     executed = False
                     if cdevice is None:
                         executed = await self.AD.threading.check_and_dispatch_state(
