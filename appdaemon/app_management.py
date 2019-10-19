@@ -179,9 +179,6 @@ class AppManagement:
                 else:
                     await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
-                
-                event_data = {'app' : name}
-                await self.AD.events.fire_event('admin', '__APP_TERMINATED', **event_data)
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
@@ -208,6 +205,9 @@ class AppManagement:
         self.AD.futures.cancel_futures(name)
 
         await self.AD.sched.terminate_app(name)
+        
+        event_data = {'app' : name}
+        await self.AD.events.fire_event('admin', '__APP_TERMINATED', **event_data)
 
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
