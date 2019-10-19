@@ -2649,8 +2649,10 @@ class ADAPI:
         self.AD.futures.add_future(self.name, f)
         return f
 
-    async def sleep(self, delay, result=None):
-        """Pauses the execution for a certain time span.
+    @staticmethod
+    async def sleep(delay, result=None):
+        """Pause execution for a certain time span
+        (not available in sync apps)
 
         Args:
             delay (int): Number of seconds to pause.
