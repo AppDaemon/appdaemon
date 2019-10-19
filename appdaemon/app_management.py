@@ -145,6 +145,9 @@ class AppManagement:
                 await utils.run_in_executor(self, init)
             await self.set_state(name, state="idle")
             await self.increase_active_apps(name)
+            
+            event_data = {'app' : name}
+            await self.AD.events.fire_event('admin', '__APP_INITIALIZED', **event_data)
 
         except TypeError:
             self.AD.threading.report_callback_sig(name, "initialize", init, {})
@@ -176,6 +179,9 @@ class AppManagement:
                 else:
                     await utils.run_in_executor(self, term)
                 await self.set_state(name, state="terminated")
+                
+                event_data = {'app' : name}
+                await self.AD.events.fire_event('admin', '__APP_TERMINATED', **event_data)
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
