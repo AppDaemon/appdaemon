@@ -8,7 +8,7 @@ import hassapi as hass
 # time = time the alert will be sent
 # limit = number of minutes over which the alert will be sent
 # notify - list of notification services to be notified
-# sesor - sensor to get the commute time from
+# sensor - sensor to get the commute time from
 #
 # None
 #

@@ -13,7 +13,7 @@ import globals
 # night_scene_present = scene to use to turn lights on at night
 # input_select = input_select.house_mode,Day
 # vacation = optional input boolean to turn off when someone comes home
-# announce = Comma seprated list of people's arrival home to announce (Friendly name of the device tracker)
+# announce = Comma separated list of people's arrival home to announce (Friendly name of the device tracker)
 # player = entity id of the media player for the announcement
 #
 # Release Notes

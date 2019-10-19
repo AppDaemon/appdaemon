@@ -133,12 +133,12 @@ class MqttPlugin(PluginBase):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
         if self.mqtt_connected:
-            self.logger.info("Stopping MQTT Plugin and Unsubcribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
+            self.logger.info("Stopping MQTT Plugin and Unsubscribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
             for topic in self.mqtt_client_topics:
                 self.logger.debug("Unsubscribing from Topic: %s", topic)
                 result = self.mqtt_client.unsubscribe(topic)
                 if result[0] == 0:
-                    self.logger.debug("Unsubscription from Topic %s Successful", topic)
+                    self.logger.debug("Unsubscribing from Topic %s Successful", topic)
                     
             self.mqtt_client.publish(self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
             self.mqtt_client.disconnect() #disconnect cleanly
@@ -164,10 +164,10 @@ class MqttPlugin(PluginBase):
                     self.logger.debug("Subscribing to Topic: %s", topic)
                     result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
                     if result[0] == 0:
-                        self.logger.debug("Subscription to Topic %s Sucessful", topic)
+                        self.logger.debug("Subscription to Topic %s Successful", topic)
                     else:
                         self.mqtt_client_topics.remove(topic)
-                        self.logger.debug("Subscription to Topic %s Unsucessful, as Client possibly not currently connected", topic)
+                        self.logger.debug("Subscription to Topic %s Unsuccessful, as Client possibly not currently connected", topic)
 
                 self.mqtt_connected = True
 
@@ -281,7 +281,7 @@ class MqttPlugin(PluginBase):
                         if topic in self.mqtt_client_topics:
                             self.mqtt_client_topics.remove(topic)
                     else:
-                        self.logger.warning("Unsubscription from Topic %s was not Sucessful", topic)
+                        self.logger.warning("Unsubscription from Topic %s was not Successful", topic)
 
                 else:
                     self.logger.warning("Wrong Service Call %s for MQTT", service)

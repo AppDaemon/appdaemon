@@ -9,7 +9,7 @@ import globals
 # - Turn off if everyone leaves
 # - Turn off at night when input_select changes state
 #
-# Smart Heat doesn;t actually turn the heat on and off, it merely sets it to a lower temperature for off so the house does not get too cold
+# Smart Heat doesn't actually turn the heat on and off, it merely sets it to a lower temperature for off so the house does not get too cold
 #
 # Args:
 #
