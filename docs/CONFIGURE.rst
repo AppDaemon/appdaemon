@@ -516,7 +516,7 @@ when we first run it.
 Configuring the HTTP Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The HTTP component provides a unified front end to `Apdaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
+The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 

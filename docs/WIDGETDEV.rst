@@ -27,7 +27,7 @@ When creating a new Widget type, attempt to do one of the following in order of 
 #. Create a new Derived Widget that works with modifications to an existing Base Widget
 #. Create a new Derived and Base Widget
 
-We also talk abour a third type of widgets, an ``Instantiated Widget`` -
+We also talk about a third type of widgets, an ``Instantiated Widget`` -
 this refers to an actual widget in a dashboard configuration file which will have a widget type and a number of
 specific variables.
 
@@ -47,7 +47,7 @@ the custom widget will be used in preference to allow existing widgets to be eas
 
 When a widget has been created and tested, and the author desires to contribute the widget back to the community,
 all that is required is that the Derived and Base Widgets are placed in the Git Repository in the standard widget directory
-(``appdaemon/widgets``) then a Pull Request may be issued in the ususal way.
+(``appdaemon/widgets``) then a Pull Request may be issued in the usual way.
 
 Derived Widgets
 ---------------
@@ -208,7 +208,7 @@ CSS
       icon_style_active: $light_icon_style_active
       icon_style_inactive: $light_icon_style_inactive
 
-The `css` parameters are analogous to the ``icons`` - they are styles that are expected to be maipulated as part of the Widget's operation.
+The `css` parameters are analogous to the ``icons`` - they are styles that are expected to be manipulated as part of the Widget's operation.
 They will be made available to the widget at initialization time, and are mapped through the skin.
 
 In the case of the light Base Widget they remain the same, but inb a scene for instance,
@@ -232,7 +232,7 @@ Static CSS
       widget_style: $light_widget_style
 
 
-The ``statis_css`` entry is used for styles that are automatically applied to various fields.
+The ``static_css`` entry is used for styles that are automatically applied to various fields.
 As with ``static_icons``, these are expected to be static and are automatically applied when the widget initializes.
 Again, the variables are derived from the skin, and refer top things like titles that remain static for the lifetime of the widget.
 
@@ -295,17 +295,17 @@ Widget HTML Files
 
 The HTML files exist to provide a basic layout for the widget and insert the styles. They are usually fairly simple.
 
-By convention, the variaous tag types have styling suitable for some common elements although that can be overriden in
+By convention, the various tag types have styling suitable for some common elements although that can be overriden in
 the css file or the skin:
 
 - <h1> is styled for small text such as titles or state text
 - <h2> is styled for large icons or text values
 - <p> is styled for small unit labels, e.g. ``%``
 
-To assist with programatically changing values and styles in the HTML, HADashboard uses `Knockout <http://knockoutjs.com/index.html>`__
+To assist with programmatically changing values and styles in the HTML, HADashboard uses `Knockout <http://knockoutjs.com/index.html>`__
 From their web page:
 
-    Knockout is a JavaScript library that helps you to create rich, responsive display and editor user interfaces with a clean underlying data model. Any time you have sections of UI that update dynamically (e.g., changing depending on the user’s actions or when an external data source changes), KO can help you implement it more simply and maintainably.
+    Knockout is a JavaScript library that helps you to create rich, responsive display and editor user interfaces with a clean underlying data model. Any time you have sections of UI that update dynamically (e.g., changing depending on the user’s actions or when an external data source changes), KO can help you implement it more simply and maintainable.
 
 Knockout bindings are used to set various attributes and the binding types in use are as follows:
 
@@ -336,7 +336,7 @@ Here is an example of an HTML file.
   their names must match
 - The ``<h2>`` tag introduces a large icon, presumably of a lightbulb or something similar. Here, because of the way that icons work,
   we are using a class attribute in Knockout to directly set the class of the element which has the effect of forcing an icon to be displayed
-- The ``<span>`` is set up to allow the user to toggle the widget on and off and is reffered to later in the JavaScript
+- The ``<span>`` is set up to allow the user to toggle the widget on and off and is referred to later in the JavaScript
 - The ``<div>`` here is used for grouping the level and unit labels for the light, along with the included ``<p>`` tags which introduce the actual elements
 - The last 2 ``<p>`` elements are for the up and down icons.
 
@@ -345,7 +345,7 @@ Widget CSS Files
 
 CSS files in widgets are used primarily for positioning of elements since most of the styling occurs in the skins.
 Since each widget must have a unique id, the ``{id}}`` piece of each selector name will be substituted with a unique
-id ewnsuring that even if there are multiple instances of the same widget they will all behave correctly.
+id ensuring that even if there are multiple instances of the same widget they will all behave correctly.
 
 Other than that, this is standard CSS used for laying out the various HTML elements appropriately.
 
@@ -472,9 +472,9 @@ Next we need to set up our ``self`` variable:
         self = this
 
 For the uninitiated, JavaScript has a somewhat confused notion of scopes when using objects, as scopes can be inherited
-from different places depebding on the mechanism for calling intto the code. In Widgets, various tricks have been used
+from different places depending on the mechanism for calling into the code. In Widgets, various tricks have been used
 to present a consistent view to the user which requires an initial declaration of the self variable. From then on,
-all calls pass this variable between calls to ensure consistency. It is recomended that the convention of
+all calls pass this variable between calls to ensure consistency. It is recommended that the convention of
 declaring ``self = this`` at the top of the function then rigidly sticking to the use of ``self`` is adhered to,
 to avoid confusion.
 
@@ -560,8 +560,8 @@ there is an issue with race conditions if we subscribe to the normal `change` ev
 and our `onChange` function may be called before the knockout binding has an opportunity to update itself,
 and we will see the old value. To handle this situation, a second type of event subscription is provided -
 we will subscribe to the knockout binding changing rather than the control itself. This is done in a similar way
-to the previous mechanism, the only differentce is that instead of a `selector` parameter, we use an
-`observable` parameter whcih is the name of the binding you want to subscribe to. For instance:
+to the previous mechanism, the only difference is that instead of a `selector` parameter, we use an
+`observable` parameter which is the name of the binding you want to subscribe to. For instance:
 
 
 .. code:: javascript
@@ -594,7 +594,7 @@ we care about 2 separate things:
 #. Tracking changes to the state over time
 
 The first is accomplished by a callback when the widget is first loaded. We add a callback for the entity we are
-interested in and identify which routine will be called initially whrn the widget is loaded, and which callback will be
+interested in and identify which routine will be called initially when the widget is loaded, and which callback will be
 called whenever we see a state update. These functions will be responsible for updating the fields necessary to show
 initial state and changes over time. How that happens is a function of the widget design, but for instance a
 change to a sensor will usually result in that value being displayed in one of the HTML fields.
@@ -652,7 +652,7 @@ There is also some logic here to account for the fact that in Home Assistant a l
 off, so ``0`` is assumed. Here, we also make a note of the current state for later reference - ``self.state = state.state``
 
 - ``self.state`` is an object attribute
-- ``state.state`` is the actual state of the entity. Like othe Home Assistant state descriptions it can also have
+- ``state.state`` is the actual state of the entity. Like other Home Assistant state descriptions it can also have
   a set of sub-attributes under ``state.attributes`` for values like brightness or color etc.
 
 ``OnStateUpdate`` at least for this widget is very similar to ``OnStateAvailable``,
@@ -710,7 +710,7 @@ This is less complicated than it looks. What is happening here is that based on 
 we are selecting which service to call to change that state. We are looking it up in our parameters that we saved earlier.
 
 So, if the light is ``off`` we consult our parameters for ``post_service_active`` which should be set to a service that
-will turn ther light on (e.g. ``light/turn_on``). Similarly if it is on, we look for ``post_service_inactive`` to
+will turn the light on (e.g. ``light/turn_on``). Similarly if it is on, we look for ``post_service_inactive`` to
 find out how to turn it off. Once we have made that choice we make the service call to effect
 the change: ``self.call_service()``
 
@@ -1058,7 +1058,7 @@ That is the anatomy of a typical widget - here it is in full:
 A Note on Skinning
 ------------------
 
-As you have seen, when creating a new wiget, it is also necessary to add entries for the skinning variables.
+As you have seen, when creating a new widget, it is also necessary to add entries for the skinning variables.
 When contributing widgets back, please ensure that you have provided entries for all of the included skins
 that are sympathetic to the original look and feel, or the PR will not be accepted.
 
