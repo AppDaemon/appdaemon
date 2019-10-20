@@ -1437,6 +1437,8 @@ Assistant bus:
 
 -  ``appd_started`` - fired once when AppDaemon is first started and
    after Apps are initialized
+- ``app_initialized`` - fired when an App is initialized
+- ``app_terminated`` - fired when an App is terminated
 -  ``plugin_started`` - fired every time AppDaemon detects a Home Assistant
    restart
 -  ``plugin_stopped`` - fired once every time AppDaemon loses its
