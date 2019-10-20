@@ -147,7 +147,7 @@ class AppManagement:
             await self.increase_active_apps(name)
             
             event_data = {'app' : name}
-            await self.AD.events.fire_event('admin', '__APP_INITIALIZED', **event_data)
+            await self.AD.events.fire_event('admin', 'app_initialized', **event_data)
 
         except TypeError:
             self.AD.threading.report_callback_sig(name, "initialize", init, {})
@@ -207,7 +207,7 @@ class AppManagement:
         await self.AD.sched.terminate_app(name)
         
         event_data = {'app' : name}
-        await self.AD.events.fire_event('admin', '__APP_TERMINATED', **event_data)
+        await self.AD.events.fire_event('admin', 'app_terminated', **event_data)
 
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
