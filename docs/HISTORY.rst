@@ -5,6 +5,9 @@ Change Log
 -----
 
 **Features**
+
+- Added the fire events for when an app is initialized or terminated
+
 **Fixes**
 **Breaking Changes**
 
