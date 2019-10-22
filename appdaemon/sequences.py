@@ -65,7 +65,8 @@ class Sequences:
 
         return future
 
-    async def cancel_sequence(self, _name, future):
+    @staticmethod
+    async def cancel_sequence(_name, future):
         future.cancel()
 
     async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):

@@ -22,7 +22,7 @@ class Alexa(hass.Hass):
         if intent in intents:
             speech, card, title = intents[intent](data)
             response = self.format_alexa_response(speech=speech, card=card, title=title)
-            self.log("Recieved Alexa request: {}, answering: {}".format(intent, speech))
+            self.log("Received Alexa request: {}, answering: {}".format(intent, speech))
         else:
             response = self.format_alexa_response(speech="I'm sorry, the {} does not exist within AppDaemon".format(intent))
 
@@ -93,7 +93,7 @@ class Alexa(hass.Hass):
             "Jack is on the windowsill behind the bed",
             "Jack is out checking on his clown suit",
             "Jack is eating his treats",
-            "Jack just went out for a walk in the neigbourhood",
+            "Jack just went out for a walk in the neighborhood",
             "Jack is by his bowl waiting for treats"
         ]
 

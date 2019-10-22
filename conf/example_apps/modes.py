@@ -8,9 +8,9 @@ import globals
 #
 # I manage my automations around the concept of a house mode. Using an automation to set a mode can then be used by other
 # Apps to simplify state checking. For instance, if I set the mode to Evening at a certain light level, there is
-# no easy way for another app to be sure if that event has occured in another app. To handle this
+# no easy way for another app to be sure if that event has occurred in another app. To handle this
 # I have defined an input_select called "house_mode". This app sets it to various values depending on the appropriate criteria.
-# Othe apps can read it to figure out what they should do.
+# Other apps can read it to figure out what they should do.
 #
 # Args:
 #
@@ -52,7 +52,7 @@ class Modes(hass.Hass):
         self.evening()
   
   def motion_event(self, entity, attribute, old, new, kwargs):
-    # Use motion form somoeone coming downstairs to trigger morning mode (switches on a downstairs lamp)
+    # Use motion form someone coming downstairs to trigger morning mode (switches on a downstairs lamp)
     if new == "on" and self.mode == "Night" and self.now_is_between("04:30:00", "10:00:00"):
       self.morning()
 
@@ -72,7 +72,7 @@ class Modes(hass.Hass):
     elif mode == "Night Quiet":
       self.night(True)
   
-  # Main mode functions - set the house up appropriately for the mode in question as well as set the house_mode flag corrcetly
+  # Main mode functions - set the house up appropriately for the mode in question as well as set the house_mode flag correctly
   
   def morning(self):
     #Set the house up for morning

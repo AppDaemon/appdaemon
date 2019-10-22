@@ -1,8 +1,15 @@
 Change Log
 ==========
 
-4.0.0 Beta 2
-------------
+4.0.0
+-----
+
+**Features**
+**Fixes**
+**Breaking Changes**
+
+4.0.0 Beta 2 (2019-10-19)
+-------------------------
 
 **Features**
 
@@ -19,6 +26,7 @@ Change Log
 - Added sequences
 - Added sequence widget
 - Added app access to dashboard directory using ``self.dashboard_dir``
+- List of available dashes is now alphabetically sorted
 - Changed namespaces implementation to use shelve instead of JSON enabling non JSON-serializable objects to be stored and also potential performance increases  - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
 - MDI updated to version 4.4.95 - contributed by `Roeland Van Lembergen <https://github.com/clayhill>`__
 

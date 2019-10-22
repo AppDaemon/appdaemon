@@ -1112,7 +1112,7 @@ class ADAPI:
 
             timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
                  but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
-                 occured that would trigger a duration timer, the duration timer will still be fired even though the
+                 occurred that would trigger a duration timer, the duration timer will still be fired even though the
                  callback has been deleted.
 
             immediate (bool, optional): It enables the countdown for a delay parameter to start
@@ -1313,8 +1313,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def set_state(self, entity_id, **kwargs):
-        """
-        Updates the state of the specified entity.
+        """Updates the state of the specified entity.
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
@@ -1364,7 +1363,7 @@ class ADAPI:
             raise ValueError("Invalid Service Name: {}".format(service))
 
     def register_service(self, service, cb, **kwargs):
-        """Register a service that can be called from other apps, the REST API and the Event Stream
+        """Registers a service that can be called from other apps, the REST API and the Event Stream
 
         Using this function, an App can register a function to be available in the service registry.
         This will automatically make it available to other apps using the `call_service()` API call, as well as publish
@@ -1405,7 +1404,7 @@ class ADAPI:
         has a domain of `light` and a service name of `turn_on`.
 
         Args:
-            service: The service name.
+            service (str): The service name.
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1487,9 +1486,7 @@ class ADAPI:
             >>> handle = self.run_sequence([{"light.turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
             {"entity_id": "light.office_1"}}])
 
-
         """
-
         namespace = self._get_namespace(**kwargs)
 
         if "namespace" in kwargs:
@@ -1514,7 +1511,6 @@ class ADAPI:
             >>> self.run_sequence(handle)
 
         """
-
         _name = self.name
         self.logger.debug("Calling run_sequence() for %s", self.name)
         await self.AD.sequences.cancel_sequence( _name, handle)
@@ -2607,15 +2603,15 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def create_task(self, coro, callback=None, **kwargs):
-        """Schedules a Coroutine to be executed
+        """Schedules a Coroutine to be executed.
 
         Args:
-            coro: the coroutine object (not coroutine function) to be executed
-            callback: The non-async callback to be executed when complete
-            **kwargs: any additional keyword arguments to send the callback
+            coro: The coroutine object (`not coroutine function`) to be executed.
+            callback: The non-async callback to be executed when complete.
+            **kwargs (optional): Any additional keyword arguments to send the callback.
 
         Returns:
-            A Future, which can be cancelled by calling f.cancel()
+            A Future, which can be cancelled by calling f.cancel().
 
         Examples:
             >>> f = self.create_task(asyncio.sleep(3), callback=self.coro_callback)
@@ -2653,16 +2649,20 @@ class ADAPI:
         self.AD.futures.add_future(self.name, f)
         return f
 
-    async def sleep(self, delay, result=None):
+    @staticmethod
+    async def sleep(delay, result=None):
         """Pause execution for a certain time span
         (not available in sync apps)
 
         Args:
-            delay: number of seconds to pause
-            result: optional result to return upon delay completion
+            delay (int): Number of seconds to pause.
+            result (optional): Result to return upon delay completion.
 
         Returns:
-            result or None.
+            Result or `None`.
+
+        Notes:
+            This function is not available in sync apps.
 
         Examples:
             >>> async def myfunction(self):
