@@ -55,7 +55,9 @@ class Utility:
         #
         # Start the web server
         #
-        await self.AD.http.start_server()
+        
+        if self.AD.http != None:
+            await self.AD.http.start_server()
 
         #
         # Wait for all plugins to initialize
@@ -69,11 +71,21 @@ class Utility:
 
             self.logger.debug("Starting timer loop")
 
-            #
-            # Register set_state services
-            #
             for ns in await self.AD.state.list_namespaces():
+                
+                #
+                # Register set_state services
+                #
+            
                 self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+                
+                #
+                # Register fire_event services
+                #
+                
+                self.AD.services.register_service(ns, "event", "fire", self.AD.events.event_services)
+            
+            
 
             #
             # Register run_sequence service
@@ -181,7 +193,9 @@ class Utility:
             #
             # Shutdown webserver
             #
-            await self.AD.http.stop_server()
+            
+            if self.AD.http != None:
+                await self.AD.http.stop_server()
 
     async def set_production_mode(self, mode=True):
         if mode is True:

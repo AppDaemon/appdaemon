@@ -5,7 +5,14 @@ Change Log
 -----
 
 **Features**
+
+- Added events for when an app is initialized or terminated
+- Added `event_fire` service call
+
 **Fixes**
+
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+
 **Breaking Changes**
 
 4.0.0 Beta 2 (2019-10-19)
