@@ -5,7 +5,7 @@ This documentation is for AppDaemon is 4.0.0 or later. If you are upgrading from
 
 Note that not all changes will apply to everyone, some of them are in fairly obscure parts of AppDaemon that few if any people use, however, everyone will have to make some changes, so read carefully.
 
-- ``log`` section is deprecated in favor of a new and more versatile ``logs`` section. In AppDaemon 4.x, each log can be configured individually for filename, maximum size etc. and in addition it now supports custom formats and additional user logs.
+- ``log`` section is deprecated in favor of a new and more versatile ``logs`` section. In AppDaemon 4.x, each log can be configured individually for filename, maximum size, etc. and in addition, it now supports custom formats and additional user logs.
 
 For more detail see the ``Log Configuration`` section in the Configuration section.
 
