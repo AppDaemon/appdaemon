@@ -300,3 +300,11 @@ class Events:
                                                                             "pin_thread": callback["pin_thread"],
                                                                             "kwargs": callback["kwargs"]
                                                                         })
+     
+    async def event_services(self, namespace, domain, service, kwargs):
+        if "event" in kwargs:
+            event = kwargs["event"]
+            del kwargs["event"]
+            await self.fire_event(namespace, event, **kwargs)
+        else:
+            self.logger.warning("Malformed 'fire_event' service call, as no event given")
