@@ -6,6 +6,7 @@ Change Log
 
 **Features**
 
+- Added events for when an app is initialized or terminated
 - Added `event_fire` service call
 
 **Fixes**
