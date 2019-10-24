@@ -70,6 +70,7 @@ class Utility:
             self.logger.debug("Starting timer loop")
 
             for ns in await self.AD.state.list_namespaces():
+                
                 #
                 # Register set_state services
                 #
