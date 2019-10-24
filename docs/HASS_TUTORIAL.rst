@@ -16,7 +16,7 @@ Another Take on Automation
 If you haven't yet read Paulus' excellent Blog entry on `Perfect Home
 Automation <https://home-assistant.io/blog/2016/01/19/perfect-home-automation/>`__
 I would encourage you to take a look. As a veteran of several Home
-Automation systems with varying degrees of success, it wrote this article
+Automation systems with varying degrees of success, it was this article
 more than anything else that convinced me that Home Assistant had the
 right philosophy behind it and was on the right track. One of the most
 important points made is that being able to control your lights from
