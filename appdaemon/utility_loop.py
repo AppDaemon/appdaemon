@@ -69,11 +69,20 @@ class Utility:
 
             self.logger.debug("Starting timer loop")
 
-            #
-            # Register set_state services
-            #
             for ns in await self.AD.state.list_namespaces():
+                #
+                # Register set_state services
+                #
+            
                 self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+                
+                #
+                # Register fire_event services
+                #
+                
+                self.AD.services.register_service(ns, "event", "fire", self.AD.events.event_services)
+            
+            
 
             #
             # Register run_sequence service
