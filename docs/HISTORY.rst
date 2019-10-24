@@ -5,6 +5,9 @@ Change Log
 -----
 
 **Features**
+
+- Added `event_fire` service call
+
 **Fixes**
 **Breaking Changes**
 
