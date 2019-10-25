@@ -178,7 +178,6 @@ class AppManagement:
                     await term()
                 else:
                     await utils.run_in_executor(self, term)
-                await self.set_state(name, state="terminated")
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
@@ -205,6 +204,8 @@ class AppManagement:
         self.AD.futures.cancel_futures(name)
 
         await self.AD.sched.terminate_app(name)
+        
+        await self.set_state(name, state="terminated")
         
         event_data = {'app' : name}
         await self.AD.events.fire_event('admin', 'app_terminated', **event_data)
