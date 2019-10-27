@@ -77,7 +77,10 @@ class Utility:
                 # Register set_state services
                 #
             
-                self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+                # only default, rules or it belongs to a local plugin. Don't allow for admin/appdaemon/global namespaces
+
+                if ns in ["default", "rules"] or ns in self.AD.plugins.plugin_objs or ns in self.AD.namespaces: 
+                    self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
                 
                 #
                 # Register fire_event services
