@@ -91,6 +91,11 @@ class Utility:
             # Register run_sequence service
             #
             self.AD.services.register_service("rules", "sequence", "run", self.AD.sequences.run_sequence_service)
+            
+            #
+            # Register production_mode service
+            #
+            self.AD.services.register_service("appdaemon", "production_mode", "set", self.production_mode_service)
 
             #
             # Start the scheduler
@@ -203,3 +208,11 @@ class Utility:
         else:
             self.logger.info("AD Production Mode Deactivated")
         self.AD.production_mode = mode
+    
+    async def production_mode_service(self, ns, domain, service, kwargs):
+        if "mode" in kwargs:
+            mode = kwargs["mode"]
+            await self.set_production_mode(mode)
+        else:
+            self.logger.warning("'Mode' not specified in service call")
+            

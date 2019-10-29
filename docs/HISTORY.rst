@@ -8,6 +8,7 @@ Change Log
 
 - Added events for when an app is initialized or terminated
 - Added `event_fire` service call
+- Added `production_mode` service call
 
 **Fixes**
 
