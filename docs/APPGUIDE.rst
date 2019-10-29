@@ -71,7 +71,7 @@ In every case, the App is responsible for recreating any state it might
 need as if it were the first time it was ever started. If
 ``initialize()`` is called, the App can safely assume that it is either
 being loaded for the first time, or that all callbacks and timers have
-been cancelled. In either case, the App will need to recreate them.
+been canceled. In either case, the App will need to recreate them.
 Depending upon the application, it may be desirable for the App to
 establish a state, such as whether or not a particular light is on,
 within the ``initialize()`` function to ensure that everything is as
@@ -1048,7 +1048,7 @@ Creating Tasks
 ^^^^^^^^^^^^^^
 
 For additional multitasking, Apps are fully able to create tasks or futures, however, the app has the responsibility to
-manage them. In particular, any created tasks or futures must be completed or actively cancelled when the app is terminated
+manage them. In particular, any created tasks or futures must be completed or actively canceled when the app is terminated
 or reloaded. If this is not the case, the code will not reload correctly due to Pyhton's garbage collection strategy. To assist
 with this, AppDaemon has a ``create_task()`` call, which returns a future. Tasks created in this way can be manipulated as
 desired, however, AppDaemon keeps track of them and will automatically cancel any outstanding futures if the app terminates
@@ -2578,7 +2578,7 @@ Sequences can be cretaed that will loop forever by adding the value ``loop: True
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
-This sequence once started will loop until either the sequence is cancelled, the app is restarted or terminated, or AppDaemon is shutdown.
+This sequence once started will loop until either the sequence is canceled, the app is restarted or terminated, or AppDaemon is shutdown.
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
 basis if required.
