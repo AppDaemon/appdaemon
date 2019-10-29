@@ -92,8 +92,9 @@ class ADBase:
 
         return api
 
-    def get_plugin_api(self, plugin_name):
-        return utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_api(plugin_name, self.name, self._logging, self.args, self.config, self.app_config, self.global_vars))
+    @utils.sync_wrapper
+    async def get_plugin_api(self, plugin_name):
+        return await self.AD.plugins.get_plugin_api(plugin_name, self.name, self._logging, self.args, self.config, self.app_config, self.global_vars)
 
     #
     # Constraints
