@@ -128,7 +128,7 @@ First, create a new file using vi:
     $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
 
 Add the following, making sure to use the correct full path for your
-config directory. Also make sure you edit the ``User`` to a valid user
+config directory. Also, make sure you edit the ``User`` to a valid user
 to run AppDaemon, usually the same user as you are running Home
 Assistant with is a good choice.
 
@@ -178,7 +178,7 @@ release of python. However, there are a couple of caveats:
 
 -  The ``-d`` or ``--daemonize`` option is not supported owing to
    limitations in the Windows implementation of Python.
--  Some internal diagnostics are disabled. This is not user visible but
+-  Some internal diagnostics are disabled. This is not user-visible but
    may hamper troubleshooting of internal issues if any crop up
 
 AppDaemon can be installed exactly as per the instructions for every

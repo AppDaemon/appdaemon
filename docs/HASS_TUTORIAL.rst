@@ -26,7 +26,7 @@ need to use a phone or the switch - the *Automation* in Home Automation.
 A surprisingly large number of systems out there miss this essential
 point and have limited abilities to automate anything which is why a
 robust and open system such as Home Assistant is such an important part
-of the equation in bring this all together in the vast and chaotic
+of the equation in bringing this all together in the vast and chaotic
 ecosystem that is the *Internet of Things*.
 
 So given the importance of Automation, what should Automation allow us
@@ -73,7 +73,7 @@ the table:
    thanks to its loose coupling. However, it is better than that - the
    user can make changes to code and AppDaemon will automatically reload
    the code, figure out which Apps were using it and restart them to use
-   the new code with out the need to restart *AppDaemon* itself. It is
+   the new code without the need to restart *AppDaemon* itself. It is
    also possible to change parameters for an individual or multiple apps
    and have them picked up dynamically, and for a final trick, removing
    or adding apps is also picked up dynamically. Testing cycles become a
@@ -92,7 +92,7 @@ It is, in fact, a testament to Home Assistant's open nature that a
 component like *AppDaemon* can be integrated so neatly and closely
 that it acts in all ways like an extension of the system, not a second-class citizen. 
 Part of the strength of Home Assistant's underlying
-design is that it makes no assumptions whatever about what it is
+design is that it makes no assumptions whatsoever about what it is
 controlling or reacting to, or reporting state on. This is made
 achievable in part by the great flexibility of Python as a programming
 environment for Home Assistant, and carrying that forward has enabled me
@@ -187,7 +187,7 @@ terms:
 At this point, things are starting to get a little more complicated. 
 Home Assistant's automations require an Automation rule and two separate scripts.
 
-Lets use an artificial example to show something that is simple in AppDaemon 
+Let's use an artificial example to show something that is simple in AppDaemon 
 but very difficult if not impossible using automations. For example, we can 
 warn someone inside the house that there has been motion outside by flashing 
 a lamp on and off 10 times. We are reacting to the motion as before by turning 
