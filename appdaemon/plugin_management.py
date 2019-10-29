@@ -101,6 +101,9 @@ class Plugins:
 
                         if namespace in self.plugin_objs:
                             raise ValueError("Duplicate namespace: {}".format(namespace))
+                        
+                        if "namespace" not in self.plugins[name]:
+                            self.plugins[name]["namespace"] = namespace
 
                         self.plugin_objs[namespace] = {"object": plugin, "active": False}
 
