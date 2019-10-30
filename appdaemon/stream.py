@@ -117,8 +117,8 @@ class ADStream:
                     self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except:
             self.logger.debug('-' * 60)
-            self.logger.debug("Unexpected client disconnection")
-            self.access.info("Unexpected client disconnection")
+            self.logger.debug("Unexpected client disconnection from %s", rh.client_name)
+            self.access.info("Unexpected client disconnection from %s", rh.client_name)
             self.logger.debug('-' * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug('-' * 60)
@@ -126,6 +126,9 @@ class ADStream:
         finally:
             with self.streams_lock:
                 self.streams.pop(handle, None)
+            
+            event_data = {'client_name' : rh.client_name}
+            await self.AD.events.fire_event('admin', 'websocket_disconnected', **event_data)
 
         return ws
 
@@ -162,6 +165,7 @@ class RequestHandler:
         self.transport = transport
         self.stream = stream
         self.authed = False
+        self.client_name = None
         self.subscriptions = {
             'state': {},
             'event': {},
@@ -273,6 +277,8 @@ class RequestHandler:
     async def hello(self, data):
         if "client_name" not in data:
             raise RequestHandlerException('client_name required')
+        else:
+            self.client_name = data["client_name"]
 
         if self.AD.http.password is None:
             self.authed = True
@@ -287,6 +293,10 @@ class RequestHandler:
         response_data = {
             "version": utils.__version__
         }
+        
+        event_data = {'client_name' : data["client_name"]}
+
+        await self.AD.events.fire_event('admin', 'websocket_connected', **event_data)
 
         return response_data
 
@@ -347,9 +357,9 @@ class RequestHandler:
         entity_id = data.get('entity_id', None)
 
         if entity_id is not None and namespace is None:
-            raise RequestHandlerException('entity_id cannoy be set without namespace')
+            raise RequestHandlerException('entity_id cannot be set without namespace')
 
-        return self.AD.state.get_entity(namespace, entity_id)                
+        return self.AD.state.get_entity(namespace, entity_id, self.client_name)              
 
     async def listen_state(self, data):
         if not self.authed:
