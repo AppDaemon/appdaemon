@@ -220,7 +220,7 @@ class ADAPI:
         return await self.AD.logging.add_log_callback(namespace, self.name, callback, level, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_log(self, handle):
+    async def cancel_listen_log(self, handle, name=None):
         """Cancels the log callback for the App.
 
         Args:
@@ -233,8 +233,12 @@ class ADAPI:
               >>> self.cancel_listen_log(handle)
 
         """
-        self.logger.debug("Canceling listen_log for %s", self.name)
-        await self.AD.logging.cancel_log_callback(self.name, handle)
+
+        if name == None:
+            name= self.name
+
+        self.logger.debug("Canceling listen_log for %s", name)
+        await self.AD.logging.cancel_log_callback(name, handle)
 
     def get_main_log(self):
         """Returns the underlying logger object used for the main log.
@@ -1203,7 +1207,7 @@ class ADAPI:
         return await self.AD.state.add_state_callback(name, namespace, entity, callback, kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_state(self, handle):
+    async def cancel_listen_state(self, handle, name=None):
         """Cancels a ``listen_state()`` callback.
 
         This will mean that the App will no longer be notified for the specific
@@ -1220,8 +1224,11 @@ class ADAPI:
             >>> self.cancel_listen_state(self.office_light_handle)
 
         """
-        self.logger.debug("Canceling listen_state for %s", self.name)
-        await self.AD.state.cancel_state_callback(handle, self.name)
+        if name == None:
+            name = self.name
+
+        self.logger.debug("Canceling listen_state for %s", name)
+        await self.AD.state.cancel_state_callback(handle, name)
 
     @utils.sync_wrapper
     async def info_listen_state(self, handle):
@@ -1590,7 +1597,7 @@ class ADAPI:
         return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_event(self, handle):
+    async def cancel_listen_event(self, handle, name=None):
         """Cancels a callback for a specific event.
 
         Args:
@@ -1603,8 +1610,12 @@ class ADAPI:
             >>> self.cancel_listen_event(handle)
 
         """
-        self.logger.debug("Canceling listen_event for %s", self.name)
-        await self.AD.events.cancel_event_callback(self.name, handle)
+
+        if name == None:
+            name = self.name
+
+        self.logger.debug("Canceling listen_event for %s", name)
+        await self.AD.events.cancel_event_callback(name, handle)
 
     @utils.sync_wrapper
     async def info_listen_event(self, handle):
@@ -1966,7 +1977,7 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def cancel_timer(self, handle):
+    async def cancel_timer(self, handle, name=None):
         """Cancels a previously created timer.
 
         Args:
@@ -1979,8 +1990,11 @@ class ADAPI:
             >>> self.cancel_timer(handle)
 
         """
-        name = self.name
-        self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
+
+        if name == None:
+            name = self.name
+
+        self.logger.debug("Canceling timer with handle %s for %s", handle, name)
         await self.AD.sched.cancel_timer(name, handle)
 
     @utils.sync_wrapper
