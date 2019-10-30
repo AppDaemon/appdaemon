@@ -225,6 +225,7 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the `listen_log` call was made.
+            name: The name of the app that the listen_log should be cancelled. Defaults to the calling app
 
         Returns:
             None.
@@ -1216,6 +1217,7 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
+            name: The name of the app that the listen_state should be cancelled. Defaults to the calling app
 
         Returns:
             None.
@@ -1602,6 +1604,7 @@ class ADAPI:
 
         Args:
             handle: A handle returned from a previous call to ``listen_event()``.
+            name: The name of the app that the listen_event should be cancelled. Defaults to the calling app
 
         Returns:
             None.
@@ -1982,6 +1985,7 @@ class ADAPI:
 
         Args:
             handle: A handle value returned from the original call to create the timer.
+            name: The name of the app that the timer should be cancelled. Defaults to the calling app
 
         Returns:
             None.
