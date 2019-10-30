@@ -1443,6 +1443,8 @@ Assistant bus:
    restart
 -  ``plugin_stopped`` - fired once every time AppDaemon loses its
    connection with HASS
+- ``websocket_connected`` - fired when a websocket client connects like the Admin User Interface
+- ``websocket_disconnected`` - fired when a websocket client disconnects like the Admin User Interface
 
 About Event Callbacks
 ~~~~~~~~~~~~~~~~~~~~~
