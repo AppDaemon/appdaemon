@@ -1439,7 +1439,7 @@ Assistant bus:
    after Apps are initialized. It is fired within the `global` namespace
 - ``app_initialized`` - fired when an App is initialized. It is fired within the `admin` namespace
 - ``app_terminated`` - fired when an App is terminated. It is fired within the `admin` namespace
--  ``plugin_started`` - fired when a plugin is initialized properly setup e.g. connection 
+-  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection 
 to Home Assistant. It is fired within the plugin's namespace
 -  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection 
 from an external system like an MQTT broker. It is fired within the plugin's namespace
