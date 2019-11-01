@@ -127,8 +127,12 @@ class ADStream:
             with self.streams_lock:
                 self.streams.pop(handle, None)
             
-            event_data = {'client_name' : rh.client_name}
-            await self.AD.events.fire_event('admin', 'websocket_disconnected', **event_data)
+            event_data = {
+                "event_type": "websocket_disconnected", 
+                    "data": {"client_name" : rh.client_name}
+                }
+
+            await self.AD.events.process_event("admin", event_data)
 
         return ws
 
@@ -294,9 +298,12 @@ class RequestHandler:
             "version": utils.__version__
         }
         
-        event_data = {'client_name' : data["client_name"]}
+        event_data = {
+                "event_type": "websocket_connected", 
+                    "data": {"client_name" : self.client_name}
+                }
 
-        await self.AD.events.fire_event('admin', 'websocket_connected', **event_data)
+        await self.AD.events.process_event("admin", event_data)
 
         return response_data
 
