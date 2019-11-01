@@ -1441,7 +1441,7 @@ Assistant bus:
 - ``app_terminated`` - fired when an App is terminated
 -  ``plugin_started`` - fired every time AppDaemon detects a Home Assistant
    restart
-- ``call_service``: - fired when a service is called
+- ``call_service``: - fired when a service is called. This is fired within the namespace it was called
 -  ``plugin_stopped`` - fired once every time AppDaemon loses its
    connection with HASS
 
