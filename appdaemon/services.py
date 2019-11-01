@@ -96,10 +96,10 @@ class Services:
                     return await utils.run_in_executor(self, funcref, ns, domain, service, data)
 
             except:
-                self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error in call_service()")
-                self.logger.warning('-' * 60)
-                self.logger.warning(traceback.format_exc())
-                self.logger.warning('-' * 60)
+                self.logger.error('-' * 60)
+                self.logger.error("Unexpected error in call_service()")
+                self.logger.error('-' * 60)
+                self.logger.error(traceback.format_exc())
+                self.logger.error('-' * 60)
                 return None
 
