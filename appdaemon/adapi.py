@@ -1423,7 +1423,7 @@ class ADAPI:
                 for a detailed description. In most cases, it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Result of the `call_service` function if any
 
         Examples:
             HASS
