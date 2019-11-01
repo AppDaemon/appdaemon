@@ -1399,7 +1399,8 @@ class ADAPI:
 
         This function can call any service and provide any required parameters.
         By default, there are stardard services that can be called within AD. Other
-        services that can be called, are dependent on the plugin used. 
+        services that can be called, are dependent on the plugin used, or those registered
+        by individual apps using the `register_service` api.
         In a future release, all available services can be found using AD's Admin UI.
         For `listed services`, the part before the first period is the ``domain``,
         and the part after is the ``service name`. For instance, `light/turn_on`
