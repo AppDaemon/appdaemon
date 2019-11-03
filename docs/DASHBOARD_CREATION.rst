@@ -1825,6 +1825,7 @@ Optional Arguments:
    its list every refresh period, returning to the beginning when it
    hits the end. Use this in conjunction with a single entry in the
    ``url_list`` to have a single url refresh at a set interval.
+-  ``token`` - specify api auth long lived token for get camera images (required for HA >=0.101.2)   
 
 For regular HTTP sites, use the ``url_list`` argument, for images the
 ``img_list`` argument should work better.
@@ -1936,6 +1937,7 @@ Optional Arguments:
 
 -  ``refresh`` - (seconds) if set, the camera image will refresh every
    interval.
+-  ``token`` - specify api auth long lived token for get camera images (required for HA >=0.101.2)
 
 Cosmetic Arguments
 ^^^^^^^^^^^^^^^^^^
