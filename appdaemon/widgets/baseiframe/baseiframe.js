@@ -19,6 +19,8 @@ function baseiframe(widget_id, url, skin, parameters)
     if ("url_list" in parameters || "img_list" in parameters || "entity_picture" in parameters)
     {
         self.index = 0;
+        //set transparent 1x1px gif at load
+        self.set_field(self, "img_src", "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==");
         refresh_frame(self)
     }
     
