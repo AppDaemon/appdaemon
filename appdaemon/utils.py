@@ -1,9 +1,12 @@
 import os
 import datetime
 import asyncio
-import pwd
+import platform
 
-__version__ = "3.0.2"
+if platform.system() != "Windows":
+    import pwd
+
+__version__ = "3.0.5"
 secrets = None
 
 class Formatter(object):
@@ -165,6 +168,9 @@ def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
 def check_path(type, logger, path, pathtype="directory", permissions=None):
+     #disable checks for windows platform
+    if platform.system() == "Windows":
+        return  
     try:
         perms = permissions
         if pathtype == "file":

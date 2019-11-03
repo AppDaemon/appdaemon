@@ -121,7 +121,7 @@ The secrets can then be referred to as follows:
 Filters
 ~~~~~~~
 
-The use of filters allows you to run an arbitary command against a file with a specific extenstion to generate a new .py file. The usecases for this are varied, but this can be used to run a preprocessor on an app, or perhaps some kind of global substitute or any of a number of other commands. AppDaemon, when made aware of the filter via configurtion, will look for files in the appdir with the specified extension, and run the specified command on them writing the output to a new file with the specified extension. The output extension would usually be a .py file whcih would then be picked up by normal app processing, meaning that if you edit the original input file, the result will be a new .py file that is part of an app whcih will then be restarted.
+The use of filters allows you to run an arbitary command against a file with a specific extension to generate a new .py file. The usecases for this are varied, but this can be used to run a preprocessor on an app, or perhaps some kind of global substitute or any of a number of other commands. AppDaemon, when made aware of the filter via configuration, will look for files in the appdir with the specified extension, and run the specified command on them writing the output to a new file with the specified extension. The output extension would usually be a .py file which would then be picked up by normal app processing, meaning that if you edit the original input file, the result will be a new .py file that is part of an app which will then be restarted.
 
 In addition, it is possible to chain multiple filters, as the filter list is processed in order - just ensure you end with a .py file.
 

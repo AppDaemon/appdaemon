@@ -1,6 +1,28 @@
 Change Log
 ==========
 
+3.0.5 04/25/2019
+----------------
+
+**Fixes**
+
+- Pinned Jinja2 to 2.10.1 to fix security issue
+
+3.0.4 04/04/2019
+----------------
+
+**Fixes**
+
+- Use yaml.Safeloader to work around known security issue with PyYaml - contributed by `mvn23 <https://github.com/mvn23>`__
+- Unpinned PyYaml
+
+3.0.3 04/02/2019
+----------------
+
+**Fixes**
+
+- Pinned PyYaml to 3.13 to avoid a known issue
+
 3.0.2 10/31/2018
 ----------------
 
@@ -42,6 +64,7 @@ Change Log
 
 **Breaking Changes**
 
+- ``get_hass_config()`` has been changed to ``get_plugin_config()``, to keep up with the plugin structure of AD
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
 - SSE Support has been removed
 - Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work

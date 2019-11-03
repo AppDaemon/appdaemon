@@ -573,10 +573,10 @@ Examples
 
 .. code:: python
 
-     Run daily at 7pm
+    # Run daily at 7pm
     import datetime
     ...
-    time = datetime.time(19, 0, 0)
+    runtime = datetime.time(19, 0, 0)
     self.run_daily(self.run_daily_c, runtime)
 
 run\_hourly()
@@ -630,7 +630,7 @@ Examples
      Run every hour, on the hour
     import datetime
     ...
-    time = datetime.time(0, 0, 0)
+    runtime = datetime.time(0, 0, 0)
     self.run_hourly(self.run_hourly_c, runtime)
 
 run\_minutely()
@@ -899,8 +899,8 @@ conform to the standard Scheduler Callback format documented `Here <APPGUIDE.htm
 offset =
 '''''''''
 
-The time in seconds that the callback should be delayed after sunrise. A
-negative value will result in the callback occurring before sunrise.
+The time in seconds that the callback should be delayed after sunset. A
+negative value will result in the callback occurring before sunset.
 This parameter cannot be combined with ``random_start`` or
 ``random_end``
 

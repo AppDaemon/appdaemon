@@ -1677,7 +1677,7 @@ class AppDaemon:
                 config_file_contents = yamlfd.read()
 
             try:
-                new_config = yaml.load(config_file_contents)
+                new_config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
             except yaml.YAMLError as exc:
                 self.log("WARNING", "Error loading configuration")
