@@ -25,7 +25,7 @@ class Scheduler:
         self.last_fired = None
         self.sleep_task = None
         self.active = False
-
+        self.location = None
         self.schedule = {}
 
         self.now = pytz.utc.localize(datetime.datetime.utcnow())

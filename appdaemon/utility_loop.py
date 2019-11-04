@@ -25,6 +25,7 @@ class Utility:
         self.AD = ad
         self.stopping = False
         self.logger = ad.logging.get_child("_utility")
+        self.booted = None
 
     def stop(self):
         """Called by the AppDaemon object to terminate the loop cleanly
