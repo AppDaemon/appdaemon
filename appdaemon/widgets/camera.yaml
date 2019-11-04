@@ -4,7 +4,6 @@ fields:
   frame_src: ""
   img_src: ""
   frame_style: '{{frame_style}}'
-  token: ""
 icons: []
 static_css:
   title_style: $camera_title_style
