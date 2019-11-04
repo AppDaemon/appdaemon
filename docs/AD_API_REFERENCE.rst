@@ -130,6 +130,7 @@ Services
 ~~~~~~~~~
 
 Note: A service call always uses the app's default namespace. Although namespaces allow a new and easy way to work with multiple namespaces from within a single App, it is essential to understand how they work before using them in service's calls.
+See the section on `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
 
 AppDaemon has a predefined list of namespaces that can be used only for particular services. Listed below are the services by namespace.
 
