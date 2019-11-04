@@ -76,15 +76,20 @@ function baseiframe(widget_id, url, skin, parameters)
     {
        if ("token" in self.parameters) {
           var auth = {'Authorization': 'Bearer ' + self.parameters.token};
-       } else {
+        } else {
            self.set_field(self, "img_src", url);
            return;
-       }
-       $.get({url: url,  headers: auth , cache: false, xhrFields: {responseType: 'blob'}})
+        }
+        $.get({url: url,  headers: auth, xhrFields: {responseType: 'blob'}, async: true})
              .done(function(data) {
                 var urlref = window.URL || window.webkitURL;
                 imgUrl = urlref.createObjectURL(data);
+                // revoke previous object (Safari issue)
+                var currentObject = self.ViewModel["img_src"]();
                 self.set_field(self, "img_src", imgUrl);
+                if (currentObject && currentObject.startsWith('blob:')) {
+                    urlref.revokeObjectURL(currentObject);
+                }
               })
     }
 }
