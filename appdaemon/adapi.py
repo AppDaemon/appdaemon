@@ -2644,6 +2644,7 @@ class ADAPI:
 
         f = asyncio.ensure_future(coro)
         if callback is not None:
+            self.logger.debug("Adding add_done_callback for coro %s for %s", f, self.name)
             f.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, f)
