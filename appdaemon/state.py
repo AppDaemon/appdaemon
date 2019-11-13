@@ -101,7 +101,7 @@ class State:
             # In the case of a quick_start parameter,
             # start the clock immediately if the device is already in the new state
             #
-            if "immediate" in kwargs and kwargs["immediate"] is True:
+            if kwargs.pop("immediate"):
                 __duration = 0 # run it immediately
                 __new_state = None
                 __attribute = None
