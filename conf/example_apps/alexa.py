@@ -1,6 +1,7 @@
-import hassapi as hass
 import random
+
 import globals
+import hassapi as hass
 
 
 class Alexa(hass.Hass):

@@ -15,9 +15,10 @@
 #                                                                                         #
 ###########################################################################################
 
-import hassapi as hass
 import datetime as datetime
 import platform
+
+import hassapi as hass
 
 
 class general_fnc(hass.Hass):

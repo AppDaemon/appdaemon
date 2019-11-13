@@ -1,7 +1,8 @@
-import hassapi as hass
 import shelve
 import time
+
 import globals
+import hassapi as hass
 
 #
 # App to reset input_boolean, input_select, input_number, device_tracker to previous values after HA restart

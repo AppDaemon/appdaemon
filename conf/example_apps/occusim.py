@@ -1,8 +1,9 @@
-import hassapi as hass
 import datetime
-import re
 import random
+import re
+
 import globals
+import hassapi as hass
 
 #
 # App to simulate occupancy in an empty house

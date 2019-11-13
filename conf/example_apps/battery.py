@@ -1,6 +1,7 @@
-import hassapi as hass
 import datetime
+
 import globals
+import hassapi as hass
 
 #
 # App to send email report for devices running low on battery

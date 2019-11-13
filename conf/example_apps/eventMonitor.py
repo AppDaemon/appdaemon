@@ -1,5 +1,6 @@
 import hassapi as hass
 
+
 """
 
 Monitor events and output changes to the verbose_log. Nice for debugging purposes.

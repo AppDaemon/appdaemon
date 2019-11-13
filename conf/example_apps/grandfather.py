@@ -1,10 +1,11 @@
-import hassapi as hass
-from queue import Queue
+import datetime
+import os.path
 import threading
 import time
-import os.path
-import datetime
+from queue import Queue
+
 import globals
+import hassapi as hass
 
 #
 # Grandfather clock APP inspired by @areeshmu:

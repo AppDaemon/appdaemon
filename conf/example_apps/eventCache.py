@@ -1,6 +1,8 @@
-import hassapi as hass
-import os
 import json
+import os
+
+import hassapi as hass
+
 
 """
 

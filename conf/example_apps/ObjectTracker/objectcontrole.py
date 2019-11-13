@@ -30,8 +30,9 @@
 #                                                                                         #
 ###########################################################################################
 
-import hassapi as hass
 import datetime
+
+import hassapi as hass
 
 
 class objectcontrole(hass.Hass):

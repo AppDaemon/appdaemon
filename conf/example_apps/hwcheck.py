@@ -1,5 +1,5 @@
-import hassapi as hass
 import globals
+import hassapi as hass
 
 
 class HWCheck(hass.Hass):

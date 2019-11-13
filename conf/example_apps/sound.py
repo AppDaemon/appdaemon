@@ -1,10 +1,10 @@
-import hassapi as hass
-from queue import Queue
 import sys
-from threading import Thread
-from threading import Event
 import time
+from queue import Queue
+from threading import Event, Thread
+
 import globals
+import hassapi as hass
 
 #
 # App to manage announcements via TTS and stream sound files to Sonos

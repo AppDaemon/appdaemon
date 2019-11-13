@@ -1,7 +1,8 @@
-import hassapi as hass
 import datetime
+
 import appdaemon
 import globals
+import hassapi as hass
 
 #
 # App to manage house modes

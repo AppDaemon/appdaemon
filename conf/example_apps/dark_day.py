@@ -1,6 +1,7 @@
-import hassapi as hass
 import datetime
+
 import globals
+import hassapi as hass
 
 #
 # App to turn lights on when it gets dark during the day
