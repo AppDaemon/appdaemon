@@ -25,8 +25,9 @@ class Futures:
 
         if f.cancelled():
             return
-
-        f.cancel()
+        
+        if not f.done():
+            f.cancel()
 
     def cancel_futures(self, name):
         if name not in self.futures:
