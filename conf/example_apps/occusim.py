@@ -236,7 +236,7 @@ class OccuSim(hass.Hass):
 
     def activate(self, entity, action):
         type = action
-        m = re.match("event\.(.+)\,(.+)", entity)
+        m = re.match(r"event\.(.+)\,(.+)", entity)
         if m:
             if not self.test:
                 self.fire_event(m.group(1), **{m.group(2): self.step})
@@ -247,7 +247,7 @@ class OccuSim(hass.Hass):
                     )
                 )
             return
-        m = re.match("input_select\.", entity)
+        m = re.match(r"input_select\.", entity)
         if m:
             if not self.test:
                 self.select_option(entity, self.step)
@@ -257,7 +257,7 @@ class OccuSim(hass.Hass):
             if not self.test:
                 self.turn_on(entity)
         else:
-            if re.match("scene\.", entity):
+            if re.match(r"scene\.", entity):
                 type = "on"
                 if not self.test:
                     self.turn_on(entity)

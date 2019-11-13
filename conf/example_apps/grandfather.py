@@ -53,6 +53,6 @@ class Grandfather(hass.Hass):
         hour = self.time().hour
         if hour > 12:
             hour = hour - 12
-        media = "{0}/GrandFatherChime{1:0=2d}.wav".format(self.args["media"], hour)
+        media = "{}/GrandFatherChime{:0=2d}.wav".format(self.args["media"], hour)
         sound = self.get_app("Sound")
         sound.play(media, "audio/wav", self.args["volume"], 65)
