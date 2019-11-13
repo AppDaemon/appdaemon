@@ -33,6 +33,6 @@ class Futures:
             return
 
         for f in self.futures[name]:
-            if not f.done():
+            if not f.done() and not f.cancelled():
                 self.AD.logger.debug('Cancelling Future {}'.format(f))
                 f.cancel()
