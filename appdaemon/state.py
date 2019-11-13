@@ -102,7 +102,7 @@ class State:
             # start the clock immediately if the device is already in the new state
             #
             if kwargs.pop("immediate"):
-                __duration = 0 # run it immediately
+                __duration = kwargs.pop("duration", 0) # run it immediately
                 __new_state = None
                 __attribute = None
                 run = False
@@ -128,8 +128,6 @@ class State:
                             elif __attribute == "all":
                                 __new_state = self.state[namespace][entity]
 
-                    if "duration" in kwargs:
-                        __duration = kwargs["duration"]
                 if run:
                     exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(__duration))
 
