@@ -106,12 +106,11 @@ class State:
                 __new_state = None
                 __attribute = None
                 run = False
-                
+
                 if entity is not None and entity in self.state[namespace]:
                     run = True
-                    
-                    if "attribute" in kwargs:
-                        __attribute = kwargs["attribute"]
+                    __attribute = kwargs.pop("attribute")
+
                     if "new" in kwargs:
                         if __attribute is None and self.state[namespace][entity]["state"] == kwargs["new"]:
                             __new_state = kwargs["new"]
