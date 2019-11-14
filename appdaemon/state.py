@@ -374,7 +374,7 @@ class State:
             if "attributes" in kwargs:
                 new_state["attributes"].update(kwargs["attributes"])
             else:
-                replace kwargs.pop("replace", False)
+                replace = kwargs.pop("replace", False)
                 if replace is True:
                     new_state["attributes"] = kwargs
                 else:
