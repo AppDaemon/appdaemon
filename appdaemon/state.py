@@ -101,15 +101,15 @@ class State:
             # In the case of a quick_start parameter,
             # start the clock immediately if the device is already in the new state
             #
-            if kwargs.pop("immediate"):
-                __duration = kwargs.pop("duration", 0) # run it immediately
+            if kwargs.get("immediate"):
+                __duration = kwargs.get("duration", 0) # run it immediately
                 __new_state = None
                 __attribute = None
                 run = False
 
                 if entity is not None and entity in self.state[namespace]:
                     run = True
-                    __attribute = kwargs.pop("attribute")
+                    __attribute = kwargs.get("attribute")
 
                     if "new" in kwargs:
                         if __attribute is None and self.state[namespace][entity]["state"] == kwargs["new"]:
