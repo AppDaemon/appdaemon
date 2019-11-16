@@ -1330,7 +1330,7 @@ class ADAPI:
             replace(bool, optional): If a `replace` flag is given and set to ``True`` and ``attributes``
                 is provided, AD will attempt to replace its internal entity register with the newly
                 supplied attributes completely. This can be used to replace attributes in an entity
-                which are no longer needed. Do take note this is only pobbible for internal entity state.
+                which are no longer needed. Do take note this is only possible for internal entity state.
                 For plugin based entities, this is not recommended, as the plugin will mostly replace
                 the new values, when next it updates.
 
