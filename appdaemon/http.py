@@ -701,7 +701,7 @@ class HTTP:
         #
         # For App based Web Server
         #
-        self.app.router.add_get('/{app}', self.app_webserver)
+        self.app.router.add_get('/{route}', self.app_webserver)
 
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
@@ -795,7 +795,7 @@ class HTTP:
     #
     # App based Web Server
     #
-    async def register_web_app(self, cb, name):
+    async def register_web_app(self, cb, route, name):
 
         if not asyncio.iscoroutinefunction(cb): # must be async function
             self.logger.warning("Could not register Callback for %s as Web server endpoint. Callback must be Async", name)
@@ -805,7 +805,7 @@ class HTTP:
 
         if name not in self.web_endpoints:
             self.web_endpoints[name] = {}
-        self.web_endpoints[name][handle] = {"callback": cb, "name": name}
+        self.web_endpoints[name][handle] = {"callback": cb, "route": route}
 
         return handle
 
@@ -816,7 +816,7 @@ class HTTP:
     @securedata
     async def app_webserver(self, request):
 
-        app = request.match_info.get('app')
+        route = request.match_info.get('route')
 
         code = 404
         error = "Requested Server does not exist"
@@ -824,15 +824,15 @@ class HTTP:
         callback = None
         for name in self.web_endpoints:
             for handle in self.web_endpoints[name]:
-                if self.web_endpoints[name][handle]["name"] == app:
+                if self.web_endpoints[name][handle]["route"] == route:
                     callback = self.web_endpoints[name][handle]["callback"]
 
         if callback is not None:
-            self.access.debug("Web Call to %s", app)
+            self.access.debug("Web Call to %s", route)
 
             try:
                 f = asyncio.ensure_future(callback(request))
-                self.AD.futures.add_future(app, f)
+                self.AD.futures.add_future(name, f)
                 return await f
             except asyncio.CancelledError:
                 code = 503
