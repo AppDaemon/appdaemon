@@ -115,6 +115,7 @@ class HTTP:
         self.stopping = False
 
         self.endpoints = {}
+        self.web_endpoints = {}
 
         self.dashboard_obj = None
         self.admin_obj = None
@@ -697,6 +698,9 @@ class HTTP:
         else:
             self.app.router.add_get('/', self.error_page)
 
+        #addition
+        self.app.router.add_get('/{app}', self.app_webserver)
+
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
         self.app.router.add_get('/{name}', self.load_dash)
@@ -779,9 +783,70 @@ class HTTP:
                 if self.endpoints[app][handle]["name"] == name:
                     callback = self.endpoints[app][handle]["callback"]
         if callback is not None:
-            return await utils.run_in_executor(self, callback, args)
+            if asyncio.iscoroutinefunction(callback):
+                return await callback(args)
+            else:
+                return await utils.run_in_executor(self, callback, args)
         else:
             return '', 404
+
+    #addition
+    async def register_web_app(self, cb, name):
+
+        if not asyncio.iscoroutinefunction(cb): # must be async function
+            self.logger.warning("Could not register Callback for %s as Web server endpoint. Callback must be Async", name)
+            return
+
+        handle = uuid.uuid4().hex
+
+        if name not in self.web_endpoints:
+            self.web_endpoints[name] = {}
+        self.web_endpoints[name][handle] = {"callback": cb, "name": name}
+
+        return handle
+
+    #addition
+    async def unregister_web_app(self, handle, name):
+        if name in self.web_endpoints and handle in self.web_endpoints[name]:
+            del self.web_endpoints[name][handle]
+    
+    #addition
+    @securedata
+    async def app_webserver(self, request):
+
+        app = request.match_info.get('app')
+
+        code = 404
+        error = "Requested Server does not exist"
+
+        callback = None
+        for name in self.web_endpoints:
+            for handle in self.web_endpoints[name]:
+                if self.web_endpoints[name][handle]["name"] == app:
+                    callback = self.web_endpoints[name][handle]["callback"]
+
+        if callback is not None:
+            self.access.debug("Web Call to %s", app)
+
+            try:
+                f = asyncio.ensure_future(callback(request))
+                self.AD.futures.add_future(app, f)
+                return await f
+            except asyncio.CancelledError:
+                code = 503
+                error = "Request was Cancelled"
+
+            except:
+                self.logger.warning('-' * 60)
+                self.logger.warning("Unexpected error during Web call")
+                self.logger.warning('-' * 60)
+                self.logger.warning(traceback.format_exc())
+                self.logger.warning('-' * 60)
+                code = 503
+                error = "Request had an Error"
+        
+        response = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(code, error, code, error)
+        return web.Response(text=response, content_type="text/html")
 
     #
     # Admin
@@ -847,4 +912,3 @@ class HTTP:
             self.logger.warning('-' * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning('-' * 60)
-
