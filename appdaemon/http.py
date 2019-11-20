@@ -698,7 +698,9 @@ class HTTP:
         else:
             self.app.router.add_get('/', self.error_page)
 
-        #addition
+        #
+        # For App based Web Server
+        #
         self.app.router.add_get('/{app}', self.app_webserver)
 
     def setup_dashboard_routes(self):
@@ -790,7 +792,9 @@ class HTTP:
         else:
             return '', 404
 
-    #addition
+    #
+    # App based Web Server
+    #
     async def register_web_app(self, cb, name):
 
         if not asyncio.iscoroutinefunction(cb): # must be async function
@@ -805,12 +809,10 @@ class HTTP:
 
         return handle
 
-    #addition
     async def unregister_web_app(self, handle, name):
         if name in self.web_endpoints and handle in self.web_endpoints[name]:
             del self.web_endpoints[name][handle]
     
-    #addition
     @securedata
     async def app_webserver(self, request):
 
