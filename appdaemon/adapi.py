@@ -1533,6 +1533,8 @@ class ADAPI:
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
+            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled
+                after the first state change that results in a callback.
             namespace(str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases, it is safe to ignore this parameter. The value ``global``
