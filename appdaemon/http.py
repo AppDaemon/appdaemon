@@ -723,6 +723,9 @@ class HTTP:
     async def terminate_app(self, name):
         if name in self.endpoints:
             del self.endpoints[name]
+        
+        if name in self.web_endpoints:
+            del self.web_endpoints[name]
 
     def get_response(self, request, code, error):
         res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
