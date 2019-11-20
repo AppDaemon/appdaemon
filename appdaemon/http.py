@@ -701,7 +701,7 @@ class HTTP:
         #
         # For App based Web Server
         #
-        self.app.router.add_get('/{route}', self.app_webserver)
+        self.app.router.add_get('/app/{route}', self.app_webserver)
 
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
