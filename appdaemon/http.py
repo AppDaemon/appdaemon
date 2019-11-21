@@ -115,7 +115,7 @@ class HTTP:
         self.stopping = False
 
         self.endpoints = {}
-        self.web_endpoints = {}
+        self.app_routes = {}
 
         self.dashboard_obj = None
         self.admin_obj = None
@@ -724,8 +724,8 @@ class HTTP:
         if name in self.endpoints:
             del self.endpoints[name]
         
-        if name in self.web_endpoints:
-            del self.web_endpoints[name]
+        if name in self.app_routes:
+            del self.app_routes[name]
 
     def get_response(self, request, code, error):
         res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
@@ -798,23 +798,23 @@ class HTTP:
     #
     # App based Web Server
     #
-    async def register_web_app(self, cb, route, name):
+    async def register_app_route(self, cb, route, name):
 
         if not asyncio.iscoroutinefunction(cb): # must be async function
-            self.logger.warning("Could not register Callback for %s as Web server endpoint. Callback must be Async", name)
+            self.logger.warning("Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be Async", name, route)
             return
 
         handle = uuid.uuid4().hex
 
-        if name not in self.web_endpoints:
-            self.web_endpoints[name] = {}
-        self.web_endpoints[name][handle] = {"callback": cb, "route": route}
+        if name not in self.app_routes:
+            self.app_routes[name] = {}
+        self.app_routes[name][handle] = {"callback": cb, "route": route}
 
         return handle
 
-    async def unregister_web_app(self, handle, name):
-        if name in self.web_endpoints and handle in self.web_endpoints[name]:
-            del self.web_endpoints[name][handle]
+    async def unregister_app_route(self, handle, name):
+        if name in self.app_routes and handle in self.app_routes[name]:
+            del self.app_routes[name][handle]
     
     @securedata
     async def app_webserver(self, request):
@@ -825,13 +825,13 @@ class HTTP:
         error = "Requested Server does not exist"
 
         callback = None
-        for name in self.web_endpoints:
-            for handle in self.web_endpoints[name]:
-                if self.web_endpoints[name][handle]["route"] == route:
-                    callback = self.web_endpoints[name][handle]["callback"]
+        for name in self.app_routes:
+            for handle in self.app_routes[name]:
+                if self.app_routes[name][handle]["route"] == route:
+                    callback = self.app_routes[name][handle]["callback"]
 
         if callback is not None:
-            self.access.debug("Web Call to %s", route)
+            self.access.debug("Web Call to %s for %s", route, name)
 
             try:
                 f = asyncio.ensure_future(callback(request))
