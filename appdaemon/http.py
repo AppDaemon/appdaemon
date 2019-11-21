@@ -826,9 +826,13 @@ class HTTP:
 
         callback = None
         for name in self.app_routes:
+            if callback != None: # a callback has been collected
+                break
+
             for handle in self.app_routes[name]:
                 if self.app_routes[name][handle]["route"] == route:
                     callback = self.app_routes[name][handle]["callback"]
+                    break
 
         if callback is not None:
             self.access.debug("Web Call to %s for %s", route, name)
