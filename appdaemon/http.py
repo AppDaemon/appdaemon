@@ -788,11 +788,11 @@ class HTTP:
         try:
             ret, code = await self.dispatch_app_by_name(app, args)
         except:
-            self.logger.warning('-' * 60)
-            self.logger.warning("Unexpected error during API call")
-            self.logger.warning('-' * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.access.warning('-' * 60)
+            self.access.warning("Unexpected error during API call")
+            self.access.warning('-' * 60)
+            self.access.warning(traceback.format_exc())
+            self.access.warning('-' * 60)
 
         if code == 404:
             return self.get_response(request, 404, "App Not Found")
@@ -892,11 +892,11 @@ class HTTP:
                 error = "Request was Cancelled"
 
             except:
-                self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error during Web call")
-                self.logger.warning('-' * 60)
-                self.logger.warning(traceback.format_exc())
-                self.logger.warning('-' * 60)
+                self.access.warning('-' * 60)
+                self.access.warning("Unexpected error during Web call")
+                self.access.warning('-' * 60)
+                self.access.warning(traceback.format_exc())
+                self.access.warning('-' * 60)
                 code = 503
                 error = "Request had an Error"
         
