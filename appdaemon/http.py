@@ -71,6 +71,31 @@ def secure(myfunc):
 
     return wrapper
 
+def app_secure(myfunc):
+    """
+    Take care of streams and service calls
+    """
+
+    async def wrapper(*args):
+
+        self = args[0]
+        request = args[1]
+        if self.password is None or self.valid_tokens == []:
+            return await myfunc(*args)
+
+        elif "adcreds" in request.cookies:
+            match = await utils.run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
+            if match:
+                return await myfunc(*args)
+
+        elif "token" in request.query and request.query["token"] in self.valid_tokens:
+            return await myfunc(*args)
+
+        else:
+            return self.get_response(request, "401", "Unauthorized")
+
+    return wrapper
+
 
 class HTTP:
 
@@ -92,6 +117,9 @@ class HTTP:
 
         self.password = None
         self._process_arg("password", http)
+
+        self.valid_tokens = []
+        self._process_arg("tokens", http)
 
         self.url = None
         self._process_arg("url", http)
@@ -733,8 +761,17 @@ class HTTP:
         if code == 200:
             self.access.info("API Call to %s: status: %s", app, code)
         else:
-            self.logger.warning("API Call to %s: status: %s, %s", app, code, error)
+            self.access.warning("API Call to %s: status: %s, %s", app, code, error)
         return web.Response(body=res, status=code)
+
+    def get_web_response(self, request, code, error):
+        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(code, error, code, error)
+        app = request.match_info.get('app', "system")
+        if code == 200:
+            self.access.info("Web Call to %s: status: %s", app, code)
+        else:
+            self.access.warning("Web Call to %s: status: %s, %s", app, code, error)
+        return web.Response(text=res, content_type="text/html")
 
     @securedata
     async def call_api(self, request):
@@ -798,7 +835,7 @@ class HTTP:
     #
     # App based Web Server
     #
-    async def register_app_route(self, cb, route, name):
+    async def register_app_route(self, cb, route, name, **kwargs):
 
         if not asyncio.iscoroutinefunction(cb): # must be async function
             self.logger.warning("Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be Async", name, route)
@@ -808,7 +845,12 @@ class HTTP:
 
         if name not in self.app_routes:
             self.app_routes[name] = {}
-        self.app_routes[name][handle] = {"callback": cb, "route": route}
+        
+        token = kwargs.get("token")
+        self.app_routes[name][handle] = {"callback": cb, "route": route, "token": token}
+
+        if token != None and token not in self.valid_tokens:
+            self.valid_tokens.append(token)
 
         return handle
 
@@ -816,10 +858,11 @@ class HTTP:
         if name in self.app_routes and handle in self.app_routes[name]:
             del self.app_routes[name][handle]
     
-    @securedata
+    @app_secure
     async def app_webserver(self, request):
 
         route = request.match_info.get('route')
+        token = request.query.get("token")
 
         code = 404
         error = "Requested Server does not exist"
@@ -830,7 +873,13 @@ class HTTP:
                 break
 
             for handle in self.app_routes[name]:
-                if self.app_routes[name][handle]["route"] == route:
+                app_route = self.app_routes[name][handle]["route"]
+                app_token = self.app_routes[name][handle]["token"]
+
+                if app_route == route :
+                    if self.valid_tokens != [] and app_token != token:
+                        return self.get_web_response(request, "401", "Unauthorized")
+
                     callback = self.app_routes[name][handle]["callback"]
                     break
 
@@ -854,8 +903,7 @@ class HTTP:
                 code = 503
                 error = "Request had an Error"
         
-        response = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(code, error, code, error)
-        return web.Response(text=response, content_type="text/html")
+        return self.get_web_response(request, str(code), error)
 
     #
     # Admin
