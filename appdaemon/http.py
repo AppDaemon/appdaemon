@@ -877,7 +877,7 @@ class HTTP:
                 app_token = self.app_routes[name][handle]["token"]
 
                 if app_route == route :
-                    if self.valid_tokens != [] and app_token != token:
+                    if app_token != None and app_token != token:
                         return self.get_web_response(request, "401", "Unauthorized")
 
                     callback = self.app_routes[name][handle]["callback"]
