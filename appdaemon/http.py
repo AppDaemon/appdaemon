@@ -849,9 +849,6 @@ class HTTP:
         token = kwargs.get("token")
         self.app_routes[name][handle] = {"callback": cb, "route": route, "token": token}
 
-        if token != None and token not in self.valid_tokens:
-            self.valid_tokens.append(token)
-
         return handle
 
     async def unregister_app_route(self, handle, name):
