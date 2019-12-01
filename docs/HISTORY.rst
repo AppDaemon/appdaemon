@@ -9,6 +9,7 @@ Change Log
 - Added events for when an app is initialized or terminated
 - Added `event_fire` service call
 - Added `production_mode` service call
+- Added events for when a webscoket client connects and disconnects
 
 **Fixes**
 
