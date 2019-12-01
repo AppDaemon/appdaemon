@@ -1070,7 +1070,7 @@ class ADAPI:
         """Registers a route for Web requests into the current App.
            By registering an app web route, this allows to make use of AD's internal web server to serve
            web clients. All routes registered using this api call, can be accessed using
-           ``http://AD_IP:5050/app/{route}``.
+           ``http://AD_IP:Port/app/{route}``.
 
         Args:
             callback: The function to be called when a request is made to the named route.
