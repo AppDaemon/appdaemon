@@ -27,7 +27,7 @@ class Services:
             
             data = {
                 "event_type": "service_registered", 
-                    "data": {"domain": domain, "service" : service}
+                    "data": {"namespace": namespace, "domain": domain, "service" : service}
                 }
             self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
