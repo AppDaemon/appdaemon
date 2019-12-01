@@ -127,6 +127,71 @@ Namespace
 .. autofunction:: appdaemon.adapi.ADAPI.list_namespaces
 .. autofunction:: appdaemon.adapi.ADAPI.save_namespace
 
+Services
+~~~~~~~~~
+
+Note: A service call always uses the app's default namespace. Although namespaces allow a new and easy way to work with multiple namespaces from within a single App, it is essential to understand how they work before using them in service's calls.
+See the section on `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+
+AppDaemon has a predefined list of namespaces that can be used only for particular services. Listed below are the services by namespace.
+
+``appdaemon`` namespace only:
+
+**app/start**
+
+Starts an app that has been terminated. The `app` name arg is required.
+
+    >>> self.call_service("app/start", app="light_app", namespace="appdaemon")
+
+**app/stop**
+
+Stops a running app. The `app` name arg is required.
+
+    >>> self.call_service("app/stop", app="light_app", namespace="appdaemon")
+
+**app/restart**
+
+Restarts a running app. This service basically stops and starts the app. The `app` name arg is required.
+
+    >>> self.call_service("app/restart", app="light_app", namespace="appdaemon")
+
+**app/reload**
+
+Checks for an app update. Useful if AD is running in production mode, and app changes need to be checked and loaded.
+
+    >>> self.call_service("app/reload", namespace="appdaemon")
+
+**production_mode/set**
+
+Sets the production mode AD is running on. The value of the `mode` arg has to be `True` or `False`.
+
+>>> self.call_service("production_mode/set", mode=True, namespace="appdaemon")
+
+All namespaces except ``appdaemon``, ``global``, and ``admin``:
+
+**state/set**
+
+Sets the state of an entity. This service allows any key-worded args to define what entity's values need to be set.
+
+    >>> self.call_service("state/set", entity_id="sensor.test", state="on", attributes={"friendly_name" : "Sensor Test"}, namespace="default")
+
+All namespaces except ``appdaemon``:
+
+**event/fire**
+
+Fires an event within the specified namespace. The `event` arg is required.
+
+    >>> self.call_service("event/fire", event="test_event", entity_id="appdaemon.test", namespace="hass")
+
+``rules`` namespace only:
+
+**sequence/run**
+
+Runs a predefined sequence. The `entity_id` arg with the sequence full-qualified entity name is required.
+
+    >>> self.call_service("sequence/run", entity_id ="sequence.christmas_lights", namespace="rules")
+
+
 Threading
 ~~~~~~~~~
 

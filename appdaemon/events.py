@@ -259,6 +259,7 @@ class Events:
                 self.logger.debug("Discarding event for loop avoidance")
                 return
 
+        removes = []
         for name in self.AD.callbacks.callbacks.keys():
             for uuid_ in self.AD.callbacks.callbacks[name]:
                 callback = self.AD.callbacks.callbacks[name][uuid_]
@@ -287,7 +288,7 @@ class Events:
 
                         if _run:
                             if name in self.AD.app_management.objects:
-                                await self.AD.threading.dispatch_worker(name,
+                                executed = await self.AD.threading.dispatch_worker(name,
                                                                         {
                                                                             "id": uuid_,
                                                                             "name": name,
@@ -300,6 +301,15 @@ class Events:
                                                                             "pin_thread": callback["pin_thread"],
                                                                             "kwargs": callback["kwargs"]
                                                                         })
+                                
+                                # Remove the callback if appropriate
+                                if executed is True:
+                                    remove = callback["kwargs"].get("oneshot", False)
+                                    if remove is True:
+                                        removes.append({"name": name, "uuid": uuid_})
+
+        for remove in removes:
+            await self.cancel_event_callback(remove["name"], remove["uuid"])
      
     async def event_services(self, namespace, domain, service, kwargs):
         if "event" in kwargs:

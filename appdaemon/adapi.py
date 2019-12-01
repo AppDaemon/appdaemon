@@ -1327,6 +1327,12 @@ class ADAPI:
                 if no namespace is given, AppDaemon will use the last specified namespace
                 or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
                 for a detailed description. In most cases, it is safe to ignore this parameter.
+            replace(bool, optional): If a `replace` flag is given and set to ``True`` and ``attributes``
+                is provided, AD will attempt to replace its internal entity register with the newly
+                supplied attributes completely. This can be used to replace attributes in an entity
+                which are no longer needed. Do take note this is only possible for internal entity state.
+                For plugin based entities, this is not recommended, as the plugin will mostly replace
+                the new values, when next it updates.
 
         Returns:
             A dictionary that represents the new state of the updated entity.
@@ -1565,6 +1571,8 @@ class ADAPI:
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
+            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled
+                after the first state change that results in a callback.
             namespace(str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases, it is safe to ignore this parameter. The value ``global``
@@ -2153,6 +2161,9 @@ class ADAPI:
         else:
             raise ValueError("Invalid type for start")
         name = self.name
+        
+        self.logger.debug("Registering run_once at %s for %s", when, name)
+        
         now = await self.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, when)
@@ -2229,6 +2240,9 @@ class ADAPI:
             raise ValueError("Invalid type for start")
         aware_when = self.AD.sched.convert_naive(when)
         name = self.name
+        
+        self.logger.debug("Registering run_at at %s for %s", when, name)
+        
         now = await self.get_now()
         if aware_when < now:
             raise ValueError(
@@ -2676,6 +2690,7 @@ class ADAPI:
 
         f = asyncio.ensure_future(coro)
         if callback is not None:
+            self.logger.debug("Adding add_done_callback for coro %s for %s", f, self.name)
             f.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, f)
