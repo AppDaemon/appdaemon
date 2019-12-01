@@ -25,14 +25,15 @@ class Futures:
 
         if f.cancelled():
             return
-
-        f.cancel()
+        
+        if not f.done():
+            f.cancel()
 
     def cancel_futures(self, name):
         if name not in self.futures:
             return
 
         for f in self.futures[name]:
-            if not f.done():
+            if not f.done() and not f.cancelled():
                 self.AD.logger.debug('Cancelling Future {}'.format(f))
                 f.cancel()

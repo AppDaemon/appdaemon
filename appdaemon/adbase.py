@@ -9,6 +9,9 @@ from appdaemon.appdaemon import AppDaemon
 
 class Entities:
 
+    def __init__(self):
+        pass
+
     def __get__(self, instance, owner):
         stateattrs = utils.StateAttrs(instance.get_state())
         return stateattrs
