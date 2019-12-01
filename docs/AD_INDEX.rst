@@ -164,6 +164,7 @@ R
 
 * `radial   [Widget] <DASHBOARD_CREATION.html#radial>`__
 * `register_endpoint()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_endpoint>`__
+* `register_app_route()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_app_route>`__
 * `register_service()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_service>`__
 * `reload   [Widget] <DASHBOARD_CREATION.html#reload>`__
 * `reload_apps()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.reload_apps>`__
@@ -222,6 +223,7 @@ U
 -
 
 * `unregister_endpoint()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.unregister_endpoint>`__
+* `unregister_app_route()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.unregister_app_route>`__
 
 V
 -
