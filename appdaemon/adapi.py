@@ -1060,6 +1060,65 @@ class ADAPI:
 
         """
         await self.AD.http.unregister_endpoint(handle, self.name)
+     
+    #
+    # Web Route
+    #
+
+    @utils.sync_wrapper
+    async def register_app_route(self, callback, route=None, **kwargs):
+        """Registers a route for Web requests into the current App.
+           By registering an app web route, this allows to make use of AD's internal web server to serve
+           web clients. All routes registered using this api call, can be accessed using
+           ``http://AD_IP:5050/app/{route}``.
+
+        Args:
+            callback: The function to be called when a request is made to the named route.
+            route (str, optional): The name of the route to be used for the request (Default: app name).
+        
+        Keyword Args:
+            token (str, optional): A previously registered token can be passed with the api call, which 
+            can be used to secure the app route. This allows for different security credentials to be used across different
+            app routes. It should be noted that if a device has already registered using AD's Admin UI's password
+            and a cookie has been stored by the broswer, that device will bypass the token and still access the web server.
+
+        Returns:
+            A handle that can be used to remove the registration.
+
+        Examples:
+            It should be noted that the register function, should return a string (can be empty),
+            and an HTTP OK status response (e.g., `200`. If this is not added as a returned response,
+            the function will generate an error each time it is processed.
+
+            >>> self.register_app_route(my_callback)
+            >>> self.register_app_route(stream_cb, "camera")
+
+        """
+        if route is None:
+            route = self.name
+
+        if self.AD.http is not None:
+            return await self.AD.http.register_app_route(callback, route, self.name, **kwargs)
+
+        else:
+            self.logger.warning("register_app_route for %s filed - HTTP component is not configured", route)
+            return None
+
+    @utils.sync_wrapper
+    async def unregister_app_route(self, handle):
+        """Removes a previously registered app route.
+
+        Args:
+            handle: A handle returned by a previous call to ``register_app_route``
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.unregister_app_route(handle)
+
+        """
+        await self.AD.http.unregister_app_route(handle, self.name)
 
     #
     # State
