@@ -87,6 +87,7 @@ class HTTP:
         self.admin = admin
         self.http = http
         self.api = api
+        self.runner = None
 
         self.template_dir = os.path.join(os.path.dirname(__file__), "assets", "templates")
 
@@ -779,7 +780,10 @@ class HTTP:
                 if self.endpoints[app][handle]["name"] == name:
                     callback = self.endpoints[app][handle]["callback"]
         if callback is not None:
-            return await utils.run_in_executor(self, callback, args)
+            if asyncio.iscoroutinefunction(callback):
+                return await callback(args)
+            else:
+                return await utils.run_in_executor(self, callback, args)
         else:
             return '', 404
 
