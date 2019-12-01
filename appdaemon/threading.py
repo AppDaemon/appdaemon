@@ -40,7 +40,8 @@ class Threading:
         self.auto_pin = True
         self.pin_threads = 0
         self.total_threads = 0
-
+        self.pin_apps = None
+        self.next_thread = None
         # Setup stats
 
         self.current_callbacks_executed = 0

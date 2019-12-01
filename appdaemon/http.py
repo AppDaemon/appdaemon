@@ -87,6 +87,7 @@ class HTTP:
         self.admin = admin
         self.http = http
         self.api = api
+        self.runner = None
 
         self.template_dir = os.path.join(os.path.dirname(__file__), "assets", "templates")
 
