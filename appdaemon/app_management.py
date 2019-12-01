@@ -145,9 +145,13 @@ class AppManagement:
                 await utils.run_in_executor(self, init)
             await self.set_state(name, state="idle")
             await self.increase_active_apps(name)
-            
-            event_data = {'app' : name}
-            await self.AD.events.fire_event('admin', 'app_initialized', **event_data)
+                        
+            event_data = {
+                "event_type": "app_initialized", 
+                    "data": {'app' : name}
+                }
+
+            await self.AD.events.process_event("admin", event_data)
 
         except TypeError:
             self.AD.threading.report_callback_sig(name, "initialize", init, {})
@@ -207,8 +211,12 @@ class AppManagement:
         
         await self.set_state(name, state="terminated")
         
-        event_data = {'app' : name}
-        await self.AD.events.fire_event('admin', 'app_terminated', **event_data)
+        event_data = {
+                "event_type": "app_terminated", 
+                    "data": {'app' : name}
+                }
+
+        await self.AD.events.process_event("admin", event_data)
 
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
