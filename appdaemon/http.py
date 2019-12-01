@@ -788,11 +788,11 @@ class HTTP:
         try:
             ret, code = await self.dispatch_app_by_name(app, args)
         except:
-            self.access.warning('-' * 60)
-            self.access.warning("Unexpected error during API call")
-            self.access.warning('-' * 60)
-            self.access.warning(traceback.format_exc())
-            self.access.warning('-' * 60)
+            self.logger.error('-' * 60)
+            self.logger.error("Unexpected error during API call")
+            self.logger.error('-' * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error('-' * 60)
 
         if code == 404:
             return self.get_response(request, 404, "App Not Found")
