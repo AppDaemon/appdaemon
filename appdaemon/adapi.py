@@ -2121,6 +2121,9 @@ class ADAPI:
         else:
             raise ValueError("Invalid type for start")
         name = self.name
+        
+        self.logger.debug("Registering run_once at %s for %s", when, name)
+        
         now = await self.get_now()
         today = now.date()
         event = datetime.datetime.combine(today, when)
@@ -2197,6 +2200,9 @@ class ADAPI:
             raise ValueError("Invalid type for start")
         aware_when = self.AD.sched.convert_naive(when)
         name = self.name
+        
+        self.logger.debug("Registering run_at at %s for %s", when, name)
+        
         now = await self.get_now()
         if aware_when < now:
             raise ValueError(
@@ -2644,6 +2650,7 @@ class ADAPI:
 
         f = asyncio.ensure_future(coro)
         if callback is not None:
+            self.logger.debug("Adding add_done_callback for coro %s for %s", f, self.name)
             f.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, f)

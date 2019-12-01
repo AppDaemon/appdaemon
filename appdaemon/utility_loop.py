@@ -25,6 +25,7 @@ class Utility:
         self.AD = ad
         self.stopping = False
         self.logger = ad.logging.get_child("_utility")
+        self.booted = None
 
     def stop(self):
         """Called by the AppDaemon object to terminate the loop cleanly
@@ -56,7 +57,7 @@ class Utility:
         # Start the web server
         #
         
-        if self.AD.http != None:
+        if self.AD.http is not None:
             await self.AD.http.start_server()
 
         #
@@ -202,7 +203,7 @@ class Utility:
             # Shutdown webserver
             #
             
-            if self.AD.http != None:
+            if self.AD.http is not None:
                 await self.AD.http.stop_server()
 
     async def set_production_mode(self, mode=True):
