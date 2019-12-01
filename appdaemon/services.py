@@ -31,12 +31,17 @@ class Services:
                 }
             self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
-    def list_services(self):
+    def list_services(self, ns="global"):
         result = []
         with self.services_lock:
             for namespace in self.services:
+                if ns != "global" and namespace != ns:
+                    continue
+
                 for domain in self.services[namespace]:
                     for service in self.services[namespace][domain]:
+                        if service == "fire":
+                            print(f"{domain} {service} {namespace}")
                         result.append({"namespace": namespace, "domain": domain, "service": service})
 
         return result

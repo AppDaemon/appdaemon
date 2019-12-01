@@ -1398,6 +1398,38 @@ class ADAPI:
             del kwargs["namespace"]
             
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
+        
+    def list_services(self, **kwargs):
+        """List all services available within AD
+
+        Using this function, an App can request all available services within AD
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            **kwargs: Each service has different parameter requirements. This argument
+                allows you to specify a comma-separated list of keyword value pairs, e.g.,
+                `namespace = global`.
+            namespace(str, optional): If a `namespace` is provided, AppDaemon will request
+                the services within the given namespace. On the other hand, if no namespace is given,
+                AppDaemon will use the last specified namespace or the default namespace.
+                To get all services across AD, pass `global`. See the section on `namespaces <APPGUIDE.html#namespaces>`__
+                for a detailed description. In most cases, it is safe to ignore this parameter.
+
+        Returns:
+            All services within the requested namespace
+
+        Examples:
+            >>> self.list_services(namespace="global")
+
+        """
+     
+        self.logger.debug("list_services: %s", kwargs)
+
+        namespace = kwargs.get("namespace", "global")
+        
+        return self.AD.services.list_services(namespace) #retrieve services
 
     @utils.sync_wrapper
     async def call_service(self, service, **kwargs):
