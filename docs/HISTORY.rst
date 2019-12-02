@@ -9,7 +9,7 @@ Change Log
 - Added events for when an app is initialized or terminated
 - Added `event_fire` service call
 - Added `production_mode` service call
-- Added the ability for apps to register web routes, thereby sharing AD's internal web server
+- Added the ability for apps to register web routes, thereby utilizing AD's internal web server
 
 **Fixes**
 
