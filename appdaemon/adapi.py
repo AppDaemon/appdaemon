@@ -1066,7 +1066,7 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def register_app_route(self, callback, route=None, **kwargs):
+    async def register_route(self, callback, route=None, **kwargs):
         """Registers a route for Web requests into the current App.
            By registering an app web route, this allows to make use of AD's internal web server to serve
            web clients. All routes registered using this api call, can be accessed using
@@ -1090,22 +1090,22 @@ class ADAPI:
             and an HTTP OK status response (e.g., `200`. If this is not added as a returned response,
             the function will generate an error each time it is processed.
 
-            >>> self.register_app_route(my_callback)
-            >>> self.register_app_route(stream_cb, "camera")
+            >>> self.register_route(my_callback)
+            >>> self.register_route(stream_cb, "camera")
 
         """
         if route is None:
             route = self.name
 
         if self.AD.http is not None:
-            return await self.AD.http.register_app_route(callback, route, self.name, **kwargs)
+            return await self.AD.http.register_route(callback, route, self.name, **kwargs)
 
         else:
-            self.logger.warning("register_app_route for %s filed - HTTP component is not configured", route)
+            self.logger.warning("register_route for %s filed - HTTP component is not configured", route)
             return None
 
     @utils.sync_wrapper
-    async def unregister_app_route(self, handle):
+    async def unregister_route(self, handle):
         """Removes a previously registered app route.
 
         Args:
@@ -1115,10 +1115,10 @@ class ADAPI:
             None.
 
         Examples:
-            >>> self.unregister_app_route(handle)
+            >>> self.unregister_route(handle)
 
         """
-        await self.AD.http.unregister_app_route(handle, self.name)
+        await self.AD.http.unregister_route(handle, self.name)
 
     #
     # State
