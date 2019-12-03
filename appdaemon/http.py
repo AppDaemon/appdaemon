@@ -139,6 +139,9 @@ class HTTP:
 
         self.config_dir = None
         self._process_arg("config_dir", dashboard)
+        
+        self.static_dirs = []
+        self._process_arg("static_dirs", http)
 
         self.stopping = False
 
@@ -748,6 +751,17 @@ class HTTP:
 
         if exists:
             self.app.router.add_static("/web", apps_static)
+        #
+        # Setup user defined static paths
+        #
+
+        for name, static_dir in self.static_dirs.items():
+            if not os.path.isdir(static_dir): #check if the folder exists
+                self.logger.warning("The Web directory %s doesn't exist. So static route not set up", static_dir)
+
+            else:
+                self.app.router.add_static("/{}".format(name), static_dir)
+                self.logger.debug("Successfully created the Web directory %s ", static_dir)
 
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
