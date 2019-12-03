@@ -71,7 +71,7 @@ def secure(myfunc):
 
     return wrapper
 
-def app_secure(myfunc):
+def route_secure(myfunc):
     """
     Take care of streams and service calls
     """
@@ -867,7 +867,7 @@ class HTTP:
     #
     # App based Web Server
     #
-    async def register_app_route(self, cb, route, name, **kwargs):
+    async def register_route(self, cb, route, name, **kwargs):
 
         if not asyncio.iscoroutinefunction(cb): # must be async function
             self.logger.warning("Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be Async", name, route)
@@ -883,11 +883,11 @@ class HTTP:
 
         return handle
 
-    async def unregister_app_route(self, handle, name):
+    async def unregister_route(self, handle, name):
         if name in self.app_routes and handle in self.app_routes[name]:
             del self.app_routes[name][handle]
     
-    @app_secure
+    @route_secure
     async def app_webserver(self, request):
 
         route = request.match_info.get('route')
