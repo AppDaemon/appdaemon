@@ -183,8 +183,8 @@ API
 WebRoute
 ~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.register_app_route
-.. autofunction:: appdaemon.adapi.ADAPI.unregister_app_route
+.. autofunction:: appdaemon.adapi.ADAPI.register_route
+.. autofunction:: appdaemon.adapi.ADAPI.unregister_route
 
 Other
 ~~~~~
