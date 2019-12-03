@@ -1073,7 +1073,7 @@ class ADAPI:
            ``http://AD_IP:Port/app/route``.
 
         Args:
-            callback: The function to be called when a request is made to the named route.
+            callback: The function to be called when a request is made to the named route. This must be an async function
             route (str, optional): The name of the route to be used for the request (Default: the app's name).
         
         Keyword Args:
