@@ -140,7 +140,7 @@ class HTTP:
         self.config_dir = None
         self._process_arg("config_dir", dashboard)
         
-        self.static_dirs = []
+        self.static_dirs = {}
         self._process_arg("static_dirs", http)
 
         self.stopping = False
