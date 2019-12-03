@@ -730,6 +730,24 @@ class HTTP:
         # For App based Web Server
         #
         self.app.router.add_get('/app/{route}', self.app_webserver)
+        
+        #
+        # Add static path for apps
+        #
+        apps_static = os.path.join(self.AD.config_dir, "web")
+        exists = True
+
+        if not os.path.isdir(apps_static): #check if the folder exists
+            try:
+                os.mkdir(apps_static)
+            except OSError:
+                self.logger.warning("Creation of the Web directory %s failed", apps_static)
+                exists = False
+            else:
+                self.logger.debug("Successfully created the Web directory %s ", apps_static)
+
+        if exists:
+            self.app.router.add_static("/web", apps_static)
 
     def setup_dashboard_routes(self):
         self.app.router.add_get('/list', self.list_dash)
