@@ -10,6 +10,8 @@ Change Log
 - Added `event_fire` service call
 - Added `production_mode` service call
 - Added the ability for apps to register web routes, thereby utilizing AD's internal web server
+- Added static folder `web`, which can used to serve content like images using AD's internal web server
+- Added ability for users to define static folders, which can used to serve content like images using AD's internal web server
 
 **Fixes**
 
