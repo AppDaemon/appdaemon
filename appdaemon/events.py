@@ -241,7 +241,7 @@ class Events:
 
                 await self.AD.http.stream_update(namespace, mydata)
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during process_event()")
             self.logger.warning("-" * 60)
@@ -264,8 +264,8 @@ class Events:
             has_log_callback = True
         else:
             for callback in self.AD.callbacks.callbacks:
-                for uuid in self.AD.callbacks.callbacks[callback]:
-                    cb = self.AD.callbacks.callbacks[callback][uuid]
+                for _uuid in self.AD.callbacks.callbacks[callback]:
+                    cb = self.AD.callbacks.callbacks[callback][_uuid]
                     if (
                         cb["name"] == name
                         and cb["type"] == "event"
