@@ -1,5 +1,4 @@
 import hassapi as hass
-import globals
 
 #
 # App to turn lights on when motion detected then off again after a delay
