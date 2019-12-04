@@ -7,7 +7,6 @@ from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
 from collections import OrderedDict
 import traceback
-import appdaemon.utils as utils
 
 from appdaemon.thread_async import AppDaemon
 
@@ -110,7 +109,7 @@ class AppNameFormatter(logging.Formatter):
             record.modulename = modulename
             record.appname = appname
             result = super().format(record)
-        except:
+        except Exception:
             raise
 
         return result
@@ -162,7 +161,7 @@ class LogSubscriptionHandler(StreamHandler):
                         },
                     },
                 )
-        except:
+        except Exception:
             logger.warning("-" * 60)
             logger.warning("Unexpected error occured in LogSubscriptionHandler.emit()")
             logger.warning("-" * 60)
@@ -227,8 +226,8 @@ class Logging:
                 "filter_timeout": default_filter_timeout,
                 "filter_repeat_delay": default_filter_repeat_delay,
             },
-            "access_log": {"name": "Access", "alias": "main_log",},
-            "diag_log": {"name": "Diag", "alias": "main_log",},
+            "access_log": {"name": "Access", "alias": "main_log"},
+            "diag_log": {"name": "Diag", "alias": "main_log"},
         }
 
         # Merge in any user input
