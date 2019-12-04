@@ -189,7 +189,7 @@ class Scheduler:
 
                 del self.schedule[name][uuid_]
 
-        except:
+        except Exception:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning("-" * 60)
             error_logger.warning(
@@ -497,7 +497,7 @@ class Scheduler:
                     # Not sleeping but lets be fair to the rest of AD
                     await asyncio.sleep(0)
 
-            except:
+            except Exception:
                 self.logger.warning("-" * 60)
                 self.logger.warning("Unexpected error in scheduler loop")
                 self.logger.warning("-" * 60)
@@ -683,7 +683,7 @@ class Scheduler:
         parsed_time = None
         sun = None
         offset = 0
-        parts = re.search("^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)$", time_str)
+        parts = re.search(r"^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)$", time_str)
         if parts:
             this_time = datetime.datetime(
                 int(parts.group(1)),
@@ -696,7 +696,7 @@ class Scheduler:
             )
             parsed_time = self.AD.tz.localize(this_time)
         else:
-            parts = re.search("^(\d+):(\d+):(\d+)$", time_str)
+            parts = re.search(r"^(\d+):(\d+):(\d+)$", time_str)
             if parts:
                 today = (await self.get_now()).astimezone(self.AD.tz)
                 time = datetime.time(
@@ -720,7 +720,7 @@ class Scheduler:
                     offset = 0
                 else:
                     parts = re.search(
-                        "^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)$", time_str
+                        r"^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)$", time_str
                     )
                     if parts:
                         sun = "sunrise"
@@ -742,7 +742,7 @@ class Scheduler:
                             parsed_time = await self.sunrise(True) - td
                     else:
                         parts = re.search(
-                            "^sunset\s*([+-])\s*(\d+):(\d+):(\d+)$", time_str
+                            r"^sunset\s*([+-])\s*(\d+):(\d+):(\d+)$", time_str
                         )
                         if parts:
                             sun = "sunset"
