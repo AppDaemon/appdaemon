@@ -1,5 +1,6 @@
 import requests
 from ast import literal_eval
+from functools import wraps
 
 import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
@@ -10,8 +11,6 @@ from appdaemon.appdaemon import AppDaemon
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-from functools import wraps
 
 
 def hass_check(func):
