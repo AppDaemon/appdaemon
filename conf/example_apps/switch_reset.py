@@ -1,6 +1,5 @@
 import hassapi as hass
 import shelve
-import time
 import globals
 
 #
@@ -60,7 +59,7 @@ class SwitchReset(hass.Hass):
                                 entity, self.device_db[entity], state[entity]["state"]
                             )
                         )
-                        new_state = self.set_state(entity, state=self.device_db[entity])
+                        self.set_state(entity, state=self.device_db[entity])
                 else:
                     self.log_notify(
                         "Adding {}, setting value to current state ({})".format(
