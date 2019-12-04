@@ -1,5 +1,4 @@
 import hassapi as hass
-import globals
 
 
 """
