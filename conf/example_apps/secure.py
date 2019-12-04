@@ -1,6 +1,5 @@
 import hassapi as hass
 import threading
-import datetime
 import time
 import random
 import re
@@ -104,7 +103,7 @@ class Secure(hass.Hass):
                 entities.append(entity)
         return entities
 
-    def query_house(self, data):
+    def query_house(self, data):  # noqa: C901
 
         self.timeout = 0
         secure_items = []
@@ -228,7 +227,6 @@ class Secure(hass.Hass):
 
             return self.get_secure_message()
 
-        data = self.data
         secured_items = self.secured_items
         unsecured_items = self.unsecured_items
 
