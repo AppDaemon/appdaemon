@@ -225,7 +225,7 @@ class HassPlugin(PluginBase):
             self.first_time = False
             self.already_notified = False
 
-    async def get_updates(self):
+    async def get_updates(self):  # noqa: C901
 
         _id = 0
         self.already_notified = False
@@ -344,7 +344,7 @@ class HassPlugin(PluginBase):
 
                 self.reading_messages = False
 
-            except:
+            except Exception:
                 self.reading_messages = False
                 self.hass_booting = True
                 if not self.already_notified:
@@ -393,7 +393,7 @@ class HassPlugin(PluginBase):
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
-            cert_path = False
+            cert_path = False  # noqa: F841
 
         if "token" in config:
             headers = {"Authorization": "Bearer {}".format(config["token"])}
@@ -427,7 +427,7 @@ class HassPlugin(PluginBase):
             )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during set_state()")
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during set_plugin_state()")
             self.logger.warning("Arguments: %s = %s", entity_id, kwargs)
@@ -436,7 +436,7 @@ class HassPlugin(PluginBase):
             self.logger.warning("-" * 60)
             return None
 
-    @hass_check
+    @hass_check  # noqa: C901
     async def call_plugin_service(self, namespace, domain, service, data):
         self.logger.debug(
             "call_plugin_service() namespace=%s domain=%s service=%s data=%s",
@@ -592,7 +592,7 @@ class HassPlugin(PluginBase):
             )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during call_service()")
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during call_plugin_service()")
             self.logger.warning(
@@ -637,7 +637,7 @@ class HassPlugin(PluginBase):
             raise ValueError
         try:
             float(meta[key])
-        except:
+        except Exception:
             self.logger.warning(
                 "Invalid value for '%s' ('%s') in metadata for plugin %s",
                 key,
@@ -697,7 +697,7 @@ class HassPlugin(PluginBase):
             self.validate_tz(meta)
 
             return meta
-        except:
+        except Exception:
             self.logger.warning("Error getting metadata - retrying")
             raise
 
@@ -723,7 +723,7 @@ class HassPlugin(PluginBase):
             services.append({"domain": "template", "services": ["render"]})
 
             return services
-        except:
+        except Exception:
             self.logger.warning("Error getting services - retrying")
             raise
 
@@ -755,7 +755,7 @@ class HassPlugin(PluginBase):
             )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during fire_event()")
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error fire_plugin_event()")
             self.logger.warning("-" * 60)
