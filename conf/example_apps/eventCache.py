@@ -46,14 +46,14 @@ class Cache(hass.Hass):
         with open(self.cache) as f:
             try:
                 return json.load(f)
-            except:
+            except Exception:
                 return {}
 
     def saveCache(self):
         try:
             with open(self.cache, mode="w") as f:
                 json.dump(self.state, f)
-        except:
+        except Exception:
             self.log("oops during save of cache")
 
     def deprecateOldEvents(self):
