@@ -35,13 +35,12 @@ class general_fnc(hass.Hass):
     ):
         update_time = datetime.datetime.now()
         new_time_format = self.reformat_time(time_format)
-        str_complete_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if time_gone_by == "true" or time_gone_by == "True":
             str_old_time = self.check_last_update_time(dir_name, object_name)
             try:
                 old_time = datetime.datetime.strptime(str_old_time, "%Y-%m-%d %H:%M:%S")
-            except:
+            except Exception:
                 self.log("strptime gives err on: " + str_old_time, level="INFO")
                 return
             gone_by_time = update_time - old_time
@@ -66,7 +65,7 @@ class general_fnc(hass.Hass):
             old_time = set_object.readline()
             set_object.close()
             return old_time
-        except:
+        except Exception:
             return "2000-01-01 00:00:00"
 
     def save_last_update_time(self, objects_dir, object_name):
@@ -80,7 +79,7 @@ class general_fnc(hass.Hass):
             set_object = open(complete_file_name, "w")
             set_object.write(str_complete_time)
             set_object.close()
-        except:
+        except Exception:
             self.log(
                 "couldn't save the time from: "
                 + object_name
