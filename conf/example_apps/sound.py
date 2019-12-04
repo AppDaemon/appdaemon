@@ -4,7 +4,6 @@ import sys
 from threading import Thread
 from threading import Event
 import time
-import globals
 
 #
 # App to manage announcements via TTS and stream sound files to Sonos
@@ -112,7 +111,7 @@ class Sound(hass.Hass):
                     self.set_state(
                         self.args["player"], attributes={"volume_level": volume}
                     )
-            except:
+            except Exception:
                 self.log("Error")
                 self.log(sys.exc_info())
 
