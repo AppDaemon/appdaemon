@@ -202,7 +202,7 @@ class Utility:
                         state=str(uptime),
                     )
 
-                except:
+                except Exception:
                     self.logger.warning("-" * 60)
                     self.logger.warning("Unexpected error during utility()")
                     self.logger.warning("-" * 60)
