@@ -1,7 +1,6 @@
 import threading
 import traceback
 import asyncio
-import uuid
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
@@ -132,7 +131,7 @@ class Services:
                         self, funcref, ns, domain, service, data
                     )
 
-            except:
+            except Exception:
                 self.logger.error("-" * 60)
                 self.logger.error("Unexpected error in call_service()")
                 self.logger.error("-" * 60)
