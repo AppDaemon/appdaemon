@@ -232,7 +232,7 @@ class MqttPlugin(PluginBase):
 
             # continue processing
             self.mqtt_connect_event.set()
-        except:
+        except Exception:
             self.logger.critical(
                 "There was an error while trying to setup the Mqtt Service"
             )
@@ -259,7 +259,7 @@ class MqttPlugin(PluginBase):
                 }
                 self.loop.create_task(self.send_ad_event(data))
             return
-        except:
+        except Exception:
             self.logger.critical(
                 "There was an error while disconnecting from the Mqtt Service"
             )
