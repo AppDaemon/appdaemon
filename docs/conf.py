@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# flake8: noqa
 #
 # AppDaemon documentation build configuration file, created by
 # sphinx-quickstart on Fri Aug 11 14:36:18 2017.
