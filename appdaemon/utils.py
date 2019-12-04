@@ -413,7 +413,9 @@ def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
 
-def check_path(type, logger, inpath, pathtype="directory", permissions=None):
+def check_path(  # noqa: C901
+    type, logger, inpath, pathtype="directory", permissions=None
+):
     # disable checks for windows platform
     if platform.system() == "Windows":
         return
