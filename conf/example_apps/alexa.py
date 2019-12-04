@@ -1,3 +1,8 @@
+# flake8: noqa
+# undefined name 'get_alexa_intent'
+# undefined name 'get_alexa_error'
+# undefined name 'get_alexa_slot_value'
+
 import hassapi as hass
 import random
 import globals
