@@ -46,7 +46,7 @@ class ADStream:
             self.sio.attach(self.app)
             self.sio.register_namespace(self.dash_stream)
 
-    async def send_update(self, data):
+    async def send_update(self, data):  # noqa: C901
         try:
             with self.streams_lock:
                 if len(self.streams) > 0:
@@ -103,7 +103,7 @@ class ADStream:
 
                                 await self.streams[stream].stream_send(data)
                                 break
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during 'send_update()'")
             self.logger.warning("-" * 60)
@@ -130,7 +130,7 @@ class ADStream:
                     self.access.info(
                         "WebSocket connection closed with exception {}", ws.exception()
                     )
-        except:
+        except Exception:
             self.logger.debug("-" * 60)
             self.logger.debug("Unexpected client disconnection from %s", rh.client_name)
             self.access.info("Unexpected client disconnection from %s", rh.client_name)
@@ -158,7 +158,7 @@ class ADStream:
             for stream in self.streams:
                 try:
                     await self.streams[stream].stream.close()
-                except:
+                except Exception:
                     self.logger.debug("-" * 60)
                     self.logger.warning("Unexpected error in on_shutdown()")
                     self.logger.debug("-" * 60)
@@ -167,7 +167,7 @@ class ADStream:
             for stream in self.streams:
                 try:
                     await self.streams[stream].stream.close()
-                except:
+                except Exception:
                     self.logger.debug("-" * 60)
                     self.logger.warning("Unexpected error in on_shutdown()")
                     self.logger.debug("-" * 60)
@@ -213,7 +213,7 @@ class RequestHandler:
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s", e)
             self.logger.debug("-" * 60)
-        except:
+        except Exception:
             self.logger.debug("-" * 60)
             self.logger.debug("Client disconnected unexpectedly")
             self.access.info("Client disconnected unexpectedly")
