@@ -84,7 +84,7 @@ class Dashboard:
             ha.check_path("css", self.logger, css, permissions="rwx")
             ha.check_path("javascript", self.logger, js, permissions="rwx")
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during HADashboard initialization")
             self.logger.warning("-" * 60)
@@ -158,7 +158,7 @@ class Dashboard:
 
     def _resolve_css_params(self, fields, subs):
         done = False
-        variable = re.compile("\$(\w+)")
+        variable = re.compile(r"\$(\w+)")
         index = 0
         while not done and index < 100:
             index += 1
@@ -244,13 +244,15 @@ class Dashboard:
                     value = value.replace(match, _vars[ikey])
 
             # Replace variables that are still left with an empty string.
-            value = re.sub("\{\{(.+)\}\}", "", value)
+            value = re.sub(r"\{\{(.+)\}\}", "", value)
             return value, templates
         else:
             return value, {}
 
     # noinspection PyUnresolvedReferences
-    def _load_widget(self, dash, includes, name, css_vars, global_parameters):
+    def _load_widget(  # noqa: C901
+        self, dash, includes, name, css_vars, global_parameters
+    ):
         instantiated_widget = None
         #
         # Check if we have already encountered a definition
@@ -442,7 +444,7 @@ class Dashboard:
     ):
         if value is None:
             return
-        widget_dimensions = re.compile("^(.+)\\((\d+)x(\d+)\\)$")
+        widget_dimensions = re.compile(r"^(.+)\\((\d+)x(\d+)\\)$")
         value = "".join(value.split())
         widgets = value.split(",")
         column = 1
@@ -539,7 +541,7 @@ class Dashboard:
         return dash
 
     # noinspection PyBroadException
-    def _create_sub_dash(
+    def _create_sub_dash(  # noqa: C901
         self,
         name,
         extension,
@@ -588,7 +590,7 @@ class Dashboard:
         try:
             with open(dashfile, "r") as yamlfd:
                 defs = yamlfd.read()
-        except:
+        except Exception:
             self._log_error(
                 dash, name, "Error opening dashboard file '{}'".format(dashfile)
             )
@@ -690,7 +692,7 @@ class Dashboard:
         return late_file
 
     # noinspection PyBroadException
-    def _get_dash(self, name, skin, skindir):
+    def _get_dash(self, name, skin, skindir):  # noqa: C901
         pydashfile = os.path.join(self.dashboard_dir, "{}.pydash".format(name))
         dashfile = os.path.join(self.dashboard_dir, "{}.dash".format(name))
 
@@ -762,7 +764,7 @@ class Dashboard:
                 "Widget type not found: %s", widget["parameters"]["widget_type"]
             )
             return None
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in CSS file")
             self.logger.warning("-" * 60)
@@ -1076,7 +1078,7 @@ class Dashboard:
 
             return rendered_template
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during DASH creation")
             self.logger.warning("-" * 60)
