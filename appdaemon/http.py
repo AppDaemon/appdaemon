@@ -313,7 +313,7 @@ class HTTP:
             if self.dashboard_obj is not None:
                 loop.create_task(self.update_rss())
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in HTTP module")
             self.logger.warning("-" * 60)
@@ -380,7 +380,7 @@ class HTTP:
                 response = await self.logon_page(request)
 
             return response
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in logon_response()")
             self.logger.warning("-" * 60)
@@ -444,7 +444,7 @@ class HTTP:
                                 )
 
                     await asyncio.sleep(1)
-                except:
+                except Exception:
                     self.logger.warning("-" * 60)
                     self.logger.warning("Unexpected error in update_rss()")
                     self.logger.warning("-" * 60)
@@ -477,7 +477,7 @@ class HTTP:
             self.logger.debug("result = %s", state)
 
             return web.json_response({"state": state}, dumps=utils.convert_json)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_entity()")
             self.logger.warning("Namespace: %s, entity: %s", namespace, entity_id)
@@ -501,7 +501,7 @@ class HTTP:
                 return self.get_response(request, 404, "Namespace Not Found")
 
             return web.json_response({"state": state}, dumps=utils.convert_json)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_namespace()")
             self.logger.warning("Namespace: %s", namespace)
@@ -528,7 +528,7 @@ class HTTP:
                 return self.get_response(request, 404, "Namespace Not Found")
 
             return web.json_response({"state": state}, dumps=utils.convert_json)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_namespace_entities()")
             self.logger.warning("Namespace: %s", namespace)
@@ -548,7 +548,7 @@ class HTTP:
             self.logger.debug("result = %s", state)
 
             return web.json_response({"state": state}, dumps=utils.convert_json)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_namespaces()")
             self.logger.warning("-" * 60)
@@ -567,7 +567,7 @@ class HTTP:
             self.logger.debug("result = %s", state)
 
             return web.json_response({"state": state}, dumps=utils.convert_json)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_services()")
             self.logger.warning("-" * 60)
@@ -587,7 +587,7 @@ class HTTP:
             self.logger.debug("result = %s", state)
 
             return web.json_response({"state": state}, dumps=utils.convert_json)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_state()")
             self.logger.warning("-" * 60)
@@ -603,7 +603,7 @@ class HTTP:
             logs = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
 
             return web.json_response({"logs": logs}, dumps=utils.convert_json)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_logs()")
             self.logger.warning("-" * 60)
@@ -631,14 +631,14 @@ class HTTP:
                 if key == "service":
                     pass
                 elif key == "rgb_color":
-                    m = re.search("\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", data[key])
+                    m = re.search(r"\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", data[key])
                     if m:
                         r = m.group(1)
                         g = m.group(2)
                         b = m.group(3)
                         args["rgb_color"] = [r, g, b]
                 elif key == "xy_color":
-                    m = re.search("\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)", data[key])
+                    m = re.search(r"\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)", data[key])
                     if m:
                         x = m.group(1)
                         y = m.group(2)
@@ -655,7 +655,7 @@ class HTTP:
             await self.AD.services.call_service(namespace, domain, service, args)
             return web.Response(status=200)
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in call_service()")
             self.logger.warning("-" * 60)
@@ -690,7 +690,7 @@ class HTTP:
 
             return web.Response(status=200)
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in fire_event()")
             self.logger.warning("-" * 60)
@@ -808,7 +808,7 @@ class HTTP:
 
         try:
             ret, code = await self.dispatch_app_by_name(app, args)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during API call")
             self.logger.warning("-" * 60)
@@ -893,7 +893,7 @@ class HTTP:
 
             return rendered_template
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error creating logon page")
             self.logger.warning("-" * 60)
@@ -914,7 +914,7 @@ class HTTP:
 
             return rendered_template
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error creating logon page")
             self.logger.warning("-" * 60)
