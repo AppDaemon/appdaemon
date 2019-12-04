@@ -77,7 +77,7 @@ class Admin:
 
             return rendered_template
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error creating admin page")
             self.logger.warning("-" * 60)
