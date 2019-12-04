@@ -1,5 +1,4 @@
 import hassapi as hass
-import globals
 
 #
 # App to turn lights on and off at sunrise and sunset
