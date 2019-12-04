@@ -131,7 +131,9 @@ class OccuSim(hass.Hass):
                             elif span == 0:
                                 event = start
                             elif span < 0:
-                                self.log("step_{} end < start - ignoring end".format(step))
+                                self.log(
+                                    "step_{} end < start - ignoring end".format(step)
+                                )
                                 event = start
 
                             events[stepname] = {}
