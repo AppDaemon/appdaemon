@@ -1,5 +1,4 @@
 import hassapi as hass
-import globals
 
 #
 # App to respond to buttons on an Aeotec Minimote
