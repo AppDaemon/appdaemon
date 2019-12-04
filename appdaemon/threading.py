@@ -9,7 +9,6 @@ import traceback
 import inspect
 from datetime import timedelta
 import logging
-import functools
 import iso8601
 
 from appdaemon import utils as utils
@@ -191,7 +190,7 @@ class Threading:
         return int(text) if text.isdigit() else text
 
     def natural_keys(self, text):
-        return [self.atoi(c) for c in re.split("(\d+)", text)]
+        return [self.atoi(c) for c in re.split(r"(\d+)", text)]
 
     # Diagnostics
 
@@ -923,7 +922,7 @@ class Threading:
                         await funcref(
                             self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"])
                         )
-                    except TypeError as e:
+                    except TypeError:
                         self.report_callback_sig(name, "scheduler", funcref, args)
 
                 elif _type == "state":
@@ -942,7 +941,7 @@ class Threading:
                             new_state,
                             self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
                         )
-                    except TypeError as e:
+                    except TypeError:
                         self.report_callback_sig(name, "state", funcref, args)
 
                 elif _type == "event":
@@ -960,7 +959,7 @@ class Threading:
                                 data["message"],
                                 args["kwargs"],
                             )
-                        except TypeError as e:
+                        except TypeError:
                             self.report_callback_sig(name, "log_event", funcref, args)
 
                     else:
@@ -969,10 +968,10 @@ class Threading:
                                 "async", callback, name, _type, _id
                             )
                             await funcref(args["event"], data, args["kwargs"])
-                        except TypeError as e:
+                        except TypeError:
                             self.report_callback_sig(name, "event", funcref, args)
 
-            except:
+            except Exception:
                 error_logger.warning("-" * 60)
                 error_logger.warning("Unexpected error in worker for App %s:", name)
                 error_logger.warning("Worker Ags: %s", args)
@@ -993,7 +992,7 @@ class Threading:
                 self.logger.warning("Found stale callback for %s - discarding", name)
 
     # noinspection PyBroadException
-    def worker(self):
+    def worker(self):  # noqa: C901
         thread_id = threading.current_thread().name
         q = self.get_q(thread_id)
         while True:
@@ -1084,7 +1083,7 @@ class Threading:
                             except TypeError:
                                 self.report_callback_sig(name, "event", funcref, args)
 
-                except:
+                except Exception:
                     error_logger.warning("-" * 60)
                     error_logger.warning("Unexpected error in worker for App %s:", name)
                     error_logger.warning("Worker Ags: %s", args)
