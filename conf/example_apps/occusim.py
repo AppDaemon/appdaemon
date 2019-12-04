@@ -31,7 +31,7 @@ class OccuSim(hass.Hass):
         # Create today's random events
         self.create_events({})
 
-    def create_events(self, kwargs):
+    def create_events(self, kwargs):  # noqa: C901
         # self.log_notify("Running Create Events")
 
         events = {}
@@ -75,7 +75,7 @@ class OccuSim(hass.Hass):
                 elif span == 0:
                     event = datetime.datetime.combine(self.date(), start)
                 elif span < 0:
-                    self.log("step_{} end < start - ignoring end".format(i))
+                    self.log("step_{} end < start - ignoring end".format(step))
                     event = datetime.datetime.combine(self.date(), start)
 
                 events[stepname] = {}
@@ -131,7 +131,7 @@ class OccuSim(hass.Hass):
                             elif span == 0:
                                 event = start
                             elif span < 0:
-                                self.log("step_{} end < start - ignoring end".format(i))
+                                self.log("step_{} end < start - ignoring end".format(step))
                                 event = start
 
                             events[stepname] = {}
@@ -235,7 +235,7 @@ class OccuSim(hass.Hass):
 
     def activate(self, entity, action):
         type = action
-        m = re.match("event\.(.+)\,(.+)", entity)
+        m = re.match(r"event\.(.+)\,(.+)", entity)
         if m:
             if not self.test:
                 self.fire_event(m.group(1), **{m.group(2): self.step})
@@ -246,7 +246,7 @@ class OccuSim(hass.Hass):
                     )
                 )
             return
-        m = re.match("input_select\.", entity)
+        m = re.match(r"input_select\.", entity)
         if m:
             if not self.test:
                 self.select_option(entity, self.step)
@@ -256,7 +256,7 @@ class OccuSim(hass.Hass):
             if not self.test:
                 self.turn_on(entity)
         else:
-            if re.match("scene\.", entity):
+            if re.match(r"scene\.", entity):
                 type = "on"
                 if not self.test:
                     self.turn_on(entity)
