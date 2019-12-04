@@ -45,7 +45,7 @@ class Ruter(hass.Hass):
 
         for stop in stops:
             name = stop["Name"]
-            if not name in ruter:
+            if name not in ruter:
                 ruter[name] = {}
 
             departures = self.fetch("/StopVisit/GetDepartures/{}".format(stop["ID"]))
@@ -54,10 +54,10 @@ class Ruter(hass.Hass):
                 line = info["PublishedLineName"] + " " + info["DestinationName"]
                 platform = info["MonitoredCall"]["DeparturePlatformName"]
 
-                if not platform in ruter[name]:
+                if platform not in ruter[name]:
                     ruter[name][platform] = {}
 
-                if not line in ruter[name][platform]:
+                if line not in ruter[name][platform]:
                     ruter[name][platform][line] = []
 
                 if len(ruter[name][platform][line]) < self.departures:
