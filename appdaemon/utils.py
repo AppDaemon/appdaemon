@@ -14,12 +14,11 @@ import dateutil.parser
 import copy
 import json
 from functools import wraps
-
+from appdaemon.version import __version__  # noqa: F401
 
 if platform.system() != "Windows":
     import pwd
 
-__version__ = "4.0.0"
 secrets = None
 
 
