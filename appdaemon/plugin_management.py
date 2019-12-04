@@ -132,7 +132,7 @@ class Plugins:
                         }
 
                         self.AD.loop.create_task(plugin.get_updates())
-                    except:
+                    except Exception:
                         self.logger.warning("error loading plugin: %s - ignoring", name)
                         self.logger.warning("-" * 60)
                         self.logger.warning(traceback.format_exc())
@@ -206,7 +206,7 @@ class Plugins:
                 await self.AD.events.process_event(
                     namespace, {"event_type": "plugin_started", "data": {"name": name}}
                 )
-        except:
+        except Exception:
             self.error.warning("-" * 60)
             self.error.warning(
                 "WARNING", "Unexpected error during notify_plugin_started()"
@@ -260,7 +260,7 @@ class Plugins:
 
                         with async_timeout.timeout(
                             self.plugins[name]["refresh_timeout"], loop=self.AD.loop
-                        ) as t:
+                        ):
                             state = await self.plugin_objs[plugin][
                                 "object"
                             ].get_complete_state()
@@ -273,7 +273,7 @@ class Plugins:
                             "Timeout refreshing %s state - retrying in 10 minutes",
                             plugin,
                         )
-                    except:
+                    except Exception:
                         self.logger.warning(
                             "Unexpected error refreshing %s state - retrying in 10 minutes",
                             plugin,
