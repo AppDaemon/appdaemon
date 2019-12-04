@@ -5,7 +5,6 @@ import threading
 
 
 class AppDaemon:
-
     def __init__(self, logging, loop, **kwargs):
 
         #
@@ -187,7 +186,6 @@ class AppDaemon:
         #
         self.sched = scheduler.Scheduler(self)
 
-
         #
         # Set up state
         #
@@ -208,7 +206,6 @@ class AppDaemon:
         #
         self.futures = futures.Futures(self)
 
-
         if self.apps is True:
             if self.app_dir is None:
                 if self.config_dir is None:
@@ -217,26 +214,32 @@ class AppDaemon:
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
-            utils.check_path("config_dir", self.logger, self.config_dir, permissions="rwx")
+            utils.check_path(
+                "config_dir", self.logger, self.config_dir, permissions="rwx"
+            )
             utils.check_path("appdir", self.logger, self.app_dir)
 
             # Initialize Apps
 
-            self.app_management = apps.AppManagement(self, kwargs.get("app_config_file", None))
+            self.app_management = apps.AppManagement(
+                self, kwargs.get("app_config_file", None)
+            )
 
             # threading setup
 
             self.threading = appdaemon.threading.Threading(self, kwargs)
 
         self.stopping = False
-        
+
         #
         # Set up Executor ThreadPool
         #
         if "threadpool_workers" in kwargs:
             self.threadpool_workers = int(kwargs["threadpool_workers"])
-            
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
+
+        self.executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.threadpool_workers
+        )
 
         # Initialize Plugins
 
@@ -295,4 +298,3 @@ class AppDaemon:
 
             self.admin_loop = admin_loop.AdminLoop(self)
             self.loop.create_task(self.admin_loop.loop())
-

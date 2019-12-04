@@ -2,19 +2,19 @@ function baseAdminLog(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
-    
+
     self = this;
-    
+
     // Initialization
-    
+
     self.widget_id = widget_id;
     self.parameters = parameters;
-    
-    
+
+
     log_style = ""
     if ("log_style" in self.parameters){
        log_style = self.parameters.log_style
-    }   
+    }
     document.getElementById(self.widget_id).innerHTML = document.getElementById(self.widget_id).innerHTML + "<table style='" + log_style + "' id='" + self.widget_id + "_log'></table>";
 
     var callbacks = [];
@@ -22,7 +22,7 @@ function baseAdminLog(widget_id, url, skin, parameters)
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
-     
+
     self.OnStateAvailable = OnStateAvailable;
     self.OnStateUpdate = OnStateUpdate;
 
@@ -31,25 +31,25 @@ function baseAdminLog(widget_id, url, skin, parameters)
 
     monitored_entities.push({"entity": self.parameters.fields.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate})
     // Finally, call the parent constructor to get things moving
-    
+
     WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
     parameters.namespace = "admin"
     service_args = {"service": "log_widget/start","log_lines": self.parameters.max_loglines, "entity": self.parameters.fields.entity}
     setTimeout(self.call_service, 1000, self, service_args);
 
     // Function Definitions
-    
-    // The StateAvailable function will be called when 
+
+    // The StateAvailable function will be called when
     // self.state[<entity>] has valid information for the requested entity
     // state is the initial state
     // Methods
 
     function OnStateAvailable(self, state, entity)
-    {    
+    {
         console.log("initial " + entity)
         //console.log(state)
     }
- 
+
     function OnStateUpdate(self, state, entity)
     {
         //console.log(state)

@@ -22,7 +22,9 @@ def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
         if not self.reading_messages:
-            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
+            self.logger.warning(
+                "Attempt to call Home Assistant while disconnected: %s", func.__name__
+            )
             return no_func()
         else:
             return func(*args, **kwargs)
@@ -31,7 +33,6 @@ def hass_check(func):
 
 
 class HassPlugin(PluginBase):
-
     def __init__(self, ad: AppDaemon, name, args):
         super().__init__(ad, name, args)
 
@@ -57,7 +58,9 @@ class HassPlugin(PluginBase):
 
         if "ha_key" in args:
             self.ha_key = args["ha_key"]
-            self.logger.warning("ha_key is deprecated please use HASS Long Lived Tokens instead")
+            self.logger.warning(
+                "ha_key is deprecated please use HASS Long Lived Tokens instead"
+            )
         else:
             self.ha_key = None
 
@@ -69,7 +72,9 @@ class HassPlugin(PluginBase):
         if "ha_url" in args:
             self.ha_url = args["ha_url"]
         else:
-            self.logger.warning("ha_url not found in HASS configuration - module not initialized")
+            self.logger.warning(
+                "ha_url not found in HASS configuration - module not initialized"
+            )
 
         if "cert_path" in args:
             self.cert_path = args["cert_path"]
@@ -124,7 +129,7 @@ class HassPlugin(PluginBase):
     async def get_complete_state(self):
 
         hass_state = await self.get_hass_state()
-        states = {}     
+        states = {}
         for state in hass_state:
             states[state["entity_id"]] = state
         self.logger.debug("Got state")
@@ -157,7 +162,9 @@ class HassPlugin(PluginBase):
         else:
             if "delay" in startup_conditions:
                 if delay_done is False:
-                    self.logger.info("Delaying startup for %s seconds", startup_conditions["delay"])
+                    self.logger.info(
+                        "Delaying startup for %s seconds", startup_conditions["delay"]
+                    )
                     await asyncio.sleep(int(startup_conditions["delay"]))
 
             if "state" in startup_conditions:
@@ -166,11 +173,19 @@ class HassPlugin(PluginBase):
                 if "value" in entry:
                     print(entry["value"], state[entry["entity"]])
                     print(DeepDiff(state[entry["entity"]], entry["value"]))
-                    if entry["entity"] in state and "values_changed" not in DeepDiff(entry["value"], state[entry["entity"]]):
-                        self.logger.info("Startup condition met: %s=%s", entry["entity"], entry["value"])
+                    if entry["entity"] in state and "values_changed" not in DeepDiff(
+                        entry["value"], state[entry["entity"]]
+                    ):
+                        self.logger.info(
+                            "Startup condition met: %s=%s",
+                            entry["entity"],
+                            entry["value"],
+                        )
                         state_start = True
                 elif entry["entity"] in state:
-                    self.logger.info("Startup condition met: %s exists", entry["entity"])
+                    self.logger.info(
+                        "Startup condition met: %s exists", entry["entity"]
+                    )
                     state_start = True
             else:
                 state_start = True
@@ -181,12 +196,21 @@ class HassPlugin(PluginBase):
                     if "data" not in entry:
                         if entry["event_type"] == event["event_type"]:
                             event_start = True
-                            self.logger.info("Startup condition met: event type %s fired", event["event_type"])
+                            self.logger.info(
+                                "Startup condition met: event type %s fired",
+                                event["event_type"],
+                            )
                     else:
                         if entry["event_type"] == event["event_type"]:
-                            if "values_changed" not in DeepDiff(event["data"], entry["data"]):
+                            if "values_changed" not in DeepDiff(
+                                event["data"], entry["data"]
+                            ):
                                 event_start = True
-                                self.logger.info("Startup condition met: event type %s, data = %s fired", event["event_type"], entry["data"])
+                                self.logger.info(
+                                    "Startup condition met: event type %s, data = %s fired",
+                                    event["event_type"],
+                                    entry["data"],
+                                )
 
             else:
                 event_start = True
@@ -195,7 +219,9 @@ class HassPlugin(PluginBase):
             # We are good to go
             self.reading_messages = True
             state = await self.get_complete_state()
-            await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
+            await self.AD.plugins.notify_plugin_started(
+                self.name, self.namespace, self.metadata, state, self.first_time
+            )
             self.first_time = False
             self.already_notified = False
 
@@ -211,16 +237,16 @@ class HassPlugin(PluginBase):
                 # Connect to websocket interface
                 #
                 url = self.ha_url
-                if url.startswith('https://'):
-                    url = url.replace('https', 'wss', 1)
-                elif url.startswith('http://'):
-                    url = url.replace('http', 'ws', 1)
+                if url.startswith("https://"):
+                    url = url.replace("https", "wss", 1)
+                elif url.startswith("http://"):
+                    url = url.replace("http", "ws", 1)
 
                 sslopt = {}
                 if self.cert_verify is False:
-                    sslopt = {'cert_reqs': ssl.CERT_NONE}
+                    sslopt = {"cert_reqs": ssl.CERT_NONE}
                 if self.cert_path:
-                    sslopt['ca_certs'] = self.cert_path
+                    sslopt["ca_certs"] = self.cert_path
                 self.ws = websocket.create_connection(
                     "{}/api/websocket".format(url), sslopt=sslopt
                 )
@@ -232,17 +258,13 @@ class HassPlugin(PluginBase):
                 #
                 if result["type"] == "auth_required":
                     if self.token is not None:
-                        auth = json.dumps({
-                            "type": "auth",
-                            "access_token": self.token
-                        })
+                        auth = json.dumps({"type": "auth", "access_token": self.token})
                     elif self.ha_key is not None:
-                        auth = json.dumps({
-                            "type": "auth",
-                            "api_password": self.ha_key
-                        })
+                        auth = json.dumps({"type": "auth", "api_password": self.ha_key})
                     else:
-                        raise ValueError("HASS requires authentication and none provided in plugin config")
+                        raise ValueError(
+                            "HASS requires authentication and none provided in plugin config"
+                        )
 
                     await utils.run_in_executor(self, self.ws.send, auth)
                     result = json.loads(self.ws.recv())
@@ -252,14 +274,17 @@ class HassPlugin(PluginBase):
                 #
                 # Subscribe to event stream
                 #
-                sub = json.dumps({
-                    "id": _id,
-                    "type": "subscribe_events"
-                })
+                sub = json.dumps({"id": _id, "type": "subscribe_events"})
                 await utils.run_in_executor(self, self.ws.send, sub)
                 result = json.loads(self.ws.recv())
-                if not (result["id"] == _id and result["type"] == "result" and result["success"] is True):
-                    self.logger.warning("Unable to subscribe to HA events, id = %s", _id)
+                if not (
+                    result["id"] == _id
+                    and result["type"] == "result"
+                    and result["success"] is True
+                ):
+                    self.logger.warning(
+                        "Unable to subscribe to HA events, id = %s", _id
+                    )
                     self.logger.warning(result)
                     raise ValueError("Error subscribing to HA Events")
 
@@ -273,19 +298,24 @@ class HassPlugin(PluginBase):
                 self.services = await self.get_hass_services()
                 for domain in self.services:
                     for service in domain["services"]:
-                        self.AD.services.register_service(self.get_namespace(), domain["domain"], service, self.call_plugin_service)
+                        self.AD.services.register_service(
+                            self.get_namespace(),
+                            domain["domain"],
+                            service,
+                            self.call_plugin_service,
+                        )
 
                 # Decide if we can start yet
                 self.logger.info("Evaluating startup conditions")
                 await self.evaluate_started(False, self.hass_booting)
 
-                #state = await self.get_complete_state()
-                #self.reading_messages = True
+                # state = await self.get_complete_state()
+                # self.reading_messages = True
 
-                #await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state,
-                                                            #self.first_time)
-                #self.first_time = False
-                #self.already_notified = False
+                # await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state,
+                # self.first_time)
+                # self.first_time = False
+                # self.already_notified = False
 
                 #
                 # Loop forever consuming events
@@ -295,16 +325,22 @@ class HassPlugin(PluginBase):
                     result = json.loads(ret)
 
                     if not (result["id"] == _id and result["type"] == "event"):
-                        self.logger.warning("Unexpected result from Home Assistant, id = %s", _id)
+                        self.logger.warning(
+                            "Unexpected result from Home Assistant, id = %s", _id
+                        )
                         self.logger.warning(result)
 
                     if self.reading_messages is False:
                         if result["type"] == "event":
-                            await self.evaluate_started(True, self.hass_booting, result["event"])
+                            await self.evaluate_started(
+                                True, self.hass_booting, result["event"]
+                            )
                         else:
                             await self.evaluate_started(True, self.hass_booting)
                     else:
-                        await self.AD.events.process_event(self.namespace, result["event"])
+                        await self.AD.events.process_event(
+                            self.namespace, result["event"]
+                        )
 
                 self.reading_messages = False
 
@@ -312,15 +348,19 @@ class HassPlugin(PluginBase):
                 self.reading_messages = False
                 self.hass_booting = True
                 if not self.already_notified:
-                    await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
+                    await self.AD.plugins.notify_plugin_stopped(
+                        self.name, self.namespace
+                    )
                     self.already_notified = True
                 if not self.stopping:
-                    self.logger.warning("Disconnected from Home Assistant, retrying in 5 seconds")
-                    self.logger.debug('-' * 60)
+                    self.logger.warning(
+                        "Disconnected from Home Assistant, retrying in 5 seconds"
+                    )
+                    self.logger.debug("-" * 60)
                     self.logger.debug("Unexpected error:")
-                    self.logger.debug('-' * 60)
+                    self.logger.debug("-" * 60)
                     self.logger.debug(traceback.format_exc())
-                    self.logger.debug('-' * 60)
+                    self.logger.debug("-" * 60)
                     await asyncio.sleep(5)
 
         self.logger.info("Disconnecting from Home Assistant")
@@ -349,47 +389,62 @@ class HassPlugin(PluginBase):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
 
-        #TODO cert_path is not used
+        # TODO cert_path is not used
         if "cert_path" in config:
             cert_path = config["cert_path"]
         else:
             cert_path = False
 
         if "token" in config:
-            headers = {'Authorization': "Bearer {}".format(config["token"])}
-        elif "ha_key"  in config:
-            headers = {'x-ha-access': config["ha_key"]}
+            headers = {"Authorization": "Bearer {}".format(config["token"])}
+        elif "ha_key" in config:
+            headers = {"x-ha-access": config["ha_key"]}
         else:
             headers = {}
         api_url = "{}/api/states/{}".format(config["ha_url"], entity_id)
 
         try:
-            r = await self.session.post(api_url, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
+            r = await self.session.post(
+                api_url, headers=headers, json=kwargs, verify_ssl=self.cert_verify
+            )
             if r.status == 200 or r.status == 201:
                 state = await r.json()
                 self.logger.debug("return = %s", state)
             else:
-                self.logger.warning("Error setting Home Assistant state %s.%s, %s", namespace, entity_id, kwargs )
+                self.logger.warning(
+                    "Error setting Home Assistant state %s.%s, %s",
+                    namespace,
+                    entity_id,
+                    kwargs,
+                )
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 state = None
             return state
         except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning("Timeout in set_state(%s, %s, %s)", namespace, entity_id, kwargs)
+            self.logger.warning(
+                "Timeout in set_state(%s, %s, %s)", namespace, entity_id, kwargs
+            )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during set_state()")
         except:
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during set_plugin_state()")
             self.logger.warning("Arguments: %s = %s", entity_id, kwargs)
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             return None
 
     @hass_check
     async def call_plugin_service(self, namespace, domain, service, data):
-        self.logger.debug("call_plugin_service() namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data)
+        self.logger.debug(
+            "call_plugin_service() namespace=%s domain=%s service=%s data=%s",
+            namespace,
+            domain,
+            service,
+            data,
+        )
 
         #
         # If data is a string just assume it's an entity_id
@@ -399,9 +454,9 @@ class HassPlugin(PluginBase):
 
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
         if "token" in config:
-            headers = {'Authorization': "Bearer {}".format(config["token"])}
+            headers = {"Authorization": "Bearer {}".format(config["token"])}
         elif "ha_key" in config:
-            headers = {'x-ha-access': config["ha_key"]}
+            headers = {"x-ha-access": config["ha_key"]}
         else:
             headers = {}
 
@@ -420,9 +475,13 @@ class HassPlugin(PluginBase):
                 days = 1
             if "start_time" in data:
                 if isinstance(data["start_time"], str):
-                    start_time = utils.str_to_dt(data["start_time"]).replace(microsecond=0)
+                    start_time = utils.str_to_dt(data["start_time"]).replace(
+                        microsecond=0
+                    )
                 elif isinstance(data["start_time"], datetime.datetime):
-                    start_time = self.AD.tz.localize(data["start_time"]).replace(microsecond=0)
+                    start_time = self.AD.tz.localize(data["start_time"]).replace(
+                        microsecond=0
+                    )
                 else:
                     raise ValueError("Invalid type for start time")
 
@@ -430,85 +489,126 @@ class HassPlugin(PluginBase):
                 if isinstance(data["end_time"], str):
                     end_time = utils.str_to_dt(data["end_time"]).replace(microsecond=0)
                 elif isinstance(data["end_time"], datetime.datetime):
-                    end_time = self.AD.tz.localize(data["end_time"]).replace(microsecond=0)
+                    end_time = self.AD.tz.localize(data["end_time"]).replace(
+                        microsecond=0
+                    )
                 else:
                     raise ValueError("Invalid type for end time")
 
-            #if both are declared, it can't process entity_id
+            # if both are declared, it can't process entity_id
             if start_time != "" and end_time != "":
                 filter_entity_id = ""
-            
-            #if starttime is not declared and entity_id is declared, and days specified
-            elif (filter_entity_id != "" and start_time == "") and "days" in data:
-                start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days=days)
-                
-            #if starttime is declared and entity_id is not declared, and days specified
-            elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in data:
-                end_time = start_time + datetime.timedelta(days=days)
-            
-            #if endtime is declared and entity_id is not declared, and days specified
-            elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in data:
-                start_time = end_time - datetime.timedelta(days=days)
-            
-            if start_time != "":
-                timestamp = "/{}".format(utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz))
 
-                if filter_entity_id != "": #if entity_id is specified, end_time cannot be used
+            # if starttime is not declared and entity_id is declared, and days specified
+            elif (filter_entity_id != "" and start_time == "") and "days" in data:
+                start_time = (await self.AD.sched.get_now()).replace(
+                    microsecond=0
+                ) - datetime.timedelta(days=days)
+
+            # if starttime is declared and entity_id is not declared, and days specified
+            elif (
+                filter_entity_id == ""
+                and start_time != ""
+                and end_time == ""
+                and "days" in data
+            ):
+                end_time = start_time + datetime.timedelta(days=days)
+
+            # if endtime is declared and entity_id is not declared, and days specified
+            elif (
+                filter_entity_id == ""
+                and end_time != ""
+                and start_time == ""
+                and "days" in data
+            ):
+                start_time = end_time - datetime.timedelta(days=days)
+
+            if start_time != "":
+                timestamp = "/{}".format(
+                    utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz)
+                )
+
+                if (
+                    filter_entity_id != ""
+                ):  # if entity_id is specified, end_time cannot be used
                     end_time = ""
 
                 if end_time != "":
-                    end_time = "?end_time={}".format(quote(utils.dt_to_str(end_time.replace(microsecond=0), self.AD.tz)))
+                    end_time = "?end_time={}".format(
+                        quote(
+                            utils.dt_to_str(end_time.replace(microsecond=0), self.AD.tz)
+                        )
+                    )
 
             # if no start_time is specified, other parameters are invalid
             else:
                 timestamp = ""
                 end_time = ""
 
-            api_url = "{}/api/history/period{}{}{}".format(config["ha_url"], timestamp, filter_entity_id, end_time)
+            api_url = "{}/api/history/period{}{}{}".format(
+                config["ha_url"], timestamp, filter_entity_id, end_time
+            )
 
         elif domain == "template":
             api_url = "{}/api/template".format(config["ha_url"])
-            
+
         else:
             api_url = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
 
         try:
             if domain == "database":
-                r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+                r = await self.session.get(
+                    api_url, headers=headers, verify_ssl=self.cert_verify
+                )
             else:
-                r = await self.session.post(api_url, headers=headers, json=data, verify_ssl=self.cert_verify)
-                
+                r = await self.session.post(
+                    api_url, headers=headers, json=data, verify_ssl=self.cert_verify
+                )
+
             if r.status == 200 or r.status == 201:
                 if domain == "template":
                     result = await r.text()
                 else:
                     result = await r.json()
             else:
-                self.logger.warning("Error calling Home Assistant service %s/%s/%s", namespace, domain, service)
+                self.logger.warning(
+                    "Error calling Home Assistant service %s/%s/%s",
+                    namespace,
+                    domain,
+                    service,
+                )
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
 
             return result
         except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning("Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data)
+            self.logger.warning(
+                "Timeout in call_service(%s/%s/%s, %s)",
+                namespace,
+                domain,
+                service,
+                data,
+            )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during call_service()")
         except:
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during call_plugin_service()")
-            self.logger.warning("Service: %s.%s.%s Arguments: %s", namespace, domain, service, data)
-            self.logger.warning('-' * 60)
+            self.logger.warning(
+                "Service: %s.%s.%s Arguments: %s", namespace, domain, service, data
+            )
+            self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             return None
 
     async def get_hass_state(self, entity_id=None):
 
         if self.token is not None:
-            headers = {'Authorization': "Bearer {}".format(self.token)}
+            headers = {"Authorization": "Bearer {}".format(self.token)}
         elif self.ha_key is not None:
-            headers = {'x-ha-access': self.ha_key}
+            headers = {"x-ha-access": self.ha_key}
         else:
             headers = {}
 
@@ -517,7 +617,9 @@ class HassPlugin(PluginBase):
         else:
             api_url = "{}/api/states/{}".format(self.ha_url, entity_id)
         self.logger.debug("get_ha_state: url is %s", api_url)
-        r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+        r = await self.session.get(
+            api_url, headers=headers, verify_ssl=self.cert_verify
+        )
         if r.status == 200 or r.status == 201:
             state = await r.json()
         else:
@@ -529,22 +631,35 @@ class HassPlugin(PluginBase):
 
     def validate_meta(self, meta, key):
         if key not in meta:
-            self.logger.warning("Value for '%s' not found in metadata for plugin %s", key, self.name)
+            self.logger.warning(
+                "Value for '%s' not found in metadata for plugin %s", key, self.name
+            )
             raise ValueError
         try:
             float(meta[key])
         except:
-            self.logger.warning("Invalid value for '%s' ('%s') in metadata for plugin %s", key, meta[key], self.name)
+            self.logger.warning(
+                "Invalid value for '%s' ('%s') in metadata for plugin %s",
+                key,
+                meta[key],
+                self.name,
+            )
             raise
 
     def validate_tz(self, meta):
         if "time_zone" not in meta:
-            self.logger.warning("Value for 'time_zone' not found in metadata for plugin %s", self.name)
+            self.logger.warning(
+                "Value for 'time_zone' not found in metadata for plugin %s", self.name
+            )
             raise ValueError
         try:
             pytz.timezone(meta["time_zone"])
         except pytz.exceptions.UnknownTimeZoneError:
-            self.logger.warning("Invalid value for 'time_zone' ('%s') in metadata for plugin %s", meta["time_zone"], self.name)
+            self.logger.warning(
+                "Invalid value for 'time_zone' ('%s') in metadata for plugin %s",
+                meta["time_zone"],
+                self.name,
+            )
             raise
 
     async def get_hass_config(self):
@@ -554,19 +669,23 @@ class HassPlugin(PluginBase):
                 # Set up HTTP Client
                 #
                 conn = aiohttp.TCPConnector()
-                self.session = aiohttp.ClientSession(connector=conn, json_serialize=utils.convert_json)
+                self.session = aiohttp.ClientSession(
+                    connector=conn, json_serialize=utils.convert_json
+                )
 
             self.logger.debug("get_ha_config()")
             if self.token is not None:
-                headers = {'Authorization': "Bearer {}".format(self.token)}
+                headers = {"Authorization": "Bearer {}".format(self.token)}
             elif self.ha_key is not None:
-                headers = {'x-ha-access': self.ha_key}
+                headers = {"x-ha-access": self.ha_key}
             else:
                 headers = {}
 
             api_url = "{}/api/config".format(self.ha_url)
             self.logger.debug("get_ha_config: url is %s", api_url)
-            r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+            r = await self.session.get(
+                api_url, headers=headers, verify_ssl=self.cert_verify
+            )
             r.raise_for_status()
             meta = await r.json()
             #
@@ -586,20 +705,22 @@ class HassPlugin(PluginBase):
         try:
             self.logger.debug("get_hass_services()")
             if self.token is not None:
-                headers = {'Authorization': "Bearer {}".format(self.token)}
+                headers = {"Authorization": "Bearer {}".format(self.token)}
             elif self.ha_key is not None:
-                headers = {'x-ha-access': self.ha_key}
+                headers = {"x-ha-access": self.ha_key}
             else:
                 headers = {}
 
             api_url = "{}/api/services".format(self.ha_url)
             self.logger.debug("get_hass_services: url is %s", api_url)
-            r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+            r = await self.session.get(
+                api_url, headers=headers, verify_ssl=self.cert_verify
+            )
             r.raise_for_status()
             services = await r.json()
             # manually added HASS history service
-            services.append({"domain": "database","services": ["history"]})
-            services.append({"domain": "template","services": ["render"]})
+            services.append({"domain": "database", "services": ["history"]})
+            services.append({"domain": "template", "services": ["render"]})
 
             return services
         except:
@@ -613,27 +734,31 @@ class HassPlugin(PluginBase):
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
 
         if "token" in config:
-            headers = {'Authorization': "Bearer {}".format(config["token"])}
+            headers = {"Authorization": "Bearer {}".format(config["token"])}
         elif "ha_key" in config:
-            headers = {'x-ha-access': config["ha_key"]}
+            headers = {"x-ha-access": config["ha_key"]}
         else:
             headers = {}
 
         event_clean = quote(event, safe="")
         api_url = "{}/api/events/{}".format(config["ha_url"], event_clean)
         try:
-            r = await self.session.post(api_url, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
+            r = await self.session.post(
+                api_url, headers=headers, json=kwargs, verify_ssl=self.cert_verify
+            )
             r.raise_for_status()
             state = await r.json()
             return state
         except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning("Timeout in fire_event(%s, %s, %s)", event, namespace, kwargs)
+            self.logger.warning(
+                "Timeout in fire_event(%s, %s, %s)", event, namespace, kwargs
+            )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during fire_event()")
         except:
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error fire_plugin_event()")
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             return None

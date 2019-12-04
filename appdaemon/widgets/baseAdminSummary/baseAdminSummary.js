@@ -2,25 +2,25 @@ function baseAdminSummary(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
-    
+
     self = this;
-    
+
     // Initialization
-    
+
     self.widget_id = widget_id;
-    
+
     // Store on brightness or fallback to a default
-        
+
     // Parameters may come in useful later on
-    
+
     self.parameters = parameters;
-       
+
     var callbacks = [];
 
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
-    
+
     self.OnStateAvailable = OnStateAvailable;
     self.OnStateUpdate = OnStateUpdate;
 
@@ -47,8 +47,8 @@ function baseAdminSummary(widget_id, url, skin, parameters)
 
 
     // Function Definitions
-    
-    // The StateAvailable function will be called when 
+
+    // The StateAvailable function will be called when
     // self.state[<entity>] has valid information for the requested entity
     // state is the initial state
     // Methods
@@ -61,7 +61,7 @@ function baseAdminSummary(widget_id, url, skin, parameters)
     }
     table_container ='<span data-bind="attr:{style: container_style}" ><table style="' + table_style + '">';
     if (parameters.table.fill_style = "vertical")
-    { 
+    {
         entity_nr = 0
         for (var i=0; i<parameters.table.sensor_height; i++)
         {
@@ -121,16 +121,16 @@ function baseAdminSummary(widget_id, url, skin, parameters)
 
 
     // Finally, call the parent constructor to get things moving
-    
+
     WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
 
 
 
     function OnStateAvailable(self, state, entity)
-    {    
+    {
         set_value(self, state, entity)
     }
- 
+
     function OnStateUpdate(self, state, entity)
     {
         set_value(self, state, entity)
@@ -146,7 +146,7 @@ function baseAdminSummary(widget_id, url, skin, parameters)
         field = self.widget_id + entity + "_value"
         //console.log(field + " set to " + value)
         document.getElementById(field).innerHTML = value
-        //self.set_field(self, field, self.format_number(self, value)) 
+        //self.set_field(self, field, self.format_number(self, value))
     }
 
 }

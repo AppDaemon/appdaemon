@@ -3,7 +3,6 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class AdminLoop:
-
     def __init__(self, ad: AppDaemon):
 
         self.AD = ad
@@ -21,4 +20,3 @@ class AdminLoop:
                 await self.AD.threading.get_q_update()
 
             await asyncio.sleep(self.AD.admin_delay)
-

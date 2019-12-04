@@ -2,36 +2,36 @@ function baseAdminTable(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
-    
+
     self = this;
-    
+
     // Initialization
-    
+
     self.widget_id = widget_id;
-    
+
     // Store on brightness or fallback to a default
-        
+
     // Parameters may come in useful later on
-    
+
     self.parameters = parameters;
-    
-    
+
+
     // Define callbacks for on click events
     // They are defined as functions below and can be any name as long as the
     // 'self'variables match the callbacks array below
     // We need to add them into the object for later reference
-   
+
     var callbacks = []
 
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
-     
+
     var monitored_entities = [];
-    
+
     // Finally, call the parent constructor to get things moving
-    
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);  
+
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
 
     // start building the tables
 
@@ -60,7 +60,7 @@ function baseAdminTable(widget_id, url, skin, parameters)
     } else {
         if ("entities" in self.parameters.tables){
             window[self.widget_id]["show_namespaces"] = true;
-            window[self.widget_id]["tables"] = {}            
+            window[self.widget_id]["tables"] = {}
             for (let _table in self.parameters.tables){
                 if (_table != "entities"){
                     window[self.widget_id]["tables"][_table] = self.parameters.tables[_table];
@@ -70,17 +70,17 @@ function baseAdminTable(widget_id, url, skin, parameters)
                     window[self.widget_id]["namespace_list"].forEach(_namespace => {
                         window[self.widget_id]["tables"][_namespace + "entities"] = self.parameters.tables["entities"];
                     });
-                }                        
+                }
             }
         }
         else
         {
-            window[self.widget_id]["show_namespaces"] = false;            
+            window[self.widget_id]["show_namespaces"] = false;
             window[self.widget_id]["tables"] = self.parameters.tables
             window[self.widget_id]["namespace_list"].forEach(_namespace => {
                 window[self.widget_id]["tables"][_namespace + "entities"] = {"title": _namespace + "entities"};
             });
-        }        
+        }
     }
 
 
@@ -168,10 +168,10 @@ function baseAdminTable(widget_id, url, skin, parameters)
         _options = _options + '<tr>';
         document.getElementById(self.widget_id).innerHTML = document.getElementById(self.widget_id).innerHTML + _thead;
         window[self.widget_id]["tables"][_table]["options"] = _options;
-    } 
+    }
 
     dom_ready('ws',self.widget_id);
-    
+
 }
 
 
@@ -180,7 +180,7 @@ function create_tables(widget_id, entities)
     window[widget_id].ready = false;
 
     // Create the tables
-    for (let _table in window[widget_id]["tables"]){ 
+    for (let _table in window[widget_id]["tables"]){
         if (!(_table.includes("entities"))){
             create_clear(_table, widget_id);
         }
@@ -229,7 +229,7 @@ function create_tables(widget_id, entities)
         });
         //console.log(widget_id + namespace + " completely run through")
     });
-    
+
     //window[widget_id]["table_list"].forEach(_table => {
     //    if (window[widget_id]["table_list"].indexOf(_table) >= 0){
     //        window[widget_id][_table]["table"].sort('id');
@@ -291,7 +291,7 @@ function update_admin(widget_id, data)
         }
 
         if (window[widget_id]["namespace_list"].indexOf(namespace) >= 0) {
-            //console.log("changing " + widget_id + namespace + "." + entity) 
+            //console.log("changing " + widget_id + namespace + "." + entity)
             options = get_column_values(data.data.new_state, entity, namespace + "entities", widget_id);
             item = window[widget_id]["tables"][namespace + "entities"]["values"].get("id", entity);
             item[0].values(options);
@@ -331,7 +331,7 @@ function update_admin(widget_id, data)
             options = get_column_values(data.data.state, entity, namespace + "entities", widget_id);
             window[widget_id]["tables"][namespace + "entities"]["values"].add(options);
             //window[widget_id]["tables"][namespace + "entities"]["values"].sort('id');
-            //console.log("added " + widget_id + namespace + "." + entity) 
+            //console.log("added " + widget_id + namespace + "." + entity)
         }
 
         if (namespace === "admin")
@@ -367,4 +367,3 @@ function update_admin(widget_id, data)
         }
     }
 }
-

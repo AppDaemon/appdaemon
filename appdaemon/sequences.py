@@ -5,12 +5,10 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class Sequences:
-
     def __init__(self, ad: AppDaemon):
 
         self.AD = ad
         self.logger = ad.logging.get_child("_sequences")
-
 
     async def run_sequence_service(self, ns, domain, service, kwargs):
         if "namespace" in kwargs:
@@ -20,16 +18,22 @@ class Sequences:
             namespace = "default"
 
         # await self.run_sequence("_services", namespace, kwargs["entity_id"])
-        self.AD.thread_async.call_async_no_wait(self.run_sequence, "_services", namespace, kwargs["entity_id"])
-
+        self.AD.thread_async.call_async_no_wait(
+            self.run_sequence, "_services", namespace, kwargs["entity_id"]
+        )
 
     async def add_sequences(self, sequences):
         for sequence in sequences:
-            await self.AD.state.add_entity("rules", "sequence.{}".format(sequence), "idle",
-                                           attributes={"friendly_name": sequences[sequence].get("name", sequence),
-                                                       "loop": sequences[sequence].get("loop", False),
-                                                       "steps": sequences[sequence]["steps"]})
-
+            await self.AD.state.add_entity(
+                "rules",
+                "sequence.{}".format(sequence),
+                "idle",
+                attributes={
+                    "friendly_name": sequences[sequence].get("name", sequence),
+                    "loop": sequences[sequence].get("loop", False),
+                    "steps": sequences[sequence]["steps"],
+                },
+            )
 
     async def run_sequence(self, _name, namespace, sequence):
         ephemeral_entity = False
@@ -40,7 +44,9 @@ class Sequences:
                 self.logger.warning('Unknown sequence "%s" in run_sequence()', sequence)
                 return None
 
-            entity = await self.AD.state.get_state("_services", "rules", sequence, attribute="all")
+            entity = await self.AD.state.get_state(
+                "_services", "rules", sequence, attribute="all"
+            )
             seq = entity["attributes"]["steps"]
             loop = entity["attributes"]["loop"]
         else:
@@ -51,7 +57,9 @@ class Sequences:
             # Create an ephemeral entity for it
             ephemeral_entity = True
 
-            await self.AD.state.add_entity("rules", entity_id, "idle", attributes={"steps": sequence})
+            await self.AD.state.add_entity(
+                "rules", entity_id, "idle", attributes={"steps": sequence}
+            )
 
             seq = sequence
 
@@ -87,11 +95,15 @@ class Sequences:
                             else:
                                 ns = namespace
 
-                            await self.AD.services.call_service(ns, domain, service, parameters)
+                            await self.AD.services.call_service(
+                                ns, domain, service, parameters
+                            )
                 if loop is not True:
                     break
         finally:
-            await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
+            await self.AD.state.set_state(
+                "_sequences", "rules", entity_id, state="idle"
+            )
 
             if ephemeral_entity is True:
                 await self.AD.state.remove_entity("rules", entity_id)

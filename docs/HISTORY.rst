@@ -77,7 +77,7 @@ Change Log
 - Moved ``constrain_days`` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
-- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
+- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps
 - Added ``parse_datetime()``
 - ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - Refactored appdaemon.py for greater readability and easier maintenance
@@ -159,7 +159,7 @@ Change Log
 - Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
 - As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
 - In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
-- MQTT client status api change from ``clientConnected`` to ``is_client_connected``  
+- MQTT client status api change from ``clientConnected`` to ``is_client_connected``
 
 3.0.4 (2019-04-04)
 ------------------
@@ -830,11 +830,11 @@ None
 
 **Fixes**
 
--  
+-
 
 **Breaking Changes**
 
--  
+-
 
 2.0.0beta3 (2017-03-27)
 -----------------------

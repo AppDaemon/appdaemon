@@ -301,7 +301,7 @@ required:
         type:moisture
         warning_level: 100
         units: %
-        
+
 It is also possible to get some constants like the app directory within apps. This can be accessed using the attribute ``self.app_dir``
 
 secrets
@@ -678,7 +678,7 @@ trackers. It takes 3 possible values:
     constrain_presence: someone
     # or
     constrain_presence: noone
-    
+
 Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
@@ -1004,13 +1004,13 @@ A fully async app might look like this:
 
             # Call another coroutine
             await my_function()
-            
+
 When writing ASYNC apps, please be aware that most of the methods available in ADAPI (generally referenced as ``self.method_name()`` in an app) are async methods. While these coroutines are automatically turned into a ``future`` for you, if you intend to use the data they return you'll need to ``await`` them.
 
 This will not give the expected result:
 
 .. code:: PYTHON
-    
+
     async def some_method(self):
         handle = self.run_in(self.cb, 30)
 
@@ -1020,7 +1020,7 @@ This, however, will:
 
     async def some_method(self):
         handle = await self.run_in(self.cb, 30)
-        
+
 If you do not need to use the return result of the method, and you do not need to know that it has completed before executing the next line of your code, then you do not need to ``await`` the method.
 
 ASYNC Advantages
@@ -1439,14 +1439,14 @@ Assistant bus:
    after Apps are initialized. It is fired within the `global` namespace
 - ``app_initialized`` - fired when an App is initialized. It is fired within the `admin` namespace
 - ``app_terminated`` - fired when an App is terminated. It is fired within the `admin` namespace
--  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection 
+-  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection
 to Home Assistant. It is fired within the plugin's namespace
--  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection 
+-  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection
 from an external system like an MQTT broker. It is fired within the plugin's namespace
 -  ``service_registered`` - fired when a service is registered in AD. It is fired within the namespace it was registered
-- ``websocket_connected`` - fired when a websocket client connects like the Admin User Interface. 
+- ``websocket_connected`` - fired when a websocket client connects like the Admin User Interface.
 It is fired within the `admin` namespace
-- ``websocket_disconnected`` - fired when a websocket client disconnects like the Admin User Interface. 
+- ``websocket_disconnected`` - fired when a websocket client disconnects like the Admin User Interface.
 It is fired within the `admin` namespace
 
 About Event Callbacks
@@ -1700,7 +1700,7 @@ from within apps in a different namespace. This is done by simply passing in the
 
 .. code:: python
     ## from within a HASS App, and wanting to access the client Id of the MQTT Plugin
-    
+
     config = self.get_config(namespace = 'mqtt')
     self.log("The Mqtt Client ID is ".format(config["client_id"]))
 
@@ -2637,4 +2637,3 @@ Sequences can be run without the need to predefine them by specifying the steps 
             {'sleep': 1},
             {'light/turn_off': {'entity_id': 'light.office_1'}},
             ])
-

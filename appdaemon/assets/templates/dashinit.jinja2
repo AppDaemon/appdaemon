@@ -16,15 +16,15 @@ $(function(){ //DOM Ready
         max_size_x: {{columns}},
         shift_widgets_up: false
     }).data('gridster').disable();
-    
+
     // Add Widgets
 
     var gridster = $(".gridster ul").gridster().data('gridster');
     {% for widget in widgets%}
         gridster.add_widget('<li><div data-bind="attr: {style: widget_style}" class="widget widget-{{widget.parameters.widget_type}}-{{widget.id}}" id="{{widget.id}}">{{widget.html.replace('\'', '\\\'')}}</div></li>', {{widget.size[0]}}, {{widget.size[1]}}, {{widget.position[0]}}, {{widget.position[1]}})
     {% endfor %}
-    
-    
+
+
     var widgets = {}
     // Initialize Widgets
     {% for widget in widgets%}

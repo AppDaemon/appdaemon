@@ -8,7 +8,6 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class Admin:
-
     def __init__(self, config_dir, logger, ad: AppDaemon, **kwargs):
         #
         # Set Defaults
@@ -58,7 +57,9 @@ class Admin:
 
             # Logs
 
-            params["logs"] = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
+            params["logs"] = await utils.run_in_executor(
+                self, self.AD.logging.get_admin_logs
+            )
 
             # Entities
 
@@ -66,17 +67,19 @@ class Admin:
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),
-                autoescape=select_autoescape(['html', 'xml'])
+                autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("admin.jinja2")
-            rendered_template = await utils.run_in_executor(self, template.render, params)
+            rendered_template = await utils.run_in_executor(
+                self, template.render, params
+            )
 
             return rendered_template
 
         except:
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error creating admin page")
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)

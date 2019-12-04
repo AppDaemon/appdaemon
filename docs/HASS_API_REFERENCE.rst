@@ -40,7 +40,7 @@ Presence
 .. autofunction:: appdaemon.plugins.hass.hassapi.Hass.anyone_home
 .. autofunction:: appdaemon.plugins.hass.hassapi.Hass.everyone_home
 .. autofunction:: appdaemon.plugins.hass.hassapi.Hass.noone_home
-        
+
 Database
 --------
 

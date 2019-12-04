@@ -26,8 +26,8 @@ secrets = None
 class Formatter(object):
     def __init__(self):
         self.types = {}
-        self.htchar = '\t'
-        self.lfchar = '\n'
+        self.htchar = "\t"
+        self.lfchar = "\n"
         self.indent = 0
         self.set_formater(object, self.__class__.format_object)
         self.set_formater(dict, self.__class__.format_dict)
@@ -49,27 +49,40 @@ class Formatter(object):
 
     def format_dict(self, value, indent):
         items = [
-            self.lfchar + self.htchar * (indent + 1) + repr(key) + ': ' +
-            (self.types[type(value[key]) if type(value[key]) in self.types else object])(self, value[key], indent + 1)
+            self.lfchar
+            + self.htchar * (indent + 1)
+            + repr(key)
+            + ": "
+            + (
+                self.types[
+                    type(value[key]) if type(value[key]) in self.types else object
+                ]
+            )(self, value[key], indent + 1)
             for key in value
         ]
-        return '{%s}' % (','.join(items) + self.lfchar + self.htchar * indent)
+        return "{%s}" % (",".join(items) + self.lfchar + self.htchar * indent)
 
     def format_list(self, value, indent):
         items = [
-            self.lfchar + self.htchar * (indent + 1) + (self.types[type(item) if type(item) in self.types else object])(
-                self, item, indent + 1)
+            self.lfchar
+            + self.htchar * (indent + 1)
+            + (self.types[type(item) if type(item) in self.types else object])(
+                self, item, indent + 1
+            )
             for item in value
         ]
-        return '[%s]' % (','.join(items) + self.lfchar + self.htchar * indent)
+        return "[%s]" % (",".join(items) + self.lfchar + self.htchar * indent)
 
     def format_tuple(self, value, indent):
         items = [
-            self.lfchar + self.htchar * (indent + 1) + (self.types[type(item) if type(item) in self.types else object])(
-                self, item, indent + 1)
+            self.lfchar
+            + self.htchar * (indent + 1)
+            + (self.types[type(item) if type(item) in self.types else object])(
+                self, item, indent + 1
+            )
             for item in value
         ]
-        return '(%s)' % (','.join(items) + self.lfchar + self.htchar * indent)
+        return "(%s)" % (",".join(items) + self.lfchar + self.htchar * indent)
 
 
 class PersistentDict(shelve.DbfilenameShelf):
@@ -148,8 +161,7 @@ class AttrDict(dict):
         if not isinstance(data, dict):
             return data
         else:
-            return AttrDict({key: AttrDict.from_nested_dict(data[key])
-                             for key in data})
+            return AttrDict({key: AttrDict.from_nested_dict(data[key]) for key in data})
 
 
 class StateAttrs(dict):
@@ -203,7 +215,9 @@ def _timeit(func):
         start_time = time.time()
         result = func(self, *args, **kwargs)
         elapsed_time = time.time() - start_time
-        self.logger.info('function [%s] finished in %s ms', func.__name__, int(elapsed_time * 1000))
+        self.logger.info(
+            "function [%s] finished in %s ms", func.__name__, int(elapsed_time * 1000)
+        )
         return result
 
     return newfunc
@@ -219,7 +233,7 @@ def _profile_this(fn):
 
         self.pr.disable()
         s = io.StringIO()
-        sortby = 'cumulative'
+        sortby = "cumulative"
         ps = pstats.Stats(self.pr, stream=s).sort_stats(sortby)
         ps.print_stats()
         self.profile = fn + s.getvalue()
@@ -272,7 +286,13 @@ def day_of_week(day):
 
 
 async def run_in_executor(self, fn, *args, **kwargs):
-    completed, pending = await asyncio.wait([self.AD.loop.run_in_executor(self.AD.executor, functools.partial(fn, *args, **kwargs))])
+    completed, pending = await asyncio.wait(
+        [
+            self.AD.loop.run_in_executor(
+                self.AD.executor, functools.partial(fn, *args, **kwargs)
+            )
+        ]
+    )
     future = list(completed)[0]
     response = future.result()
     return response
@@ -286,9 +306,15 @@ def run_coroutine_threadsafe(self, coro):
             result = future.result(self.AD.internal_function_timeout)
         except asyncio.TimeoutError:
             if hasattr(self, "logger"):
-                self.logger.warning("Coroutine (%s) took too long (%s seconds), cancelling the task...", coro, self.AD.internal_function_timeout)
+                self.logger.warning(
+                    "Coroutine (%s) took too long (%s seconds), cancelling the task...",
+                    coro,
+                    self.AD.internal_function_timeout,
+                )
             else:
-                print("Coroutine ({}) took too long, cancelling the task...".format(coro))
+                print(
+                    "Coroutine ({}) took too long, cancelling the task...".format(coro)
+                )
             future.cancel()
     else:
         self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
@@ -330,8 +356,10 @@ def deepcopy(data):
 
 
 def find_path(name):
-    for path in [os.path.join(os.path.expanduser("~"), ".homeassistant"),
-                 os.path.join(os.path.sep, "etc", "appdaemon")]:
+    for path in [
+        os.path.join(os.path.expanduser("~"), ".homeassistant"),
+        os.path.join(os.path.sep, "etc", "appdaemon"),
+    ]:
         _file = os.path.join(path, name)
         if os.path.isfile(_file) or os.path.isdir(_file):
             return _file
@@ -361,13 +389,22 @@ def process_arg(self, arg, args, **kwargs):
                     value = int(value)
                     setattr(self, arg, value)
                 except ValueError:
-                    self.logger.warning("Invalid value for %s: %s, using default(%s)", value, getattr(self, arg))
+                    self.logger.warning(
+                        "Invalid value for %s: %s, using default(%s)",
+                        value,
+                        getattr(self, arg),
+                    )
             if "float" in kwargs and kwargs["float"] is True:
                 try:
                     value = float(value)
                     setattr(self, arg, value)
                 except ValueError:
-                    self.logger.warning("Invalid value for %s: %s, using default(%s)", arg, value, getattr(self, arg))
+                    self.logger.warning(
+                        "Invalid value for %s: %s, using default(%s)",
+                        arg,
+                        value,
+                        getattr(self, arg),
+                    )
             else:
                 setattr(self, arg, value)
 
@@ -377,7 +414,7 @@ def find_owner(filename):
 
 
 def check_path(type, logger, inpath, pathtype="directory", permissions=None):
-    #disable checks for windows platform
+    # disable checks for windows platform
     if platform.system() == "Windows":
         return
 
@@ -410,33 +447,64 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):
                 fullpath = False
             elif not os.path.isdir(directory):
                 if os.path.isfile(directory):
-                    logger.warning("%s: %s exists, but is a file instead of a directory", type, directory)
+                    logger.warning(
+                        "%s: %s exists, but is a file instead of a directory",
+                        type,
+                        directory,
+                    )
                     fullpath = False
             else:
                 owner = find_owner(directory)
                 if "r" in perms and not os.access(directory, os.R_OK):
-                    logger.warning("%s: %s exists, but is not readable, owner: %s", type, directory, owner)
+                    logger.warning(
+                        "%s: %s exists, but is not readable, owner: %s",
+                        type,
+                        directory,
+                        owner,
+                    )
                     fullpath = False
                 if "w" in perms and not os.access(directory, os.W_OK):
-                    logger.warning("%s: %s exists, but is not writeable, owner: %s", type, directory, owner)
+                    logger.warning(
+                        "%s: %s exists, but is not writeable, owner: %s",
+                        type,
+                        directory,
+                        owner,
+                    )
                     fullpath = False
                 if "x" in perms and not os.access(directory, os.X_OK):
-                    logger.warning("%s: %s exists, but is not executable, owner: %s", type, directory, owner)
+                    logger.warning(
+                        "%s: %s exists, but is not executable, owner: %s",
+                        type,
+                        directory,
+                        owner,
+                    )
                     fullpath = False
         if fullpath is True:
             owner = find_owner(path)
             user = pwd.getpwuid(os.getuid()).pw_name
             if owner != user:
-                logger.warning("%s: %s is owned by %s but appdaemon is running as %s", type, path, owner, user)
+                logger.warning(
+                    "%s: %s is owned by %s but appdaemon is running as %s",
+                    type,
+                    path,
+                    owner,
+                    user,
+                )
 
         if file is not None:
             owner = find_owner(file)
             if "r" in perms and not os.access(file, os.R_OK):
-                logger.warning("%s: %s exists, but is not readable, owner: %s", type, file, owner)
+                logger.warning(
+                    "%s: %s exists, but is not readable, owner: %s", type, file, owner
+                )
             if "w" in perms and not os.access(file, os.W_OK):
-                logger.warning("%s: %s exists, but is not writeable, owner: %s", type, file, owner)
+                logger.warning(
+                    "%s: %s exists, but is not writeable, owner: %s", type, file, owner
+                )
             if "x" in perms and not os.access(file, os.X_OK):
-                logger.warning("%s: %s exists, but is not executable, owner: %s", type, file, owner)
+                logger.warning(
+                    "%s: %s exists, but is not executable, owner: %s", type, file, owner
+                )
     except KeyError:
         #
         # User ID is not properly set up with a username in docker variants

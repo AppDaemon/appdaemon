@@ -63,20 +63,33 @@ class Events:
                 "event": event,
                 "pin_app": pin_app,
                 "pin_thread": pin_thread,
-                "kwargs": kwargs
+                "kwargs": kwargs,
             }
 
             if "timeout" in kwargs:
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(
+                    seconds=int(kwargs["timeout"])
+                )
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     __name, exec_time, None, False, None, __event_handle=handle,
                 )
 
-            await self.AD.state.add_entity("admin", "event_callback.{}".format(handle), "active",
-                                           {"app": __name, "event_name": event, "function": cb.__name__,
-                                            "pinned": pin_app, "pinned_thread": pin_thread, "fired": 0,
-                                            "executed": 0, "kwargs": kwargs})
+            await self.AD.state.add_entity(
+                "admin",
+                "event_callback.{}".format(handle),
+                "active",
+                {
+                    "app": __name,
+                    "event_name": event,
+                    "function": cb.__name__,
+                    "pinned": pin_app,
+                    "pinned_thread": pin_thread,
+                    "fired": 0,
+                    "executed": 0,
+                    "kwargs": kwargs,
+                },
+            )
             return handle
         else:
             return None
@@ -93,10 +106,18 @@ class Events:
 
         """
 
-        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+        if (
+            name in self.AD.callbacks.callbacks
+            and handle in self.AD.callbacks.callbacks[name]
+        ):
             del self.AD.callbacks.callbacks[name][handle]
-            await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
-        if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
+            await self.AD.state.remove_entity(
+                "admin", "event_callback.{}".format(handle)
+            )
+        if (
+            name in self.AD.callbacks.callbacks
+            and self.AD.callbacks.callbacks[name] == {}
+        ):
             del self.AD.callbacks.callbacks[name]
 
     async def info_event_callback(self, name, handle):
@@ -111,7 +132,10 @@ class Events:
 
         """
 
-        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+        if (
+            name in self.AD.callbacks.callbacks
+            and handle in self.AD.callbacks.callbacks[name]
+        ):
             callback = self.AD.callbacks.callbacks[name][handle]
             return callback["event"], callback["kwargs"].copy()
         else:
@@ -143,7 +167,9 @@ class Events:
             await plugin.fire_plugin_event(event, namespace, **kwargs)
         else:
             # Just fire the event locally
-            await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
+            await self.AD.events.process_event(
+                namespace, {"event_type": event, "data": kwargs}
+            )
 
     async def process_event(self, namespace, data):
         """Processes an event that has been received either locally or from a plugin.
@@ -162,26 +188,34 @@ class Events:
             # if data["event_type"] == "__AD_ENTITY_REMOVED":
             #    print("process event")
 
-            self.logger.debug("Event type:%s:", data['event_type'])
+            self.logger.debug("Event type:%s:", data["event_type"])
             self.logger.debug(data["data"])
 
             # Kick the scheduler so it updates it's clock for time travel
-            if self.AD.sched is not None and self.AD.sched.realtime is False and namespace != "admin":
+            if (
+                self.AD.sched is not None
+                and self.AD.sched.realtime is False
+                and namespace != "admin"
+            ):
                 await self.AD.sched.kick()
 
-            if data['event_type'] == "state_changed":
-                if 'entity_id' in data['data'] and 'new_state' in data['data']:
-                    entity_id = data['data']['entity_id']
+            if data["event_type"] == "state_changed":
+                if "entity_id" in data["data"] and "new_state" in data["data"]:
+                    entity_id = data["data"]["entity_id"]
 
-                    self.AD.state.set_state_simple(namespace, entity_id, data['data']['new_state'])
+                    self.AD.state.set_state_simple(
+                        namespace, entity_id, data["data"]["new_state"]
+                    )
 
                     if self.AD.apps is True and namespace != "admin":
                         await self.AD.state.process_state_callbacks(namespace, data)
                 else:
-                    self.logger.warning("Malformed 'state_changed' event: %s", data['data'])
+                    self.logger.warning(
+                        "Malformed 'state_changed' event: %s", data["data"]
+                    )
                     return
 
-            if self.AD.apps is True:# and namespace != "admin":
+            if self.AD.apps is True:  # and namespace != "admin":
 
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
@@ -208,11 +242,11 @@ class Events:
                 await self.AD.http.stream_update(namespace, mydata)
 
         except:
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during process_event()")
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
 
     def has_log_callback(self, name):
         """Returns ``True`` if the app has a log callback, ``False`` otherwise.
@@ -232,7 +266,11 @@ class Events:
             for callback in self.AD.callbacks.callbacks:
                 for uuid in self.AD.callbacks.callbacks[callback]:
                     cb = self.AD.callbacks.callbacks[callback][uuid]
-                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
+                    if (
+                        cb["name"] == name
+                        and cb["type"] == "event"
+                        and cb["event"] == "__AD_LOG_EVENT"
+                    ):
                         has_log_callback = True
 
         return has_log_callback
@@ -263,45 +301,59 @@ class Events:
         for name in self.AD.callbacks.callbacks.keys():
             for uuid_ in self.AD.callbacks.callbacks[name]:
                 callback = self.AD.callbacks.callbacks[name][uuid_]
-                if callback["namespace"] == namespace or callback[
-                    "namespace"] == "global" or namespace == "global":
+                if (
+                    callback["namespace"] == namespace
+                    or callback["namespace"] == "global"
+                    or namespace == "global"
+                ):
                     #
                     # Check for either a blank event (for all events)
                     # Or the event is a match
                     # But don't allow a global listen for any system events (events that start with __)
                     #
                     if "event" in callback and (
-                            (callback["event"] is None and data['event_type'][:2] != "__")
-                            or data['event_type'] == callback["event"]):
+                        (callback["event"] is None and data["event_type"][:2] != "__")
+                        or data["event_type"] == callback["event"]
+                    ):
 
                         # Check any filters
 
                         _run = True
                         for key in callback["kwargs"]:
-                            if key in data["data"] and callback["kwargs"][key] != \
-                                    data["data"][key]:
+                            if (
+                                key in data["data"]
+                                and callback["kwargs"][key] != data["data"][key]
+                            ):
                                 _run = False
 
                         if data["event_type"] == "__AD_LOG_EVENT":
-                            if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["data"]["log_type"]:
+                            if (
+                                "log" in callback["kwargs"]
+                                and callback["kwargs"]["log"]
+                                != data["data"]["log_type"]
+                            ):
                                 _run = False
 
                         if _run:
                             if name in self.AD.app_management.objects:
-                                executed = await self.AD.threading.dispatch_worker(name,
-                                                                        {
-                                                                            "id": uuid_,
-                                                                            "name": name,
-                                                                            "objectid": self.AD.app_management.objects[name]["id"],
-                                                                            "type": "event",
-                                                                            "event": data['event_type'],
-                                                                            "function": callback["function"],
-                                                                            "data": data["data"],
-                                                                            "pin_app": callback["pin_app"],
-                                                                            "pin_thread": callback["pin_thread"],
-                                                                            "kwargs": callback["kwargs"]
-                                                                        })
-                                
+                                executed = await self.AD.threading.dispatch_worker(
+                                    name,
+                                    {
+                                        "id": uuid_,
+                                        "name": name,
+                                        "objectid": self.AD.app_management.objects[
+                                            name
+                                        ]["id"],
+                                        "type": "event",
+                                        "event": data["event_type"],
+                                        "function": callback["function"],
+                                        "data": data["data"],
+                                        "pin_app": callback["pin_app"],
+                                        "pin_thread": callback["pin_thread"],
+                                        "kwargs": callback["kwargs"],
+                                    },
+                                )
+
                                 # Remove the callback if appropriate
                                 if executed is True:
                                     remove = callback["kwargs"].get("oneshot", False)
@@ -310,11 +362,13 @@ class Events:
 
         for remove in removes:
             await self.cancel_event_callback(remove["name"], remove["uuid"])
-     
+
     async def event_services(self, namespace, domain, service, kwargs):
         if "event" in kwargs:
             event = kwargs["event"]
             del kwargs["event"]
             await self.fire_event(namespace, event, **kwargs)
         else:
-            self.logger.warning("Malformed 'fire_event' service call, as no event given")
+            self.logger.warning(
+                "Malformed 'fire_event' service call, as no event given"
+            )

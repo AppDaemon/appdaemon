@@ -8,6 +8,7 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 from functools import wraps
@@ -18,12 +19,18 @@ def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
         ns = self._get_namespace(**kwargs)
-        plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(ns))
+        plugin = utils.run_coroutine_threadsafe(
+            self, self.AD.plugins.get_plugin_object(ns)
+        )
         if plugin is None:
-            self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, func.__name__)
+            self.logger.warning(
+                "non_existent namespace (%s) specified in call to %s", ns, func.__name__
+            )
             return lambda *args: None
         if not utils.run_coroutine_threadsafe(self, plugin.am_reading_messages()):
-            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
+            self.logger.warning(
+                "Attempt to call Home Assistant while disconnected: %s", func.__name__
+            )
             return lambda *args: None
         else:
             return func(*args, **kwargs)
@@ -35,16 +42,23 @@ def hass_check(func):
 # Define an entities class as a descriptor to enable read only access of HASS state
 #
 
+
 class Hass(adbase.ADBase, adapi.ADAPI):
     #
     # Internal
     #
 
-    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
+    def __init__(
+        self, ad: AppDaemon, name, logging, args, config, app_config, global_vars
+    ):
 
         # Call Super Classes
-        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
-        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
+        adbase.ADBase.__init__(
+            self, ad, name, logging, args, config, app_config, global_vars
+        )
+        adapi.ADAPI.__init__(
+            self, ad, name, logging, args, config, app_config, global_vars
+        )
 
         self.AD = ad
 
@@ -76,7 +90,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        return (key for key, value in self.get_state("device_tracker", **kwargs).items())
+        return (
+            key for key, value in self.get_state("device_tracker", **kwargs).items()
+        )
 
     def get_tracker_details(self, **kwargs):
         """Returns a list of all device trackers and their associated state.
@@ -314,14 +330,14 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-            
+
         rargs["namespace"] = namespace
         await self.call_service("homeassistant/turn_on", **rargs)
 
@@ -360,7 +376,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -404,14 +420,14 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-            
+
         rargs["namespace"] = namespace
         await self.call_service("homeassistant/toggle", **rargs)
 
@@ -444,7 +460,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
@@ -484,7 +500,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
@@ -492,7 +508,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
-            
+
         rargs["namespace"] = namespace
         await self.call_service("input_text/set_value", **rargs)
 
@@ -528,7 +544,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "option": option}
@@ -536,7 +552,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["option"] = option
-            
+
         rargs["namespace"] = namespace
         await self.call_service("input_select/select_option", **rargs)
 
@@ -668,7 +684,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        
+
         if entity_id != "":
             await self._check_entity(namespace, entity_id)
         if kwargs == {}:
@@ -676,7 +692,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-            
+
         rargs["namespace"] = namespace
 
         result = await self.call_service("database/history", **rargs)
