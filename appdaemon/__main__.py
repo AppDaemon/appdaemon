@@ -156,7 +156,7 @@ class ADMain:
 
             self.logger.info("AppDaemon is stopped.")
 
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
             self.logger.warning("-" * 60, exc_info=True)
@@ -167,7 +167,7 @@ class ADMain:
             self.logger.info("AppDaemon Exited")
 
     # noinspection PyBroadException
-    def main(self):
+    def main(self):  # noqa: C901
         """Initial AppDaemon entry point.
 
         Parse command line arguments, load configuration, set up logging.
@@ -429,7 +429,7 @@ class ADMain:
             dir = os.path.dirname(pidfile)
             name = os.path.basename(pidfile)
             try:
-                with pid.PidFile(name, dir) as p:
+                with pid.PidFile(name, dir):
                     self.run(appdaemon, hadashboard, admin, api, http)
             except pid.PidFileError:
                 self.logger.error("Unable to aquire pidfile - terminating")
