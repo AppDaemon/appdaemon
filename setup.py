@@ -7,28 +7,8 @@ from appdaemon.version import __version__
 
 # sudo apt-get install python3-aiohttp-dbg
 
-REQUIRES = [
-    "daemonize",
-    "astral",
-    "pytz",
-    "requests>=2.6.0",
-    "sseclient",
-    "websocket-client",
-    "aiohttp==3.4.4",
-    "yarl==1.1.0",
-    "Jinja2==2.10.1",
-    "aiohttp_jinja2==0.15.0",
-    "pyyaml==5.1",
-    "voluptuous",
-    "feedparser",
-    "iso8601",
-    "bcrypt==3.1.4",
-    "paho-mqtt",
-    "python-socketio",
-    "deepdiff",
-    "python-dateutil",
-    "pid",
-]
+with open("requirements.txt") as f:
+    install_requires = [x for x in f.read().split("\n") if x]
 
 with open("README.md") as f:
     long_description = f.read()
@@ -44,7 +24,7 @@ setup(
     url="https://github.com/home-assistant/appdaemon.git",
     packages=find_packages(exclude=["contrib", "docs", "tests*"]),
     include_package_data=True,
-    install_requires=REQUIRES,
+    install_requires=install_requires,
     license="Apache License 2.0",
     python_requires=">=3.6",
     zip_safe=False,
