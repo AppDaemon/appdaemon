@@ -1,6 +1,4 @@
 import hassapi as hass
-import datetime
-import globals
 
 #
 # App to manage heating:
