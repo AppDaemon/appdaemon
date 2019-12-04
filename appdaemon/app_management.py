@@ -171,7 +171,7 @@ class AppManagement:
 
         except TypeError:
             self.AD.threading.report_callback_sig(name, "initialize", init, {})
-        except:
+        except Exception:
             error_logger = logging.getLogger("Error.{}".format(name))
             error_logger.warning("-" * 60)
             error_logger.warning("Unexpected error running initialize() for %s", name)
@@ -203,7 +203,7 @@ class AppManagement:
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
-            except:
+            except Exception:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning("-" * 60)
                 error_logger.warning(
@@ -256,7 +256,7 @@ class AppManagement:
         try:
             self.logger.info("Terminating %s", app)
             await self.terminate_app(app)
-        except:
+        except Exception:
             error_logger = logging.getLogger("Error.{}".format(app))
             error_logger.warning("-" * 60)
             error_logger.warning("Unexpected error terminating app: %s:", app)
@@ -342,7 +342,7 @@ class AppManagement:
             )
             await self.increase_inactive_apps(name)
 
-    async def read_config(self):
+    async def read_config(self):  # noqa: C901
 
         new_config = None
 
@@ -501,7 +501,7 @@ class AppManagement:
 
             return new_config
 
-        except:
+        except Exception:
 
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error loading config file: %s", file)
@@ -510,7 +510,7 @@ class AppManagement:
             self.logger.warning("-" * 60)
 
     # noinspection PyBroadException
-    async def check_config(self, silent=False, add_threads=True):
+    async def check_config(self, silent=False, add_threads=True):  # noqa: C901
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
@@ -625,7 +625,7 @@ class AppManagement:
                 "total": total_apps,
                 "active": active_apps,
             }
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error:")
             self.logger.warning("-" * 60)
@@ -757,7 +757,7 @@ class AppManagement:
                                 command_line = command_line.replace("$2", outfile)
                                 try:
                                     subprocess.Popen(command_line, shell=True)
-                                except:
+                                except Exception:
                                     self.logger.warning("-" * 60)
                                     self.logger.warning(
                                         "Unexpected running filter on: %s:", infile
@@ -779,7 +779,7 @@ class AppManagement:
         fh.close()
 
     # @_timeit
-    async def check_app_updates(self, plugin=None, mode="normal"):
+    async def check_app_updates(self, plugin=None, mode="normal"):  # noqa: C901
 
         if self.AD.apps is False:
             return
@@ -909,7 +909,7 @@ class AppManagement:
                 await utils.run_in_executor(
                     self, self.read_app, mod["name"], mod["reload"]
                 )
-            except:
+            except Exception:
                 self.error.warning("-" * 60)
                 self.error.warning("Unexpected error loading module: %s:", mod["name"])
                 self.error.warning("-" * 60)
@@ -949,7 +949,7 @@ class AppManagement:
                         await self.increase_inactive_apps(app)
                     else:
                         await self.init_object(app)
-                except:
+                except Exception:
                     error_logger = logging.getLogger("Error.{}".format(app))
                     error_logger.warning("-" * 60)
                     error_logger.warning("Unexpected error initializing app: %s:", app)
