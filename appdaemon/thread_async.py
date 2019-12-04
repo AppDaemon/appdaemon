@@ -40,7 +40,7 @@ class ThreadAsync:
                     asyncio.ensure_future(function(*myargs, **mykwargs))
                     # self.logger.debug("calling task_done()")
                     # self.appq.task_done()
-            except:
+            except Exception:
                 self.logger.warning("-" * 60)
                 self.logger.warning("Unexpected error during thread_async() loop()")
                 self.logger.warning("args: %s", args)
