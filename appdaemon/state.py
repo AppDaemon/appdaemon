@@ -27,7 +27,7 @@ class State:
                 writeback = self.AD.namespaces[ns].get("writeback", "safe")
                 safe = bool(writeback == "safe")
                 self.state[ns] = utils.PersistentDict(os.path.join(nspath, ns), safe)
-        except:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in namespace setup")
             self.logger.warning("-" * 60)
@@ -54,7 +54,9 @@ class State:
         self.logger.info("Saving all namespaces")
         self.save_all_namespaces()
 
-    async def add_state_callback(self, name, namespace, entity, cb, kwargs):
+    async def add_state_callback(  # noqa: C901
+        self, name, namespace, entity, cb, kwargs
+    ):
         if self.AD.threading.validate_pin(name, kwargs) is True:
             if "pin" in kwargs:
                 pin_app = kwargs["pin"]
@@ -356,7 +358,7 @@ class State:
     async def remove_entity(self, namespace, entity):
         if entity in self.state[namespace]:
             self.state[namespace].pop(entity)
-            data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity,}}
+            data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity}}
             await self.AD.events.process_event(namespace, data)
 
     async def add_entity(self, namespace, entity, state, attributes=None):
@@ -375,7 +377,7 @@ class State:
 
         data = {
             "event_type": "__AD_ENTITY_ADDED",
-            "data": {"entity_id": entity, "state": state,},
+            "data": {"entity_id": entity, "state": state},
         }
 
         await self.AD.events.process_event(namespace, data)
@@ -385,7 +387,7 @@ class State:
     ):
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
 
-        maybe_copy = lambda data: deepcopy(data) if copy else data
+        maybe_copy = lambda data: deepcopy(data) if copy else data  # noqa: E731
 
         if entity_id is not None and "." in entity_id:
             if not await self.entity_exists(namespace, entity_id):
