@@ -33,6 +33,7 @@ class Modes(hass.Hass):
         self.listen_state(self.motion_event, "binary_sensor.downstairs_sensor")
         self.listen_state(self.presence_change, "device_tracker")
         time = datetime.datetime.fromtimestamp(appdaemon.conf.now)
+        self.log(f"Time: {time}")
 
     def presence_change(self, entity, attribute, old, new, kwargs):
         if old != new:
@@ -106,7 +107,6 @@ class Modes(hass.Hass):
 
     def evening(self):
         # Set the house up for evening
-        wendy = self.get_state(globals.wendy_tracker)
         andrew = self.get_state(globals.andrew_tracker)
         self.mode = "Evening"
         self.log("Switching mode to Evening")
