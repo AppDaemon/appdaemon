@@ -9,6 +9,11 @@ Change Log
 - Added events for when an app is initialized or terminated
 - Added `event_fire` service call
 - Added `production_mode` service call
+- Added `list_services` api call
+- Added the ability to fire an event callback only once, using the `oneshot` flag
+- Added the ability to use async functions as endpoint callback
+- Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
+- Added events for when a webscoket client connects and disconnects
 - Added the ability for apps to register web routes, thereby utilizing AD's internal web server
 - Added static folder `web`, which can used to serve content like images using AD's internal web server
 - Added ability for users to define static folders, which can used to serve content like images using AD's internal web server
