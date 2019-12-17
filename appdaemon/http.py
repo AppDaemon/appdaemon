@@ -924,11 +924,11 @@ class HTTP:
                 error = "Request was Cancelled"
 
             except:
-                self.access.warning('-' * 60)
-                self.access.warning("Unexpected error during Web call")
-                self.access.warning('-' * 60)
-                self.access.warning(traceback.format_exc())
-                self.access.warning('-' * 60)
+                self.logger.error('-' * 60)
+                self.logger.error("Unexpected error during Web call")
+                self.logger.error('-' * 60)
+                self.logger.error(traceback.format_exc())
+                self.logger.error('-' * 60)
                 code = 503
                 error = "Request had an Error"
         
