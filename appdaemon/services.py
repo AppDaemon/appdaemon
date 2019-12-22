@@ -72,10 +72,10 @@ class Services:
             
             event_data = {
                 "event_type": "call_service", 
-                    "data": {"domain": domain, "service" : service, "service_data" : data}
+                    "data": {"namespace" : namespace, "domain": domain, "service" : service, "service_data" : data}
                 }
 
-            await self.AD.events.process_event(namespace, event_data)
+            await self.AD.events.process_event("appdaemon", event_data)
 
             try:
                 funcref = self.services[namespace][domain][service]["callback"]
@@ -103,10 +103,10 @@ class Services:
                     return await utils.run_in_executor(self, funcref, ns, domain, service, data)
 
             except:
-                self.logger.warning('-' * 60)
-                self.logger.warning("Unexpected error in call_service()")
-                self.logger.warning('-' * 60)
-                self.logger.warning(traceback.format_exc())
-                self.logger.warning('-' * 60)
+                self.logger.error('-' * 60)
+                self.logger.error("Unexpected error in call_service()")
+                self.logger.error('-' * 60)
+                self.logger.error(traceback.format_exc())
+                self.logger.error('-' * 60)
                 return None
 
