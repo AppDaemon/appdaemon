@@ -69,13 +69,6 @@ class Services:
                 del data["namespace"]
             else:
                 ns = namespace
-            
-            event_data = {
-                "event_type": "call_service", 
-                    "data": {"namespace" : namespace, "domain": domain, "service" : service, "service_data" : data}
-                }
-
-            await self.AD.events.process_event("appdaemon", event_data)
 
             try:
                 funcref = self.services[namespace][domain][service]["callback"]
