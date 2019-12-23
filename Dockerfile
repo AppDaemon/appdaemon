@@ -1,4 +1,4 @@
-FROM armv7l/python:3.7
+FROM arm32v7/python
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
