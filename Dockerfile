@@ -1,4 +1,4 @@
-FROM arm32v7/python
+FROM python:3.7-slim-buster
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
