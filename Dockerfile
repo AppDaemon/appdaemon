@@ -25,8 +25,8 @@ RUN apt install tzdata
 RUN pip3 install --no-cache-dir python-dateutil
 
 # Install dependencies
-RUN apt install gcc libffi-dev musl-dev \
-    && pip3 install .
+# RUN apt install gcc libffi-dev musl-dev \
+#    && pip3 install .
 
 # Install additional packages
 RUN apt install curl
