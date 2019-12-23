@@ -1,4 +1,4 @@
-FROM python:3.7-raspbian
+FROM armv7l/python:3.7
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
