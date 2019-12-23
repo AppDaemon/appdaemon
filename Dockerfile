@@ -26,7 +26,7 @@ RUN pip3 install --no-cache-dir python-dateutil
 
 # Install dependencies
 RUN apt add --no-cache gcc libffi-dev musl-dev \
-    && pip3 install --no-cache-dir .
+    && pip3 install .
 
 # Install additional packages
 RUN apt install --no-cache curl
