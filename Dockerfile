@@ -1,4 +1,4 @@
-FROM python:3.7-alpine
+FROM python:3.7-raspbian
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
@@ -19,7 +19,7 @@ WORKDIR /usr/src/app
 COPY . .
 
 # Install timezone data
-RUN apk add tzdata
+RUN apt install tzdata
 
 # Fix for current dev branch
 RUN pip3 install --no-cache-dir python-dateutil
@@ -29,7 +29,7 @@ RUN apk add --no-cache gcc libffi-dev musl-dev \
     && pip3 install --no-cache-dir .
 
 # Install additional packages
-RUN apk add --no-cache curl
+RUN apt install --no-cache curl
 
 # Start script
 RUN chmod +x /usr/src/app/dockerStart.sh
