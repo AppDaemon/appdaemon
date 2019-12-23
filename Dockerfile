@@ -29,7 +29,7 @@ RUN pip3 install --no-cache-dir python-dateutil
 #    && pip3 install .
 
 # Install additional packages
-RUN apt install curl
+# RUN apt install curl
 
 # Start script
 RUN chmod +x /usr/src/app/dockerStart.sh
