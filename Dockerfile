@@ -26,10 +26,10 @@ RUN pip3 install --no-cache-dir python-dateutil
 
 # Install dependencies
 RUN apt add gcc libffi-dev musl-dev \
-    && pip3 install --no-cache .
+    && pip3 install .
 
 # Install additional packages
-RUN apt install --no-cache curl
+RUN apt install curl
 
 # Start script
 RUN chmod +x /usr/src/app/dockerStart.sh
