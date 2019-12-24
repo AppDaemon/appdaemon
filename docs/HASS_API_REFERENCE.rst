@@ -388,6 +388,7 @@ Examples
 
     self.notify("Switching mode to Evening")
     self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
+    # will send a message through notify.smtp instead of the default notify.notify
 
 Presence
 --------
