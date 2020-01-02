@@ -590,7 +590,7 @@ The AppDaemon App API is configured by adding a top-level directive to appdaemon
 
     api:
 
-It takes no arguments.
+It takes no arguments. The API Component is required for the Admin Component to work.
 
 Configuring the Admin Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -599,7 +599,7 @@ The Admin Interface, new in 4.0 is a new front end to AppDaemon that allows you 
 thread activity, registered callbacks and entities. Over time it is expected to evolve into a full management tool
 for AppDaemon allowing the user to configure, troubleshoot and monitor all of AppDaemon's functions.
 
-The Admin Interface is configured by first adding the HTTP Component and then also adding the top-level directive to appdaemon.yaml:
+The Admin Interface is configured by first adding the HTTP and API Components and then also adding the top-level directive to appdaemon.yaml:
 
 .. code:: yaml
 
