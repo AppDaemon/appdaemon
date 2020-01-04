@@ -14,6 +14,7 @@ Change Log
 - Added the ability to use async functions as endpoint callback
 - Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a webscoket client connects and disconnects
+- Added ability to start, stop, restart and enable plugins
 
 **Fixes**
 
