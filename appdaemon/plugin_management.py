@@ -139,8 +139,12 @@ class Plugins:
     def stop_plugin(self, namespace):
         if namespace in self.plugin_objs:
             self.plugin_objs[namespace]["object"].stop()
+
             name = self.plugin_objs[namespace]["name"]
+            self.AD.http.stream.stream_unregister(name)
+
             del self.plugin_objs[namespace] # remove the plugin object
+            print(namespace, " been removed")
 
             if not self.stopping:
                 self.AD.loop.create_task(self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}}))
@@ -241,6 +245,7 @@ class Plugins:
     async def notify_plugin_stopped(self, name, namespace):
         if not self.stopping:
             if namespace in self.plugin_objs: # meaning it wasn't stopped by a service
+                print(namespace, " been stopped")
                 self.plugin_objs[namespace]["active"] = False
                 await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
