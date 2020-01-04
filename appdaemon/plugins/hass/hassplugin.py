@@ -114,6 +114,7 @@ class HassPlugin(PluginBase):
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
+        self.reading_messages = False
         if self.ws is not None:
             self.ws.close()
             
