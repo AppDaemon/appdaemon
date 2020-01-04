@@ -118,7 +118,7 @@ class HassPlugin(PluginBase):
             self.ws.close()
             
         if self.session is not None:
-            self.session.close()
+            self.AD.loop.create_task(self.session.close())
 
     #
     # Get initial state
