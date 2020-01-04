@@ -149,15 +149,6 @@ class ADStream:
                     self.logger.debug('-' * 60)
                     self.logger.debug(traceback.format_exc())
                     self.logger.debug('-' * 60)
-            for stream in self.streams:
-                try:
-                    await self.streams[stream].stream.close()
-                except:
-                    self.logger.debug('-' * 60)
-                    self.logger.warning("Unexpected error in on_shutdown()")
-                    self.logger.debug('-' * 60)
-                    self.logger.debug(traceback.format_exc())
-                    self.logger.debug('-' * 60)
 
 ## Any method here that doesn't begin with "_" will be exposed to the stream
 ## directly. Only Create public methods here if you wish to make them
