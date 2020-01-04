@@ -116,6 +116,9 @@ class HassPlugin(PluginBase):
         self.stopping = True
         if self.ws is not None:
             self.ws.close()
+            
+        if self.session is not None:
+            self.session.close()
 
     #
     # Get initial state
