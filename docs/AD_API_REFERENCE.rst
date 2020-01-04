@@ -167,6 +167,30 @@ Sets the production mode AD is running on. The value of the `mode` arg has to be
 
 >>> self.call_service("production_mode/set", mode=True, namespace="appdaemon")
 
+**plugin/start**
+
+Starts an already stopped plugin. If the plugin is diabled, it wouldn't be able to start it, unless its enabled first using the enable service
+
+>>> self.call_service("plugin/start", plugin="HASS", namespace="appdaemon")
+
+**plugin/stop**
+
+Stops an already started plugin.
+
+>>> self.call_service("plugin/stop", plugin="HASS", namespace="appdaemon")
+
+**plugin/restart**
+
+Stops and Starts a plugin
+
+>>> self.call_service("plugin/restart", plugin="HASS", namespace="appdaemon")
+
+**plugin/enable**
+
+Enables an already disabled plugin, which has been set in the configuration file. This service will only enable it, and will not start the plugin.
+
+>>> self.call_service("plugin/enable", plugin="MQTT", namespace="appdaemon")
+
 All namespaces except ``appdaemon``, ``global``, and ``admin``:
 
 **state/set**
