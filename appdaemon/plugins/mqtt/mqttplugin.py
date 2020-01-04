@@ -98,7 +98,6 @@ class MqttPlugin(PluginBase):
         self.mqtt_client.on_message = self.mqtt_on_message
 
         self.loop = self.AD.loop # get AD loop
-        self.mqtt_connect_event = asyncio.Event()
         self.mqtt_wildcards = list()
         self.mqtt_metadata = {
             "version": "1.0",
@@ -342,6 +341,8 @@ class MqttPlugin(PluginBase):
         already_notified = False
         first_time = True
         first_time_service = True
+        
+        self.mqtt_connect_event = asyncio.Event()
 
         while not self.stopping: 
             while (not self.initialized or not already_initialized) and not self.stopping: #continue until initialization is successful
