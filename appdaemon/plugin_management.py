@@ -178,7 +178,6 @@ class Plugins:
             self.plugin_objs[namespace]["object"].stop()
 
             name = self.plugin_objs[namespace]["name"]
-            self.AD.http.stream.stream_unregister(name)
 
             del self.plugin_objs[namespace] # remove the plugin object
             self.AD.loop.create_task(self.set_state(name, state="stopped"))
