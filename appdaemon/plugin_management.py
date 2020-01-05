@@ -74,9 +74,43 @@ class Plugins:
             for name in self.plugins:
                 self.start_plugin(name)
     
+    async def set_state(self, name, **kwargs):
+        nameId = name.lower().replace(" ", "_")
+        # not a fully qualified entity name
+        if name.find(".") == -1:
+            entity_id = "plugin.{}".format(nameId)
+        else:
+            entity_id = name
+
+        await self.AD.state.set_state("_plugin_management", "admin", entity_id, _silent=True, **kwargs)
+
+    async def get_state(self, name, **kwargs):
+        nameId = name.lower().replace(" ", "_")
+        # not a fully qualified entity name
+        if name.find(".") == -1:
+            entity_id = "plugin.{}".format(nameId)
+        else:
+            entity_id = name
+
+        return await self.AD.state.get_state("_plugin_management", "admin", entity_id, **kwargs)
+    
+    async def add_entity(self, name, state, attributes):
+        nameId = name.lower().replace(" ", "_")
+        # not a fully qualified entity name
+        if name.find(".") == -1:
+            entity_id = "plugin.{}".format(nameId)
+        else:
+            entity_id = name
+
+        await self.AD.state.add_entity("admin", entity_id, state, attributes)
+    
     def start_plugin(self, name):
+        self.AD.loop.create_task(self.add_entity(name, "loaded", {"args": self.plugins[name]}))
+
         if "disable" in self.plugins[name] and self.plugins[name]["disable"] is True:
+            self.AD.loop.create_task(self.set_state(name, state="disabled"))
             self.logger.info("Plugin '%s' disabled", name)
+
         else:
 
             if "refresh_delay" not in self.plugins[name]:
@@ -104,7 +138,7 @@ class Plugins:
                 full_module_name = "{}".format(module_name)
                 self.logger.info("Loading Plugin %s using class %s from module %s", name, class_name, module_name)
             try:
-
+                
                 mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
 
                 app_class = getattr(mod, class_name)
@@ -122,7 +156,10 @@ class Plugins:
                 self.plugin_objs[namespace] = {"object": plugin, "active": False, "name" : name}
 
                 self.AD.loop.create_task(plugin.get_updates())
+                self.AD.loop.create_task(self.set_state(name, state="running"))
+
             except:
+                self.AD.loop.create_task(self.set_state(name, state="initialize_error"))
                 self.logger.warning("error loading plugin: %s - ignoring", name)
                 self.logger.warning('-' * 60)
                 self.logger.warning(traceback.format_exc())
@@ -141,8 +178,10 @@ class Plugins:
             self.plugin_objs[namespace]["object"].stop()
 
             name = self.plugin_objs[namespace]["name"]
+            self.AD.http.stream.stream_unregister(name)
 
             del self.plugin_objs[namespace] # remove the plugin object
+            self.AD.loop.create_task(self.set_state(name, state="stopped"))
 
             if not self.stopping:
                 self.AD.loop.create_task(self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}}))
