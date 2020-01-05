@@ -141,10 +141,8 @@ class Plugins:
             self.plugin_objs[namespace]["object"].stop()
 
             name = self.plugin_objs[namespace]["name"]
-            self.AD.http.stream.stream_unregister(name)
 
             del self.plugin_objs[namespace] # remove the plugin object
-            print(namespace, " been removed")
 
             if not self.stopping:
                 self.AD.loop.create_task(self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}}))
@@ -174,15 +172,11 @@ class Plugins:
     def get_plugin(self, plugin):
         return self.plugins[plugin]
 
-    async def get_plugin_object(self, namespace):
-        if namespace in self.plugin_objs:
-            return self.plugin_objs[namespace]["object"]
-        
-        for name in self.plugins:
-            if "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
-                return self.plugin_objs[self.plugins[name]["namespace"]]["object"]
-            
-        return None
+    async def get_plugin_object(self, name):
+        if name in self.plugin_objs:
+            return self.plugin_objs[name]["object"]
+        else:
+            return None
 
     def get_plugin_from_namespace(self, namespace):
         if self.plugins is not None:
@@ -194,18 +188,9 @@ class Plugins:
         else:
             return None
 
-    async def notify_plugin_started(self, name, ns, meta, state, first_time=False):
+    async def notify_plugin_started(self, name, namespace, meta, state, first_time=False):
         self.logger.debug("Plugin started: %s", name)
         try:
-            namespaces = []
-            if isinstance(ns, dict): #its a dictionary, so there is namespace mapping involved
-                namespace = ns["namespace"]
-                namespaces.extend(ns["namespaces"])
-                self.plugins[name]["namespaces"] = namespaces
-
-            else:
-                namespace = ns
-
             self.last_plugin_state[namespace] = datetime.datetime.now()
 
             self.logger.debug("Plugin started meta: %s = %s", name, meta)
@@ -214,17 +199,7 @@ class Plugins:
 
             if not self.stopping:
                 self.plugin_meta[namespace] = meta
-
-                if namespaces != []: # there are multiple namesapces
-                    for namesp in namespaces:
-
-                        if state[namesp] != None:
-                            self.AD.state.set_namespace_state(namesp, state[namesp])
-
-                    # AD plugin has no namespace for data of its own
-
-                else:
-                    self.AD.state.set_namespace_state(namespace, state)
+                self.AD.state.set_namespace_state(namespace, state)
 
                 if not first_time:
                     await self.AD.app_management.check_app_updates(self.get_plugin_from_namespace(namespace), mode="init")
@@ -282,12 +257,7 @@ class Plugins:
                             state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
-                            if "namespaces" in self.plugins[name]: #its a plugin using namespace mapping like adplugin so expecting a list
-                                namespace = self.plugins[name]["namespaces"]
-                            else:
-                                namespace = plugin
-
-                            self.AD.state.update_namespace_state(namespace, state)
+                            self.AD.state.update_namespace_state(plugin, state)
 
                     except asyncio.TimeoutError:
                         self.logger.warning("Timeout refreshing %s state - retrying in 10 minutes", plugin)
