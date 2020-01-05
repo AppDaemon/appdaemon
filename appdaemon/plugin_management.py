@@ -183,7 +183,10 @@ class Plugins:
             self.AD.loop.create_task(self.set_state(name, state="stopped"))
 
             if not self.stopping:
-                self.AD.loop.create_task(self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}}))
+                self.AD.loop.create_task(
+                    self.AD.events.process_event(
+                        namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
+                )
 
     def restart_plugin(self, plugin):
         for namespace in self.plugin_objs:
