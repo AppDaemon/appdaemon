@@ -173,7 +173,7 @@ If you are using docker, refer to the steps in the tutorial.
 Windows Support
 ---------------
 
-AppDaemon runs under windows and has been tested with the official 3.5.2
+AppDaemon runs under windows and has been tested with the official 3.8.1
 release of python. However, there are a couple of caveats:
 
 -  The ``-d`` or ``--daemonize`` option is not supported owing to
