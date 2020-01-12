@@ -21,7 +21,7 @@ setup(
     version=__version__,
     description="Apps for the Home Assistant home automation package.",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    #long_description_content_type="text/markdown",
     author="Andrew I Cockburn",
     author_email="appdaemon@acockburn.com",
     url="https://github.com/home-assistant/appdaemon.git",
