@@ -1,8 +1,8 @@
 Change Log
 ==========
 
-4.0.0
------
+4.0.0 (2020-01-12)
+------------------
 
 **Features**
 
@@ -14,6 +14,7 @@ Change Log
 - Added the ability to use async functions as endpoint callback
 - Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a webscoket client connects and disconnects
+- Added support for python 3.8
 
 **Fixes**
 
