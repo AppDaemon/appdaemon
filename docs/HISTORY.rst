@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-None
+- Fix for when HTTP component not defined, as it leads to `self.dashboard_dir` issuing an error
 
 **Breaking Changes**
 
