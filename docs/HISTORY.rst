@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+4.0.1
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 4.0.0 (2020-01-12)
 ------------------
 
@@ -22,6 +37,8 @@ Change Log
 - Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
 
 **Breaking Changes**
+
+None
 
 4.0.0 Beta 2 (2019-10-19)
 -------------------------
