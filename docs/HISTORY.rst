@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- Added ability to start, stop, restart and enable plugins
 
 **Fixes**
 
