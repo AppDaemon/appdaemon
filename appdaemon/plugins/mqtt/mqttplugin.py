@@ -348,8 +348,8 @@ class MqttPlugin(PluginBase):
             while (not self.initialized or not already_initialized) and not self.stopping: #continue until initialization is successful
                 if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time
                     try:
-                        await asyncio.wait_for(utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
-                        await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
+                        await asyncio.wait_for(utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0)
+                        await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0) # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.logger.critical("Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
 
