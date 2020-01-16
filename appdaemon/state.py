@@ -404,8 +404,12 @@ class State:
 
         if service == "set":
             await self.set_state(domain, namespace, entity_id, **kwargs)
+        
+        elif service == "remove_entity":
+            await self.remove_entity(namespace, entity_id)
+
         else:
-            self.logger.warning("Unknown service in set_state service call: %s", kwargs)
+            self.logger.warning("Unknown service in state service call: %s", kwargs)
 
     async def set_state(self, name, namespace, entity_id, **kwargs):
         self.logger.debug("set_state(): %s, %s", entity_id, kwargs)
