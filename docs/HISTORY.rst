@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- Added service call for `remove_entity`
 
 **Fixes**
 
