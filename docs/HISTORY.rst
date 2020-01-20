@@ -10,7 +10,8 @@ None
 
 **Fixes**
 
-None
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+- Fixed an issue that prevented dashboards from working on older iPads
 
 **Breaking Changes**
 
@@ -33,7 +34,6 @@ None
 
 **Fixes**
 
-- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
 - Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
 
 **Breaking Changes**
