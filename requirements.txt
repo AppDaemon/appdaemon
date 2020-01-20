@@ -6,7 +6,7 @@ aiohttp==3.6.2
 yarl==1.1.0
 Jinja2==2.10.1
 aiohttp_jinja2==0.15.0
-pyyaml==5.1
+pyyaml==5.3
 voluptuous==0.11.7
 feedparser==5.2.1
 iso8601==0.1.12
