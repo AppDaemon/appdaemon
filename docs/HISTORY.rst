@@ -7,6 +7,11 @@ Change Log
 **Features**
 
 - All module dependencies pinned to exact versions for better environmental predictability
+- Bump pyyaml to 5.3
+- Bump yarl to 1.4.2
+- Bump bcrypt to 3.1.7
+- Bump jinja2 to 2.10.3
+- Bump aiohttp-jinja2 to 1.2.0
 
 **Fixes**
 
