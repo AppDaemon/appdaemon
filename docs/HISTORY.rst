@@ -1,8 +1,23 @@
 Change Log
 ==========
 
-4.0.1
+4.0.2
 -----
+
+**Features**
+
+- All module dependencies pinned to exact versions for better environmental predictability
+
+**Fixes**
+
+- None
+
+**Breaking Changes**
+
+None
+
+4.0.1 (2020-01-20)
+------------------
 
 **Features**
 
