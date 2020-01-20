@@ -12,6 +12,7 @@ None
 
 - Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
 - Fixed an issue that prevented dashboards from working on older iPads
+- Fix for when HTTP component not defined, as it leads to `self.dashboard_dir` issuing an error
 
 **Breaking Changes**
 
@@ -34,6 +35,7 @@ None
 
 **Fixes**
 
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
 - Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
 
 **Breaking Changes**
