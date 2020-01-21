@@ -1,8 +1,28 @@
 Change Log
 ==========
 
-4.0.1
+4.0.2
 -----
+
+**Features**
+
+- All module dependencies pinned to exact versions for better environmental predictability
+- Bump pyyaml to 5.3
+- Bump yarl to 1.4.2
+- Bump bcrypt to 3.1.7
+- Bump jinja2 to 2.10.3
+- Bump aiohttp-jinja2 to 1.2.0
+
+**Fixes**
+
+- None
+
+**Breaking Changes**
+
+None
+
+4.0.1 (2020-01-20)
+------------------
 
 **Features**
 
@@ -10,7 +30,9 @@ None
 
 **Fixes**
 
-None
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+- Fixed an issue that prevented dashboards from working on older iPads
+- Fix for when HTTP component not defined, as it leads to `self.dashboard_dir` issuing an error
 
 **Breaking Changes**
 
