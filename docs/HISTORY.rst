@@ -12,7 +12,7 @@ Change Log
 - Bump bcrypt to 3.1.7
 - Bump jinja2 to 2.10.3
 - Bump aiohttp-jinja2 to 1.2.0
-- Added ability to use `now` in `run_every`. Also seconds can be added by simply using `now+10`
+- Added ability to use `now` in `run_every`. Also seconds can be added by simply using `now+10` for example
 
 **Fixes**
 
