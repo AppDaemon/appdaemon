@@ -2475,7 +2475,18 @@ class ADAPI:
         """
         name = self.name
         now = await self.get_now()
-        aware_start = self.AD.sched.convert_naive(start)
+        
+        if isinstance(start, str) and "now" in start: # meaning immediate time required
+            now_offset = 0
+            if "+" in start: # meaning time to be added
+                now_offset = int(start.split("+")[1].strip())
+            
+            aware_start = await self.get_now()
+            aware_start = aware_start + datetime.timedelta(seconds=now_offset)
+            
+        else:
+            aware_start = self.AD.sched.convert_naive(start)
+            
         if aware_start < now:
             raise ValueError("start cannot be in the past")
 
