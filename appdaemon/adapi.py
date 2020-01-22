@@ -2446,7 +2446,8 @@ class ADAPI:
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: A Python ``datetime`` object that specifies when the initial callback
-                will occur, or can take the `now` string alongside an added offset
+                will occur, or can take the `now` string alongside an added offset. If given
+                in the past, it will be executed in the next interval time.
             interval: Frequency (expressed in seconds) in which the callback should be executed.
             **kwargs: Arbitrary keyword parameters to be provided to the callback
                 function when it is invoked.
@@ -2487,16 +2488,16 @@ class ADAPI:
         if isinstance(start, str) and "now" in start: # meaning immediate time required
             now_offset = 0
             if "+" in start: # meaning time to be added
-                now_offset = int(start.split("+")[1].strip())
+                now_offset = int(re.findall(r"\d+", start)[0])
             
             aware_start = await self.get_now()
             aware_start = aware_start + datetime.timedelta(seconds=now_offset)
             
         else:
             aware_start = self.AD.sched.convert_naive(start)
-            
+
         if aware_start < now:
-            raise ValueError("start cannot be in the past")
+            aware_start = now + datetime.timedelta(seconds=interval)
 
         self.logger.debug("Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name)
 
