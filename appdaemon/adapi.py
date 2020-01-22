@@ -2446,7 +2446,7 @@ class ADAPI:
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: A Python ``datetime`` object that specifies when the initial callback
-                will occur.
+                will occur, or can take the `now` string alongside an added offset
             interval: Frequency (expressed in seconds) in which the callback should be executed.
             **kwargs: Arbitrary keyword parameters to be provided to the callback
                 function when it is invoked.
@@ -2471,6 +2471,14 @@ class ADAPI:
             Run every 17 minutes starting in 2 hours time.
 
             >>> self.run_every(self.run_every_c, time, 17 * 60)
+            
+            Run every 10 minutes starting now.
+
+            >>> self.run_every(self.run_every_c, "now", 10 * 60)
+            
+            Run every 5 minutes starting now plus 5 seconds.
+
+            >>> self.run_every(self.run_every_c, "now+5", 5 * 60)
 
         """
         name = self.name
