@@ -396,6 +396,12 @@ class ADMain:
         # Startup message
 
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
+        self.logger.info(
+            "Python version is %s.%s.%s",
+            sys.version_info[0],
+            sys.version_info[1],
+            sys.version_info[2],
+        )
         self.logger.info("Configuration read from: %s", config_file_yaml)
         self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))

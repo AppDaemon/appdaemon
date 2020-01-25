@@ -1,8 +1,45 @@
 Change Log
 ==========
 
-4.0.0
+4.0.2
 -----
+
+**Features**
+
+- All module dependencies pinned to exact versions for better environmental predictability
+- Bump pyyaml to 5.3
+- Bump yarl to 1.4.2
+- Bump bcrypt to 3.1.7
+- Bump jinja2 to 2.10.3
+- Bump aiohttp-jinja2 to 1.2.0
+
+**Fixes**
+
+- None
+
+**Breaking Changes**
+
+None
+
+4.0.1 (2020-01-20)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+- Fixed an issue that prevented dashboards from working on older iPads
+- Fix for when HTTP component not defined, as it leads to `self.dashboard_dir` issuing an error
+
+**Breaking Changes**
+
+None
+
+4.0.0 (2020-01-12)
+------------------
 
 **Features**
 
@@ -14,6 +51,7 @@ Change Log
 - Added the ability to use async functions as endpoint callback
 - Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a webscoket client connects and disconnects
+- Added support for python 3.8
 
 **Fixes**
 
@@ -21,6 +59,8 @@ Change Log
 - Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
 
 **Breaking Changes**
+
+None
 
 4.0.0 Beta 2 (2019-10-19)
 -------------------------

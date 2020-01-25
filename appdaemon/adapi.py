@@ -36,7 +36,11 @@ class ADAPI:
         self.args = deepcopy(args)
         self.app_dir = self.AD.app_dir
         self.config_dir = self.AD.config_dir
-        self.dashboard_dir = self.AD.http.dashboard_dir
+        self.dashboard_dir = None
+
+        if self.AD.http is not None:
+            self.dashboard_dir = self.AD.http.dashboard_dir
+
         self.global_vars = global_vars
         self._namespace = "default"
         self.logger = self._logging.get_child(name)
