@@ -12,7 +12,7 @@ To create apps based on just the MQTT API, use some code like the following:
 
     import mqttapi as mqtt
 
-    class MyApp(mqtt.Mqtt:
+    class MyApp(mqtt.Mqtt):
 
         def initialize(self):
 
