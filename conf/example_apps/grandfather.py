@@ -27,10 +27,7 @@ class Grandfather(hass.Hass):
     def check_chime(self, kwargs):
         chime = True
         # self.verbose_log("Checking Chime")
-        if (
-            "mute_if_home" in self.args
-            and self.get_state(self.args["mute_if_home"]) == "home"
-        ):
+        if "mute_if_home" in self.args and self.get_state(self.args["mute_if_home"]) == "home":
             # self.verbose_log("Wendy is home")
             chime = False
         if self.noone_home():

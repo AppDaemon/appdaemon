@@ -37,22 +37,14 @@ class Modes(hass.Hass):
 
     def presence_change(self, entity, attribute, old, new, kwargs):
         if old != new:
-            if (
-                entity == globals.wendy_tracker
-                and new != "home"
-                and self.mode == "Morning"
-            ):
+            if entity == globals.wendy_tracker and new != "home" and self.mode == "Morning":
                 self.log("Wendy left - changing lighting")
                 self.turn_on("scene.downstairs_on")
 
     def light_event(self, entity, attribute, old, new, kwargs):
         # Use light levels to switch to Day or Evening modes as appropriate
         lux = float(new)
-        if (
-            self.mode == "Morning"
-            or self.mode == "Night"
-            and self.now_is_between("sunrise", "12:00:00")
-        ):
+        if self.mode == "Morning" or self.mode == "Night" and self.now_is_between("sunrise", "12:00:00"):
             if lux > 200:
                 self.day()
 
@@ -62,11 +54,7 @@ class Modes(hass.Hass):
 
     def motion_event(self, entity, attribute, old, new, kwargs):
         # Use motion form someone coming downstairs to trigger morning mode (switches on a downstairs lamp)
-        if (
-            new == "on"
-            and self.mode == "Night"
-            and self.now_is_between("04:30:00", "10:00:00")
-        ):
+        if new == "on" and self.mode == "Night" and self.now_is_between("04:30:00", "10:00:00"):
             self.morning()
 
     def mode_event(self, event_name, data, kwargs):

@@ -69,9 +69,9 @@ class OccuSim(hass.Hass):
                     end_ts = datetime.datetime.combine(self.date(), end).timestamp()
                     span = int(end_ts - start_ts)
                 if span > 0:
-                    event = datetime.datetime.combine(
-                        self.date(), start
-                    ) + datetime.timedelta(seconds=random.randrange(span))
+                    event = datetime.datetime.combine(self.date(), start) + datetime.timedelta(
+                        seconds=random.randrange(span)
+                    )
                 elif span == 0:
                     event = datetime.datetime.combine(self.date(), start)
                 elif span < 0:
@@ -99,9 +99,7 @@ class OccuSim(hass.Hass):
                             cbargs["days"] = self.args[step + "days"]
                         span = 0
                         for arg in self.args:
-                            if re.match(step + "on", arg) or re.match(
-                                step + "off", arg
-                            ):
+                            if re.match(step + "on", arg) or re.match(step + "off", arg):
                                 cbargs[arg] = self.args[arg]
 
                         steprelative = self.args[step + "relative"]
@@ -109,31 +107,21 @@ class OccuSim(hass.Hass):
                             start_offset_p = self.args[step + "start_offset"]
                             start_offset = self.parse_time(start_offset_p)
                             start = events[steprelative]["event"] + datetime.timedelta(
-                                hours=start_offset.hour,
-                                minutes=start_offset.minute,
-                                seconds=start_offset.second,
+                                hours=start_offset.hour, minutes=start_offset.minute, seconds=start_offset.second,
                             )
                             end_offset_p = self.args.get(step + "end_offset")
                             if end_offset_p is not None:
                                 end_offset = self.parse_time(end_offset_p)
-                                end = events[steprelative][
-                                    "event"
-                                ] + datetime.timedelta(
-                                    hours=end_offset.hour,
-                                    minutes=end_offset.minute,
-                                    seconds=end_offset.second,
+                                end = events[steprelative]["event"] + datetime.timedelta(
+                                    hours=end_offset.hour, minutes=end_offset.minute, seconds=end_offset.second,
                                 )
                                 span = int(end.timestamp() - start.timestamp())
                             if span > 0:
-                                event = start + datetime.timedelta(
-                                    seconds=random.randrange(span)
-                                )
+                                event = start + datetime.timedelta(seconds=random.randrange(span))
                             elif span == 0:
                                 event = start
                             elif span < 0:
-                                self.log(
-                                    "step_{} end < start - ignoring end".format(step)
-                                )
+                                self.log("step_{} end < start - ignoring end".format(step))
                                 event = start
 
                             events[stepname] = {}
@@ -149,10 +137,7 @@ class OccuSim(hass.Hass):
 
         if list != "":
             self.log(
-                "unable to schedule the following steps due to missing prereq step: {}".format(
-                    list
-                ),
-                "WARNING",
+                "unable to schedule the following steps due to missing prereq step: {}".format(list), "WARNING",
             )
 
         # Schedule random events
@@ -242,11 +227,7 @@ class OccuSim(hass.Hass):
             if not self.test:
                 self.fire_event(m.group(1), **{m.group(2): self.step})
             if "verbose_log" in self.args:
-                self.log(
-                    "fired event {} with {} = {}".format(
-                        m.group(1), m.group(2), self.step
-                    )
-                )
+                self.log("fired event {} with {} = {}".format(m.group(1), m.group(2), self.step))
             return
         m = re.match(r"input_select\.", entity)
         if m:

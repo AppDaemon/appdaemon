@@ -25,9 +25,7 @@ import hassapi as hass
 class MiniMote(hass.Hass):
     def initialize(self):
 
-        self.listen_event(
-            self.zwave_event, "zwave.scene_activated", entity_id=self.args["device"]
-        )
+        self.listen_event(self.zwave_event, "zwave.scene_activated", entity_id=self.args["device"])
 
     def zwave_event(self, event_name, data, kwargs):
         # self.verbose_log("Event: {}, data = {}, args = {}".format(event_name, data, kwargs))

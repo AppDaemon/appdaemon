@@ -80,18 +80,12 @@ class DummyPlugin(PluginBase):
 
     async def get_updates(self):
         await self.AD.plugins.notify_plugin_started(
-            self.name,
-            self.namespace,
-            self.get_metadata(),
-            self.get_complete_state(),
-            True,
+            self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True,
         )
         while not self.stopping:
 
             if self.current_event >= len(self.config["sequence"]["events"]) and (
-                "loop" in self.config["sequence"]
-                and self.config["loop"] == 0
-                or "loop" not in self.config["sequence"]
+                "loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]
             ):
                 while not self.stopping:
                     await asyncio.sleep(1)
@@ -106,25 +100,17 @@ class DummyPlugin(PluginBase):
                     self.state[entity] = new_state
                     ret = {
                         "event_type": "state_changed",
-                        "data": {
-                            "entity_id": entity,
-                            "new_state": new_state,
-                            "old_state": old_state,
-                        },
+                        "data": {"entity_id": entity, "new_state": new_state, "old_state": old_state},
                     }
                     self.logger.debug("*** State Update: %s ***", ret)
-                    await self.AD.state.process_event(
-                        self.namespace, copy.deepcopy(ret)
-                    )
+                    await self.AD.state.process_event(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = {
                         "event_type": event["event"]["event_type"],
                         "data": event["event"]["data"],
                     }
                     self.logger.debug("*** Event: %s ***", ret)
-                    await self.AD.state.process_event(
-                        self.namespace, copy.deepcopy(ret)
-                    )
+                    await self.AD.state.process_event(self.namespace, copy.deepcopy(ret))
 
                 elif "disconnect" in event:
                     self.logger.debug("*** Disconnected ***")

@@ -69,28 +69,19 @@ class Sound(hass.Hass):
                     active = False
                 else:
                     # Save current volume
-                    volume = self.get_state(
-                        self.args["player"], attribute="volume_level"
-                    )
+                    volume = self.get_state(self.args["player"], attribute="volume_level")
                     # Set to the desired volume
                     self.call_service(
-                        "media_player/volume_set",
-                        entity_id=self.args["player"],
-                        volume_level=data["volume"],
+                        "media_player/volume_set", entity_id=self.args["player"], volume_level=data["volume"],
                     )
                     if data["type"] == "tts":
                         # Call TTS service
                         self.call_service(
-                            "tts/amazon_polly_say",
-                            entity_id=self.args["player"],
-                            message=data["text"],
+                            "tts/amazon_polly_say", entity_id=self.args["player"], message=data["text"],
                         )
                     if data["type"] == "play":
                         netpath = netpath = "http://{}:{}/local/{}/{}".format(
-                            self.args["ip"],
-                            self.args["port"],
-                            self.args["base"],
-                            data["path"],
+                            self.args["ip"], self.args["port"], self.args["base"], data["path"],
                         )
                         self.call_service(
                             "media_player/play_media",
@@ -103,14 +94,10 @@ class Sound(hass.Hass):
                     time.sleep(int(data["length"]))
                     # Restore volume
                     self.call_service(
-                        "media_player/volume_set",
-                        entity_id=self.args["player"],
-                        volume_level=volume,
+                        "media_player/volume_set", entity_id=self.args["player"], volume_level=volume,
                     )
                     # Set state locally as well to avoid race condition
-                    self.set_state(
-                        self.args["player"], attributes={"volume_level": volume}
-                    )
+                    self.set_state(self.args["player"], attributes={"volume_level": volume})
             except Exception:
                 self.log("Error")
                 self.log(sys.exc_info())
@@ -122,20 +109,10 @@ class Sound(hass.Hass):
         self.event.set()
 
     def tts(self, text, volume, length):
-        self.queue.put(
-            {"type": "tts", "text": text, "volume": volume, "length": length}
-        )
+        self.queue.put({"type": "tts", "text": text, "volume": volume, "length": length})
 
     def play(self, path, content, volume, length):
-        self.queue.put(
-            {
-                "type": "play",
-                "path": path,
-                "content": content,
-                "volume": volume,
-                "length": length,
-            }
-        )
+        self.queue.put({"type": "play", "path": path, "content": content, "volume": volume, "length": length})
 
     def terminate(self):
         self.event.clear()

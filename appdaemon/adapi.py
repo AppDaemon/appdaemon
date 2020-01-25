@@ -23,9 +23,7 @@ class ADAPI:
     #
     # Internal parameters
     #
-    def __init__(
-        self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars
-    ):
+    def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
         # Store args
 
         self.AD = ad
@@ -91,10 +89,7 @@ class ADAPI:
             level = "INFO"
         ascii_encode = kwargs.pop("ascii_encode", True)
         if ascii_encode is True:
-            safe_enc = (
-                lambda s: str(s).encode("utf-8", "replace").decode("ascii", "replace")
-            )
-            msg = safe_enc(msg)
+            msg = str(msg).encode("utf-8", "replace").decode("ascii", "replace")
 
         logger.log(self._logging.log_levels[level], msg, *args, **kwargs)
 
@@ -225,9 +220,7 @@ class ADAPI:
         """
         namespace = kwargs.pop("namespace", "admin")
 
-        return await self.AD.logging.add_log_callback(
-            namespace, self.name, callback, level, **kwargs
-        )
+        return await self.AD.logging.add_log_callback(namespace, self.name, callback, level, **kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_log(self, handle):
@@ -503,9 +496,7 @@ class ADAPI:
         if "." not in entity:
             raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
         if not await self.AD.state.entity_exists(namespace, entity):
-            self.logger.warning(
-                "%s: Entity %s not found in namespace %s", self.name, entity, namespace
-            )
+            self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
     @staticmethod
     def get_ad_version():
@@ -940,11 +931,7 @@ class ADAPI:
             A string representing the value of message, or ``None`` if no error message was received.
 
         """
-        if (
-            "request" in data
-            and "err" in data["request"]
-            and "message" in data["request"]["err"]
-        ):
+        if "request" in data and "err" in data["request"] and "message" in data["request"]["err"]:
             return data["request"]["err"]["message"]
         else:
             return None
@@ -964,11 +951,7 @@ class ADAPI:
             >>> intent = ADAPI.get_alexa_intent(data)
 
         """
-        if (
-            "request" in data
-            and "intent" in data["request"]
-            and "name" in data["request"]["intent"]
-        ):
+        if "request" in data and "intent" in data["request"] and "name" in data["request"]["intent"]:
             return data["request"]["intent"]["name"]
         else:
             return None
@@ -990,18 +973,11 @@ class ADAPI:
             >>> all_slots = ADAPI.get_alexa_intent(data)
 
         """
-        if (
-            "request" in data
-            and "intent" in data["request"]
-            and "slots" in data["request"]["intent"]
-        ):
+        if "request" in data and "intent" in data["request"] and "slots" in data["request"]["intent"]:
             if slot is None:
                 return data["request"]["intent"]["slots"]
             else:
-                if (
-                    slot in data["request"]["intent"]["slots"]
-                    and "value" in data["request"]["intent"]["slots"][slot]
-                ):
+                if slot in data["request"]["intent"]["slots"] and "value" in data["request"]["intent"]["slots"][slot]:
                     return data["request"]["intent"]["slots"][slot]["value"]
                 else:
                     return None
@@ -1040,8 +1016,7 @@ class ADAPI:
             return await self.AD.http.register_endpoint(callback, ep)
         else:
             self.logger.warning(
-                "register_endpoint for %s filed - HTTP component is not configured",
-                name,
+                "register_endpoint for %s filed - HTTP component is not configured", name,
             )
             return None
 
@@ -1200,9 +1175,7 @@ class ADAPI:
             await self._check_entity(namespace, entity)
 
         self.logger.debug("Calling listen_state for %s", self.name)
-        return await self.AD.state.add_state_callback(
-            name, namespace, entity, callback, kwargs
-        )
+        return await self.AD.state.add_state_callback(name, namespace, entity, callback, kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_state(self, handle):
@@ -1244,9 +1217,7 @@ class ADAPI:
         return await self.AD.state.info_state_callback(handle, self.name)
 
     @utils.sync_wrapper
-    async def get_state(
-        self, entity_id=None, attribute=None, default=None, copy=True, **kwargs
-    ):
+    async def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
         """Gets the state of any component within Home Assistant.
 
         State updates are continuously tracked, so this call runs locally and does not require
@@ -1311,9 +1282,7 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return await self.AD.state.get_state(
-            self.name, namespace, entity_id, attribute, default, copy, **kwargs
-        )
+        return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
     async def set_state(self, entity_id, **kwargs):
@@ -1536,9 +1505,7 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling run_sequence() for %s", self.name)
-        return await self.AD.sequences.run_sequence(
-            _name, namespace, sequence, **kwargs
-        )
+        return await self.AD.sequences.run_sequence(_name, namespace, sequence, **kwargs)
 
     @utils.sync_wrapper
     async def cancel_sequence(self, handle):
@@ -1633,9 +1600,7 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
-        return await self.AD.events.add_event_callback(
-            _name, namespace, callback, event, **kwargs
-        )
+        return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_event(self, handle):
@@ -1715,25 +1680,13 @@ class ADAPI:
             An UTC object that is equivalent to the date and time contained in `utc_string`.
 
         """
-        return (
-            datetime.datetime(
-                *map(int, re.split(r"[^\d]", utc_string)[:-1])
-            ).timestamp()
-            + self.get_tz_offset() * 60
-        )
+        return datetime.datetime(*map(int, re.split(r"[^\d]", utc_string)[:-1])).timestamp() + self.get_tz_offset() * 60
 
     @staticmethod
     def get_tz_offset():
         """Returns the timezone difference between UTC and Local Time."""
         utc_offset_min = (
-            int(
-                round(
-                    (
-                        datetime.datetime.now() - datetime.datetime.utcnow()
-                    ).total_seconds()
-                )
-            )
-            / 60
+            int(round((datetime.datetime.now() - datetime.datetime.utcnow()).total_seconds())) / 60
         )  # round for taking time twice
         utc_offset_h = utc_offset_min / 60
 
@@ -2110,9 +2063,7 @@ class ADAPI:
         # convert seconds to an int if possible since a common pattern is to
         # pass this through from the config file which is a string
         exec_time = await self.get_now() + timedelta(seconds=int(delay))
-        handle = await self.AD.sched.insert_schedule(
-            name, exec_time, callback, False, None, **kwargs
-        )
+        handle = await self.AD.sched.insert_schedule(name, exec_time, callback, False, None, **kwargs)
 
         return handle
 
@@ -2184,9 +2135,7 @@ class ADAPI:
         if aware_event < now:
             one_day = datetime.timedelta(days=1)
             aware_event = aware_event + one_day
-        handle = await self.AD.sched.insert_schedule(
-            name, aware_event, callback, False, None, **kwargs
-        )
+        handle = await self.AD.sched.insert_schedule(name, aware_event, callback, False, None, **kwargs)
         return handle
 
     @utils.sync_wrapper
@@ -2259,12 +2208,8 @@ class ADAPI:
 
         now = await self.get_now()
         if aware_when < now:
-            raise ValueError(
-                "{}: run_at() Start time must be " "in the future".format(self.name)
-            )
-        handle = await self.AD.sched.insert_schedule(
-            name, aware_when, callback, False, None, **kwargs
-        )
+            raise ValueError("{}: run_at() Start time must be " "in the future".format(self.name))
+        handle = await self.AD.sched.insert_schedule(name, aware_when, callback, False, None, **kwargs)
         return handle
 
     @utils.sync_wrapper
@@ -2490,10 +2435,7 @@ class ADAPI:
             raise ValueError("start cannot be in the past")
 
         self.logger.debug(
-            "Registering run_every starting %s in %ss intervals for %s",
-            aware_start,
-            interval,
-            name,
+            "Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name,
         )
 
         handle = await self.AD.sched.insert_schedule(
@@ -2509,9 +2451,7 @@ class ADAPI:
         else:
             event = self.AD.sched.next_sunset()
 
-        handle = await self.AD.sched.insert_schedule(
-            name, event, callback, True, type_, **kwargs
-        )
+        handle = await self.AD.sched.insert_schedule(name, event, callback, True, type_, **kwargs)
         return handle
 
     @utils.sync_wrapper
@@ -2561,9 +2501,7 @@ class ADAPI:
 
         """
         name = self.name
-        self.logger.debug(
-            "Registering run_at_sunset with kwargs = %s for %s", kwargs, name
-        )
+        self.logger.debug("Registering run_at_sunset with kwargs = %s for %s", kwargs, name)
         handle = await self._schedule_sun(name, "next_setting", callback, **kwargs)
         return handle
 
@@ -2615,9 +2553,7 @@ class ADAPI:
 
         """
         name = self.name
-        self.logger.debug(
-            "Registering run_at_sunrise with kwargs = %s for %s", kwargs, name
-        )
+        self.logger.debug("Registering run_at_sunrise with kwargs = %s for %s", kwargs, name)
         handle = await self._schedule_sun(name, "next_rising", callback, **kwargs)
         return handle
 
@@ -2706,9 +2642,7 @@ class ADAPI:
                 # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
-                self.create_task(
-                    self.AD.threading.dispatch_worker(self.name, sched_data)
-                )
+                self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
 
                 # callback(f.result(), kwargs)
             except asyncio.CancelledError:
@@ -2716,9 +2650,7 @@ class ADAPI:
 
         f = asyncio.ensure_future(coro)
         if callback is not None:
-            self.logger.debug(
-                "Adding add_done_callback for coro %s for %s", f, self.name
-            )
+            self.logger.debug("Adding add_done_callback for coro %s for %s", f, self.name)
             f.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, f)
@@ -2834,6 +2766,4 @@ class ADAPI:
             >>> self.depends_on_module([somemodule)
 
         """
-        return await self.AD.app_management.register_module_dependency(
-            self.name, *modules
-        )
+        return await self.AD.app_management.register_module_dependency(self.name, *modules)

@@ -30,12 +30,8 @@ class Presence(hass.Hass):
         # Subscribe to presence changes
 
         self.listen_state(self.presence_change, "device_tracker")
-        self.listen_state(
-            self.everyone_left, "group.all_devices", old="home", new="not_home"
-        )
-        self.listen_state(
-            self.someone_home, "group.all_devices", old="not_home", new="home"
-        )
+        self.listen_state(self.everyone_left, "group.all_devices", old="home", new="not_home")
+        self.listen_state(self.someone_home, "group.all_devices", old="not_home", new="home")
         self.listen_event(self.presence_event, "PRESENCE_CHANGE")
         self.set_state("sensor.andrew_tracker", state="away")
         self.set_state("sensor.wendy_tracker", state="away")
@@ -49,9 +45,7 @@ class Presence(hass.Hass):
             tracker = globals.andrew_tracker_id
         elif event_tracker == "Wendy":
             tracker = globals.wendy_tracker_id
-        self.call_service(
-            "device_tracker/see", dev_id=tracker, location_name=event_type
-        )
+        self.call_service("device_tracker/see", dev_id=tracker, location_name=event_type)
 
     def presence_change(self, entity, attribute, old, new, kwargs):
         person = self.friendly_name(entity)
@@ -62,16 +56,12 @@ class Presence(hass.Hass):
                 place = "is away"
                 if "announce" in self.args and self.args["announce"].find(person) != -1:
                     self.announce = self.get_app("Sound")
-                    self.announce.tts(
-                        "{} just left".format(person), self.args["volume"], 3
-                    )
+                    self.announce.tts("{} just left".format(person), self.args["volume"], 3)
             elif new == "home":
                 place = "arrived home"
                 if "announce" in self.args and self.args["announce"].find(person) != -1:
                     self.announce = self.get_app("Sound")
-                    self.announce.tts(
-                        "{} arrived home".format(person), self.args["volume"], 3
-                    )
+                    self.announce.tts("{} arrived home".format(person), self.args["volume"], 3)
             else:
                 place = "is at {}".format(new)
             message = "{} {}".format(person, place)

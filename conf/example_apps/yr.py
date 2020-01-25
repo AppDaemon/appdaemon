@@ -29,9 +29,7 @@ class Yr(hass.Hass):
         interval = int(self.args["interval"])
 
         if interval < 10:
-            raise Exception(
-                "Update interval ({}) must be at least 10 minutes".format(interval)
-            )
+            raise Exception("Update interval ({}) must be at least 10 minutes".format(interval))
 
         # delay first launch with one minute, run every 'interval' minutes
         self.run_every(self.updateState, inOneMinute, interval * 60)

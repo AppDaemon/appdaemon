@@ -30,9 +30,7 @@ class Alexa(hass.Hass):
             self.log("Received Alexa request: {}, answering: {}".format(intent, speech))
         else:
             response = self.format_alexa_response(
-                speech="I'm sorry, the {} does not exist within AppDaemon".format(
-                    intent
-                )
+                speech="I'm sorry, the {} does not exist within AppDaemon".format(intent)
             )
 
         return response, 200

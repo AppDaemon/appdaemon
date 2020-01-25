@@ -32,19 +32,14 @@ import hassapi as hass
 class Sequence(hass.Hass):
     def initialize(self):
         if "input" in self.args and "state" in self.args:
-            self.listen_state(
-                self.state_change, self.args["input"], new=self.args["state"]
-            )
+            self.listen_state(self.state_change, self.args["input"], new=self.args["state"])
 
     def state_change(self, entity, attribute, old, new, kwargs):
         # self.verbose_log("{} turned {}".format(entity, new))
         if "sequence" in self.args:
             for entry in self.args["sequence"]:
                 self.run_in(
-                    self.action,
-                    entry["delay"],
-                    device=entry["entity"],
-                    service=entry["service"],
+                    self.action, entry["delay"], device=entry["entity"], service=entry["service"],
                 )
 
     def action(self, kwargs):

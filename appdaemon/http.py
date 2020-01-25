@@ -34,21 +34,13 @@ def securedata(myfunc):
             return await myfunc(*args)
         elif "adcreds" in request.cookies:
             match = await utils.run_in_executor(
-                self,
-                bcrypt.checkpw,
-                str.encode(self.password),
-                str.encode(request.cookies["adcreds"]),
+                self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]),
             )
             if match:
                 return await myfunc(*args)
-        elif ("x-ad-access" in request.headers) and (
-            request.headers["x-ad-access"] == self.password
-        ):
+        elif ("x-ad-access" in request.headers) and (request.headers["x-ad-access"] == self.password):
             return await myfunc(*args)
-        elif (
-            "api_password" in request.query
-            and request.query["api_password"] == self.password
-        ):
+        elif "api_password" in request.query and request.query["api_password"] == self.password:
             return await myfunc(*args)
         else:
             return self.get_response(request, "401", "Unauthorized")
@@ -70,10 +62,7 @@ def secure(myfunc):
         else:
             if "adcreds" in request.cookies:
                 match = await utils.run_in_executor(
-                    self,
-                    bcrypt.checkpw,
-                    str.encode(self.password),
-                    str.encode(request.cookies["adcreds"]),
+                    self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]),
                 )
                 if match:
                     return await myfunc(*args)
@@ -86,9 +75,7 @@ def secure(myfunc):
 
 
 class HTTP:
-    def __init__(
-        self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, api, http
-    ):
+    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, api, http):
 
         self.AD = ad
         self.logging = logging
@@ -103,9 +90,7 @@ class HTTP:
         self.api = api
         self.runner = None
 
-        self.template_dir = os.path.join(
-            os.path.dirname(__file__), "assets", "templates"
-        )
+        self.template_dir = os.path.join(os.path.dirname(__file__), "assets", "templates")
 
         self.password = None
         self._process_arg("password", http)
@@ -242,9 +227,7 @@ class HTTP:
                     self.rss_feeds = []
                     for feed in dashboard["rss_feeds"]:
                         if feed["target"].count(".") != 1:
-                            self.logger.warning(
-                                "Invalid RSS feed target: %s", feed["target"]
-                            )
+                            self.logger.warning("Invalid RSS feed target: %s", feed["target"])
                         else:
                             self.rss_feeds.append(feed)
 
@@ -261,12 +244,8 @@ class HTTP:
                     else:
                         self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
 
-                self.javascript_dir = os.path.join(
-                    self.install_dir, "assets", "javascript"
-                )
-                self.template_dir = os.path.join(
-                    self.install_dir, "assets", "templates"
-                )
+                self.javascript_dir = os.path.join(self.install_dir, "assets", "javascript")
+                self.template_dir = os.path.join(self.install_dir, "assets", "templates")
                 self.css_dir = os.path.join(self.install_dir, "assets", "css")
                 self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
                 self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
@@ -363,9 +342,7 @@ class HTTP:
 
             if password == self.password:
                 self.access.info("Succesful logon from %s", request.host)
-                hashed = bcrypt.hashpw(
-                    str.encode(self.password), bcrypt.gensalt(self.work_factor)
-                )
+                hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
                 if self.admin is not None:
                     response = await self._admin_page(request)
                 else:
@@ -394,9 +371,7 @@ class HTTP:
         return await self._list_dash(request)
 
     async def _list_dash(self, request):
-        response = await utils.run_in_executor(
-            self, self.dashboard_obj.get_dashboard_list
-        )
+        response = await utils.run_in_executor(self, self.dashboard_obj.get_dashboard_list)
         return web.Response(text=response, content_type="text/html")
 
     @secure
@@ -408,9 +383,7 @@ class HTTP:
         if recompile == "1":
             recompile = True
 
-        response = await utils.run_in_executor(
-            self, self.dashboard_obj.get_dashboard, name, skin, recompile
-        )
+        response = await utils.run_in_executor(self, self.dashboard_obj.get_dashboard, name, skin, recompile)
 
         return web.Response(text=response, content_type="text/html")
 
@@ -419,29 +392,20 @@ class HTTP:
         if self.rss_feeds is not None and self.rss_update is not None:
             while not self.stopping:
                 try:
-                    if (
-                        self.rss_last_update is None
-                        or (self.rss_last_update + self.rss_update) <= time.time()
-                    ):
+                    if self.rss_last_update is None or (self.rss_last_update + self.rss_update) <= time.time():
                         self.rss_last_update = time.time()
 
                         for feed_data in self.rss_feeds:
-                            feed = await utils.run_in_executor(
-                                self, feedparser.parse, feed_data["feed"]
-                            )
+                            feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
                             if "bozo_exception" in feed:
                                 self.logger.warning(
-                                    "Error in RSS feed %s: %s",
-                                    feed_data["feed"],
-                                    feed["bozo_exception"],
+                                    "Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"],
                                 )
                             else:
                                 new_state = {"feed": feed}
 
                                 # RSS Feeds always live in the admin namespace
-                                await self.AD.state.set_state(
-                                    "rss", "admin", feed_data["target"], state=new_state
-                                )
+                                await self.AD.state.set_state("rss", "admin", feed_data["target"], state=new_state)
 
                     await asyncio.sleep(1)
                 except Exception:
@@ -457,9 +421,7 @@ class HTTP:
 
     @securedata
     async def get_ad(self, request):
-        return web.json_response(
-            {"state": {"status": "active"}}, dumps=utils.convert_json
-        )
+        return web.json_response({"state": {"status": "active"}}, dumps=utils.convert_json)
 
     @securedata
     async def get_entity(self, request):
@@ -469,9 +431,7 @@ class HTTP:
             entity_id = request.match_info.get("entity")
             namespace = request.match_info.get("namespace")
 
-            self.logger.debug(
-                "get_state() called, ns=%s, entity=%s", namespace, entity_id
-            )
+            self.logger.debug("get_state() called, ns=%s, entity=%s", namespace, entity_id)
             state = self.AD.state.get_entity(namespace, entity_id)
 
             self.logger.debug("result = %s", state)
@@ -508,9 +468,7 @@ class HTTP:
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
-            return self.get_response(
-                request, 500, "Unexpected error in get_namespace()"
-            )
+            return self.get_response(request, 500, "Unexpected error in get_namespace()")
 
     @securedata
     async def get_namespace_entities(self, request):
@@ -535,9 +493,7 @@ class HTTP:
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
-            return self.get_response(
-                request, 500, "Unexpected error in get_namespace_entities()"
-            )
+            return self.get_response(request, 500, "Unexpected error in get_namespace_entities()")
 
     @securedata
     async def get_namespaces(self, request):
@@ -554,9 +510,7 @@ class HTTP:
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
-            return self.get_response(
-                request, 500, "Unexpected error in get_namespaces()"
-            )
+            return self.get_response(request, 500, "Unexpected error in get_namespaces()")
 
     @securedata
     async def get_services(self, request):
@@ -712,20 +666,12 @@ class HTTP:
     # Routes, Status and Templates
 
     def setup_api_routes(self):
-        self.app.router.add_post(
-            "/api/appdaemon/service/{namespace}/{domain}/{service}", self.call_service
-        )
-        self.app.router.add_post(
-            "/api/appdaemon/event/{namespace}/{event}", self.fire_event
-        )
+        self.app.router.add_post("/api/appdaemon/service/{namespace}/{domain}/{service}", self.call_service)
+        self.app.router.add_post("/api/appdaemon/event/{namespace}/{event}", self.fire_event)
         self.app.router.add_get("/api/appdaemon/service/", self.get_services)
-        self.app.router.add_get(
-            "/api/appdaemon/state/{namespace}/{entity}", self.get_entity
-        )
+        self.app.router.add_get("/api/appdaemon/state/{namespace}/{entity}", self.get_entity)
         self.app.router.add_get("/api/appdaemon/state/{namespace}", self.get_namespace)
-        self.app.router.add_get(
-            "/api/appdaemon/state/{namespace}/", self.get_namespace_entities
-        )
+        self.app.router.add_get("/api/appdaemon/state/{namespace}/", self.get_namespace_entities)
         self.app.router.add_get("/api/appdaemon/state/", self.get_namespaces)
         self.app.router.add_get("/api/appdaemon/state", self.get_state)
         self.app.router.add_get("/api/appdaemon/logs", self.get_logs)
@@ -765,9 +711,7 @@ class HTTP:
 
         # Setup Templates
 
-        self.app.router.add_static(
-            "/compiled_javascript", self.dashboard_obj.compiled_javascript_dir
-        )
+        self.app.router.add_static("/compiled_javascript", self.dashboard_obj.compiled_javascript_dir)
 
         self.app.router.add_static("/compiled_css", self.dashboard_obj.compiled_css_dir)
 
@@ -868,15 +812,11 @@ class HTTP:
         return web.Response(text=response, content_type="text/html")
 
     async def logon_page(self, request):
-        response = await utils.run_in_executor(
-            self, self.generate_logon_page, request.scheme, request.host
-        )
+        response = await utils.run_in_executor(self, self.generate_logon_page, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
 
     async def error_page(self, request):
-        response = await utils.run_in_executor(
-            self, self.generate_error_page, request.scheme, request.host
-        )
+        response = await utils.run_in_executor(self, self.generate_error_page, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
 
     def generate_logon_page(self, scheme, url):
@@ -884,8 +824,7 @@ class HTTP:
             params = {}
 
             env = Environment(
-                loader=FileSystemLoader(self.template_dir),
-                autoescape=select_autoescape(["html", "xml"]),
+                loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("logon.jinja2")
@@ -905,8 +844,7 @@ class HTTP:
             params = {}
 
             env = Environment(
-                loader=FileSystemLoader(self.template_dir),
-                autoescape=select_autoescape(["html", "xml"]),
+                loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("error.jinja2")

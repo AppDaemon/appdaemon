@@ -214,16 +214,12 @@ class AppDaemon:
                 else:
                     self.app_dir = os.path.join(self.config_dir, "apps")
 
-            utils.check_path(
-                "config_dir", self.logger, self.config_dir, permissions="rwx"
-            )
+            utils.check_path("config_dir", self.logger, self.config_dir, permissions="rwx")
             utils.check_path("appdir", self.logger, self.app_dir)
 
             # Initialize Apps
 
-            self.app_management = apps.AppManagement(
-                self, kwargs.get("app_config_file", None)
-            )
+            self.app_management = apps.AppManagement(self, kwargs.get("app_config_file", None))
 
             # threading setup
 
@@ -237,9 +233,7 @@ class AppDaemon:
         if "threadpool_workers" in kwargs:
             self.threadpool_workers = int(kwargs["threadpool_workers"])
 
-        self.executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.threadpool_workers
-        )
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         # Initialize Plugins
 

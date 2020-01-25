@@ -67,9 +67,7 @@ class Events:
             }
 
             if "timeout" in kwargs:
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(
-                    seconds=int(kwargs["timeout"])
-                )
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     __name, exec_time, None, False, None, __event_handle=handle,
@@ -106,18 +104,10 @@ class Events:
 
         """
 
-        if (
-            name in self.AD.callbacks.callbacks
-            and handle in self.AD.callbacks.callbacks[name]
-        ):
+        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
             del self.AD.callbacks.callbacks[name][handle]
-            await self.AD.state.remove_entity(
-                "admin", "event_callback.{}".format(handle)
-            )
-        if (
-            name in self.AD.callbacks.callbacks
-            and self.AD.callbacks.callbacks[name] == {}
-        ):
+            await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
+        if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
             del self.AD.callbacks.callbacks[name]
 
     async def info_event_callback(self, name, handle):
@@ -132,10 +122,7 @@ class Events:
 
         """
 
-        if (
-            name in self.AD.callbacks.callbacks
-            and handle in self.AD.callbacks.callbacks[name]
-        ):
+        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
             callback = self.AD.callbacks.callbacks[name][handle]
             return callback["event"], callback["kwargs"].copy()
         else:
@@ -167,9 +154,7 @@ class Events:
             await plugin.fire_plugin_event(event, namespace, **kwargs)
         else:
             # Just fire the event locally
-            await self.AD.events.process_event(
-                namespace, {"event_type": event, "data": kwargs}
-            )
+            await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
 
     async def process_event(self, namespace, data):
         """Processes an event that has been received either locally or from a plugin.
@@ -192,27 +177,19 @@ class Events:
             self.logger.debug(data["data"])
 
             # Kick the scheduler so it updates it's clock for time travel
-            if (
-                self.AD.sched is not None
-                and self.AD.sched.realtime is False
-                and namespace != "admin"
-            ):
+            if self.AD.sched is not None and self.AD.sched.realtime is False and namespace != "admin":
                 await self.AD.sched.kick()
 
             if data["event_type"] == "state_changed":
                 if "entity_id" in data["data"] and "new_state" in data["data"]:
                     entity_id = data["data"]["entity_id"]
 
-                    self.AD.state.set_state_simple(
-                        namespace, entity_id, data["data"]["new_state"]
-                    )
+                    self.AD.state.set_state_simple(namespace, entity_id, data["data"]["new_state"])
 
                     if self.AD.apps is True and namespace != "admin":
                         await self.AD.state.process_state_callbacks(namespace, data)
                 else:
-                    self.logger.warning(
-                        "Malformed 'state_changed' event: %s", data["data"]
-                    )
+                    self.logger.warning("Malformed 'state_changed' event: %s", data["data"])
                     return
 
             if self.AD.apps is True:  # and namespace != "admin":
@@ -266,11 +243,7 @@ class Events:
             for callback in self.AD.callbacks.callbacks:
                 for _uuid in self.AD.callbacks.callbacks[callback]:
                     cb = self.AD.callbacks.callbacks[callback][_uuid]
-                    if (
-                        cb["name"] == name
-                        and cb["type"] == "event"
-                        and cb["event"] == "__AD_LOG_EVENT"
-                    ):
+                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
                         has_log_callback = True
 
         return has_log_callback
@@ -301,11 +274,7 @@ class Events:
         for name in self.AD.callbacks.callbacks.keys():
             for uuid_ in self.AD.callbacks.callbacks[name]:
                 callback = self.AD.callbacks.callbacks[name][uuid_]
-                if (
-                    callback["namespace"] == namespace
-                    or callback["namespace"] == "global"
-                    or namespace == "global"
-                ):
+                if callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global":
                     #
                     # Check for either a blank event (for all events)
                     # Or the event is a match
@@ -320,18 +289,11 @@ class Events:
 
                         _run = True
                         for key in callback["kwargs"]:
-                            if (
-                                key in data["data"]
-                                and callback["kwargs"][key] != data["data"][key]
-                            ):
+                            if key in data["data"] and callback["kwargs"][key] != data["data"][key]:
                                 _run = False
 
                         if data["event_type"] == "__AD_LOG_EVENT":
-                            if (
-                                "log" in callback["kwargs"]
-                                and callback["kwargs"]["log"]
-                                != data["data"]["log_type"]
-                            ):
+                            if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["data"]["log_type"]:
                                 _run = False
 
                         if _run:
@@ -341,9 +303,7 @@ class Events:
                                     {
                                         "id": uuid_,
                                         "name": name,
-                                        "objectid": self.AD.app_management.objects[
-                                            name
-                                        ]["id"],
+                                        "objectid": self.AD.app_management.objects[name]["id"],
                                         "type": "event",
                                         "event": data["event_type"],
                                         "function": callback["function"],
@@ -369,6 +329,4 @@ class Events:
             del kwargs["event"]
             await self.fire_event(namespace, event, **kwargs)
         else:
-            self.logger.warning(
-                "Malformed 'fire_event' service call, as no event given"
-            )
+            self.logger.warning("Malformed 'fire_event' service call, as no event given")

@@ -73,9 +73,7 @@ class ADMain:
             self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
             self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
         if signum == signal.SIGHUP:
-            self.AD.thread_async.call_async_no_wait(
-                self.AD.app_management.check_app_updates, mode="term"
-            )
+            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode="term")
         if signum == signal.SIGINT:
             self.logger.info("Keyboard interrupt")
             self.stop()
@@ -120,26 +118,13 @@ class ADMain:
 
             # Initialize Dashboard/API/admin
 
-            if http is not None and (
-                hadashboard is not None or admin is not None or api is not False
-            ):
+            if http is not None and (hadashboard is not None or admin is not None or api is not False):
                 self.logger.info("Initializing HTTP")
-                self.http_object = adhttp.HTTP(
-                    self.AD,
-                    loop,
-                    self.logging,
-                    appdaemon,
-                    hadashboard,
-                    admin,
-                    api,
-                    http,
-                )
+                self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api, http,)
                 self.AD.register_http(self.http_object)
             else:
                 if http is not None:
-                    self.logger.info(
-                        "HTTP configured but no consumers are configured - disabling"
-                    )
+                    self.logger.info("HTTP configured but no consumers are configured - disabling")
                 else:
                     self.logger.info("HTTP is disabled")
 
@@ -181,34 +166,17 @@ class ADMain:
         parser = argparse.ArgumentParser()
 
         parser.add_argument(
-            "-c",
-            "--config",
-            help="full path to config directory",
-            type=str,
-            default=None,
+            "-c", "--config", help="full path to config directory", type=str, default=None,
+        )
+        parser.add_argument("-p", "--pidfile", help="full path to PID File", default=None)
+        parser.add_argument(
+            "-t", "--timewarp", help="speed that the scheduler will work at for time travel", default=1, type=float,
         )
         parser.add_argument(
-            "-p", "--pidfile", help="full path to PID File", default=None
+            "-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str,
         )
         parser.add_argument(
-            "-t",
-            "--timewarp",
-            help="speed that the scheduler will work at for time travel",
-            default=1,
-            type=float,
-        )
-        parser.add_argument(
-            "-s",
-            "--starttime",
-            help="start time for scheduler <YYYY-MM-DD HH:MM:SS>",
-            type=str,
-        )
-        parser.add_argument(
-            "-e",
-            "--endtime",
-            help="end time for scheduler <YYYY-MM-DD HH:MM:SS>",
-            type=str,
-            default=None,
+            "-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None,
         )
         parser.add_argument(
             "-D",
@@ -217,15 +185,9 @@ class ADMain:
             default="INFO",
             choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         )
-        parser.add_argument(
-            "-m", "--moduledebug", nargs=2, action="append", help=argparse.SUPPRESS
-        )
-        parser.add_argument(
-            "-v", "--version", action="version", version="%(prog)s " + utils.__version__
-        )
-        parser.add_argument(
-            "--profiledash", help=argparse.SUPPRESS, action="store_true"
-        )
+        parser.add_argument("-m", "--moduledebug", nargs=2, action="append", help=argparse.SUPPRESS)
+        parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
+        parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
 
         args = parser.parse_args()
 
@@ -238,9 +200,7 @@ class ADMain:
             config_file_yaml = os.path.join(config_dir, "appdaemon.yaml")
 
         if config_file_yaml is None:
-            print(
-                "FATAL: no configuration directory defined and defaults not present\n"
-            )
+            print("FATAL: no configuration directory defined and defaults not present\n")
             parser.print_help()
             sys.exit(1)
 
@@ -266,9 +226,7 @@ class ADMain:
             if "secrets" in config:
                 secrets_file = config["secrets"]
             else:
-                secrets_file = os.path.join(
-                    os.path.dirname(config_file_yaml), "secrets.yaml"
-                )
+                secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
 
             #
             # Read Secrets
@@ -282,8 +240,7 @@ class ADMain:
             else:
                 if "secrets" in config:
                     print(
-                        "ERROR",
-                        "Error loading secrets file: {}".format(config["secrets"]),
+                        "ERROR", "Error loading secrets file: {}".format(config["secrets"]),
                     )
                     sys.exit()
 
@@ -320,9 +277,7 @@ class ADMain:
 
         appdaemon["config_dir"] = config_dir
         appdaemon["config_file"] = config_file_yaml
-        appdaemon["app_config_file"] = os.path.join(
-            os.path.dirname(config_file_yaml), "apps.yaml"
-        )
+        appdaemon["app_config_file"] = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
         appdaemon["module_debug"] = module_debug
 
         if args.starttime is not None:
@@ -378,8 +333,7 @@ class ADMain:
 
         if "log" in config:
             print(
-                "ERROR",
-                "'log' directive deprecated, please convert to new 'logs' syntax",
+                "ERROR", "'log' directive deprecated, please convert to new 'logs' syntax",
             )
             sys.exit(1)
         if "logs" in config:
@@ -397,10 +351,7 @@ class ADMain:
 
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
         self.logger.info(
-            "Python version is %s.%s.%s",
-            sys.version_info[0],
-            sys.version_info[1],
-            sys.version_info[2],
+            "Python version is %s.%s.%s", sys.version_info[0], sys.version_info[1], sys.version_info[2],
         )
         self.logger.info("Configuration read from: %s", config_file_yaml)
         self.logging.dump_log_config()

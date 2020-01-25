@@ -103,9 +103,7 @@ class Dashboard:
             result = func(self, *args, **kwargs)
             elapsed_time = time.time() - start_time
             self.access.info(
-                "function [%s] finished in %s ms",
-                func.__name__,
-                int(elapsed_time * 1000),
+                "function [%s] finished in %s ms", func.__name__, int(elapsed_time * 1000),
             )
             return result
 
@@ -172,20 +170,15 @@ class Dashboard:
                         subvar = var.group()[1:]
                         if subvar in subs:
                             done = False
-                            fields[varline] = fields[varline].replace(
-                                var.group(), subs[subvar], 1
-                            )
+                            fields[varline] = fields[varline].replace(var.group(), subs[subvar], 1)
                         else:
                             self.logger.warning(
-                                "Variable definition not found in CSS Skin variables: $%s",
-                                subvar,
+                                "Variable definition not found in CSS Skin variables: $%s", subvar,
                             )
                             fields[varline] = ""
 
         if index == 100:
-            self.logger.warning(
-                "Unable to resolve CSS Skin variables, check for circular references"
-            )
+            self.logger.warning("Unable to resolve CSS Skin variables, check for circular references")
 
         return fields
 
@@ -250,9 +243,7 @@ class Dashboard:
             return value, {}
 
     # noinspection PyUnresolvedReferences
-    def _load_widget(  # noqa: C901
-        self, dash, includes, name, css_vars, global_parameters
-    ):
+    def _load_widget(self, dash, includes, name, css_vars, global_parameters):  # noqa: C901
         instantiated_widget = None
         #
         # Check if we have already encountered a definition
@@ -273,9 +264,7 @@ class Dashboard:
                     instantiated_widget = self._load_yaml(widget)
                 except yaml.YAMLError as exc:
                     self._log_error(
-                        dash,
-                        name,
-                        "Error while parsing dashboard '{}':".format(yaml_path),
+                        dash, name, "Error while parsing dashboard '{}':".format(yaml_path),
                     )
                     self._log_yaml_dash_error(dash, name, exc)
                     return self.error_widget("Error loading widget")
@@ -307,21 +296,16 @@ class Dashboard:
 
             if widget_type == "text_sensor":
                 self.logger.warning(
-                    "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '%s'",
-                    name,
+                    "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '%s'", name,
                 )
 
             # Check for custom base widgets first
-            if os.path.isdir(
-                os.path.join(self.config_dir, "custom_widgets", widget_type)
-            ):
+            if os.path.isdir(os.path.join(self.config_dir, "custom_widgets", widget_type)):
                 # This is a custom base widget so return it in full
                 return self._resolve_css_params(instantiated_widget, css_vars)
 
             # Now regular base widgets
-            if os.path.isdir(
-                os.path.join(self.dash_install_dir, "widgets", widget_type)
-            ):
+            if os.path.isdir(os.path.join(self.dash_install_dir, "widgets", widget_type)):
                 # This is a base widget so return it in full
                 return self._resolve_css_params(instantiated_widget, css_vars)
 
@@ -329,13 +313,9 @@ class Dashboard:
 
             # first check for custom widget
 
-            yaml_path = os.path.join(
-                self.config_dir, "custom_widgets", "{}.yaml".format(widget_type)
-            )
+            yaml_path = os.path.join(self.config_dir, "custom_widgets", "{}.yaml".format(widget_type))
             if not os.path.isfile(yaml_path):
-                yaml_path = os.path.join(
-                    self.dash_install_dir, "widgets", "{}.yaml".format(widget_type)
-                )
+                yaml_path = os.path.join(self.dash_install_dir, "widgets", "{}.yaml".format(widget_type))
 
             try:
                 #
@@ -345,9 +325,7 @@ class Dashboard:
                     widget = yamlfd.read()
                 final_widget = self._load_yaml(widget)
             except yaml.YAMLError as exc:
-                self._log_error(
-                    dash, name, "Error in widget definition '%s':".format(widget_type)
-                )
+                self._log_error(dash, name, "Error in widget definition '%s':".format(widget_type))
                 self._log_yaml_dash_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
 
@@ -363,9 +341,7 @@ class Dashboard:
                         if widget_type in global_parameters["devices"]:
                             for dkey in global_parameters["devices"][widget_type]:
                                 if dkey not in instantiated_widget:
-                                    instantiated_widget[dkey] = global_parameters[
-                                        "devices"
-                                    ][widget_type][dkey]
+                                    instantiated_widget[dkey] = global_parameters["devices"][widget_type][dkey]
                     else:
                         if key not in instantiated_widget:
                             instantiated_widget[key] = global_parameters[key]
@@ -378,32 +354,20 @@ class Dashboard:
                     # if it is an existing key and it is a style attribute, prepend, don't overwrite
                     if key in final_widget and key.find("style") != -1:
                         # if it is an existing key and it is a style attirpute, prepend, don't overwrite
-                        final_widget[key] = (
-                            final_widget[key] + ";" + instantiated_widget[key]
-                        )
+                        final_widget[key] = final_widget[key] + ";" + instantiated_widget[key]
                     else:
                         final_widget[key] = instantiated_widget[key]
                     if "fields" in final_widget and key in final_widget["fields"]:
                         final_widget["fields"][key] = instantiated_widget[key]
                     if "css" in final_widget and key in final_widget["css"]:
-                        final_widget["css"][key] = (
-                            final_widget["css"][key] + ";" + instantiated_widget[key]
-                        )
-                    if (
-                        "static_css" in final_widget
-                        and key in final_widget["static_css"]
-                    ):
+                        final_widget["css"][key] = final_widget["css"][key] + ";" + instantiated_widget[key]
+                    if "static_css" in final_widget and key in final_widget["static_css"]:
                         final_widget["static_css"][key] = (
-                            final_widget["static_css"][key]
-                            + ";"
-                            + instantiated_widget[key]
+                            final_widget["static_css"][key] + ";" + instantiated_widget[key]
                         )
                     if "icons" in final_widget and key in final_widget["icons"]:
                         final_widget["icons"][key] = instantiated_widget[key]
-                    if (
-                        "static_icons" in final_widget
-                        and key in final_widget["static_icons"]
-                    ):
+                    if "static_icons" in final_widget and key in final_widget["static_icons"]:
                         final_widget["static_icons"][key] = instantiated_widget[key]
 
             #
@@ -420,9 +384,7 @@ class Dashboard:
             self.logger.warning("Unable to find widget type '%s'", widget_type)
             self.logger.warning(traceback.format_exc())
             # Return some valid data so the browser will render a blank widget
-            return self.error_widget(
-                "Unable to find widget type '{}'".format(widget_type)
-            )
+            return self.error_widget("Unable to find widget type '{}'".format(widget_type))
 
     @staticmethod
     def error_widget(error):
@@ -439,9 +401,7 @@ class Dashboard:
                 return True
         return False
 
-    def _add_layout(
-        self, value, layout, occupied, dash, page, includes, css_vars, global_parameters
-    ):
+    def _add_layout(self, value, layout, occupied, dash, page, includes, css_vars, global_parameters):
         if value is None:
             return
         widget_dimensions = re.compile(r"^(.+)\\((\d+)x(\d+)\\)$")
@@ -476,9 +436,7 @@ class Dashboard:
                 else:
                     widget["position"] = [column, layout]
                     widget["size"] = [xsize, ysize]
-                    widget["parameters"] = self._load_widget(
-                        dash, includes, name, css_vars, global_parameters
-                    )
+                    widget["parameters"] = self._load_widget(dash, includes, name, css_vars, global_parameters)
                     dash["widgets"].append(widget)
 
             for x in range(column, column + int(xsize)):
@@ -535,22 +493,12 @@ class Dashboard:
         return myyaml
 
     def _create_dash(self, name, css_vars):
-        dash, layout, occupied, includes = self._create_sub_dash(
-            name, "dash", 0, {}, [], 1, css_vars, None
-        )
+        dash, layout, occupied, includes = self._create_sub_dash(name, "dash", 0, {}, [], 1, css_vars, None)
         return dash
 
     # noinspection PyBroadException
     def _create_sub_dash(  # noqa: C901
-        self,
-        name,
-        extension,
-        layout,
-        occupied,
-        includes,
-        level,
-        css_vars,
-        global_parameters,
+        self, name, extension, layout, occupied, includes, level, css_vars, global_parameters,
     ):
         if extension == "dash":
             dash = {
@@ -578,9 +526,7 @@ class Dashboard:
 
         if level > self.max_include_depth:
             self._log_error(
-                dash,
-                name,
-                "Maximum include level reached ({})".format(self.max_include_depth),
+                dash, name, "Maximum include level reached ({})".format(self.max_include_depth),
             )
             return dash, layout, occupied, includes
 
@@ -591,17 +537,13 @@ class Dashboard:
             with open(dashfile, "r") as yamlfd:
                 defs = yamlfd.read()
         except Exception:
-            self._log_error(
-                dash, name, "Error opening dashboard file '{}'".format(dashfile)
-            )
+            self._log_error(dash, name, "Error opening dashboard file '{}'".format(dashfile))
             return dash, layout, occupied, includes
 
         try:
             dash_params = self._load_yaml(defs)
         except yaml.YAMLError as exc:
-            self._log_error(
-                dash, name, "Error while parsing dashboard '{}':".format(dashfile)
-            )
+            self._log_error(dash, name, "Error while parsing dashboard '{}':".format(dashfile))
             self._log_yaml_dash_error(dash, name, exc)
             return dash, layout, occupied, includes
         if dash_params is not None:
@@ -610,9 +552,7 @@ class Dashboard:
                     global_parameters = dash_params["global_parameters"]
                 else:
                     self.logger.warning(
-                        "global_parameters dashboard directive illegal in imported dashboard '%s.%s'",
-                        name,
-                        extension,
+                        "global_parameters dashboard directive illegal in imported dashboard '%s.%s'", name, extension,
                     )
 
             if global_parameters is None:
@@ -658,23 +598,12 @@ class Dashboard:
                         layout += lay["empty"]
                     else:
                         self._log_error(
-                            dash,
-                            name,
-                            "Incorrect directive, should be 'include or empty': {}".format(
-                                lay
-                            ),
+                            dash, name, "Incorrect directive, should be 'include or empty': {}".format(lay),
                         )
                 else:
                     layout += 1
                     self._add_layout(
-                        lay,
-                        layout,
-                        occupied,
-                        dash,
-                        page,
-                        includes,
-                        css_vars,
-                        global_parameters,
+                        lay, layout, occupied, dash, page, includes, css_vars, global_parameters,
                     )
 
         return dash, layout, occupied, includes
@@ -684,9 +613,7 @@ class Dashboard:
         late_file = datetime.datetime.fromtimestamp(86400)
         for root, subdirs, files in os.walk(path):
             for file in files:
-                mtime = datetime.datetime.fromtimestamp(
-                    os.path.getmtime(os.path.join(root, file))
-                )
+                mtime = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root, file)))
                 if mtime > late_file:
                     late_file = mtime
         return late_file
@@ -760,9 +687,7 @@ class Dashboard:
                 js = js + widgets[widget]["js"] + "\n"
 
         except KeyError:
-            self.logger.warning(
-                "Widget type not found: %s", widget["parameters"]["widget_type"]
-            )
+            self.logger.warning("Widget type not found: %s", widget["parameters"]["widget_type"])
             return None
         except Exception:
             self.logger.warning("-" * 60)
@@ -779,9 +704,7 @@ class Dashboard:
         if not os.path.exists(os.path.join(self.compiled_css_dir, skin)):
             os.makedirs(os.path.join(self.compiled_css_dir, skin))
 
-        css_path = os.path.join(
-            self.compiled_css_dir, skin, "{}_application.css".format(name.lower())
-        )
+        css_path = os.path.join(self.compiled_css_dir, skin, "{}_application.css".format(name.lower()))
         with open(css_path, "w") as css_file:
             css_file.write(css)
 
@@ -802,11 +725,7 @@ class Dashboard:
             js_file.write(js)
 
         for widget in dash["widgets"]:
-            html = (
-                widgets[widget["parameters"]["widget_type"]]["html"]
-                .replace("\n", "")
-                .replace("\r", "")
-            )
+            html = widgets[widget["parameters"]["widget_type"]]["html"].replace("\n", "").replace("\r", "")
             widget["html"] = html
 
         return dash
@@ -824,15 +743,9 @@ class Dashboard:
                     if widget_dir == os.path.join(self.config_dir, "custom_widgets"):
                         self.access.info("Loading custom widget '%s'", widget)
                     if os.path.isdir(os.path.join(widget_dir, widget)):
-                        jspath = os.path.join(
-                            widget_dir, widget, "{}.js".format(widget)
-                        )
-                        csspath = os.path.join(
-                            widget_dir, widget, "{}.css".format(widget)
-                        )
-                        htmlpath = os.path.join(
-                            widget_dir, widget, "{}.html".format(widget)
-                        )
+                        jspath = os.path.join(widget_dir, widget, "{}.js".format(widget))
+                        csspath = os.path.join(widget_dir, widget, "{}.css".format(widget))
+                        htmlpath = os.path.join(widget_dir, widget, "{}.html".format(widget))
                         with open(jspath, "r") as fd:
                             js = fd.read()
                         with open(csspath, "r") as fd:
@@ -886,23 +799,11 @@ class Dashboard:
             #
             last_compiled = datetime.datetime.now()
             for file in [
-                os.path.join(
-                    self.compiled_css_dir,
-                    skin,
-                    "{}_application.css".format(name.lower()),
-                ),
+                os.path.join(self.compiled_css_dir, skin, "{}_application.css".format(name.lower()),),
                 os.path.join(self.compiled_javascript_dir, "application.js"),
-                os.path.join(
-                    self.compiled_javascript_dir,
-                    skin,
-                    "{}_init.js".format(name.lower()),
-                ),
-                os.path.join(
-                    self.compiled_html_dir, skin, "{}_head.html".format(name.lower())
-                ),
-                os.path.join(
-                    self.compiled_html_dir, skin, "{}_body.html".format(name.lower())
-                ),
+                os.path.join(self.compiled_javascript_dir, skin, "{}_init.js".format(name.lower()),),
+                os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower())),
+                os.path.join(self.compiled_html_dir, skin, "{}_body.html".format(name.lower())),
             ]:
                 if not os.path.isfile(file):
                     do_compile = True
@@ -915,12 +816,8 @@ class Dashboard:
                 if last_modified_date < last_compiled:
                     last_compiled = last_modified_date
 
-            widget_mod = self._latest_file(
-                os.path.join(self.dash_install_dir, "widgets")
-            )
-            custom_widget_mod = self._latest_file(
-                os.path.join(self.config_dir, "custom_widgets")
-            )
+            widget_mod = self._latest_file(os.path.join(self.dash_install_dir, "widgets"))
+            custom_widget_mod = self._latest_file(os.path.join(self.config_dir, "custom_widgets"))
             skin_mod = self._latest_file(skindir)
             dash_mod = self._latest_file(self.dashboard_dir)
 
@@ -946,9 +843,7 @@ class Dashboard:
         if dash is None:
             dash_list = self._list_dashes()
             return {
-                "errors": [
-                    "Dashboard has errors or is not found - check log for details"
-                ],
+                "errors": ["Dashboard has errors or is not found - check log for details"],
                 "dash_list": dash_list,
             }
 
@@ -961,32 +856,23 @@ class Dashboard:
         #
         # Build dash specific code
         #
-        env = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
+        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),)
 
         template = env.get_template("dashinit.jinja2")
         rendered_template = template.render(params)
-        js_path = os.path.join(
-            self.compiled_javascript_dir, skin, "{}_init.js".format(name.lower())
-        )
+        js_path = os.path.join(self.compiled_javascript_dir, skin, "{}_init.js".format(name.lower()))
         with open(js_path, "w") as js_file:
             js_file.write(rendered_template)
 
         template = env.get_template("head_include.jinja2")
         rendered_template = template.render(params)
-        js_path = os.path.join(
-            self.compiled_html_dir, skin, "{}_head.html".format(name.lower())
-        )
+        js_path = os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
         with open(js_path, "w") as js_file:
             js_file.write(rendered_template)
 
         template = env.get_template("body_include.jinja2")
         rendered_template = template.render(params)
-        js_path = os.path.join(
-            self.compiled_html_dir, skin, "{}_body.html".format(name.lower())
-        )
+        js_path = os.path.join(self.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
         with open(js_path, "w") as js_file:
             js_file.write(rendered_template)
 
@@ -1034,21 +920,16 @@ class Dashboard:
                 }
 
                 env = Environment(
-                    loader=FileSystemLoader(self.template_dir),
-                    autoescape=select_autoescape(["html", "xml"]),
+                    loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
                 )
 
                 template = env.get_template("list.jinja2")
                 rendered_template = template.render(params)
             else:
-                include_path = os.path.join(
-                    self.compiled_html_dir, skin, "{}_head.html".format(name.lower())
-                )
+                include_path = os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower()))
                 with open(include_path, "r") as include_file:
                     head_includes = include_file.read()
-                include_path = os.path.join(
-                    self.compiled_html_dir, skin, "{}_body.html".format(name.lower())
-                )
+                include_path = os.path.join(self.compiled_html_dir, skin, "{}_body.html".format(name.lower()))
                 with open(include_path, "r") as include_file:
                     body_includes = include_file.read()
 
@@ -1069,8 +950,7 @@ class Dashboard:
                 }
 
                 env = Environment(
-                    loader=FileSystemLoader(self.template_dir),
-                    autoescape=select_autoescape(["html", "xml"]),
+                    loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
                 )
 
                 template = env.get_template("dashboard.jinja2")
@@ -1087,15 +967,8 @@ class Dashboard:
             return self.html_error()
 
     def html_error(self):
-        params = {
-            "errors": [
-                "An unrecoverable error occurred fetching dashboard, check log for details"
-            ]
-        }
-        env = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
+        params = {"errors": ["An unrecoverable error occurred fetching dashboard, check log for details"]}
+        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),)
 
         template = env.get_template("list.jinja2")
         rendered_template = template.render(params)
@@ -1109,10 +982,7 @@ class Dashboard:
         else:
             dash = paramOverwrite
 
-        env = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
+        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),)
 
         template = env.get_template("list.jinja2")
         rendered_template = template.render(dash)

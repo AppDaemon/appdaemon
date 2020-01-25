@@ -23,11 +23,8 @@ class MotionNotification(hass.Hass):
             self.listen_state(self.motion, "binary_sensor")
 
     def motion(self, entity, attribute, old, new, kwargs):
-        if (
-            "state" in new and new["state"] == "on" and old["state"] == "off"
-        ) or new == "on":
+        if ("state" in new and new["state"] == "on" and old["state"] == "off") or new == "on":
             self.log("Motion detected: {}".format(self.friendly_name(entity)))
             self.notify(
-                "Motion detected: {}".format(self.friendly_name(entity)),
-                name=globals.notify,
+                "Motion detected: {}".format(self.friendly_name(entity)), name=globals.notify,
             )

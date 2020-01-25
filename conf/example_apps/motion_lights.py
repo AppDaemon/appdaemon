@@ -37,9 +37,7 @@ class MotionLights(hass.Hass):
     def motion(self, entity, attribute, old, new, kwargs):
         if new == "on":
             if "entity_on" in self.args:
-                self.log(
-                    "Motion detected: turning {} on".format(self.args["entity_on"])
-                )
+                self.log("Motion detected: turning {} on".format(self.args["entity_on"]))
                 self.turn_on(self.args["entity_on"])
             if "delay" in self.args:
                 delay = self.args["delay"]

@@ -52,11 +52,7 @@ class Formatter(object):
             + self.htchar * (indent + 1)
             + repr(key)
             + ": "
-            + (
-                self.types[
-                    type(value[key]) if type(value[key]) in self.types else object
-                ]
-            )(self, value[key], indent + 1)
+            + (self.types[type(value[key]) if type(value[key]) in self.types else object])(self, value[key], indent + 1)
             for key in value
         ]
         return "{%s}" % (",".join(items) + self.lfchar + self.htchar * indent)
@@ -65,9 +61,7 @@ class Formatter(object):
         items = [
             self.lfchar
             + self.htchar * (indent + 1)
-            + (self.types[type(item) if type(item) in self.types else object])(
-                self, item, indent + 1
-            )
+            + (self.types[type(item) if type(item) in self.types else object])(self, item, indent + 1)
             for item in value
         ]
         return "[%s]" % (",".join(items) + self.lfchar + self.htchar * indent)
@@ -76,9 +70,7 @@ class Formatter(object):
         items = [
             self.lfchar
             + self.htchar * (indent + 1)
-            + (self.types[type(item) if type(item) in self.types else object])(
-                self, item, indent + 1
-            )
+            + (self.types[type(item) if type(item) in self.types else object])(self, item, indent + 1)
             for item in value
         ]
         return "(%s)" % (",".join(items) + self.lfchar + self.htchar * indent)
@@ -214,9 +206,7 @@ def _timeit(func):
         start_time = time.time()
         result = func(self, *args, **kwargs)
         elapsed_time = time.time() - start_time
-        self.logger.info(
-            "function [%s] finished in %s ms", func.__name__, int(elapsed_time * 1000)
-        )
+        self.logger.info("function [%s] finished in %s ms", func.__name__, int(elapsed_time * 1000))
         return result
 
     return newfunc
@@ -286,11 +276,7 @@ def day_of_week(day):
 
 async def run_in_executor(self, fn, *args, **kwargs):
     completed, pending = await asyncio.wait(
-        [
-            self.AD.loop.run_in_executor(
-                self.AD.executor, functools.partial(fn, *args, **kwargs)
-            )
-        ]
+        [self.AD.loop.run_in_executor(self.AD.executor, functools.partial(fn, *args, **kwargs))]
     )
     future = list(completed)[0]
     response = future.result()
@@ -311,9 +297,7 @@ def run_coroutine_threadsafe(self, coro):
                     self.AD.internal_function_timeout,
                 )
             else:
-                print(
-                    "Coroutine ({}) took too long, cancelling the task...".format(coro)
-                )
+                print("Coroutine ({}) took too long, cancelling the task...".format(coro))
             future.cancel()
     else:
         self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
@@ -389,9 +373,7 @@ def process_arg(self, arg, args, **kwargs):
                     setattr(self, arg, value)
                 except ValueError:
                     self.logger.warning(
-                        "Invalid value for %s: %s, using default(%s)",
-                        value,
-                        getattr(self, arg),
+                        "Invalid value for %s: %s, using default(%s)", value, getattr(self, arg),
                     )
             if "float" in kwargs and kwargs["float"] is True:
                 try:
@@ -399,10 +381,7 @@ def process_arg(self, arg, args, **kwargs):
                     setattr(self, arg, value)
                 except ValueError:
                     self.logger.warning(
-                        "Invalid value for %s: %s, using default(%s)",
-                        arg,
-                        value,
-                        getattr(self, arg),
+                        "Invalid value for %s: %s, using default(%s)", arg, value, getattr(self, arg),
                     )
             else:
                 setattr(self, arg, value)
@@ -412,9 +391,7 @@ def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
 
-def check_path(  # noqa: C901
-    type, logger, inpath, pathtype="directory", permissions=None
-):
+def check_path(type, logger, inpath, pathtype="directory", permissions=None):  # noqa: C901
     # disable checks for windows platform
     if platform.system() == "Windows":
         return
@@ -449,35 +426,24 @@ def check_path(  # noqa: C901
             elif not os.path.isdir(directory):
                 if os.path.isfile(directory):
                     logger.warning(
-                        "%s: %s exists, but is a file instead of a directory",
-                        type,
-                        directory,
+                        "%s: %s exists, but is a file instead of a directory", type, directory,
                     )
                     fullpath = False
             else:
                 owner = find_owner(directory)
                 if "r" in perms and not os.access(directory, os.R_OK):
                     logger.warning(
-                        "%s: %s exists, but is not readable, owner: %s",
-                        type,
-                        directory,
-                        owner,
+                        "%s: %s exists, but is not readable, owner: %s", type, directory, owner,
                     )
                     fullpath = False
                 if "w" in perms and not os.access(directory, os.W_OK):
                     logger.warning(
-                        "%s: %s exists, but is not writeable, owner: %s",
-                        type,
-                        directory,
-                        owner,
+                        "%s: %s exists, but is not writeable, owner: %s", type, directory, owner,
                     )
                     fullpath = False
                 if "x" in perms and not os.access(directory, os.X_OK):
                     logger.warning(
-                        "%s: %s exists, but is not executable, owner: %s",
-                        type,
-                        directory,
-                        owner,
+                        "%s: %s exists, but is not executable, owner: %s", type, directory, owner,
                     )
                     fullpath = False
         if fullpath is True:
@@ -485,27 +451,17 @@ def check_path(  # noqa: C901
             user = pwd.getpwuid(os.getuid()).pw_name
             if owner != user:
                 logger.warning(
-                    "%s: %s is owned by %s but appdaemon is running as %s",
-                    type,
-                    path,
-                    owner,
-                    user,
+                    "%s: %s is owned by %s but appdaemon is running as %s", type, path, owner, user,
                 )
 
         if file is not None:
             owner = find_owner(file)
             if "r" in perms and not os.access(file, os.R_OK):
-                logger.warning(
-                    "%s: %s exists, but is not readable, owner: %s", type, file, owner
-                )
+                logger.warning("%s: %s exists, but is not readable, owner: %s", type, file, owner)
             if "w" in perms and not os.access(file, os.W_OK):
-                logger.warning(
-                    "%s: %s exists, but is not writeable, owner: %s", type, file, owner
-                )
+                logger.warning("%s: %s exists, but is not writeable, owner: %s", type, file, owner)
             if "x" in perms and not os.access(file, os.X_OK):
-                logger.warning(
-                    "%s: %s exists, but is not executable, owner: %s", type, file, owner
-                )
+                logger.warning("%s: %s exists, but is not executable, owner: %s", type, file, owner)
     except KeyError:
         #
         # User ID is not properly set up with a username in docker variants

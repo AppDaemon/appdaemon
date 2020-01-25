@@ -18,18 +18,12 @@ def hass_check(func):
     def func_wrapper(*args, **kwargs):
         self = args[0]
         ns = self._get_namespace(**kwargs)
-        plugin = utils.run_coroutine_threadsafe(
-            self, self.AD.plugins.get_plugin_object(ns)
-        )
+        plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(ns))
         if plugin is None:
-            self.logger.warning(
-                "non_existent namespace (%s) specified in call to %s", ns, func.__name__
-            )
+            self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, func.__name__)
             return lambda *args: None
         if not utils.run_coroutine_threadsafe(self, plugin.am_reading_messages()):
-            self.logger.warning(
-                "Attempt to call Home Assistant while disconnected: %s", func.__name__
-            )
+            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
             return lambda *args: None
         else:
             return func(*args, **kwargs)
@@ -47,17 +41,11 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Internal
     #
 
-    def __init__(
-        self, ad: AppDaemon, name, logging, args, config, app_config, global_vars
-    ):
+    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
 
         # Call Super Classes
-        adbase.ADBase.__init__(
-            self, ad, name, logging, args, config, app_config, global_vars
-        )
-        adapi.ADAPI.__init__(
-            self, ad, name, logging, args, config, app_config, global_vars
-        )
+        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
+        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
 
         self.AD = ad
 
@@ -89,9 +77,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        return (
-            key for key, value in self.get_state("device_tracker", **kwargs).items()
-        )
+        return (key for key, value in self.get_state("device_tracker", **kwargs).items())
 
     def get_tracker_details(self, **kwargs):
         """Returns a list of all device trackers and their associated state.

@@ -40,35 +40,21 @@ class Callbacks:
                         if self.callbacks[name][uuid_]["entity"] is None:
                             callbacks[name][str(uuid_)]["entity"] = "None"
                         else:
-                            callbacks[name][str(uuid_)]["entity"] = self.callbacks[
-                                name
-                            ][uuid_]["entity"]
+                            callbacks[name][str(uuid_)]["entity"] = self.callbacks[name][uuid_]["entity"]
                     else:
                         callbacks[name][str(uuid_)]["entity"] = "None"
                     if "event" in self.callbacks[name][uuid_]:
-                        callbacks[name][str(uuid_)]["event"] = self.callbacks[name][
-                            uuid_
-                        ]["event"]
+                        callbacks[name][str(uuid_)]["event"] = self.callbacks[name][uuid_]["event"]
                     else:
                         callbacks[name][str(uuid_)]["event"] = "None"
-                    callbacks[name][str(uuid_)]["type"] = self.callbacks[name][uuid_][
-                        "type"
-                    ]
+                    callbacks[name][str(uuid_)]["type"] = self.callbacks[name][uuid_]["type"]
                     callbacks[name][str(uuid_)]["kwargs"] = ""
-                    callbacks[name][str(uuid_)]["kwargs"] = utils.get_kwargs(
-                        self.callbacks[name][uuid_]["kwargs"]
-                    )
+                    callbacks[name][str(uuid_)]["kwargs"] = utils.get_kwargs(self.callbacks[name][uuid_]["kwargs"])
 
-                    callbacks[name][str(uuid_)]["function"] = self.callbacks[name][
-                        uuid_
-                    ]["function"].__name__
-                    callbacks[name][str(uuid_)]["name"] = self.callbacks[name][uuid_][
-                        "name"
-                    ]
+                    callbacks[name][str(uuid_)]["function"] = self.callbacks[name][uuid_]["function"].__name__
+                    callbacks[name][str(uuid_)]["name"] = self.callbacks[name][uuid_]["name"]
                     callbacks[name][str(uuid_)]["pin_app"] = (
-                        "True"
-                        if self.callbacks[name][uuid_]["pin_app"] is True
-                        else "False"
+                        "True" if self.callbacks[name][uuid_]["pin_app"] is True else "False"
                     )
                     callbacks[name][str(uuid_)]["pin_thread"] = (
                         self.callbacks[name][uuid_]["pin_thread"]
@@ -82,11 +68,7 @@ class Callbacks:
         if name in self.callbacks:
             for cid in self.callbacks[name]:
                 if self.callbacks[name][cid]["type"] == "event":
-                    await self.AD.state.remove_entity(
-                        "admin", "event_callback.{}".format(cid)
-                    )
+                    await self.AD.state.remove_entity("admin", "event_callback.{}".format(cid))
                 if self.callbacks[name][cid]["type"] == "state":
-                    await self.AD.state.remove_entity(
-                        "admin", "state_callback.{}".format(cid)
-                    )
+                    await self.AD.state.remove_entity("admin", "state_callback.{}".format(cid))
             del self.callbacks[name]

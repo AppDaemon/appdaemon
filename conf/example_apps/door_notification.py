@@ -28,6 +28,4 @@ class DoorNotification(hass.Hass):
         else:
             state = "closed"
         self.log("{} is {}".format(self.friendly_name(entity), state))
-        self.notify(
-            "{} is {}".format(self.friendly_name(entity), state), name=globals.notify
-        )
+        self.notify("{} is {}".format(self.friendly_name(entity), state), name=globals.notify)

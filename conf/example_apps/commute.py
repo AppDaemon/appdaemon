@@ -28,9 +28,7 @@ class Commute(hass.Hass):
         self.log(commute)
         self.log(int(self.args["limit"]))
         if commute > int(self.args["limit"]):
-            message = "Commute warning - current travel time from work to home is {} minutes".format(
-                commute
-            )
+            message = "Commute warning - current travel time from work to home is {} minutes".format(commute)
             self.log(message)
             for destination in self.args["notify"]:
                 self.notify(message, title="Commute Warning", name=destination)

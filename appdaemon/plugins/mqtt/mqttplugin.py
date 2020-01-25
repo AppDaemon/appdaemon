@@ -43,9 +43,7 @@ class MqttPlugin(PluginBase):
         self.mqtt_event_name = self.config.get("event_name", "MQTT_MESSAGE")
         self.mqtt_client_force_start = self.config.get("force_start", False)
 
-        status_topic = "{}/status".format(
-            self.config.get("client_id", self.name + "-client").lower()
-        )
+        status_topic = "{}/status".format(self.config.get("client_id", self.name + "-client").lower())
 
         self.mqtt_will_topic = self.config.get("will_topic", None)
         self.mqtt_on_connect_topic = self.config.get("birth_topic", None)
@@ -65,9 +63,7 @@ class MqttPlugin(PluginBase):
 
         self.mqtt_will_payload = self.config.get("will_payload", "offline")
         self.mqtt_on_connect_payload = self.config.get("birth_payload", "online")
-        self.mqtt_shutdown_payload = self.config.get(
-            "shutdown_payload", self.mqtt_will_payload
-        )
+        self.mqtt_shutdown_payload = self.config.get("shutdown_payload", self.mqtt_will_payload)
 
         self.mqtt_client_tls_ca_cert = self.config.get("ca_cert", None)
         self.mqtt_client_tls_client_cert = self.config.get("client_cert", None)
@@ -95,11 +91,7 @@ class MqttPlugin(PluginBase):
             mqtt_client_id = "appdaemon_{}_client".format(self.name.lower())
             self.logger.info("Using %s as Client ID", mqtt_client_id)
 
-        self.mqtt_client = mqtt.Client(
-            client_id=mqtt_client_id,
-            clean_session=mqtt_session,
-            transport=mqtt_transport,
-        )
+        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport=mqtt_transport,)
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
@@ -141,9 +133,7 @@ class MqttPlugin(PluginBase):
         self.stopping = True
         if self.mqtt_connected:
             self.logger.info(
-                "Stopping MQTT Plugin and Unsubscribing from URL %s:%s",
-                self.mqtt_client_host,
-                self.mqtt_client_port,
+                "Stopping MQTT Plugin and Unsubscribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port,
             )
             for topic in self.mqtt_client_topics:
                 self.logger.debug("Unsubscribing from Topic: %s", topic)
@@ -152,10 +142,7 @@ class MqttPlugin(PluginBase):
                     self.logger.debug("Unsubscribing from Topic %s Successful", topic)
 
             self.mqtt_client.publish(
-                self.mqtt_will_topic,
-                self.mqtt_shutdown_payload,
-                self.mqtt_qos,
-                retain=self.mqtt_will_retain,
+                self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain,
             )
             self.mqtt_client.disconnect()  # disconnect cleanly
 
@@ -174,22 +161,14 @@ class MqttPlugin(PluginBase):
                 )
 
                 self.logger.info(
-                    "Connected to Broker at URL %s:%s",
-                    self.mqtt_client_host,
-                    self.mqtt_client_port,
+                    "Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port,
                 )
                 #
                 # Register MQTT Services
                 #
-                self.AD.services.register_service(
-                    self.namespace, "mqtt", "subscribe", self.call_plugin_service
-                )
-                self.AD.services.register_service(
-                    self.namespace, "mqtt", "unsubscribe", self.call_plugin_service
-                )
-                self.AD.services.register_service(
-                    self.namespace, "mqtt", "publish", self.call_plugin_service
-                )
+                self.AD.services.register_service(self.namespace, "mqtt", "subscribe", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "mqtt", "unsubscribe", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "mqtt", "publish", self.call_plugin_service)
 
                 for topic in self.mqtt_client_topics:
                     self.logger.debug("Subscribing to Topic: %s", topic)
@@ -199,8 +178,7 @@ class MqttPlugin(PluginBase):
                     else:
                         self.mqtt_client_topics.remove(topic)
                         self.logger.debug(
-                            "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected",
-                            topic,
+                            "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected", topic,
                         )
 
                 self.mqtt_connected = True
@@ -226,19 +204,14 @@ class MqttPlugin(PluginBase):
 
             # means there was an error
             if err_msg != "":
-                self.logger.critical(
-                    "Could not complete MQTT Plugin initialization, for %s", err_msg
-                )
+                self.logger.critical("Could not complete MQTT Plugin initialization, for %s", err_msg)
 
             # continue processing
             self.mqtt_connect_event.set()
         except Exception:
-            self.logger.critical(
-                "There was an error while trying to setup the Mqtt Service"
-            )
+            self.logger.critical("There was an error while trying to setup the Mqtt Service")
             self.logger.debug(
-                "There was an error while trying to setup the MQTT Service, with Traceback: %s",
-                traceback.format_exc(),
+                "There was an error while trying to setup the MQTT Service, with Traceback: %s", traceback.format_exc(),
             )
 
     def mqtt_on_disconnect(self, client, userdata, rc):
@@ -247,9 +220,7 @@ class MqttPlugin(PluginBase):
             if rc != 0 and not self.stopping:
                 self.initialized = False
                 self.mqtt_connected = False
-                self.logger.critical(
-                    "MQTT Client Disconnected Abruptly. Will attempt reconnection"
-                )
+                self.logger.critical("MQTT Client Disconnected Abruptly. Will attempt reconnection")
                 self.logger.debug("Return code: %s", rc)
                 self.logger.debug("userdata: %s", userdata)
 
@@ -260,9 +231,7 @@ class MqttPlugin(PluginBase):
                 self.loop.create_task(self.send_ad_event(data))
             return
         except Exception:
-            self.logger.critical(
-                "There was an error while disconnecting from the Mqtt Service"
-            )
+            self.logger.critical("There was an error while disconnecting from the Mqtt Service")
             self.logger.debug(
                 "There was an error while disconnecting from the MQTT Service, with Traceback: %s",
                 traceback.format_exc(),
@@ -270,55 +239,35 @@ class MqttPlugin(PluginBase):
 
     def mqtt_on_message(self, client, userdata, msg):
         try:
-            self.logger.debug(
-                "Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload
-            )
+            self.logger.debug("Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
             topic = msg.topic
 
             if (
-                self.mqtt_wildcards != []
-                and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []
+                self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []
             ):  # check if any of the wildcards belong
-                wildcard = (
-                    list(filter(lambda x: topic.startswith(x), self.mqtt_wildcards))[0]
-                    + "#"
-                )
+                wildcard = list(filter(lambda x: topic.startswith(x), self.mqtt_wildcards))[0] + "#"
 
                 data = {
                     "event_type": self.mqtt_event_name,
-                    "data": {
-                        "topic": topic,
-                        "payload": msg.payload.decode(),
-                        "wildcard": wildcard,
-                    },
+                    "data": {"topic": topic, "payload": msg.payload.decode(), "wildcard": wildcard},
                 }
 
             else:
                 data = {
                     "event_type": self.mqtt_event_name,
-                    "data": {
-                        "topic": topic,
-                        "payload": msg.payload.decode(),
-                        "wildcard": None,
-                    },
+                    "data": {"topic": topic, "payload": msg.payload.decode(), "wildcard": None},
                 }
 
             self.loop.create_task(self.send_ad_event(data))
         except UnicodeDecodeError:
             self.logger.info("Unable to decode MQTT message")
             self.logger.debug(
-                "Unable to decode MQTT message, with Traceback: %s",
-                traceback.format_exc(),
+                "Unable to decode MQTT message, with Traceback: %s", traceback.format_exc(),
             )
         except Exception as e:
-            self.logger.critical(
-                "There was an error while processing an MQTT message: {} {}".format(
-                    type(e), e
-                )
-            )
+            self.logger.critical("There was an error while processing an MQTT message: {} {}".format(type(e), e))
             self.logger.debug(
-                "There was an error while processing an MQTT message, with Traceback: %s",
-                traceback.format_exc(),
+                "There was an error while processing an MQTT message, with Traceback: %s", traceback.format_exc(),
             )
 
     async def call_plugin_service(self, namespace, domain, service, kwargs):
@@ -326,9 +275,7 @@ class MqttPlugin(PluginBase):
         result = None
         if "topic" in kwargs:
             if not self.mqtt_connected:  # ensure mqtt plugin is connected
-                self.logger.warning(
-                    "Attempt to call Mqtt Service while disconnected: %s", service
-                )
+                self.logger.warning("Attempt to call Mqtt Service while disconnected: %s", service)
                 return None
             try:
                 topic = kwargs["topic"]
@@ -337,63 +284,43 @@ class MqttPlugin(PluginBase):
                 qos = int(kwargs.get("qos", self.mqtt_qos))
 
                 if service == "publish":
-                    self.logger.debug(
-                        "Publish Payload: %s to Topic: %s", payload, topic
-                    )
+                    self.logger.debug("Publish Payload: %s to Topic: %s", payload, topic)
 
-                    result = await utils.run_in_executor(
-                        self, self.mqtt_client.publish, topic, payload, qos, retain
-                    )
+                    result = await utils.run_in_executor(self, self.mqtt_client.publish, topic, payload, qos, retain)
 
                     if result[0] == 0:
                         self.logger.debug(
-                            "Publishing Payload %s to Topic %s Successful",
-                            payload,
-                            topic,
+                            "Publishing Payload %s to Topic %s Successful", payload, topic,
                         )
                     else:
                         self.logger.warning(
-                            "Publishing Payload %s to Topic %s was not Successful",
-                            payload,
-                            topic,
+                            "Publishing Payload %s to Topic %s was not Successful", payload, topic,
                         )
 
                 elif service == "subscribe":
                     self.logger.debug("Subscribe to Topic: %s", topic)
 
                     if topic not in self.mqtt_client_topics:
-                        result = await utils.run_in_executor(
-                            self, self.mqtt_client.subscribe, topic, qos
-                        )
+                        result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
 
                         if result[0] == 0:
-                            self.logger.debug(
-                                "Subscription to Topic %s Successful", topic
-                            )
+                            self.logger.debug("Subscription to Topic %s Successful", topic)
                             self.mqtt_client_topics.append(topic)
                         else:
-                            self.logger.warning(
-                                "Subscription to Topic %s was not Successful", topic
-                            )
+                            self.logger.warning("Subscription to Topic %s was not Successful", topic)
                     else:
                         self.logger.info("Topic %s already subscribed to", topic)
 
                 elif service == "unsubscribe":
                     self.logger.debug("Unsubscribe from Topic: %s", topic)
 
-                    result = await utils.run_in_executor(
-                        self, self.mqtt_client.unsubscribe, topic
-                    )
+                    result = await utils.run_in_executor(self, self.mqtt_client.unsubscribe, topic)
                     if result[0] == 0:
-                        self.logger.debug(
-                            "Unsubscription from Topic %s Successful", topic
-                        )
+                        self.logger.debug("Unsubscription from Topic %s Successful", topic)
                         if topic in self.mqtt_client_topics:
                             self.mqtt_client_topics.remove(topic)
                     else:
-                        self.logger.warning(
-                            "Unsubscription from Topic %s was not Successful", topic
-                        )
+                        self.logger.warning("Unsubscription from Topic %s was not Successful", topic)
 
                 else:
                     self.logger.warning("Wrong Service Call %s for MQTT", service)
@@ -403,8 +330,7 @@ class MqttPlugin(PluginBase):
                 config = self.config
                 if config["type"] == "mqtt":
                     self.logger.debug(
-                        "Got the following Error %s, when trying to retrieve Mqtt Plugin",
-                        e,
+                        "Got the following Error %s, when trying to retrieve Mqtt Plugin", e,
                     )
                     return str(e)
                 else:
@@ -414,12 +340,8 @@ class MqttPlugin(PluginBase):
                     )
                     return "ERR"
         else:
-            self.logger.warning(
-                "Topic not provided for Service Call {!r}.".format(service)
-            )
-            raise ValueError(
-                "Topic not provided, please provide Topic for Service Call"
-            )
+            self.logger.warning("Topic not provided for Service Call {!r}.".format(service))
+            raise ValueError("Topic not provided, please provide Topic for Service Call")
 
         return result
 
@@ -472,9 +394,7 @@ class MqttPlugin(PluginBase):
                 ):  # if it had connected before, it need not run this. Run if just trying for the first time
                     try:
                         await asyncio.wait_for(
-                            utils.run_in_executor(
-                                self, self.start_mqtt_service, first_time_service
-                            ),
+                            utils.run_in_executor(self, self.start_mqtt_service, first_time_service),
                             5.0,
                             loop=self.loop,
                         )
@@ -503,26 +423,20 @@ class MqttPlugin(PluginBase):
 
                 # meaning the client has connected to the broker
                 if self.mqtt_connected:
-                    await self.AD.plugins.notify_plugin_started(
-                        self.name, self.namespace, meta, state, first_time
-                    )
+                    await self.AD.plugins.notify_plugin_started(self.name, self.namespace, meta, state, first_time)
                     already_notified = False
                     already_initialized = True
                     self.logger.info("MQTT Plugin initialization complete")
                     self.initialized = True
                 else:
                     if not already_notified and already_initialized:
-                        await self.AD.plugins.notify_plugin_stopped(
-                            self.name, self.namespace
-                        )
+                        await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                         self.logger.critical("MQTT Plugin Stopped Unexpectedly")
                         already_notified = True
                         already_initialized = False
                         first_time = False
                     if not already_initialized and not already_notified:
-                        self.logger.critical(
-                            "Could not complete MQTT Plugin initialization, trying again in 5 seconds"
-                        )
+                        self.logger.critical("Could not complete MQTT Plugin initialization, trying again in 5 seconds")
                         if self.stopping:
                             break
                     else:
@@ -541,9 +455,7 @@ class MqttPlugin(PluginBase):
             self.mqtt_connect_event.clear()
             if first_time:
                 if self.mqtt_client_user is not None:
-                    self.mqtt_client.username_pw_set(
-                        self.mqtt_client_user, password=self.mqtt_client_password
-                    )
+                    self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
 
                 set_tls = False
                 auth = {"tls_version": self.mqtt_tls_version}
@@ -566,20 +478,14 @@ class MqttPlugin(PluginBase):
                         self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
 
                 self.mqtt_client.will_set(
-                    self.mqtt_will_topic,
-                    self.mqtt_will_payload,
-                    self.mqtt_qos,
-                    retain=self.mqtt_will_retain,
+                    self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos, retain=self.mqtt_will_retain,
                 )
 
-            self.mqtt_client.connect_async(
-                self.mqtt_client_host, self.mqtt_client_port, self.mqtt_client_timeout
-            )
+            self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port, self.mqtt_client_timeout)
             self.mqtt_client.loop_start()
         except Exception as e:
             self.logger.critical(
-                "There was an error while trying to setup the Mqtt Service. Error was: %s",
-                e,
+                "There was an error while trying to setup the Mqtt Service. Error was: %s", e,
             )
             self.logger.debug(
                 "There was an error while trying to setup the MQTT Service. Error: %s, with Traceback: %s",
@@ -587,8 +493,7 @@ class MqttPlugin(PluginBase):
                 traceback.format_exc(),
             )
             self.logger.debug(
-                "There was an error while trying to setup the MQTT Service, with Traceback: %s",
-                traceback.format_exc(),
+                "There was an error while trying to setup the MQTT Service, with Traceback: %s", traceback.format_exc(),
             )
 
         return

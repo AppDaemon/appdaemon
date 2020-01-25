@@ -41,12 +41,7 @@ class Calendar(hass.Hass):
         future = arrow.now().replace(days=self.max_days)
 
         events = [
-            {
-                "name": e.name,
-                "location": e.location,
-                "begin": e.begin.isoformat(),
-                "end": e.end.isoformat(),
-            }
+            {"name": e.name, "location": e.location, "begin": e.begin.isoformat(), "end": e.end.isoformat()}
             for e in ical.events
             if now < e.begin < future
         ][: self.max_events]

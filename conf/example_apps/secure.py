@@ -25,14 +25,8 @@ class Secure(hass.Hass):
             self.listen_state(self.alarm_state, self.args["alarm_entity"])
 
     def alarm_service(self, event_name, data, kwargs):
-        if (
-            data["domain"] == "alarm_control_panel"
-            and data["service_data"]["entity_id"] == self.args["alarm_entity"]
-        ):
-            if (
-                data["service"] == "alarm_arm_home"
-                or data["service"] == "alarm_arm_away"
-            ):
+        if data["domain"] == "alarm_control_panel" and data["service_data"]["entity_id"] == self.args["alarm_entity"]:
+            if data["service"] == "alarm_arm_home" or data["service"] == "alarm_arm_away":
                 insecure, message = self.query_house({"type": data["service"]})
                 if insecure:
                     self.call_service(
@@ -123,9 +117,7 @@ class Secure(hass.Hass):
             else:
                 timeout = 10
 
-            self.dash_navigate(
-                self.args["secure_panel"], timeout=timeout, ret="/MainPanel"
-            )
+            self.dash_navigate(self.args["secure_panel"], timeout=timeout, ret="/MainPanel")
 
         zone_list = []
         if data["type"] == "query":
@@ -168,9 +160,7 @@ class Secure(hass.Hass):
                 desired_state = entity["desired_state"]
                 if "service" in entity and data["type"] == "secure":
                     service = entity["service"]
-                    self.log(
-                        "Calling {} -> {} on {}".format(service, desired_state, id)
-                    )
+                    self.log("Calling {} -> {} on {}".format(service, desired_state, id))
                     self.attempted_items.append(id)
                     self.listen_state(self.state_change, id, new=desired_state)
                     self.call_service(service, entity_id=id)

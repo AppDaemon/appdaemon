@@ -38,9 +38,7 @@ class Ruter(hass.Hass):
     def getDepartures(self):
         ruter = {}
         stops = self.fetch(
-            "/Place/GetStopsByArea?xmin={x_min}&xmax={x_max}&ymin={y_min}&ymax={y_max}".format(
-                **self.args
-            )
+            "/Place/GetStopsByArea?xmin={x_min}&xmax={x_max}&ymin={y_min}&ymax={y_max}".format(**self.args)
         )
 
         for stop in stops:
@@ -62,10 +60,7 @@ class Ruter(hass.Hass):
 
                 if len(ruter[name][platform][line]) < self.departures:
                     ruter[name][platform][line].append(
-                        {
-                            "time": info["MonitoredCall"]["ExpectedArrivalTime"],
-                            "monitored": info["Monitored"],
-                        }
+                        {"time": info["MonitoredCall"]["ExpectedArrivalTime"], "monitored": info["Monitored"]}
                     )
 
         return ruter

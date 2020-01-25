@@ -53,49 +53,34 @@ class ADStream:
                     self.logger.debug("Sending data: %s", data)
                     for stream in self.streams:
                         if data["event_type"] == "state_changed":
-                            for handle, sub in (
-                                self.streams[stream].subscriptions["state"].items()
-                            ):
+                            for handle, sub in self.streams[stream].subscriptions["state"].items():
                                 if sub["namespace"].endswith("*"):
-                                    if not data["namespace"].startswith(
-                                        sub["namespace"][:-1]
-                                    ):
+                                    if not data["namespace"].startswith(sub["namespace"][:-1]):
                                         continue
                                 else:
                                     if not data["namespace"] == sub["namespace"]:
                                         continue
 
                                 if sub["entity_id"].endswith("*"):
-                                    if not data["data"]["entity_id"].startswith(
-                                        sub["entity_id"][:-1]
-                                    ):
+                                    if not data["data"]["entity_id"].startswith(sub["entity_id"][:-1]):
                                         continue
                                 else:
-                                    if (
-                                        not data["data"]["entity_id"]
-                                        == sub["entity_id"]
-                                    ):
+                                    if not data["data"]["entity_id"] == sub["entity_id"]:
                                         continue
 
                                 await self.streams[stream].stream_send(data)
                                 break
                         else:
-                            for handle, sub in (
-                                self.streams[stream].subscriptions["event"].items()
-                            ):
+                            for handle, sub in self.streams[stream].subscriptions["event"].items():
                                 if sub["namespace"].endswith("*"):
-                                    if not data["namespace"].startswith(
-                                        sub["namespace"][:-1]
-                                    ):
+                                    if not data["namespace"].startswith(sub["namespace"][:-1]):
                                         continue
                                 else:
                                     if not data["namespace"] == sub["namespace"]:
                                         continue
 
                                 if sub["event"].endswith("*"):
-                                    if not data["event_type"].startswith(
-                                        sub["event"][:-1]
-                                    ):
+                                    if not data["event_type"].startswith(sub["event"][:-1]):
                                         continue
                                 else:
                                     if not data["event_type"] == sub["event"]:
@@ -127,9 +112,7 @@ class ADStream:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     await rh._handle(msg.data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    self.access.info(
-                        "WebSocket connection closed with exception {}", ws.exception()
-                    )
+                    self.access.info("WebSocket connection closed with exception {}", ws.exception())
         except Exception:
             self.logger.debug("-" * 60)
             self.logger.debug("Unexpected client disconnection from %s", rh.client_name)
@@ -207,9 +190,7 @@ class RequestHandler:
                 await self.dash_stream.emit("down", jdata)
         except TypeError as e:
             self.logger.debug("-" * 60)
-            self.logger.warning(
-                "Unexpected error in JSON conversion when writing to stream"
-            )
+            self.logger.warning("Unexpected error in JSON conversion when writing to stream")
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s", e)
             self.logger.debug("-" * 60)
@@ -272,15 +253,11 @@ class RequestHandler:
         except RequestHandlerException as e:
             return await self._response_error(msg, str(e))
         except Exception as e:
-            await self._response_error(
-                msg, "Unknown error occured, check AppDaemon logs: {}".format(str(e))
-            )
+            await self._response_error(msg, "Unknown error occured, check AppDaemon logs: {}".format(str(e)))
             raise
 
     async def _check_adcookie(self, cookie):
-        return await utils.run_in_executor(
-            self, bcrypt.checkpw, str.encode(self.AD.http.password), str.encode(cookie)
-        )
+        return await utils.run_in_executor(self, bcrypt.checkpw, str.encode(self.AD.http.password), str.encode(cookie))
 
     async def _auth_data(self, data):
         if "password" in data:
@@ -338,9 +315,7 @@ class RequestHandler:
 
         event_data = data.get("data", {})
 
-        return await self.AD.events.fire_event(
-            data["namespace"], data["event"], **event_data
-        )
+        return await self.AD.events.fire_event(data["namespace"], data["event"], **event_data)
 
     async def call_service(self, data):
         if not self.authed:
@@ -369,9 +344,7 @@ class RequestHandler:
         else:
             service_data = data["data"]
 
-        return await self.AD.services.call_service(
-            data["namespace"], domain, service, service_data
-        )
+        return await self.AD.services.call_service(data["namespace"], domain, service, service_data)
 
     async def get_state(self, data):
         if not self.authed:

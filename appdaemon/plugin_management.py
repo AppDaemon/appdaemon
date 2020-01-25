@@ -65,10 +65,7 @@ class Plugins:
 
         if self.plugins is not None:
             for name in self.plugins:
-                if (
-                    "disable" in self.plugins[name]
-                    and self.plugins[name]["disable"] is True
-                ):
+                if "disable" in self.plugins[name] and self.plugins[name]["disable"] is True:
                     self.logger.info("Plugin '%s' disabled", name)
                 else:
 
@@ -88,10 +85,7 @@ class Plugins:
                         if os.path.basename(plugin) == type:
                             full_module_name = "{}".format(module_name)
                             self.logger.info(
-                                "Loading Custom Plugin %s using class %s from module %s",
-                                name,
-                                class_name,
-                                module_name,
+                                "Loading Custom Plugin %s using class %s from module %s", name, class_name, module_name,
                             )
                             break
 
@@ -101,16 +95,11 @@ class Plugins:
                         #
                         full_module_name = "{}".format(module_name)
                         self.logger.info(
-                            "Loading Plugin %s using class %s from module %s",
-                            name,
-                            class_name,
-                            module_name,
+                            "Loading Plugin %s using class %s from module %s", name, class_name, module_name,
                         )
                     try:
 
-                        mod = __import__(
-                            full_module_name, globals(), locals(), [module_name], 0
-                        )
+                        mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
 
                         app_class = getattr(mod, class_name)
 
@@ -119,9 +108,7 @@ class Plugins:
                         namespace = plugin.get_namespace()
 
                         if namespace in self.plugin_objs:
-                            raise ValueError(
-                                "Duplicate namespace: {}".format(namespace)
-                            )
+                            raise ValueError("Duplicate namespace: {}".format(namespace))
 
                         if "namespace" not in self.plugins[name]:
                             self.plugins[name]["namespace"] = namespace
@@ -170,19 +157,14 @@ class Plugins:
     def get_plugin_from_namespace(self, namespace):
         if self.plugins is not None:
             for name in self.plugins:
-                if (
-                    "namespace" in self.plugins[name]
-                    and self.plugins[name]["namespace"] == namespace
-                ):
+                if "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
                     return name
                 if "namespace" not in self.plugins[name] and namespace == "default":
                     return name
         else:
             return None
 
-    async def notify_plugin_started(
-        self, name, namespace, meta, state, first_time=False
-    ):
+    async def notify_plugin_started(self, name, namespace, meta, state, first_time=False):
         self.logger.debug("Plugin started: %s", name)
         try:
             self.last_plugin_state[namespace] = datetime.datetime.now()
@@ -203,36 +185,25 @@ class Plugins:
                     self.logger.info("Got initial state from namespace %s", namespace)
 
                 self.plugin_objs[namespace]["active"] = True
-                await self.AD.events.process_event(
-                    namespace, {"event_type": "plugin_started", "data": {"name": name}}
-                )
+                await self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except Exception:
             self.error.warning("-" * 60)
-            self.error.warning(
-                "WARNING", "Unexpected error during notify_plugin_started()"
-            )
+            self.error.warning("WARNING", "Unexpected error during notify_plugin_started()")
             self.error.warning("WARNING", "-" * 60)
             self.error.warning("WARNING", traceback.format_exc())
             self.error.warning("WARNING", "-" * 60)
             if self.AD.logging.separate_error_log() is True:
-                self.logger.warning(
-                    "Logged an error to %s", self.AD.logging.get_filename("error_log")
-                )
+                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
     async def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False
-        await self.AD.events.process_event(
-            namespace, {"event_type": "plugin_stopped", "data": {"name": name}}
-        )
+        await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
     async def get_plugin_meta(self, namespace):
         for name in self.plugins:
             if "namespace" not in self.plugins[name] and namespace == "default":
                 return self.plugin_meta[namespace]
-            elif (
-                "namespace" in self.plugins[name]
-                and self.plugins[name]["namespace"] == namespace
-            ):
+            elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
                 return self.plugin_meta[namespace]
 
         return None
@@ -252,31 +223,25 @@ class Plugins:
             if self.plugin_objs[plugin]["active"] is True:
 
                 name = self.get_plugin_from_namespace(plugin)
-                if datetime.datetime.now() - self.last_plugin_state[
-                    plugin
-                ] > datetime.timedelta(seconds=self.plugins[name]["refresh_delay"]):
+                if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
+                    seconds=self.plugins[name]["refresh_delay"]
+                ):
                     try:
                         self.logger.debug("Refreshing %s state", name)
 
-                        with async_timeout.timeout(
-                            self.plugins[name]["refresh_timeout"], loop=self.AD.loop
-                        ):
-                            state = await self.plugin_objs[plugin][
-                                "object"
-                            ].get_complete_state()
+                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"], loop=self.AD.loop):
+                            state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
                             self.AD.state.update_namespace_state(plugin, state)
 
                     except asyncio.TimeoutError:
                         self.logger.warning(
-                            "Timeout refreshing %s state - retrying in 10 minutes",
-                            plugin,
+                            "Timeout refreshing %s state - retrying in 10 minutes", plugin,
                         )
                     except Exception:
                         self.logger.warning(
-                            "Unexpected error refreshing %s state - retrying in 10 minutes",
-                            plugin,
+                            "Unexpected error refreshing %s state - retrying in 10 minutes", plugin,
                         )
                     finally:
                         self.last_plugin_state[plugin] = datetime.datetime.now()
@@ -286,23 +251,17 @@ class Plugins:
         for key in self.required_meta:
             if getattr(self.AD, key) is None:
                 # No value so bail
-                self.logger.error(
-                    "Required attribute not set or obtainable from any plugin: %s", key
-                )
+                self.logger.error("Required attribute not set or obtainable from any plugin: %s", key)
                 OK = False
         return OK
 
-    async def get_plugin_api(
-        self, plugin_name, name, _logging, args, config, app_config, global_vars
-    ):
+    async def get_plugin_api(self, plugin_name, name, _logging, args, config, app_config, global_vars):
         if plugin_name in self.plugins:
             plugin = self.plugins[plugin_name]
             module_name = "{}api".format(plugin["type"])
             mod = __import__(module_name, globals(), locals(), [module_name], 0)
             app_class = getattr(mod, plugin["type"].title())
-            api = app_class(
-                self.AD, name, _logging, args, config, app_config, global_vars
-            )
+            api = app_class(self.AD, name, _logging, args, config, app_config, global_vars)
             if "namespace" in plugin:
                 api.set_namespace(plugin["namespace"])
             else:

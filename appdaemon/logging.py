@@ -34,8 +34,7 @@ class DuplicateFilter(logging.Filter):
             self.last_log = current_log
             if self.filtering is True:
                 self.logger.info(
-                    "Previous message repeated %s times",
-                    self.current_count - self.threshold + 1,
+                    "Previous message repeated %s times", self.current_count - self.threshold + 1,
                 )
             self.current_count = 0
             self.filtering = False
@@ -46,16 +45,10 @@ class DuplicateFilter(logging.Filter):
         else:
             now = datetime.datetime.now()
             # Reset if we haven't exceeded the initial grace period
-            if (
-                self.filtering is False
-                and now - self.last_log_time >= datetime.timedelta(seconds=self.timeout)
-            ):
+            if self.filtering is False and now - self.last_log_time >= datetime.timedelta(seconds=self.timeout):
                 return True
 
-            if (
-                self.start_time is not None
-                and now - self.start_time >= datetime.timedelta(seconds=self.delay)
-            ):
+            if self.start_time is not None and now - self.start_time >= datetime.timedelta(seconds=self.delay):
                 self.start_time = now
                 if self.first_time is True:
                     count = self.current_count - self.threshold + 1
@@ -240,15 +233,11 @@ class Logging:
                     self.config[log]["filename"] = default_filename
                     self.config[log]["log_generations"] = default_log_generations
                     self.config[log]["log_size"] = default_logsize
-                    self.config[log][
-                        "format"
-                    ] = "{asctime} {levelname} {appname}: {message}"
+                    self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
                     self.config[log]["date_format"] = default_date_format
                     self.config[log]["filter_threshold"] = default_filter_threshold
                     self.config[log]["filter_timeout"] = default_filter_timeout
-                    self.config[log][
-                        "filter_repeat_delay"
-                    ] = default_filter_repeat_delay
+                    self.config[log]["filter_repeat_delay"] = default_filter_repeat_delay
                     # Copy over any user defined fields
                     for arg in config[log]:
                         self.config[log][arg] = config[log][arg]
@@ -258,15 +247,11 @@ class Logging:
                     self.config[log]["filename"] = default_filename
                     self.config[log]["log_generations"] = default_log_generations
                     self.config[log]["log_size"] = default_logsize
-                    self.config[log][
-                        "format"
-                    ] = "{asctime} {levelname} {appname}: {message}"
+                    self.config[log]["format"] = "{asctime} {levelname} {appname}: {message}"
                     self.config[log]["date_format"] = default_date_format
                     self.config[log]["filter_threshold"] = default_filter_threshold
                     self.config[log]["filter_timeout"] = default_filter_timeout
-                    self.config[log][
-                        "filter_repeat_delay"
-                    ] = default_filter_repeat_delay
+                    self.config[log]["filter_repeat_delay"] = default_filter_repeat_delay
                     self.config[log].pop("alias")
                     for arg in config[log]:
                         self.config[log][arg] = config[log][arg]
@@ -280,18 +265,13 @@ class Logging:
         for log in self.config:
             args = self.config[log]
             if "alias" not in args:
-                formatter = AppNameFormatter(
-                    fmt=args["format"], datefmt=args["date_format"], style="{"
-                )
+                formatter = AppNameFormatter(fmt=args["format"], datefmt=args["date_format"], style="{")
                 args["formatter"] = formatter
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
                 logger.addFilter(
                     DuplicateFilter(
-                        logger,
-                        args["filter_threshold"],
-                        args["filter_repeat_delay"],
-                        args["filter_timeout"],
+                        logger, args["filter_threshold"], args["filter_repeat_delay"], args["filter_timeout"],
                     )
                 )
                 args["logger"] = logger
@@ -303,18 +283,13 @@ class Logging:
                     handler = logging.StreamHandler(stream=sys.stdout)
                 else:
                     handler = RotatingFileHandler(
-                        args["filename"],
-                        maxBytes=args["log_size"],
-                        backupCount=args["log_generations"],
+                        args["filename"], maxBytes=args["log_size"], backupCount=args["log_generations"],
                     )
                 self.config[log]["handler"] = handler
                 handler.setFormatter(formatter)
                 logger.addFilter(
                     DuplicateFilter(
-                        logger,
-                        args["filter_threshold"],
-                        args["filter_repeat_delay"],
-                        args["filter_timeout"],
+                        logger, args["filter_threshold"], args["filter_repeat_delay"], args["filter_timeout"],
                     )
                 )
                 logger.addHandler(handler)
@@ -323,36 +298,16 @@ class Logging:
 
         for log in self.config:
             if "alias" in self.config[log]:
-                self.config[log]["logger"] = self.config[self.config[log]["alias"]][
-                    "logger"
-                ]
-                self.config[log]["formatter"] = self.config[self.config[log]["alias"]][
-                    "formatter"
-                ]
-                self.config[log]["filename"] = self.config[self.config[log]["alias"]][
-                    "filename"
-                ]
-                self.config[log]["log_generations"] = self.config[
-                    self.config[log]["alias"]
-                ]["log_generations"]
-                self.config[log]["log_size"] = self.config[self.config[log]["alias"]][
-                    "log_size"
-                ]
-                self.config[log]["format"] = self.config[self.config[log]["alias"]][
-                    "format"
-                ]
-                self.config[log]["date_format"] = self.config[
-                    self.config[log]["alias"]
-                ]["date_format"]
-                self.config[log]["filter_threshold"] = self.config[
-                    self.config[log]["alias"]
-                ]["filter_threshold"]
-                self.config[log]["filter_timeout"] = self.config[
-                    self.config[log]["alias"]
-                ]["filter_timeout"]
-                self.config[log]["filter_repeat_delay"] = self.config[
-                    self.config[log]["alias"]
-                ]["filter_repeat_delay"]
+                self.config[log]["logger"] = self.config[self.config[log]["alias"]]["logger"]
+                self.config[log]["formatter"] = self.config[self.config[log]["alias"]]["formatter"]
+                self.config[log]["filename"] = self.config[self.config[log]["alias"]]["filename"]
+                self.config[log]["log_generations"] = self.config[self.config[log]["alias"]]["log_generations"]
+                self.config[log]["log_size"] = self.config[self.config[log]["alias"]]["log_size"]
+                self.config[log]["format"] = self.config[self.config[log]["alias"]]["format"]
+                self.config[log]["date_format"] = self.config[self.config[log]["alias"]]["date_format"]
+                self.config[log]["filter_threshold"] = self.config[self.config[log]["alias"]]["filter_threshold"]
+                self.config[log]["filter_timeout"] = self.config[self.config[log]["alias"]]["filter_timeout"]
+                self.config[log]["filter_repeat_delay"] = self.config[self.config[log]["alias"]]["filter_repeat_delay"]
 
         self.logger = self.get_logger()
         self.error = self.get_error()
@@ -366,11 +321,7 @@ class Logging:
             self.logger.debug("  format:      %s", self.config[log]["format"])
 
     def get_time(logger, record, format=None):
-        if (
-            logger.AD is not None
-            and logger.AD.sched is not None
-            and not logger.AD.sched.is_realtime()
-        ):
+        if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
             ts = logger.AD.sched.get_now_sync().astimezone(logger.tz)
         else:
             if logger.tz is not None:
@@ -471,10 +422,7 @@ class Logging:
     def read_logfile(self, log):
         if self.is_alias(log):
             return None
-        if (
-            self.config[log]["filename"] == "STDOUT"
-            or self.config[log]["filename"] == "STDERR"
-        ):
+        if self.config[log]["filename"] == "STDOUT" or self.config[log]["filename"] == "STDERR":
             return []
         else:
             with open(self.config[log]["filename"]) as f:
@@ -495,12 +443,7 @@ class Logging:
                     if self.log_levels[thislevel] >= self.log_levels[level]:
                         handle.append(
                             await self.AD.events.add_event_callback(
-                                name,
-                                namespace,
-                                cb,
-                                "__AD_LOG_EVENT",
-                                level=thislevel,
-                                **kwargs
+                                name, namespace, cb, "__AD_LOG_EVENT", level=thislevel, **kwargs
                             )
                         )
 

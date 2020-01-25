@@ -16,11 +16,7 @@ class Services:
 
     def register_service(self, namespace, domain, service, callback, **kwargs):
         self.logger.debug(
-            "register_service called: %s.%s.%s -> %s",
-            namespace,
-            domain,
-            service,
-            callback,
+            "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
         )
         with self.services_lock:
             if namespace not in self.services:
@@ -46,48 +42,29 @@ class Services:
                     for service in self.services[namespace][domain]:
                         if service == "fire":
                             print(f"{domain} {service} {namespace}")
-                        result.append(
-                            {
-                                "namespace": namespace,
-                                "domain": domain,
-                                "service": service,
-                            }
-                        )
+                        result.append({"namespace": namespace, "domain": domain, "service": service})
 
         return result
 
     async def call_service(self, namespace, domain, service, data):
         self.logger.debug(
-            "call_service: namespace=%s domain=%s service=%s data=%s",
-            namespace,
-            domain,
-            service,
-            data,
+            "call_service: namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data,
         )
         with self.services_lock:
             if namespace not in self.services:
                 name = data.get("__name", None)
-                self.logger.warning(
-                    "Unknown namespace (%s) in call_service from %s", namespace, name
-                )
+                self.logger.warning("Unknown namespace (%s) in call_service from %s", namespace, name)
                 return None
             if domain not in self.services[namespace]:
                 name = data.get("__name", None)
                 self.logger.warning(
-                    "Unknown domain (%s/%s) in call_service from %s",
-                    namespace,
-                    domain,
-                    name,
+                    "Unknown domain (%s/%s) in call_service from %s", namespace, domain, name,
                 )
                 return None
             if service not in self.services[namespace][domain]:
                 name = data.get("__name", None)
                 self.logger.warning(
-                    "Unknown service (%s/%s/%s) in call_service from %s",
-                    namespace,
-                    domain,
-                    service,
-                    name,
+                    "Unknown service (%s/%s/%s) in call_service from %s", namespace, domain, service, name,
                 )
                 return None
 
@@ -127,9 +104,7 @@ class Services:
                     return await funcref(ns, domain, service, data)
                 else:
                     # It's not a coroutine, , run it in an executor
-                    return await utils.run_in_executor(
-                        self, funcref, ns, domain, service, data
-                    )
+                    return await utils.run_in_executor(self, funcref, ns, domain, service, data)
 
             except Exception:
                 self.logger.error("-" * 60)

@@ -60,9 +60,7 @@ class ADBase:
 
     entities = Entities()
 
-    def __init__(
-        self, ad: AppDaemon, name, logging, args, config, app_config, global_vars
-    ):
+    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
 
         # Store args
 
@@ -99,28 +97,14 @@ class ADBase:
     #
 
     def get_ad_api(self):
-        api = adapi.ADAPI(
-            self.AD,
-            self.name,
-            self._logging,
-            self.args,
-            self.config,
-            self.app_config,
-            self.global_vars,
-        )
+        api = adapi.ADAPI(self.AD, self.name, self._logging, self.args, self.config, self.app_config, self.global_vars,)
 
         return api
 
     @utils.sync_wrapper
     async def get_plugin_api(self, plugin_name):
         return await self.AD.plugins.get_plugin_api(
-            plugin_name,
-            self.name,
-            self._logging,
-            self.args,
-            self.config,
-            self.app_config,
-            self.global_vars,
+            plugin_name, self.name, self._logging, self.args, self.config, self.app_config, self.global_vars,
         )
 
     #

@@ -80,36 +80,24 @@ class Utility:
 
                 # only default, rules or it belongs to a local plugin. Don't allow for admin/appdaemon/global namespaces
 
-                if (
-                    ns in ["default", "rules"]
-                    or ns in self.AD.plugins.plugin_objs
-                    or ns in self.AD.namespaces
-                ):
-                    self.AD.services.register_service(
-                        ns, "state", "set", self.AD.state.state_services
-                    )
+                if ns in ["default", "rules"] or ns in self.AD.plugins.plugin_objs or ns in self.AD.namespaces:
+                    self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
 
                 #
                 # Register fire_event services
                 #
 
-                self.AD.services.register_service(
-                    ns, "event", "fire", self.AD.events.event_services
-                )
+                self.AD.services.register_service(ns, "event", "fire", self.AD.events.event_services)
 
             #
             # Register run_sequence service
             #
-            self.AD.services.register_service(
-                "rules", "sequence", "run", self.AD.sequences.run_sequence_service
-            )
+            self.AD.services.register_service("rules", "sequence", "run", self.AD.sequences.run_sequence_service)
 
             #
             # Register production_mode service
             #
-            self.AD.services.register_service(
-                "appdaemon", "production_mode", "set", self.production_mode_service
-            )
+            self.AD.services.register_service("appdaemon", "production_mode", "set", self.production_mode_service)
 
             #
             # Start the scheduler
@@ -125,23 +113,15 @@ class Utility:
                 #
                 # Fire APPD Started Event
                 #
-                await self.AD.events.process_event(
-                    "global", {"event_type": "appd_started", "data": {}}
-                )
+                await self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
 
             self.booted = await self.AD.sched.get_now()
-            await self.AD.state.add_entity(
-                "admin", "sensor.appdaemon_version", utils.__version__
-            )
-            await self.AD.state.add_entity(
-                "admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0))
-            )
+            await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
+            await self.AD.state.add_entity("admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0)))
             await self.AD.state.add_entity(
                 "admin",
                 "sensor.appdaemon_booted",
-                utils.dt_to_str(
-                    (await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz
-                ),
+                utils.dt_to_str((await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz),
             )
             warning_step = 0
             warning_iterations = 0
@@ -170,10 +150,7 @@ class Utility:
 
                     # Check for thread starvation
 
-                    (
-                        warning_step,
-                        warning_iterations,
-                    ) = await self.AD.threading.check_q_size(
+                    (warning_step, warning_iterations,) = await self.AD.threading.check_q_size(
                         warning_step, warning_iterations
                     )
 
@@ -191,15 +168,10 @@ class Utility:
 
                     # Update uptime sensor
 
-                    uptime = (await self.AD.sched.get_now()).replace(
-                        microsecond=0
-                    ) - self.booted.replace(microsecond=0)
+                    uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
 
                     await self.AD.state.set_state(
-                        "_utility",
-                        "admin",
-                        "sensor.appdaemon_uptime",
-                        state=str(uptime),
+                        "_utility", "admin", "sensor.appdaemon_uptime", state=str(uptime),
                     )
 
                 except Exception:
@@ -220,9 +192,7 @@ class Utility:
                     check_app_updates_duration,
                     loop_duration - check_app_updates_duration,
                 )
-                if self.AD.sched.realtime is True and loop_duration > (
-                    self.AD.max_utility_skew * 1000
-                ):
+                if self.AD.sched.realtime is True and loop_duration > (self.AD.max_utility_skew * 1000):
                     self.logger.warning(
                         "Excessive time spent in utility loop: %sms, %sms in check_app_updates(), %sms in other",
                         loop_duration,
@@ -231,9 +201,7 @@ class Utility:
                     )
                     if self.AD.check_app_updates_profile is True:
                         self.logger.info("Profile information for Utility Loop")
-                        self.logger.info(
-                            self.AD.app_management.check_app_updates_profile_stats
-                        )
+                        self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
 
                 await asyncio.sleep(self.AD.utility_delay)
 

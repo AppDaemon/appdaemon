@@ -40,9 +40,7 @@ class Battery(hass.Hass):
                     values[device] = battery
         message = "Battery Level Report\n\n"
         if low:
-            message += "The following devices are low: (< {}) ".format(
-                self.args["threshold"]
-            )
+            message += "The following devices are low: (< {}) ".format(self.args["threshold"])
             for device in low:
                 message = message + device + " "
             message += "\n\n"
@@ -56,6 +54,4 @@ class Battery(hass.Hass):
             or ("always_send" in self.args and self.args["always_send"] == "1")
             or ("force" in kwargs and kwargs["force"] == 1)
         ):
-            self.notify(
-                message, title="Home Assistant Battery Report", name="andrew_mail"
-            )
+            self.notify(message, title="Home Assistant Battery Report", name="andrew_mail")

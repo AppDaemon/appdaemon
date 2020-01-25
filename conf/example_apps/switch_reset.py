@@ -46,25 +46,16 @@ class SwitchReset(hass.Hass):
         state = self.get_state()
         for entity in state:
             type, id = entity.split(".")
-            if (
-                type == "input_boolean"
-                or type == "input_select"
-                or type == "input_number"
-                or type == "device_tracker"
-            ):
+            if type == "input_boolean" or type == "input_select" or type == "input_number" or type == "device_tracker":
                 if entity in self.device_db:
                     if self.device_db[entity] != state[entity]["state"]:
                         self.log_notify(
-                            "Setting {} to {} (was {})".format(
-                                entity, self.device_db[entity], state[entity]["state"]
-                            )
+                            "Setting {} to {} (was {})".format(entity, self.device_db[entity], state[entity]["state"])
                         )
                         self.set_state(entity, state=self.device_db[entity])
                 else:
                     self.log_notify(
-                        "Adding {}, setting value to current state ({})".format(
-                            entity, state[entity]["state"]
-                        )
+                        "Adding {}, setting value to current state ({})".format(entity, state[entity]["state"])
                     )
                     self.device_db[entity] = state[entity]["state"]
 
