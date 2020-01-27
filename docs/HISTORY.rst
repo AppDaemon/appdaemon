@@ -32,7 +32,7 @@ None
 
 - Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
 - Fixed an issue that prevented dashboards from working on older iPads
-- Fix for when HTTP component not defined, as it leads to `self.dashboard_dir` issuing an error
+- Fix for when HTTP component not defined, as it leads to ``self.dashboard_dir`` issuing an error
 
 **Breaking Changes**
 
@@ -44,19 +44,19 @@ None
 **Features**
 
 - Added events for when an app is initialized or terminated
-- Added `event_fire` service call
-- Added `production_mode` service call
-- Added `list_services` api call
-- Added the ability to fire an event callback only once, using the `oneshot` flag
+- Added ``event_fire`` service call
+- Added ``production_mode`` service call
+- Added ``list_services`` api call
+- Added the ability to fire an event callback only once, using the ``oneshot`` flag
 - Added the ability to use async functions as endpoint callback
-- Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
+- Added the ability for ``input_select`` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a webscoket client connects and disconnects
 - Added support for python 3.8
 
 **Fixes**
 
 - Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
-- Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
+- Fixed issue where the user could potentially create entities in ``admin``, ``global`` or ``appdaemon`` namespaces
 
 **Breaking Changes**
 
