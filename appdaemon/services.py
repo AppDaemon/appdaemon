@@ -75,24 +75,23 @@ class Services:
             else:
                 ns = namespace
 
+            funcref = self.services[namespace][domain][service]["callback"]
+
+            # Decide whether or not to call this as async
+
+            # Default to true
+            isasync = True
+
+            if "__async" in self.services[namespace][domain][service]:
+                # We have a kwarg to tell us what to do
+                if self.services[namespace][domain][service]["__async"] == "auto":
+                    # We decide based on introspection
+                    if not asyncio.iscoroutinefunction(funcref):
+                        isasync = False
+                else:
+                    # We do what the kwarg tells us
+                    isasync = self.services[namespace][domain][service]["__async"]
             try:
-                funcref = self.services[namespace][domain][service]["callback"]
-
-                # Decide whether or not to call this as async
-
-                # Default to true
-                isasync = True
-
-                if "__async" in self.services[namespace][domain][service]:
-                    # We have a kwarg to tell us what to do
-                    if self.services[namespace][domain][service]["__async"] == "auto":
-                        # We decide based on introspection
-                        if not asyncio.iscoroutinefunction(funcref):
-                            isasync = False
-                    else:
-                        # We do what the kwarg tells us
-                        isasync = self.services[namespace][domain][service]["__async"]
-
                 if isasync is True:
                     # it's a coroutine just await it.
                     return await funcref(ns, domain, service, data)
