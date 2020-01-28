@@ -91,19 +91,20 @@ class Services:
                 else:
                     # We do what the kwarg tells us
                     isasync = self.services[namespace][domain][service]["__async"]
-            try:
-                if isasync is True:
-                    # it's a coroutine just await it.
-                    return await funcref(ns, domain, service, data)
-                else:
-                    # It's not a coroutine, , run it in an executor
-                    return await utils.run_in_executor(self, funcref, ns, domain, service, data)
+                    
+        try:
+            if isasync is True:
+                # it's a coroutine just await it.
+                return await funcref(ns, domain, service, data)
+            else:
+                # It's not a coroutine, , run it in an executor
+                return await utils.run_in_executor(self, funcref, ns, domain, service, data)
 
-            except:
-                self.logger.error('-' * 60)
-                self.logger.error("Unexpected error in call_service()")
-                self.logger.error('-' * 60)
-                self.logger.error(traceback.format_exc())
-                self.logger.error('-' * 60)
-                return None
+        except:
+            self.logger.error('-' * 60)
+            self.logger.error("Unexpected error in call_service()")
+            self.logger.error('-' * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error('-' * 60)
+            return None
 
