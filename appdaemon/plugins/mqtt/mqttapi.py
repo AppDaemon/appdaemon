@@ -46,7 +46,9 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     The MQTT API also provides 3 convenience functions to make calling of specific functions easier an more readable. These are documented in the following section.
     """
 
-    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars, ):
+    def __init__(
+        self, ad: AppDaemon, name, logging, args, config, app_config, global_vars,
+    ):
         """Constructor for the app.
 
         Args:
@@ -132,15 +134,16 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         namespace = self._get_namespace(**kwargs)
 
-        if 'wildcard' in kwargs:
-            wildcard = kwargs['wildcard']
-            if wildcard[-2:] == '/#' and len(wildcard.split('/')[0]) >= 1:
+        if "wildcard" in kwargs:
+            wildcard = kwargs["wildcard"]
+            if wildcard[-2:] == "/#" and len(wildcard.split("/")[0]) >= 1:
                 plugin = await self.AD.plugins.get_plugin_object(namespace)
-                await plugin.process_mqtt_wildcard(kwargs['wildcard'])
+                await plugin.process_mqtt_wildcard(kwargs["wildcard"])
             else:
                 self.logger.warning(
                     "Using %s as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered",
-                    wildcard)
+                    wildcard,
+                )
                 return
 
         return super(Mqtt, self).listen_event(callback, event, **kwargs)
@@ -189,9 +192,9 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        kwargs['topic'] = topic
-        kwargs['payload'] = payload
-        service = 'mqtt/publish'
+        kwargs["topic"] = topic
+        kwargs["payload"] = payload
+        service = "mqtt/publish"
         result = self.call_service(service, **kwargs)
         return result
 
@@ -231,8 +234,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        kwargs['topic'] = topic
-        service = 'mqtt/subscribe'
+        kwargs["topic"] = topic
+        service = "mqtt/subscribe"
         result = self.call_service(service, **kwargs)
         return result
 
@@ -273,11 +276,11 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        kwargs['topic'] = topic
-        service = 'mqtt/unsubscribe'
+        kwargs["topic"] = topic
+        service = "mqtt/unsubscribe"
         result = self.call_service(service, **kwargs)
         return result
-    
+
     @utils.sync_wrapper
     async def is_client_connected(self, **kwargs):
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.

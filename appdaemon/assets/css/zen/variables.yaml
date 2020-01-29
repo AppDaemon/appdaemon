@@ -71,7 +71,7 @@ style_title2: "color: $black"
 # Zen custom styles
 #
 
-#Overlay Colors - These change the transparent ovelays on the widgets. 
+#Overlay Colors - These change the transparent ovelays on the widgets.
 #These can be copied and pasted to a new variable name if you want to change the color.
 transparent_red: "background-color: rgba(255,0,0,0.5)"
 transparent_black1: "background-color: rgba(0,0,0,0.25)"
@@ -83,14 +83,14 @@ transparent_black2: "background-color: rgba(0,0,0,0.5)"
            0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"
 3d_black: "font-weight: bold; color: black; text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 4px 0 #aaa,
            0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 4px rgba(0,0,0,.2),
-           0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"               
+           0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"
 3d_red: "font-weight: bold; color: red; text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 4px 0 #aaa,
            0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 4px rgba(0,0,0,.2),
-           0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"  
+           0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)"
 
 
 #Inset borders - This is used to override the widget border styles
-inset_silver: "border-style: inset; border-width: 6px; border-color: silver; border-radius: 0px"             
+inset_silver: "border-style: inset; border-width: 6px; border-color: silver; border-radius: 0px"
 inset_white: "border-style: inset; border-width: 6px; border-color: white; border-radius: 0px"
 
 
@@ -135,7 +135,7 @@ script_widget_style: $background_style
 script_state_text_style: "color: $red; font-weight: bold"
 
 binary_sensor_icon_on: fas-spinner fa-pulse
-binary_sensor_icon_off: fas-bars 
+binary_sensor_icon_off: fas-bars
 binary_sensor_icon_style_active: $style_active_warn
 binary_sensor_icon_style_inactive: $style_inactive
 binary_sensor_title_style: $style_title

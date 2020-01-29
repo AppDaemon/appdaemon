@@ -38,15 +38,15 @@ class ThreadAsync:
                     myargs = args["args"]
                     mykwargs = args["kwargs"]
                     asyncio.ensure_future(function(*myargs, **mykwargs))
-                    #self.logger.debug("calling task_done()")
-                    #self.appq.task_done()
-            except:
-                self.logger.warning('-' * 60)
+                    # self.logger.debug("calling task_done()")
+                    # self.appq.task_done()
+            except Exception:
+                self.logger.warning("-" * 60)
                 self.logger.warning("Unexpected error during thread_async() loop()")
                 self.logger.warning("args: %s", args)
-                self.logger.warning('-' * 60)
+                self.logger.warning("-" * 60)
                 self.logger.warning(traceback.format_exc())
-                self.logger.warning('-' * 60)
+                self.logger.warning("-" * 60)
 
     def call_async_no_wait(self, function, *args, **kwargs):
         self.appq.put_nowait({"function": function, "args": args, "kwargs": kwargs})
