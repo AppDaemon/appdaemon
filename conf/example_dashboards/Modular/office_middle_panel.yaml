@@ -22,7 +22,7 @@ themostat_setpoint:
     units: "&deg;F"
     precision: 0
     entity: sensor.thermostat_set
-    
+
 garage:
     widget_type: switch
     title: Garage
@@ -38,7 +38,7 @@ light_level:
     precision: 0
     shorten: 1
     entity: sensor.side_multisensor_luminance
-    
+
 layout:
     - scene.upstairs_on, scene.upstairs_off, scene.upstairs_hall_dim, scene.upstairs_bright, upstairs_thermometer, downstairs_thermometer, basement_thermometer, light_level
     - scene.office_on, scene.office_off, scene.office_dim, scene.office_bright, input_boolean.night_outside_motion, input_boolean.guest, input_boolean.cooling, input_boolean.heating

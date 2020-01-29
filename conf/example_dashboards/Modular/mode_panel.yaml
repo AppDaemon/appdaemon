@@ -2,7 +2,7 @@ morning:
     widget_type: mode
     icon_on: fa-clock-o
     icon_off: fa-clock-o
-    title: Morning   
+    title: Morning
     entity: input_select.house_mode
     mode: Morning
     script: script.morning
@@ -34,5 +34,5 @@ night:
     mode: Night
     script: script.night
 
-layout: 
+layout:
     - morning(2x1), day(2x1), evening(2x1), night(2x1)

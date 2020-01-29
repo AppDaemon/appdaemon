@@ -33,25 +33,40 @@
 import hassapi as hass
 import datetime
 
-class objectcontrole(hass.Hass):
 
-  def initialize(self):
-    self.listen_state(self.object_controle, self.args["object_type"])
-    if self.args["time_gone_by"] == "true" or self.args["time_gone_by"] == "True":
-      time = datetime.time(0, 0, 0)
-      self.run_minutely(self.object_controle_minutely, time)
-      
-  def object_controle(self, entity, attribute, old, new, kwargs):
-    fnc = self.get_app("generalvars")
-    device, entity_name = self.split_entity(entity)
-    for counter in range(1,int(self.args["total_objects"])+1):
-      device, entity_name = self.split_entity(entity)
-      object_name=self.args["object" + str(counter)]
-      if entity_name == object_name:         
-        fnc.update_object_time(object_name, self.friendly_name(entity), self.args["dir_name"], self.args["time_gone_by"], self.args["time_format"], self.args["object_type"])
-        fnc.save_last_update_time(self.args["dir_name"], object_name)
-  def object_controle_minutely(self, kwargs):
-    fnc = self.get_app("generalvars")
-    for counter in range(1,int(self.args["total_objects"])+1):
-      object_name=self.args["object" + str(counter)]
-      fnc.update_object_time(object_name, self.friendly_name(self.args["object_type"] + "." + object_name), self.args["dir_name"], self.args["time_gone_by"], self.args["time_format"], self.args["object_type"])
+class objectcontrole(hass.Hass):
+    def initialize(self):
+        self.listen_state(self.object_controle, self.args["object_type"])
+        if self.args["time_gone_by"] == "true" or self.args["time_gone_by"] == "True":
+            time = datetime.time(0, 0, 0)
+            self.run_minutely(self.object_controle_minutely, time)
+
+    def object_controle(self, entity, attribute, old, new, kwargs):
+        fnc = self.get_app("generalvars")
+        device, entity_name = self.split_entity(entity)
+        for counter in range(1, int(self.args["total_objects"]) + 1):
+            device, entity_name = self.split_entity(entity)
+            object_name = self.args["object" + str(counter)]
+            if entity_name == object_name:
+                fnc.update_object_time(
+                    object_name,
+                    self.friendly_name(entity),
+                    self.args["dir_name"],
+                    self.args["time_gone_by"],
+                    self.args["time_format"],
+                    self.args["object_type"],
+                )
+                fnc.save_last_update_time(self.args["dir_name"], object_name)
+
+    def object_controle_minutely(self, kwargs):
+        fnc = self.get_app("generalvars")
+        for counter in range(1, int(self.args["total_objects"]) + 1):
+            object_name = self.args["object" + str(counter)]
+            fnc.update_object_time(
+                object_name,
+                self.friendly_name(self.args["object_type"] + "." + object_name),
+                self.args["dir_name"],
+                self.args["time_gone_by"],
+                self.args["time_format"],
+                self.args["object_type"],
+            )

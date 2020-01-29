@@ -34,4 +34,3 @@ requires namespace, domain, service
 optionally, data can be provided for service data.
 
 I've marked this as a WIP as I will continue to add request_types as a need is presented. Any request_type requiring less than simple code will be placed in its own PR.
-

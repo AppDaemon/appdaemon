@@ -1,10 +1,8 @@
-
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 
 class Callbacks:
-
     def __init__(self, ad: AppDaemon):
 
         self.AD = ad
@@ -55,8 +53,14 @@ class Callbacks:
 
                     callbacks[name][str(uuid_)]["function"] = self.callbacks[name][uuid_]["function"].__name__
                     callbacks[name][str(uuid_)]["name"] = self.callbacks[name][uuid_]["name"]
-                    callbacks[name][str(uuid_)]["pin_app"] = "True" if self.callbacks[name][uuid_]["pin_app"] is True else "False"
-                    callbacks[name][str(uuid_)]["pin_thread"] = self.callbacks[name][uuid_]["pin_thread"] if self.callbacks[name][uuid_]["pin_thread"] != -1 else "None"
+                    callbacks[name][str(uuid_)]["pin_app"] = (
+                        "True" if self.callbacks[name][uuid_]["pin_app"] is True else "False"
+                    )
+                    callbacks[name][str(uuid_)]["pin_thread"] = (
+                        self.callbacks[name][uuid_]["pin_thread"]
+                        if self.callbacks[name][uuid_]["pin_thread"] != -1
+                        else "None"
+                    )
         return callbacks
 
     async def clear_callbacks(self, name):
@@ -68,4 +72,3 @@ class Callbacks:
                 if self.callbacks[name][cid]["type"] == "state":
                     await self.AD.state.remove_entity("admin", "state_callback.{}".format(cid))
             del self.callbacks[name]
-

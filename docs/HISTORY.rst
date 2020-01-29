@@ -1,8 +1,47 @@
 Change Log
 ==========
 
-4.0.0
+4.0.2
 -----
+
+**Features**
+
+- All module dependencies pinned to exact versions for better environmental predictability
+- Bump pyyaml to 5.3
+- Bump yarl to 1.4.2
+- Bump bcrypt to 3.1.7
+- Bump jinja2 to 2.10.3
+- Bump aiohttp-jinja2 to 1.2.0
+- Bump jinja2 to 2.11.0
+- Add Azure pipelines for Black and Flake - contributed by `Bas Nijholt <https://github.com/basnijholt>`__
+
+**Fixes**
+
+- None
+
+**Breaking Changes**
+
+None
+
+4.0.1 (2020-01-20)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+- Fixed an issue that prevented dashboards from working on older iPads
+- Fix for when HTTP component not defined, as it leads to `self.dashboard_dir` issuing an error
+
+**Breaking Changes**
+
+None
+
+4.0.0 (2020-01-12)
+------------------
 
 **Features**
 
@@ -14,6 +53,10 @@ Change Log
 - Added the ability to use async functions as endpoint callback
 - Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a webscoket client connects and disconnects
+- Added the ability for apps to register web routes, thereby utilizing AD's internal web server
+- Added static folder `web`, which can used to serve content like images using AD's internal web server
+- Added ability for users to define static folders, which can used to serve content like images using AD's internal web server
+- Added support for python 3.8
 
 **Fixes**
 
@@ -21,6 +64,8 @@ Change Log
 - Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
 
 **Breaking Changes**
+
+None
 
 4.0.0 Beta 2 (2019-10-19)
 -------------------------
@@ -77,7 +122,7 @@ Change Log
 - Moved ``constrain_days`` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
-- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
+- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps
 - Added ``parse_datetime()``
 - ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - Refactored appdaemon.py for greater readability and easier maintenance
@@ -159,7 +204,7 @@ Change Log
 - Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
 - As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
 - In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
-- MQTT client status api change from ``clientConnected`` to ``is_client_connected``  
+- MQTT client status api change from ``clientConnected`` to ``is_client_connected``
 
 3.0.4 (2019-04-04)
 ------------------
@@ -830,11 +875,11 @@ None
 
 **Fixes**
 
--  
+-
 
 **Breaking Changes**
 
--  
+-
 
 2.0.0beta3 (2017-03-27)
 -----------------------
