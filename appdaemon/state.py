@@ -418,7 +418,7 @@ class State:
 
         if service == "set":
             await self.set_state(domain, namespace, entity_id, **kwargs)
-        
+
         elif service == "remove_entity":
             await self.remove_entity(namespace, entity_id)
 

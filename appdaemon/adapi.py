@@ -1035,7 +1035,7 @@ class ADAPI:
 
         """
         await self.AD.http.unregister_endpoint(handle, self.name)
-     
+
     #
     # Web Route
     #
@@ -1050,9 +1050,9 @@ class ADAPI:
         Args:
             callback: The function to be called when a request is made to the named route. This must be an async function
             route (str, optional): The name of the route to be used for the request (Default: the app's name).
-        
+
         Keyword Args:
-            token (str, optional): A previously registered token can be passed with the api call, which 
+            token (str, optional): A previously registered token can be passed with the api call, which
             can be used to secure the app route. This allows for different security credentials to be used across different
             app routes. It should be noted that if a device has already registered using AD's Admin UI's password
             and a cookie has been stored by the broswer, that device will bypass the token and still access the web server.
@@ -2489,11 +2489,11 @@ class ADAPI:
             Run every 17 minutes starting in 2 hours time.
 
             >>> self.run_every(self.run_every_c, time, 17 * 60)
-            
+
             Run every 10 minutes starting now.
 
             >>> self.run_every(self.run_every_c, "now", 10 * 60)
-            
+
             Run every 5 minutes starting now plus 5 seconds.
 
             >>> self.run_every(self.run_every_c, "now+5", 5 * 60)
@@ -2501,15 +2501,15 @@ class ADAPI:
         """
         name = self.name
         now = await self.get_now()
-        
-        if isinstance(start, str) and "now" in start: # meaning immediate time required
+
+        if isinstance(start, str) and "now" in start:  # meaning immediate time required
             now_offset = 0
-            if "+" in start: # meaning time to be added
+            if "+" in start:  # meaning time to be added
                 now_offset = int(re.findall(r"\d+", start)[0])
-            
+
             aware_start = await self.get_now()
             aware_start = aware_start + datetime.timedelta(seconds=now_offset)
-            
+
         else:
             aware_start = self.AD.sched.convert_naive(start)
 

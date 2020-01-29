@@ -73,6 +73,7 @@ def secure(myfunc):
 
     return wrapper
 
+
 def route_secure(myfunc):
     """
     Take care of streams and service calls
@@ -86,7 +87,9 @@ def route_secure(myfunc):
             return await myfunc(*args)
 
         elif "adcreds" in request.cookies:
-            match = await utils.run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
+            match = await utils.run_in_executor(
+                self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"])
+            )
             if match:
                 return await myfunc(*args)
 
@@ -141,7 +144,7 @@ class HTTP:
 
         self.config_dir = None
         self._process_arg("config_dir", dashboard)
-        
+
         self.static_dirs = {}
         self._process_arg("static_dirs", http)
 
@@ -740,15 +743,15 @@ class HTTP:
         #
         # For App based Web Server
         #
-        self.app.router.add_get('/app/{route}', self.app_webserver)
-        
+        self.app.router.add_get("/app/{route}", self.app_webserver)
+
         #
         # Add static path for apps
         #
         apps_static = os.path.join(self.AD.config_dir, "web")
         exists = True
 
-        if not os.path.isdir(apps_static): #check if the folder exists
+        if not os.path.isdir(apps_static):  # check if the folder exists
             try:
                 os.mkdir(apps_static)
             except OSError:
@@ -764,7 +767,7 @@ class HTTP:
         #
 
         for name, static_dir in self.static_dirs.items():
-            if not os.path.isdir(static_dir): #check if the folder exists
+            if not os.path.isdir(static_dir):  # check if the folder exists
                 self.logger.warning("The Web directory %s doesn't exist. So static route not set up", static_dir)
 
             else:
@@ -792,7 +795,7 @@ class HTTP:
     async def terminate_app(self, name):
         if name in self.endpoints:
             del self.endpoints[name]
-        
+
         if name in self.app_routes:
             del self.app_routes[name]
 
@@ -808,8 +811,10 @@ class HTTP:
         return web.Response(body=res, status=code)
 
     def get_web_response(self, request, code, error):
-        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(code, error, code, error)
-        app = request.match_info.get('app', "system")
+        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(
+            code, error, code, error
+        )
+        app = request.match_info.get("app", "system")
         if code == 200:
             self.access.info("Web Call to %s: status: %s", app, code)
         else:
@@ -831,11 +836,11 @@ class HTTP:
         try:
             ret, code = await self.dispatch_app_by_name(app, args)
         except:
-            self.logger.error('-' * 60)
+            self.logger.error("-" * 60)
             self.logger.error("Unexpected error during API call")
-            self.logger.error('-' * 60)
+            self.logger.error("-" * 60)
             self.logger.error(traceback.format_exc())
-            self.logger.error('-' * 60)
+            self.logger.error("-" * 60)
 
         if code == 404:
             return self.get_response(request, 404, "App Not Found")
@@ -880,15 +885,19 @@ class HTTP:
     #
     async def register_route(self, cb, route, name, **kwargs):
 
-        if not asyncio.iscoroutinefunction(cb): # must be async function
-            self.logger.warning("Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be Async", name, route)
+        if not asyncio.iscoroutinefunction(cb):  # must be async function
+            self.logger.warning(
+                "Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be Async",
+                name,
+                route,
+            )
             return
 
         handle = uuid.uuid4().hex
 
         if name not in self.app_routes:
             self.app_routes[name] = {}
-        
+
         token = kwargs.get("token")
         self.app_routes[name][handle] = {"callback": cb, "route": route, "token": token}
 
@@ -897,11 +906,11 @@ class HTTP:
     async def unregister_route(self, handle, name):
         if name in self.app_routes and handle in self.app_routes[name]:
             del self.app_routes[name][handle]
-    
+
     @route_secure
     async def app_webserver(self, request):
 
-        route = request.match_info.get('route')
+        route = request.match_info.get("route")
         token = request.query.get("token")
 
         code = 404
@@ -909,14 +918,14 @@ class HTTP:
 
         callback = None
         for name in self.app_routes:
-            if callback != None: # a callback has been collected
+            if callback != None:  # a callback has been collected
                 break
 
             for handle in self.app_routes[name]:
                 app_route = self.app_routes[name][handle]["route"]
                 app_token = self.app_routes[name][handle]["token"]
 
-                if app_route == route :
+                if app_route == route:
                     if app_token != None and app_token != token:
                         return self.get_web_response(request, "401", "Unauthorized")
 
@@ -935,14 +944,14 @@ class HTTP:
                 error = "Request was Cancelled"
 
             except:
-                self.logger.error('-' * 60)
+                self.logger.error("-" * 60)
                 self.logger.error("Unexpected error during Web call")
-                self.logger.error('-' * 60)
+                self.logger.error("-" * 60)
                 self.logger.error(traceback.format_exc())
-                self.logger.error('-' * 60)
+                self.logger.error("-" * 60)
                 code = 503
                 error = "Request had an Error"
-        
+
         return self.get_web_response(request, str(code), error)
 
     #
