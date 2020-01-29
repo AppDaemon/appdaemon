@@ -16,5 +16,5 @@ python-socketio==4.4.0
 deepdiff==4.0.9
 python-dateutil==2.8.1
 pid==2.2.5
-azure
+azure==4.0.0
 pygments==2.5.2
