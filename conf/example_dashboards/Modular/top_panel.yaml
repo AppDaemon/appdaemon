@@ -44,7 +44,7 @@ mode:
     sub_entity_map:
       0: ""
       1: "dark"
-        
+
 porch_motion:
     widget_type: binary_sensor
     title: Porch
