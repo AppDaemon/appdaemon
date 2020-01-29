@@ -284,6 +284,7 @@ Apps can use arbitrarily complex structures within arguments, e.g.:
 Which can be accessed as a list in python with:
 
 .. code:: python
+
     for entity in self.args["entities"]:
       do some stuff
 
