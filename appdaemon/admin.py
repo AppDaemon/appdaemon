@@ -1,40 +1,41 @@
 import os
+import traceback
 
-from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-import datetime
-
-import appdaemon.utils as ha
+import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 
 class Admin:
 
-    def __init__(self, config_dir, logger, AD, **kwargs):
+    def __init__(self, config_dir, logger, ad: AppDaemon, **kwargs):
         #
         # Set Defaults
         #
         self.config_dir = config_dir
-        self.AD = AD
-        self.logger = logger
+        self.AD = ad
+        self.logger = self.logger = ad.logging.get_child("_admin")
         self.dash_install_dir = os.path.dirname(__file__)
-        self.javascript_dir = os.path.join(self.dash_install_dir, "assets", "javascript")
-        self.template_dir = os.path.join(self.dash_install_dir, "assets", "templates")
-        self.css_dir = os.path.join(self.dash_install_dir, "assets", "css")
-        self.fonts_dir = os.path.join(self.dash_install_dir, "assets", "fonts")
-        self.images_dir = os.path.join(self.dash_install_dir, "assets", "images")
+        self.javascript_dir = None
+        self.template_dir = None
+        self.css_dir = None
+        self.fonts_dir = None
+        self.images_dir = None
         self.base_url = ""
+        self.title = "AppDaemon Administrative Interface"
         #
         # Process any overrides
         #
-        self._process_arg("dashboard_dir", kwargs)
         self._process_arg("javascript_dir", kwargs)
         self._process_arg("template_dir", kwargs)
         self._process_arg("css_dir", kwargs)
         self._process_arg("fonts_dir", kwargs)
         self._process_arg("images_dir", kwargs)
-        #
-        # Create some dirs
-        #
+        self._process_arg("title", kwargs)
+
+        self.transport = "ws"
+        self._process_arg("transport", kwargs)
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
@@ -45,58 +46,37 @@ class Admin:
     # Methods
     #
 
-    def appdaemon(self, scheme, url):
-        print("appdaemon")
-        return self.index(scheme, url, "appdaemon")
+    async def admin_page(self, scheme, url):
 
-    def apps(self, scheme, url):
-        return self.index(scheme, url, "apps")
+        try:
+            params = {"transport": self.transport, "title": self.title}
 
-    def plugins(self, scheme, url):
-        return self.index(scheme, url, "plugins")
+            if self.AD.http.dashboard_obj is not None:
+                params["dashboard"] = True
+            else:
+                params["dashboard"] = False
 
-    def index(self, scheme, url, tab="appdaemon"):
+            # Logs
 
-        params = {}
+            params["logs"] = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
 
-        params["tab"] = tab
+            # Entities
 
-        params["appdaemon"] = {}
-        params["appdaemon"]["booted"] = self.AD.booted
+            params["namespaces"] = await self.AD.state.list_namespaces()
 
-        params["apps"] = {}
-        for obj in self.AD.objects:
-            params["apps"][obj] = {}
+            env = Environment(
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
 
-        params["plugins"] = {}
-        for plug in self.AD.plugin_objs:
-            params["plugins"][plug] = \
-                {
-                    "name": self.AD.plugin_objs[plug].name,
-                    "type": self.AD.plugin_objs[plug].__class__.__name__,
-                    "namespace": self.AD.plugin_objs[plug].namespace,
-                }
+            template = env.get_template("admin.jinja2")
+            rendered_template = await utils.run_in_executor(self, template.render, params)
 
-        env = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            autoescape=select_autoescape(['html', 'xml'])
-        )
+            return rendered_template
 
-        template = env.get_template("adminindex.jinja2")
-        rendered_template = template.render(params)
-
-        return (rendered_template)
-
-    def logon(self):
-
-        params = {}
-
-        env = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            autoescape=select_autoescape(['html', 'xml'])
-        )
-
-        template = env.get_template("adminlogon.jinja2")
-        rendered_template = template.render(params)
-
-        return (rendered_template)
+        except:
+            self.logger.warning('-' * 60)
+            self.logger.warning("Unexpected error creating admin page")
+            self.logger.warning('-' * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning('-' * 60)

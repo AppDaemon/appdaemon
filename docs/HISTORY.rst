@@ -1,30 +1,201 @@
 Change Log
 ==========
 
-3.0.5 04/25/2019
-----------------
+4.0.1
+-----
+
+**Features**
+
+None
 
 **Fixes**
 
-- Pinned Jinja2 to 2.10.1 to fix security issue
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+- Fixed an issue that prevented dashboards from working on older iPads
 
-3.0.4 04/04/2019
-----------------
+**Breaking Changes**
+
+None
+
+4.0.0 (2020-01-12)
+------------------
+
+**Features**
+
+- Added events for when an app is initialized or terminated
+- Added `event_fire` service call
+- Added `production_mode` service call
+- Added `list_services` api call
+- Added the ability to fire an event callback only once, using the `oneshot` flag
+- Added the ability to use async functions as endpoint callback
+- Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
+- Added events for when a webscoket client connects and disconnects
+- Added support for python 3.8
+
+**Fixes**
+
+- Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
+
+**Breaking Changes**
+
+None
+
+4.0.0 Beta 2 (2019-10-19)
+-------------------------
+
+**Features**
+
+- Added a ``timeout`` parameter to ``listen_state()`` and ``listen_event()`` to delete the callback after a pre-determined interval.
+- Added render_template() handling
+- global_modules can now be declared in multiple yaml files
+- It is now possible to inject arbitrary headers in served http content
+- Updated camera widget now supports streams and token refreshing
+- Added input_text and input_datetime widgets
+- Added the ability to control the number of threadpool workers
+- Each time a new service is registered, a ``service_registered`` event is fired, which can be picked up by apps
+- Added support for async apps
+- Added authorization to stream as well as command semantics for various functions
+- Added sequences
+- Added sequence widget
+- Added app access to dashboard directory using ``self.dashboard_dir``
+- List of available dashes is now alphabetically sorted
+- Changed namespaces implementation to use shelve instead of JSON enabling non JSON-serializable objects to be stored and also potential performance increases  - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- MDI updated to version 4.4.95 - contributed by `Roeland Van Lembergen <https://github.com/clayhill>`__
+
+**Fixes**
+
+- Fixed a bug in global_modules that caused a exception
+- Fixed icon bug in weather widget - contributed by `Roeland Van Lembergen <https://github.com/clayhill>`__
+
+**Breaking Changes**
+
+- ``timeout`` is now an official parameter to ``listen_state()`` and ``listen_event()``. If you were using ``timeout`` in your kwargs section for either you should rename that parameter.
+- The camera widget has changed parameters - check the docs for details
+- Moved the ``log events`` from global to ``admin`` namespace. if ``listen_log`` is just used for listening to logs, it shouldn't matter
+- If you have used persistent namespaces in the previous beta it is necessary to delete all saved namespaces by removing all files in the ``namespaces`` subdirectory under your appdaemon config directory
+
+4.0.0 Beta1 (2019-08-30)
+------------------------
+
+**Features**
+
+- Apps can now use a simplified version of the import statement e.g. ``import hassapi as hass`` or ``import mqttapi as mqtt``. The existing import method will continue to work.
+- Apps can now use multiple plugin APIs with the ``get_plugin_api()`` function
+- Added ``ADBase`` superclass for apps that want to use the ``get_plugin_api()`` style of coding
+- Scheduler rewritten to be more efficiant and allow for microsecond resolution
+- ``listen_log()`` now sends AppDaemon system messages and has the option to set a log level.
+- Bumped aiohttp to v3.4.4
+- Added callback locking decorators
+- Rearchitected the work Q to allow App pinning and avoid re-entrant and concurrent code if desired
+- Implemented multiple worker Ques to avoid Head of Line blocking
+- API Calls to control app pinning
+- Added the ``run_in_thread()`` api call - with assistance from `Odianosen Ejale <https://github.com/Odianosen25>`__
+- reworked log listening functions to be more robust and added the ability to have multiple callbacks per app
+- Refactored plugin APIs to remove duplication
+- Moved ``constrain_days`` from being Hass only to all app, regardless of plugin used
+- Added checking for overdue threads
+- Added error checking for callback signatures
+- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
+- Added ``parse_datetime()``
+- ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
+- Refactored appdaemon.py for greater readability and easier maintenance
+- Expanded on the ability to trigger ``listen_state`` callbacks immediately using the ``immediate`` flag, without need of specifing the ``new`` nor ``duration`` parameter.
+- Allowed to make use of ``attribute`` when using the ``immediate`` flag in ``listen_state``
+- Added initial version of the Admin Interface
+- Added User Defined Namespaces
+- Rewrote logging to include user defined logs and formats
+- Added a unified http component to handle API, ADMIN and DASBOARD access on a single port
+- Added startup conditions to the HASS plugin
+- Added duplicate filtering for logs
+- Added standalone pidfile functionality
+- Added the ability to delete an AD app generated entity from any namespace
+- Added the ability to get the history of entities from HASS database
+- Added the ability to force a start of the MQTT plugin, even if not connected to broker at startup
+- Added the ability to set AD's ``production_mode`` from within apps
+- Added the ability to start, stop, restart and reload apps from either other apps or REST API
+- Added the ability to register app services
+- Added sensors for different internal state of AD, that can be read by apps
+- Added Person widget
+- Much reworking of docs
+- Added ``register_dependency()`` for dynamic dependencies in apps
+- Added MQTT support for setting TLS version - contributed by `Miguel <https://github.com/mdps>`__
+- Added support for socketio for older tablet devices - inspired by `algirdasc <https://github.com/algirdasc>`__ and `zarya <https://github.com/zarya>`__
+- Added support for ``default`` and ``copy`` parameters in ``get_state()`` api call - contributed by `Robert Schindler <https://github.com/efficiosoft>`__
+- added a switch to disable the encoding of every log message to ascii - contributed by `Ben Lebherz <https://github.com/benleb>`__
+- Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
+- Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
+- Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
+- Allow to specify a MQTT message to be sent when AD shutsdown cleanly e.g. ``offline``
+- MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
+- Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
+- Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
+- Documentation fixes - contributed by `Brendon Baumgartner <https://github.com/bbrendon>`__
+- Documentation fixes - contributed by `Quentin Favrie <https://github.com/tseho>`__
+- Documentation fixes, updating and cleaning - contributed by `Humberto Rodríguez A. <https://github.com/rhumbertgz>`__
+- Added the ability to set title 2 as friendly name in widgets -  contributed by `Radim <https://github.com/rds76>`__
+- Added the ability to listen to ``state_change`` events, without using listen_state() -  contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
+- APIAI updated to dialog flow - contributed by `engrbm87 <https://github.com/engrbm87>`__
+
+**Fixes**
+
+- Fixes to listen_state() oneshot function
+- Fixes to listen_state() oneshot function when duration is used
+- Fixes to listen_state() function when it fires even when new and old states are same
+- Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
+- Fixed an issue of when MQTT Plugin not connected to broker, and it holds up AD startup
+- Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
+- Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
+- Fix for run_once() - contributed by `engrbm87 <https://github.com/engrbm87>`__
+- Fix for onclick not working on IE11 - contributed by `jgrieger1 <https://github.com/jgrieger1>`__
+- Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann <https://github.com/fhirschmann>`__
+- Fix for error generated when a none existent schedule timer is passed to ``info_timer``
+- Fix for ``log_type`` flag in ``listen_log`` callback
+- Relative paths for appdaemon's config directory now work corrcetly
+- Fix to Dialogflow after format changes
+- MQTT fix to subscribing using wildcards - contributed by `Daniel Lashua <https://github.com/dlashua>`__
+
+**Breaking Changes**
+
+- appapi.py has been renamed to adbase.py, and the contained superclass ha been renamed from AppDaemon to ADBase. This should only be a breaking change if you were using unpublished interfaces!
+- Time travel semantics have changed to support faster scheduling.
+- ``plugin_started`` and ``plugin_stopped`` now go to the appropriate namespace for the plugin and are no longer global
+- Apps are no longer concurrent or re-entrant by default. This is most likely a good thing.
+- Changed the signature of ``listen_log()`` callbacks
+- ``cancel_listen_log()`` now requires a handle supplied by the initial ``listen_log()``
+- Removed Daemonize support - please use sysctl instead
+- ``set_app_state()`` is deprecated - use ``set_state()`` instead and it should do the right thing
+- ``dash_compile_on_start`` now defaults to true
+- The ``log`` section of appdaemon.yaml has been deprecated and must be replaced by the new ``logs`` section which has a different format to allow for user defined logs and greater flexibility in formatting etc.
+- API no longer has a separate port, all access is configured via the new unified http component
+- API has its own top level configuration section
+- Some dashboard parameters moved to the ``HTTP`` section and renamed
+- ``dash_compile_on_start`` renamed to ``compile_on_start``
+- ``dash_force_compile`` renamed to ``force_compile``
+- Due to the new ``log`` parameter to allow apps to use user defined logs, any previous parameters named ``log`` should be renamed
+- Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
+- As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
+- In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
+- MQTT client status api change from ``clientConnected`` to ``is_client_connected``  
+
+3.0.4 (2019-04-04)
+------------------
 
 **Fixes**
 
 - Use yaml.Safeloader to work around known security issue with PyYaml - contributed by `mvn23 <https://github.com/mvn23>`__
 - Unpinned PyYaml
 
-3.0.3 04/02/2019
-----------------
+3.0.3 (2019-04-02)
+------------------
 
 **Fixes**
 
 - Pinned PyYaml to 3.13 to avoid a known issue
 
-3.0.2 10/31/2018
-----------------
+3.0.2 (2018-10-31)
+------------------
 
 **Features**
 
@@ -34,7 +205,7 @@ Change Log
 - Added instructions for running a dev build
 - Added support for Long Lived Access Tokens
 - Updated MDI Icons to 3.0.39
-- Updated Font Awesome Icons to 3.4.1
+- Updated Font Awesome Icons to 5.4.2
 - Added MQTT Plugin - contributed by `Tod Schmidt <https://github.com/tschmidty69>`__
 - Many MQTT Plugin enhancements - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
 - Added ``entitypicture`` widget - contributed by `hwmland <https://github.com/hwmland>`__
@@ -64,7 +235,6 @@ Change Log
 
 **Breaking Changes**
 
-- ``get_hass_config()`` has been changed to ``get_plugin_config()``, to keep up with the plugin structure of AD
 - RSS target names must now consist of a domain as well as the target name, e.g. ``rss.cnn_news``
 - SSE Support has been removed
 - Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
@@ -72,7 +242,7 @@ Change Log
 
 While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
 
-3.0.1 (2018-04-14)
+3.0.1 (2018-04-18)
 ------------------
 
 **Features**
@@ -415,7 +585,7 @@ None
 
 None
 
-2.1.3 (2017-08-11)
+2.1.3 (2017-08-10)
 ------------------
 
 **Features**
@@ -432,7 +602,7 @@ None
 
 None
 
-2.1.2 (2017-08-11)
+2.1.2 (2017-08-08)
 -----
 
 **Features**
@@ -449,7 +619,7 @@ None
 
 None
 
-2.1.0 (2017-08-11)
+2.1.0 (2017-08-08)
 ------------------
 
 **Features**
@@ -1065,7 +1235,7 @@ None
 -  ``run_at_sunrise(``) and ``run_at_sunset()`` no longer take a fixed
    offset parameter, it is now a keyword, e.g. ``offset = 60``
 
-1.2.2 (2016-31-09)
+1.2.2 (2016-08-31)
 ------------------
 
 **Features**
@@ -1083,7 +1253,7 @@ None
 
 None
 
-1.2.1 (2016-26-09)
+1.2.1 (2016-08-26)
 ------------------
 
 **Features**
@@ -1098,7 +1268,7 @@ None
 
 None
 
-1.2.0 (2016-24-09)
+1.2.0 (2016-08-24)
 ------------------
 
 **Features**
@@ -1114,14 +1284,14 @@ None
 
 None
 
-1.1.1 (2016-23-09)
+1.1.1 (2016-08-23)
 ------------------
 
 **Fixes**
 
 -  Fix init scripts
 
-1.1.0 (2016-21-09)
+1.1.0 (2016-08-21)
 ------------------
 
 **Features**

@@ -1,193 +1,318 @@
-import appdaemon.appapi as appapi
+import appdaemon.adbase as adbase
+import appdaemon.adapi as adapi
+from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
-import asyncio
-import inspect
-import traceback
 
 
-class Entities:
+class Mqtt(adbase.ADBase, adapi.ADAPI):
+    """
+    A list of API calls and information specific to the MQTT plugin.
 
-    def __get__(self, instance, owner):
-        state = utils.StateAttrs(instance.ad.get_state(instance.namespace, None, None, None))
-        return state
+    App Creation
+    ------------
 
+    To create apps based on just the MQTT API, use some code like the following:
 
-class Mqtt(appapi.AppDaemon):
+    .. code:: python
 
-    entities = Entities()
+        import mqttapi as mqtt
 
-    def __init__(self, ad, name, logger, error, args, config, app_config, global_vars,):
+        class MyApp(mqtt.Mqtt:
 
-        super(Mqtt, self).__init__(ad, name, logger, error, args, config, app_config, global_vars)
+            def initialize(self):
 
-        self.namespace = "default"
-        self.AD = ad
-        self.name = name
-        self._logger = logger
-        self._error = error
-        self.args = args
-        self.config = config
-        self.app_config = app_config
-        self.global_vars = global_vars
-        self.loop = self.AD.loop
-        
-    def _sub_stack(self, msg):
-        # If msg is a data structure of some type, don't sub
-        if type(msg) is str:
-            stack = inspect.stack()
-            if msg.find("__module__") != -1:
-                msg = msg.replace("__module__", stack[2][1])
-            if msg.find("__line__") != -1:
-                msg = msg.replace("__line__", str(stack[2][2]))
-            if msg.find("__function__") != -1:
-                msg = msg.replace("__function__", stack[2][3])
-        return msg
+    Making Calls to MQTT
+    --------------------
 
-    def set_namespace(self, namespace):
-        self.namespace = namespace
+    AD API's ``call_service()`` is used to carry out service calls from within an AppDaemon app. This allows the app to carry out one of the following services:
 
-    def _get_namespace(self, **kwargs):
-        if "namespace" in kwargs:
-            namespace = kwargs["namespace"]
-            del kwargs["namespace"]
-        else:
-            namespace = self.namespace
+      - ``Publish``
+      - ``Subscribe``
+      - ``Unsubscribe``
 
-        return namespace
+    By simply specifing within the function what is to be done. It uses configuration specified in the plugin configuration which simplifies the call within the app significantly. Different brokers can be accessed within an app, as long as they are all declared
+    when the plugins are configured, and using the ``namespace`` parameter.
 
-    #
-    # Listen state stub here as super class doesn't know the namespace
-    #
+    Examples
+    ^^^^^^^^
 
-    def listen_state(self, cb, entity=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Mqtt, self).listen_state(namespace, cb, entity, **kwargs)
+    .. code:: python
 
-    def listen_event(self, cb, event=None, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Mqtt, self).listen_event(namespace, cb, event, **kwargs)
+        # if wanting to publish data to a broker
+        self.call_service("publish", topic = "homeassistant/bedroom/light", payload = "ON")
+        # if wanting to unsubscribe a topic from a broker in a different namespace
+        self.call_service("unsubscribe", topic = "homeassistant/bedroom/light", namespace = "mqtt2")
+
+    The MQTT API also provides 3 convenience functions to make calling of specific functions easier an more readable. These are documented in the following section.
+    """
+
+    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars, ):
+        """Constructor for the app.
+
+        Args:
+            ad: AppDaemon object.
+            name: name of the app.
+            logging: reference to logging object.
+            args: app arguments.
+            config: AppDaemon config.
+            app_config: config for all apps.
+            global_vars: reference to global variables dict.
+
+        """
+        # Call Super Classes
+        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
+        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
 
     #
-    # Likewise with get and set state
+    # Override listen_event()
     #
 
-    def get_state(self, entity=None, **kwargs):
+    @utils.sync_wrapper
+    async def listen_event(self, callback, event=None, **kwargs):
+        """Listens for changes within the MQTT plugin.
+
+        Unlike other plugins, MQTT does not keep state. All MQTT messages will have an event
+        which is set to ``MQTT_MESSAGE`` by default. This can be changed to whatever that is
+        required in the plugin configuration.
+
+        Args:
+            callback: Function to be invoked when the requested event occurs. It must conform
+                to the standard Event Callback format documented `Here <APPGUIDE.html#about-event-callbacks>`__.
+            event: Name of the event to subscribe to. Can be the declared ``event_name`` parameter
+                as specified in the plugin configuration. If no event is specified, ``listen_event()``
+                will subscribe to all MQTT events within the app's functional namespace.
+            **kwargs (optional): One or more keyword value pairs representing App specific parameters to
+                supply to the callback. If the keywords match values within the event data, they will act
+                as filters, meaning that if they don't match the values, the callback will not fire.
+
+                As an example of this, a specific topic or wildcard can be listened to, instead of listening
+                to all topics subscribed to. For example, if data is sent to a subscribed topic, it will
+                generate an event as specified in the config; if we want to listen to a specific topic or
+                wildcard, ``topic`` or ``wildcard`` can be passed in, and used to filter the callback by
+                supplying them as keyword arguments. If you include keyword values, the values supplied
+                to the ``listen_event()``call must match the values in the event or it will not fire.
+                If the keywords do not match any of the data in the event they are simply ignored.
+
+                Filtering will work with any event type, but it will be necessary to figure out
+                the data associated with the event to understand what values can be filtered on.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            A handle that can be used to cancel the callback.
+
+        Examples:
+            Listen all events.
+
+            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE")
+
+            Listen events for a specific subscribed topic.
+
+            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", topic = 'homeassistant/bedroom/light')
+
+            Listen events for a specific subscribed high level topic.
+
+            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
+
+            Listen plugin's `disconnected` events from the broker.
+
+            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", state = 'Disconnected', topic = None)
+
+            Listen plugin's' `connected` events from the broker.
+
+            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", state = 'Connected', topic = None)
+
+        Notes:
+            At this point, it is not possible to use single level wildcard like using ``homeassistant/+/light`` instead of ``homeassistant/bedroom/light``. This could be added later, if need be.
+
+        """
+
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        return super(Mqtt, self).get_state(namespace, entity, **kwargs)
 
-    def set_app_state(self, entity_id, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        self._check_entity(namespace, entity_id)
-        self.AD.log(
-            "DEBUG",
-            "set_app_state: {}, {}".format(entity_id, kwargs)
-        )
+        if 'wildcard' in kwargs:
+            wildcard = kwargs['wildcard']
+            if wildcard[-2:] == '/#' and len(wildcard.split('/')[0]) >= 1:
+                plugin = await self.AD.plugins.get_plugin_object(namespace)
+                await plugin.process_mqtt_wildcard(kwargs['wildcard'])
+            else:
+                self.logger.warning(
+                    "Using %s as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered",
+                    wildcard)
+                return
 
-        if entity_id in self.get_state(namespace = namespace):
-            new_state = self.get_state(namespace = namespace)[entity_id]
-        else:
-            # Its a new state entry
-            new_state = {}
-            new_state["attributes"] = {}
+        return super(Mqtt, self).listen_event(callback, event, **kwargs)
 
-        if "state" in kwargs:
-            new_state["state"] = kwargs["state"]
-
-        if "attributes" in kwargs and kwargs.get('replace', False):
-            new_state["attributes"] = kwargs["attributes"]
-        else:
-            if "attributes" in kwargs:
-                new_state["attributes"].update(kwargs["attributes"])
-
-
-
-        # Update AppDaemon's copy
-
-        self.AD.set_app_state(namespace, entity_id, new_state)
-
-        return new_state
-
-    #
-    # Utility
-    #
-    def entity_exists(self, entity_id, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        return self.AD.entity_exists(namespace, entity_id)
-
-    def split_entity(self, entity_id, **kwargs):
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
-        return entity_id.split(".")
-        
-    def split_device_list(self, list_):
-        return list_.split(",")
-
-    def log(self, msg, level="INFO"):
-        msg = self._sub_stack(msg)
-        self.AD.log(level, msg, self.name)
-
-    def error(self, msg, level="WARNING"):
-        msg = self._sub_stack(msg)
-        self.AD.err(level, msg, self.name)
-
-    def get_plugin_config(self, **kwargs):
-        namespace = self._get_namespace(**kwargs)
-        return self.AD.get_plugin_meta(namespace)
-        
     #
     # service calls
     #
-    def mqtt_publish(self, topic, payload = None, **kwargs):
+    def mqtt_publish(self, topic, payload=None, **kwargs):
+        """Publishes a message to a MQTT broker.
+
+        This helper function used for publishing a MQTT message to a broker, from within
+        an AppDaemon app. It uses configuration specified in the plugin configuration which
+        simplifies the call within the App significantly.
+
+        Different brokers can be accessed within an app, as long as they are
+        all declared when the plugins are configured, and using the ``namespace``
+        parameter.
+
+        Args:
+            topic (str): topic the payload is to be sent to on the broker
+                (e.g., ``homeassistant/bedroom/light``).
+            payload: data that is to be sent to on the broker (e.g., ``'ON'``).
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            qos (int, optional): The Quality of Service (QOS) that is to be used when sending
+                the data to the broker. This is has to be an integer (Default value: ``0``).
+            retain (bool, optional): This flag is used to specify if the broker is to retain the
+                payload or not (Default value: ``False``).
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+
+        Send data to the default HA broker.
+
+        >>> self.mqtt_publish("homeassistant/bedroom/light", "ON")
+
+        Send data to a different broker.
+
+        >>> self.mqtt_publish("homeassistant/living_room/light", "ON", qos = 0, retain = True, namepace = "mqtt2")
+
+        """
+
         kwargs['topic'] = topic
         kwargs['payload'] = payload
-        service = 'publish'
+        service = 'mqtt/publish'
         result = self.call_service(service, **kwargs)
         return result
 
     def mqtt_subscribe(self, topic, **kwargs):
+        """Subscribes to a MQTT topic.
+
+        This helper function used for subscribing to a topic on a broker,
+        from within an AppDaemon App.
+
+        This allows the apps to now access events from that topic, in realtime.
+        So outside the initial configuration at plugin config, this allows access
+        to other topics while the apps runs. It should be noted that if AppDaemon
+        was to reload, the topics subscribed via this function will not be available
+        by default. On those declared at the plugin config will always be available.
+        It uses configuration specified in the plugin configuration which simplifies
+        the call within the app significantly.
+
+        Different brokers can be accessed within an app, as long as they are
+        all declared when the plugins are configured, and using the ``namespace``
+        parameter.
+
+        Args:
+            topic (str): The topic to be subscribed to on the broker
+                (e.g., ``homeassistant/bedroom/light``).
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.mqtt_subscribe("homeassistant/bedroom/light")
+
+        """
+
         kwargs['topic'] = topic
-        service = 'subscribe'
+        service = 'mqtt/subscribe'
         result = self.call_service(service, **kwargs)
         return result
 
     def mqtt_unsubscribe(self, topic, **kwargs):
+        """Unsubscribes from a MQTT topic.
+
+        A helper function used to unsubscribe from a topic on a broker,
+        from within an AppDaemon app.
+
+        This denies the Apps access events from that topic, in realtime.
+        It is possible to unsubscribe from topics, even if they were part
+        of the topics in the plugin config; but it is not possible to
+        unsubscribe ``#``. It should also be noted that if AppDaemon was
+        to reload, the topics unsubscribed via this function will be available
+        if they were configured with the plugin by default. It uses
+        configuration specified in the plugin configuration which simplifies
+        the call within the app significantly.
+
+        Different brokers can be accessed within an app, as long as they are
+        all declared when the plugins are configured, and using the ``namespace``
+        parameter.
+
+        Args:
+            topic (str): The topic to be unsubscribed from on the broker
+                (e.g., ``homeassistant/bedroom/light``).
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> self.mqtt_unsubscribe("homeassistant/bedroom/light")
+
+        """
+
         kwargs['topic'] = topic
-        service = 'unsubscribe'
+        service = 'mqtt/unsubscribe'
         result = self.call_service(service, **kwargs)
         return result
+    
+    @utils.sync_wrapper
+    async def is_client_connected(self, **kwargs):
+        """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 
-    def call_service(self, service, **kwargs):
-        self.AD.log(
-            "DEBUG",
-            "call_service: {}, {}".format(service, kwargs)
-        )
-        
+        This a helper function used to check or confirm within an app if the plugin is connected
+        to its broker. This can be useful, if it is necessary to be certain the client is connected,
+        so if not the app can internally store the data in a queue, and wait for connection before
+        sending the data.
+
+        Different brokers can be accessed within an app, as long as they are
+        all declared when the plugins are configured, and using the ``namespace``
+        parameter.
+
+        Args:
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            Check if client is connected, and send data.
+            >>> if self.clientConnected():
+            >>>     self.mqtt_publish(topic, payload)
+
+            Check if client is connected in mqtt2 namespace, and send data.
+
+            >>> if self.clientConnected(namespace = 'mqtt2'):
+            >>>     self.mqtt_publish(topic, payload, namespace = 'mqtt2')
+
+        """
         namespace = self._get_namespace(**kwargs)
-
-        if 'topic' in kwargs:
-            try:
-                result = self.AD.get_plugin(namespace).mqtt_service(service, **kwargs)
-                
-            except Exception as e:
-                config = self.AD.get_plugin(namespace).config
-                if config['type'] == 'mqtt':
-                    self.AD.log('DEBUG', 'Got the following Error {}, when trying to retrieve Mqtt Plugin'.format(e))
-                    self.error('Got error with the following {}'.format(e))
-                    return str(e)
-                else:
-                    self.AD.log('CRITICAL', 'Wrong Namespace {!r} selected for MQTT Service. Please use proper namespace before trying again'.format(namespace))
-                    self.error('Could not execute Service Call, as wrong Namespace {!r} used'.format(namespace))
-                    return 'ERR'
-        else:
-            self.AD.log('DEBUG', 'Topic not provided for Service Call {!r}.'.format(service))
-            raise ValueError("Topic not provided, please provide Topic for Service Call")
-            return 'ERR'
-
-        return result
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        return await plugin.mqtt_client_state()

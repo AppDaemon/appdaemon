@@ -15,19 +15,6 @@
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
     <meta name="theme-color" content="#ffffff">
-    {% if main is defined %}
-		<title>Welcome to HADashboard</title>
-		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
-	{% elif dash_list is defined%}
-		<title>Dashboard Not Found</title>
-		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
-    {% elif logon is defined %}
-		<title>Logon to HADashboard</title>
-		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">
-	{% elif errors %}
-		<title>Dashboard Has Errors</title>
-		<link rel="stylesheet" type="text/css" href="css/non_dashboard.css">  
-	{%else%}
 	<title>{{ title }}</title>
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-web-app-capable" content="yes">	
@@ -55,75 +42,21 @@
     <script type="text/javascript" src="javascript/rickshaw.min.js"></script>
     <script type="text/javascript" src="javascript/gauge.min.js"></script>
 	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
+    <script type="text/javascript" src="javascript/socket.io.js"></script>
 	<script type="text/javascript" src="javascript/dashboard.js"></script>
 	<script type="text/javascript" src="compiled_javascript/application.js"></script>
 	<script type="text/javascript" src="compiled_javascript/{{skin}}/{{name}}_init.js"></script>
-	{%endif%}
 
     {{  head_includes }}
 
 </head>
 <body>
     {{ body_includes }}
-	{% if dash_list is defined or errors%}
-		<div id="backgroundImage">
-        <div class="main">
-        <h1><img src="images/favicon-32x32.png">&nbsp;HADashboard</h1>
-        <br>Welcome to HADashboard for Home Assistant.</br>
-        {% if main is defined %}
-        {% else %}
-             <br>I'm sorry, your Dashboard has an error or was not found - check the log for details</br>        
-        {% endif %}
-        {% if dash_list %}
-            <br>The following Dashboards are available:</br>
-            <ul id="dashes">
-            {% for item in dash_list %}
-                <li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
-            {% endfor %}
-            <script type="text/javascript">
-            function logout()
-{
-    document.cookie = "adcreds" + '=;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    window.location.href = "/";
-};
-            </script>
-            <input type="submit" value="Logout" onclick="javascript:logout()">
-
-        {% else %}
-            <br>No dashboards were found</br>
-        {%endif%}
-        {% if errors %}
-            <div>
-            <h1>Your Dashboard has the following errors:</h1>
-            {% for item in errors %}
-            <br>{{ item }}
-            {% endfor %}
-            </div>
-        {%endif%}
-        </div>
-        </div>
-        <div class="iconattrib">Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-    {% elif logon is defined %}
-        <div id="backgroundImage">
-        <div class="main">
-        <h1><img src="/images/favicon-32x32.png">&nbsp;HADashboard</h1>
-        <br>Welcome to HADashboard for Home Assistant.</br>
-        <br/>
-        <section class="loginform cf">
-        <form name="login" action="/logon" method="post" accept-charset="utf-8">
-            <label for="password">Dashboard Password</label>
-            <input type="password" name="password" placeholder="password" required>
-            <br/>
-            <input type="submit" value="Login">
-        </form>
-        </section>
-    {% else %}
             <div class="dasboard-main" id="container">
             <div class="gridster">
 			<ul>
 			</ul>
             </div>
             </div>
-	{%endif%}
 </body>
 </html>

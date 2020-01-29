@@ -1,6 +1,6 @@
-widget_type: baseiframe
+widget_type: basecamera
 fields:
-  title: {{title}}
+  title: "{{title}}"
   frame_src: ""
   img_src: ""
   frame_style: '{{frame_style}}'

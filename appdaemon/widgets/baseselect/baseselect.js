@@ -55,14 +55,23 @@ function baseselect(widget_id, url, skin, parameters)
     function OnStateAvailable(self, state)
     {    
         self.state = state;
-        set_options(self, state.attributes.options, state);
+        self.options = state.attributes.options
+        set_options(self, self.options, state);
         set_value(self, state)
     }
  
     function OnStateUpdate(self, state)
     {
-        self.state = state.state;
-        set_value(self, state)
+        if (self.options != state.attributes.options)
+        {
+            self.options = state.attributes.options
+            set_options(self, self.options, state);
+        }
+        if (self.state != state.state)
+        { 
+            self.state = state.state;
+            set_value(self, state);
+        }      
     }
 
     function set_value(self, state)

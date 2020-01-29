@@ -1,10 +1,10 @@
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 import globals
 
 #
 # App to turn lights on when motion detected then off again after a delay
 #
-# Use with constrints to activate only for the hours of darkness
+# Use with constraints to activate only for the hours of darkness
 #
 # Args:
 #

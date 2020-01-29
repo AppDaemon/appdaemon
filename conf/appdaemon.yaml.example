@@ -1,12 +1,11 @@
-log:
-  logfile: STDOUT
-  errorfile: STDERR
 appdaemon:
-  threads: 10
   plugins:
     HASS:
       type: hass
       ha_url:
       token:
+http:
+  url:
+admin:
+api:
 hadashboard:
-  dash_url:

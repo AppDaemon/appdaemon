@@ -1,6 +1,3 @@
-.widget-baseinputnumber-{{id}} {
-	position: relative;
-}
 .widget-baseinputnumber-{{id}} .title {
     position: absolute;
     top: 5px;

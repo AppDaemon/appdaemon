@@ -1,6 +1,6 @@
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 #
-# Hellow World App
+# Hello World App
 #
 # Args:
 #

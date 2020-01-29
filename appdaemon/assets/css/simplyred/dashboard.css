@@ -71,7 +71,7 @@ h1 {
   font-weight: 200;
 }
 h1.hidden {
-  display: none;	
+  display: none;
 }
 h2 {
   font-size: 300%;
@@ -124,7 +124,7 @@ h3 {
 
 .iframe {
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
   border-radius: 10px;
@@ -166,7 +166,7 @@ h3 {
 
   .icon-inactive {
     color: #888;
-    
+
   }
 
   .icon-active {

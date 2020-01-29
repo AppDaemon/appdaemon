@@ -1,2 +1,10 @@
 .git
+.gitignore
+
 Dockerfile
+.dockerignore
+
+*.md
+!README*.md
+*.rst
+docs

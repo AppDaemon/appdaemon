@@ -6,15 +6,15 @@ enable: 0
 state_text: 1
 post_service_active:
     service: device_tracker/see
-    dev_id: {{device}}
+    dev_id: "{{device}}"
     location_name: home
 post_service_inactive:
     service: device_tracker/see
-    dev_id: {{device}}
+    dev_id: "{{device}}"
     location_name: not_home
 fields:
-  title: {{title}}
-  title2: {{title2}}
+  title: "{{title}}"
+  title2: "{{title2}}"
   icon: ""
   icon_style: ""
   state_text: ""

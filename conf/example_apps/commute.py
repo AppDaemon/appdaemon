@@ -1,4 +1,4 @@
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 
 #
 # App to send email alert if commute time is too long
@@ -8,7 +8,7 @@ import appdaemon.plugins.hass.hassapi as hass
 # time = time the alert will be sent
 # limit = number of minutes over which the alert will be sent
 # notify - list of notification services to be notified
-# sesor - sensor to get the commute time from
+# sensor - sensor to get the commute time from
 #
 # None
 #
@@ -31,4 +31,4 @@ class Commute(hass.Hass):
         message = "Commute warning - current travel time from work to home is {} minutes".format(commute)
         self.log(message)
         for destination in self.args["notify"]:
-            self.notify(message, title="Commute Warning", name = destination)
+            self.notify(message, title="Commute Warning", name=destination)

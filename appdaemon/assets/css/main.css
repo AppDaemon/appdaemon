@@ -1,0 +1,330 @@
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  background-color: #eeeeee;
+  color: #000000;
+  font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', 'Arial'
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+
+#backgroundImage{z-index: 1;}
+
+#backgroundImage:before {
+   content: "";
+   position: absolute;
+   z-index: -1;
+   top: 0;
+   bottom: 0;
+   left: 0;
+   right: 0;
+   background-image: url("/images/android-chrome-512x512.png");
+   background-repeat: no-repeat;
+   background-size: 100%;
+   opacity: 0.1;
+   filter:alpha(opacity=40);
+   height:100%;
+   width:100%;
+ }
+
+.log_panel{
+    background-color: #d7e8ef;
+    color: #000000;
+}
+
+.main{
+   height:320px;
+   width:80%;
+   margin:auto;
+   z-index:-1;
+   opacity: 1;
+   filter:alpha(opacity=100);
+}
+
+.iconattrib {
+   font-size: 15px;
+   position: absolute;
+   bottom: 0;
+   left: 20px;
+}
+
+input[type="submit"] {
+   border: 0;
+   background: none;
+   background-color: #d7e8ef;
+   color: #000000;
+   box-shadow:none;
+   border-radius: 2px;
+}
+
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #ccc;
+}
+
+/* Style the main tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+/* Style the entity tab content */
+.entitytabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+    white-space: pre-wrap;
+}
+
+/* Style the log tab content */
+.logtabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+    font-family: "Courier New", Courier, monospace;
+    white-space: pre-wrap;
+}
+
+table {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+.table-list .caret:after { content:""; }
+.asc .caret:after {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 3px solid #808080;
+  content: "";
+  position: relative;
+  top: -3px;
+  right: -4px;
+  font-size:0; }
+.desc .caret:after {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 3px solid #808080;
+  content: "";
+  position: relative;
+  top: -4px;
+  right: -4px;
+  font-size:0; }
+
+button.sort .caret { display:none; }
+button.sort.asc .caret { display:inline-block; }
+button.sort.desc .caret { display:inline-block; }
+
+.sort:hover {
+cursor: pointer;
+}
+/* Table Styles */
+
+/* Header */
+
+.header {
+    border: none;
+    vertical-align: center;
+    table-layout: auto;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.header td {
+    border: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-icon {
+    alignment: left;
+    width: 50px;
+}
+
+.header-title {
+    alignment: left;
+}
+
+.header-logout {
+    alignment: right;
+    width: 1%;
+}
+
+.header-list {
+    alignment: right;
+    width: 1%;
+}
+
+
+/* AppDaemon Tab */
+
+.appdaemon-text
+{
+    width: 100px;
+}
+
+
+
+/* Apps Tab */
+
+.apps
+{
+    table-layout: fixed;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.apps td
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Entities Tab */
+
+.entities
+{
+    table-layout: fixed;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.entities td
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Plugins Tab */
+
+.plugins
+{
+    table-layout: fixed;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.plugins td
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Modules Tab */
+
+.modules
+{
+    table-layout: fixed;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.modules td
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Threads Tab */
+
+.threads
+{
+    table-layout: fixed;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.threads td
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ts
+{
+    width: 50px;
+}
+
+/* Callbacks Tab */
+
+.callbacks
+{
+    table-layout: fixed;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.callbacks td
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tooltiptext {
+    visibility: hidden;
+    border: 1px solid black;
+    width: auto;
+    max-width: 750px;
+    min-height: 50px;
+    height: auto;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: break-word;
+    background-color: #d7e8ef;
+    color: #000;
+    padding: 5px 5px;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 1;
+}

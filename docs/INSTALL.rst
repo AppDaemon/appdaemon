@@ -4,7 +4,7 @@ Installation
 Installation is either by pip3 or Docker. There is also an official
 hass.io build.
 
-Note: Windows and Raspbian users should check the environment specific section at the end of this doc for additional information.
+Note: Windows and Raspbian users should check the environment-specific section at the end of this doc for additional information.
 
 Install and Run using Docker
 ----------------------------
@@ -21,7 +21,7 @@ Before running ``AppDaemon`` you will need to install the package:
     $ sudo pip3 install appdaemon
 
 
-**Do not** install this in the same Python virtual environment as Home Assistant. If you do that then Home Assistant will stop working.
+**Do not** install this in the same Python virtual environment as Home Assistant. If you do that, then Home Assistant will stop working.
 
 Install Using hass.io
 ---------------------
@@ -30,76 +30,13 @@ The official hass.io addon for AppDaemon is maintained by:
 
 - `frenck <https://github.com/hassio-addons/repository>`__.
 
-
-Running a Dev Version
----------------------
-
-For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. You do this at your own risk, and be aware that although I try to keep things consistent and functional, I can't guarantee that I won't break things in the dev version - if this happens you are on your own!
-
-Also, note, that to run a dev version you should be using the PIP install method. Docker builds are created for dev too, but there is no hass.io support.
-
-To run a PIP install method dev version follow these steps:
-
-Clone the Repository
-~~~~~~~~~~~~~~~~~~~~
-
-First we need to get a clean copy of the dev branch. To do this, create a fresh directory, and change into it. Run the following command to clone the dev branch of the AppDaemon repository:
-
-.. code:: bash
-
-    $ git clone -b dev https://github.com/home-assistant/appdaemon.git
-
-This will create a directory called ``appdaemon`` - this is your repository directory and all commands will need to be run from inside it.
-
-Run AppDaemon from the command line
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Now that you have a local copy of the code, the next step is to run AppDaemon using that code.
-
-As a first step, if you are using a Virtual Environment enable it. The best practice here is to use a venv specifically for the dev version; it is possible that the dev branch may have updated dependencies that will be incompatible with the latest stable version, and may break it.
-
-To run the cloned version of AppDaemon, make sure you are in the ``appdaemon`` subdirectory and run the following command:
-
-.. code:: bash
-
-    $ python3 -m appdaemon.admain -c <PATH To CONFIG DIRECTORY>
-
-In most cases it is possible to share config directories with other AppDaemon instances, but beware of apps that use new features as they will likely cause errors for the stable version. If you prefer, you can create an entirely new conf directory for your dev environment.
-
-Install AppDamon via PIP (Optional)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Although the reccomended way of running a dev build is to use the command line above, it is possible to install an appdaemon dev build as a pip package. If you do so, it will replace your stable version, so only do this if you are confident with packages and venvs - if you use a specific venv for the dev build this should not be an issue. Also, remember that if you do this you will need to reinstall the package as an extra step every time you refresh the dev repository (see below).
-
-To install the dev build as a package, change to the ``appdaemon`` directory and run the following command:
-
-.. code:: bash
-
-    $ pip3 install .
-
-Updating AppDaemon to the latest dev version
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When the dev version has been updated and you want to pull over the latest changes, run the following command from the ``appdeamon`` directory:
-
-.. code:: bash
-
-    $ git pull
-
-You can then immediately run the latest version with the command line above. If you are using pip, remember to run the install command again, using the ``--upgrade flag``:
-
-.. code:: bash
-
-    $ pip3 install --upgrade .
-
-
 Running
 -------
 
 Docker
 ~~~~~~
 
-Assuming you have set the config up as described in the tutotial for
+Assuming you have set the config up as described in `the tutorial <DOCKER_TUTORIAL.html>`_ for
 Docker, you should see the logs output as follows:
 
 .. code:: bash
@@ -138,8 +75,8 @@ AppDaemon arguments
 
 ::
 
-    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TICK] [-s STARTTIME]
-                     [-e ENDTIME] [-i INTERVAL]
+    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
+                     [-e ENDTIME]
                      [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v] [-d]
 
     optional arguments:
@@ -148,13 +85,11 @@ AppDaemon arguments
                             full path to config diectory
       -p PIDFILE, --pidfile PIDFILE
                             full path to PID File
-      -t TICK, --tick TICK  time in seconds that a tick in the schedular lasts
+      -t TIMEWARP, --timewarp multiplication factor for the scheduler time (see Time TraveL)
       -s STARTTIME, --starttime STARTTIME
                             start time for scheduler <YYYY-MM-DD HH:MM:SS>
       -e ENDTIME, --endtime ENDTIME
                             end time for scheduler <YYYY-MM-DD HH:MM:SS>
-      -i INTERVAL, --interval INTERVAL
-                            multiplier for scheduler tick
       -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                             debug level
       -v, --version         show program's version number and exit
@@ -180,8 +115,8 @@ documentation.
 Starting At Reboot
 ------------------
 
-To run ``AppDaemon`` at reboot, you can set it up to run as a systemd
-service as follows.
+To run ``AppDaemon`` at reboot, you can set it up to run as a ``systemd
+service`` as follows.
 
 Add Systemd Service (appdaemon@appdaemon.service)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,7 +128,7 @@ First, create a new file using vi:
     $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
 
 Add the following, making sure to use the correct full path for your
-config directory. Also make sure you edit the ``User`` to a valid user
+config directory. Also, make sure you edit the ``User`` to a valid user
 to run AppDaemon, usually the same user as you are running Home
 Assistant with is a good choice.
 
@@ -209,7 +144,7 @@ Assistant with is a good choice.
     [Install]
     WantedBy=multi-user.target
 
-The above should work for hasbian, but if your homeassistant service is
+The above should work for hasbian, but if your ``homeassistant`` service is
 named something different you may need to change the ``After=`` lines to
 reflect the actual name.
 
@@ -238,12 +173,12 @@ If you are using docker, refer to the steps in the tutorial.
 Windows Support
 ---------------
 
-AppDaemon runs under windows and has been tested with the official 3.5.2
-release of python. There are a couple of caveats however:
+AppDaemon runs under windows and has been tested with the official 3.8.1
+release of python. However, there are a couple of caveats:
 
 -  The ``-d`` or ``--daemonize`` option is not supported owing to
    limitations in the Windows implementation of Python.
--  Some internal diagnostics are disabled. This is not user visible but
+-  Some internal diagnostics are disabled. This is not user-visible but
    may hamper troubleshooting of internal issues if any crop up
 
 AppDaemon can be installed exactly as per the instructions for every
@@ -254,7 +189,7 @@ Windows Under the Linux Subsystem
 
 Windows 10 now supports a full Linux bash environment that is capable of
 running Python. This is essentially an Ubuntu distribution and works
-extremely well. It is possible to run AppDaemon in exactly the same way
+extremely well. It is possible to run AppDaemon in the same way
 as for Linux distributions, and none of the above Windows Caveats apply
 to this version. This is the recommended way to run AppDaemon in a
 Windows 10 and later environment.
@@ -274,32 +209,29 @@ Raspberry Pi Docker
 -------------------
 
 Since the official Docker image isn't compatible with raspberry Pi, you will need to build your own docker image
-from the downloaded repository. The Dockerfile also needs a couple of changes:
-
-1. Change the image line to use a Resin image:
-
-``FROM arm32v7/python:3.6``
-
-2. Change the ``RUN`` line to the following:
-
-``RUN pip3 install requests && pip3 install .``
-
-You can then build and run a docker image locally as follows:
+from the downloaded repository.
 
 .. code:: bash
+
     $ git clone https://github.com/home-assistant/appdaemon.git
     $ cd appdaemon
+
+You can then build and run the docker image locally as follows:
+
+.. code:: bash
+
     $ docker build -t appdaemon .
-    $ docker run -t -i --name=appdaemon -p 5050:5050 \
-      -e HA_URL="<Your HA URL>" \
-      -e HA_KEY="<your HA Key>" \
-      -e DASH_URL="<Your DASH URL>" \
-      -v <Your AppDaemon conf dir>:/conf \
+    $ docker run --name=appdaemon -d -p 5050:5050 \
+      --restart=always \
+      -e HA_URL="<Your HA_URL value>" \
+      -e TOKEN="<your TOKEN value>" \
+      -e DASH_URL="http://$HOSTNAME:5050" \
+      -v <your_conf_folder>:/conf \
       appdaemon:latest
 
 For more information on running AppDaemon under Docker, see the Docker Tutorial. The key difference is that
 you will be running a locally built instance of AppDaemon rather than one from Docker Hub, so for run commands,
-make usre yo uspecify "appdaemon:latest" as the image, as above, rather than "acockburn/appdaemon:latest" as the tutorial states.
+make sure to specify "appdaemon:latest" as the image, as above, rather than "acockburn/appdaemon:latest" as the tutorial states.
 
 At the time of writing, @torkildr is maintaining a linked Raspberry Pi image here:
 

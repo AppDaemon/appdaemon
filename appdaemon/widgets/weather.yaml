@@ -37,11 +37,11 @@ entities:
   pressure: sensor.dark_sky_pressure
   wind_speed: sensor.dark_sky_wind_speed
   wind_bearing: sensor.dark_sky_wind_bearing
-  forecast_icon: sensor.dark_sky_icon_1
-  forecast_temperature_min: sensor.dark_sky_daily_low_temperature_1
-  forecast_temperature_max: sensor.dark_sky_daily_high_temperature_1
-  forecast_precip_probability: sensor.dark_sky_precip_probability_1
-  forecast_precip_type: sensor.dark_sky_precip_1
+  forecast_icon: sensor.dark_sky_icon_1d
+  forecast_temperature_min: sensor.dark_sky_daily_low_temperature_1d
+  forecast_temperature_max: sensor.dark_sky_daily_high_temperature_1d
+  forecast_precip_probability: sensor.dark_sky_precip_probability_1d
+  forecast_precip_type: sensor.dark_sky_precip_1d
 css: []
 static_css:
   title_style: $weather_sub_style

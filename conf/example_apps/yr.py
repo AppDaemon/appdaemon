@@ -1,4 +1,4 @@
-import appdaemon.plugins.hass.hassapi as hass
+import hassapi as hass
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
@@ -24,7 +24,7 @@ class Yr(hass.Hass):
         self.entity = self.args['event']
         self.hours = self.args['hours']
 
-        inOneMinute = datetime.now() + timedelta(minutes = 1)
+        inOneMinute = datetime.now() + timedelta(minutes=1)
         interval = int(self.args['interval'])
 
         if interval < 10:

@@ -2,21 +2,20 @@ import yaml
 import asyncio
 import copy
 
-import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
+from appdaemon.plugin_management import PluginBase
 
-class DummyPlugin:
+class DummyPlugin(PluginBase):
 
-    def __init__(self, ad, name, logger, error, loglevel,args):
+    def __init__(self, ad: AppDaemon, name, args):
+        super().__init__(ad, name, args)
 
         self.AD = ad
-        self.logger = logger
-        self.error = error
         self.stopping = False
-        self.loglevel = loglevel
         self.config = args
         self.name = name
 
-        self.AD.log("INFO", "Dummy Plugin Initializing", "DUMMY")
+        self.logger.info("Dummy Plugin Initializing", "DUMMY")
 
         self.name = name
 
@@ -25,39 +24,29 @@ class DummyPlugin:
         else:
             self.namespace = "default"
 
-        if "verbose" in args:
-            self.verbose = args["verbose"]
-        else:
-            self.verbose = False
-
         with open(args["configuration"], 'r') as yamlfd:
             config_file_contents = yamlfd.read()
         try:
             self.config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
         except yaml.YAMLError as exc:
-            self.AD.log("WARNING", "Error loading configuration")
+            self.logger.warning("Error loading configuration")
             if hasattr(exc, 'problem_mark'):
                 if exc.context is not None:
-                    self.AD.log("WARNING", "parser says")
-                    self.AD.log("WARNING", str(exc.problem_mark))
-                    self.AD.log("WARNING", str(exc.problem) + " " + str(exc.context))
+                    self.logger.warning("parser says")
+                    self.logger.warning(str(exc.problem_mark))
+                    self.logger.warning(str(exc.problem) + " " + str(exc.context))
                 else:
-                    self.AD.log("WARNING", "parser says")
-                    self.AD.log("WARNING", str(exc.problem_mark))
-                    self.AD.log("WARNING", str(exc.problem))
+                    self.logger.warning("parser says")
+                    self.logger.warning(str(exc.problem_mark))
+                    self.logger.warning(str(exc.problem))
 
         self.state = self.config["initial_state"]
         self.current_event = 0
 
-        self.AD.log("INFO", "Dummy Plugin initialization complete")
-
-    def log(self, text):
-        if self.verbose:
-            self.AD.log("INFO", "{}: {}".format(self.name, text))
-
+        self.logger.info("Dummy Plugin initialization complete")
 
     def stop(self):
-        self.log("*** Stopping ***")
+        self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
 
     #
@@ -65,7 +54,7 @@ class DummyPlugin:
     #
 
     async def get_complete_state(self):
-        self.log("*** Sending Complete State: {} ***".format(self.state))
+        self.logger.debug("*** Sending Complete State: {} ***".format(self.state))
         return copy.deepcopy(self.state)
 
     async def get_metadata(self):
@@ -83,18 +72,16 @@ class DummyPlugin:
 
     def utility(self):
         pass
-        #self.log("*** Utility ***".format(self.state))
+        #self.logger.debug("*** Utility ***".format(self.state))
 
-    def active(self):
-        return True
     #
     # Handle state updates
     #
 
     async def get_updates(self):
-        await self.AD.notify_plugin_started(self.namespace, True)
+        await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True)
         while not self.stopping:
-            ret = None
+
             if self.current_event >= len(self.config["sequence"]["events"]) and ("loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]):
                 while not self.stopping:
                     await asyncio.sleep(1)
@@ -117,24 +104,24 @@ class DummyPlugin:
                                     "old_state": old_state
                                 }
                         }
-                    self.log("*** State Update: {} ***".format(ret))
-                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
+                    self.logger.debug("*** State Update: %s ***", ret)
+                    await self.AD.state.process_event(self.namespace, copy.deepcopy(ret))
                 elif "event" in event:
                     ret = \
                         {
                             "event_type": event["event"]["event_type"],
                             "data": event["event"]["data"],
                         }
-                    self.log("*** Event: {} ***".format(ret))
-                    self.AD.state_update(self.namespace, copy.deepcopy(ret))
+                    self.logger.debug("*** Event: %s ***", ret)
+                    await self.AD.state.process_event(self.namespace, copy.deepcopy(ret))
 
                 elif "disconnect" in event:
-                    self.log("*** Disconnected ***".format(ret))
-                    self.AD.notify_plugin_stopped(self.namespace)
+                    self.logger.debug("*** Disconnected ***")
+                    self.AD.plugins.notify_plugin_stopped(self.namespace)
 
                 elif "connect" in event:
-                    self.log("*** Connected ***".format(ret))
-                    await self.AD.notify_plugin_started(self.namespace)
+                    self.logger.debug("*** Connected ***")
+                    await self.AD.plugins.notify_plugin_started(self.namespace)
 
                 self.current_event += 1
                 if self.current_event >= len(self.config["sequence"]["events"]) and "loop" in self.config["sequence"] and self.config["sequence"]["loop"] == 1:
@@ -144,8 +131,8 @@ class DummyPlugin:
     # Set State
     #
 
-    def set_state(self, entity, state):
-        self.log("*** Setting State: {} = {} ***".format(entity, state))
+    def set_plugin_state(self, entity, state, **kwargs):
+        self.logger.debug("*** Setting State: %s = %s ***", entity, state)
         self.state[entity] = state
 
     def get_namespace(self):

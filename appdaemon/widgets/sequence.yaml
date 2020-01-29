@@ -1,0 +1,33 @@
+widget_type: baseswitch
+entity: "{{entity}}"
+state_inactive: "idle"
+state_active: "active"
+enable: 1
+momentary: 1000
+ignore_state: 1
+resident_namespace: rules
+post_service_active:
+    service: sequence/run
+    entity_id: "{{entity}}"
+    resident_namespace: rules
+post_service_inactive:
+    service: sequence/run
+    entity_id: "{{entity}}"
+fields:
+  title: "{{title}}"
+  title2: "{{title2}}"
+  icon: ""
+  icon_style: ""
+  state_text: ""
+icons:
+  icon_on: $sequence_icon_on
+  icon_off: $sequence_icon_off
+static_icons: []
+css:
+  icon_style_active: $sequence_icon_style_active
+  icon_style_inactive: $sequence_icon_style_inactive
+static_css:
+  title_style: $sequence_title_style
+  title2_style: $sequence_title2_style
+  state_text_style: $sequence_state_text_style
+  widget_style: $sequence_widget_style

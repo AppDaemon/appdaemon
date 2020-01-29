@@ -35,10 +35,10 @@ fi
 
 # if ENV DASH_URL is set, change the value in appdaemon.yaml
 if [ -n "$DASH_URL" ]; then
-  if grep -q "^  dash_url" $CONF/appdaemon.yaml; then
-    sed -i "s/^  dash_url:.*/  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+  if grep -q "^  url" $CONF/appdaemon.yaml; then
+    sed -i "s/^  url:.*/  url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
   else
-    sed -i "s/# Apps/HADashboard:\r\n  dash_url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')\r\n# Apps/" $CONF/appdaemon.yaml
+    sed -i "s/# Apps/HADashboard:\r\n  url: $(echo $DASH_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')\r\n# Apps/" $CONF/appdaemon.yaml
   fi
 fi
 
@@ -46,4 +46,4 @@ fi
 find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
 
 # Lets run it!
-exec appdaemon -c $CONF $EXTRA_CMD
+exec appdaemon -c $CONF "$@"

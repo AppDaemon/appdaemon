@@ -2,9 +2,9 @@ AppDaemon Tutorial for HASS Users
 =================================
 
 AppDaemon is a subsystem to complement Home Assistant's
-Automation and Scripting components. ``AppDaemon`` is a python daemon
+Automation and Scripting components. AppDaemon, is a Python daemon
 that consumes events from Home Assistant and feeds them to snippets of
-python code called "Apps". An App is a Python class that is instantiated
+Python code called *Apps*. An App is a Python class that is instantiated
 possibly multiple times from AppDaemon and registers callbacks for
 various system events. It is also able to inspect and set state and call
 services. The API provides a rich environment suited to home automation
@@ -16,55 +16,55 @@ Another Take on Automation
 If you haven't yet read Paulus' excellent Blog entry on `Perfect Home
 Automation <https://home-assistant.io/blog/2016/01/19/perfect-home-automation/>`__
 I would encourage you to take a look. As a veteran of several Home
-Automation systems with varying degrees success, it was this article
+Automation systems with varying degrees of success, it was this article
 more than anything else that convinced me that Home Assistant had the
 right philosophy behind it and was on the right track. One of the most
 important points made is that being able to control your lights from
-your phone, 9 times out of 10 is harder than using a lightswitch - where
-Home Automation really comes into its own is when you start removing the
-need to use a phone or the switch - the "Automation" in Home Automation.
+your phone, 9 times out of 10 is harder than using a light switch. 
+However, Home Automation becomes helpful when you start removing the
+need to use a phone or the switch - the *Automation* in Home Automation.
 A surprisingly large number of systems out there miss this essential
 point and have limited abilities to automate anything which is why a
 robust and open system such as Home Assistant is such an important part
-of the equation in bring this all together in the vast and chaotic
-ecosystem that is the "Internet of Things".
+of the equation in bringing this all together in the vast and chaotic
+ecosystem that is the *Internet of Things*.
 
 So given the importance of Automation, what should Automation allow us
-to do? I am a pragmatist at heart so I judge individual systems by the
+to do? I am a pragmatist at heart, so I judge individual systems by the
 ease of accomplishing a few basic but representative tasks:
 
--  Can the system respond to presence or absence of people?
+-  Can the system respond to the presence or absence of people?
 -  Can I turn a light on at Sunset +/- a certain amount of time?
 -  Can I arrive home in light or dark and have the lights figure out if
    they should be on or off?
 -  As I build my system out, can I get the individual pieces to
-   co-operate and use and re-use (potentially complex) logic to make
+   co-operate and use and reuse (potentially complex) logic to make
    sure everything works smoothly?
 -  Is it open and expandable?
 -  Does it run locally without any reliance on the cloud?
 
 In my opinion, Home Assistant accomplishes the majority of these very
-well with a combination of Automations, Scripts and Templates, and its
+well with a combination of Automations, Scripts, and Templates, and its
 Restful API.
 
-So why ``AppDaemon``? AppDaemon is not meant to replace Home Assistant
+**So why AppDaemon**? AppDaemon is not meant to replace Home Assistant
 Automations and Scripts, rather complement them. For a lot of things,
 automations work well and can be very succinct. However, there is a
 class of more complex automations for which they become harder to use,
-and appdeamon then comes into its own. It brings quite a few things to
+and AppDaemon then comes into its own. It brings quite a few things to
 the table:
 
 -  New paradigm - some problems require a procedural and/or iterative
-   approach, and ``AppDaemon`` Apps are a much more natural fit for
+   approach, and `AppDaemon` Apps are a much more natural fit for
    this. Recent enhancements to Home Assistant scripts and templates
    have made huge strides, but for the most complex scenarios, Apps can
    do things that Automations can't
 -  Ease of use - AppDaemon's API is full of helper functions that make
    programming as easy and natural as possible. The functions and their
-   operation are as "Pythonic" as possible, experienced Python
+   operation are as *Pythonic* as possible, experienced Python
    programmers should feel right at home.
 -  Reuse - write a piece of code once and instantiate it as an app as
-   many times as you need with different parameters e.g. a motion light
+   many times as you need with different parameters e.g., a motion light
    program that you can use in 5 different places around your home. The
    code stays the same, you just dynamically add new instances of it in
    the config file
@@ -73,7 +73,7 @@ the table:
    thanks to its loose coupling. However, it is better than that - the
    user can make changes to code and AppDaemon will automatically reload
    the code, figure out which Apps were using it and restart them to use
-   the new code with out the need to restart ``AppDaemon`` itself. It is
+   the new code without the need to restart *AppDaemon* itself. It is
    also possible to change parameters for an individual or multiple apps
    and have them picked up dynamically, and for a final trick, removing
    or adding apps is also picked up dynamically. Testing cycles become a
@@ -86,20 +86,20 @@ the table:
 -  All the power of Python - use any of Python's libraries, create your
    own modules, share variables, refactor and re-use code, create a
    single app to do everything, or multiple apps for individual tasks -
-   nothing is off limits!
+   nothing is off-limits!
 
-It is in fact a testament to Home Assistant's open nature that a
-component like ``AppDaemon`` can be integrated so neatly and closely
-that it acts in all ways like an extension of the system, not a second
-class citizen. Part of the strength of Home Assistant's underlying
-design is that it makes no assumptions whatever about what it is
+It is, in fact, a testament to Home Assistant's open nature that a
+component like *AppDaemon* can be integrated so neatly and closely
+that it acts in all ways like an extension of the system, not a second-class citizen. 
+Part of the strength of Home Assistant's underlying
+design is that it makes no assumptions whatsoever about what it is
 controlling or reacting to, or reporting state on. This is made
 achievable in part by the great flexibility of Python as a programming
 environment for Home Assistant, and carrying that forward has enabled me
-to use the same philosophy for ``AppDaemon`` - it took surprisingly
+to use the same philosophy for *AppDaemon* - it took surprisingly
 little code to be able to respond to basic events and call services in a
-completely open ended manner - the bulk of the work after that was
-adding additonal functions to make things that were already possible
+completely open-ended manner - the bulk of the work after that was
+adding additional functions to make things that were already possible
 easier.
 
 How it Works
@@ -111,15 +111,15 @@ examples.
 Sunrise/Sunset Lighting
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Lets start with a simple App to turn a light on every night fifteen
+Let us start with a simple App to turn a light on every night fifteen
 minutes (900 seconds) before sunset and off every morning at sunrise.
 Every App when first started will have its ``initialize()`` function
 called which gives it a chance to register a callback for AppDaemons's
-scheduler for a specific time. In this case we are using
+scheduler for a specific time. In this case, we are using
 ``run_at_sunrise()`` and ``run_at_sunset()`` to register 2 separate
 callbacks. The named argument ``offset`` is the number of seconds offset
 from sunrise or sunset and can be negative or positive (it defaults to
-zero). For complex intervals it can be convenient to use Python's
+zero). For complex intervals, it can be convenient to use Python's
 ``datetime.timedelta`` class for calculations. In the example below,
 when sunrise or just before sunset occurs, the appropriate callback
 function, ``sunrise_cb()`` or ``before_sunset_cb()`` is called which
@@ -131,7 +131,7 @@ different scenes in a different version of the App.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class OutsideLights(hass.Hass):
 
@@ -151,13 +151,13 @@ we are just getting started.
 Motion Light
 ~~~~~~~~~~~~
 
-Our next example is to turn on a light when motion is detected and it is
+Our next example is to turn on a light when motion is detected, and it is
 dark, and turn it off after a period of time. This time, the
 ``initialize()`` function registers a callback on a state change (of the
 motion sensor) rather than a specific time. We tell AppDaemon that we
 are only interested in state changes where the motion detector comes on
 by adding an additional parameter to the callback registration -
-``new = "on"``. When the motion is detected, the callack function
+``new = "on"``. When the motion is detected, the callback function
 ``motion()`` is called, and we check whether or not the sun has set
 using a built-in convenience function: ``sun_down()``. Next, we turn the
 light on with ``turn_on()``, then set a timer using ``run_in()`` to turn
@@ -169,7 +169,7 @@ terms:
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class MotionLights(hass.Hass):
 
@@ -184,15 +184,14 @@ terms:
       def light_off(self, kwargs):
         self.turn_off("light.drive")
 
-This is starting to get a little more complex in Home Assistant
-automations requiring an Automation rule and two separate scripts.
+At this point, things are starting to get a little more complicated. 
+Home Assistant's automations require an Automation rule and two separate scripts.
 
-Now lets extend this with a somewhat artificial example to show
-something that is simple in AppDaemon but very difficult if not
-impossible using automations. Lets warn someone inside the house that
-there has been motion outside by flashing a lamp on and off 10 times. We
-are reacting to the motion as before by turning on the light and setting
-a timer to turn it off again, but in addition, we set a 1 second timer
+Let's use an artificial example to show something that is simple in AppDaemon 
+but very difficult if not impossible using automations. For example, we can 
+warn someone inside the house that there has been motion outside by flashing 
+a lamp on and off 10 times. We are reacting to the motion as before by turning 
+on the light and setting a timer to turn it off again, but also, we set a 1 second timer
 to run ``flash_warning()`` which when called, toggles the inside light
 and sets another timer to call itself a second later. To avoid
 re-triggering forever, it keeps a count of how many times it has been
@@ -200,7 +199,7 @@ activated and bales out after 10 iterations.
 
 .. code:: python
 
-    import appdaemon.plugins.hass.hassapi as hass
+    import hassapi as hass
 
     class FlashyMotionLights(hass.Hass):
 
@@ -223,13 +222,13 @@ activated and bales out after 10 iterations.
         if self.flashcount < 10:
           self.run_in(self.flash_warning, 1)
 
-Of course if I wanted to make this App or its predecessor reusable I
-would have provide parameters for the sensor, the light to activate on
+Of course, if I wanted to make this App or its predecessor reusable I
+would have provided parameters for the sensor, the light to activate on
 motion, the warning light and even the number of flashes and delay
 between flashes.
 
-In addition, Apps can write to ``AppDaemon``'s logfiles, and there is a
-system of constraints that allows yout to control when and under what
+In addition, Apps can write to *AppDaemon's* logfiles, and there is a
+system of constraints that allows you to control when and under what
 circumstances Apps and callbacks are active to keep the logic clean and
 simple.
 
@@ -237,7 +236,7 @@ Final Thoughts
 --------------
 
 I have spent the last few weeks moving all of my (fairly complex)
-automations over to ``AppDaemon`` and so far it is working very
+automations over to *AppDaemon* and so far it is working very
 reliably.
 
 Some people will maybe look at all of this and say "what use is this, I
@@ -248,25 +247,12 @@ potentially very complex automations.
 
 If this has whet your appetite, feel free to give it a try. You can find
 installation instructions, `here <INSTALL.rst>`__, including full
-installation instructions, an API reference, and a number of fully
-fleshed out examples.
+installation instructions, an API reference, and several fully
+fleshed-out `examples <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__ and
+`tutorials <COMMUNITY_TUTORIALS.rst>`__.
 
-Happy Automating!
+**Happy Automating!**
 
-Other Tutorials
----------------
-
-Here is a list of other tutorials that have been created by AppDaemon users:
-
-By Rene Tode:
-
-- `AppDaemon For Beginners <https://github.com/ReneTode/My-AppDaemon/tree/master/AppDaemon_for_Beginner>`__
-
-By Supahnoob:
-
-+ `AppDaemon Tutorial #1 Tracker-Notifier <https://community.home-assistant.io/t/appdaemon-tutorial-1-tracker-notifier/12545>`__
-+ `AppDaemon Tutorial #2 Errorlog Notifications <https://community.home-assistant.io/t/appdaemon-tutorial-2-errorlog-notifications/12907>`__
-+ `AppDaemon Tutorial #3 Utility Functions <https://community.home-assistant.io/t/appdaemon-tutorial-3-utility-functions/13247>`__
-+ `AppDaemon Tutorial #4 Libraries & Interactivity <https://community.home-assistant.io/t/appdaemon-tutorial-4-libraries-interactivity/14057>`__
+-- AppDaemon Team
 
 

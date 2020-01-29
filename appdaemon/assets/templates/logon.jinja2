@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<link rel="shortcut icon" href="images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="images/manifest.json">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Expires" content="0"/>
+    <meta name="theme-color" content="#ffffff">
+    <title>AppDaemon Logon</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-web-app-capable" content="yes">	
+    <meta name='mobile-web-app-capable' content='yes'>
+	<script type="text/javascript" src="javascript/admin.js"></script>
+</head>
+<body>
+        <div id="backgroundImage">
+        <div class="main">
+        <table class="header">
+            <tr>
+            <td class="header-icon"><a href="/"><img src="images/favicon-32x32.png"></a></td>
+            <td class="header-title"><a href="/">AppDaemon Logon</a></td>
+            <td class="header-list"></td>
+            <td class="header-logout"></td>
+            </tr>
+        </table>
+<br>
+
+        <br/>
+        <section class="loginform cf">
+        <form name="login" action="/logon_response" method="post" accept-charset="utf-8">
+            <label for="password">AppDaemon Password</label>
+            <input type="password" name="password" placeholder="password" required>
+            <input type="submit" value="Login">
+        </form>
+        </section>
+        </div>
+        </div>
+</body>
+</html>

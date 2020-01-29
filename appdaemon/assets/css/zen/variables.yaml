@@ -107,6 +107,15 @@ scene_title2_style: $style_title2
 scene_widget_style: $background_style
 scene_state_text_style: "color: red; font-weight: bold"
 
+sequence_icon_on: fas-square
+sequence_icon_off: fas-square
+sequence_icon_style_active: $style_active
+sequence_icon_style_inactive: $style_inactive
+sequence_title_style: $style_title
+sequence_title2_style: $style_title2
+sequence_widget_style: $background_style
+sequence_state_text_style: "color: red; font-weight: bold"
+
 mode_icon_on: fas-arrows-alt
 mode_icon_off: fas-arrows-alt
 mode_icon_style_active: $style_active
@@ -147,6 +156,15 @@ device_tracker_title_style: $style_title
 device_tracker_title2_style: $style_title2
 device_tracker_widget_style: $background_style
 device_tracker_state_text_style: "color: $red; font-weight: bold"
+
+person_icon_on: fas-user
+person_icon_off: fas-user
+person_icon_style_active: $style_active
+person_icon_style_inactive: $style_inactive
+person_title_style: $style_title
+person_title2_style: $style_title2
+person_widget_style: $background_style
+person_state_text_style: "color: $red; font-weight: bold"
 
 input_boolean_icon_on: fas-sliders-h
 input_boolean_icon_off: fas-sliders-h
@@ -412,3 +430,16 @@ heater_slider_style: ""
 heater_widget_style: $background_style
 heater_icon_style_active: $style_active
 heater_icon_style_inactive: $style_inactive
+
+input_text_title_style: $style_title
+input_text_title2_style: $style_title2
+input_text_text_style: "color: $white; font-size: 100%"
+input_text_widget_style: $background_style
+input_text_container_style: ""
+
+input_datetime_title_style: $style_title
+input_datetime_title2_style: $style_title2
+input_datetime_date_style: "color: $white; font-size: 100%"
+input_datetime_time_style: "color: $white; font-size: 100%"
+input_datetime_widget_style: $background_style
+input_datetime_container_style: ""

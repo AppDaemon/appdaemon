@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<link rel="shortcut icon" href="images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="images/manifest.json">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Expires" content="0"/>
+    <meta name="theme-color" content="#ffffff">
+	<title>Dashboard List</title>
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-web-app-capable" content="yes">	
+    <meta name='mobile-web-app-capable' content='yes'>
+	<script type="text/javascript" src="javascript/admin.js"></script>
+</head>
+<body>
+        <div id="backgroundImage">
+        <div class="main">
+        <table class="header">
+            <tr>
+            <td class="header-icon"><a href="/"><img src="images/favicon-32x32.png"></a></td>
+            <td class="header-title"><a href="/">AppDaemon Administration</a></td><td class="header-list"></td>
+            <td class="header-logout"><input type="submit" value="Logout" onclick="javascript:logout()"></td>
+    </tr>
+</table>
+<br>
+        {% if errors %}
+            <br>
+            The following errors occured when building your dashboard:<br><br>
+            <ul>
+            {% for error in errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+        {% if dash_list %}
+            <br>The following Dashboards are available:<br>
+            <ul>
+            {% for item in dash_list %}
+                <li><a href="{{ dash_list[item] }}">{{ item }}</a></li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <br>No dashboards were found</br>
+        {%endif%}
+        </div>
+        </div>
+        <div class="iconattrib">Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+</body>
+</html>
