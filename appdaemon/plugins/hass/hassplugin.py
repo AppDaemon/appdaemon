@@ -506,13 +506,13 @@ class HassPlugin(PluginBase):
             )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during call_service()")
-        except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during call_plugin_service()")
-            self.logger.warning("Service: %s.%s.%s Arguments: %s", namespace, domain, service, data)
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
+        except:
+            self.logger.error("-" * 60)
+            self.logger.error("Unexpected error during call_plugin_service()")
+            self.logger.error("Service: %s.%s.%s Arguments: %s", namespace, domain, service, data)
+            self.logger.error("-" * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error("-" * 60)
             return None
 
     async def get_hass_state(self, entity_id=None):
