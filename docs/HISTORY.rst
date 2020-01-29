@@ -15,6 +15,7 @@ Change Log
 - Bump jinja2 to 2.11.0
 - Add Azure pipelines for Black and Flake - contributed by `Bas Nijholt <https://github.com/basnijholt>`__
 - Added service call for `remove_entity`
+- Added ability to use `now` in `run_every`. Also seconds can be added by simply using `now+10` for example
 
 **Fixes**
 
