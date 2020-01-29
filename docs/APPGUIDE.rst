@@ -676,7 +676,7 @@ trackers. It takes 3 possible values:
 
     constrain_presence: anyone
     # or
-    constrain_presence: someone
+    constrain_presence: everyone
     # or
     constrain_presence: noone
 
