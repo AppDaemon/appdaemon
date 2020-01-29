@@ -76,7 +76,7 @@ style_title2: "color: $white"
 
 # Alternate widget styles
 # stripped is a transparent mod that removes the texture, border and drop shadows
-# no_texture removes the texture and replaces it with a black background 
+# no_texture removes the texture and replaces it with a black background
 stripped: "background-image: none; background-color: rgba(0,0,0,0.6); border-style: none; box-shadow: none !important"
 no_texture: "background: black; background-image: none; color: black; border-style: inset"
 

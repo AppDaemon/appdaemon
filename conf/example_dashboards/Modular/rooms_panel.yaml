@@ -15,7 +15,7 @@ load_basement:
     title: Basement
     icon_inactive: mdi-radioactive
     dashboard: Basement
-    
+
 load_downstairs:
     widget_type: navigate
     title: Downstairs
@@ -36,18 +36,18 @@ load_doors:
     #args:
     #  timeout: 3
     #  return: MainPanel
-    
+
 load_system:
     widget_type: navigate
     title: System
     icon_inactive: mdi-server
     dashboard: System
-    
+
 load_cameras:
     widget_type: navigate
     title: Cameras
     icon_inactive: mdi-camera
     dashboard: Cameras
-    
+
 layout:
   - load_outside, load_upstairs, load_downstairs, load_garage, load_basement, load_doors, load_system, load_cameras

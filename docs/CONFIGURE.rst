@@ -105,10 +105,10 @@ The ``appdaemon:`` section has a number of directives:
 
 -  ``filters`` (optional) - see below.
 -  ``plugins`` (required) - see below.
--  ``latitude`` (required) - latitude for AppDaemon to use.
--  ``longitude`` (required) - longitude for AppDaemon to use.
--  ``elevation`` (required) - elevation for AppDaemon to use.
--  ``time_zone`` (required) - timezone for AppDaemon to use.
+-  ``latitude`` (required) - latitude for AppDaemon to use (decimal format).
+-  ``longitude`` (required) - longitude for AppDaemon to use (decimal format).
+-  ``elevation`` (required) - elevation for AppDaemon to use in meters above sea level.
+-  ``time_zone`` (required) - timezone for AppDaemon to use (e.g. America/New_York).
 -  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.

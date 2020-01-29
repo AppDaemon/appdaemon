@@ -43,7 +43,7 @@ function ha_status(stream, dash, widgets, transport)
         {
             var data = JSON.parse(event.data);
 
-            // Stream Authorized            
+            // Stream Authorized
             if (data.response_type === "hello" && data.response_success === true)
             {
                 webSocket.send(JSON.stringify({
@@ -53,7 +53,7 @@ function ha_status(stream, dash, widgets, transport)
                         entity_id: '*'
                     }
                 }));
-        
+
                 webSocket.send(JSON.stringify({
                     request_type: 'listen_event',
                     data: {
@@ -163,14 +163,14 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 {
     child = this;
     child.url = url;
-    
+
     // Function definitions
-    
+
     this.set_field = function(self, field, value)
     {
         self.ViewModel[field](value)
     };
-    
+
     this.format_number = function(self, value)
     {
         var precision = 0;
@@ -203,7 +203,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         return value
     };
 
-    
+
     this.map_state = function(self, value)
     {
         if ("state_map" in self.parameters)
@@ -253,7 +253,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         self.ViewModel[field](self.convert_icon(self, value))
     };
-    
+
     this.get_state = function(child, base_url, entity)
     {
         console.log(parameters)
@@ -296,13 +296,13 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                                 child.icons.icon_on = icon;
                                 child.icons.icon_off = icon
                             }
-                            if ("title_is_friendly_name" in child.parameters 
+                            if ("title_is_friendly_name" in child.parameters
                             && child.parameters.title_is_friendly_name === 1
                             && "friendly_name" in new_state.attributes)
                             {
                                 child.ViewModel.title(new_state.attributes.friendly_name)
                             }
-                            if ("title2_is_friendly_name" in child.parameters 
+                            if ("title2_is_friendly_name" in child.parameters
                             && child.parameters.title2_is_friendly_name === 1
                             && "friendly_name" in new_state.attributes)
                             {
@@ -320,10 +320,10 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                     {
                         alert("Error getting state, check Java Console for details")
                     }
-                  
+
         });
     };
-   
+
     this.on_ha_data = function(data)
     {
         entity = data.data.entity_id;
@@ -341,7 +341,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
             }
         }
     };
-    
+
     this.call_service = function(child, args)
     {
         if ("resident_namespace" in parameters)
@@ -367,9 +367,9 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     // Initialization
 
     // Create and initialize bindings
-    
+
     child.ViewModel = {};
-    
+
     Object.keys(parameters.fields).forEach(function(key,index)
     {
         child.ViewModel[key] = ko.observable()
@@ -383,14 +383,14 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
             child.ViewModel[key] = ko.observable()
         });
     }
-    
+
     if ("static_css" in parameters)
     {
         Object.keys(parameters.static_css).forEach(function (key, index) {
             child.ViewModel[key] = ko.observable()
         });
     }
-    
+
     child.icons = {};
     if ("icons" in parameters)
     {
@@ -399,16 +399,16 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
             child.ViewModel[key] = ko.observable()
         });
     }
-    
+
     if ("static_icons" in parameters)
     {
         Object.keys(parameters.static_icons).forEach(function (key, index) {
             child.ViewModel[key] = ko.observable()
         });
     }
-    
+
     ko.applyBindings(child.ViewModel, document.getElementById(widget_id));
-    
+
     // Set any static values
 
     if ("fields" in parameters)
@@ -467,4 +467,3 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         this.get_state(child, url, monitored_entities[i])
     }
 };
-
