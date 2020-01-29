@@ -14,6 +14,7 @@ Change Log
 - Bump aiohttp-jinja2 to 1.2.0
 - Bump jinja2 to 2.11.0
 - Add Azure pipelines for Black and Flake - contributed by `Bas Nijholt <https://github.com/basnijholt>`__
+- Added service call for `remove_entity`
 
 **Fixes**
 
