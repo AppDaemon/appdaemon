@@ -567,7 +567,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> self.notify("Switching mode to Evening")
             >>> self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
-
+                # will send a message through notify.smtp instead of the default notify.notify
         """
         kwargs["message"] = message
         if "name" in kwargs:
