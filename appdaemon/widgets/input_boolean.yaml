@@ -20,8 +20,8 @@ icons:
   icon_off: $input_boolean_icon_off
 static_icons: []
 css:
-  icon_style_active: $input_boolean_icon_style_active 
-  icon_style_inactive: $input_boolean_icon_style_inactive 
+  icon_style_active: $input_boolean_icon_style_active
+  icon_style_inactive: $input_boolean_icon_style_inactive
 static_css:
   title_style: $input_boolean_title_style
   title2_style: $input_boolean_title2_style

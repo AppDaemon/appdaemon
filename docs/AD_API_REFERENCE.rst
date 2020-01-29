@@ -246,6 +246,12 @@ API
 .. autofunction:: appdaemon.adapi.ADAPI.register_endpoint
 .. autofunction:: appdaemon.adapi.ADAPI.unregister_endpoint
 
+WebRoute
+~~~
+
+.. autofunction:: appdaemon.adapi.ADAPI.register_route
+.. autofunction:: appdaemon.adapi.ADAPI.unregister_route
+
 Other
 ~~~~~
 

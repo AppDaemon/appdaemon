@@ -22,10 +22,12 @@ Arguments:
  - events: List of events to monitor, and later publish
 
 """
+
+
 class Cache(hass.Hass):
     def initialize(self):
-        self.cache = self.args['cache']
-        self.events = self.args['events']
+        self.cache = self.args["cache"]
+        self.events = self.args["events"]
 
         self.state = self.loadCache()
         self.deprecateOldEvents()
@@ -44,16 +46,15 @@ class Cache(hass.Hass):
         with open(self.cache) as f:
             try:
                 return json.load(f)
-            except:
+            except Exception:
                 return {}
 
     def saveCache(self):
         try:
             with open(self.cache, mode="w") as f:
                 json.dump(self.state, f)
-        except:
-            self.log('oops during save of cache')
-
+        except Exception:
+            self.log("oops during save of cache")
 
     def deprecateOldEvents(self):
         deprecatedEvents = [e for e in self.state if e not in self.events]
@@ -64,12 +65,11 @@ class Cache(hass.Hass):
         for event in self.events:
             if event in self.state:
                 self.set_app_state(event, self.state[event])
-                self.log('published event: ' + event)
+                self.log("published event: " + event)
             else:
-                self.log('event not in cache: ' + event)
+                self.log("event not in cache: " + event)
 
     def changed(self, entity, attribute, old, new, kwargs):
-        value = self.get_state(entity, 'all')
+        value = self.get_state(entity, "all")
         self.state[entity] = value
         self.saveCache()
-

@@ -1,9 +1,9 @@
 function baseheater(widget_id, url, skin, parameters)
-{  
+{
     self = this
     self.widget_id = widget_id
     self.parameters = parameters
-    
+
     if ("monitored_entity" in self.parameters)
     {
         entity = self.parameters.monitored_entity
@@ -13,8 +13,8 @@ function baseheater(widget_id, url, skin, parameters)
         icon_entity = self.parameters.icon_entity
         slider_entity = self.parameters.slider_entity
     }
-    
-       
+
+
     self.onChange = onChange
     self.OnButtonClick = OnButtonClick
 
@@ -25,10 +25,10 @@ function baseheater(widget_id, url, skin, parameters)
 
     self.OnStateAvailable = OnStateAvailable
     self.OnStateUpdate = OnStateUpdate
-    
+
     if ("icon_entity" in parameters)
     {
-        var monitored_entities = 
+        var monitored_entities =
             [
                 {"entity": parameters.icon_entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
                 {"entity": parameters.slider_entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
@@ -38,19 +38,19 @@ function baseheater(widget_id, url, skin, parameters)
     {
         var monitored_entities =  []
     }
-    
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
+
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)
 
 
     function OnStateAvailable(self, state)
-    {    
+    {
         if ("min" in state.attributes)
         {
             self.minvalue = state.attributes.min
             self.maxvalue = state.attributes.max
             self.stepvalue = state.attributes.step
             self.thermovalue = state.state
-            set_options(self, self.minvalue, self.maxvalue, self.stepvalue, self.thermovalue)            
+            set_options(self, self.minvalue, self.maxvalue, self.stepvalue, self.thermovalue)
         }
         else
         {
@@ -58,13 +58,13 @@ function baseheater(widget_id, url, skin, parameters)
             set_iconview(self, self.state)
         }
     }
- 
+
     function OnStateUpdate(self, state)
     {
         if ("min" in state.attributes)
         {
             self.thermovalue = state.state
-            set_sliderview(self, self.thermovalue)            
+            set_sliderview(self, self.thermovalue)
         }
         else
         {
@@ -77,7 +77,7 @@ function baseheater(widget_id, url, skin, parameters)
     {
         if (self.state == "off")
         {
-            args = self.parameters.post_service_active 
+            args = self.parameters.post_service_active
         }
         else
         {
@@ -93,7 +93,7 @@ function baseheater(widget_id, url, skin, parameters)
         if (self.thermovalue != self.ViewModel.Temperature())
         {
             self.thermovalue = self.ViewModel.Temperature()
-            args = self.parameters.post_service_slider_change 
+            args = self.parameters.post_service_slider_change
             args["value"] = self.thermovalue
 	    self.call_service(self, args)
         }
@@ -121,7 +121,7 @@ function baseheater(widget_id, url, skin, parameters)
     }
 
     function set_iconview(self, state)
-    {        
+    {
         if (state == "on")
         {
             self.set_icon(self, "icon", self.icons.icon_on)
