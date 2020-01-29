@@ -9,7 +9,7 @@ upstairs_smoke_alarm:
   widget_type: sensor
   entity: sensor.upstairs_smoke
   value_style: "color: white; font-size: 150%;"
-    
+
 layout:
   - upstairs_smoke_alarm, binary_sensor.upstairs_sensor
   -

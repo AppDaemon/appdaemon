@@ -3,9 +3,9 @@ media_player:
   widget_type: media_player
   truncate_name: 35
   entity: media_player.living_room
-  
+
 layout:
     - media_player(2x2),binary_sensor.downstairs_sensor
-    - 
+    -
     - light.kitchen, light.downstairs_hall, light.andrews_lamp, light.wendys_lamp, light.jacks_lamp, light.den_lamp, switch.main_tree_switch, switch.animal_tree_switch
     - scene.downstairs_on, scene.downstairs_off, scene.downstairs_dim, scene.downstairs_bright, scene.jacks_heat_lamp, scene.jacks_heat_lamp_off, light.living_room, light.living_room_front

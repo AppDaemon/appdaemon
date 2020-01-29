@@ -7,11 +7,11 @@ widget_margins: [5, 5]
 columns: 8
 #
 # Layout
-#    
+#
 layout:
     - clock(2x1), weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
     - mode(2x1), light_level(2x1), porch_motion, garage
-    - wlamp_scene,     don_scene,           doff_scene,    dbright_scene,   upstairs_thermometer, downstairs_thermometer, basement_thermometer, thermostat_setpoint  
+    - wlamp_scene,     don_scene,           doff_scene,    dbright_scene,   upstairs_thermometer, downstairs_thermometer, basement_thermometer, thermostat_setpoint
     - obright_scene,   ooff_scene,          pon_scene,     poff_scene,      night_motion,         guest_mode,             cooling,              heat
     - morning(2x1), day(2x1), evening(2x1), night(2x1)
     - load_main_panel, load_upstairs_panel, load_upstairs, load_downstairs, load_outside,         load_doors,             load_controls,        reload
@@ -23,14 +23,14 @@ clock:
 weather:
     widget_type: weather
     units: "&deg;F"
-    
+
 side_temperature:
     widget_type: sensor
     title: Temperature
     units: "&deg;F"
     precision: 0
     entity: sensor.side_temp_corrected
- 
+
 side_humidity:
     widget_type: sensor
     title: Humidity
@@ -64,7 +64,7 @@ light_level:
     precision: 0
     shorten: 1
     entity: sensor.side_multisensor_luminance_25_3
-        
+
 porch_motion:
     widget_type: binary_sensor
     title: Porch
@@ -126,7 +126,7 @@ thermostat_setpoint:
     units: "&deg;F"
     precision: 0
     entity: sensor.thermostat_set
-    
+
 obright_scene:
     widget_type: scene
     title: Outside Bright
@@ -141,7 +141,7 @@ pon_scene:
     widget_type: scene
     title: Porch  On
     entity: scene.porch_on
-    
+
 poff_scene:
     widget_type: scene
     title: Porch Off
@@ -153,21 +153,21 @@ night_motion:
     icon_on: fa-sliders
     icon_off: fa-sliders
     entity: input_boolean.night_outside_motion
-    
+
 guest_mode:
     widget_type: switch
     title: Guest Mode
     icon_on: fa-sliders
     icon_off: fa-sliders
     entity: input_boolean.guest
-    
+
 cooling:
     widget_type: switch
     title: Cooling
     icon_on: fa-sliders
     icon_off: fa-sliders
     entity: input_boolean.cooling
-    
+
 heat:
     widget_type: switch
     title: Heat
@@ -260,7 +260,7 @@ load_controls:
     title: Controls
     icon: fa-dashboard
     url: /Controls
-    
+
 reload:
     widget_type: reload
     title: Reload

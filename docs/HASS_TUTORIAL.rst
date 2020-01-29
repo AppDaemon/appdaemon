@@ -20,7 +20,7 @@ Automation systems with varying degrees of success, it was this article
 more than anything else that convinced me that Home Assistant had the
 right philosophy behind it and was on the right track. One of the most
 important points made is that being able to control your lights from
-your phone, 9 times out of 10 is harder than using a light switch. 
+your phone, 9 times out of 10 is harder than using a light switch.
 However, Home Automation becomes helpful when you start removing the
 need to use a phone or the switch - the *Automation* in Home Automation.
 A surprisingly large number of systems out there miss this essential
@@ -90,7 +90,7 @@ the table:
 
 It is, in fact, a testament to Home Assistant's open nature that a
 component like *AppDaemon* can be integrated so neatly and closely
-that it acts in all ways like an extension of the system, not a second-class citizen. 
+that it acts in all ways like an extension of the system, not a second-class citizen.
 Part of the strength of Home Assistant's underlying
 design is that it makes no assumptions whatsoever about what it is
 controlling or reacting to, or reporting state on. This is made
@@ -138,7 +138,7 @@ different scenes in a different version of the App.
       def initialize(self):
         self.run_at_sunrise(self.sunrise_cb)
         self.run_at_sunset(self.before_sunset_cb, offset=-900)
-        
+
       def sunrise_cb(self, kwargs):
         self.turn_on(self.args["off_scene"])
 
@@ -175,22 +175,22 @@ terms:
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
-      
+
       def motion(self, entity, attribute, old, new, kwargs):
         if self.sun_down():
           self.turn_on("light.drive")
           self.run_in(self.light_off, 60)
-      
+
       def light_off(self, kwargs):
         self.turn_off("light.drive")
 
-At this point, things are starting to get a little more complicated. 
+At this point, things are starting to get a little more complicated.
 Home Assistant's automations require an Automation rule and two separate scripts.
 
-Let's use an artificial example to show something that is simple in AppDaemon 
-but very difficult if not impossible using automations. For example, we can 
-warn someone inside the house that there has been motion outside by flashing 
-a lamp on and off 10 times. We are reacting to the motion as before by turning 
+Let's use an artificial example to show something that is simple in AppDaemon
+but very difficult if not impossible using automations. For example, we can
+warn someone inside the house that there has been motion outside by flashing
+a lamp on and off 10 times. We are reacting to the motion as before by turning
 on the light and setting a timer to turn it off again, but also, we set a 1 second timer
 to run ``flash_warning()`` which when called, toggles the inside light
 and sets another timer to call itself a second later. To avoid
@@ -205,17 +205,17 @@ activated and bales out after 10 iterations.
 
       def initialize(self):
         self.listen_state(self.motion, "binary_sensor.drive", new = "on")
-      
+
       def motion(self, entity, attribute, old, new, kwargs):
         if self.self.sun_down():
           self.turn_on("light.drive")
           self.run_in(self.light_off, 60)
           self.flashcount = 0
           self.run_in(self.flash_warning, 1)
-      
+
       def light_off(self, kwargs):
         self.turn_off("light.drive")
-        
+
       def flash_warning(self, kwargs):
         self.toggle("light.living_room")
         self.flashcount += 1
@@ -254,5 +254,3 @@ fleshed-out `examples <https://github.com/home-assistant/appdaemon/tree/dev/conf
 **Happy Automating!**
 
 -- AppDaemon Team
-
-
