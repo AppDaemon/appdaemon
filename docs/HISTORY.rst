@@ -12,6 +12,7 @@ Change Log
 - Bump bcrypt to 3.1.7
 - Bump jinja2 to 2.10.3
 - Bump aiohttp-jinja2 to 1.2.0
+- Bump jinja2 to 2.11.0
 
 **Fixes**
 
