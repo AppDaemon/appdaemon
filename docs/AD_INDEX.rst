@@ -119,6 +119,7 @@ L
 * `label   [Widget] <DASHBOARD_CREATION.html#label>`__
 * `light   [Widget] <DASHBOARD_CREATION.html#light>`__
 * `list_namespaces()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.list_namespaces>`__
+* `list_services()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.list_services>`__
 * `listen_event()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_event>`__
 * `listen_event()   [Mqtt API] <MQTT_API_REFERENCE.html#appdaemon.plugins.mqtt.mqttapi.Mqtt.listen_event>`__
 * `listen_log()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_log>`__

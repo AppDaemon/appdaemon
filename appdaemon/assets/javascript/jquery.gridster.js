@@ -2470,7 +2470,7 @@
 					'left': '',
 					'top': ''
 				});
-				
+
 		if (this.options.draggable.stop) {
 			this.options.draggable.stop.call(this, event, ui);
 		}

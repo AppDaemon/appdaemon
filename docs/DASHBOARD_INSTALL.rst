@@ -131,4 +131,3 @@ obsidian skin:
 ::
 
     http://<ip address>:<port>/Main?skin=obsidian
-

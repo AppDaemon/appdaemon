@@ -28,10 +28,10 @@
 #
 #
 
-head_includes: 
+head_includes:
   - <meta http-equiv="refresh" content="3600">
   - <script type="text/javascript" src="/css/simplyred/js/timer.js"></script>
- 
+
 #
 # Custom body includes - should be a YAML List, e.g.:
 #
@@ -87,7 +87,7 @@ textblur: "color: inherit; text-shadow: 3px 3px 8px #BF7F00, -3px -3px 8px #BF7F
 
 # Be aware that using either of these alternate widget styles also turns off the hover/button press effects!!
 goldbg: "$no_shadow; background-image: url(/css/simplyred/img/goldtexture.jpg); border: ridge 4px gold; border-radius: 10px"
-blackbg: "$no_shadow; background: black; border: 5px solid transparent; padding: 15px; 
+blackbg: "$no_shadow; background: black; border: 5px solid transparent; padding: 15px;
  -webkit-border-image: url(/css/simplyred/img/goldgradient.png) 20 round; /* Safari 3.1-5 */
  -o-border-image: url(/css/simplyred/img/goldgradient.png) 20 round; /* Opera 11-12.1 */
  border-image: url(/css/simplyred/img/goldgradient.png) 20 round; border-radius: 10px"
