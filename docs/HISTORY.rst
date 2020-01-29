@@ -53,6 +53,9 @@ None
 - Added the ability to use async functions as endpoint callback
 - Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a webscoket client connects and disconnects
+- Added the ability for apps to register web routes, thereby utilizing AD's internal web server
+- Added static folder `web`, which can used to serve content like images using AD's internal web server
+- Added ability for users to define static folders, which can used to serve content like images using AD's internal web server
 - Added support for python 3.8
 
 **Fixes**
