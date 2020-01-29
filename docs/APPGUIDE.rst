@@ -1436,19 +1436,14 @@ In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
 Assistant bus:
 
--  ``appd_started`` - fired once when AppDaemon is first started and
-   after Apps are initialized. It is fired within the `global` namespace
+-  ``appd_started`` - fired once when AppDaemon is first started and after Apps are initialized. It is fired within the `global` namespace
 - ``app_initialized`` - fired when an App is initialized. It is fired within the `admin` namespace
 - ``app_terminated`` - fired when an App is terminated. It is fired within the `admin` namespace
--  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection 
-to Home Assistant. It is fired within the plugin's namespace
--  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection 
-from an external system like an MQTT broker. It is fired within the plugin's namespace
+-  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection to Home Assistant. It is fired within the plugin's namespace
+-  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection from an external system like an MQTT broker. It is fired within the plugin's namespace
 -  ``service_registered`` - fired when a service is registered in AD. It is fired within the namespace it was registered
-- ``websocket_connected`` - fired when a websocket client connects like the Admin User Interface. 
-It is fired within the `admin` namespace
-- ``websocket_disconnected`` - fired when a websocket client disconnects like the Admin User Interface. 
-It is fired within the `admin` namespace
+- ``websocket_connected`` - fired when a websocket client connects like the Admin User Interface. It is fired within the `admin` namespace
+- ``websocket_disconnected`` - fired when a websocket client disconnects like the Admin User Interface. It is fired within the `admin` namespace
 
 About Event Callbacks
 ~~~~~~~~~~~~~~~~~~~~~
