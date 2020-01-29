@@ -87,7 +87,7 @@ media_player:
   truncate_name: 35
   entity: media_player.living_room
 #  level_down_style: "color: green"
-  
+
 summary:
   widget_type: sensor
   title: Summary
@@ -100,20 +100,20 @@ day:
     title: Day
     icon_on: fa-sun-o
     icon_off: fa-sun-o
-    icon_style_active: $switch_icon_style_active 
-    icon_style_inactive: $switch_icon_style_inactive 
+    icon_style_active: $switch_icon_style_active
+    icon_style_inactive: $switch_icon_style_inactive
     state_entity: input_select.house_mode
     state_active: Day
     post_service_active:
         service: script/turn_on
-        entity_id: script.day    
+        entity_id: script.day
 
 porch_sensor:
     widget_type: binary_sensor
     entity: binary_sensor.porch_multisensor_sensor_27_0
     title: Fred
     title2: Jim
-     
+
 layout:
   - mode(2x1), label(3x1), side_humidity, andrew_presence, porch_sensor
   - clock.clock(2x1), weather(2x2), scene.office_on, office_off, hall, office_light

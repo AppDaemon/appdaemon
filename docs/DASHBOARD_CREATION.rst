@@ -198,7 +198,7 @@ Lets look at a couple more examples of widget definitions:
         widget_type: binary_sensor
         title: Porch
         entity: binary_sensor.porch_multisensor_sensor_27_0
-        
+
     side_temperature:
         widget_type: sensor
         title: Temperature
@@ -360,7 +360,7 @@ contained submodules (mode\_panel.yaml):
         precision: 0
         shorten: 1
         entity: sensor.side_multisensor_luminance_25_3
-            
+
     porch_motion:
         widget_type: binary_sensor
         title: Porch
@@ -397,10 +397,10 @@ we have included in the other files:
         - include: bottom_panel
         - clock(2x1), weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
         - mode(2x1), light_level(2x1), porch_motion, garage
-        - wlamp_scene, don_scene, doff_scene, dbright_scene, upstairs_thermometer, downstairs_thermometer, basement_thermometer, thermostat_setpoint  
+        - wlamp_scene, don_scene, doff_scene, dbright_scene, upstairs_thermometer, downstairs_thermometer, basement_thermometer, thermostat_setpoint
         - obright_scene, ooff_scene, pon_scene, poff_scene, night_motion, guest_mode, cooling, heat
         - morning(2x1), day(2x1), evening(2x1), night(2x1)
-        - load_main_panel, load_upstairs_panel, load_upstairs, load_downstairs, load_outside, load_doors, load_controls, reload  
+        - load_main_panel, load_upstairs_panel, load_upstairs, load_downstairs, load_outside, load_doors, load_controls, reload
 
 In this case, the actual layout including a widget must be after the
 include as you might expect.
@@ -446,7 +446,7 @@ itself, and include the header in the layout:
     label:
         widget_type: label
         text: Welcome to the Den
-        
+
     layout:
         - include: header
 
@@ -544,12 +544,12 @@ Each widget could have custom text for title a title2. You can use the option to
 -  ``title2_is_friendly_name`` - set title2 as entity friendly name if exists
 
 Example:
- 
+
 .. code:: yaml
 
     title_is_friendly_name: 1
     title2_is_friendly_name: 1
-    
+
 Icons
 -----
 

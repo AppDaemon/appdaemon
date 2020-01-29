@@ -10,7 +10,7 @@ ha_frame:
     widget_type: iframe
     title: Home Assistant
     #refresh: 60
-    url_list: 
+    url_list:
       - http://192.168.1.20:8123
 
 #
@@ -18,7 +18,7 @@ ha_frame:
 #
 layout:
     - ha_frame(8x5)
-    - 
+    -
     -
     -
     -
