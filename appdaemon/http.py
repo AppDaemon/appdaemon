@@ -190,12 +190,11 @@ class HTTP:
             self.loop = loop
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-            # TODO the `context` local varialble is never used after its initialization, maybe it can be removed
             if self.ssl_certificate is not None and self.ssl_key is not None:
-                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                context.load_cert_chain(self.ssl_certificate, self.ssl_key)
+                self.context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                self.context.load_cert_chain(self.ssl_certificate, self.ssl_key)
             else:
-                context = None
+                self.context = None
 
             self.setup_http_routes()
 
@@ -340,13 +339,13 @@ class HTTP:
 
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        site = web.TCPSite(self.runner, "0.0.0.0", int(self.port))
+        site = web.TCPSite(self.runner, "0.0.0.0", int(self.port), ssl_context=self.context)
         await site.start()
 
     async def stop_server(self):
         self.logger.info("Shutting down webserver")
         #
-        # We sjould do this nut it makes AD hang so ...
+        # We should do this but it makes AD hang so ...
         #
         # await self.runner.cleanup()
 
@@ -835,7 +834,7 @@ class HTTP:
 
         try:
             ret, code = await self.dispatch_app_by_name(app, args)
-        except:
+        except Exception:
             self.logger.error("-" * 60)
             self.logger.error("Unexpected error during API call")
             self.logger.error("-" * 60)
@@ -918,7 +917,7 @@ class HTTP:
 
         callback = None
         for name in self.app_routes:
-            if callback != None:  # a callback has been collected
+            if callback is not None:  # a callback has been collected
                 break
 
             for handle in self.app_routes[name]:
@@ -926,7 +925,7 @@ class HTTP:
                 app_token = self.app_routes[name][handle]["token"]
 
                 if app_route == route:
-                    if app_token != None and app_token != token:
+                    if app_token is not None and app_token != token:
                         return self.get_web_response(request, "401", "Unauthorized")
 
                     callback = self.app_routes[name][handle]["callback"]
@@ -943,7 +942,7 @@ class HTTP:
                 code = 503
                 error = "Request was Cancelled"
 
-            except:
+            except Exception:
                 self.logger.error("-" * 60)
                 self.logger.error("Unexpected error during Web call")
                 self.logger.error("-" * 60)

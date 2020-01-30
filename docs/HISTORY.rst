@@ -21,7 +21,7 @@ Change Log
 
 **Fixes**
 
-- None
+- Re-added support for SSL in the http module (should also fix dialogflow)
 
 **Breaking Changes**
 
