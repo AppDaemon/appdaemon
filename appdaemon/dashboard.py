@@ -102,9 +102,7 @@ class Dashboard:
             start_time = time.time()
             result = func(self, *args, **kwargs)
             elapsed_time = time.time() - start_time
-            self.access.info(
-                "function [%s] finished in %s ms", func.__name__, int(elapsed_time * 1000),
-            )
+            self.access.info("function [%s] finished in %s ms", func.__name__, int(elapsed_time * 1000))
             return result
 
         return newfunc
@@ -156,7 +154,7 @@ class Dashboard:
 
     def _resolve_css_params(self, fields, subs):
         done = False
-        variable = re.compile(r"\$(\w+)")
+        variable = re.compile("\\$(\\w+)")
         index = 0
         while not done and index < 100:
             index += 1
@@ -172,9 +170,7 @@ class Dashboard:
                             done = False
                             fields[varline] = fields[varline].replace(var.group(), subs[subvar], 1)
                         else:
-                            self.logger.warning(
-                                "Variable definition not found in CSS Skin variables: $%s", subvar,
-                            )
+                            self.logger.warning("Variable definition not found in CSS Skin variables: $%s", subvar)
                             fields[varline] = ""
 
         if index == 100:
@@ -237,13 +233,13 @@ class Dashboard:
                     value = value.replace(match, _vars[ikey])
 
             # Replace variables that are still left with an empty string.
-            value = re.sub(r"\{\{(.+)\}\}", "", value)
+            value = re.sub("{{(.+)}}", "", value)
             return value, templates
         else:
             return value, {}
 
     # noinspection PyUnresolvedReferences
-    def _load_widget(self, dash, includes, name, css_vars, global_parameters):  # noqa: C901
+    def _load_widget(self, dash, includes, name, css_vars, global_parameters):  # noqa C901
         instantiated_widget = None
         #
         # Check if we have already encountered a definition
@@ -263,9 +259,7 @@ class Dashboard:
                 try:
                     instantiated_widget = self._load_yaml(widget)
                 except yaml.YAMLError as exc:
-                    self._log_error(
-                        dash, name, "Error while parsing dashboard '{}':".format(yaml_path),
-                    )
+                    self._log_error(dash, name, "Error while parsing dashboard '{}':".format(yaml_path))
                     self._log_yaml_dash_error(dash, name, exc)
                     return self.error_widget("Error loading widget")
 
@@ -274,11 +268,7 @@ class Dashboard:
                 # No file, check if it is implicitly defined via an entity id
                 #
                 parts = name.split(".")
-                instantiated_widget = {
-                    "widget_type": parts[0],
-                    "entity": name,
-                    "title_is_friendly_name": 1,
-                }
+                instantiated_widget = {"widget_type": parts[0], "entity": name, "title_is_friendly_name": 1}
             else:
                 self.logger.warning("Unable to find widget definition for '%s'", name)
                 # Return some valid data so the browser will render a blank widget
@@ -296,7 +286,7 @@ class Dashboard:
 
             if widget_type == "text_sensor":
                 self.logger.warning(
-                    "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '%s'", name,
+                    "'text_sensor' widget is deprecated, please use 'sensor' instead for widget '%s'", name
                 )
 
             # Check for custom base widgets first
@@ -388,11 +378,7 @@ class Dashboard:
 
     @staticmethod
     def error_widget(error):
-        return {
-            "widget_type": "baseerror",
-            "fields": {"err": error},
-            "static_css": {"widget_style": ""},
-        }
+        return {"widget_type": "baseerror", "fields": {"err": error}, "static_css": {"widget_style": ""}}
 
     @staticmethod
     def _widget_exists(widgets, _id):
@@ -404,7 +390,7 @@ class Dashboard:
     def _add_layout(self, value, layout, occupied, dash, page, includes, css_vars, global_parameters):
         if value is None:
             return
-        widget_dimensions = re.compile(r"^(.+)\\((\d+)x(\d+)\\)$")
+        widget_dimensions = re.compile("^(.+)\\((\\d+)x(\\d+)\\)$")
         value = "".join(value.split())
         widgets = value.split(",")
         column = 1
@@ -498,15 +484,10 @@ class Dashboard:
 
     # noinspection PyBroadException
     def _create_sub_dash(  # noqa: C901
-        self, name, extension, layout, occupied, includes, level, css_vars, global_parameters,
+        self, name, extension, layout, occupied, includes, level, css_vars, global_parameters
     ):
         if extension == "dash":
-            dash = {
-                "title": "HADashboard",
-                "widget_dimensions": [120, 120],
-                "widget_margins": [5, 5],
-                "columns": 8,
-            }
+            dash = {"title": "HADashboard", "widget_dimensions": [120, 120], "widget_margins": [5, 5], "columns": 8}
         else:
             dash = {}
 
@@ -525,9 +506,7 @@ class Dashboard:
         layouts = []
 
         if level > self.max_include_depth:
-            self._log_error(
-                dash, name, "Maximum include level reached ({})".format(self.max_include_depth),
-            )
+            self._log_error(dash, name, "Maximum include level reached ({})".format(self.max_include_depth))
             return dash, layout, occupied, includes
 
         dashfile = os.path.join(self.dashboard_dir, "{}.{}".format(name, extension))
@@ -552,7 +531,7 @@ class Dashboard:
                     global_parameters = dash_params["global_parameters"]
                 else:
                     self.logger.warning(
-                        "global_parameters dashboard directive illegal in imported dashboard '%s.%s'", name, extension,
+                        "global_parameters dashboard directive illegal in imported dashboard '%s.%s'", name, extension
                     )
 
             if global_parameters is None:
@@ -597,14 +576,10 @@ class Dashboard:
                     elif "empty" in lay:
                         layout += lay["empty"]
                     else:
-                        self._log_error(
-                            dash, name, "Incorrect directive, should be 'include or empty': {}".format(lay),
-                        )
+                        self._log_error(dash, name, "Incorrect directive, should be 'include or empty': {}".format(lay))
                 else:
                     layout += 1
-                    self._add_layout(
-                        lay, layout, occupied, dash, page, includes, css_vars, global_parameters,
-                    )
+                    self._add_layout(lay, layout, occupied, dash, page, includes, css_vars, global_parameters)
 
         return dash, layout, occupied, includes
 
@@ -619,7 +594,7 @@ class Dashboard:
         return late_file
 
     # noinspection PyBroadException
-    def _get_dash(self, name, skin, skindir):  # noqa: C901
+    def _get_dash(self, name, skin, skindir):  # noqa C901
         pydashfile = os.path.join(self.dashboard_dir, "{}.pydash".format(name))
         dashfile = os.path.join(self.dashboard_dir, "{}.dash".format(name))
 
@@ -799,9 +774,9 @@ class Dashboard:
             #
             last_compiled = datetime.datetime.now()
             for file in [
-                os.path.join(self.compiled_css_dir, skin, "{}_application.css".format(name.lower()),),
+                os.path.join(self.compiled_css_dir, skin, "{}_application.css".format(name.lower())),
                 os.path.join(self.compiled_javascript_dir, "application.js"),
-                os.path.join(self.compiled_javascript_dir, skin, "{}_init.js".format(name.lower()),),
+                os.path.join(self.compiled_javascript_dir, skin, "{}_init.js".format(name.lower())),
                 os.path.join(self.compiled_html_dir, skin, "{}_head.html".format(name.lower())),
                 os.path.join(self.compiled_html_dir, skin, "{}_body.html".format(name.lower())),
             ]:
@@ -842,10 +817,7 @@ class Dashboard:
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
             dash_list = self._list_dashes()
-            return {
-                "errors": ["Dashboard has errors or is not found - check log for details"],
-                "dash_list": dash_list,
-            }
+            return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
 
         params = dash
         params["base_url"] = self.base_url
@@ -856,7 +828,7 @@ class Dashboard:
         #
         # Build dash specific code
         #
-        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),)
+        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]))
 
         template = env.get_template("dashinit.jinja2")
         rendered_template = template.render(params)
@@ -912,15 +884,10 @@ class Dashboard:
 
             # add errors if we got any
             if errors:
-                params = {
-                    "title": self.title,
-                    "errors": errors,
-                    "name": name.lower(),
-                    "dash_list": dash_list,
-                }
+                params = {"title": self.title, "errors": errors, "name": name.lower(), "dash_list": dash_list}
 
                 env = Environment(
-                    loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
+                    loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"])
                 )
 
                 template = env.get_template("list.jinja2")
@@ -950,7 +917,7 @@ class Dashboard:
                 }
 
                 env = Environment(
-                    loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
+                    loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"])
                 )
 
                 template = env.get_template("dashboard.jinja2")
@@ -968,7 +935,7 @@ class Dashboard:
 
     def html_error(self):
         params = {"errors": ["An unrecoverable error occurred fetching dashboard, check log for details"]}
-        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),)
+        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]))
 
         template = env.get_template("list.jinja2")
         rendered_template = template.render(params)
@@ -982,7 +949,7 @@ class Dashboard:
         else:
             dash = paramOverwrite
 
-        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),)
+        env = Environment(loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]))
 
         template = env.get_template("list.jinja2")
         rendered_template = template.render(dash)
