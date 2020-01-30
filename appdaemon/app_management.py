@@ -336,7 +336,11 @@ class AppManagement:
                                             # We don't care what it looks like just pass it through
                                             #
                                             valid_apps[app] = config[app]
-                                        elif "class" in config[app] and "module" in config[app]:
+                                        elif (
+                                            isinstance(config[app], dict)
+                                            and "class" in config[app]
+                                            and "module" in config[app]
+                                        ):
                                             valid_apps[app] = config[app]
                                         else:
                                             if self.AD.invalid_yaml_warnings:
