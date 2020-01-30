@@ -14,8 +14,10 @@ Change Log
 - Bump aiohttp-jinja2 to 1.2.0
 - Bump jinja2 to 2.11.0
 - Add Azure pipelines for Black and Flake - contributed by `Bas Nijholt <https://github.com/basnijholt>`__
-- Added service call for `remove_entity`
-- Added ability to use `now` in `run_every`. Also seconds can be added by simply using `now+10` for example
+- Added service call for ``remove_entity``
+- Added ability to use ``now`` in ``run_every``. Also seconds can be added by simply using ``now+10`` for example
+- Presence convenience functions now support a ``person`` flag to use person entities rather than device trackers for presence detection
+- ``constrain_person`` constraints added to support person entities
 
 **Fixes**
 

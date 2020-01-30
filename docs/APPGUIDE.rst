@@ -683,6 +683,27 @@ trackers. It takes 3 possible values:
 Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
+person
+^^^^^^^^
+
+The person constraint will constrain based on presence of person entities
+trackers. It takes 3 possible values:
+
+- ``noone`` - only allow callback execution when no one is home
+- ``anyone`` - only allow callback execution when one or more person is home
+- ``everyone`` - only allow callback execution when everyone is home
+
+.. code:: yaml
+
+    constrain_person: anyone
+    # or
+    constrain_person: everyone
+    # or
+    constrain_person: noone
+
+Callback constraints can also be applied to individual callbacks within
+Apps, see later for more details.
+
 AppDaemon and Threading
 -----------------------
 
