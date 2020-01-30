@@ -77,6 +77,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> trackers = self.get_trackers()
             >>> for tracker in trackers:
             >>>     do something
+            >>> people = self.get_trackers(person=True)
+            >>> for person in people:
+            >>>     do something
 
         """
         if "person" in kwargs and kwargs["person"] is True:
@@ -140,9 +143,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             location can be returned.
 
         Examples:
-            >>> trackers = self.get_trackers()
-            >>> for tracker in trackers:
-            >>>     self.log("{} is {}".format(tracker, self.get_tracker_state(tracker)))
+            >>> state = self.get_tracker_state("device_tracker.andrew")
+            >>>     self.log("state is {}".format(state))
+            >>> state = self.get_tracker_state("person.andrew")
+            >>>     self.log("state is {}".format(state))
 
         """
         self._check_entity(self._get_namespace(**kwargs), entity_id)
@@ -172,6 +176,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         Examples:
             >>> if self.anyone_home():
+            >>>     do something
+            >>> if self.anyone_home(person=True):
             >>>     do something
 
         """
@@ -213,6 +219,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> if self.everyone_home():
             >>>    do something
+            >>> if self.everyone_home(perosn=True):
+            >>>    do something
 
         """
         if "person" in kwargs and kwargs["person"] is True:
@@ -252,6 +260,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         Examples:
             >>> if self.noone_home():
+            >>>     do something
+            >>> if self.noone_home(person=True):
             >>>     do something
 
         """
