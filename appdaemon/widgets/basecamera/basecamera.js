@@ -11,7 +11,7 @@ function basecamera(widget_id, url, skin, parameters)
      self.OnStateAvailable = OnStateAvailable
     self.OnStateUpdate = OnStateUpdate
 
-     var monitored_entities = 
+     var monitored_entities =
         [
             {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate},
         ];
@@ -34,9 +34,9 @@ function basecamera(widget_id, url, skin, parameters)
                 endpoint = '/api/camera_proxy_stream/'
             }
 
-             var url = self.parameters.base_url + endpoint + self.parameters.entity + '?token=' + self.access_token 
-        } 
-        else 
+             var url = self.parameters.base_url + endpoint + self.parameters.entity + '?token=' + self.access_token
+        }
+        else
         {
             var url = '/images/Blank.gif'
         }
@@ -60,7 +60,7 @@ function basecamera(widget_id, url, skin, parameters)
         {
             refresh = self.parameters.refresh
         }
- 
+
         if (refresh > 0)
         {
             clearTimeout(self.timeout)
@@ -71,12 +71,12 @@ function basecamera(widget_id, url, skin, parameters)
 
      // Function Definitions
 
-     // The StateAvailable function will be called when 
+     // The StateAvailable function will be called when
     // self.state[<entity>] has valid information for the requested entity
     // state is the initial state
 
      function OnStateAvailable(self, state)
-    {   
+    {
         self.state = state.state;
         self.access_token = state.attributes.access_token
         refresh_frame(self)
@@ -93,4 +93,4 @@ function basecamera(widget_id, url, skin, parameters)
         refresh_frame(self)
     }
 
- } 
+ }

@@ -10,7 +10,6 @@ from appdaemon.plugin_management import PluginBase
 
 
 class MqttPlugin(PluginBase):
-
     def __init__(self, ad: AppDaemon, name, args):
         super().__init__(ad, name, args)
         """Initialize MQTT Plugin."""
@@ -27,78 +26,78 @@ class MqttPlugin(PluginBase):
 
         self.name = name
 
-        if 'namespace' in self.config:
-            self.namespace = self.config['namespace']
+        if "namespace" in self.config:
+            self.namespace = self.config["namespace"]
         else:
-            self.namespace = 'default'
+            self.namespace = "default"
 
-        self.mqtt_client_host = self.config.get('client_host', '127.0.0.1')
-        self.mqtt_client_port = self.config.get('client_port', 1883)
-        self.mqtt_qos = self.config.get('client_qos', 0)
-        mqtt_client_id = self.config.get('client_id', None)
-        mqtt_transport = self.config.get('client_transport', 'tcp')
-        mqtt_session = self.config.get('client_clean_session', True)
-        self.mqtt_client_topics = self.config.get('client_topics', ['#'])            
-        self.mqtt_client_user = self.config.get('client_user', None)
-        self.mqtt_client_password = self.config.get('client_password', None)
-        self.mqtt_event_name = self.config.get('event_name', 'MQTT_MESSAGE')
-        self.mqtt_client_force_start = self.config.get('force_start', False)
+        self.mqtt_client_host = self.config.get("client_host", "127.0.0.1")
+        self.mqtt_client_port = self.config.get("client_port", 1883)
+        self.mqtt_qos = self.config.get("client_qos", 0)
+        mqtt_client_id = self.config.get("client_id", None)
+        mqtt_transport = self.config.get("client_transport", "tcp")
+        mqtt_session = self.config.get("client_clean_session", True)
+        self.mqtt_client_topics = self.config.get("client_topics", ["#"])
+        self.mqtt_client_user = self.config.get("client_user", None)
+        self.mqtt_client_password = self.config.get("client_password", None)
+        self.mqtt_event_name = self.config.get("event_name", "MQTT_MESSAGE")
+        self.mqtt_client_force_start = self.config.get("force_start", False)
 
-        status_topic = '{}/status'.format(self.config.get('client_id', self.name + '-client').lower())
-        
-        self.mqtt_will_topic = self.config.get('will_topic', None)
-        self.mqtt_on_connect_topic = self.config.get('birth_topic', None)
-        self.mqtt_will_retain = self.config.get('will_retain', True)
-        self.mqtt_on_connect_retain = self.config.get('birth_retain', True)
-        
+        status_topic = "{}/status".format(self.config.get("client_id", self.name + "-client").lower())
+
+        self.mqtt_will_topic = self.config.get("will_topic", None)
+        self.mqtt_on_connect_topic = self.config.get("birth_topic", None)
+        self.mqtt_will_retain = self.config.get("will_retain", True)
+        self.mqtt_on_connect_retain = self.config.get("birth_retain", True)
+
         if self.mqtt_client_topics == "NONE":
             self.mqtt_client_topics = []
 
         if self.mqtt_will_topic is None:
             self.mqtt_will_topic = status_topic
             self.logger.info("Using %r as Will Topic", status_topic)
-        
+
         if self.mqtt_on_connect_topic is None:
             self.mqtt_on_connect_topic = status_topic
             self.logger.info("Using %r as Birth Topic", status_topic)
 
-        self.mqtt_will_payload = self.config.get('will_payload', 'offline')
-        self.mqtt_on_connect_payload = self.config.get('birth_payload', 'online')
-        self.mqtt_shutdown_payload = self.config.get('shutdown_payload', self.mqtt_will_payload)
+        self.mqtt_will_payload = self.config.get("will_payload", "offline")
+        self.mqtt_on_connect_payload = self.config.get("birth_payload", "online")
+        self.mqtt_shutdown_payload = self.config.get("shutdown_payload", self.mqtt_will_payload)
 
-        self.mqtt_client_tls_ca_cert = self.config.get('ca_cert', None)
-        self.mqtt_client_tls_client_cert = self.config.get('client_cert', None)
-        self.mqtt_client_tls_client_key = self.config.get('client_key', None)
-        self.mqtt_verify_cert = self.config.get('verify_cert', True)
-        self.mqtt_tls_version = self.config.get('tls_version', 'auto')
+        self.mqtt_client_tls_ca_cert = self.config.get("ca_cert", None)
+        self.mqtt_client_tls_client_cert = self.config.get("client_cert", None)
+        self.mqtt_client_tls_client_key = self.config.get("client_key", None)
+        self.mqtt_verify_cert = self.config.get("verify_cert", True)
+        self.mqtt_tls_version = self.config.get("tls_version", "auto")
 
-        if self.mqtt_tls_version == '1.2':
+        if self.mqtt_tls_version == "1.2":
             self.mqtt_tls_version = ssl.PROTOCOL_TLSv1_2
-        elif self.mqtt_tls_version == '1.1':
+        elif self.mqtt_tls_version == "1.1":
             self.mqtt_tls_version = ssl.PROTOCOL_TLSv1_1
-        elif self.mqtt_tls_version == '1.0':
+        elif self.mqtt_tls_version == "1.0":
             self.mqtt_tls_version = ssl.PROTOCOL_TLSv1
         else:
             import sys
+
             if sys.hexversion >= 0x03060000:
                 self.mqtt_tls_version = ssl.PROTOCOL_TLS
             else:
                 self.mqtt_tls_version = ssl.PROTOCOL_TLSv1
 
-
-        self.mqtt_client_timeout = self.config.get('client_timeout', 60)
+        self.mqtt_client_timeout = self.config.get("client_timeout", 60)
 
         if mqtt_client_id is None:
-            mqtt_client_id = 'appdaemon_{}_client'.format(self.name.lower())
+            mqtt_client_id = "appdaemon_{}_client".format(self.name.lower())
             self.logger.info("Using %s as Client ID", mqtt_client_id)
 
-        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport=mqtt_transport)
+        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport=mqtt_transport,)
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
 
-        self.loop = self.AD.loop # get AD loop
-        self.mqtt_connect_event = asyncio.Event(loop=self.loop)
+        self.loop = self.AD.loop  # get AD loop
+
         self.mqtt_wildcards = list()
         self.mqtt_metadata = {
             "version": "1.0",
@@ -126,23 +125,27 @@ class MqttPlugin(PluginBase):
             "verify_cert": self.mqtt_verify_cert,
             "tls_version": self.mqtt_tls_version,
             "timeout": self.mqtt_client_timeout,
-            "force_state": self.mqtt_client_force_start
+            "force_state": self.mqtt_client_force_start,
         }
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
         if self.mqtt_connected:
-            self.logger.info("Stopping MQTT Plugin and Unsubscribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
+            self.logger.info(
+                "Stopping MQTT Plugin and Unsubscribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port,
+            )
             for topic in self.mqtt_client_topics:
                 self.logger.debug("Unsubscribing from Topic: %s", topic)
                 result = self.mqtt_client.unsubscribe(topic)
                 if result[0] == 0:
                     self.logger.debug("Unsubscribing from Topic %s Successful", topic)
-                    
-            self.mqtt_client.publish(self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
-            self.mqtt_client.disconnect() #disconnect cleanly
-            
+
+            self.mqtt_client.publish(
+                self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain,
+            )
+            self.mqtt_client.disconnect()  # disconnect cleanly
+
         self.mqtt_client.loop_stop()
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
@@ -150,9 +153,16 @@ class MqttPlugin(PluginBase):
             err_msg = ""
             # means connection was successful
             if rc == 0:
-                self.mqtt_client.publish(self.mqtt_on_connect_topic, self.mqtt_on_connect_payload, self.mqtt_qos, retain=self.mqtt_on_connect_retain)
+                self.mqtt_client.publish(
+                    self.mqtt_on_connect_topic,
+                    self.mqtt_on_connect_payload,
+                    self.mqtt_qos,
+                    retain=self.mqtt_on_connect_retain,
+                )
 
-                self.logger.info("Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port)
+                self.logger.info(
+                    "Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port,
+                )
                 #
                 # Register MQTT Services
                 #
@@ -167,11 +177,16 @@ class MqttPlugin(PluginBase):
                         self.logger.debug("Subscription to Topic %s Successful", topic)
                     else:
                         self.mqtt_client_topics.remove(topic)
-                        self.logger.debug("Subscription to Topic %s Unsuccessful, as Client possibly not currently connected", topic)
+                        self.logger.debug(
+                            "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected", topic,
+                        )
 
                 self.mqtt_connected = True
 
-                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Connected', 'topic' : None, 'wildcard' : None}}
+                data = {
+                    "event_type": self.mqtt_event_name,
+                    "data": {"state": "Connected", "topic": None, "wildcard": None},
+                }
                 self.loop.create_task(self.send_ad_event(data))
 
             elif rc == 1:
@@ -193,11 +208,13 @@ class MqttPlugin(PluginBase):
 
             # continue processing
             self.mqtt_connect_event.set()
-        except:
+        except Exception:
             self.logger.critical("There was an error while trying to setup the Mqtt Service")
-            self.logger.debug('There was an error while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
+            self.logger.debug(
+                "There was an error while trying to setup the MQTT Service, with Traceback: %s", traceback.format_exc(),
+            )
 
-    def mqtt_on_disconnect(self,  client, userdata, rc):
+    def mqtt_on_disconnect(self, client, userdata, rc):
         try:
             # unexpected disconnection
             if rc != 0 and not self.stopping:
@@ -207,58 +224,80 @@ class MqttPlugin(PluginBase):
                 self.logger.debug("Return code: %s", rc)
                 self.logger.debug("userdata: %s", userdata)
 
-                data = {'event_type': self.mqtt_event_name, 'data': {'state': 'Disconnected', 'topic' : None, 'wildcard' : None}}
+                data = {
+                    "event_type": self.mqtt_event_name,
+                    "data": {"state": "Disconnected", "topic": None, "wildcard": None},
+                }
                 self.loop.create_task(self.send_ad_event(data))
             return
-        except:
+        except Exception:
             self.logger.critical("There was an error while disconnecting from the Mqtt Service")
-            self.logger.debug('There was an error while disconnecting from the MQTT Service, with Traceback: %s', traceback.format_exc())
+            self.logger.debug(
+                "There was an error while disconnecting from the MQTT Service, with Traceback: %s",
+                traceback.format_exc(),
+            )
 
     def mqtt_on_message(self, client, userdata, msg):
         try:
             self.logger.debug("Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
             topic = msg.topic
 
-            if self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []: #check if any of the wildcards belong
-                wildcard = list(filter(lambda x: topic.startswith(x), self.mqtt_wildcards))[0] + '#'
+            if (
+                self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []
+            ):  # check if any of the wildcards belong
+                wildcard = list(filter(lambda x: topic.startswith(x), self.mqtt_wildcards))[0] + "#"
 
-                data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': wildcard}}
+                data = {
+                    "event_type": self.mqtt_event_name,
+                    "data": {"topic": topic, "payload": msg.payload.decode(), "wildcard": wildcard},
+                }
 
             else:
-                data = {'event_type': self.mqtt_event_name, 'data': {'topic': topic, 'payload': msg.payload.decode(), 'wildcard': None}}
+                data = {
+                    "event_type": self.mqtt_event_name,
+                    "data": {"topic": topic, "payload": msg.payload.decode(), "wildcard": None},
+                }
 
             self.loop.create_task(self.send_ad_event(data))
         except UnicodeDecodeError:
             self.logger.info("Unable to decode MQTT message")
-            self.logger.debug('Unable to decode MQTT message, with Traceback: %s', traceback.format_exc())
+            self.logger.debug(
+                "Unable to decode MQTT message, with Traceback: %s", traceback.format_exc(),
+            )
         except Exception as e:
             self.logger.critical("There was an error while processing an MQTT message: {} {}".format(type(e), e))
-            self.logger.debug('There was an error while processing an MQTT message, with Traceback: %s', traceback.format_exc())
+            self.logger.debug(
+                "There was an error while processing an MQTT message, with Traceback: %s", traceback.format_exc(),
+            )
 
     async def call_plugin_service(self, namespace, domain, service, kwargs):
 
         result = None
-        if 'topic' in kwargs:
+        if "topic" in kwargs:
             if not self.mqtt_connected:  # ensure mqtt plugin is connected
                 self.logger.warning("Attempt to call Mqtt Service while disconnected: %s", service)
                 return None
             try:
-                topic = kwargs['topic']
-                payload = kwargs.get('payload', None)
-                retain = kwargs.get('retain', False)
-                qos = int(kwargs.get('qos', self.mqtt_qos))
+                topic = kwargs["topic"]
+                payload = kwargs.get("payload", None)
+                retain = kwargs.get("retain", False)
+                qos = int(kwargs.get("qos", self.mqtt_qos))
 
-                if service == 'publish':
+                if service == "publish":
                     self.logger.debug("Publish Payload: %s to Topic: %s", payload, topic)
 
                     result = await utils.run_in_executor(self, self.mqtt_client.publish, topic, payload, qos, retain)
 
                     if result[0] == 0:
-                        self.logger.debug("Publishing Payload %s to Topic %s Successful", payload, topic)
+                        self.logger.debug(
+                            "Publishing Payload %s to Topic %s Successful", payload, topic,
+                        )
                     else:
-                        self.logger.warning("Publishing Payload %s to Topic %s was not Successful", payload, topic)
+                        self.logger.warning(
+                            "Publishing Payload %s to Topic %s was not Successful", payload, topic,
+                        )
 
-                elif service == 'subscribe':
+                elif service == "subscribe":
                     self.logger.debug("Subscribe to Topic: %s", topic)
 
                     if topic not in self.mqtt_client_topics:
@@ -272,7 +311,7 @@ class MqttPlugin(PluginBase):
                     else:
                         self.logger.info("Topic %s already subscribed to", topic)
 
-                elif service == 'unsubscribe':
+                elif service == "unsubscribe":
                     self.logger.debug("Unsubscribe from Topic: %s", topic)
 
                     result = await utils.run_in_executor(self, self.mqtt_client.unsubscribe, topic)
@@ -285,31 +324,34 @@ class MqttPlugin(PluginBase):
 
                 else:
                     self.logger.warning("Wrong Service Call %s for MQTT", service)
-                    result = 'ERR'
+                    result = "ERR"
 
             except Exception as e:
                 config = self.config
-                if config['type'] == 'mqtt':
-                    self.logger.debug('Got the following Error %s, when trying to retrieve Mqtt Plugin', e)
+                if config["type"] == "mqtt":
+                    self.logger.debug(
+                        "Got the following Error %s, when trying to retrieve Mqtt Plugin", e,
+                    )
                     return str(e)
                 else:
                     self.logger.critical(
-                        'Wrong Namespace %s selected for MQTT Service. Please use proper namespace before trying again',
-                        namespace)
-                    return 'ERR'
+                        "Wrong Namespace %s selected for MQTT Service. Please use proper namespace before trying again",
+                        namespace,
+                    )
+                    return "ERR"
         else:
-            self.logger.warning('Topic not provided for Service Call {!r}.'.format(service))
+            self.logger.warning("Topic not provided for Service Call {!r}.".format(service))
             raise ValueError("Topic not provided, please provide Topic for Service Call")
 
         return result
 
     async def process_mqtt_wildcard(self, wildcard):
-        if wildcard.rstrip('#') not in self.mqtt_wildcards:
-            self.mqtt_wildcards.append(wildcard.rstrip('#'))
+        if wildcard.rstrip("#") not in self.mqtt_wildcards:
+            self.mqtt_wildcards.append(wildcard.rstrip("#"))
 
     async def mqtt_client_state(self):
         return self.mqtt_connected
-    
+
     async def send_ad_event(self, data):
         await self.AD.events.process_event(self.namespace, data)
 
@@ -330,7 +372,7 @@ class MqttPlugin(PluginBase):
     #
 
     def utility(self):
-        #self.logger.info("utility".format(self.state)
+        # self.logger.info("utility".format(self.state)
         return
 
     #
@@ -343,14 +385,28 @@ class MqttPlugin(PluginBase):
         first_time = True
         first_time_service = True
 
-        while not self.stopping: 
-            while (not self.initialized or not already_initialized) and not self.stopping: #continue until initialization is successful
-                if not already_initialized and not already_notified: #if it had connected before, it need not run this. Run if just trying for the first time
+        self.mqtt_connect_event = asyncio.Event()
+
+        while not self.stopping:
+            while (
+                not self.initialized or not already_initialized
+            ) and not self.stopping:  # continue until initialization is successful
+                if (
+                    not already_initialized and not already_notified
+                ):  # if it had connected before, it need not run this. Run if just trying for the first time
                     try:
-                        await asyncio.wait_for(utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0, loop=self.loop)
-                        await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0, loop=self.loop) # wait for it to return true for 5 seconds in case still processing connect
+                        await asyncio.wait_for(
+                            utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0
+                        )
+                        await asyncio.wait_for(
+                            self.mqtt_connect_event.wait(), 5.0
+                        )  # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
-                        self.logger.critical("Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon", self.mqtt_client_host, self.mqtt_client_port)
+                        self.logger.critical(
+                            "Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon",
+                            self.mqtt_client_host,
+                            self.mqtt_client_port,
+                        )
 
                         # meaning it should start anyway even if broker is down
                         if self.mqtt_client_force_start:
@@ -384,7 +440,9 @@ class MqttPlugin(PluginBase):
                         if self.stopping:
                             break
                     else:
-                        self.logger.critical("Unable to reinitialize MQTT Plugin, will keep trying again until complete")
+                        self.logger.critical(
+                            "Unable to reinitialize MQTT Plugin, will keep trying again until complete"
+                        )
                     await asyncio.sleep(5)
             await asyncio.sleep(5)
 
@@ -400,32 +458,42 @@ class MqttPlugin(PluginBase):
                     self.mqtt_client.username_pw_set(self.mqtt_client_user, password=self.mqtt_client_password)
 
                 set_tls = False
-                auth = {"tls_version" : self.mqtt_tls_version}
+                auth = {"tls_version": self.mqtt_tls_version}
                 if self.mqtt_client_tls_ca_cert is not None:
-                    auth.update({"ca_certs" : self.mqtt_client_tls_ca_cert})
+                    auth.update({"ca_certs": self.mqtt_client_tls_ca_cert})
                     set_tls = True
-                
+
                 if self.mqtt_client_tls_client_cert is not None:
-                    auth.update({"certfile" : self.mqtt_client_tls_client_cert})
+                    auth.update({"certfile": self.mqtt_client_tls_client_cert})
                     set_tls = True
-                  
+
                 if self.mqtt_client_tls_client_key is not None:
-                    auth.update({"keyfile" : self.mqtt_client_tls_client_key})
+                    auth.update({"keyfile": self.mqtt_client_tls_client_key})
                     set_tls = True
-                   
+
                 if set_tls is True:
                     self.mqtt_client.tls_set(**auth)
 
                     if not self.mqtt_verify_cert:
                         self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
 
-                self.mqtt_client.will_set(self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos, retain=self.mqtt_will_retain)
+                self.mqtt_client.will_set(
+                    self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos, retain=self.mqtt_will_retain,
+                )
 
             self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port, self.mqtt_client_timeout)
             self.mqtt_client.loop_start()
         except Exception as e:
-            self.logger.critical("There was an error while trying to setup the Mqtt Service. Error was: %s", e)
-            self.logger.debug("There was an error while trying to setup the MQTT Service. Error: %s, with Traceback: %s", e, traceback.format_exc())
-            self.logger.debug('There was an error while trying to setup the MQTT Service, with Traceback: %s', traceback.format_exc())
+            self.logger.critical(
+                "There was an error while trying to setup the Mqtt Service. Error was: %s", e,
+            )
+            self.logger.debug(
+                "There was an error while trying to setup the MQTT Service. Error: %s, with Traceback: %s",
+                e,
+                traceback.format_exc(),
+            )
+            self.logger.debug(
+                "There was an error while trying to setup the MQTT Service, with Traceback: %s", traceback.format_exc(),
+            )
 
         return

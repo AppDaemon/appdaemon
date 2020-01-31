@@ -105,10 +105,10 @@ The ``appdaemon:`` section has a number of directives:
 
 -  ``filters`` (optional) - see below.
 -  ``plugins`` (required) - see below.
--  ``latitude`` (required) - latitude for AppDaemon to use.
--  ``longitude`` (required) - longitude for AppDaemon to use.
--  ``elevation`` (required) - elevation for AppDaemon to use.
--  ``time_zone`` (required) - timezone for AppDaemon to use.
+-  ``latitude`` (required) - latitude for AppDaemon to use (decimal format).
+-  ``longitude`` (required) - longitude for AppDaemon to use (decimal format).
+-  ``elevation`` (required) - elevation for AppDaemon to use in meters above sea level.
+-  ``time_zone`` (required) - timezone for AppDaemon to use (e.g. America/New_York).
 -  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
@@ -516,7 +516,7 @@ when we first run it.
 Configuring the HTTP Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
+The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled. This component also creates a folder in the configuration directory called ``web``, if it doesn't exist. To serve custom static content like images, videos or html pages, simply drop the content into the web folder and it becomes available via the browser or dashboard. Content stored in this folder can be accessed using ``http://AD_IP:Port/web/<content to be accessed>``. Where `AD_IP:Port` is the url as defined below using the http component.
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
@@ -573,6 +573,19 @@ Headers are especially useful for dealing with CORS. In order to allow CORS from
     http:
       headers:
         Access-Control-Allow-Origin: "*"
+
+This component can also be used to setup custom static directories, which has contents within it that needs to be served using
+AD's internal web server. This can range from images, videos, html pages and the likes. To do this, consider the configuration below:
+
+.. code:: yaml
+
+    http:
+      custom_dirs:
+        videos: /home/pi/video_clips
+        pictures: /home/pi/pictures
+
+The above configuration assumes that the user has a folder, that has stored within it video clips from like cameras. To access
+the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/pictures/<picture to be accessed>``.
 
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~

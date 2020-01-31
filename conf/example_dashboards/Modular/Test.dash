@@ -71,7 +71,7 @@ wendy_presence_mapped:
     - home
     - house
     - wombat
-  
+
 mode:
   widget_type: sensor
   title: Housé Mode
@@ -195,7 +195,7 @@ obsidian:
   widget_type: navigate
   dashboard: Test
   skin: obsidian
-    
+
 load_main_panel:
     widget_type: navigate
     title: Main Panel
@@ -228,7 +228,7 @@ cat_frame:
     widget_type: iframe
     title: Pics
     refresh: 60
-    img_list: 
+    img_list:
       - http://www.uniwallpaper.com/static/images/a5f4051f4c019e159ff523754f5d569b_5ZMy2F9.jpg
       - http://www.uniwallpaper.com/static/images/4640301_Zc4ESGi.jpg
       - http://www.uniwallpaper.com/static/images/6890733-mountain-peaks-wallpaper-hd_PZTQDff.jpg
@@ -239,9 +239,9 @@ ha_frame:
     widget_type: iframe
     title: Home Assistant
     #refresh: 60
-    url_list: 
+    url_list:
       - http://192.168.1.20:8123
-    
+
 alarm:
     widget_type: alarm
     entity: alarm_control_panel.ha_alarm
@@ -252,7 +252,7 @@ weather_frame:
     title: Radar
     refresh: 10
     frame_style: ""
-    img_list: 
+    img_list:
     #  - https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url=https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif&container=focus&refresh=240&resize_h=640&resize_h=640
       - https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif
       - https://icons.wxug.com/data/weather-maps/radar/united-states/bakersfield-california-region-current-radar.gif
@@ -263,7 +263,7 @@ camera_frame:
     refresh: 5
     frame_style: ""
     entity_picture: !secret cam_url
- 
+
 weather_summary:
   widget_type: sensor
   title: Summary
@@ -277,7 +277,7 @@ garage_status:
   state_map:
     "off": "Closed"
     "on": "Open"
-  
+
 reload:
     widget_type: reload
     title: reload

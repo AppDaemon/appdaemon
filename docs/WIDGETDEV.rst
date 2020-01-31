@@ -717,9 +717,9 @@ the change: ``self.call_service()``
 The additional logic and loop when state is off is to construct the necessary dictionary of additional parameters in
 the format the ``turn_on`` service expects to set brightness, color, etc, that may be passed into the widget.
 
-Usually, HADasboard understands ``args`` values as a single string. If you need to use a service that expects to 
-receive a list or a dictionary then you may use the special key ``json_args`` and set its value to a stringified 
-json. For example, suppose you want to pass to the service a list called ``colors``, then you could change the above 
+Usually, HADasboard understands ``args`` values as a single string. If you need to use a service that expects to
+receive a list or a dictionary then you may use the special key ``json_args`` and set its value to a stringified
+json. For example, suppose you want to pass to the service a list called ``colors``, then you could change the above
 code and include another check:
 
 .. code:: javascript
@@ -1061,7 +1061,3 @@ A Note on Skinning
 As you have seen, when creating a new widget, it is also necessary to add entries for the skinning variables.
 When contributing widgets back, please ensure that you have provided entries for all of the included skins
 that are sympathetic to the original look and feel, or the PR will not be accepted.
-
-
-
-

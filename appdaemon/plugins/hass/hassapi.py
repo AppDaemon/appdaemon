@@ -1,5 +1,6 @@
 import requests
 from ast import literal_eval
+from functools import wraps
 
 import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
@@ -8,9 +9,8 @@ import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-from functools import wraps
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 def hass_check(func):
@@ -34,6 +34,7 @@ def hass_check(func):
 #
 # Define an entities class as a descriptor to enable read only access of HASS state
 #
+
 
 class Hass(adbase.ADBase, adapi.ADAPI):
     #
@@ -66,6 +67,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
+            person (boolean, optional): If set to True, use person rather than device_tracker
+                as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -74,9 +77,18 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> trackers = self.get_trackers()
             >>> for tracker in trackers:
             >>>     do something
+            >>> people = self.get_trackers(person=True)
+            >>> for person in people:
+            >>>     do something
 
         """
-        return (key for key, value in self.get_state("device_tracker", **kwargs).items())
+        if "person" in kwargs and kwargs["person"] is True:
+            device = "person"
+            del kwargs["person"]
+        else:
+            device = "device_tracker"
+
+        return (key for key, value in self.get_state(device, **kwargs).items())
 
     def get_tracker_details(self, **kwargs):
         """Returns a list of all device trackers and their associated state.
@@ -85,6 +97,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
+            person (boolean, optional): If set to True, use person rather than device_tracker
+                as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -95,14 +109,20 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        return self.get_state("device_tracker", **kwargs)
+        if "person" in kwargs and kwargs["person"] is True:
+            device = "person"
+            del kwargs["person"]
+        else:
+            device = "device_tracker"
+
+        return self.get_state(device, **kwargs)
 
     def get_tracker_state(self, entity_id, **kwargs):
         """Gets the state of a tracker.
 
         Args:
-            entity_id (str): Fully qualified entity id of the device tracker to query, e.g.,
-                ``device_tracker.andrew``.
+            entity_id (str): Fully qualified entity id of the device tracker or person to query, e.g.,
+                ``device_tracker.andrew`` or ``person.andrew``.
            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -123,9 +143,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             location can be returned.
 
         Examples:
-            >>> trackers = self.get_trackers()
-            >>> for tracker in trackers:
-            >>>     self.log("{} is {}".format(tracker, self.get_tracker_state(tracker)))
+            >>> state = self.get_tracker_state("device_tracker.andrew")
+            >>>     self.log("state is {}".format(state))
+            >>> state = self.get_tracker_state("person.andrew")
+            >>>     self.log("state is {}".format(state))
 
         """
         self._check_entity(self._get_namespace(**kwargs), entity_id)
@@ -144,6 +165,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
+            person (boolean, optional): If set to True, use person rather than device_tracker
+                as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -154,12 +177,20 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> if self.anyone_home():
             >>>     do something
+            >>> if self.anyone_home(person=True):
+            >>>     do something
 
         """
+        if "person" in kwargs and kwargs["person"] is True:
+            device = "person"
+            del kwargs["person"]
+        else:
+            device = "device_tracker"
+
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == "device_tracker":
+            if thisdevice == device:
                 if state[entity_id]["state"] == "home":
                     return True
         return False
@@ -176,6 +207,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
+            person (boolean, optional): If set to True, use person rather than device_tracker
+                as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -186,12 +219,20 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> if self.everyone_home():
             >>>    do something
+            >>> if self.everyone_home(perosn=True):
+            >>>    do something
 
         """
+        if "person" in kwargs and kwargs["person"] is True:
+            device = "person"
+            del kwargs["person"]
+        else:
+            device = "device_tracker"
+
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == "device_tracker":
+            if thisdevice == device:
                 if state[entity_id]["state"] != "home":
                     return False
         return True
@@ -208,6 +249,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
+            person (boolean, optional): If set to True, use person rather than device_tracker
+                as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -218,12 +261,20 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> if self.noone_home():
             >>>     do something
+            >>> if self.noone_home(person=True):
+            >>>     do something
 
         """
+        if "person" in kwargs and kwargs["person"] is True:
+            device = "person"
+            del kwargs["person"]
+        else:
+            device = "device_tracker"
+
         state = await self.get_state(**kwargs)
         for entity_id in state.keys():
             thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == "device_tracker":
+            if thisdevice == device:
                 if state[entity_id]["state"] == "home":
                     return False
         return True
@@ -239,6 +290,17 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         elif value == "anyone" and not self.anyone_home():
             unconstrained = False
         elif value == "noone" and not self.noone_home():
+            unconstrained = False
+
+        return unconstrained
+
+    def constrain_person(self, value):
+        unconstrained = True
+        if value == "everyone" and not self.everyone_home(person=True):
+            unconstrained = False
+        elif value == "anyone" and not self.anyone_home(person=True):
+            unconstrained = False
+        elif value == "noone" and not self.noone_home(person=True):
             unconstrained = False
 
         return unconstrained
@@ -314,14 +376,14 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-            
+
         rargs["namespace"] = namespace
         await self.call_service("homeassistant/turn_on", **rargs)
 
@@ -360,7 +422,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
@@ -404,14 +466,14 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id}
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-            
+
         rargs["namespace"] = namespace
         await self.call_service("homeassistant/toggle", **rargs)
 
@@ -444,7 +506,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
@@ -484,7 +546,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "value": value}
@@ -492,7 +554,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["value"] = value
-            
+
         rargs["namespace"] = namespace
         await self.call_service("input_text/set_value", **rargs)
 
@@ -528,7 +590,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-            
+
         await self._check_entity(namespace, entity_id)
         if kwargs == {}:
             rargs = {"entity_id": entity_id, "option": option}
@@ -536,7 +598,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             rargs = kwargs
             rargs["entity_id"] = entity_id
             rargs["option"] = option
-            
+
         rargs["namespace"] = namespace
         await self.call_service("input_select/select_option", **rargs)
 
@@ -566,7 +628,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> self.notify("Switching mode to Evening")
             >>> self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
-
+                # will send a message through notify.smtp instead of the default notify.notify
         """
         kwargs["message"] = message
         if "name" in kwargs:
@@ -668,7 +730,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        
+
         if entity_id != "":
             await self._check_entity(namespace, entity_id)
         if kwargs == {}:
@@ -676,7 +738,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         else:
             rargs = kwargs
             rargs["entity_id"] = entity_id
-            
+
         rargs["namespace"] = namespace
 
         result = await self.call_service("database/history", **rargs)

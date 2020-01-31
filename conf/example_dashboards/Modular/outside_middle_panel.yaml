@@ -6,6 +6,6 @@ porch_light:
 
 layout:
   - porch_light, light.drive, switch.front_path_switch, switch.outside_decorations_switch
-  - 
+  -
   -
   - scene.porch_on, scene.porch_off, scene.drive_on, scene.drive_off, scene.outside_off, scene.outside_dim, scene.outside_bright

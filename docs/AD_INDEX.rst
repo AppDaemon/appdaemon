@@ -119,6 +119,7 @@ L
 * `label   [Widget] <DASHBOARD_CREATION.html#label>`__
 * `light   [Widget] <DASHBOARD_CREATION.html#light>`__
 * `list_namespaces()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.list_namespaces>`__
+* `list_services()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.list_services>`__
 * `listen_event()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_event>`__
 * `listen_event()   [Mqtt API] <MQTT_API_REFERENCE.html#appdaemon.plugins.mqtt.mqttapi.Mqtt.listen_event>`__
 * `listen_log()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.listen_log>`__
@@ -164,6 +165,7 @@ R
 
 * `radial   [Widget] <DASHBOARD_CREATION.html#radial>`__
 * `register_endpoint()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_endpoint>`__
+* `register_route()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_route>`__
 * `register_service()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_service>`__
 * `reload   [Widget] <DASHBOARD_CREATION.html#reload>`__
 * `reload_apps()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.reload_apps>`__
@@ -222,6 +224,7 @@ U
 -
 
 * `unregister_endpoint()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.unregister_endpoint>`__
+* `unregister_route()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.unregister_route>`__
 
 V
 -
