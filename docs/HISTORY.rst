@@ -12,10 +12,17 @@ Change Log
 - Bump bcrypt to 3.1.7
 - Bump jinja2 to 2.10.3
 - Bump aiohttp-jinja2 to 1.2.0
+- Bump deepdiff from 4.0.9 to 4.2.0
+- Bump jinja2 from 2.11.0 to 2.11.1
+- Add Azure pipelines for Black and Flake - contributed by `Bas Nijholt <https://github.com/basnijholt>`__
+- Added service call for ``remove_entity``
+- Added ability to use ``now`` in ``run_every``. Also seconds can be added by simply using ``now+10`` for example
+- Presence convenience functions now support a ``person`` flag to use person entities rather than device trackers for presence detection
+- ``constrain_person`` constraints added to support person entities
 
 **Fixes**
 
-- None
+- Re-added support for SSL in the http module (should also fix dialogflow)
 
 **Breaking Changes**
 
@@ -51,6 +58,9 @@ None
 - Added the ability to use async functions as endpoint callback
 - Added the ability for ``input_select`` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a webscoket client connects and disconnects
+- Added the ability for apps to register web routes, thereby utilizing AD's internal web server
+- Added static folder `web`, which can used to serve content like images using AD's internal web server
+- Added ability for users to define static folders, which can used to serve content like images using AD's internal web server
 - Added support for python 3.8
 
 **Fixes**
@@ -117,7 +127,7 @@ None
 - Moved ``constrain_days`` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
-- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
+- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps
 - Added ``parse_datetime()``
 - ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - Refactored appdaemon.py for greater readability and easier maintenance
@@ -199,7 +209,7 @@ None
 - Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
 - As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
 - In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
-- MQTT client status api change from ``clientConnected`` to ``is_client_connected``  
+- MQTT client status api change from ``clientConnected`` to ``is_client_connected``
 
 3.0.4 (2019-04-04)
 ------------------
@@ -870,11 +880,11 @@ None
 
 **Fixes**
 
--  
+-
 
 **Breaking Changes**
 
--  
+-
 
 2.0.0beta3 (2017-03-27)
 -----------------------

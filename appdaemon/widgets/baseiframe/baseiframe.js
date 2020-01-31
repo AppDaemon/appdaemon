@@ -1,27 +1,27 @@
 function baseiframe(widget_id, url, skin, parameters)
 {
     self = this
-    
+
     // Initialization
-    
+
     self.parameters = parameters;
-    
+
     var callbacks = []
-    
+
     var monitored_entities = []
-    
+
     // Call the parent constructor to get things moving
-    
+
     WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
 
     // Set the url
-    
+
     if ("url_list" in parameters || "img_list" in parameters || "entity_picture" in parameters)
     {
         self.index = 0;
         refresh_frame(self)
     }
-    
+
     function refresh_frame(self)
     {
         if ("url_list" in self.parameters)
@@ -58,7 +58,7 @@ function baseiframe(widget_id, url, skin, parameters)
             self.set_field(self, "img_src", url);
             size = 1
         }
-        
+
         if ("refresh" in self.parameters)
         {
             self.index = self.index + 1;

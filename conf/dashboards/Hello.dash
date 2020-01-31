@@ -9,6 +9,6 @@ columns: 8
 label:
     widget_type: label
     text: Hello World
-    
+
 layout:
     - label(2x2)
