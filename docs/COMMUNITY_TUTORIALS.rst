@@ -21,14 +21,3 @@ Here is a list of other tutorials that have been created by AppDaemon users:
 Do you have other tutorials? Make a PR :)
 
 -- AppDaemon Team
-
-
-
-
-
-
-
-
-
-
-

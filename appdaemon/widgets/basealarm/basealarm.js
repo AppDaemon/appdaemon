@@ -2,17 +2,17 @@ function basealarm(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
-    
+
     self = this
-    
+
     // Initialization
-    
+
     self.widget_id = widget_id
 
     // Parameters may come in useful later on
-    
+
     self.parameters = parameters
-       
+
     self.OnButtonClick = OnButtonClick
     self.OnCloseClick = OnCloseClick
     self.OnDigitClick = OnDigitClick
@@ -20,8 +20,8 @@ function basealarm(widget_id, url, skin, parameters)
     self.OnArmAwayClick = OnArmAwayClick
     self.OnDisarmClick = OnDisarmClick
     self.OnTriggerClick = OnTriggerClick
-    
-    
+
+
     var callbacks =
         [
             {"selector": '#' + widget_id + ' > span', "action": "click", "callback": self.OnButtonClick},
@@ -41,19 +41,19 @@ function basealarm(widget_id, url, skin, parameters)
             {"selector": '#' + widget_id + ' #AA', "action": "click", "callback": self.OnArmAwayClick},
             {"selector": '#' + widget_id + ' #DA', "action": "click", "callback": self.OnDisarmClick},
             {"selector": '#' + widget_id + ' #TR', "action": "click", "callback": self.OnTriggerClick},
-                
+
         ]
- 
+
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
-     
+
     self.OnStateAvailable = OnStateAvailable
     self.OnStateUpdate = OnStateUpdate
-    
+
     if ("entity" in parameters)
     {
-        var monitored_entities = 
+        var monitored_entities =
             [
                 {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
             ]
@@ -63,27 +63,27 @@ function basealarm(widget_id, url, skin, parameters)
         var monitored_entities =  []
     }
     // Finally, call the parent constructor to get things moving
-    
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
+
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)
 
     self.set_view = set_view
-    
+
     // Function Definitions
-    
-    // The StateAvailable function will be called when 
+
+    // The StateAvailable function will be called when
     // self.state[<entity>] has valid information for the requested entity
     // state is the initial state
     // Methods
 
     function OnStateAvailable(self, state)
-    {    
+    {
         self.set_field(self, "state", self.map_state(self, state.state))
     }
- 
+
     function OnStateUpdate(self, state)
     {
         self.set_field(self, "state", self.map_state(self, state.state))
-    }  
+    }
 
     function OnButtonClick(self)
     {
@@ -129,48 +129,48 @@ function basealarm(widget_id, url, skin, parameters)
         }
         self.set_view(self)
     }
-    
+
     function OnArmHomeClick(self)
     {
-        
+
         args = self.parameters.post_service_ah
         args["code"] = self.code
         self.call_service(self, args)
-        
+
         self.code = self.parameters.initial_string
         self.set_view(self)
     }
-    
+
     function OnArmAwayClick(self)
     {
         args = self.parameters.post_service_aa
         args["code"] = self.code
         self.call_service(self, args)
-        
+
         self.code = self.parameters.initial_string
         self.set_view(self)
     }
-    
+
     function OnDisarmClick(self)
     {
         args = self.parameters.post_service_da
         args["code"] = self.code
         self.call_service(self, args)
-        
+
         self.code = self.parameters.initial_string
         self.set_view(self)
     }
-    
+
     function OnTriggerClick(self)
     {
         args = self.parameters.post_service_tr
         args["code"] = self.code
         self.call_service(self, args)
 
-        self.code = self.parameters.initial_string        
+        self.code = self.parameters.initial_string
         self.set_view(self)
     }
-    
+
     function set_view(self)
     {
         self.set_field(self, "code", self.code)

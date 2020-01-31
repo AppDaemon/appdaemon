@@ -638,7 +638,7 @@ function admin_stream(stream, transport)
         webSocket.onmessage = function (event) {
             var data = JSON.parse(event.data);
 
-            // Stream Authorized            
+            // Stream Authorized
             if (data.response_type === "hello" && data.response_success === true)
             {
                 webSocket.send(JSON.stringify({
@@ -648,7 +648,7 @@ function admin_stream(stream, transport)
                         entity_id: '*',
                     }
                 }))
-        
+
                 webSocket.send(JSON.stringify({
                     request_type: 'listen_event',
                     data: {
@@ -667,7 +667,7 @@ function admin_stream(stream, transport)
                 webSocket.refresh()
                 return
             }
-            
+
             update_admin(data)
         };
 
@@ -802,4 +802,3 @@ function get_state(f)
 
     });
 }
-

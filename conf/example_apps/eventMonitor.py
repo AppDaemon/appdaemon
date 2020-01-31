@@ -8,9 +8,11 @@ Arguments:
  - events: List of events to monitor
 
 """
+
+
 class Monitor(hass.Hass):
     def initialize(self):
-        events = self.args['events']
+        events = self.args["events"]
 
         for event in events:
             self.changed(event, None, None, None, None)
@@ -19,6 +21,5 @@ class Monitor(hass.Hass):
             self.listen_state(self.changed, event)
 
     def changed(self, entity, attribute, old, new, kwargs):
-        value = self.get_state(entity, 'all')
-        self.log(entity + ': ' + str(value))
-
+        value = self.get_state(entity, "all")
+        self.log(entity + ": " + str(value))
