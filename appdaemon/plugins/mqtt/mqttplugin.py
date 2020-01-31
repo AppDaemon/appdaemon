@@ -96,8 +96,8 @@ class MqttPlugin(PluginBase):
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
 
-        self.loop = self.AD.loop # get AD loop
-  
+        self.loop = self.AD.loop  # get AD loop
+
         self.mqtt_wildcards = list()
         self.mqtt_metadata = {
             "version": "1.0",
@@ -384,7 +384,7 @@ class MqttPlugin(PluginBase):
         already_notified = False
         first_time = True
         first_time_service = True
-        
+
         self.mqtt_connect_event = asyncio.Event()
 
         while not self.stopping:
@@ -396,12 +396,10 @@ class MqttPlugin(PluginBase):
                 ):  # if it had connected before, it need not run this. Run if just trying for the first time
                     try:
                         await asyncio.wait_for(
-                            utils.run_in_executor(self, self.start_mqtt_service, first_time_service),
-                            5.0
+                            utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0
                         )
                         await asyncio.wait_for(
-                            self.mqtt_connect_event.wait(), 
-                            5.0
+                            self.mqtt_connect_event.wait(), 5.0
                         )  # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.logger.critical(
