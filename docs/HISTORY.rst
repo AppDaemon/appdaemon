@@ -23,6 +23,7 @@ Change Log
 **Fixes**
 
 - Re-added support for SSL in the http module (should also fix dialogflow)
+- Add openssl-dev package to docker image (required for RPI)
 
 **Breaking Changes**
 
