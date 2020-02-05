@@ -256,7 +256,6 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 
     this.get_state = function(child, base_url, entity)
     {
-        console.log(parameters)
         if ("resident_namespace" in parameters)
         {
             ns = parameters.resident_namespace
@@ -266,7 +265,6 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
             ns = parameters.namespace;
         }
         state_url = base_url + "/api/appdaemon/state/" + ns + "/" + entity.entity;
-        console.log(state_url)
         $.ajax
         ({
             url: state_url,

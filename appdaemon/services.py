@@ -40,8 +40,6 @@ class Services:
 
                 for domain in self.services[namespace]:
                     for service in self.services[namespace][domain]:
-                        if service == "fire":
-                            print(f"{domain} {service} {namespace}")
                         result.append({"namespace": namespace, "domain": domain, "service": service})
 
         return result
