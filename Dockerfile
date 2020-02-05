@@ -22,7 +22,7 @@ COPY . .
 RUN apk add tzdata
 
 # Install dependencies
-RUN apk add --no-cache gcc libffi-dev musl-dev \
+RUN apk add --no-cache gcc g++ libffi-dev musl-dev \
     && pip install --no-cache-dir .
 
 # Install additional packages
