@@ -185,7 +185,7 @@ class ADMain:
             default="INFO",
             choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         )
-        parser.add_argument("-m", "--moduledebug", nargs=2, action="append", help=argparse.SUPPRESS)
+        parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
         parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
         parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
 

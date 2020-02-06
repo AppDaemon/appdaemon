@@ -15,7 +15,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import appdaemon.dashboard as addashboard
 import appdaemon.utils as utils
-import appdaemon.stream as stream
+import appdaemon.stream.adstream as stream
 import appdaemon.admin as adadmin
 
 from appdaemon.appdaemon import AppDaemon
@@ -695,7 +695,7 @@ class HTTP:
     async def stream_update(self, namespace, data):
         # self.logger.debug("stream_update() %s:%s", namespace, data)
         data["namespace"] = namespace
-        self.AD.thread_async.call_async_no_wait(self.stream.send_update, data)
+        self.AD.thread_async.call_async_no_wait(self.stream.process_event, data)
 
     # Routes, Status and Templates
 
