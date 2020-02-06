@@ -1,6 +1,3 @@
-import socketio
-import aiohttp
-from aiohttp import web
 import traceback
 import bcrypt
 import uuid
@@ -9,22 +6,8 @@ import threading
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
-
-
-# socketio handler
-class DashStream(socketio.AsyncNamespace):
-    def __init__(self, ADStream, path, AD):
-
-        super().__init__(path)
-
-        self.AD = AD
-        self.ADStream = ADStream
-
-    async def on_connect(self, sid, data):
-        await self.ADStream.on_connect()
-
-    async def on_up(self, sid, data):
-        await self.ADStream.on_msg(data)
+from appdaemon.stream.socketio_handler import SocketIOHandler
+from appdaemon.stream.ws_handler import WSHandler
 
 
 class ADStream:
@@ -35,128 +18,52 @@ class ADStream:
         self.access = ad.logging.get_access()
         self.app = app
         self.transport = transport
-        self.streams = {}
-        self.streams_lock = threading.RLock()
+        self.handlers = {}
+        self.handlers_lock = threading.RLock()
 
         if self.transport == "ws":
-            self.app.router.add_get("/stream", self.wshandler)
+            self.stream_handler = WSHandler(self, app, "/stream", self.AD)
+        elif self.transport == "socketio":
+            self.stream_handler = SocketIOHandler(self, app, "/stream", self.AD)
         else:
-            self.dash_stream = DashStream(self, "/stream", self.AD)
-            self.sio = socketio.AsyncServer(async_mode="aiohttp")
-            self.sio.attach(self.app)
-            self.sio.register_namespace(self.dash_stream)
+            self.logger.warning("Unknown stream type: {}", transport)
 
-    async def send_update(self, data):  # noqa: C901
+    async def on_connect(self, request):
+        # New connection - create a handler and add it to the list
+        handle = uuid.uuid4().hex
+        rh = RequestHandler(self.AD, self, handle, request)
+        with self.handlers_lock:
+            self.handlers[handle] = rh
+        await rh.stream.run()
+
+    async def on_disconnect(self, handle):
+        with self.handlers_lock:
+            del self.handlers[handle]
+
+    async def process_event(self, data):  # noqa: C901
         try:
-            with self.streams_lock:
-                if len(self.streams) > 0:
+            with self.handlers_lock:
+                if len(self.handlers) > 0:
                     self.logger.debug("Sending data: %s", data)
-                    for stream in self.streams:
-                        if data["event_type"] == "state_changed":
-                            for handle, sub in self.streams[stream].subscriptions["state"].items():
-                                if sub["namespace"].endswith("*"):
-                                    if not data["namespace"].startswith(sub["namespace"][:-1]):
-                                        continue
-                                else:
-                                    if not data["namespace"] == sub["namespace"]:
-                                        continue
+                    for handler in self.handlers:
+                        await self.handlers[handler]._event(data)
 
-                                if sub["entity_id"].endswith("*"):
-                                    if not data["data"]["entity_id"].startswith(sub["entity_id"][:-1]):
-                                        continue
-                                else:
-                                    if not data["data"]["entity_id"] == sub["entity_id"]:
-                                        continue
-
-                                await self.streams[stream].stream_send(data)
-                                break
-                        else:
-                            for handle, sub in self.streams[stream].subscriptions["event"].items():
-                                if sub["namespace"].endswith("*"):
-                                    if not data["namespace"].startswith(sub["namespace"][:-1]):
-                                        continue
-                                else:
-                                    if not data["namespace"] == sub["namespace"]:
-                                        continue
-
-                                if sub["event"].endswith("*"):
-                                    if not data["event_type"].startswith(sub["event"][:-1]):
-                                        continue
-                                else:
-                                    if not data["event_type"] == sub["event"]:
-                                        continue
-
-                                await self.streams[stream].stream_send(data)
-                                break
         except Exception:
             self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during 'send_update()'")
+            self.logger.warning("Unexpected error during 'process_event()'")
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
-
-    # @securedata
-    async def wshandler(self, request):
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
-
-        rh = RequestHandler(self.AD, self.transport, ws)
-        handle = uuid.uuid4().hex
-        with self.streams_lock:
-            self.streams[handle] = rh
-
-        # noinspection PyBroadException
-        try:
-            while True:
-                msg = await ws.receive()
-                if msg.type == aiohttp.WSMsgType.TEXT:
-                    await rh._handle(msg.data)
-                elif msg.type == aiohttp.WSMsgType.ERROR:
-                    self.access.info("WebSocket connection closed with exception {}", ws.exception())
-        except Exception:
-            self.logger.debug("-" * 60)
-            self.logger.debug("Unexpected client disconnection from %s", rh.client_name)
-            self.access.info("Unexpected client disconnection from %s", rh.client_name)
-            self.logger.debug("-" * 60)
-            self.logger.debug(traceback.format_exc())
-            self.logger.debug("-" * 60)
-            # await ws.close()
-        finally:
-            with self.streams_lock:
-                self.streams.pop(handle, None)
-
-            event_data = {
-                "event_type": "websocket_disconnected",
-                "data": {"client_name": rh.client_name},
-            }
-
-            await self.AD.events.process_event("admin", event_data)
-
-        return ws
-
-    # Websockets Handler
-
-    async def on_shutdown(self, application):
-        with self.streams_lock:
-            for stream in self.streams:
-                try:
-                    await self.streams[stream].stream.close()
-                except Exception:
-                    self.logger.debug("-" * 60)
-                    self.logger.warning("Unexpected error in on_shutdown()")
-                    self.logger.debug("-" * 60)
-                    self.logger.debug(traceback.format_exc())
-                    self.logger.debug("-" * 60)
 
 
 ## Any method here that doesn't begin with "_" will be exposed to the stream
 ## directly. Only Create public methods here if you wish to make them
 ## stream commands.
 class RequestHandler:
-    def __init__(self, ad: AppDaemon, transport, stream):
+    def __init__(self, ad: AppDaemon, adstream, handle, request):
         self.AD = ad
-        self.transport = transport
-        self.stream = stream
+        self.handle = handle
+        self.adstream = adstream
         self.authed = False
         self.client_name = None
         self.subscriptions = {
@@ -170,38 +77,81 @@ class RequestHandler:
         if self.AD.http.password is None:
             self.authed = True
 
-    async def stream_send(self, data):
-        try:
-            self.logger.debug("--> %s", data)
-            if self.transport == "ws":
-                await self.stream.send_json(data, dumps=utils.convert_json)
-            else:
-                # TODO replace with SocksJS
-                jdata = utils.convert_json(data)
-                await self.dash_stream.emit("down", jdata)
-        except TypeError as e:
-            self.logger.debug("-" * 60)
-            self.logger.warning("Unexpected error in JSON conversion when writing to stream")
-            self.logger.debug("Data is: %s", data)
-            self.logger.debug("Error is: %s", e)
-            self.logger.debug("-" * 60)
-        except Exception:
-            self.logger.debug("-" * 60)
-            self.logger.debug("Client disconnected unexpectedly")
-            self.access.info("Client disconnected unexpectedly")
-            self.logger.debug("-" * 60)
-            self.logger.debug(traceback.format_exc())
-            self.logger.debug("-" * 60)
+        # Create a stream
+        #
+        self.stream = self.adstream.stream_handler.makeStream(
+            self.AD, request, on_message=self._on_message, on_disconnect=self._on_disconnect
+        )
+        #
 
-    async def _response_success(self, msg, data={}):
+    async def _on_message(self, data):
+        await self._request(data)
+
+    async def _on_disconnect(self):
+        await self.adstream.on_disconnect(self.handle)
+        self.access.info("Client disconnection from %s", self.client_name)
+        event_data = {
+            "event_type": "websocket_disconnected",
+            "data": {"client_name": self.client_name},
+        }
+
+        await self.AD.events.process_event("admin", event_data)
+
+    async def _event(self, data):
+        if data["event_type"] == "state_changed":
+            for handle, sub in self.subscriptions["state"].items():
+                if sub["namespace"].endswith("*"):
+                    if not data["namespace"].startswith(sub["namespace"][:-1]):
+                        continue
+                else:
+                    if not data["namespace"] == sub["namespace"]:
+                        continue
+
+                if sub["entity_id"].endswith("*"):
+                    if not data["data"]["entity_id"].startswith(sub["entity_id"][:-1]):
+                        continue
+                else:
+                    if not data["data"]["entity_id"] == sub["entity_id"]:
+                        continue
+
+                await self._respond(data)
+                break
+        else:
+            for handle, sub in self.subscriptions["event"].items():
+                if sub["namespace"].endswith("*"):
+                    if not data["namespace"].startswith(sub["namespace"][:-1]):
+                        continue
+                else:
+                    if not data["namespace"] == sub["namespace"]:
+                        continue
+
+                if sub["event"].endswith("*"):
+                    if not data["event_type"].startswith(sub["event"][:-1]):
+                        continue
+                else:
+                    if not data["event_type"] == sub["event"]:
+                        continue
+
+                await self._respond(data)
+                break
+
+    async def _respond(self, data):
+        self.logger.debug("--> %s", data)
+        await self.stream.send(data)
+
+    async def _response_success(self, msg, data=None):
         response = {"response_type": msg["request_type"]}
         if "request_id" in msg:
             response["response_id"] = msg["request_id"]
         response["response_success"] = True
-        response["data"] = data
+        if data is None:
+            response["data"] = {}
+        else:
+            response["data"] = data
+
         response["request"] = msg
 
-        await self.stream_send(response)
+        await self._respond(response)
 
     async def _response_error(self, msg, error):
         response = {"response_type": msg["request_type"]}
@@ -211,9 +161,9 @@ class RequestHandler:
         response["response_error"] = error
         response["request"] = msg
 
-        await self.stream_send(response)
+        await self._respond(response)
 
-    async def _handle(self, rawmsg):
+    async def _request(self, rawmsg):
         self.logger.debug("<-- %s", rawmsg)
         try:
             msg = json.loads(rawmsg)
