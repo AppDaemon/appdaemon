@@ -387,7 +387,7 @@ class Plugins:
         else:
             self.logger.warning("Plugin not specified when calling '%s' service. Specify Plugin", service)
             return None
-        
+
         plugin_state = await self.get_state(plugin)
 
         if service != "reload" and plugin not in self.plugins:
@@ -406,7 +406,7 @@ class Plugins:
         elif service == "restart":
             if plugin_state == "running":
                 await utils.run_in_executor(self, self.restart_plugin, plugin)
-                
+
             else:
                 await utils.run_in_executor(self, self.start_plugin, plugin)
 
