@@ -387,20 +387,30 @@ class Plugins:
         else:
             self.logger.warning("Plugin not specified when calling '%s' service. Specify Plugin", service)
             return None
+        
+        plugin_state = await self.get_state(plugin)
 
         if service != "reload" and plugin not in self.plugins:
             self.logger.warning("Specified Plugin '%s' is not a valid Plugin", plugin)
             return None
 
         if service == "start":
-            await utils.run_in_executor(self, self.start_plugin, plugin)
+            if plugin_state != "running":
+                await utils.run_in_executor(self, self.start_plugin, plugin)
 
         elif service == "stop":
-            namespace = self.plugins[plugin]["namespace"]
-            await utils.run_in_executor(self, self.stop_plugin, namespace)
+            if plugin_state == "running":
+                namespace = self.plugins[plugin]["namespace"]
+                await utils.run_in_executor(self, self.stop_plugin, namespace)
 
         elif service == "restart":
-            await utils.run_in_executor(self, self.restart_plugin, plugin)
+            if plugin_state == "running":
+                await utils.run_in_executor(self, self.restart_plugin, plugin)
+                
+            else:
+                await utils.run_in_executor(self, self.start_plugin, plugin)
 
         elif service == "enable":
-            self.plugins[plugin]["disable"] = False
+            if plugin_state == "disabled":
+                self.plugins[plugin]["disable"] = False
+                await self.set_state(plugin, state="enabled")
