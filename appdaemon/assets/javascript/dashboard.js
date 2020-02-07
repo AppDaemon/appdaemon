@@ -14,96 +14,35 @@ function getCookie(cname) {
     return "";
 }
 
-function ha_status(stream, dash, widgets, transport)
+var DashStream = function(stream, dash, widgets, transport)
 {
-
-    if (transport === "ws")
+    var self = this;
+    this.on_message = function(data)
     {
-        var webSocket = new ReconnectingWebSocket(stream);
 
-        webSocket.onopen = function (event)
-        {
-            var request = {
-                request_type: 'hello',
-                data: {
-                    client_name: dash
-                }
+        if (data.response_type === "hello" && data.response_success === true) {
+            var response_data = {
+                namespace: '*',
+                entity_id: '*'
             };
 
-            if (getCookie('adcreds') !== '') {
-                var creds = getCookie('adcreds');
-                creds = creds.substring(1, (creds.length - 1));
-                request['data']['cookie'] = creds
-            }
-
-            webSocket.send(JSON.stringify(request));
-        };
-
-        webSocket.onmessage = function (event)
+            self.stream.send('listen_state', response_data);
+            response_data = {
+                namespace: '*',
+                event: '*'
+            };
+            self.stream.send('listen_event', response_data)
+        }
+        else
         {
-            var data = JSON.parse(event.data);
+            self.update_dash(data)
+        }
+    };
 
-            // Stream Authorized
-            if (data.response_type === "hello" && data.response_success === true)
-            {
-                webSocket.send(JSON.stringify({
-                    request_type: 'listen_state',
-                    data: {
-                        namespace: '*',
-                        entity_id: '*'
-                    }
-                }));
-
-                webSocket.send(JSON.stringify({
-                    request_type: 'listen_event',
-                    data: {
-                        namespace: '*',
-                        event: '*'
-                    }
-                }));
-
-                return
-            }
-
-            // Stream Error
-            if (data.response_type === "error")
-            {
-                console.log('Stream Error', data.msg);
-                webSocket.refresh();
-                return
-            }
-
-            update_dash(data)
-        };
-
-        webSocket.onclose = function (event)
-        {
-            //window.alert("Server closed connection")
-           // window.location.reload(false);
-        };
-
-        webSocket.onerror = function (event)
-        {
-            //window.alert("Error occured")
-            //window.location.reload(true);
-        };
-    }
-    else
+    this.on_disconnect = function()
     {
-        var iosocket = io.connect(stream);
-
-        iosocket.on("connect", function()
-        {
-           iosocket.emit("up", dash);
-        });
-
-        iosocket.on("down", function(msg)
-        {
-            var data = JSON.parse(msg);
-            update_dash(data)
-        });
-
-    }
+        // do nothing
+    };
 
     this.update_dash = function(data)
     {
@@ -151,9 +90,11 @@ function ha_status(stream, dash, widgets, transport)
                 widgets[key].on_ha_data(data);
             }
         })
-    }
+    };
 
-}
+    this.stream = new ADStream(stream, transport, dash, this.on_message, this.on_disconnect);
+
+};
 
 var inheritsFrom = function (child, parent) {
     child.prototype = Object.create(parent.prototype);

@@ -44,7 +44,7 @@ function dom_ready(transport)
         stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
     }
 
-    admin_stream(stream_url, transport);
+    this.stream = new AdminStream(stream_url, transport);
 }
 
 function create_tables(entities)
@@ -610,93 +610,36 @@ function device(entity)
     return entity.split(".")[0]
 }
 
-function admin_stream(stream, transport)
-{
+var AdminStream = function(stream, transport) {
 
-    if (transport === "ws")
-    {
-        var webSocket = new ReconnectingWebSocket(stream);
+    var self = this;
+    this.on_message = function (data) {
 
-        webSocket.onopen = function (event) {
-            var request = {
-                request_type: 'hello',
-                data: {
-                    client_name: 'Admin Browser',
-                }
-            }
+        if (data.response_type === "hello" && data.response_success === true) {
+            var response_data = {
+                namespace: '*',
+                entity_id: '*'
+            };
 
-            if (getCookie('adcreds') !== '') {
-                var creds = getCookie('adcreds')
-                creds = creds.substring(1, (creds.length - 1))
-                request['data']['cookie'] = creds
-            }
-
-            webSocket.send(JSON.stringify(request));
-            get_state(create_tables);
-        };
-
-        webSocket.onmessage = function (event) {
-            var data = JSON.parse(event.data);
-
-            // Stream Authorized
-            if (data.response_type === "hello" && data.response_success === true)
-            {
-                webSocket.send(JSON.stringify({
-                    request_type: 'listen_state',
-                    data: {
-                        namespace: '*',
-                        entity_id: '*',
-                    }
-                }))
-
-                webSocket.send(JSON.stringify({
-                    request_type: 'listen_event',
-                    data: {
-                        namespace: '*',
-                        event: '*',
-                    }
-                }))
-
-                return
-            }
-
-            // Stream Error
-            if (data.response_type === "error")
-            {
-                console.log('Stream Error', data.msg)
-                webSocket.refresh()
-                return
-            }
-
+            self.stream.send('listen_state', response_data);
+            response_data = {
+                namespace: '*',
+                event: '*'
+            };
+            self.stream.send('listen_event', response_data)
+        } else {
             update_admin(data)
-        };
+        }
+    };
 
-        webSocket.onclose = function (event) {
-            // window.alert("Server closed connection")
-            // window.location.reload(false);
-        };
+    this.on_disconnect = function () {
+        // do nothing
+    };
 
-        webSocket.onerror = function (event) {
-            //window.alert("Error occured")
-            //window.location.reload(true);
-        };
-    }
-    else
-    {
-        var iosocket = io.connect(stream);
+    this.stream = new ADStream(stream, transport, "Admin Client", this.on_message, this.on_disconnect);
 
-        iosocket.on("connect", function () {
-            iosocket.emit("up", "Admin Browser");
-            get_state(create_tables);
-        });
-
-        iosocket.on("down", function (msg) {
-            var data = JSON.parse(msg);
-            update_admin(data)
-        });
-
-    }
-}
+    get_state(create_tables);
+};
 
 function openTab(evt, tabname, tabgroup) {
     // Declare all variables

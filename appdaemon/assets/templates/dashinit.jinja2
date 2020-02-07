@@ -102,6 +102,6 @@ $(function(){ //DOM Ready
         var stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
     {% endif %}
 
-    ha_status(stream_url, "{{ title }}", widgets, "{{ transport }}");
+    var stream = new DashStream(stream_url, "{{ title }}", widgets, "{{ transport }}");
 
 });

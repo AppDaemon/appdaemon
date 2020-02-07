@@ -1,35 +1,10 @@
-# import socketio
-
-# from appdaemon import utils as utils
+import socketio
 
 
-# class SocketIOHandler(socketio.AsyncNamespace):
-#     def __init__(self, app, ADStream, path, AD):
-#
-#         super().__init__(path)
-#
-#         self.AD = AD
-#         self.ADStream = ADStream
-#         self.app = app
-#
-#         self.sio = socketio.AsyncServer(async_mode="aiohttp")
-#         self.sio.attach(self.app)
-#         self.sio.register_namespace(self.dash_stream)
-#
-#     async def on_connect(self, sid, data):
-#         await self.ADStream.on_connect()
-#
-#     async def on_up(self, sid, data):
-#         await self.ADStream.on_msg(data)
-#
-#     async def send(self):
-#         jdata = utils.convert_json(data)
-#         await self.dash_stream.emit("down", jdata)
-#
-
-
-class SocketIOHandler:
+class SocketIOHandler(socketio.AsyncNamespace):
     def __init__(self, ADStream, app, path, ad):
+
+        super().__init__(path)
 
         self.AD = ad
         self.ADStream = ADStream
@@ -37,6 +12,9 @@ class SocketIOHandler:
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
+
+        self.sio = socketio.AsyncServer(async_mode="aiohttp")
+        self.sio.attach(self.app)
 
         # await self.ADStream.on_connect(request)
 
@@ -53,6 +31,10 @@ class SocketIOStream:
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
+
+        self.sio.register_namespace(self.dash_stream)
+
+        # await self.ADStream.on_connect(request)
 
     async def run(self):
         pass
