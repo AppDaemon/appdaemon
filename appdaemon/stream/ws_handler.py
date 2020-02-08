@@ -38,6 +38,7 @@ class WSStream:
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
+        self.ws = None
 
     async def run(self):
         self.ws = web.WebSocketResponse()
