@@ -1410,7 +1410,7 @@ class ADAPI:
         Args:
             service: Name of the service, in the format `domain/service`. If the domain does not exist it will be created
             cb: A reference to the function to be called when the service is requested. This function may be a regular
-                function, or it may be asynch. Note that if it is an async function, it will run on AppDaemon's main loop
+                function, or it may be async. Note that if it is an async function, it will run on AppDaemon's main loop
                 meaning that any issues with the service could result in a delay of AppDaemon's core functions.
 
         Returns:

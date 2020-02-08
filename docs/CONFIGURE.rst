@@ -137,7 +137,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 -  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and locking of instance variables
 -  ``pin_threads`` (optional) - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. Default is to use all threads for pinned apps.
 - ``threadpool_workers`` (optional) - the number of max_workers threads to be used by AD internally to execute calls asynchronously. This defaults to ``10``.
-- ``load_distribution`` - Algorithm to use for load balancing between unpinned apps. Can be ``roundrobin`` (the default), ``random`` or ``load``
+- ``load_distribution`` - Algorithm to use for load balancing between unpinned apps. Can be ``round-robin`` (the default), ``random`` or ``load``
 -  ``timewarp`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
 -  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
 -  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
@@ -426,7 +426,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 
 
 -  ``type:`` This must be declared and it must be ``mqtt``
--  ``namepace:`` (optional) This will default to ``default``
+-  ``namespace:`` (optional) This will default to ``default``
 -  ``client_host:`` (optional) The IP address or DNS of the Broker. Defaults to 127.0.0.1 which is the localhost
 -  ``client_port:`` (optional) The port number used to access the broker. Defaults to ``1883``
 -  ``client_transport:`` (optional) The transport protocol used to access the broker. This can be either ``tcp`` or ``websockets`` Defaults to ``tcp``
