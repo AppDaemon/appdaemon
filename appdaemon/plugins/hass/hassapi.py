@@ -219,7 +219,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> if self.everyone_home():
             >>>    do something
-            >>> if self.everyone_home(perosn=True):
+            >>> if self.everyone_home(person=True):
             >>>    do something
 
         """
@@ -341,7 +341,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     async def turn_on(self, entity_id, **kwargs):
         """Turns `on` a Home Assistant entity.
 
-        This is a convenience function for the ``homassistant.turn_on``
+        This is a convenience function for the ``homeassistant.turn_on``
         function. It can turn ``on`` pretty much anything in Home Assistant
         that can be turned ``on`` or ``run`` (e.g., `Lights`, `Switches`,
         `Scenes`, `Scripts`, etc.).
@@ -392,7 +392,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     async def turn_off(self, entity_id, **kwargs):
         """Turns `off` a Home Assistant entity.
 
-        This is a convenience function for the ``homassistant.turn_off``
+        This is a convenience function for the ``homeassistant.turn_off``
         function. It can turn ``off`` pretty much anything in Home Assistant
         that can be turned ``off`` (e.g., `Lights`, `Switches`, etc.).
 
@@ -441,7 +441,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     async def toggle(self, entity_id, **kwargs):
         """Toggles between ``on`` and ``off`` for the selected entity.
 
-        This is a convenience function for the ``homassistant.toggle`` function.
+        This is a convenience function for the ``homeassistant.toggle`` function.
         It is able to flip the state of pretty much anything in Home Assistant
         that can be turned ``on`` or ``off``.
 

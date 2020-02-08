@@ -194,7 +194,7 @@ class RequestHandler:
         except RequestHandlerException as e:
             return await self._response_error(msg, str(e))
         except Exception as e:
-            await self._response_error(msg, "Unknown error occured, check AppDaemon logs: {}".format(str(e)))
+            await self._response_error(msg, "Unknown error occurred, check AppDaemon logs: {}".format(str(e)))
             raise
 
     async def _check_adcookie(self, cookie):

@@ -137,7 +137,7 @@ None
 - Added initial version of the Admin Interface
 - Added User Defined Namespaces
 - Rewrote logging to include user defined logs and formats
-- Added a unified http component to handle API, ADMIN and DASBOARD access on a single port
+- Added a unified http component to handle API, ADMIN and DASHBOARD access on a single port
 - Added startup conditions to the HASS plugin
 - Added duplicate filtering for logs
 - Added standalone pidfile functionality

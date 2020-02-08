@@ -82,7 +82,7 @@ AppDaemon arguments
     optional arguments:
       -h, --help            show this help message and exit
       -c CONFIG, --config CONFIG
-                            full path to config diectory
+                            full path to config directory
       -p PIDFILE, --pidfile PIDFILE
                             full path to PID File
       -t TIMEWARP, --timewarp multiplication factor for the scheduler time (see Time TraveL)
