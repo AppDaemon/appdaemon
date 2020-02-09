@@ -9,7 +9,7 @@ Get travel info for Oslo public transport
 
 Arguments:
  - event: Entity name when publishing event
- - departures: Number of departures to publish for eatch line
+ - departures: Number of departures to publish for each line
  - interval: Update interval, in minutes
  - x_min, x_max, y_min, y_max: Box coordinates for area to find stops in, in the UTM coordinate system
 
