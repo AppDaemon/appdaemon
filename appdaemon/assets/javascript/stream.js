@@ -1,18 +1,3 @@
-//        var iosocket = io.connect(stream);
-//
-//        iosocket.on("connect", function()
-//        {
-//           iosocket.emit("up", dash);
-//        });
-//
-//        iosocket.on("down", function(msg)
-//        {
-//            var data = JSON.parse(msg);
-//            update_dash(data)
-//        });
-
-
-
 var ADStream = function(stream, transport, client_name, on_message, on_disconnect)
 {
 
@@ -62,6 +47,58 @@ var ADStream = function(stream, transport, client_name, on_message, on_disconnec
     {
         this.stream = new WSStream(stream, this.ad_on_connect, this.ad_on_message, this.ad_on_disconnect)
     }
+    else if (transport === "socketio")
+    {
+        this.stream = new SocketIOStream(stream, this.ad_on_connect, this.ad_on_message, this.ad_on_disconnect)
+    }
+};
+
+var SocketIOStream = function(stream, on_connect, on_message, on_disconnect)
+{
+
+    var self = this;
+    this.on_connect = on_connect;
+    this.on_message = on_message;
+    this.on_disconnect = on_disconnect;
+
+    this.send = function(data)
+    {
+        console.log(data)
+        iosocket.emit("down", data)
+    };
+
+    this.sio_on_connect = function()
+    {
+        self.on_connect()
+    };
+
+    this.sio_on_message = function(event)
+    {
+        var data = JSON.parse(event.data);
+        self.on_message(data)
+    };
+
+    this.sio_on_disconnect = function()
+    {
+        self.on_disconnect()
+    };
+
+    var iosocket = io.connect(stream);
+
+    iosocket.on("connect", function()
+    {
+        self.sio_on_connect()
+    });
+
+    iosocket.on("up", function(msg)
+    {
+        self.sio_on_message(msg)
+    });
+
+    iosocket.on("disconnect", function()
+    {
+        self.sio_on_disconnect()
+    });
 };
 
 var WSStream = function(stream, on_connect, on_message, on_disconnect)

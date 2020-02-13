@@ -62,7 +62,7 @@ class WSStream:
             await self.ws.close()
             self.logger.debug("Done")
 
-    async def send(self, data):
+    async def sendclient(self, data):
         try:
             await self.ws.send_json(data, dumps=utils.convert_json)
         except TypeError as e:

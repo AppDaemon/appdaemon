@@ -44,7 +44,7 @@ class ADStream:
         try:
             with self.handlers_lock:
                 if len(self.handlers) > 0:
-                    self.logger.debug("Sending data: %s", data)
+                    # self.logger.debug("Sending data: %s", data)
                     for handler in self.handlers:
                         await self.handlers[handler]._event(data)
 
@@ -137,7 +137,7 @@ class RequestHandler:
 
     async def _respond(self, data):
         self.logger.debug("--> %s", data)
-        await self.stream.send(data)
+        await self.stream.sendclient(data)
 
     async def _response_success(self, msg, data=None):
         response = {"response_type": msg["request_type"]}

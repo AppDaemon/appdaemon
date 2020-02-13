@@ -1,43 +1,51 @@
 import socketio
 
 
-class SocketIOHandler(socketio.AsyncNamespace):
+class SocketIOHandler:
     def __init__(self, ADStream, app, path, ad):
-
-        super().__init__(path)
 
         self.AD = ad
         self.ADStream = ADStream
         self.app = app
+        self.path = path
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
 
         self.sio = socketio.AsyncServer(async_mode="aiohttp")
+
+        self.sio.on("connect", self.connect)
+        self.sio.on("down", self.down)
+
         self.sio.attach(self.app)
 
-        # await self.ADStream.on_connect(request)
+    async def down(self, sid, data):
+        self.logger.debug("IOSocket Down sid={}".format(sid,))
+        print(sid, data)
+
+    async def connect(self, sid, environ):
+        self.logger.debug("IOSocket Connect sid={} env={}".format(sid, environ))
+        await self.ADStream.on_connect({"sid": sid, "environ": environ})
 
     def makeStream(self, ad, request, **kwargs):
-        return SocketIOStream(ad, request, **kwargs)
+        return SocketIOStream(ad, self.path, request, self.sio, **kwargs)
 
 
-class SocketIOStream:
-    def __init__(self, ad, request, **kwargs):
+class SocketIOStream(socketio.AsyncNamespace):
+    def __init__(self, ad, path, request, sio, **kwargs):
 
-        self.request = request
+        super().__init__(path)
+
+        self.sio = sio
+        self.sid = request["sid"]
         self.on_message = kwargs["on_message"]
         self.on_disconnect = kwargs["on_disconnect"]
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
 
-        self.sio.register_namespace(self.dash_stream)
-
-        # await self.ADStream.on_connect(request)
-
     async def run(self):
         pass
 
-    async def send(self, data):
-        pass
+    async def sendclient(self, data):
+        await self.sio.emit("up", data, room=self.sid)
