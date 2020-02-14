@@ -1,7 +1,6 @@
 import traceback
 import bcrypt
 import uuid
-import json
 import threading
 
 from appdaemon.appdaemon import AppDaemon
@@ -27,6 +26,13 @@ class ADStream:
             self.stream_handler = SocketIOHandler(self, app, "/stream", self.AD)
         else:
             self.logger.warning("Unknown stream type: {}", transport)
+
+    def get_handler(self, id):
+        with self.handlers_lock:
+            for handle in self.handlers:
+                if self.handlers[handle].stream.client_id == id:
+                    return self.handlers[handle]
+        return None
 
     async def on_connect(self, request):
         # New connection - create a handler and add it to the list
@@ -163,12 +169,8 @@ class RequestHandler:
 
         await self._respond(response)
 
-    async def _request(self, rawmsg):
-        self.logger.debug("<-- %s", rawmsg)
-        try:
-            msg = json.loads(rawmsg)
-        except ValueError:
-            return await self._response_error(rawmsg, "bad json data")
+    async def _request(self, msg):
+        self.logger.debug("<-- %s", msg)
 
         if "request_type" not in msg:
             return await self._response_error(msg, "invalid request")

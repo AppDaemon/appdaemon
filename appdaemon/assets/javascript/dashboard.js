@@ -14,12 +14,11 @@ function getCookie(cname) {
     return "";
 }
 
-var DashStream = function(stream, dash, widgets, transport)
+var DashStream = function(transport, protocol, domain, port, path, title, widgets)
 {
     var self = this;
     this.on_message = function(data)
     {
-
         if (data.response_type === "hello" && data.response_success === true) {
             var response_data = {
                 namespace: '*',
@@ -92,7 +91,7 @@ var DashStream = function(stream, dash, widgets, transport)
         })
     };
 
-    this.stream = new ADStream(stream, transport, dash, this.on_message, this.on_disconnect);
+    this.stream = new ADStream(transport, protocol, domain, port, path, title, this.on_message, this.on_disconnect);
 
 };
 

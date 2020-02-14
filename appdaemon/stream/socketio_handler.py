@@ -1,4 +1,7 @@
 import socketio
+import json
+
+import appdaemon.utils as utils
 
 
 class SocketIOHandler:
@@ -14,32 +17,41 @@ class SocketIOHandler:
 
         self.sio = socketio.AsyncServer(async_mode="aiohttp")
 
-        self.sio.on("connect", self.connect)
-        self.sio.on("down", self.down)
+        self.ns = NameSpace(self.ADStream, self.path, self.AD)
+        self.sio.register_namespace(self.ns)
 
         self.sio.attach(self.app)
 
-    async def down(self, sid, data):
-        self.logger.debug("IOSocket Down sid={}".format(sid,))
-        print(sid, data)
-
-    async def connect(self, sid, environ):
-        self.logger.debug("IOSocket Connect sid={} env={}".format(sid, environ))
-        await self.ADStream.on_connect({"sid": sid, "environ": environ})
-
     def makeStream(self, ad, request, **kwargs):
-        return SocketIOStream(ad, self.path, request, self.sio, **kwargs)
+        return SocketIOStream(ad, self.ns, request)
 
 
-class SocketIOStream(socketio.AsyncNamespace):
-    def __init__(self, ad, path, request, sio, **kwargs):
+class NameSpace(socketio.AsyncNamespace):
+    def __init__(self, ADStream, path, AD):
 
         super().__init__(path)
 
-        self.sio = sio
-        self.sid = request["sid"]
-        self.on_message = kwargs["on_message"]
-        self.on_disconnect = kwargs["on_disconnect"]
+        self.AD = AD
+        self.logger = AD.logging.get_child("_stream")
+        self.access = AD.logging.get_access()
+        self.ADStream = ADStream
+
+    async def on_down(self, sid, data):
+        self.logger.debug("IOSocket Down sid={} data={}".format(sid, data))
+        msg = json.loads(data)
+        handler = self.ADStream.get_handler(sid)
+        await handler._on_message(msg)
+
+    async def on_connect(self, sid, environ):
+        self.logger.debug("IOSocket Connect sid={} env={}".format(sid, environ))
+        await self.ADStream.on_connect({"sid": sid, "environ": environ})
+
+
+class SocketIOStream:
+    def __init__(self, ad, namespace, request):
+
+        self.ns = namespace
+        self.client_id = request["sid"]
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
@@ -48,4 +60,6 @@ class SocketIOStream(socketio.AsyncNamespace):
         pass
 
     async def sendclient(self, data):
-        await self.sio.emit("up", data, room=self.sid)
+        self.logger.debug("IOSocket Send sid={} data={}".format(self.client_id, data))
+        msg = utils.convert_json(data)
+        await self.ns.emit("up", msg, room=self.client_id)

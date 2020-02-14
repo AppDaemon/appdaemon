@@ -1,10 +1,28 @@
-var ADStream = function(stream, transport, client_name, on_message, on_disconnect)
+var ADStream = function(transport, protocol, domain, port, path, client_name, on_message, on_disconnect)
 {
 
     var self = this;
     this.client_name = client_name;
     this.on_message = on_message;
     this.on_disconnect = on_disconnect;
+
+    if (transport === "ws")
+    {
+        if (protocol === 'https:')
+        {
+            prot = "wss:"
+        }
+        else
+        {
+            prot = "ws:"
+        }
+    }
+    else
+    {
+        prot = protocol
+    }
+
+    stream_url = prot + '//' + domain + ':' + port + path;
 
     this.ad_on_message = function(data)
     {
@@ -45,11 +63,11 @@ var ADStream = function(stream, transport, client_name, on_message, on_disconnec
 
     if (transport === "ws")
     {
-        this.stream = new WSStream(stream, this.ad_on_connect, this.ad_on_message, this.ad_on_disconnect)
+        this.stream = new WSStream(stream_url, this.ad_on_connect, this.ad_on_message, this.ad_on_disconnect)
     }
     else if (transport === "socketio")
     {
-        this.stream = new SocketIOStream(stream, this.ad_on_connect, this.ad_on_message, this.ad_on_disconnect)
+        this.stream = new SocketIOStream(stream_url, this.ad_on_connect, this.ad_on_message, this.ad_on_disconnect)
     }
 };
 
@@ -63,8 +81,7 @@ var SocketIOStream = function(stream, on_connect, on_message, on_disconnect)
 
     this.send = function(data)
     {
-        console.log(data)
-        iosocket.emit("down", data)
+        iosocket.emit("down", JSON.stringify(data))
     };
 
     this.sio_on_connect = function()
@@ -74,7 +91,8 @@ var SocketIOStream = function(stream, on_connect, on_message, on_disconnect)
 
     this.sio_on_message = function(event)
     {
-        var data = JSON.parse(event.data);
+        var data = JSON.parse(event);
+
         self.on_message(data)
     };
 
@@ -83,7 +101,7 @@ var SocketIOStream = function(stream, on_connect, on_message, on_disconnect)
         self.on_disconnect()
     };
 
-    var iosocket = io.connect(stream);
+    var iosocket = io(stream);
 
     iosocket.on("connect", function()
     {

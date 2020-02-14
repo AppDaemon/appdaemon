@@ -1,4 +1,5 @@
 import traceback
+import json
 
 import aiohttp
 from aiohttp import web
@@ -47,7 +48,16 @@ class WSStream:
             while True:
                 msg = await self.ws.receive()
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    await self.on_message(msg.data)
+                    try:
+                        msg = json.loads(msg.data)
+                        await self.on_message(msg)
+                    except ValueError:
+                        self.logger.warning("Unexpected error in JSON conversion when receiving from stream")
+                        self.logger.debug("-" * 60)
+                        self.logger.debug("BAD JSON Data: {}", msg.data)
+                        self.logger.debug("-" * 60)
+                        self.logger.debug(traceback.format_exc())
+                        self.logger.debug("-" * 60)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self.access.info("WebSocket connection closed with exception {}", self.ws.exception())
         except Exception:
