@@ -88,5 +88,5 @@ $(function(){ //DOM Ready
 
     // Start listening for HA Events
 
-    var stream = new DashStream("{{ transport }}", location.protocol, document.domain, location.port, "/stream", "{{ title }}", widgets);
+    var stream = new DashStream("{{ transport }}", location.protocol, document.domain, location.port, "{{ title }}", widgets);
 });

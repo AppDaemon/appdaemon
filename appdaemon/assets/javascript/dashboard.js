@@ -14,7 +14,7 @@ function getCookie(cname) {
     return "";
 }
 
-var DashStream = function(transport, protocol, domain, port, path, title, widgets)
+var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
     var self = this;
     this.on_message = function(data)
@@ -91,7 +91,7 @@ var DashStream = function(transport, protocol, domain, port, path, title, widget
         })
     };
 
-    this.stream = new ADStream(transport, protocol, domain, port, path, title, this.on_message, this.on_disconnect);
+    this.stream = new ADStream(transport, protocol, domain, port, title, this.on_message, this.on_disconnect);
 
 };
 

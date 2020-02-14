@@ -24,7 +24,7 @@ function dom_ready(transport)
     $("#main_log_button")[0].click();
     $("#default_entity_button")[0].click();
 
-    this.stream = new AdminStream(transport, location.protocol, document.domain, location.port, "/stream");
+    this.stream = new AdminStream(transport, location.protocol, document.domain, location.port);
 }
 
 function create_tables(entities)
@@ -590,7 +590,7 @@ function device(entity)
     return entity.split(".")[0]
 }
 
-var AdminStream = function(transport, protocol, domain, port, path) {
+var AdminStream = function(transport, protocol, domain, port) {
 
     var self = this;
     this.on_message = function (data) {
@@ -616,7 +616,7 @@ var AdminStream = function(transport, protocol, domain, port, path) {
         // do nothing
     };
 
-    this.stream = new ADStream(transport, protocol, domain, port, path, "Admin Client", this.on_message, this.on_disconnect);
+    this.stream = new ADStream(transport, protocol, domain, port, "Admin Client", this.on_message, this.on_disconnect);
 
     get_state(create_tables);
 };

@@ -1,4 +1,4 @@
-var ADStream = function(transport, protocol, domain, port, path, client_name, on_message, on_disconnect)
+var ADStream = function(transport, protocol, domain, port, client_name, on_message, on_disconnect)
 {
 
     var self = this;
@@ -10,7 +10,7 @@ var ADStream = function(transport, protocol, domain, port, path, client_name, on
     {
         if (protocol === 'https:')
         {
-            prot = "wss:"
+            prot = "wss:";
         }
         else
         {
@@ -22,7 +22,7 @@ var ADStream = function(transport, protocol, domain, port, path, client_name, on
         prot = protocol
     }
 
-    stream_url = prot + '//' + domain + ':' + port + path;
+    stream_url = prot + '//' + domain + ':' + port + "/stream";
 
     this.ad_on_message = function(data)
     {

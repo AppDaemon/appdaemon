@@ -46,6 +46,11 @@ class NameSpace(socketio.AsyncNamespace):
         self.logger.debug("IOSocket Connect sid={} env={}".format(sid, environ))
         await self.ADStream.on_connect({"sid": sid, "environ": environ})
 
+    async def on_disconnect(self, sid):
+        self.logger.debug("IOSocket disconnect sid={}".format(sid))
+        handler = self.ADStream.get_handler(sid)
+        await handler._on_disconnect()
+
 
 class SocketIOStream:
     def __init__(self, ad, namespace, request):
@@ -61,5 +66,6 @@ class SocketIOStream:
 
     async def sendclient(self, data):
         self.logger.debug("IOSocket Send sid={} data={}".format(self.client_id, data))
+        data["client_id"] = self.client_id
         msg = utils.convert_json(data)
         await self.ns.emit("up", msg, room=self.client_id)

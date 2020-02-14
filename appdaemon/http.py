@@ -228,6 +228,7 @@ class HTTP:
                     fonts_dir=self.fonts_dir,
                     webfonts_dir=self.webfonts_dir,
                     images_dir=self.images_dir,
+                    transport=self.transport,
                     **admin
                 )
 

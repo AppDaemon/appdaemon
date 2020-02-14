@@ -34,6 +34,13 @@ class ADStream:
                     return self.handlers[handle]
         return None
 
+    def get_handle(self, id):
+        with self.handlers_lock:
+            for handle in self.handlers:
+                if self.handlers[handle].stream.client_id == id:
+                    return handle
+        return None
+
     async def on_connect(self, request):
         # New connection - create a handler and add it to the list
         handle = uuid.uuid4().hex
@@ -97,7 +104,7 @@ class RequestHandler:
         await self.adstream.on_disconnect(self.handle)
         self.access.info("Client disconnection from %s", self.client_name)
         event_data = {
-            "event_type": "websocket_disconnected",
+            "event_type": "stream_disconnected",
             "data": {"client_name": self.client_name},
         }
 
