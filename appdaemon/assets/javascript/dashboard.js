@@ -19,11 +19,12 @@ function get_monitored_entities(widgets)
     index = 0;
     entities = [];
     Object.keys(widgets).forEach(function (key) {
-        var value = widgets[key]
+        var value = widgets[key];
         elen = value.monitored_entities.length;
         for (i=0;i < elen;i++)
         {
-            entities[index++] = value.monitored_entities[i].entity
+            console.log(value.monitored_entities[i])
+            entities[index++] = {entity: value.monitored_entities[i].entity, namespace: value.parameters.namespace}
         }
 });
     return entities
@@ -56,8 +57,8 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
                 for (i=0;i < elen;i++)
                 {
                     var request_data = {
-                        namespace: '*',
-                        entity_id: entities[i]
+                        namespace: entities[i].namespace,
+                        entity_id: entities[i].entity
                     };
 
                     self.stream.send('listen_state', request_data);
@@ -138,7 +139,7 @@ var inheritsFrom = function (child, parent) {
 var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, callbacks)
 {
     child = this;
-    child.monitored_entities = monitored_entities
+    child.monitored_entities = monitored_entities;
     child.url = url;
 
     // Function definitions
