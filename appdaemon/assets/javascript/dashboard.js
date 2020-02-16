@@ -23,7 +23,6 @@ function get_monitored_entities(widgets)
         elen = value.monitored_entities.length;
         for (i=0;i < elen;i++)
         {
-            console.log(value.monitored_entities[i])
             entities[index++] = {entity: value.monitored_entities[i].entity, namespace: value.parameters.namespace}
         }
 });
