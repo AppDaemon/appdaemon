@@ -20,6 +20,7 @@ Change Log
 - Presence convenience functions now support a ``person`` flag to use person entities rather than device trackers for presence detection
 - ``constrain_person`` constraints added to support person entities
 - Add stream support for SockJS
+- Dashboard component now only sends event updates for relevant dashboard entities rather than broadcasting all state_change events
 
 **Fixes**
 

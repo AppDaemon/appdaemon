@@ -16,15 +16,17 @@ function getCookie(cname) {
 
 function get_monitored_entities(widgets)
 {
+    index = 0;
+    entities = [];
     Object.keys(widgets).forEach(function (key) {
         var value = widgets[key]
-        console.log(value)
         elen = value.monitored_entities.length;
         for (i=0;i < elen;i++)
         {
-            console.log(value.monitored_entities[i])
+            entities[index++] = value.monitored_entities[i].entity
         }
-})
+});
+    return entities
 }
 
 var DashStream = function(transport, protocol, domain, port, title, widgets)
@@ -39,19 +41,28 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         else
         {
             if (data.response_type === "hello") {
-                var response_data = {
-                    namespace: '*',
-                    entity_id: '*'
-                };
 
-                self.stream.send('listen_state', response_data);
-                response_data = {
+                // subscribe to all events
+
+                request_data = {
                     namespace: '*',
                     event: '*'
                 };
-                self.stream.send('listen_event', response_data)
+                self.stream.send('listen_event', request_data);
 
-                //console.log(get_monitored_entities(widgets))
+                // Subscribe to just the entities we care about for this dashboard
+                entities = get_monitored_entities(widgets);
+                elen = entities.length;
+                for (i=0;i < elen;i++)
+                {
+                    var request_data = {
+                        namespace: '*',
+                        entity_id: entities[i]
+                    };
+
+                    self.stream.send('listen_state', request_data);
+
+                }
 
             } else if (data.response_type === "listen_state") {
                 // do nothing for now
@@ -127,6 +138,7 @@ var inheritsFrom = function (child, parent) {
 var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, callbacks)
 {
     child = this;
+    child.monitored_entities = monitored_entities
     child.url = url;
 
     // Function definitions
