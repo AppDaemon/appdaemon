@@ -8,8 +8,13 @@
     <link rel="manifest" href="images/manifest.json">
     <link rel="stylesheet" type="text/css" href="css/main.css">
 	<script type="text/javascript" src="javascript/jquery-3.1.1.min.js"></script>
+    {% if transport == "ws" %}
 	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
+    {% elif transport == "socketio" %}
     <script type="text/javascript" src="javascript/socket.io.js"></script>
+    {%  elif transport == "sockjs" %}
+    <script type="text/javascript" src="javascript/sockjs.min.js"></script>
+    {% endif %}
     <script type="text/javascript" src="javascript/list.min.js"></script>
 	<script type="text/javascript" src="javascript/admin.js"></script>
 	<script type="text/javascript" src="javascript/stream.js"></script>

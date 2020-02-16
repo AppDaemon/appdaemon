@@ -7,6 +7,7 @@ from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
 from appdaemon.stream.socketio_handler import SocketIOHandler
 from appdaemon.stream.ws_handler import WSHandler
+from appdaemon.stream.sockjs_handler import SockJSHandler
 
 
 class ADStream:
@@ -24,6 +25,8 @@ class ADStream:
             self.stream_handler = WSHandler(self, app, "/stream", self.AD)
         elif self.transport == "socketio":
             self.stream_handler = SocketIOHandler(self, app, "/stream", self.AD)
+        elif self.transport == "sockjs":
+            self.stream_handler = SockJSHandler(self, app, "/stream", self.AD)
         else:
             self.logger.warning("Unknown stream type: {}", transport)
 

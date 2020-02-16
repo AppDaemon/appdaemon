@@ -1,5 +1,6 @@
 import socketio
 import json
+import traceback
 
 import appdaemon.utils as utils
 
@@ -38,9 +39,23 @@ class NameSpace(socketio.AsyncNamespace):
 
     async def on_down(self, sid, data):
         self.logger.debug("IOSocket Down sid={} data={}".format(sid, data))
-        msg = json.loads(data)
-        handler = self.ADStream.get_handler(sid)
-        await handler._on_message(msg)
+        try:
+            msg = json.loads(data)
+            handler = self.ADStream.get_handler(sid)
+            await handler._on_message(msg)
+        except TypeError as e:
+            self.logger.debug("-" * 60)
+            self.logger.warning("Unexpected error in JSON conversion when reading from stream")
+            self.logger.debug("Data is: %s", data)
+            self.logger.debug("Error is: %s", e)
+            self.logger.debug("-" * 60)
+        except Exception:
+            self.logger.debug("-" * 60)
+            self.logger.debug("Client disconnected unexpectedly")
+            self.access.info("Client disconnected unexpectedly")
+            self.logger.debug("-" * 60)
+            self.logger.debug(traceback.format_exc())
+            self.logger.debug("-" * 60)
 
     async def on_connect(self, sid, environ):
         self.logger.debug("IOSocket Connect sid={} env={}".format(sid, environ))
@@ -67,5 +82,19 @@ class SocketIOStream:
     async def sendclient(self, data):
         self.logger.debug("IOSocket Send sid={} data={}".format(self.client_id, data))
         data["client_id"] = self.client_id
-        msg = utils.convert_json(data)
-        await self.ns.emit("up", msg, room=self.client_id)
+        try:
+            msg = utils.convert_json(data)
+            await self.ns.emit("up", msg, room=self.client_id)
+        except TypeError as e:
+            self.logger.debug("-" * 60)
+            self.logger.warning("Unexpected error in JSON conversion when writing to stream")
+            self.logger.debug("Data is: %s", data)
+            self.logger.debug("Error is: %s", e)
+            self.logger.debug("-" * 60)
+        except Exception:
+            self.logger.debug("-" * 60)
+            self.logger.debug("Client disconnected unexpectedly")
+            self.access.info("Client disconnected unexpectedly")
+            self.logger.debug("-" * 60)
+            self.logger.debug(traceback.format_exc())
+            self.logger.debug("-" * 60)

@@ -19,11 +19,13 @@ Change Log
 - Added ability to use ``now`` in ``run_every``. Also seconds can be added by simply using ``now+10`` for example
 - Presence convenience functions now support a ``person`` flag to use person entities rather than device trackers for presence detection
 - ``constrain_person`` constraints added to support person entities
+- Add stream support for SockJS
 
 **Fixes**
 
 - Re-added support for SSL in the http module (should also fix dialogflow)
 - Add openssl-dev package to docker image (required for RPI)
+- Fixed up socketio support to work with the new stream semantics
 
 **Breaking Changes**
 
