@@ -19,13 +19,13 @@ class SockJSHandler:
 
     async def sockjshandler(self, msg, session):
         if msg.type == sockjs.MSG_OPEN:
-            self.logger.debug("SockJS connect session={}".format(session))
+            self.logger.debug("SockJS connect session={} data={}".format(session, msg))
             await self.ADStream.on_connect(session)
         elif msg.type == sockjs.MSG_MESSAGE:
-            self.logger.debug("SockJS message session={} data={}".format(session, msg.data))
+            self.logger.debug("SockJS message session={} data={}".format(session, msg))
             try:
                 msg = json.loads(msg.data)
-                handler = self.ADStream.get_handler(session)
+                handler = self.ADStream.get_handler(session.id)
                 await handler._on_message(msg)
             except TypeError as e:
                 self.logger.debug("-" * 60)
@@ -40,10 +40,9 @@ class SockJSHandler:
                 self.logger.debug("-" * 60)
                 self.logger.debug(traceback.format_exc())
                 self.logger.debug("-" * 60)
-
         elif msg.type == sockjs.MSG_CLOSED:
-            self.logger.debug("SockJS disconnect session={}".format(session))
-            handler = self.ADStream.get_handler(session)
+            self.logger.debug("SockJS disconnect session={} data={}".format(session, msg))
+            handler = self.ADStream.get_handler(session.id)
             await handler._on_disconnect()
 
     def makeStream(self, ad, request, **kwargs):
@@ -54,7 +53,8 @@ class SockJSStream:
     def __init__(self, ad, session, **kwargs):
 
         self.AD = ad
-        self.client_id = session
+        self.session = session
+        self.client_id = session.id
         self.on_message = kwargs["on_message"]
         self.on_disconnect = kwargs["on_disconnect"]
 
@@ -67,8 +67,7 @@ class SockJSStream:
     async def sendclient(self, data):
         try:
             msg = utils.convert_json(data)
-            await utils.run_in_executor(self, self.client_id.send, msg)
-            self.client_id.send(msg)
+            await utils.run_in_executor(self, self.session.send, msg)
         except TypeError as e:
             self.logger.debug("-" * 60)
             self.logger.warning("Unexpected error in JSON conversion when writing to stream")

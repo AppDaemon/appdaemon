@@ -41,7 +41,6 @@ var ADStream = function(transport, protocol, domain, port, client_name, on_messa
                 creds = creds.substring(1, (creds.length - 1));
                 data['cookie'] = creds
             }
-
             self.send("hello", data);
     };
 
@@ -103,7 +102,7 @@ var SockJSStream = function(stream, on_connect, on_message, on_disconnect)
         self.on_disconnect()
     };
 
-    var sock = new SockJS(stream, timeout=120);
+    var sock = new SockJS(stream);
 
     sock.onopen = this.sjs_on_connect;
     sock.onmessage = this.sjs_on_message;
