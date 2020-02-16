@@ -19,10 +19,10 @@ class SockJSHandler:
 
     async def sockjshandler(self, msg, session):
         if msg.type == sockjs.MSG_OPEN:
-            self.logger.debug("IOSocket connect session={}".format(session))
+            self.logger.debug("SockJS connect session={}".format(session))
             await self.ADStream.on_connect(session)
         elif msg.type == sockjs.MSG_MESSAGE:
-            self.logger.debug("IOSocket message session={} data={}".format(session, msg.data))
+            self.logger.debug("SockJS message session={} data={}".format(session, msg.data))
             try:
                 msg = json.loads(msg.data)
                 handler = self.ADStream.get_handler(session)
@@ -42,7 +42,7 @@ class SockJSHandler:
                 self.logger.debug("-" * 60)
 
         elif msg.type == sockjs.MSG_CLOSED:
-            self.logger.debug("IOSocket disconnect session={}".format(session))
+            self.logger.debug("SockJS disconnect session={}".format(session))
             handler = self.ADStream.get_handler(session)
             await handler._on_disconnect()
 

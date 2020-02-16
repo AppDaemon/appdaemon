@@ -103,7 +103,7 @@ var SockJSStream = function(stream, on_connect, on_message, on_disconnect)
         self.on_disconnect()
     };
 
-    var sock = new SockJS(stream);
+    var sock = new SockJS(stream, timeout=120);
 
     sock.onopen = this.sjs_on_connect;
     sock.onmessage = this.sjs_on_message;

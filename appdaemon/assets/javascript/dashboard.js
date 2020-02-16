@@ -14,27 +14,52 @@ function getCookie(cname) {
     return "";
 }
 
+function get_monitored_entities(widgets)
+{
+    Object.keys(widgets).forEach(function (key) {
+        var value = widgets[key]
+        console.log(value)
+        elen = value.monitored_entities.length;
+        for (i=0;i < elen;i++)
+        {
+            console.log(value.monitored_entities[i])
+        }
+})
+}
+
 var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
     var self = this;
     this.on_message = function(data)
     {
-        if (data.response_type === "hello" && data.response_success === true) {
-            var response_data = {
-                namespace: '*',
-                entity_id: '*'
-            };
-
-            self.stream.send('listen_state', response_data);
-            response_data = {
-                namespace: '*',
-                event: '*'
-            };
-            self.stream.send('listen_event', response_data)
+        if ("response_success" in data && data.response_success === false)
+        {
+            console.log("Error in stream: " + data.response_error)
         }
         else
         {
-            self.update_dash(data)
+            if (data.response_type === "hello") {
+                var response_data = {
+                    namespace: '*',
+                    entity_id: '*'
+                };
+
+                self.stream.send('listen_state', response_data);
+                response_data = {
+                    namespace: '*',
+                    event: '*'
+                };
+                self.stream.send('listen_event', response_data)
+
+                //console.log(get_monitored_entities(widgets))
+
+            } else if (data.response_type === "listen_state") {
+                // do nothing for now
+            } else if (data.response_type === "listen_event") {
+                // do nothing for now
+            } else if (data.event_type === "state_changed") {
+                self.update_dash(data)
+            }
         }
     };
 
