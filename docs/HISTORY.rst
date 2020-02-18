@@ -21,6 +21,7 @@ Change Log
 - ``constrain_person`` constraints added to support person entities
 - Add stream support for SockJS
 - Dashboard component now only sends event updates for relevant dashboard entities rather than broadcasting all state_change events
+- Admin UI now breaks out App instance and lifetime callback stats separately
 
 **Fixes**
 
