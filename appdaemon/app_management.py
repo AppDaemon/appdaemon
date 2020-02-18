@@ -181,7 +181,7 @@ class AppManagement:
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
-            except Exception:
+            except BaseException:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning("-" * 60)
                 error_logger.warning("Unexpected error running terminate() for %s", name)

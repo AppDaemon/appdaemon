@@ -28,6 +28,7 @@ Change Log
 - Re-added support for SSL in the http module (should also fix dialogflow)
 - Add openssl-dev package to docker image (required for RPI)
 - Fixed up socketio support to work with the new stream semantics
+- Fixed a bug that allowed multiple copies of an App to run if there was an error in the signature of terminate()
 
 **Breaking Changes**
 
