@@ -39,10 +39,11 @@ function create_tables(entities)
             [
                 'name',
                 'state',
-                'callbacks',
+                'instancecallbacks',
+                'totalcallbacks',
                 'arguments'
             ],
-        item: '<tr><td class="name"></td><td class="state"></td><td class="callbacks"></td><td class="tooltip arguments"></td></tr>'
+        item: '<tr><td class="name"></td><td class="state"></td><td class="instancecallbacks"></td><td class="totalcallbacks"></td><td class="tooltip arguments"></td></tr>'
     };
 
     create_clear("app_table", id, options);
@@ -174,12 +175,14 @@ function create_tables(entities)
 
                     if (device(entity) === "app")
                     {
-                        callbacks = attributes.callbacks;
+                        instancecallbacks = attributes.instancecallbacks;
+                        totalcallbacks = attributes.totalcallbacks;
                         window.app_table.add({
                             name: name(entity),
                             state: state,
+                            instancecallbacks: instancecallbacks,
+                            totalcallbacks: totalcallbacks,
                             arguments: JSON.stringify(attributes.args),
-                            callbacks: callbacks
                         });
                     }
 
@@ -353,11 +356,13 @@ function update_admin(data)
         {
             if (device(entity) === "app")
             {
+                console.log()
                 item = window.app_table.get("name", name(entity));
                 item[0].values({
                     name: name(entity),
                     state: state,
-                    callbacks: attributes.callbacks,
+                    instancecallbacks: attributes.instancecallbacks,
+                    totalcallbacks: attributes.totalcallbacks,
                     arguments: JSON.stringify(attributes.args)
                 });
             }
@@ -461,7 +466,8 @@ function update_admin(data)
                 window.app_table.add({
                     name: name(entity),
                     state: state,
-                    callbacks: attributes.callbacks,
+                    instancecallbacks: instancecallbacks,
+                    totalcallbacks: totalcallbacks,
                     args: JSON.stringify(attributes.args)
                 });
                 window.app_table.sort('name')

@@ -208,6 +208,7 @@ class AppManagement:
         await self.AD.sched.terminate_app(name)
 
         await self.set_state(name, state="terminated")
+        await self.set_state(name, instancecallbacks=0)
 
         event_data = {"event_type": "app_terminated", "data": {"app": name}}
 
@@ -517,7 +518,7 @@ class AppManagement:
                             self.logger.info("App '%s' added", name)
                             initialize_apps[name] = 1
                             await self.add_entity(
-                                name, "loaded", {"callbacks": 0, "args": new_config[name]},
+                                name, "loaded", {"totalcallbacks": 0, "instancecallbacks": 0, "args": new_config[name]},
                             )
                         elif name in self.non_apps:
                             pass

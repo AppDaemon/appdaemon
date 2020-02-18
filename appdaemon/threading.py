@@ -366,7 +366,8 @@ class Threading:
                     await self.get_state("_threading", "admin", "thread.{}".format(thread_id)),
                 )
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
-            await self.add_to_attr("_threading", "admin", "app.{}".format(app), "callbacks", 1)
+            await self.add_to_attr("_threading", "admin", "app.{}".format(app), "totalcallbacks", 1)
+            await self.add_to_attr("_threading", "admin", "app.{}".format(app), "instancecallbacks", 1)
             await self.add_to_attr(
                 "_threading", "admin", "{}_callback.{}".format(type, uuid), "executed", 1,
             )
