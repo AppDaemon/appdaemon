@@ -117,6 +117,12 @@ class HassPlugin(PluginBase):
             self.ws.close()
 
     #
+    # Placeholder for constraints
+    #
+    def list_constraints(self):
+        return []
+
+    #
     # Get initial state
     #
 
@@ -210,11 +216,43 @@ class HassPlugin(PluginBase):
             self.first_time = False
             self.already_notified = False
 
+    #
+    # Callback Testing
+    #
+    # async def state(self, entity, attribute, old, new, kwargs):
+    #    self.logger.info("State: %s %s %s %s {}".format(kwargs), entity, attribute, old, new)
+    # async def event(self, event, data, kwargs):
+    #    self.logger.info("Event: %s %s {}".format(kwargs), event, data)
+    # async def schedule(self, kwargs):
+    #    self.logger.info("Schedule: {}".format(kwargs))
+    #
+    #
+    #
+
     async def get_updates(self):  # noqa: C901
 
         _id = 0
         self.already_notified = False
         self.first_time = True
+
+        #
+        # Testing
+        #
+        # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
+        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "state_changed")
+        # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
+        # await self.AD.sched.insert_schedule(
+        #    self.name,
+        #    exec_time,
+        #    self.schedule,
+        #    True,
+        #    None,
+        #    interval=1
+        # )
+        #
+        #
+        #
+
         while not self.stopping:
             _id += 1
             try:

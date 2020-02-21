@@ -352,6 +352,9 @@ class Threading:
             else:
                 self.diag.info("%s calling %s callback %s", thread_id, type, callback)
 
+        appinfo = self.AD.app_management.get_app_info(app)
+        appentity = "{}.{}".format(appinfo["type"], app)
+
         now = await self.AD.sched.get_now()
         if callback == "idle":
             start = utils.str_to_dt(
@@ -366,8 +369,10 @@ class Threading:
                     await self.get_state("_threading", "admin", "thread.{}".format(thread_id)),
                 )
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
-            await self.add_to_attr("_threading", "admin", "app.{}".format(app), "totalcallbacks", 1)
-            await self.add_to_attr("_threading", "admin", "app.{}".format(app), "instancecallbacks", 1)
+
+            await self.add_to_attr("_threading", "admin", appentity, "totalcallbacks", 1)
+            await self.add_to_attr("_threading", "admin", appentity, "instancecallbacks", 1)
+
             await self.add_to_attr(
                 "_threading", "admin", "{}_callback.{}".format(type, uuid), "executed", 1,
             )
@@ -419,7 +424,7 @@ class Threading:
                 is_alive=self.threads[thread_id]["thread"].is_alive(),
                 pinned_apps=await self.get_pinned_apps(thread_id),
             )
-        await self.set_state("_threading", "admin", "app.{}".format(app), state=callback)
+        await self.set_state("_threading", "admin", appentity, state=callback)
 
     #
     # Pinning
@@ -709,17 +714,19 @@ class Threading:
         unconstrained = True
         #
         # Argument Constraints
+        # (plugins have no args so skip if necessary)
         #
-        for arg in self.AD.app_management.app_config[name].keys():
-            constrained = await self.check_constraint(
-                arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"],
-            )
-            if not constrained:
+        if name in self.AD.app_management.app_config:
+            for arg in self.AD.app_management.app_config[name].keys():
+                constrained = await self.check_constraint(
+                    arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"],
+                )
+                if not constrained:
+                    unconstrained = False
+            if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
                 unconstrained = False
-        if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
-            unconstrained = False
-        elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
-            unconstrained = False
+            elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
+                unconstrained = False
 
         #
         # Callback level constraints

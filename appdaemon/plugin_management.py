@@ -118,6 +118,11 @@ class Plugins:
                             "active": False,
                         }
 
+                        #
+                        # Create app entry for the plugin so we can listen_state/event
+                        #
+                        self.AD.app_management.init_plugin_object(name, plugin)
+
                         self.AD.loop.create_task(plugin.get_updates())
                     except Exception:
                         self.logger.warning("error loading plugin: %s - ignoring", name)
@@ -182,16 +187,23 @@ class Plugins:
                         self.get_plugin_from_namespace(namespace), mode="init"
                     )
                 else:
+                    #
+                    # Create plugin entity
+                    #
+                    await self.AD.state.add_entity(
+                        "admin", "plugin.{}".format(name), "active", {"totalcallbacks": 0, "instancecallbacks": 0}
+                    )
+
                     self.logger.info("Got initial state from namespace %s", namespace)
 
                 self.plugin_objs[namespace]["active"] = True
                 await self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except Exception:
             self.error.warning("-" * 60)
-            self.error.warning("WARNING", "Unexpected error during notify_plugin_started()")
-            self.error.warning("WARNING", "-" * 60)
-            self.error.warning("WARNING", traceback.format_exc())
-            self.error.warning("WARNING", "-" * 60)
+            self.error.warning("Unexpected error during notify_plugin_started()")
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
@@ -223,6 +235,7 @@ class Plugins:
             if self.plugin_objs[plugin]["active"] is True:
 
                 name = self.get_plugin_from_namespace(plugin)
+
                 if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
                     seconds=self.plugins[name]["refresh_delay"]
                 ):
