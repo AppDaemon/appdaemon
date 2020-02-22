@@ -393,6 +393,10 @@ def find_owner(filename):
 
 def check_path(type, logger, inpath, pathtype="directory", permissions=None):  # noqa: C901
     # disable checks for windows platform
+
+    # Some root directories are expected to be owned by people other than the user so skip some checks
+    skip_owner_checks = ["/Users", "/home"]
+
     if platform.system() == "Windows":
         return
 
@@ -436,7 +440,7 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):  #
                         "%s: %s exists, but is not readable, owner: %s", type, directory, owner,
                     )
                     fullpath = False
-                if "w" in perms and not os.access(directory, os.W_OK):
+                if "w" in perms and not os.access(directory, os.W_OK) and directory not in skip_owner_checks:
                     logger.warning(
                         "%s: %s exists, but is not writeable, owner: %s", type, directory, owner,
                     )
