@@ -28,7 +28,7 @@ class ADStream:
         elif self.transport == "sockjs":
             self.stream_handler = SockJSHandler(self, app, "/stream", self.AD)
         else:
-            self.logger.warning("Unknown stream type: {}", transport)
+            self.logger.warning("Unknown stream type: %s", transport)
 
     def get_handler(self, id):
         with self.handlers_lock:
