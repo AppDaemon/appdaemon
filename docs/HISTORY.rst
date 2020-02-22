@@ -22,6 +22,8 @@ Change Log
 - Add stream support for SockJS
 - Dashboard component now only sends event updates for relevant dashboard entities rather than broadcasting all state_change events
 - Admin UI now breaks out App instance and lifetime callback stats separately
+- Convert admin and dashboard to get_state from stream
+- Increase default work factor for password hashes to 12
 
 **Fixes**
 

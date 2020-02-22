@@ -4,10 +4,10 @@ function getCookie(cname) {
     var ca = decodedCookie.split(';');
     for(var i = 0; i <ca.length; i++) {
         var c = ca[i];
-        while (c.charAt(0) == ' ') {
+        while (c.charAt(0) === ' ') {
             c = c.substring(1);
         }
-        if (c.indexOf(name) == 0) {
+        if (c.indexOf(name) === 0) {
             return c.substring(name.length, c.length);
         }
     }
@@ -134,7 +134,7 @@ function create_tables(entities)
 
     // Iterate the namespaces for entities table
 
-    jQuery.each(entities.state, function(namespace)
+    jQuery.each(entities, function(namespace)
     {
         // Entities
         id = namespace + "-entities-table";
@@ -155,13 +155,13 @@ function create_tables(entities)
 
         entity_list = [];
 
-        jQuery.each(entities.state[namespace], function(entity)
+        jQuery.each(entities[namespace], function(entity)
         {
-            if (entities.state[namespace][entity] != null)
+            if (entities[namespace][entity] != null)
             {
-                state = entities.state[namespace][entity].state;
-                last_changed = entities.state[namespace][entity].last_changed;
-                attributes = entities.state[namespace][entity].attributes;
+                state = entities[namespace][entity].state;
+                last_changed = entities[namespace][entity].last_changed;
+                attributes = entities[namespace][entity].attributes;
 
                 entity_list.push({
                     name: entity,
@@ -356,7 +356,6 @@ function update_admin(data)
         {
             if (device(entity) === "app")
             {
-                console.log()
                 item = window.app_table.get("name", name(entity));
                 item[0].values({
                     name: name(entity),
@@ -602,17 +601,23 @@ var AdminStream = function(transport, protocol, domain, port) {
     this.on_message = function (data) {
 
         if (data.response_type === "hello" && data.response_success === true) {
-            var response_data = {
+            var request_data = {
                 namespace: '*',
                 entity_id: '*'
             };
+            self.stream.send('listen_state', request_data);
 
-            self.stream.send('listen_state', response_data);
-            response_data = {
+            request_data = {};
+            self.stream.send('get_state', request_data);
+
+            request_data = {
                 namespace: '*',
                 event: '*'
             };
-            self.stream.send('listen_event', response_data)
+            self.stream.send('listen_event', request_data)
+
+        } else if (data.response_type === "get_state") {
+            create_tables(data.data)
         } else {
             update_admin(data)
         }
@@ -623,8 +628,6 @@ var AdminStream = function(transport, protocol, domain, port) {
     };
 
     this.stream = new ADStream(transport, protocol, domain, port, "Admin Client", this.on_message, this.on_disconnect);
-
-    get_state(create_tables);
 };
 
 function openTab(evt, tabname, tabgroup) {
@@ -704,25 +707,6 @@ function get_namespace(namespace, f)
         success: function(data)
                 {
                     f(namespace, data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_state(f)
-{
-    var state_url = "/api/appdaemon/state";
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
                 },
         error: function(data)
                 {

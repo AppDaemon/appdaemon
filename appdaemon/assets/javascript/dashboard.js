@@ -21,13 +21,47 @@ function get_monitored_entities(widgets)
     Object.keys(widgets).forEach(function (key) {
         var value = widgets[key];
         elen = value.monitored_entities.length;
+        if ("resident_namespace" in value.parameters)
+        {
+            ns = value.parameters.resident_namespace
+        }
+        else
+        {
+            ns = value.parameters.namespace;
+        }
         for (i=0;i < elen;i++)
         {
-            entities[index++] = {entity: value.monitored_entities[i].entity, namespace: value.parameters.namespace}
+            entities[index++] = {entity: value.monitored_entities[i].entity, namespace: ns}
         }
 });
     return entities
 }
+
+function get_listening_widgets(widgets, namespace, entity)
+{
+    index = 0;
+    listening_widgets = [];
+    Object.keys(widgets).forEach(function (key) {
+        var value = widgets[key];
+        elen = value.monitored_entities.length;
+        if ("resident_namespace" in value.parameters)
+        {
+            ns = value.parameters.resident_namespace
+        }
+        else
+        {
+            ns = value.parameters.namespace;
+        }
+        for (i=0;i < elen;i++)
+        {
+            if (value.monitored_entities[i].entity === entity && ns === namespace) {
+                listening_widgets[index++] = value
+            }
+        }
+});
+    return listening_widgets
+}
+
 
 var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
@@ -50,7 +84,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
                 };
                 self.stream.send('listen_event', request_data);
 
-                // Subscribe to just the entities we care about for this dashboard
+                // Grab state and subscribe to just the entities we care about for this dashboard
                 entities = get_monitored_entities(widgets);
                 elen = entities.length;
                 for (i=0;i < elen;i++)
@@ -60,6 +94,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
                         entity_id: entities[i].entity
                     };
 
+                    self.stream.send('get_state', request_data);
                     self.stream.send('listen_state', request_data);
 
                 }
@@ -68,6 +103,16 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
                 // do nothing for now
             } else if (data.response_type === "listen_event") {
                 // do nothing for now
+            } else if (data.response_type === "get_state") {
+                entity = data.request.data.entity_id;
+                ns = data.request.data.namespace;
+                listening = get_listening_widgets(widgets, ns, entity);
+                elen = listening.length;
+                for (i=0;i < elen;i++)
+                {
+                    listening[i].set_state(listening[i], data.data)
+                }
+
             } else if (data.event_type === "state_changed") {
                 self.update_dash(data)
             }
@@ -231,72 +276,50 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         self.ViewModel[field](self.convert_icon(self, value))
     };
 
-    this.get_state = function(child, base_url, entity)
+    this.set_state = function(child, data)
     {
-        if ("resident_namespace" in parameters)
+        if (data.state == null)
         {
-            ns = parameters.resident_namespace
+            if ("title" in child.ViewModel)
+            {
+                child.ViewModel.title("entity not found: " + child.entity);
+                new_state = null
+            }
+            else
+            {
+                console.log("Entity not found: " + child.entity)
+            }
         }
         else
         {
-            ns = parameters.namespace;
+            new_state = data;
+            if ("use_hass_icon" in child.parameters &&
+                parameters.use_hass_icon === 1 &&
+                "attributes" in new_state && "icon" in new_state.attributes && new_state.attributes.icon !== "False")
+            {
+                icon = new_state.attributes.icon.replace(":", "-");
+                child.icons.icon_on = icon;
+                child.icons.icon_off = icon
+            }
+            if ("title_is_friendly_name" in child.parameters
+            && child.parameters.title_is_friendly_name === 1
+            && "friendly_name" in new_state.attributes)
+            {
+                child.ViewModel.title(new_state.attributes.friendly_name)
+            }
+            if ("title2_is_friendly_name" in child.parameters
+            && child.parameters.title2_is_friendly_name === 1
+            && "friendly_name" in new_state.attributes)
+            {
+                child.ViewModel.title2(new_state.attributes.friendly_name)
+            }
+            if (typeof child.entity_state === 'undefined')
+            {
+                child.entity_state = {}
+            }
+            child.entity_state[child.entity] = new_state;
+            child.OnStateAvailable(child, new_state)
         }
-        state_url = base_url + "/api/appdaemon/state/" + ns + "/" + entity.entity;
-        $.ajax
-        ({
-            url: state_url,
-            type: 'GET',
-            success: function(data)
-                    {
-                        if (data.state == null)
-                        {
-                            if ("title" in child.ViewModel)
-                            {
-                                child.ViewModel.title("entity not found: " + entity.entity);
-                                new_state = null
-                            }
-                            else
-                            {
-                                console.log("Entity not found: " + entity.entity)
-                            }
-                        }
-                        else
-                        {
-                            new_state = data.state;
-                            if ("use_hass_icon" in child.parameters &&
-                                parameters.use_hass_icon === 1 &&
-                                "attributes" in new_state && "icon" in new_state.attributes && new_state.attributes.icon !== "False")
-                            {
-                                icon = new_state.attributes.icon.replace(":", "-");
-                                child.icons.icon_on = icon;
-                                child.icons.icon_off = icon
-                            }
-                            if ("title_is_friendly_name" in child.parameters
-                            && child.parameters.title_is_friendly_name === 1
-                            && "friendly_name" in new_state.attributes)
-                            {
-                                child.ViewModel.title(new_state.attributes.friendly_name)
-                            }
-                            if ("title2_is_friendly_name" in child.parameters
-                            && child.parameters.title2_is_friendly_name === 1
-                            && "friendly_name" in new_state.attributes)
-                            {
-                                child.ViewModel.title2(new_state.attributes.friendly_name)
-                            }
-                            if (typeof child.entity_state === 'undefined')
-                            {
-                                child.entity_state = {}
-                            }
-                            child.entity_state[entity.entity] = new_state;
-                            entity.initial(child, new_state)
-                        }
-                    },
-            error: function(data)
-                    {
-                        alert("Error getting state, check Java Console for details")
-                    }
-
-        });
     };
 
     this.on_ha_data = function(data)
@@ -432,13 +455,5 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
                   }
               }(callbacks[i].callback, child)), null, callbacks[i].action);
         }
-    }
-
-    // Grab current status for entities
-
-    elen = monitored_entities.length;
-    for (i=0;i < elen;i++)
-    {
-        this.get_state(child, url, monitored_entities[i])
     }
 };
