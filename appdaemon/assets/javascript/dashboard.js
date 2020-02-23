@@ -31,37 +31,11 @@ function get_monitored_entities(widgets)
         }
         for (i=0;i < elen;i++)
         {
-            entities[index++] = {entity: value.monitored_entities[i].entity, namespace: ns}
+            entities[index++] = {entity: value.monitored_entities[i].entity, namespace: ns, widget: value}
         }
 });
     return entities
 }
-
-function get_listening_widgets(widgets, namespace, entity)
-{
-    index = 0;
-    listening_widgets = [];
-    Object.keys(widgets).forEach(function (key) {
-        var value = widgets[key];
-        elen = value.monitored_entities.length;
-        if ("resident_namespace" in value.parameters)
-        {
-            ns = value.parameters.resident_namespace
-        }
-        else
-        {
-            ns = value.parameters.namespace;
-        }
-        for (i=0;i < elen;i++)
-        {
-            if (value.monitored_entities[i].entity === entity && ns === namespace) {
-                listening_widgets[index++] = value
-            }
-        }
-});
-    return listening_widgets
-}
-
 
 var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
@@ -84,19 +58,21 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
                 };
                 self.stream.send('listen_event', request_data);
 
-                // Grab state and subscribe to just the entities we care about for this dashboard
+                // Grab state
+
+                self.stream.send('get_state', {});
+
+                // Subscribe to just the entities we care about for this dashboard
                 entities = get_monitored_entities(widgets);
                 elen = entities.length;
                 for (i=0;i < elen;i++)
                 {
-                    var request_data = {
+                    request_data = {
                         namespace: entities[i].namespace,
                         entity_id: entities[i].entity
                     };
 
-                    self.stream.send('get_state', request_data);
                     self.stream.send('listen_state', request_data);
-
                 }
 
             } else if (data.response_type === "listen_state") {
@@ -104,15 +80,14 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
             } else if (data.response_type === "listen_event") {
                 // do nothing for now
             } else if (data.response_type === "get_state") {
-                entity = data.request.data.entity_id;
-                ns = data.request.data.namespace;
-                listening = get_listening_widgets(widgets, ns, entity);
-                elen = listening.length;
-                for (i=0;i < elen;i++)
-                {
-                    listening[i].set_state(listening[i], data.data)
+                entities = get_monitored_entities(widgets);
+                elen = entities.length;
+                for (i=0;i < elen;i++) {
+                    entity = entities[i].entity;
+                    ns = entities[i].namespace;
+                    widget = entities[i].widget;
+                    widget.set_state(widget, data.data[ns][entity]);
                 }
-
             } else if (data.event_type === "state_changed") {
                 self.update_dash(data)
             }
@@ -278,47 +253,53 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 
     this.set_state = function(child, data)
     {
-        if (data.state == null)
+        if (data == null || data.state == null)
         {
             if ("title" in child.ViewModel)
             {
-                child.ViewModel.title("entity not found: " + child.entity);
-                new_state = null
+                child.ViewModel.title("entity not found: " + child.parameters.entity);
             }
             else
             {
-                console.log("Entity not found: " + child.entity)
+                console.log("Entity not found: " + child.parameters.entity)
             }
         }
         else
         {
-            new_state = data;
             if ("use_hass_icon" in child.parameters &&
                 parameters.use_hass_icon === 1 &&
-                "attributes" in new_state && "icon" in new_state.attributes && new_state.attributes.icon !== "False")
+                "attributes" in data && "icon" in data.attributes && data.attributes.icon !== "False")
             {
-                icon = new_state.attributes.icon.replace(":", "-");
+                icon = data.attributes.icon.replace(":", "-");
                 child.icons.icon_on = icon;
                 child.icons.icon_off = icon
             }
             if ("title_is_friendly_name" in child.parameters
             && child.parameters.title_is_friendly_name === 1
-            && "friendly_name" in new_state.attributes)
+            && "friendly_name" in data.attributes)
             {
-                child.ViewModel.title(new_state.attributes.friendly_name)
+                child.ViewModel.title(data.attributes.friendly_name)
             }
             if ("title2_is_friendly_name" in child.parameters
             && child.parameters.title2_is_friendly_name === 1
-            && "friendly_name" in new_state.attributes)
+            && "friendly_name" in data.attributes)
             {
-                child.ViewModel.title2(new_state.attributes.friendly_name)
+                child.ViewModel.title2(data.attributes.friendly_name)
             }
             if (typeof child.entity_state === 'undefined')
             {
                 child.entity_state = {}
             }
-            child.entity_state[child.entity] = new_state;
-            child.OnStateAvailable(child, new_state)
+            child.entity_state[child.entity] = data;
+            var entity = data.entity_id;
+            var elen = child.monitored_entities.length;
+            for (j = 0; j < elen; j++)
+            {
+                if (child.monitored_entities[j].entity === entity)
+                {
+                    monitored_entities[j].initial(child, data)
+                }
+            }
         }
     };
 

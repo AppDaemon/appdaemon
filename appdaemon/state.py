@@ -323,6 +323,7 @@ class State:
             attrs = attributes
 
         state = {
+            "entity_id": entity,
             "state": state,
             "last_changed": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
             "attributes": attrs,
