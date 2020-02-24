@@ -29,7 +29,7 @@ function dom_ready(transport)
 
 function create_tables(msg)
 {
-    entities = msg.data
+    entities = msg.data;
     window.ready = false;
 
     // Create Apps Table
@@ -320,7 +320,7 @@ function close_tooltip(e)
 function update_admin(msg)
 {
 
-    data = msg.data
+    data = msg.data;
 
     if (window.ready !== true)
     {
