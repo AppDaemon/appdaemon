@@ -40,67 +40,54 @@ function get_monitored_entities(widgets)
 var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
     var self = this;
+
+    this.on_connect = function(data)
+    {
+        // Grab state
+
+        self.stream.get_state('*', '*', self.populate_dash);
+
+        // subscribe to all events
+
+        self.stream.listen_event('*', '__HADASHBOARD_EVENT', self.update_dash);
+
+        // Subscribe to just the entities we care about for this dashboard
+
+        entities = get_monitored_entities(widgets);
+        elen = entities.length;
+        for (i=0;i < elen;i++)
+        {
+            self.stream.listen_state(entities[i].namespace, entities[i].entity, self.update_dash)
+        }
+
+    };
+
     this.on_message = function(data)
     {
-        if ("response_success" in data && data.response_success === false)
+        console.log("Generic message", data)
+    };
+
+    this.on_disconnect = function(data)
+    {
+        console.log("Disconnect", data)
+    };
+
+    this.populate_dash = function(data) {
         {
-            console.log("Error in stream: " + data.response_error)
-        }
-        else
-        {
-            if (data.response_type === "hello") {
-
-                // subscribe to all events
-
-                request_data = {
-                    namespace: '*',
-                    event: '*'
-                };
-                self.stream.send('listen_event', request_data);
-
-                // Grab state
-
-                self.stream.send('get_state', {});
-
-                // Subscribe to just the entities we care about for this dashboard
-                entities = get_monitored_entities(widgets);
-                elen = entities.length;
-                for (i=0;i < elen;i++)
-                {
-                    request_data = {
-                        namespace: entities[i].namespace,
-                        entity_id: entities[i].entity
-                    };
-
-                    self.stream.send('listen_state', request_data);
-                }
-
-            } else if (data.response_type === "listen_state") {
-                // do nothing for now
-            } else if (data.response_type === "listen_event") {
-                // do nothing for now
-            } else if (data.response_type === "get_state") {
-                entities = get_monitored_entities(widgets);
-                elen = entities.length;
-                for (i=0;i < elen;i++) {
-                    entity = entities[i].entity;
-                    ns = entities[i].namespace;
-                    widget = entities[i].widget;
-                    widget.set_state(widget, data.data[ns][entity]);
-                }
-            } else if (data.event_type === "state_changed") {
-                self.update_dash(data)
+            entities = get_monitored_entities(widgets);
+            elen = entities.length;
+            for (i = 0; i < elen; i++) {
+                entity = entities[i].entity;
+                ns = entities[i].namespace;
+                widget = entities[i].widget;
+                widget.set_state(widget, data.data[ns][entity]);
             }
         }
     };
 
-    this.on_disconnect = function()
+    this.update_dash = function(msg)
     {
-        // do nothing
-    };
-
-    this.update_dash = function(data)
-    {
+        data = msg.data;
         if (data.event_type === "__HADASHBOARD_EVENT")
         {
             if (data.data.command === "navigate")
@@ -147,7 +134,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         })
     };
 
-    this.stream = new ADStream(transport, protocol, domain, port, title, this.on_message, this.on_disconnect);
+    this.stream = new ADStream(transport, protocol, domain, port, title, this.on_connect, this.on_message, this.on_disconnect);
 
 };
 
@@ -323,24 +310,18 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 
     this.call_service = function(child, args)
     {
-        if ("resident_namespace" in parameters)
+        if ("resident_namespace" in child)
         {
-            ns = parameters.resident_namespace
+            ns = child.parameters.resident_namespace
         }
         else
         {
-            ns = parameters.namespace;
+            ns = child.parameters.namespace;
         }
-        args["namespace"] = parameters.namespace;
 
-        service_url = child.url + "/api/appdaemon/service/" + ns + "/" + args["service"];
-        $.ajax({
-              type: "POST",
-              url: service_url,
-              data: JSON.stringify(args),
-              dataType: "json"
-            });
-        //$.post(service_url, args, "json");
+        service = args["service"];
+
+        window.dashstream.stream.call_service(service, ns, args)
     };
 
     // Initialization

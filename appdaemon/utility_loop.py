@@ -100,6 +100,11 @@ class Utility:
             self.AD.services.register_service("appdaemon", "production_mode", "set", self.production_mode_service)
 
             #
+            # Register logging services
+            #
+            self.AD.services.register_service("appdaemon", "logs", "get_admin", self.AD.logging.manage_services)
+
+            #
             # Start the scheduler
             #
             self.AD.loop.create_task(self.AD.sched.loop())

@@ -9,6 +9,7 @@ from collections import OrderedDict
 import traceback
 
 from appdaemon.thread_async import AppDaemon
+import appdaemon.utils as utils
 
 
 class DuplicateFilter(logging.Filter):
@@ -312,6 +313,14 @@ class Logging:
         self.logger = self.get_logger()
         self.error = self.get_error()
 
+    async def manage_services(self, namespace, domain, service, kwargs):
+        if domain == "logs" and service == "get_admin":
+            ml = 50
+            if "maxlines" in kwargs:
+                ml = kwargs["maxlines"]
+
+            return await self.get_admin_logs(ml)
+
     def dump_log_config(self):
         for log in self.config:
             self.logger.info("Added log: %s", self.config[log]["name"])
@@ -404,8 +413,10 @@ class Logging:
 
         return logger
 
-    # Run in executor
-    def get_admin_logs(self):
+    async def get_admin_logs(self, maxlines=50):
+        return await utils.run_in_executor(self, self._get_admin_logs, maxlines)
+
+    def _get_admin_logs(self, maxlines):
         # Force main logs to be first in a specific order
         logs = OrderedDict()
         for log in ["main_log", "error_log", "diag_log", "access_log"]:

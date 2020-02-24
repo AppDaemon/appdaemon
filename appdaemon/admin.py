@@ -57,7 +57,7 @@ class Admin:
 
             # Logs
 
-            params["logs"] = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
+            params["logs"] = await self.AD.logging.get_admin_logs()
 
             # Entities
 

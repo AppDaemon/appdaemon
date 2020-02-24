@@ -114,6 +114,7 @@ class RequestHandler:
         await self.AD.events.process_event("admin", event_data)
 
     async def _event(self, data):
+        response = {"data": data}
         if data["event_type"] == "state_changed":
             for handle, sub in self.subscriptions["state"].items():
                 if sub["namespace"].endswith("*"):
@@ -130,7 +131,9 @@ class RequestHandler:
                     if not data["data"]["entity_id"] == sub["entity_id"]:
                         continue
 
-                await self._respond(data)
+                response["response_id"] = sub["response_id"]
+                response["response_type"] = "state_changed"
+                await self._respond(response)
                 break
         else:
             for handle, sub in self.subscriptions["event"].items():
@@ -148,7 +151,9 @@ class RequestHandler:
                     if not data["event_type"] == sub["event"]:
                         continue
 
-                await self._respond(data)
+                response["response_id"] = sub["response_id"]
+                response["response_type"] = "event"
+                await self._respond(response)
                 break
 
     async def _respond(self, data):
@@ -200,7 +205,7 @@ class RequestHandler:
         request_id = msg.get("request_id", None)
 
         try:
-            data = await fn(request_data)
+            data = await fn(request_data, request_id)
             if data is not None or request_id is not None:
                 return await self._response_success(msg, data)
         except RequestHandlerException as e:
@@ -223,7 +228,7 @@ class RequestHandler:
                 self.authed = True
                 return
 
-    async def hello(self, data):
+    async def hello(self, data, request_id):
         if "client_name" not in data:
             raise RequestHandlerException("client_name required")
         else:
@@ -250,13 +255,13 @@ class RequestHandler:
 
         return response_data
 
-    async def get_services(self, data):
+    async def get_services(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
         return self.AD.services.list_services()
 
-    async def fire_event(self, data):
+    async def fire_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -270,7 +275,7 @@ class RequestHandler:
 
         return await self.AD.events.fire_event(data["namespace"], data["event"], **event_data)
 
-    async def call_service(self, data):
+    async def call_service(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -295,11 +300,12 @@ class RequestHandler:
         if "data" not in data:
             service_data = {}
         else:
+            del data["data"]["service"]
             service_data = data["data"]
 
         return await self.AD.services.call_service(data["namespace"], domain, service, service_data)
 
-    async def get_state(self, data):
+    async def get_state(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -311,7 +317,7 @@ class RequestHandler:
 
         return self.AD.state.get_entity(namespace, entity_id, self.client_name)
 
-    async def listen_state(self, data):
+    async def listen_state(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -327,13 +333,14 @@ class RequestHandler:
             raise RequestHandlerException("handle already exists")
 
         self.subscriptions["state"][handle] = {
+            "response_id": request_id,
             "namespace": data["namespace"],
             "entity_id": data["entity_id"],
         }
 
         return handle
 
-    async def cancel_listen_state(self, data):
+    async def cancel_listen_state(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -347,7 +354,7 @@ class RequestHandler:
 
         return True
 
-    async def listen_event(self, data):
+    async def listen_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -363,13 +370,14 @@ class RequestHandler:
             raise RequestHandlerException("handle already exists")
 
         self.subscriptions["event"][handle] = {
+            "response_id": request_id,
             "namespace": data["namespace"],
             "event": data["event"],
         }
 
         return handle
 
-    async def cancel_listen_event(self, data):
+    async def cancel_listen_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 

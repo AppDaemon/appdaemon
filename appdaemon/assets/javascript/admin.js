@@ -24,11 +24,12 @@ function dom_ready(transport)
     $("#main_log_button")[0].click();
     $("#default_entity_button")[0].click();
 
-    this.stream = new AdminStream(transport, location.protocol, document.domain, location.port);
+    window.adminstream = new AdminStream(transport, location.protocol, document.domain, location.port);
 }
 
-function create_tables(entities)
+function create_tables(msg)
 {
+    entities = msg.data
     window.ready = false;
 
     // Create Apps Table
@@ -316,8 +317,10 @@ function close_tooltip(e)
     $("#tooltiptext").css("visibility", "hidden")
 }
 
-function update_admin(data)
+function update_admin(msg)
 {
+
+    data = msg.data
 
     if (window.ready !== true)
     {
@@ -598,36 +601,32 @@ function device(entity)
 var AdminStream = function(transport, protocol, domain, port) {
 
     var self = this;
+
+    this.on_connect = function(data) {
+
+        // Grab state
+
+        self.stream.get_state('*', '*', create_tables);
+
+        // subscribe to all events
+
+        self.stream.listen_event('*', '*', update_admin);
+
+        // Subscribe to all state changes
+
+        self.stream.listen_state('*', '*', update_admin)
+
+    };
+
     this.on_message = function (data) {
-
-        if (data.response_type === "hello" && data.response_success === true) {
-            var request_data = {
-                namespace: '*',
-                entity_id: '*'
-            };
-            self.stream.send('listen_state', request_data);
-
-            request_data = {};
-            self.stream.send('get_state', request_data);
-
-            request_data = {
-                namespace: '*',
-                event: '*'
-            };
-            self.stream.send('listen_event', request_data)
-
-        } else if (data.response_type === "get_state") {
-            create_tables(data.data)
-        } else {
-            update_admin(data)
-        }
+        // Do Nothing
     };
 
     this.on_disconnect = function () {
         // do nothing
     };
 
-    this.stream = new ADStream(transport, protocol, domain, port, "Admin Client", this.on_message, this.on_disconnect);
+    this.stream = new ADStream(transport, protocol, domain, port, "Admin Client", this.on_connect, this.on_message, this.on_disconnect);
 };
 
 function openTab(evt, tabname, tabgroup) {
@@ -657,61 +656,4 @@ function authorize(url)
 function deauthorize()
 {
     window.location.href = "/";
-}
-
-function get_entity(namespace, entity, f)
-{
-    var state_url = "/api/appdaemon/state/" + namespace + "/" + entity;
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_namespaces(f)
-{
-    var state_url = "/api/appdaemon/state/";
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_namespace(namespace, f)
-{
-    var state_url = "/api/appdaemon/state/" + namespace;
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(namespace, data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
 }

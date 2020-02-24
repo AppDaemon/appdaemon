@@ -86,7 +86,7 @@ $(function(){ //DOM Ready
         }
     }
 
-    // Start listening for HA Events
+    // Start listening for AD Events
 
-    var stream = new DashStream("{{ transport }}", location.protocol, document.domain, location.port, "{{ title }}", widgets);
+    window.dashstream = new DashStream("{{ transport }}", location.protocol, document.domain, location.port, "{{ title }}", widgets);
 });
