@@ -247,7 +247,7 @@ class RequestHandler:
         response_data = {"version": utils.__version__}
 
         event_data = {
-            "event_type": "websocket_connected",
+            "event_type": "stream_connected",
             "data": {"client_name": self.client_name},
         }
 
