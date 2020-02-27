@@ -1463,8 +1463,8 @@ Assistant bus:
 -  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection to Home Assistant. It is fired within the plugin's namespace
 -  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection from an external system like an MQTT broker. It is fired within the plugin's namespace
 -  ``service_registered`` - fired when a service is registered in AD. It is fired within the namespace it was registered
-- ``websocket_connected`` - fired when a websocket client connects like the Admin User Interface. It is fired within the `admin` namespace
-- ``websocket_disconnected`` - fired when a websocket client disconnects like the Admin User Interface. It is fired within the `admin` namespace
+- ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
+- ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
 
 About Event Callbacks
 ~~~~~~~~~~~~~~~~~~~~~
