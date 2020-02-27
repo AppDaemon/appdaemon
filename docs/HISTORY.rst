@@ -35,6 +35,8 @@ Change Log
 
 **Breaking Changes**
 
+- Changed ``websocket_connected`` and ``websocket_disconnected`` to ``stream_connected`` and ``stream_disconnected`` respectively
+
 None
 
 4.0.1 (2020-01-20)
