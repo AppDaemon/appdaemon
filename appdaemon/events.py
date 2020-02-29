@@ -197,16 +197,22 @@ class Events:
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
 
+            if data["event_type"] == "state_changed":
+                if data["data"]["new_state"] == data["data"]["old_state"]:
+                    # Nothing changed so don't send
+                    return
+
+            #
+            # Send to plugins
+            #
+
+            await self.AD.plugins.process_event(namespace, data)
+
             #
             # Send to the stream
             #
 
             if self.AD.http is not None:
-
-                if data["event_type"] == "state_changed":
-                    if data["data"]["new_state"] == data["data"]["old_state"]:
-                        # Nothing changed so don't send
-                        return
 
                 # take a copy without TS if present as it breaks deepcopy and jason
                 if "ts" in data["data"]:
