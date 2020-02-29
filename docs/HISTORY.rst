@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-4.0.3
+4.0.4
 -----
 
 **Features**
@@ -33,6 +33,21 @@ Change Log
 - Fixed up socketio support to work with the new stream semantics
 - Fixed a bug that allowed multiple copies of an App to run if there was an error in the signature of terminate()
 - AppDaemon's REST API no longer needs to be active to use the dashboard or Admin interfaces
+
+**Breaking Changes**
+
+None
+
+4.0.3 (2020-02-29)
+------------------
+
+**Features**
+
+- Pinned astral to v1.10.1
+
+**Fixes**
+
+- Pinned astral to prevent a bug in the latest v2 astral
 
 **Breaking Changes**
 
