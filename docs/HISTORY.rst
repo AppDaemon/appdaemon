@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-4.0.2
+4.0.3
 -----
 
 **Features**
@@ -24,6 +24,7 @@ Change Log
 - Admin UI now breaks out App instance and lifetime callback stats separately
 - Convert admin and dashboard to get_state from stream
 - Increase default work factor for password hashes to 12
+- Added ability for plugins to register for events
 
 **Fixes**
 
