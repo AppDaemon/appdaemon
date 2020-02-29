@@ -40,7 +40,7 @@ class Plugins:
 
         # for plugin stream callbacks
         self.plugin_callbacks = {}
-        self.plugin_stream_lock = threading.RLock()
+        self.plugin_event_lock = threading.RLock()
 
         self.logger = ad.logging.get_child("_plugin_management")
         self.error = self.AD.logging.get_error()
@@ -278,7 +278,7 @@ class Plugins:
     def add_event_callback(self, name, callback, namespace=None):
         self.logger.debug("add_event_callback called: %s, %s -> %s", name, namespace, callback)
 
-        with self.plugin_stream_lock:
+        with self.plugin_event_lock:
             if name not in self.plugin_callbacks:
                 self.plugin_callbacks[name] = {}
                 self.plugin_callbacks[name]["namespaces"] = []
@@ -291,7 +291,7 @@ class Plugins:
     def remove_event_callback(self, name, namespace=None):
         self.logger.debug("remove_event_callback called: %s, %s", name, namespace)
 
-        with self.plugin_stream_lock:
+        with self.plugin_event_lock:
             if name in self.plugin_callbacks:
                 if namespace is not None:
                     if namespace in self.plugin_callbacks[name]["namespaces"]:
@@ -305,7 +305,7 @@ class Plugins:
 
     async def process_event(self, namespace, data):
         try:
-            with self.plugin_stream_lock:
+            with self.plugin_event_lock:
                 for name in self.plugin_callbacks:
                     namespaces = self.plugin_callbacks[name]["namespaces"]
                     callback = self.plugin_callbacks[name]["callback"]
@@ -323,7 +323,7 @@ class Plugins:
                                 if not namespace == ns:
                                     continue
 
-                            #await callback(namespace, data)
+                            # await callback(data)
                             asyncio.ensure_future(callback(namespace, data))
 
         except Exception:
