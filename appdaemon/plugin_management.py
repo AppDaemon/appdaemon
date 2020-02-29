@@ -4,6 +4,7 @@ import traceback
 import datetime
 import asyncio
 import async_timeout
+import threading
 
 from appdaemon.appdaemon import AppDaemon
 
@@ -36,6 +37,10 @@ class Plugins:
         self.plugin_meta = {}
         self.plugin_objs = {}
         self.last_plugin_state = {}
+
+        # for plugin stream callbacks
+        self.plugin_callbacks = {}
+        self.plugin_stream_lock = threading.RLock()
 
         self.logger = ad.logging.get_child("_plugin_management")
         self.error = self.AD.logging.get_error()
@@ -113,10 +118,7 @@ class Plugins:
                         if "namespace" not in self.plugins[name]:
                             self.plugins[name]["namespace"] = namespace
 
-                        self.plugin_objs[namespace] = {
-                            "object": plugin,
-                            "active": False,
-                        }
+                        self.plugin_objs[namespace] = {"object": plugin, "active": False, "name": name}
 
                         #
                         # Create app entry for the plugin so we can listen_state/event
@@ -135,6 +137,7 @@ class Plugins:
         self.stopping = True
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin]["object"].stop()
+            self.remove_event_callback(self.plugin_objs[plugin]["name"])
 
     def run_plugin_utility(self):
         for plugin in self.plugin_objs:
@@ -267,6 +270,68 @@ class Plugins:
                 self.logger.error("Required attribute not set or obtainable from any plugin: %s", key)
                 OK = False
         return OK
+
+    #
+    # Plugin event register
+    #
+
+    def add_event_callback(self, name, callback, namespace=None):
+        self.logger.debug("add_event_callback called: %s, %s -> %s", name, namespace, callback)
+
+        with self.plugin_stream_lock:
+            if name not in self.plugin_callbacks:
+                self.plugin_callbacks[name] = {}
+                self.plugin_callbacks[name]["namespaces"] = []
+
+            self.plugin_callbacks[name]["callback"] = callback
+
+            if namespace is not None and namespace not in self.plugin_callbacks[name]["namespaces"]:
+                self.plugin_callbacks[name]["namespaces"].append(namespace)
+
+    def remove_event_callback(self, name, namespace=None):
+        self.logger.debug("remove_event_callback called: %s, %s", name, namespace)
+
+        with self.plugin_stream_lock:
+            if name in self.plugin_callbacks:
+                if namespace is not None:
+                    if namespace in self.plugin_callbacks[name]["namespaces"]:
+                        self.plugin_callbacks[name]["namespaces"].remove(namespace)
+
+                    else:
+                        self.logger.warning("Unrecognised namespace called in remove_event_callback: %s", namespace)
+                    return
+
+                del self.plugin_callbacks[name]
+
+    async def process_event(self, namespace, data):
+        try:
+            with self.plugin_stream_lock:
+                for name in self.plugin_callbacks:
+                    namespaces = self.plugin_callbacks[name]["namespaces"]
+                    callback = self.plugin_callbacks[name]["callback"]
+
+                    if namespaces == []:  # no namespace specified
+                        continue
+
+                    else:
+
+                        for ns in namespaces:
+                            if ns.endswith("*"):
+                                if not namespace.startswith(ns[:-1]):
+                                    continue
+                            else:
+                                if not namespace == ns:
+                                    continue
+
+                            # await callback(data)
+                            asyncio.ensure_future(callback(namespace, data))
+
+        except Exception:
+            self.logger.warning("-" * 60)
+            self.logger.warning("Unexpected error during 'process_event()'")
+            self.logger.warning("-" * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning("-" * 60)
 
     async def get_plugin_api(self, plugin_name, name, _logging, args, config, app_config, global_vars):
         if plugin_name in self.plugins:
