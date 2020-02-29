@@ -1,6 +1,23 @@
 Change Log
 ==========
 
+4.0.2
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a critical bug that cause ,ultiple scheduler errors during a leap year - contributed by `Chad McCune <https://github.com/chadmccune>`__
+
+**Breaking Changes**
+
+None
+
+
+
 4.0.1
 -----
 
