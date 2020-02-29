@@ -323,7 +323,7 @@ class Plugins:
                                 if not namespace == ns:
                                     continue
 
-                            # await callback(data)
+                            # await callback(namespace, data)
                             asyncio.ensure_future(callback(namespace, data))
 
         except Exception:
