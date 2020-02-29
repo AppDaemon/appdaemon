@@ -1,8 +1,23 @@
 Change Log
 ==========
 
-4.0.2
------
+4.0.3 (2020-02-29)
+------------------
+
+**Features**
+
+- Pinned astral to v1.10.1
+
+**Fixes**
+
+- Pinned astral to prevent a bug in the latest v2 astral
+
+**Breaking Changes**
+
+None
+
+4.0.2 (2020-02-28)
+------------------
 
 **Features**
 
@@ -10,13 +25,11 @@ None
 
 **Fixes**
 
-- Fixed a critical bug that cause ,ultiple scheduler errors during a leap year - contributed by `Chad McCune <https://github.com/chadmccune>`__
+- Fixed a critical bug that cause multiple scheduler errors during a leap year - contributed by `Chad McCune <https://github.com/chadmccune>`__
 
 **Breaking Changes**
 
 None
-
-
 
 4.0.1
 -----
