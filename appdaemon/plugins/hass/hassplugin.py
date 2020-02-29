@@ -238,6 +238,7 @@ class HassPlugin(PluginBase):
         #
         # Testing
         #
+        # self.AD.plugins.add_event_callback(self.name, self.events_callbacks, "*")
         # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
         # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "state_changed")
         # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
