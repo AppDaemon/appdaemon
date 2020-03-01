@@ -134,7 +134,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         })
     };
 
-    this.stream = new ADStream(transport, protocol, domain, port, title, this.on_connect, this.on_message, this.on_disconnect);
+    this.stream = new Stream(transport, protocol, domain, port, title, this.on_connect, this.on_message, this.on_disconnect);
 
 };
 
