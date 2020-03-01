@@ -177,8 +177,8 @@ class Events:
             self.logger.debug("Event type:%s:", data["event_type"])
             self.logger.debug(data["data"])
 
-            # Kick the scheduler so it updates it's clock for time travel
-            if self.AD.sched is not None and self.AD.sched.realtime is False and namespace != "admin":
+            # Kick the scheduler so it updates it's clock
+            if self.AD.sched is not None and namespace != "admin":
                 await self.AD.sched.kick()
 
             if data["event_type"] == "state_changed":
