@@ -751,10 +751,13 @@ class Threading:
             #
             # It's going to happen
             #
-            await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
-            await self.add_to_attr(
-                "_threading", "admin", "{}_callback.{}".format(myargs["type"], myargs["id"]), "fired", 1,
-            )
+            if "__silent" in args["kwargs"] and args["kwargs"]["__silent"] is True:
+                pass
+            else:
+                await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
+                await self.add_to_attr(
+                    "_threading", "admin", "{}_callback.{}".format(myargs["type"], myargs["id"]), "fired", 1,
+                )
             #
             # And Q
             #
