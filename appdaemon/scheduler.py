@@ -710,7 +710,7 @@ class Scheduler:
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(
             kwargs_copy,
-            ["interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"]
+            ["interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread", "__silent"]
             + app.list_constraints(),
         )
 

@@ -510,6 +510,7 @@ class State:
                 "pin_app",
                 "pin_thread",
                 "__delay",
+                "__silent",
             ]
             + app.list_constraints(),
         )

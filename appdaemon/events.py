@@ -6,6 +6,7 @@ import traceback
 import datetime
 
 from appdaemon.appdaemon import AppDaemon
+import appdaemon.utils as utils
 
 
 class Events:
@@ -330,3 +331,7 @@ class Events:
             await self.fire_event(namespace, event, **kwargs)
         else:
             self.logger.warning("Malformed 'fire_event' service call, as no event given")
+
+    def sanitize_event_kwargs(app, kwargs):
+        kwargs_copy = kwargs.copy()
+        return utils._sanitize_kwargs(kwargs_copy, ["__silent"])
