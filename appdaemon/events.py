@@ -332,6 +332,7 @@ class Events:
         else:
             self.logger.warning("Malformed 'fire_event' service call, as no event given")
 
+    @staticmethod
     def sanitize_event_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(kwargs_copy, ["__silent"])
