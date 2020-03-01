@@ -825,14 +825,14 @@ class Threading:
                         except TypeError:
                             self.report_callback_sig(name, "log_event", funcref, args)
 
-                    else:
-                        try:
-                            await self.update_thread_info("async", callback, name, _type, _id, silent)
-                            await funcref(
-                                args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
-                            )
-                        except TypeError:
-                            self.report_callback_sig(name, "event", funcref, args)
+                    #
+                    # Even though we process log events, allow then through for general handling too
+                    #
+                    try:
+                        await self.update_thread_info("async", callback, name, _type, _id, silent)
+                        await funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                    except TypeError:
+                        self.report_callback_sig(name, "event", funcref, args)
 
             except Exception:
                 error_logger.warning("-" * 60)
@@ -919,15 +919,16 @@ class Threading:
                                 )
                             except TypeError:
                                 self.report_callback_sig(name, "log_event", funcref, args)
-
-                        else:
-                            try:
-                                utils.run_coroutine_threadsafe(
-                                    self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
-                                )
-                                funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
-                            except TypeError:
-                                self.report_callback_sig(name, "event", funcref, args)
+                        #
+                        # Even though we process log events, allow then through for general handling too
+                        #
+                        try:
+                            utils.run_coroutine_threadsafe(
+                                self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
+                            )
+                            funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                        except TypeError:
+                            self.report_callback_sig(name, "event", funcref, args)
 
                 except Exception:
                     error_logger.warning("-" * 60)
