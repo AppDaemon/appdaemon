@@ -113,11 +113,7 @@ class Plugins:
                         if "namespace" not in self.plugins[name]:
                             self.plugins[name]["namespace"] = namespace
 
-                        self.plugin_objs[namespace] = {
-                            "object": plugin,
-                            "active": False,
-                            "name" : name
-                        }
+                        self.plugin_objs[namespace] = {"object": plugin, "active": False, "name": name}
 
                         #
                         # Create app entry for the plugin so we can listen_state/event
