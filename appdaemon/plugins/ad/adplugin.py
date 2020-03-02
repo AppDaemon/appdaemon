@@ -282,7 +282,7 @@ class AdPlugin(PluginBase):
                 # check if Local event upload is required and subscribe
                 #
 
-                self.setup_forward_events()
+                await self.setup_forward_events()
 
                 #
                 # Finally Loop forever consuming events
@@ -348,7 +348,7 @@ class AdPlugin(PluginBase):
                 for subscription in self.subscriptions["event"]:
                     asyncio.ensure_future(self.run_subscription("event", subscription))
 
-    def setup_forward_events(self):
+    async def setup_forward_events(self):
         if self.forward_namespaces is not None:
 
             self.restricted_namespaces = self.forward_namespaces.get("restricted_namespaces", [])
@@ -369,10 +369,10 @@ class AdPlugin(PluginBase):
 
             if allowed_namespaces != []:
                 for namespace in allowed_namespaces:
-                    self.AD.add_event_callback(self.name, self.forward_events, namespace)
+                    await self.AD.events.add_event_callback(self.name, namespace, self.forward_events, None, __silent=True, __namespace=namespace)
 
-            else:  # subscribe to all events
-                self.AD.add_event_callback(self.name, self.forward_events, "*")
+            #else:  # subscribe to all events
+            #    await self.AD.events.add_event_callback(self.name, "global", self.forward_events, None, __silent=True, __namespace=namespace)
 
             # setup to receive instructions for this local instance from the remote one
             subscription = {"namespace": f"{self.client_name}*", "event": "*"}
@@ -641,14 +641,16 @@ class AdPlugin(PluginBase):
 
         return result
     
-    async def forward_events(self, namespace, data):
+    async def forward_events(self, event, data, kwargs):
         """Callback for event forwarding"""
         
-        if "__AD_ORIGIN" in data["data"] and self.client_name == data["data"]["__AD_ORIGIN"]:
+        if data.get("__AD_ORIGIN") == self.client_name:
             return # meaning it should be ignored
         
-        if data["event_type"] != "__AD_LOG_EVENT": # this is to avoid a potential loop
-            self.logger.debug("forward_events() namespace=%s data=%s", namespace, data)
+        namespace = kwargs.get("__namespace")
+        
+        if event != "__AD_LOG_EVENT": # this is to avoid a potential loop
+            self.logger.debug("forward_events() event=%s namespace=%s data=%s", event, namespace, data)
 
         forward = True
 
@@ -667,10 +669,8 @@ class AdPlugin(PluginBase):
 
         if forward is True:  # it is good to go
             namespace = f"{self.client_name}_{namespace}"
-            event_type = data.pop("event_type")
-            kwargs = data.pop("data")
 
-            await self.fire_plugin_event(event_type, namespace, **kwargs)
+            await self.fire_plugin_event(event, namespace, **data)
 
     async def get_ad_state(self, entity_id=None):
         self.logger.debug("get_ad_state()")
