@@ -116,7 +116,7 @@ class Plugins:
                         self.plugin_objs[namespace] = {
                             "object": plugin,
                             "active": False,
-                            "name" : name
+                            "name" : name,
                         }
 
                         #
