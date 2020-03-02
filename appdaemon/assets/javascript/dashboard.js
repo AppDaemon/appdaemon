@@ -310,7 +310,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 
     this.call_service = function(child, args)
     {
-        if ("resident_namespace" in child)
+        if ("resident_namespace" in child.parameters)
         {
             ns = child.parameters.resident_namespace
         }
