@@ -116,6 +116,7 @@ class Plugins:
                         self.plugin_objs[namespace] = {
                             "object": plugin,
                             "active": False,
+                            "name" : name
                         }
 
                         #
@@ -135,6 +136,9 @@ class Plugins:
         self.stopping = True
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin]["object"].stop()
+            name = self.plugin_objs[plugin]["name"]
+            self.AD.loop.create_task(self.AD.callbacks.clear_callbacks(name))
+            self.AD.futures.cancel_futures(name)
 
     def run_plugin_utility(self):
         for plugin in self.plugin_objs:
