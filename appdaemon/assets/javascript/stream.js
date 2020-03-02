@@ -1,4 +1,4 @@
-var ADStream = function(transport, protocol, domain, port, client_name, on_connect, on_message, on_disconnect)
+var Stream = function(transport, protocol, domain, port, client_name, on_connect, on_message, on_disconnect)
 {
 
     var self = this;

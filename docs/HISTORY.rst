@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-4.0.2
+4.0.4
 -----
 
 **Features**
@@ -37,6 +37,21 @@ Change Log
 
 None
 
+4.0.3 (2020-02-29)
+------------------
+
+**Features**
+
+- Pinned astral to v1.10.1
+
+**Fixes**
+
+- Pinned astral to prevent a bug in the latest v2 astral
+
+**Breaking Changes**
+
+None
+
 4.0.2 (2020-02-28)
 ------------------
 
@@ -53,8 +68,9 @@ None
 None
 
 
-4.0.1 (2020-01-20)
-------------------
+
+4.0.1
+-----
 
 **Features**
 

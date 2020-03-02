@@ -6,6 +6,7 @@ import traceback
 import datetime
 
 from appdaemon.appdaemon import AppDaemon
+import appdaemon.utils as utils
 
 
 class Events:
@@ -176,7 +177,7 @@ class Events:
             self.logger.debug("Event type:%s:", data["event_type"])
             self.logger.debug(data["data"])
 
-            # Kick the scheduler so it updates it's clock for time travel
+            # Kick the scheduler so it updates it's clock
             if self.AD.sched is not None and self.AD.sched.realtime is False and namespace != "admin":
                 await self.AD.sched.kick()
 
@@ -330,3 +331,8 @@ class Events:
             await self.fire_event(namespace, event, **kwargs)
         else:
             self.logger.warning("Malformed 'fire_event' service call, as no event given")
+
+    @staticmethod
+    def sanitize_event_kwargs(app, kwargs):
+        kwargs_copy = kwargs.copy()
+        return utils._sanitize_kwargs(kwargs_copy, ["__silent"])

@@ -626,7 +626,7 @@ var AdminStream = function(transport, protocol, domain, port) {
         // do nothing
     };
 
-    this.stream = new ADStream(transport, protocol, domain, port, "Admin Client", this.on_connect, this.on_message, this.on_disconnect);
+    this.stream = new Stream(transport, protocol, domain, port, "Admin Client", this.on_connect, this.on_message, this.on_disconnect);
 };
 
 function openTab(evt, tabname, tabgroup) {

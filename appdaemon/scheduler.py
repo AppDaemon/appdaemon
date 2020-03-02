@@ -341,7 +341,7 @@ class Scheduler:
 
     def get_next_entries(self):
 
-        next_exec = datetime.datetime.now(pytz.utc).replace(year=3200)
+        next_exec = datetime.datetime.now(pytz.utc).replace(year=datetime.MAXYEAR, month=12, day=31)
         for name in self.schedule.keys():
             for entry in self.schedule[name].keys():
                 if self.schedule[name][entry]["timestamp"] < next_exec:
@@ -710,7 +710,7 @@ class Scheduler:
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(
             kwargs_copy,
-            ["interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread"]
+            ["interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread", "__silent"]
             + app.list_constraints(),
         )
 
