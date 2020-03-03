@@ -399,18 +399,15 @@ class AppManagement:
         return new_config
 
     async def check_sequence_update(self, sequence_config):
-        print(sequence_config)
         if self.app_config.get("sequences", {}) != sequence_config:
             #
             # now remove the old ones no longer needed
             #
             deleted_sequences = []
             for sequence, config in self.app_config.get("sequence", {}).items():
-                print(sequence)
                 if sequence not in sequence_config:
                     deleted_sequences.append(sequence)
 
-            print(deleted_sequences)
             if deleted_sequences != []:
                 await self.AD.sequences.remove_sequences(deleted_sequences)
 
