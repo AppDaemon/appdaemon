@@ -2,6 +2,7 @@ import datetime
 import pytz
 import sys
 import uuid
+import copy
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -484,6 +485,8 @@ class Logging:
             for thislevel in self.log_levels:
                 if self.log_levels[thislevel] >= self.log_levels[level]:
                     handle = uuid.uuid4().hex
+                    cb_kwargs = copy.deepcopy(kwargs)
+                    cb_kwargs["level"] = thislevel
                     self.AD.callbacks.callbacks[name][handle] = {
                         "name": name,
                         "id": self.AD.app_management.objects[name]["id"],
@@ -492,7 +495,7 @@ class Logging:
                         "namespace": namespace,
                         "pin_app": pin_app,
                         "pin_thread": pin_thread,
-                        "kwargs": kwargs,
+                        "kwargs": cb_kwargs,
                     }
 
                     handles.append(handle)
@@ -500,10 +503,10 @@ class Logging:
                     #
                     # If we have a timeout parameter, add a scheduler entry to delete the callback later
                     #
-                    if "timeout" in kwargs:
+                    if "timeout" in cb_kwargs:
                         exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
 
-                        kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                        cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                             name, exec_time, None, False, None, __log_handle=handle,
                         )
 
@@ -518,7 +521,7 @@ class Logging:
                             "pinned_thread": pin_thread,
                             "fired": 0,
                             "executed": 0,
-                            "kwargs": kwargs,
+                            "kwargs": cb_kwargs,
                         },
                     )
 
