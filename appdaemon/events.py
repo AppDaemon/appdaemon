@@ -254,6 +254,8 @@ class Events:
                     cb = self.AD.callbacks.callbacks[callback][_uuid]
                     if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
                         has_log_callback = True
+                    elif cb["name"] == name and cb["type"] == "log":
+                        has_log_callback = True
 
         return has_log_callback
 
