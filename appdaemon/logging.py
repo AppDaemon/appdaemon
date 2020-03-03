@@ -547,6 +547,9 @@ class Logging:
                     if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["log_type"]:
                         _run = False
 
+                    if "level" in callback["kwargs"] and callback["kwargs"]["level"] != data["level"]:
+                        _run = False
+
                     if _run:
                         if name in self.AD.app_management.objects:
                             executed = await self.AD.threading.dispatch_worker(
