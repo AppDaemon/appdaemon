@@ -198,7 +198,7 @@ class ADAPI:
                 will be run by (0 - number of threads -1).
 
         Returns:
-            A `list` of the unique identifiers that can be used to cancel the callback if required.
+            A unique identifier that can be used to cancel the callback if required.
             Since variables created within object methods are local to the function they are
             created in, and in all likelihood, the cancellation will be invoked later in a
             different function, it is recommended that handles are stored in the object
