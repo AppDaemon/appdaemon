@@ -169,11 +169,23 @@ Sets the production mode AD is running on. The value of the `mode` arg has to be
 
 All namespaces except ``appdaemon``, ``global``, and ``admin``:
 
+**state/add_entity**
+
+Adds an existing entity to the required namespace.
+
+    >>> self.call_service("state/set", entity_id="sensor.test", state="on", attributes={"friendly_name" : "Sensor Test"}, namespace="default")
+
 **state/set**
 
 Sets the state of an entity. This service allows any key-worded args to define what entity's values need to be set.
 
     >>> self.call_service("state/set", entity_id="sensor.test", state="on", attributes={"friendly_name" : "Sensor Test"}, namespace="default")
+
+**state/remove_entity**
+
+Removes an existing entity from the required namespace.
+
+    >>> self.call_service("state/remove_entity", entity_id="sensor.test"}, namespace="default")
 
 All namespaces except ``appdaemon``:
 
