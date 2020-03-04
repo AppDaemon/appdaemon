@@ -25,6 +25,7 @@ Change Log
 - Convert admin and dashboard to get_state from stream
 - Increase default work factor for password hashes to 12
 - Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
+- Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 
 **Fixes**
 
@@ -35,6 +36,8 @@ Change Log
 - AppDaemon's REST API no longer needs to be active to use the dashboard or Admin interfaces
 
 **Breaking Changes**
+
+- Changed ``websocket_connected`` and ``websocket_disconnected`` to ``stream_connected`` and ``stream_disconnected`` respectively
 
 None
 
