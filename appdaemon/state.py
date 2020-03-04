@@ -338,10 +338,13 @@ class State:
             await self.AD.events.process_event(namespace, data)
 
     async def add_entity(self, namespace, entity, state, attributes=None):
-        if attributes is None:
-            attrs = {}
-        else:
-            attrs = attributes
+        if await self.entity_exists(namespace, entity):
+            self.logger.warning("%s already exists, will not be adding it", entity)
+            return
+
+        attrs = {}
+        if isinstance(attributes, dict):
+            attrs.update(attributes)
 
         state = {
             "entity_id": entity,
@@ -443,6 +446,11 @@ class State:
 
         elif service == "remove_entity":
             await self.remove_entity(namespace, entity_id)
+
+        elif service == "add_entity":
+            state = kwargs.get("state")
+            attributes = kwargs.get("attributes")
+            await self.add_entity(namespace, entity_id, state, attributes)
 
         else:
             self.logger.warning("Unknown service in state service call: %s", kwargs)
