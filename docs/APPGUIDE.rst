@@ -305,10 +305,10 @@ required:
 
 It is also possible to get some constants like the app directory within apps. This can be accessed using the attribute ``self.app_dir``
 
-secrets
+Secrets
 ~~~~~~~
 
-AppDaemon supports the ability to pass sensitive arguments to apps, via the use of secrets in the app config file. This will allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the ``apps.yaml`` file.
+AppDaemon supports the ability to pass sensitive arguments to apps, via the use of secrets in the main or app config file. This will allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a ``!secret`` tag in the ``apps.yaml`` file.
 
 An example ``secrets.yaml`` might look like this:
 
@@ -324,6 +324,31 @@ The secrets can then be referred to in the ``apps.yaml`` file as follows:
       class: AppClass
       module: appmodule
       application_api_key: !secret application_api_key
+
+In the App, the api_key can be accessed like every other argument the App can access.
+
+Environment Variables
+~~~~~~~~~~~~~~~~~~~~~
+
+If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The varibales can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
+
+An example using the os's time zone for AD:
+
+.. code:: yaml
+
+    appdaemon:
+      time_zone: !env_var TZ
+      latitude: !env_var LAT
+      longitude: !env_var LONG
+
+The variables can also be referred to in the ``apps.yaml`` file as follows:
+
+.. code:: yaml
+
+    appname:
+      class: AppClass
+      module: appmodule
+      application_api_key: !env_var application_api_key
 
 In the App, the api_key can be accessed like every other argument the App can access.
 
