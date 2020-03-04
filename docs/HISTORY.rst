@@ -24,6 +24,7 @@ Change Log
 - Admin UI now breaks out App instance and lifetime callback stats separately
 - Convert admin and dashboard to get_state from stream
 - Increase default work factor for password hashes to 12
+- Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 
 **Fixes**
 

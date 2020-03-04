@@ -258,6 +258,14 @@ def _secret_yaml(loader, node):
     return secrets[node.value]
 
 
+def _env_var_yaml(loader, node):
+    env_var = node.value
+    if env_var not in os.environ:
+        raise ValueError("{} not found in as environment varibale".format(env_var))
+
+    return os.environ[env_var]
+
+
 def rreplace(s, old, new, occurrence):
     li = s.rsplit(old, occurrence)
     return new.join(li)
