@@ -183,6 +183,10 @@ class Events:
 
             if data["event_type"] == "state_changed":
                 if "entity_id" in data["data"] and "new_state" in data["data"]:
+                    if data["data"]["new_state"] is None:
+                        # most likely it is a deleted entity
+                        return
+
                     entity_id = data["data"]["entity_id"]
 
                     self.AD.state.set_state_simple(namespace, entity_id, data["data"]["new_state"])

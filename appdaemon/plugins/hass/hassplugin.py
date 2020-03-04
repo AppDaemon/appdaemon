@@ -691,3 +691,47 @@ class HassPlugin(PluginBase):
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
             return None
+
+    @hass_check
+    async def remove_entity(self, namespace, entity_id):
+        self.logger.debug("remove_entity() %s", entity_id)
+        config = (await self.AD.plugins.get_plugin_object(namespace)).config
+
+        # TODO cert_path is not used
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
+        else:
+            cert_path = False  # noqa: F841
+
+        if "token" in config:
+            headers = {"Authorization": "Bearer {}".format(config["token"])}
+        elif "ha_key" in config:
+            headers = {"x-ha-access": config["ha_key"]}
+        else:
+            headers = {}
+
+        api_url = "{}/api/states/{}".format(config["ha_url"], entity_id)
+
+        try:
+            r = await self.session.delete(api_url, headers=headers, verify_ssl=self.cert_verify)
+            if r.status == 200 or r.status == 201:
+                state = await r.json()
+                self.logger.debug("return = %s", state)
+            else:
+                self.logger.warning("Error Removing Home Assistant entity %s", entity_id)
+                txt = await r.text()
+                self.logger.warning("Code: %s, error: %s", r.status, txt)
+                state = None
+            return state
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            self.logger.warning("Timeout in remove_entity(%s, %s)", namespace, entity_id)
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            self.logger.warning("HASS Disconnected unexpectedly during remove_entity()")
+        except Exception:
+            self.logger.warning("-" * 60)
+            self.logger.warning("Unexpected error during set_plugin_state()")
+            self.logger.warning("Arguments: %s", entity_id)
+            self.logger.warning("-" * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning("-" * 60)
+            return None
