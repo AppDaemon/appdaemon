@@ -356,6 +356,10 @@ class Threading:
                 self.diag.info("%s calling %s callback %s", thread_id, type, callback)
 
         appinfo = self.AD.app_management.get_app_info(app)
+
+        if appinfo is None:  # app possibly terminated
+            return
+
         appentity = "{}.{}".format(appinfo["type"], app)
 
         now = await self.AD.sched.get_now()
@@ -812,25 +816,23 @@ class Threading:
                     except TypeError:
                         self.report_callback_sig(name, "state", funcref, args)
 
+                elif _type == "log":
+                    data = args["data"]
+                    try:
+                        await self.update_thread_info("async", callback, name, _type, _id, silent)
+                        await funcref(
+                            data["app_name"],
+                            data["ts"],
+                            data["level"],
+                            data["log_type"],
+                            data["message"],
+                            self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                        )
+                    except TypeError:
+                        self.report_callback_sig(name, "log_event", funcref, args)
+
                 elif _type == "event":
                     data = args["data"]
-                    if args["event"] == "__AD_LOG_EVENT":
-                        try:
-                            await self.update_thread_info("async", callback, name, _type, _id, silent)
-                            await funcref(
-                                data["app_name"],
-                                data["ts"],
-                                data["level"],
-                                data["log_type"],
-                                data["message"],
-                                self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
-                            )
-                        except TypeError:
-                            self.report_callback_sig(name, "log_event", funcref, args)
-
-                    #
-                    # Even though we process log events, allow then through for general handling too
-                    #
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
                         await funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
@@ -905,26 +907,25 @@ class Threading:
                         except TypeError:
                             self.report_callback_sig(name, "state", funcref, args)
 
+                    if _type == "log":
+                        data = args["data"]
+                        try:
+                            utils.run_coroutine_threadsafe(
+                                self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
+                            )
+                            funcref(
+                                data["app_name"],
+                                data["ts"],
+                                data["level"],
+                                data["log_type"],
+                                data["message"],
+                                self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                            )
+                        except TypeError:
+                            self.report_callback_sig(name, "log_event", funcref, args)
+
                     elif _type == "event":
                         data = args["data"]
-                        if args["event"] == "__AD_LOG_EVENT":
-                            try:
-                                utils.run_coroutine_threadsafe(
-                                    self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
-                                )
-                                funcref(
-                                    data["app_name"],
-                                    data["ts"],
-                                    data["level"],
-                                    data["log_type"],
-                                    data["message"],
-                                    self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
-                                )
-                            except TypeError:
-                                self.report_callback_sig(name, "log_event", funcref, args)
-                        #
-                        # Even though we process log events, allow then through for general handling too
-                        #
                         try:
                             utils.run_coroutine_threadsafe(
                                 self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
