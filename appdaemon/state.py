@@ -311,16 +311,40 @@ class State:
             return None
 
     async def remove_entity(self, namespace, entity):
+        """Removes an entity.
+
+        If the namespace does not have a plugin associated with it, the entity will be removed locally only.
+        If a plugin is associated, the entity will be removed via the plugin and locally.
+
+        Args:
+            namespace (str): Namespace for the event to be fired in.
+            entity (str): Name of the entity.
+
+        Returns:
+            None.
+
+        """
+
+        self.logger.debug("remove_entity() %s %s", namespace, entity)
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
+
+        if hasattr(plugin, "remove_entity"):
+            # We assume that the event will come back to us via the plugin
+            await plugin.remove_entity(namespace, entity)
+
         if entity in self.state[namespace]:
             self.state[namespace].pop(entity)
             data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity}}
             await self.AD.events.process_event(namespace, data)
 
     async def add_entity(self, namespace, entity, state, attributes=None):
-        if attributes is None:
-            attrs = {}
-        else:
-            attrs = attributes
+        if await self.entity_exists(namespace, entity):
+            self.logger.warning("%s already exists, will not be adding it", entity)
+            return
+
+        attrs = {}
+        if isinstance(attributes, dict):
+            attrs.update(attributes)
 
         state = {
             "entity_id": entity,
@@ -422,6 +446,11 @@ class State:
 
         elif service == "remove_entity":
             await self.remove_entity(namespace, entity_id)
+
+        elif service == "add_entity":
+            state = kwargs.get("state")
+            attributes = kwargs.get("attributes")
+            await self.add_entity(namespace, entity_id, state, attributes)
 
         else:
             self.logger.warning("Unknown service in state service call: %s", kwargs)

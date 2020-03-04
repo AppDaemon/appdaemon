@@ -33,6 +33,14 @@ class Sequences:
                 },
             )
 
+    async def remove_sequences(self, sequences):
+        print(sequences)
+        if not isinstance(sequences, list):
+            sequences = [sequences]
+
+        for sequence in sequences:
+            await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
+
     async def run_sequence(self, _name, namespace, sequence):
         ephemeral_entity = False
         loop = False

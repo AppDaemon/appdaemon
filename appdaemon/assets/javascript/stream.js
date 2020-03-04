@@ -192,10 +192,11 @@ var Stream = function(transport, protocol, domain, port, client_name, on_connect
 
     this.call_service = function(service, namespace, args, callback)
     {
+        args["__name"] = "stream"
         request = {
             request_type: "call_service",
             data: {
-                namespace: ns,
+                namespace: namespace,
                 service: service,
                 data: args
             }
