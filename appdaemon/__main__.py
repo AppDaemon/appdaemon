@@ -213,7 +213,7 @@ class ADMain:
         # First locate secrets file
         #
         try:
-            
+
             #
             # Read config file using environment variables
             #
