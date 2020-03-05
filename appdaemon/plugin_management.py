@@ -265,6 +265,8 @@ class Plugins:
                                 "namespaces" in self.plugins[name]
                             ):  # its a plugin using namespace mapping like adplugin so expecting a list
                                 namespace = self.plugins[name]["namespaces"]
+                                # add the main namespace
+                                namespace.extend(self.plugins[name]["namespace"])
                             else:
                                 namespace = plugin
 
