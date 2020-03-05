@@ -302,19 +302,20 @@ class AdPlugin(PluginBase):
                     result = json.loads(res)
                     self.logger.debug("%s", result)
 
-                    if "response_type" in result:  # not an event stream but a response type
+                    if result.get("response_type") in ["event", "state_changed"]: # an event happened
+                        remote_namespace = result["data"].pop("namespace")
+                        data = result["data"]
+                        accept, local_namespace = self.process_namespace(remote_namespace)
+
+                        if accept is True:  # accept data
+                            asyncio.ensure_future(self.process_remote_request(local_namespace, remote_namespace, data))
+
+                    else:  # not an event stream but a response type
                         response_id = result.get("response_id")  # its for a message with expected result if not None
 
                         if response_id in self.stream_results:  # if to be picked up
                             self.stream_results[response_id]["response"] = result
-                            self.stream_results[response_id]["event"].set()  # time for pickup
-
-                    else:
-                        remote_namespace = result.pop("namespace")
-                        accept, local_namespace = self.process_namespace(remote_namespace)
-
-                        if accept is True:  # accept data
-                            asyncio.ensure_future(self.process_remote_request(local_namespace, remote_namespace, result))
+                            self.stream_results[response_id]["event"].set()  # time for pickup                        
 
             except Exception:
                 if self.forward_namespaces is not None:
