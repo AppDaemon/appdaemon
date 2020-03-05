@@ -339,7 +339,6 @@ class State:
 
     async def add_entity(self, namespace, entity, state, attributes=None):
         if await self.entity_exists(namespace, entity):
-            self.logger.warning("%s already exists, will not be adding it", entity)
             return
 
         attrs = {}
