@@ -586,7 +586,7 @@ class AppManagement:
                 # if silent is False:
                 self.logger.info("Found %s total apps", total_apps)
 
-                await self.set_state(self.total_apps_sensor, state=total_apps, attributes={"friendly_name": "Total Apps"})
+                await self.set_state(self.total_apps_sensor, state=total_apps)
 
                 active_apps = self.get_active_app_count()
 
