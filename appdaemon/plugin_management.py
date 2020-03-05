@@ -153,18 +153,25 @@ class Plugins:
     def get_plugin(self, plugin):
         return self.plugins[plugin]
 
-    async def get_plugin_object(self, name):
-        if name in self.plugin_objs:
-            return self.plugin_objs[name]["object"]
-        else:
-            return None
+    async def get_plugin_object(self, namespace):
+        if namespace in self.plugin_objs:
+            return self.plugin_objs[namespace]["object"]
+
+        for name in self.plugins:
+            if "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
+                plugin_namespace = self.plugins[name]["namespace"]
+                return self.plugin_objs[plugin_namespace]["object"]
+
+        return None
 
     def get_plugin_from_namespace(self, namespace):
         if self.plugins is not None:
             for name in self.plugins:
                 if "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
                     return name
-                if "namespace" not in self.plugins[name] and namespace == "default":
+                elif "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
+                    return name
+                elif "namespace" not in self.plugins[name] and namespace == "default":
                     return name
         else:
             return None
@@ -235,12 +242,14 @@ class Plugins:
         await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
     async def get_plugin_meta(self, namespace):
-        if namespace in self.plugin_objs:
-            return self.plugin_objs[namespace]["object"]
-
         for name in self.plugins:
-            if "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
-                return self.plugin_objs[self.plugins[name]["namespace"]]["object"]
+            if "namespace" not in self.plugins[name] and namespace == "default":
+                return self.plugin_meta[namespace]
+            elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
+                return self.plugin_meta[namespace]
+            elif "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
+                plugin_namespace = self.plugins[name]["namespace"]
+                return self.plugin_meta[plugin_namespace]
 
         return None
 
