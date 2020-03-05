@@ -235,11 +235,12 @@ class Plugins:
         await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
     async def get_plugin_meta(self, namespace):
+        if namespace in self.plugin_objs:
+            return self.plugin_objs[namespace]["object"]
+
         for name in self.plugins:
-            if "namespace" not in self.plugins[name] and namespace == "default":
-                return self.plugin_meta[namespace]
-            elif "namespace" in self.plugins[name] and self.plugins[name]["namespace"] == namespace:
-                return self.plugin_meta[namespace]
+            if "namespaces" in self.plugins[name] and namespace in self.plugins[name]["namespaces"]:
+                return self.plugin_objs[self.plugins[name]["namespace"]]["object"]
 
         return None
 
