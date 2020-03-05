@@ -63,7 +63,7 @@ All directives are optional with the exception of ``name`` for user defined logs
 
 The directives are as follows:
 
--  ``logfile`` (optional) is the path to where you want the file to be written. If the directive is not
+-  ``filename`` (optional) is the path to where you want the file to be written. If the directive is not
    specified, the output is sent to STDOUT.
 -  ``log_size`` (optional) is the maximum size a logfile will get to
    before it is rotated if not specified, this will default to 1000000

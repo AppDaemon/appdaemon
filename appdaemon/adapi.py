@@ -544,6 +544,11 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
+
+        if await self.AD.state.entity_exists(namespace, entity_id):
+            self.logger.warning("%s already exists, will not be adding it", entity_id)
+            return None
+
         await self.AD.state.add_entity(namespace, entity_id, state, attributes)
         return None
 
@@ -1595,7 +1600,7 @@ class ADAPI:
 
             Run an inline sequence.
 
-            >>> handle = self.run_sequence([{"light.turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
+            >>> handle = self.run_sequence([{"light/turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
             {"entity_id": "light.office_1"}}])
 
         """
