@@ -213,6 +213,12 @@ class ADMain:
         # First locate secrets file
         #
         try:
+            
+            #
+            # Read config file using environment variables
+            #
+
+            yaml.add_constructor("!env_var", utils._env_var_yaml, Loader=yaml.SafeLoader)
 
             #
             # Initially load file to see if secret directive is present
@@ -249,12 +255,6 @@ class ADMain:
             #
 
             yaml.add_constructor("!secret", utils._secret_yaml, Loader=yaml.SafeLoader)
-
-            #
-            # Also read config file using environment variables
-            #
-
-            yaml.add_constructor("!env_var", utils._env_var_yaml, Loader=yaml.SafeLoader)
 
             with open(config_file_yaml, "r") as yamlfd:
                 config_file_contents = yamlfd.read()
