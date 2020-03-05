@@ -10,12 +10,10 @@ class Sequences:
         self.AD = ad
         self.logger = ad.logging.get_child("_sequences")
 
-    async def run_sequence_service(self, ns, domain, service, kwargs):
-        if "namespace" in kwargs:
-            namespace = kwargs["namespace"]
-            del kwargs["namespace"]
-        else:
-            namespace = "default"
+    async def run_sequence_service(self, namespace, domain, service, kwargs):
+        if "entity_id" not in kwargs:
+            self.logger.warning("entity_id not given in service call, so will not be executing %s", service)
+            return
 
         # await self.run_sequence("_services", namespace, kwargs["entity_id"])
         self.AD.thread_async.call_async_no_wait(self.run_sequence, "_services", namespace, kwargs["entity_id"])

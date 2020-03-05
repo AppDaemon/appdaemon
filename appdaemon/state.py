@@ -339,7 +339,6 @@ class State:
 
     async def add_entity(self, namespace, entity, state, attributes=None):
         if await self.entity_exists(namespace, entity):
-            self.logger.warning("%s already exists, will not be adding it", entity)
             return
 
         attrs = {}
@@ -499,7 +498,12 @@ class State:
         self.state[namespace] = state
 
     def update_namespace_state(self, namespace, state):
-        self.state[namespace].update(state)
+        if isinstance(namespace, list):  # if its a list, meaning multiple namespaces to be updated
+            for ns in namespace:
+                if state.get(ns) is not None:
+                    self.state[ns].update(state[ns])
+        else:
+            self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
         if namespace in self.AD.namespaces:
