@@ -210,6 +210,13 @@ class Plugins:
                         self.get_plugin_from_namespace(namespace), mode="init"
                     )
                 else:
+                    #
+                    # Create plugin entity
+                    #
+                    await self.AD.state.add_entity(
+                        "admin", "plugin.{}".format(name), "active", {"totalcallbacks": 0, "instancecallbacks": 0}
+                    )
+
                     self.logger.info("Got initial state from namespace %s", namespace)
 
                 self.plugin_objs[namespace]["active"] = True
