@@ -116,7 +116,6 @@ class Plugins:
                         self.plugin_objs[namespace] = {
                             "object": plugin,
                             "active": False,
-                            "name" : name
                         }
 
                         #
@@ -174,7 +173,7 @@ class Plugins:
         self.logger.debug("Plugin started: %s", name)
         try:
             namespaces = []
-            if isinstance(ns, dict): #its a dictionary, so there is namespace mapping involved
+            if isinstance(ns, dict):  # its a dictionary, so there is namespace mapping involved
                 namespace = ns["namespace"]
                 namespaces.extend(ns["namespaces"])
                 self.plugins[name]["namespaces"] = namespaces
@@ -191,13 +190,17 @@ class Plugins:
             if not self.stopping:
                 self.plugin_meta[namespace] = meta
 
-                if namespaces != []: # there are multiple namesapces
+                if namespaces != []:  # there are multiple namesapces
                     for namesp in namespaces:
 
-                        if state[namesp] != None:
+                        if state[namesp] is not None:
                             self.AD.state.set_namespace_state(namesp, state[namesp])
 
-                    # AD plugin has no namespace for data of its own
+                    #
+                    # now set the main namespace
+                    #
+
+                    self.AD.state.set_namespace_state(namespace, state[namespace])
 
                 else:
                     self.AD.state.set_namespace_state(namespace, state)
@@ -249,16 +252,18 @@ class Plugins:
 
                 name = self.get_plugin_from_namespace(plugin)
                 if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
-                        seconds=self.plugins[name]["refresh_delay"]
+                    seconds=self.plugins[name]["refresh_delay"]
                 ):
                     try:
                         self.logger.debug("Refreshing %s state", name)
 
-                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"], loop=self.AD.loop) as t:
+                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"], loop=self.AD.loop):
                             state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
-                            if "namespaces" in self.plugins[name]: #its a plugin using namespace mapping like adplugin so expecting a list
+                            if (
+                                "namespaces" in self.plugins[name]
+                            ):  # its a plugin using namespace mapping like adplugin so expecting a list
                                 namespace = self.plugins[name]["namespaces"]
                             else:
                                 namespace = plugin
