@@ -162,6 +162,9 @@ class AdPlugin(PluginBase):
                 continue
 
             states[ns] = state
+        
+        # now add local AD plugin state
+        states[self.namespace] = {}
 
         self.logger.debug("*** Sending Complete State: %s ***", states)
         return states
@@ -316,7 +319,7 @@ class AdPlugin(PluginBase):
             except Exception:
                 if self.forward_namespaces is not None:
                     # remove callback from getting local events
-                    self.AD.plugins.remove_event_callback(self.name)
+                    await self.AD.events.clear_callbacks(self.name)
 
                 self.reading_messages = False
                 self.is_booting = True
@@ -740,7 +743,7 @@ class AdPlugin(PluginBase):
                 await utils.run_in_executor(self, self.ws.send, json.dumps(data))
 
             try:
-                await asyncio.wait_for(self.stream_results[request_id]["event"].wait(), 5.0)
+                await asyncio.wait_for(self.stream_results[request_id]["event"].wait(), 10.0)
                 res = self.stream_results[request_id].pop("response")
 
             except asyncio.TimeoutError:
