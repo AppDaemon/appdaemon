@@ -394,8 +394,37 @@ class AppManagement:
                                 else:
                                     new_config[app] = valid_apps[app]
 
-        await self.AD.sequences.add_sequences(new_config.get("sequence", {}))
+        await self.check_sequence_update(new_config.get("sequence", {}))
+
         return new_config
+
+    async def check_sequence_update(self, sequence_config):
+        if self.app_config.get("sequences", {}) != sequence_config:
+            #
+            # now remove the old ones no longer needed
+            #
+            deleted_sequences = []
+            for sequence, config in self.app_config.get("sequence", {}).items():
+                if sequence not in sequence_config:
+                    deleted_sequences.append(sequence)
+
+            if deleted_sequences != []:
+                await self.AD.sequences.remove_sequences(deleted_sequences)
+
+            modified_sequences = {}
+
+            #
+            # now load up the modified one
+            #
+            for sequence, config in sequence_config.items():
+                if (sequence not in self.app_config.get("sequence", {})) or self.app_config.get("sequence", {}).get(
+                    sequence
+                ) != sequence_config.get(sequence):
+                    # meaning it has been modified
+                    modified_sequences[sequence] = config
+
+            if modified_sequences != {}:
+                await self.AD.sequences.add_sequences(modified_sequences)
 
     # Run in executor
     def check_later_app_configs(self, last_latest):

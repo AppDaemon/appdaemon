@@ -125,6 +125,11 @@ class Scheduler:
                 # It's an event timeout entry - just delete the callback
                 #
                 await self.AD.events.cancel_event_callback(name, args["kwargs"]["__event_handle"])
+            elif "__log_handle" in args["kwargs"]:
+                #
+                # It's a log timeout entry - just delete the callback
+                #
+                await self.AD.logging.cancel_log_callback(name, args["kwargs"]["__log_handle"])
             else:
                 #
                 # A regular callback

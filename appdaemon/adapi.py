@@ -508,6 +508,45 @@ class ADAPI:
         """
         return utils.__version__
 
+    #
+    # Entity
+    #
+
+    @utils.sync_wrapper
+    async def add_entity(self, entity_id, state=None, attributes=None, **kwargs):
+        """Adds a non-existent entity, by creating it within a namespaces.
+
+         If an entity doesn't exists and needs to be created, this function can be used to create it locally.
+         Please note this only creates the entity locally.
+
+        Args:
+            entity_id (str): The fully qualified entity id (including the device type).
+            state (str): The state the entity is to have
+            attributes (dict): The attributes the entity is to have
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            Add the entity in the present namespace.
+
+            >>> self.add_entity('sensor.living_room')
+
+            adds the entity in the `mqtt` namespace.
+
+            >>> self.add_entity('mqtt.living_room_temperature', namespace='mqtt')
+
+        """
+        namespace = self._get_namespace(**kwargs)
+        await self.AD.state.add_entity(namespace, entity_id, state, attributes)
+        return None
+
     @utils.sync_wrapper
     async def entity_exists(self, entity_id, **kwargs):
         """Checks the existence of an entity in Home Assistant.
