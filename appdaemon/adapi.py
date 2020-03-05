@@ -544,11 +544,11 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        
+
         if await self.AD.state.entity_exists(namespace, entity_id):
             self.logger.warning("%s already exists, will not be adding it", entity_id)
             return None
-        
+
         await self.AD.state.add_entity(namespace, entity_id, state, attributes)
         return None
 
