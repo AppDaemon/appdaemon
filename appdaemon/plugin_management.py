@@ -213,10 +213,10 @@ class Plugins:
                 await self.AD.events.process_event(namespace, {"event_type": "plugin_started", "data": {"name": name}})
         except Exception:
             self.error.warning("-" * 60)
-            self.error.warning("WARNING", "Unexpected error during notify_plugin_started()")
-            self.error.warning("WARNING", "-" * 60)
-            self.error.warning("WARNING", traceback.format_exc())
-            self.error.warning("WARNING", "-" * 60)
+            self.error.warning("Unexpected error during notify_plugin_started()")
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
