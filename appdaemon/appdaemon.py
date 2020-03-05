@@ -72,13 +72,13 @@ class AppDaemon:
         utils.process_arg(self, "starttime", kwargs)
 
         self.latitude = None
-        utils.process_arg(self, "latitude", kwargs)
+        utils.process_arg(self, "latitude", kwargs, float=True)
 
         self.longitude = None
-        utils.process_arg(self, "longitude", kwargs)
+        utils.process_arg(self, "longitude", kwargs, float=True)
 
         self.elevation = None
-        utils.process_arg(self, "elevation", kwargs)
+        utils.process_arg(self, "elevation", kwargs, int=True)
 
         self.time_zone = None
         utils.process_arg(self, "time_zone", kwargs)
