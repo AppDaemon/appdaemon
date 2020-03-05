@@ -501,7 +501,7 @@ class State:
     def update_namespace_state(self, namespace, state):
         if isinstance(namespace, list):  # if its a list, meaning multiple namespaces to be updated
             for ns in namespace:
-                if state[ns] is not None and ns in state:
+                if state.get(ns) is not None:
                     self.state[ns].update(state[ns])
         else:
             self.state[namespace].update(state)
