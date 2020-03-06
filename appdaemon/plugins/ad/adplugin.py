@@ -197,7 +197,7 @@ class AdPlugin(PluginBase):
                     url = url.replace("http", "ws", 1)
 
                 sslopt = {}
-                options = {"enable_multithread": True}
+                options = {"enable_multithread": False}
 
                 if self.timeout is not None:
                     options.update({"timeout": self.timeout})
