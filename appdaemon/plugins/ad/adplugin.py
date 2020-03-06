@@ -311,7 +311,7 @@ class AdPlugin(PluginBase):
                             #asyncio.ensure_future(self.process_remote_request(local_namespace, remote_namespace, data))
                             await self.process_remote_request(local_namespace, remote_namespace, data)
 
-                    else:  # not an event stream but a response type
+                    else:  # not an event stream but a specific required response 
                         response_id = result.get("response_id")  # its for a message with expected result if not None
 
                         if response_id in self.stream_results:  # if to be picked up
@@ -395,7 +395,7 @@ class AdPlugin(PluginBase):
             self.AD.services.register_service(local_namespace, domain, service, self.call_plugin_service)
 
         elif data["event_type"] == "get_state":  # get state
-            entity_id = data["data"].get("entity_id", None)
+            entity_id = data["data"].get("entity_id")
             res = self.AD.state.get_entity(local_namespace, entity_id, self.client_name)
             response = "get_state_response"
 
@@ -532,7 +532,13 @@ class AdPlugin(PluginBase):
         res = await self.process_request(request_id, kwargs)
 
         if res is not None:
-            res = res["data"]
+            if res["response_success"] is True:
+                res = res["data"]
+            else:
+                response_error = res["response_error"]
+                request_data = res["request"]
+                self.logger.warning("Could not execute service call, as there was an error from the remote AD %s", response_error)
+                self.logger.debug(request_data)
 
         return res
 
