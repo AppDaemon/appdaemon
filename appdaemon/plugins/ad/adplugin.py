@@ -308,7 +308,8 @@ class AdPlugin(PluginBase):
                         accept, local_namespace = self.process_namespace(remote_namespace)
 
                         if accept is True:  # accept data
-                            asyncio.ensure_future(self.process_remote_request(local_namespace, remote_namespace, data))
+                            #asyncio.ensure_future(self.process_remote_request(local_namespace, remote_namespace, data))
+                            await self.process_remote_request(local_namespace, remote_namespace, data)
 
                     else:  # not an event stream but a response type
                         response_id = result.get("response_id")  # its for a message with expected result if not None
