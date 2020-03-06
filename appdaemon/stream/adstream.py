@@ -300,6 +300,9 @@ class RequestHandler:
         if "data" not in data:
             service_data = {}
         else:
+            if "service" in data["data"]:
+                del data["data"]["service"]
+                
             service_data = data["data"]
 
         return await self.AD.services.call_service(data["namespace"], domain, service, service_data)
