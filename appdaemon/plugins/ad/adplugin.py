@@ -751,7 +751,7 @@ class AdPlugin(PluginBase):
                 await utils.run_in_executor(self, self.ws.send, json.dumps(data))
 
             try:
-                await asyncio.wait_for(self.stream_results[request_id]["event"].wait(), 10.0)
+                await asyncio.wait_for(self.stream_results[request_id]["event"].wait(), 5.0)
                 res = self.stream_results[request_id].pop("response")
 
             except asyncio.TimeoutError:
