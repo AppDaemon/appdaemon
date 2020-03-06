@@ -32,7 +32,6 @@ class Sequences:
             )
 
     async def remove_sequences(self, sequences):
-        print(sequences)
         if not isinstance(sequences, list):
             sequences = [sequences]
 

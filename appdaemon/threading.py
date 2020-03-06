@@ -222,7 +222,7 @@ class Threading:
         self.diag.info("--------------------------------------------------")
         for thread in sorted(self.threads, key=self.natural_keys):
             t = await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="all")
-            print("thread.{}".format(thread), t)
+            # print("thread.{}".format(thread), t)
             self.diag.info(
                 "%s - qsize: %s | current callback: %s | since %s, | alive: %s, | pinned apps: %s",
                 thread,
