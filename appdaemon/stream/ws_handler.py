@@ -41,7 +41,7 @@ class WSStream:
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
         self.client_name = kwargs.get("client_name")
-    
+
     def set_client_name(self, client_name):
         self.client_name = client_name
 
@@ -82,7 +82,7 @@ class WSStream:
         try:
             async with self.lock:
                 await self.ws.send_json(data, dumps=utils.convert_json)
-                
+
         except TypeError as e:
             self.logger.debug("-" * 60)
             self.logger.warning("Unexpected error in JSON conversion when writing to stream from %s", self.client_name)
