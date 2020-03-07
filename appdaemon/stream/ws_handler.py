@@ -3,6 +3,7 @@ import json
 
 import aiohttp
 from aiohttp import web
+import asyncio
 
 from appdaemon import utils as utils
 
@@ -39,8 +40,13 @@ class WSStream:
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
+        self.client_name = kwargs.get("client_name")
+    
+    def set_client_name(self, client_name):
+        self.client_name = client_name
 
     async def run(self):
+        self.lock = asyncio.Lock()
         self.ws = web.WebSocketResponse()
         await self.ws.prepare(self.request)
 
@@ -62,7 +68,7 @@ class WSStream:
                     self.access.info("WebSocket connection closed with exception {}", self.ws.exception())
         except Exception:
             self.logger.debug("-" * 60)
-            self.logger.debug("Unexpected client disconnection from client")
+            self.logger.debug("Unexpected client disconnection from client %s", self.client_name)
             self.logger.debug("-" * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug("-" * 60)
@@ -74,10 +80,12 @@ class WSStream:
 
     async def sendclient(self, data):
         try:
-            await self.ws.send_json(data, dumps=utils.convert_json)
+            async with self.lock:
+                await self.ws.send_json(data, dumps=utils.convert_json)
+                
         except TypeError as e:
             self.logger.debug("-" * 60)
-            self.logger.warning("Unexpected error in JSON conversion when writing to stream")
+            self.logger.warning("Unexpected error in JSON conversion when writing to stream from %s", self.client_name)
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s", e)
             self.logger.debug("-" * 60)
@@ -85,7 +93,7 @@ class WSStream:
         except Exception:
             self.logger.debug("-" * 60)
             self.logger.debug("Client disconnected unexpectedly")
-            self.access.info("Client disconnected unexpectedly")
+            self.access.info("Client disconnected unexpectedly from %s", self.client_name)
             self.logger.debug("-" * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug("-" * 60)
