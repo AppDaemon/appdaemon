@@ -169,8 +169,8 @@ class HassPlugin(PluginBase):
                 state = await self.get_complete_state()
                 entry = startup_conditions["state"]
                 if "value" in entry:
-                    print(entry["value"], state[entry["entity"]])
-                    print(DeepDiff(state[entry["entity"]], entry["value"]))
+                    # print(entry["value"], state[entry["entity"]])
+                    # print(DeepDiff(state[entry["entity"]], entry["value"]))
                     if entry["entity"] in state and "values_changed" not in DeepDiff(
                         entry["value"], state[entry["entity"]]
                     ):
