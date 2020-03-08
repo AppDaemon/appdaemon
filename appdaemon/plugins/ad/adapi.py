@@ -12,8 +12,12 @@ class Ad(adbase.ADBase, adapi.ADAPI):
     ):
 
         # Call Super Classes
-        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
-        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
+        adbase.ADBase.__init__(
+            self, ad, name, logging, args, config, app_config, global_vars
+        )
+        adapi.ADAPI.__init__(
+            self, ad, name, logging, args, config, app_config, global_vars
+        )
 
     def listen_stream(self, subscribe_type, subscription, **kwargs):
         """Subscribes to a Stream on the Remote AD instance.
