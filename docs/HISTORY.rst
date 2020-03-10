@@ -67,7 +67,7 @@ None
 
 **Fixes**
 
-- Fixed a critical bug that cause ,ultiple scheduler errors during a leap year - contributed by `Chad McCune <https://github.com/chadmccune>`__
+- Fixed a critical bug that cause multiple scheduler errors during a leap year - contributed by `Chad McCune <https://github.com/chadmccune>`__
 
 **Breaking Changes**
 

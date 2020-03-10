@@ -19,10 +19,14 @@ AppDaemon also provides a configurable dashboard (HADashboard) suitable for wall
 AppDaemon is developed and maintained by a small team of hard working folks:
 
 - `Andrew Cockburn <https://github.com/acockburn>`__ - AppDaemon founder, Chief Architect and Benevolent Dictator For Life.
-- `Rene Tode <https://github.com/ReneTode>`__ - Head Product abuser and alternate point of view expert.
-- `Odianosen Ejale <https://github.com/Odianosen25>`__ - MQTT Development and maintenance, fixer and tester.
+- `Odianosen Ejale <https://github.com/Odianosen25>`__ - Core & MQTT Development and maintenance, fixer and tester.
 - `Humberto Rodríguez Avila <https://github.com/rhumbertgz>`__ - Document Meister and Code Groomer
-- `Daniel Lashua <https://github.com/dlashua>`__ - JS/CSS/HTML expert and the one that drives them all crazy.
+- `Daniel Lashua <https://github.com/dlashua>`__ - Core Developer & JS/CSS/HTML expert and the one that drives them all crazy.
+
+With thanks to previous members of the team:
+
+- Rene Tode
+- Robert Pitera
 
 Contents:
 
