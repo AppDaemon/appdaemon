@@ -86,6 +86,9 @@ class Sequences:
                     for command, parameters in step.items():
                         if command == "sleep":
                             await asyncio.sleep(float(parameters))
+                        elif command == "sequence":
+                            # Running a sub-sequence so just recurse
+                            await self.run_sequence("_sequence", namespace, parameters)
                         else:
                             domain, service = str.split(command, "/")
                             if "namespace" in parameters:

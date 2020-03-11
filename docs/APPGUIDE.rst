@@ -2648,6 +2648,16 @@ basis if required.
 Just like app parameters and code, sequences will be reloaded after any change has been made allowing scenes to be
 developed and modified without restarting AppDaemon.
 
+Sequence Commands
+~~~~~~~~~~~~~~~~~
+
+In addition to a straightforward service name plus data, sequences can take a few additional commands:
+
+- sleep - pause execution of the sequence for a number of seconds. e.g. `sleep: 30` will pause the sequence for 30 seconds
+- sequence - run a sub sequence. This must be a predefined sequence, and cannot be an inline sequence. Provide the entity
+name of the sub-sequence to be run, e.g. `sequence: sequcene.my_sub_sequence`. Sub sequences can be nested arbitrarily
+to any desired level.
+
 Running a Sequence
 ~~~~~~~~~~~~~~~~~~
 
