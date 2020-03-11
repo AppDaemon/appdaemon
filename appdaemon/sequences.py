@@ -20,16 +20,22 @@ class Sequences:
 
     async def add_sequences(self, sequences):
         for sequence in sequences:
-            await self.AD.state.add_entity(
-                "rules",
-                "sequence.{}".format(sequence),
-                "idle",
-                attributes={
-                    "friendly_name": sequences[sequence].get("name", sequence),
-                    "loop": sequences[sequence].get("loop", False),
-                    "steps": sequences[sequence]["steps"],
-                },
-            )
+            entity = "sequence.{}".format(sequence)
+            attributes = {
+                "friendly_name": sequences[sequence].get("name", sequence),
+                "loop": sequences[sequence].get("loop", False),
+                "steps": sequences[sequence]["steps"],
+            }
+
+            if not await self.AD.state.entity_exists("rules", entity):
+                # it doesn't exist so add it
+                await self.AD.state.add_entity(
+                    "rules", entity, "idle", attributes=attributes,
+                )
+            else:
+                await self.AD.state.set_state(
+                    "_sequences", "rules", entity, state="idle", attributes=attributes, replace=True
+                )
 
     async def remove_sequences(self, sequences):
         if not isinstance(sequences, list):
