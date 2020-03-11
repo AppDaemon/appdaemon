@@ -1388,11 +1388,11 @@ class ADAPI:
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
-    async def set_state(self, entity_id, **kwargs):
+    async def set_state(self, entity, **kwargs):
         """Updates the state of the specified entity.
 
         Args:
-            entity_id (str): The fully qualified entity id (including the device type).
+            entity (str): The fully qualified entity id (including the device type).
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1427,13 +1427,13 @@ class ADAPI:
             >>> self.set_state("light.office_1", state="off", namespace ="hass")
 
         """
-        self.logger.debug("set state: %s, %s", entity_id, kwargs)
+        self.logger.debug("set state: %s, %s", entity, kwargs)
         namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return await self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
+        return await self.AD.state.set_state(self.name, namespace, entity, **kwargs)
 
     #
     # Service
