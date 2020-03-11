@@ -45,6 +45,18 @@ class Sequences:
             await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
 
     async def run_sequence(self, _name, namespace, sequence):
+        coro = self.prep_sequence(_name, namespace, sequence)
+
+        #
+        # OK, lets run it
+        #
+
+        future = asyncio.ensure_future(coro)
+        self.AD.futures.add_future(_name, future)
+
+        return future
+
+    async def prep_sequence(self, _name, namespace, sequence):
         ephemeral_entity = False
         loop = False
         if isinstance(sequence, str):
@@ -68,15 +80,9 @@ class Sequences:
 
             seq = sequence
 
-        #
-        # OK, lets run it
-        #
+        coro = await self.do_steps(namespace, entity_id, seq, ephemeral_entity, loop)
 
-        coro = self.do_steps(namespace, entity_id, seq, ephemeral_entity, loop)
-        future = asyncio.ensure_future(coro)
-        self.AD.futures.add_future(_name, future)
-
-        return future
+        return coro
 
     @staticmethod
     async def cancel_sequence(_name, future):
@@ -94,7 +100,8 @@ class Sequences:
                             await asyncio.sleep(float(parameters))
                         elif command == "sequence":
                             # Running a sub-sequence so just recurse
-                            await self.run_sequence("_sequence", namespace, parameters)
+                            await self.prep_sequence("_sequence", namespace, parameters)
+                            pass
                         else:
                             domain, service = str.split(command, "/")
                             if "namespace" in parameters:
