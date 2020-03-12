@@ -2,6 +2,7 @@ import traceback
 import bcrypt
 import uuid
 import threading
+import asyncio
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
@@ -62,7 +63,9 @@ class ADStream:
                 if len(self.handlers) > 0:
                     # self.logger.debug("Sending data: %s", data)
                     for handler in self.handlers:
-                        await self.handlers[handler]._event(data)
+                        if self.handlers[handler].authed is True:  # if authenticated
+                            # await self.handlers[handler]._event(data)
+                            asyncio.ensure_future(self.handlers[handler]._event(data))
 
         except Exception:
             self.logger.warning("-" * 60)
@@ -242,6 +245,8 @@ class RequestHandler:
 
         if not self.authed:
             raise RequestHandlerException("authorization failed")
+
+        self.stream.set_client_name(self.client_name)
 
         self.access.info("New client %s connected", data["client_name"])
         response_data = {"version": utils.__version__}
