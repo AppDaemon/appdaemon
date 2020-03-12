@@ -341,12 +341,14 @@ class AdPlugin(PluginBase):
                         "state_changed",
                     ]:  # an event happened
                         remote_namespace = result["data"].pop("namespace")
+
                         data = result["data"]
                         accept, local_namespace = self.process_namespace(
                             remote_namespace
                         )
 
                         if accept is True:  # accept data
+
                             # asyncio.ensure_future(self.process_remote_request(local_namespace, remote_namespace, data))
                             await self.process_remote_request(
                                 local_namespace, remote_namespace, data
@@ -494,6 +496,7 @@ class AdPlugin(PluginBase):
 
         else:
             data["data"]["__AD_ORIGIN"] = self.client_name
+
             await self.AD.events.process_event(local_namespace, data)
 
         if res is not None:  # a response should be sent back
@@ -945,6 +948,7 @@ class AdPlugin(PluginBase):
         return accept, local_namespace
 
     def check_namespace(self, namespace, namespaces):
+        """Used to check if a namespace should be accepted to be processed"""
         accept = False
         if namespace.endswith("*"):
             for ns in namespaces:
