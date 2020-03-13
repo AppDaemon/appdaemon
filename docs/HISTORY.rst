@@ -44,7 +44,7 @@ Change Log
 
 **Breaking Changes**
 
-- Changed ``websocket_connected`` and ``websocket_disconnected`` to ``stream_connected`` and ``stream_disconnected`` respectively
+- Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
 
 None
 
