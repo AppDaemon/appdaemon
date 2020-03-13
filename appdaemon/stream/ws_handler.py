@@ -40,6 +40,7 @@ class WSStream:
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
+        self.ws = None
         self.client_name = kwargs.get("client_name")
 
     def set_client_name(self, client_name):
