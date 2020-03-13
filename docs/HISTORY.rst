@@ -14,6 +14,7 @@ Change Log
 - Bump aiohttp-jinja2 to 1.2.0
 - Bump deepdiff from 4.0.9 to 4.2.0
 - Bump jinja2 from 2.11.0 to 2.11.1
+- Bump deepdiff from 4.2.0 to 4.3.1
 - Add Azure pipelines for Black and Flake - contributed by `Bas Nijholt <https://github.com/basnijholt>`__
 - Added service call for ``remove_entity``
 - Added ability to use ``now`` in ``run_every``. Also seconds can be added by simply using ``now+10`` for example
