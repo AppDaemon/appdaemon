@@ -1783,22 +1783,14 @@ class ADAPI:
             utc_string (str): A string that contains a date and time to convert.
 
         Returns:
-            An UTC object that is equivalent to the date and time contained in `utc_string`.
+            An POSIX timestamp that is equivalent to the date and time contained in `utc_string`.
 
         """
         return datetime.datetime(*map(int, re.split(r"[^\d]", utc_string)[:-1])).timestamp() + self.get_tz_offset() * 60
 
-    @staticmethod
-    def get_tz_offset():
-        """Returns the timezone difference between UTC and Local Time."""
-        utc_offset_min = (
-            int(round((datetime.datetime.now() - datetime.datetime.utcnow()).total_seconds())) / 60
-        )  # round for taking time twice
-        utc_offset_h = utc_offset_min / 60
-
-        # we do not handle 1/2 h timezone offsets
-        assert utc_offset_min == utc_offset_h * 60
-        return utc_offset_min
+    def get_tz_offset(self):
+        """Returns the timezone difference between UTC and Local Time in minutes."""
+        return self.AD.tz.utcoffset(self.datetime()).total_seconds() / 60
 
     @staticmethod
     def convert_utc(utc):
