@@ -1099,7 +1099,7 @@ class ADAPI:
             token (str, optional): A previously registered token can be passed with the api call, which
             can be used to secure the app route. This allows for different security credentials to be used across different
             app routes. It should be noted that if a device has already registered using AD's Admin UI's password
-            and a cookie has been stored by the broswer, that device will bypass the token and still access the web server.
+            and a cookie has been stored by the browser, that device will bypass the token and still access the web server.
 
         Returns:
             A handle that can be used to remove the registration.
@@ -1454,7 +1454,7 @@ class ADAPI:
         Args:
             service: Name of the service, in the format `domain/service`. If the domain does not exist it will be created
             cb: A reference to the function to be called when the service is requested. This function may be a regular
-                function, or it may be asynch. Note that if it is an async function, it will run on AppDaemon's main loop
+                function, or it may be async. Note that if it is an async function, it will run on AppDaemon's main loop
                 meaning that any issues with the service could result in a delay of AppDaemon's core functions.
 
         Returns:
@@ -1512,7 +1512,7 @@ class ADAPI:
         """Calls a Service within AppDaemon.
 
         This function can call any service and provide any required parameters.
-        By default, there are stardard services that can be called within AD. Other
+        By default, there are standard services that can be called within AD. Other
         services that can be called, are dependent on the plugin used, or those registered
         by individual apps using the `register_service` api.
         In a future release, all available services can be found using AD's Admin UI.

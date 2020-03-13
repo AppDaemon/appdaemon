@@ -519,7 +519,7 @@ To make an App explicitly reload when only this plugin and no other is restarted
         class: some_class
         plugin: HASS
 
-If you have more than one plugin, you can make an App dependent on more than one plgin by specifying a YAML list:
+If you have more than one plugin, you can make an App dependent on more than one plugin by specifying a YAML list:
 
 .. code:: yaml
 
@@ -2069,7 +2069,7 @@ Here we see the default port being remapped to port 5000 which is where
 AppDamon is listening in my setup.
 
 Since each individual Skill has its own URL it is possible to have
-different skills for Home Assitant and AppDaemon.
+different skills for Home Assistant and AppDaemon.
 
 Putting it together in an App
 -----------------------------
@@ -2429,7 +2429,7 @@ They are configured in the ``appdaemon.yaml`` file as follows:
         my_namespace3:
           writeback: hybrid
 
-Here we are defining 3 new namespaces - you can have as many as you want. Ther names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
+Here we are defining 3 new namespaces - you can have as many as you want. Their names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
 
 - ``safe`` - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible performance impact for systems with slower disks, or that set state on many UDMs at a time.
 - ``performance`` - the namespace is written when AD exits, meaning that all processing is in memory for the best performance. Although this style of UDM will survive a restart, data may be lost if AppDaemon or the host crashes.
@@ -2554,7 +2554,7 @@ There are 2 types of sequence - predefined sequences and inline sequences.
 Defining a Sequence
 ~~~~~~~~~~~~~~~~~~~
 
-A predefined sequence is created by addin a ``sequence`` section to your apps.yaml file. If you have apps.yaml split into
+A predefined sequence is created by adding a ``sequence`` section to your apps.yaml file. If you have apps.yaml split into
 multiple files, you can have sequences defined in each one if desired. For clarity, it is strongly recommended that
 sequences are created in their own standalone yaml files, ideally in a separate directory from the app argument files.
 
@@ -2612,7 +2612,7 @@ If you prefer, you can use YAML's inline capabilities for a more compact represe
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
-Sequences can be cretaed that will loop forever by adding the value ``loop: True`` to the sequence:
+Sequences can be created that will loop forever by adding the value ``loop: True`` to the sequence:
 
 .. code:: yaml
 

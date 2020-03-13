@@ -53,7 +53,7 @@ source_suffix = ".rst"
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
-# The master toctree document.
+# The master doctree document.
 master_doc = "index"
 
 # General information about the project.
@@ -276,7 +276,7 @@ texinfo_documents = [
         "AppDaemon Documentation",
         author,
         "AppDaemon",
-        "Sandboxed pyhton Apps for automation",
+        "Sandboxed python Apps for automation",
         "Miscellaneous",
     ),
 ]

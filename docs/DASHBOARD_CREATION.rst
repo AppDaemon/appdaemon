@@ -2321,7 +2321,7 @@ The skin itself consists of 2 separate files:
 Dashboard.css is a regular CSS file, and knowledge of CSS is required to
 make changes to it.
 
-Variables.yaml is really a set of overrise styles, so you can use
+Variables.yaml is really a set of override styles, so you can use
 fragments of CSS here, basically, anything that you could normally put in
 an HTML ``style`` tag. Variables .yaml also supports variable expansion
 to make structuring the file easier. Anything that starts with a ``$``

@@ -82,7 +82,7 @@ AppDaemon arguments
     optional arguments:
       -h, --help            show this help message and exit
       -c CONFIG, --config CONFIG
-                            full path to config diectory
+                            full path to config directory
       -p PIDFILE, --pidfile PIDFILE
                             full path to PID File
       -t TIMEWARP, --timewarp multiplication factor for the scheduler time (see Time TraveL)
@@ -220,7 +220,7 @@ You can then build and run the docker image locally as follows:
 
 .. code:: bash
 
-    $ docker build -t appdaemon .
+    $ docker build -t appdaemon --network=host .
     $ docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<Your HA_URL value>" \

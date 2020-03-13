@@ -26,7 +26,7 @@ class DarkDay(hass.Hass):
 
     def light_event(self, entity, attribute, old, new, kwargs):
         lux = float(new)
-        # Can't use a contraint for this because if self.active = true when the constraint kicks in it will never get cleared
+        # Can't use a constraint for this because if self.active = true when the constraint kicks in it will never get cleared
         # and the program will ignore future changes
         if self.now_is_between(self.args["start_time"], self.args["end_time"]):
             if lux < 200 and not self.active:

@@ -1,12 +1,12 @@
 .. AppDaemon documentation master file, created by
    sphinx-quickstart on Fri Aug 11 14:36:18 2017.
    You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+   contain the root `doctree` directive.
 
 Welcome to AppDaemon's documentation!
 =====================================
 
-AppDaemon is a loosely coupled, multithreaded, sandboxed python
+AppDaemon is a loosely coupled, multi-threaded, sandboxed python
 execution environment for writing automation apps for home automation projects, and any environment that requires a robust event driven architecture.
 
 Out of the box, AppDaemon has support for the following automation products:
