@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-4.0.2
+4.0.4
 -----
 
 **Features**
@@ -19,18 +19,64 @@ Change Log
 - Added ability to use ``now`` in ``run_every``. Also seconds can be added by simply using ``now+10`` for example
 - Presence convenience functions now support a ``person`` flag to use person entities rather than device trackers for presence detection
 - ``constrain_person`` constraints added to support person entities
+- Add stream support for SockJS
+- Dashboard component now only sends event updates for relevant dashboard entities rather than broadcasting all state_change events
+- Admin UI now breaks out App instance and lifetime callback stats separately
+- Convert admin and dashboard to get_state from stream
+- Increase default work factor for password hashes to 12
+- Added `add_entity` api call, alongeside `state/add_entity` service call
+- Added the ability to remove plugin entities like `HA` when using the `remove_entity` api
+- Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
+- Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 
 **Fixes**
 
 - Re-added support for SSL in the http module (should also fix dialogflow)
 - Add openssl-dev package to docker image (required for RPI)
+- Fixed up socketio support to work with the new stream semantics
+- Fixed a bug that allowed multiple copies of an App to run if there was an error in the signature of terminate()
+- AppDaemon's REST API no longer needs to be active to use the dashboard or Admin interfaces
+
+**Breaking Changes**
+
+- Changed ``websocket_connected`` and ``websocket_disconnected`` to ``stream_connected`` and ``stream_disconnected`` respectively
+
+None
+
+4.0.3 (2020-02-29)
+------------------
+
+**Features**
+
+- Pinned astral to v1.10.1
+
+**Fixes**
+
+- Pinned astral to prevent a bug in the latest v2 astral
 
 **Breaking Changes**
 
 None
 
-4.0.1 (2020-01-20)
+4.0.2 (2020-02-28)
 ------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a critical bug that cause multiple scheduler errors during a leap year - contributed by `Chad McCune <https://github.com/chadmccune>`__
+
+**Breaking Changes**
+
+None
+
+
+
+4.0.1
+-----
 
 **Features**
 
@@ -40,7 +86,6 @@ None
 
 - Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
 - Fixed an issue that prevented dashboards from working on older iPads
-- Fix for when HTTP component not defined, as it leads to ``self.dashboard_dir`` issuing an error
 
 **Breaking Changes**
 
@@ -52,10 +97,10 @@ None
 **Features**
 
 - Added events for when an app is initialized or terminated
-- Added ``event_fire`` service call
-- Added ``production_mode`` service call
-- Added ``list_services`` api call
-- Added the ability to fire an event callback only once, using the ``oneshot`` flag
+- Added `event_fire` service call
+- Added `production_mode` service call
+- Added `list_services` api call
+- Added the ability to fire an event callback only once, using the `oneshot` flag
 - Added the ability to use async functions as endpoint callback
 - Added the ability for ``input_select`` to auto-update when the options changes, without need of refreshing the browser page
 - Added events for when a websocket client connects and disconnects
@@ -66,8 +111,7 @@ None
 
 **Fixes**
 
-- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
-- Fixed issue where the user could potentially create entities in ``admin``, ``global`` or ``appdaemon`` namespaces
+- Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
 
 **Breaking Changes**
 

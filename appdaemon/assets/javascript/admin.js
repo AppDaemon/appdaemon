@@ -4,10 +4,10 @@ function getCookie(cname) {
     var ca = decodedCookie.split(';');
     for(var i = 0; i <ca.length; i++) {
         var c = ca[i];
-        while (c.charAt(0) == ' ') {
+        while (c.charAt(0) === ' ') {
             c = c.substring(1);
         }
-        if (c.indexOf(name) == 0) {
+        if (c.indexOf(name) === 0) {
             return c.substring(name.length, c.length);
         }
     }
@@ -24,31 +24,12 @@ function dom_ready(transport)
     $("#main_log_button")[0].click();
     $("#default_entity_button")[0].click();
 
-    // Start listening for Events
-
-    var stream_url;
-    if (transport === "ws")
-    {
-        if (location.protocol === 'https:')
-        {
-            wsprot = "wss:"
-        }
-        else
-        {
-            wsprot = "ws:"
-        }
-        stream_url = wsprot + '//' + location.host + '/stream'
-    }
-    else
-    {
-        stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
-    }
-
-    this.stream = new AdminStream(stream_url, transport);
+    window.adminstream = new AdminStream(transport, location.protocol, document.domain, location.port);
 }
 
-function create_tables(entities)
+function create_tables(msg)
 {
+    entities = msg.data;
     window.ready = false;
 
     // Create Apps Table
@@ -59,10 +40,11 @@ function create_tables(entities)
             [
                 'name',
                 'state',
-                'callbacks',
+                'instancecallbacks',
+                'totalcallbacks',
                 'arguments'
             ],
-        item: '<tr><td class="name"></td><td class="state"></td><td class="callbacks"></td><td class="tooltip arguments"></td></tr>'
+        item: '<tr><td class="name"></td><td class="state"></td><td class="instancecallbacks"></td><td class="totalcallbacks"></td><td class="tooltip arguments"></td></tr>'
     };
 
     create_clear("app_table", id, options);
@@ -153,7 +135,7 @@ function create_tables(entities)
 
     // Iterate the namespaces for entities table
 
-    jQuery.each(entities.state, function(namespace)
+    jQuery.each(entities, function(namespace)
     {
         // Entities
         id = namespace + "-entities-table";
@@ -174,13 +156,13 @@ function create_tables(entities)
 
         entity_list = [];
 
-        jQuery.each(entities.state[namespace], function(entity)
+        jQuery.each(entities[namespace], function(entity)
         {
-            if (entities.state[namespace][entity] != null)
+            if (entities[namespace][entity] != null)
             {
-                state = entities.state[namespace][entity].state;
-                last_changed = entities.state[namespace][entity].last_changed;
-                attributes = entities.state[namespace][entity].attributes;
+                state = entities[namespace][entity].state;
+                last_changed = entities[namespace][entity].last_changed;
+                attributes = entities[namespace][entity].attributes;
 
                 entity_list.push({
                     name: entity,
@@ -194,12 +176,14 @@ function create_tables(entities)
 
                     if (device(entity) === "app")
                     {
-                        callbacks = attributes.callbacks;
+                        instancecallbacks = attributes.instancecallbacks;
+                        totalcallbacks = attributes.totalcallbacks;
                         window.app_table.add({
                             name: name(entity),
                             state: state,
+                            instancecallbacks: instancecallbacks,
+                            totalcallbacks: totalcallbacks,
                             arguments: JSON.stringify(attributes.args),
-                            callbacks: callbacks
                         });
                     }
 
@@ -333,8 +317,10 @@ function close_tooltip(e)
     $("#tooltiptext").css("visibility", "hidden")
 }
 
-function update_admin(data)
+function update_admin(msg)
 {
+
+    data = msg.data;
 
     if (window.ready !== true)
     {
@@ -377,7 +363,8 @@ function update_admin(data)
                 item[0].values({
                     name: name(entity),
                     state: state,
-                    callbacks: attributes.callbacks,
+                    instancecallbacks: attributes.instancecallbacks,
+                    totalcallbacks: attributes.totalcallbacks,
                     arguments: JSON.stringify(attributes.args)
                 });
             }
@@ -481,7 +468,8 @@ function update_admin(data)
                 window.app_table.add({
                     name: name(entity),
                     state: state,
-                    callbacks: attributes.callbacks,
+                    instancecallbacks: instancecallbacks,
+                    totalcallbacks: totalcallbacks,
                     args: JSON.stringify(attributes.args)
                 });
                 window.app_table.sort('name')
@@ -610,35 +598,35 @@ function device(entity)
     return entity.split(".")[0]
 }
 
-var AdminStream = function(stream, transport) {
+var AdminStream = function(transport, protocol, domain, port) {
 
     var self = this;
+
+    this.on_connect = function(data) {
+
+        // Grab state
+
+        self.stream.get_state('*', '*', create_tables);
+
+        // subscribe to all events
+
+        self.stream.listen_event('*', '*', update_admin);
+
+        // Subscribe to all state changes
+
+        self.stream.listen_state('*', '*', update_admin)
+
+    };
+
     this.on_message = function (data) {
-
-        if (data.response_type === "hello" && data.response_success === true) {
-            var response_data = {
-                namespace: '*',
-                entity_id: '*'
-            };
-
-            self.stream.send('listen_state', response_data);
-            response_data = {
-                namespace: '*',
-                event: '*'
-            };
-            self.stream.send('listen_event', response_data)
-        } else {
-            update_admin(data)
-        }
+        // Do Nothing
     };
 
     this.on_disconnect = function () {
         // do nothing
     };
 
-    this.stream = new ADStream(stream, transport, "Admin Client", this.on_message, this.on_disconnect);
-
-    get_state(create_tables);
+    this.stream = new Stream(transport, protocol, domain, port, "Admin Client", this.on_connect, this.on_message, this.on_disconnect);
 };
 
 function openTab(evt, tabname, tabgroup) {
@@ -668,80 +656,4 @@ function authorize(url)
 function deauthorize()
 {
     window.location.href = "/";
-}
-
-function get_entity(namespace, entity, f)
-{
-    var state_url = "/api/appdaemon/state/" + namespace + "/" + entity;
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_namespaces(f)
-{
-    var state_url = "/api/appdaemon/state/";
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_namespace(namespace, f)
-{
-    var state_url = "/api/appdaemon/state/" + namespace;
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(namespace, data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_state(f)
-{
-    var state_url = "/api/appdaemon/state";
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
 }

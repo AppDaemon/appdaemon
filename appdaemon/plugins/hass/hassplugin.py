@@ -117,6 +117,12 @@ class HassPlugin(PluginBase):
             self.ws.close()
 
     #
+    # Placeholder for constraints
+    #
+    def list_constraints(self):
+        return []
+
+    #
     # Get initial state
     #
 
@@ -163,8 +169,8 @@ class HassPlugin(PluginBase):
                 state = await self.get_complete_state()
                 entry = startup_conditions["state"]
                 if "value" in entry:
-                    print(entry["value"], state[entry["entity"]])
-                    print(DeepDiff(state[entry["entity"]], entry["value"]))
+                    # print(entry["value"], state[entry["entity"]])
+                    # print(DeepDiff(state[entry["entity"]], entry["value"]))
                     if entry["entity"] in state and "values_changed" not in DeepDiff(
                         entry["value"], state[entry["entity"]]
                     ):
@@ -210,11 +216,43 @@ class HassPlugin(PluginBase):
             self.first_time = False
             self.already_notified = False
 
+    #
+    # Callback Testing
+    #
+    # async def state(self, entity, attribute, old, new, kwargs):
+    #    self.logger.info("State: %s %s %s %s {}".format(kwargs), entity, attribute, old, new)
+    # async def event(self, event, data, kwargs):
+    #    self.logger.info("Event: %s %s {}".format(kwargs), event, data)
+    # async def schedule(self, kwargs):
+    #    self.logger.info("Schedule: {}".format(kwargs))
+    #
+    #
+    #
+
     async def get_updates(self):  # noqa: C901
 
         _id = 0
         self.already_notified = False
         self.first_time = True
+
+        #
+        # Testing
+        #
+        # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
+        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "state_changed")
+        # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
+        # await self.AD.sched.insert_schedule(
+        #    self.name,
+        #    exec_time,
+        #    self.schedule,
+        #    True,
+        #    None,
+        #    interval=1
+        # )
+        #
+        #
+        #
+
         while not self.stopping:
             _id += 1
             try:
@@ -649,6 +687,50 @@ class HassPlugin(PluginBase):
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error fire_plugin_event()")
+            self.logger.warning("-" * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning("-" * 60)
+            return None
+
+    @hass_check
+    async def remove_entity(self, namespace, entity_id):
+        self.logger.debug("remove_entity() %s", entity_id)
+        config = (await self.AD.plugins.get_plugin_object(namespace)).config
+
+        # TODO cert_path is not used
+        if "cert_path" in config:
+            cert_path = config["cert_path"]
+        else:
+            cert_path = False  # noqa: F841
+
+        if "token" in config:
+            headers = {"Authorization": "Bearer {}".format(config["token"])}
+        elif "ha_key" in config:
+            headers = {"x-ha-access": config["ha_key"]}
+        else:
+            headers = {}
+
+        api_url = "{}/api/states/{}".format(config["ha_url"], entity_id)
+
+        try:
+            r = await self.session.delete(api_url, headers=headers, verify_ssl=self.cert_verify)
+            if r.status == 200 or r.status == 201:
+                state = await r.json()
+                self.logger.debug("return = %s", state)
+            else:
+                self.logger.warning("Error Removing Home Assistant entity %s", entity_id)
+                txt = await r.text()
+                self.logger.warning("Code: %s, error: %s", r.status, txt)
+                state = None
+            return state
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            self.logger.warning("Timeout in remove_entity(%s, %s)", namespace, entity_id)
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            self.logger.warning("HASS Disconnected unexpectedly during remove_entity()")
+        except Exception:
+            self.logger.warning("-" * 60)
+            self.logger.warning("Unexpected error during set_plugin_state()")
+            self.logger.warning("Arguments: %s", entity_id)
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)

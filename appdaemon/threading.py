@@ -222,7 +222,7 @@ class Threading:
         self.diag.info("--------------------------------------------------")
         for thread in sorted(self.threads, key=self.natural_keys):
             t = await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="all")
-            print("thread.{}".format(thread), t)
+            # print("thread.{}".format(thread), t)
             self.diag.info(
                 "%s - qsize: %s | current callback: %s | since %s, | alive: %s, | pinned apps: %s",
                 thread,
@@ -344,13 +344,23 @@ class Threading:
 
         return warning_step, warning_iterations
 
-    async def update_thread_info(self, thread_id, callback, app, type, uuid):
+    async def update_thread_info(self, thread_id, callback, app, type, uuid, silent):
         self.logger.debug("Update thread info: %s", thread_id)
+        if silent is True:
+            return
+
         if self.AD.log_thread_actions:
             if callback == "idle":
                 self.diag.info("%s done", thread_id)
             else:
                 self.diag.info("%s calling %s callback %s", thread_id, type, callback)
+
+        appinfo = self.AD.app_management.get_app_info(app)
+
+        if appinfo is None:  # app possibly terminated
+            return
+
+        appentity = "{}.{}".format(appinfo["type"], app)
 
         now = await self.AD.sched.get_now()
         if callback == "idle":
@@ -366,7 +376,10 @@ class Threading:
                     await self.get_state("_threading", "admin", "thread.{}".format(thread_id)),
                 )
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
-            await self.add_to_attr("_threading", "admin", "app.{}".format(app), "callbacks", 1)
+
+            await self.add_to_attr("_threading", "admin", appentity, "totalcallbacks", 1)
+            await self.add_to_attr("_threading", "admin", appentity, "instancecallbacks", 1)
+
             await self.add_to_attr(
                 "_threading", "admin", "{}_callback.{}".format(type, uuid), "executed", 1,
             )
@@ -418,7 +431,7 @@ class Threading:
                 is_alive=self.threads[thread_id]["thread"].is_alive(),
                 pinned_apps=await self.get_pinned_apps(thread_id),
             )
-        await self.set_state("_threading", "admin", "app.{}".format(app), state=callback)
+        await self.set_state("_threading", "admin", appentity, state=callback)
 
     #
     # Pinning
@@ -708,17 +721,19 @@ class Threading:
         unconstrained = True
         #
         # Argument Constraints
+        # (plugins have no args so skip if necessary)
         #
-        for arg in self.AD.app_management.app_config[name].keys():
-            constrained = await self.check_constraint(
-                arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"],
-            )
-            if not constrained:
+        if name in self.AD.app_management.app_config:
+            for arg in self.AD.app_management.app_config[name].keys():
+                constrained = await self.check_constraint(
+                    arg, self.AD.app_management.app_config[name][arg], self.AD.app_management.objects[name]["object"],
+                )
+                if not constrained:
+                    unconstrained = False
+            if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
                 unconstrained = False
-        if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
-            unconstrained = False
-        elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
-            unconstrained = False
+            elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
+                unconstrained = False
 
         #
         # Callback level constraints
@@ -740,10 +755,13 @@ class Threading:
             #
             # It's going to happen
             #
-            await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
-            await self.add_to_attr(
-                "_threading", "admin", "{}_callback.{}".format(myargs["type"], myargs["id"]), "fired", 1,
-            )
+            if "__silent" in args["kwargs"] and args["kwargs"]["__silent"] is True:
+                pass
+            else:
+                await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
+                await self.add_to_attr(
+                    "_threading", "admin", "{}_callback.{}".format(myargs["type"], myargs["id"]), "fired", 1,
+                )
             #
             # And Q
             #
@@ -757,7 +775,7 @@ class Threading:
             return False
 
     # noinspection PyBroadException
-    async def async_worker(self, args):
+    async def async_worker(self, args):  # noqa: C901
         thread_id = threading.current_thread().name
         _type = args["type"]
         funcref = args["function"]
@@ -767,12 +785,16 @@ class Threading:
         error_logger = logging.getLogger("Error.{}".format(name))
         args["kwargs"]["__thread_id"] = thread_id
         callback = "{}() in {}".format(funcref.__name__, name)
+        silent = False
+        if "__silent" in args["kwargs"]:
+            silent = args["kwargs"]["__silent"]
+
         app = await self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
             try:
                 if _type == "scheduler":
                     try:
-                        await self.update_thread_info("async", callback, name, _type, _id)
+                        await self.update_thread_info("async", callback, name, _type, _id, silent)
                         await funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                     except TypeError:
                         self.report_callback_sig(name, "scheduler", funcref, args)
@@ -783,7 +805,7 @@ class Threading:
                         attr = args["attribute"]
                         old_state = args["old_state"]
                         new_state = args["new_state"]
-                        await self.update_thread_info("async", callback, name, _type, _id)
+                        await self.update_thread_info("async", callback, name, _type, _id, silent)
                         await funcref(
                             entity,
                             attr,
@@ -794,28 +816,28 @@ class Threading:
                     except TypeError:
                         self.report_callback_sig(name, "state", funcref, args)
 
+                elif _type == "log":
+                    data = args["data"]
+                    try:
+                        await self.update_thread_info("async", callback, name, _type, _id, silent)
+                        await funcref(
+                            data["app_name"],
+                            data["ts"],
+                            data["level"],
+                            data["log_type"],
+                            data["message"],
+                            self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                        )
+                    except TypeError:
+                        self.report_callback_sig(name, "log_event", funcref, args)
+
                 elif _type == "event":
                     data = args["data"]
-                    if args["event"] == "__AD_LOG_EVENT":
-                        try:
-                            await self.update_thread_info("async", callback, name, _type, _id)
-                            await funcref(
-                                data["app_name"],
-                                data["ts"],
-                                data["level"],
-                                data["log_type"],
-                                data["message"],
-                                args["kwargs"],
-                            )
-                        except TypeError:
-                            self.report_callback_sig(name, "log_event", funcref, args)
-
-                    else:
-                        try:
-                            await self.update_thread_info("async", callback, name, _type, _id)
-                            await funcref(args["event"], data, args["kwargs"])
-                        except TypeError:
-                            self.report_callback_sig(name, "event", funcref, args)
+                    try:
+                        await self.update_thread_info("async", callback, name, _type, _id, silent)
+                        await funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                    except TypeError:
+                        self.report_callback_sig(name, "event", funcref, args)
 
             except Exception:
                 error_logger.warning("-" * 60)
@@ -830,7 +852,7 @@ class Threading:
                     )
             finally:
                 pass
-                await self.update_thread_info("async", "idle", name, _type, _id)
+                await self.update_thread_info("async", "idle", name, _type, _id, silent)
 
         else:
             if not self.AD.stopping:
@@ -850,13 +872,17 @@ class Threading:
             error_logger = logging.getLogger("Error.{}".format(name))
             args["kwargs"]["__thread_id"] = thread_id
             callback = "{}() in {}".format(funcref.__name__, name)
+            silent = False
+            if "__silent" in args["kwargs"]:
+                silent = args["kwargs"]["__silent"]
+
             app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
             if app is not None:
                 try:
                     if _type == "scheduler":
                         try:
                             utils.run_coroutine_threadsafe(
-                                self, self.update_thread_info(thread_id, callback, name, _type, _id),
+                                self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
                             funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                         except TypeError:
@@ -869,7 +895,7 @@ class Threading:
                             old_state = args["old_state"]
                             new_state = args["new_state"]
                             utils.run_coroutine_threadsafe(
-                                self, self.update_thread_info(thread_id, callback, name, _type, _id),
+                                self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
                             funcref(
                                 entity,
@@ -881,32 +907,32 @@ class Threading:
                         except TypeError:
                             self.report_callback_sig(name, "state", funcref, args)
 
+                    if _type == "log":
+                        data = args["data"]
+                        try:
+                            utils.run_coroutine_threadsafe(
+                                self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
+                            )
+                            funcref(
+                                data["app_name"],
+                                data["ts"],
+                                data["level"],
+                                data["log_type"],
+                                data["message"],
+                                self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                            )
+                        except TypeError:
+                            self.report_callback_sig(name, "log_event", funcref, args)
+
                     elif _type == "event":
                         data = args["data"]
-                        if args["event"] == "__AD_LOG_EVENT":
-                            try:
-                                utils.run_coroutine_threadsafe(
-                                    self, self.update_thread_info(thread_id, callback, name, _type, _id),
-                                )
-                                funcref(
-                                    data["app_name"],
-                                    data["ts"],
-                                    data["level"],
-                                    data["log_type"],
-                                    data["message"],
-                                    args["kwargs"],
-                                )
-                            except TypeError:
-                                self.report_callback_sig(name, "log_event", funcref, args)
-
-                        else:
-                            try:
-                                utils.run_coroutine_threadsafe(
-                                    self, self.update_thread_info(thread_id, callback, name, _type, _id),
-                                )
-                                funcref(args["event"], data, args["kwargs"])
-                            except TypeError:
-                                self.report_callback_sig(name, "event", funcref, args)
+                        try:
+                            utils.run_coroutine_threadsafe(
+                                self, self.update_thread_info(thread_id, callback, name, _type, _id, silent),
+                            )
+                            funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                        except TypeError:
+                            self.report_callback_sig(name, "event", funcref, args)
 
                 except Exception:
                     error_logger.warning("-" * 60)
@@ -921,7 +947,7 @@ class Threading:
                         )
                 finally:
                     utils.run_coroutine_threadsafe(
-                        self, self.update_thread_info(thread_id, "idle", name, _type, _id),
+                        self, self.update_thread_info(thread_id, "idle", name, _type, _id, silent),
                     )
 
             else:
@@ -932,6 +958,8 @@ class Threading:
 
     def report_callback_sig(self, name, type, funcref, args):
 
+        error_logger = logging.getLogger("Error.{}".format(name))
+
         callback_args = {
             "scheduler": {"count": 1, "signature": "f(self, kwargs)"},
             "state": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
@@ -941,25 +969,39 @@ class Threading:
             "terminate": {"count": 0, "signature": "terminate()"},
         }
 
-        sig = inspect.signature(funcref)
+        try:
+            sig = inspect.signature(funcref)
 
-        if type in callback_args:
-            if len(sig.parameters) != callback_args[type]["count"]:
-                self.logger.warning(
-                    "Suspect incorrect signature type for callback %s() in %s, should be %s - discarding",
-                    funcref.__name__,
-                    name,
-                    callback_args[type]["signature"],
-                )
-            error_logger = logging.getLogger("Error.{}".format(name))
+            if type in callback_args:
+                if len(sig.parameters) != callback_args[type]["count"]:
+                    self.logger.warning(
+                        "Suspect incorrect signature type for callback %s() in %s, should be %s - discarding",
+                        funcref.__name__,
+                        name,
+                        callback_args[type]["signature"],
+                    )
+                error_logger = logging.getLogger("Error.{}".format(name))
+                error_logger.warning("-" * 60)
+                error_logger.warning("Unexpected error in worker for App %s:", name)
+                error_logger.warning("Worker Ags: %s", args)
+                error_logger.warning("-" * 60)
+                error_logger.warning(traceback.format_exc())
+                error_logger.warning("-" * 60)
+                if self.AD.logging.separate_error_log() is True:
+                    self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+
+            else:
+                self.logger.error("Unknown callback type: %s", type)
+
+        except ValueError:
+            self.logger.error("Error in callback signature in %s, for App=%s", funcref, name)
+        except BaseException:
             error_logger.warning("-" * 60)
-            error_logger.warning("Unexpected error in worker for App %s:", name)
-            error_logger.warning("Worker Ags: %s", args)
+            error_logger.warning("Unexpected error validating callback format in %s, for App=%s", funcref, name)
             error_logger.warning("-" * 60)
             error_logger.warning(traceback.format_exc())
             error_logger.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
-                self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
-
-        else:
-            self.logger.error("Unknown callback type: %s", type)
+                self.logger.warning(
+                    "Logged an error to %s", self.AD.logging.get_filename("error_log"),
+                )

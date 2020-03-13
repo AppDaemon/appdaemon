@@ -128,6 +128,8 @@ class MqttPlugin(PluginBase):
             "force_state": self.mqtt_client_force_start,
         }
 
+        self.mqtt_connect_event = None
+
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
@@ -147,6 +149,12 @@ class MqttPlugin(PluginBase):
             self.mqtt_client.disconnect()  # disconnect cleanly
 
         self.mqtt_client.loop_stop()
+
+    #
+    # Placeholder for constraints
+    #
+    def list_constraints(self):
+        return []
 
     def mqtt_on_connect(self, client, userdata, flags, rc):
         try:

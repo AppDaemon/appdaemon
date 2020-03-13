@@ -55,7 +55,7 @@ function baseselect(widget_id, url, skin, parameters)
     function OnStateAvailable(self, state)
     {
         self.state = state;
-        self.options = state.attributes.options
+        self.options = state.attributes.options;
         set_options(self, self.options, state);
         set_value(self, state)
     }
@@ -64,7 +64,7 @@ function baseselect(widget_id, url, skin, parameters)
     {
         if (self.options != state.attributes.options)
         {
-            self.options = state.attributes.options
+            self.options = state.attributes.options;
             set_options(self, self.options, state);
         }
         if (self.state != state.state)

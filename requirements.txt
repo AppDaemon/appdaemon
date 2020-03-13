@@ -18,3 +18,4 @@ python-dateutil==2.8.1
 pid==2.2.5
 azure==4.0.0
 pygments==2.5.2
+sockjs==0.10.0
