@@ -1,13 +1,14 @@
 import traceback
 import bcrypt
 import uuid
-import json
 import threading
+import asyncio
 
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
 from appdaemon.stream.socketio_handler import SocketIOHandler
 from appdaemon.stream.ws_handler import WSHandler
+from appdaemon.stream.sockjs_handler import SockJSHandler
 
 
 class ADStream:
@@ -25,8 +26,24 @@ class ADStream:
             self.stream_handler = WSHandler(self, app, "/stream", self.AD)
         elif self.transport == "socketio":
             self.stream_handler = SocketIOHandler(self, app, "/stream", self.AD)
+        elif self.transport == "sockjs":
+            self.stream_handler = SockJSHandler(self, app, "/stream", self.AD)
         else:
-            self.logger.warning("Unknown stream type: {}", transport)
+            self.logger.warning("Unknown stream type: %s", transport)
+
+    def get_handler(self, id):
+        with self.handlers_lock:
+            for handle in self.handlers:
+                if self.handlers[handle].stream.client_id == id:
+                    return self.handlers[handle]
+        return None
+
+    def get_handle(self, id):
+        with self.handlers_lock:
+            for handle in self.handlers:
+                if self.handlers[handle].stream.client_id == id:
+                    return handle
+        return None
 
     async def on_connect(self, request):
         # New connection - create a handler and add it to the list
@@ -44,9 +61,11 @@ class ADStream:
         try:
             with self.handlers_lock:
                 if len(self.handlers) > 0:
-                    self.logger.debug("Sending data: %s", data)
+                    # self.logger.debug("Sending data: %s", data)
                     for handler in self.handlers:
-                        await self.handlers[handler]._event(data)
+                        if self.handlers[handler].authed is True:  # if authenticated
+                            # await self.handlers[handler]._event(data)
+                            asyncio.ensure_future(self.handlers[handler]._event(data))
 
         except Exception:
             self.logger.warning("-" * 60)
@@ -91,13 +110,14 @@ class RequestHandler:
         await self.adstream.on_disconnect(self.handle)
         self.access.info("Client disconnection from %s", self.client_name)
         event_data = {
-            "event_type": "websocket_disconnected",
+            "event_type": "stream_disconnected",
             "data": {"client_name": self.client_name},
         }
 
         await self.AD.events.process_event("admin", event_data)
 
     async def _event(self, data):
+        response = {"data": data}
         if data["event_type"] == "state_changed":
             for handle, sub in self.subscriptions["state"].items():
                 if sub["namespace"].endswith("*"):
@@ -114,7 +134,9 @@ class RequestHandler:
                     if not data["data"]["entity_id"] == sub["entity_id"]:
                         continue
 
-                await self._respond(data)
+                response["response_id"] = sub["response_id"]
+                response["response_type"] = "state_changed"
+                await self._respond(response)
                 break
         else:
             for handle, sub in self.subscriptions["event"].items():
@@ -132,12 +154,14 @@ class RequestHandler:
                     if not data["event_type"] == sub["event"]:
                         continue
 
-                await self._respond(data)
+                response["response_id"] = sub["response_id"]
+                response["response_type"] = "event"
+                await self._respond(response)
                 break
 
     async def _respond(self, data):
         self.logger.debug("--> %s", data)
-        await self.stream.send(data)
+        await self.stream.sendclient(data)
 
     async def _response_success(self, msg, data=None):
         response = {"response_type": msg["request_type"]}
@@ -163,12 +187,8 @@ class RequestHandler:
 
         await self._respond(response)
 
-    async def _request(self, rawmsg):
-        self.logger.debug("<-- %s", rawmsg)
-        try:
-            msg = json.loads(rawmsg)
-        except ValueError:
-            return await self._response_error(rawmsg, "bad json data")
+    async def _request(self, msg):
+        self.logger.debug("<-- %s", msg)
 
         if "request_type" not in msg:
             return await self._response_error(msg, "invalid request")
@@ -188,13 +208,13 @@ class RequestHandler:
         request_id = msg.get("request_id", None)
 
         try:
-            data = await fn(request_data)
+            data = await fn(request_data, request_id)
             if data is not None or request_id is not None:
                 return await self._response_success(msg, data)
         except RequestHandlerException as e:
             return await self._response_error(msg, str(e))
         except Exception as e:
-            await self._response_error(msg, "Unknown error occured, check AppDaemon logs: {}".format(str(e)))
+            await self._response_error(msg, "Unknown error occurred, check AppDaemon logs: {}".format(str(e)))
             raise
 
     async def _check_adcookie(self, cookie):
@@ -211,7 +231,7 @@ class RequestHandler:
                 self.authed = True
                 return
 
-    async def hello(self, data):
+    async def hello(self, data, request_id):
         if "client_name" not in data:
             raise RequestHandlerException("client_name required")
         else:
@@ -226,11 +246,13 @@ class RequestHandler:
         if not self.authed:
             raise RequestHandlerException("authorization failed")
 
+        self.stream.set_client_name(self.client_name)
+
         self.access.info("New client %s connected", data["client_name"])
         response_data = {"version": utils.__version__}
 
         event_data = {
-            "event_type": "websocket_connected",
+            "event_type": "stream_connected",
             "data": {"client_name": self.client_name},
         }
 
@@ -238,13 +260,13 @@ class RequestHandler:
 
         return response_data
 
-    async def get_services(self, data):
+    async def get_services(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
         return self.AD.services.list_services()
 
-    async def fire_event(self, data):
+    async def fire_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -258,7 +280,7 @@ class RequestHandler:
 
         return await self.AD.events.fire_event(data["namespace"], data["event"], **event_data)
 
-    async def call_service(self, data):
+    async def call_service(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -283,11 +305,14 @@ class RequestHandler:
         if "data" not in data:
             service_data = {}
         else:
+            if "service" in data["data"]:
+                del data["data"]["service"]
+
             service_data = data["data"]
 
         return await self.AD.services.call_service(data["namespace"], domain, service, service_data)
 
-    async def get_state(self, data):
+    async def get_state(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -299,7 +324,7 @@ class RequestHandler:
 
         return self.AD.state.get_entity(namespace, entity_id, self.client_name)
 
-    async def listen_state(self, data):
+    async def listen_state(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -315,13 +340,14 @@ class RequestHandler:
             raise RequestHandlerException("handle already exists")
 
         self.subscriptions["state"][handle] = {
+            "response_id": request_id,
             "namespace": data["namespace"],
             "entity_id": data["entity_id"],
         }
 
         return handle
 
-    async def cancel_listen_state(self, data):
+    async def cancel_listen_state(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -335,7 +361,7 @@ class RequestHandler:
 
         return True
 
-    async def listen_event(self, data):
+    async def listen_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 
@@ -351,13 +377,14 @@ class RequestHandler:
             raise RequestHandlerException("handle already exists")
 
         self.subscriptions["event"][handle] = {
+            "response_id": request_id,
             "namespace": data["namespace"],
             "event": data["event"],
         }
 
         return handle
 
-    async def cancel_listen_event(self, data):
+    async def cancel_listen_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
 

@@ -311,18 +311,42 @@ class State:
             return None
 
     async def remove_entity(self, namespace, entity):
+        """Removes an entity.
+
+        If the namespace does not have a plugin associated with it, the entity will be removed locally only.
+        If a plugin is associated, the entity will be removed via the plugin and locally.
+
+        Args:
+            namespace (str): Namespace for the event to be fired in.
+            entity (str): Name of the entity.
+
+        Returns:
+            None.
+
+        """
+
+        self.logger.debug("remove_entity() %s %s", namespace, entity)
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
+
+        if hasattr(plugin, "remove_entity"):
+            # We assume that the event will come back to us via the plugin
+            await plugin.remove_entity(namespace, entity)
+
         if entity in self.state[namespace]:
             self.state[namespace].pop(entity)
             data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity}}
             await self.AD.events.process_event(namespace, data)
 
     async def add_entity(self, namespace, entity, state, attributes=None):
-        if attributes is None:
-            attrs = {}
-        else:
-            attrs = attributes
+        if await self.entity_exists(namespace, entity):
+            return
+
+        attrs = {}
+        if isinstance(attributes, dict):
+            attrs.update(attributes)
 
         state = {
+            "entity_id": entity,
             "state": state,
             "last_changed": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
             "attributes": attrs,
@@ -369,11 +393,11 @@ class State:
             if entity_id.split(".", 1)[0] == domain
         }
 
-    def parse_state(self, entity_id, namespace, **kwargs):
-        self.logger.debug("parse_state: %s, %s", entity_id, kwargs)
+    def parse_state(self, entity, namespace, **kwargs):
+        self.logger.debug("parse_state: %s, %s", entity, kwargs)
 
-        if entity_id in self.state[namespace]:
-            new_state = self.state[namespace][entity_id]
+        if entity in self.state[namespace]:
+            new_state = self.state[namespace][entity]
         else:
             # Its a new state entry
             new_state = {"attributes": {}}
@@ -389,6 +413,9 @@ class State:
                 new_state["attributes"].update(kwargs["attributes"])
         else:
             new_state["attributes"].update(kwargs)
+
+        # API created entities won't necessarily have entity_id set
+        new_state["entity_id"] = entity
 
         return new_state
 
@@ -422,22 +449,27 @@ class State:
         elif service == "remove_entity":
             await self.remove_entity(namespace, entity_id)
 
+        elif service == "add_entity":
+            state = kwargs.get("state")
+            attributes = kwargs.get("attributes")
+            await self.add_entity(namespace, entity_id, state, attributes)
+
         else:
             self.logger.warning("Unknown service in state service call: %s", kwargs)
 
-    async def set_state(self, name, namespace, entity_id, **kwargs):
-        self.logger.debug("set_state(): %s, %s", entity_id, kwargs)
-        if entity_id in self.state[namespace]:
-            old_state = deepcopy(self.state[namespace][entity_id])
+    async def set_state(self, name, namespace, entity, **kwargs):
+        self.logger.debug("set_state(): %s, %s", entity, kwargs)
+        if entity in self.state[namespace]:
+            old_state = deepcopy(self.state[namespace][entity])
         else:
             old_state = {"state": None, "attributes": {}}
-        new_state = self.parse_state(entity_id, namespace, **kwargs)
+        new_state = self.parse_state(entity, namespace, **kwargs)
         new_state["last_changed"] = utils.dt_to_str((await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz)
         self.logger.debug("Old state: %s", old_state)
         self.logger.debug("New state: %s", new_state)
-        if not await self.AD.state.entity_exists(namespace, entity_id):
+        if not await self.AD.state.entity_exists(namespace, entity):
             if not ("_silent" in kwargs and kwargs["_silent"] is True):
-                self.logger.info("%s: Entity %s created in namespace: %s", name, entity_id, namespace)
+                self.logger.info("%s: Entity %s created in namespace: %s", name, entity, namespace)
 
         # Fire the plugin's state update if it has one
 
@@ -446,19 +478,19 @@ class State:
         if hasattr(plugin, "set_plugin_state"):
             # We assume that the state change will come back to us via the plugin
             self.logger.debug("sending event to plugin")
-            result = await plugin.set_plugin_state(namespace, entity_id, **kwargs)
+            result = await plugin.set_plugin_state(namespace, entity, **kwargs)
             if result is not None:
                 if "entity_id" in result:
                     result.pop("entity_id")
-                self.state[namespace][entity_id] = self.parse_state(entity_id, namespace, **result)
+                self.state[namespace][entity] = self.parse_state(entity, namespace, **result)
         else:
             # Set the state locally
-            self.state[namespace][entity_id] = new_state
+            self.state[namespace][entity] = new_state
             # Fire the event locally
             self.logger.debug("sending event locally")
             data = {
                 "event_type": "state_changed",
-                "data": {"entity_id": entity_id, "new_state": new_state, "old_state": old_state},
+                "data": {"entity_id": entity, "new_state": new_state, "old_state": old_state},
             }
 
             await self.AD.events.process_event(namespace, data)
@@ -469,7 +501,12 @@ class State:
         self.state[namespace] = state
 
     def update_namespace_state(self, namespace, state):
-        self.state[namespace].update(state)
+        if isinstance(namespace, list):  # if its a list, meaning multiple namespaces to be updated
+            for ns in namespace:
+                if state.get(ns) is not None:
+                    self.state[ns].update(state[ns])
+        else:
+            self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
         if namespace in self.AD.namespaces:
@@ -509,6 +546,7 @@ class State:
                 "pin_app",
                 "pin_thread",
                 "__delay",
+                "__silent",
             ]
             + app.list_constraints(),
         )

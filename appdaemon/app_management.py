@@ -118,6 +118,12 @@ class AppManagement:
         else:
             return None
 
+    def get_app_info(self, name):
+        if name in self.objects:
+            return self.objects[name]
+        else:
+            return None
+
     async def get_app_instance(self, name, id):
         if name in self.objects and self.objects[name]["id"] == id:
             return self.AD.app_management.objects[name]["object"]
@@ -181,7 +187,7 @@ class AppManagement:
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
-            except Exception:
+            except BaseException:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning("-" * 60)
                 error_logger.warning("Unexpected error running terminate() for %s", name)
@@ -208,6 +214,7 @@ class AppManagement:
         await self.AD.sched.terminate_app(name)
 
         await self.set_state(name, state="terminated")
+        await self.set_state(name, instancecallbacks=0)
 
         event_data = {"event_type": "app_terminated", "data": {"app": name}}
 
@@ -249,6 +256,7 @@ class AppManagement:
             return "None"
 
     async def init_object(self, name):
+
         app_args = self.app_config[name]
         self.logger.info(
             "Initializing app %s using class %s from module %s", name, app_args["class"], app_args["module"],
@@ -282,6 +290,7 @@ class AppManagement:
 
             else:
                 self.objects[name] = {
+                    "type": "app",
                     "object": app_class(
                         self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars,
                     ),
@@ -295,6 +304,16 @@ class AppManagement:
                 "Unable to find module module %s - '%s' is not initialized", app_args["module"], name,
             )
             await self.increase_inactive_apps(name)
+
+    def init_plugin_object(self, name, object):
+
+        self.objects[name] = {
+            "type": "plugin",
+            "object": object,
+            "id": uuid.uuid4().hex,
+            "pin_app": False,
+            "pin_thread": -1,
+        }
 
     async def read_config(self):  # noqa: C901
 
@@ -375,8 +394,37 @@ class AppManagement:
                                 else:
                                     new_config[app] = valid_apps[app]
 
-        await self.AD.sequences.add_sequences(new_config.get("sequence", {}))
+        await self.check_sequence_update(new_config.get("sequence", {}))
+
         return new_config
+
+    async def check_sequence_update(self, sequence_config):
+        if self.app_config.get("sequences", {}) != sequence_config:
+            #
+            # now remove the old ones no longer needed
+            #
+            deleted_sequences = []
+            for sequence, config in self.app_config.get("sequence", {}).items():
+                if sequence not in sequence_config:
+                    deleted_sequences.append(sequence)
+
+            if deleted_sequences != []:
+                await self.AD.sequences.remove_sequences(deleted_sequences)
+
+            modified_sequences = {}
+
+            #
+            # now load up the modified one
+            #
+            for sequence, config in sequence_config.items():
+                if (sequence not in self.app_config.get("sequence", {})) or self.app_config.get("sequence", {}).get(
+                    sequence
+                ) != sequence_config.get(sequence):
+                    # meaning it has been modified
+                    modified_sequences[sequence] = config
+
+            if modified_sequences != {}:
+                await self.AD.sequences.add_sequences(modified_sequences)
 
     # Run in executor
     def check_later_app_configs(self, last_latest):
@@ -517,7 +565,7 @@ class AppManagement:
                             self.logger.info("App '%s' added", name)
                             initialize_apps[name] = 1
                             await self.add_entity(
-                                name, "loaded", {"callbacks": 0, "args": new_config[name]},
+                                name, "loaded", {"totalcallbacks": 0, "instancecallbacks": 0, "args": new_config[name]},
                             )
                         elif name in self.non_apps:
                             pass
@@ -538,7 +586,9 @@ class AppManagement:
                 # if silent is False:
                 self.logger.info("Found %s total apps", total_apps)
 
-                await self.set_state(self.total_apps_sensor, state=total_apps)
+                await self.set_state(
+                    self.total_apps_sensor, state=total_apps, attributes={"friendly_name": "Total Apps"}
+                )
 
                 active_apps = self.get_active_app_count()
 

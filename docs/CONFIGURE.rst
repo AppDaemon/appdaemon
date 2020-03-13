@@ -63,7 +63,7 @@ All directives are optional with the exception of ``name`` for user defined logs
 
 The directives are as follows:
 
--  ``logfile`` (optional) is the path to where you want the file to be written. If the directive is not
+-  ``filename`` (optional) is the path to where you want the file to be written. If the directive is not
    specified, the output is sent to STDOUT.
 -  ``log_size`` (optional) is the maximum size a logfile will get to
    before it is rotated if not specified, this will default to 1000000
@@ -532,8 +532,9 @@ It has it's own top-level section in AppDaemon.yaml, and one mandatory argument,
 To password protect ``AppDaemon`` use the ``password`` directive:
 
 .. code:: yaml
-
-      password: some_password
+    http:
+        url: http://192.168.1.20:5050
+        password: some_password
 
 Or you can use the secret function and place the actual password in your
 ``secrets.yaml`` file:
@@ -542,14 +543,15 @@ Or you can use the secret function and place the actual password in your
 
       password: !secret ad_password
 
-To enable https support for HADashboard, add the following directives
+To enable https support for the HTTP Component and by extention the HADashboard and Admin UI, add the following directives
 pointing to your certificate and keyfile:
 
 .. code:: yaml
-
-      dash_ssl_certificate: /etc/letsencrypt/live/somehost/fullchain.pem
-      dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
-
+    http:
+        url: http://192.168.1.20:5050
+        password: some_password
+        ssl_certificate: /etc/letsencrypt/live/somehost/fullchain.pem
+        ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
 
 AppDaemon uses websockets as the default protocol for streaming events from AppDaemon to the dashboard and admin interface so the dashboard can respond to events in real-time. Some older devices, e.g., original iPad models, do not support websockets. In this case, you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws`` which means the websockets protocol will be used:
 

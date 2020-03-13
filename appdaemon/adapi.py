@@ -508,6 +508,50 @@ class ADAPI:
         """
         return utils.__version__
 
+    #
+    # Entity
+    #
+
+    @utils.sync_wrapper
+    async def add_entity(self, entity_id, state=None, attributes=None, **kwargs):
+        """Adds a non-existent entity, by creating it within a namespaces.
+
+         If an entity doesn't exists and needs to be created, this function can be used to create it locally.
+         Please note this only creates the entity locally.
+
+        Args:
+            entity_id (str): The fully qualified entity id (including the device type).
+            state (str): The state the entity is to have
+            attributes (dict): The attributes the entity is to have
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            None.
+
+        Examples:
+            Add the entity in the present namespace.
+
+            >>> self.add_entity('sensor.living_room')
+
+            adds the entity in the `mqtt` namespace.
+
+            >>> self.add_entity('mqtt.living_room_temperature', namespace='mqtt')
+
+        """
+        namespace = self._get_namespace(**kwargs)
+
+        if await self.AD.state.entity_exists(namespace, entity_id):
+            self.logger.warning("%s already exists, will not be adding it", entity_id)
+            return None
+
+        await self.AD.state.add_entity(namespace, entity_id, state, attributes)
+        return None
+
     @utils.sync_wrapper
     async def entity_exists(self, entity_id, **kwargs):
         """Checks the existence of an entity in Home Assistant.
@@ -1344,11 +1388,11 @@ class ADAPI:
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
-    async def set_state(self, entity_id, **kwargs):
+    async def set_state(self, entity, **kwargs):
         """Updates the state of the specified entity.
 
         Args:
-            entity_id (str): The fully qualified entity id (including the device type).
+            entity (str): The fully qualified entity id (including the device type).
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1383,13 +1427,13 @@ class ADAPI:
             >>> self.set_state("light.office_1", state="off", namespace ="hass")
 
         """
-        self.logger.debug("set state: %s, %s", entity_id, kwargs)
+        self.logger.debug("set state: %s, %s", entity, kwargs)
         namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
+        await self._check_entity(namespace, entity)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return await self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
+        return await self.AD.state.set_state(self.name, namespace, entity, **kwargs)
 
     #
     # Service
@@ -1556,7 +1600,7 @@ class ADAPI:
 
             Run an inline sequence.
 
-            >>> handle = self.run_sequence([{"light.turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
+            >>> handle = self.run_sequence([{"light/turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
             {"entity_id": "light.office_1"}}])
 
         """

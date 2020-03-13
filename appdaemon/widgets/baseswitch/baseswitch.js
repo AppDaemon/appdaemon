@@ -26,7 +26,7 @@ function baseswitch(widget_id, url, skin, parameters)
 
     self.OnButtonClick = OnButtonClick;
 
-    if ("enable" in self.parameters && self.parameters.enable == 1)
+    if ("enable" in self.parameters && self.parameters.enable === 1)
     {
         var callbacks =
             [
@@ -41,8 +41,8 @@ function baseswitch(widget_id, url, skin, parameters)
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
 
-    self.OnStateAvailable = OnStateAvailable
-    self.OnStateUpdate = OnStateUpdate
+    self.OnStateAvailable = OnStateAvailable;
+    self.OnStateUpdate = OnStateUpdate;
 
     var monitored_entities =
         [
@@ -51,7 +51,7 @@ function baseswitch(widget_id, url, skin, parameters)
 
     // Finally, call the parent constructor to get things moving
 
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks);
 
     // Function Definitions
 
@@ -71,7 +71,7 @@ function baseswitch(widget_id, url, skin, parameters)
 
     function OnStateUpdate(self, state)
     {
-        if (!("ignore_state" in self.parameters) || self.parameters.ignore_state == 0)
+        if (!("ignore_state" in self.parameters) || self.parameters.ignore_state === 0)
         {
             self.state = state.state;
             set_view(self, self.state)
@@ -80,7 +80,7 @@ function baseswitch(widget_id, url, skin, parameters)
 
     function OnButtonClick(self)
     {
-        if (self.state == self.parameters.state_active)
+        if (self.state === self.parameters.state_active)
         {
             args = self.parameters.post_service_inactive
         }
@@ -98,7 +98,7 @@ function baseswitch(widget_id, url, skin, parameters)
 
     function toggle(self)
     {
-        if (self.state == self.parameters.state_active)
+        if (self.state === self.parameters.state_active)
         {
             self.state = self.parameters.state_inactive;
         }
@@ -115,7 +115,7 @@ function baseswitch(widget_id, url, skin, parameters)
 
     function set_view(self, state, level)
     {
-        if (state == self.parameters.state_active || ("active_map" in self.parameters && self.parameters.active_map.includes(state)))
+        if (state === self.parameters.state_active || ("active_map" in self.parameters && self.parameters.active_map.includes(state)))
         {
             self.set_icon(self, "icon", self.icons.icon_on);
             self.set_field(self, "icon_style", self.css.icon_style_active)
@@ -125,7 +125,7 @@ function baseswitch(widget_id, url, skin, parameters)
             self.set_icon(self, "icon", self.icons.icon_off);
             self.set_field(self, "icon_style", self.css.icon_style_inactive)
         }
-        if ("state_text" in self.parameters && self.parameters.state_text == 1)
+        if ("state_text" in self.parameters && self.parameters.state_text === 1)
         {
             self.set_field(self, "state_text", self.map_state(self, state))
         }

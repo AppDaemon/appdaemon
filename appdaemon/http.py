@@ -129,7 +129,7 @@ class HTTP:
         self.url = None
         self._process_arg("url", http)
 
-        self.work_factor = 8
+        self.work_factor = 12
         self._process_arg("work_factor", http)
 
         self.ssl_certificate = None
@@ -228,6 +228,7 @@ class HTTP:
                     fonts_dir=self.fonts_dir,
                     webfonts_dir=self.webfonts_dir,
                     images_dir=self.images_dir,
+                    transport=self.transport,
                     **admin
                 )
 

@@ -150,6 +150,12 @@ class MqttPlugin(PluginBase):
 
         self.mqtt_client.loop_stop()
 
+    #
+    # Placeholder for constraints
+    #
+    def list_constraints(self):
+        return []
+
     def mqtt_on_connect(self, client, userdata, flags, rc):
         try:
             err_msg = ""

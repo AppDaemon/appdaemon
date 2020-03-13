@@ -86,22 +86,8 @@ $(function(){ //DOM Ready
         }
     }
 
-    // Start listening for HA Events
+    // Start listening for AD Events
 
-    {% if transport == "ws" %}
-    if (location.protocol == 'https:')
-    {
-        wsprot = "wss:"
-    }
-    else
-    {
-        wsprot = "ws:"
-    }
-    var stream_url = wsprot + '//' + location.host + '/stream'
-    {% else %}
-        var stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
-    {% endif %}
-
-    var stream = new DashStream(stream_url, "{{ title }}", widgets, "{{ transport }}");
+    window.dashstream = new DashStream("{{ transport }}", location.protocol, document.domain, location.port, "{{ title }}", widgets);
 
 });
