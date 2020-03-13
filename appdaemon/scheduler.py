@@ -42,7 +42,16 @@ class Scheduler:
         self.set_start_time()
 
         if self.AD.endtime is not None:
-            unaware_end = datetime.datetime.strptime(self.AD.endtime, "%Y-%m-%d %H:%M:%S")
+            unaware_end = None
+            try:
+                unaware_end = datetime.datetime.strptime(self.AD.endtime, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                try:
+                    unaware_end = datetime.datetime.strptime(self.AD.endtime, "%Y-%m-%d#%H:%M:%S")
+                except ValueError:
+                    pass
+            if unaware_end is None:
+                raise ValueError("Invalid end time for time travel")
             aware_end = self.AD.tz.localize(unaware_end)
             self.endtime = aware_end.astimezone(pytz.utc)
         else:
@@ -54,9 +63,20 @@ class Scheduler:
 
     def set_start_time(self):
         tt = False
+        unaware_now = None
         if self.AD.starttime is not None:
             tt = True
-            unaware_now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
+            try:
+                unaware_now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                # Support "#" as date and time separator as well
+                try:
+                    unaware_now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d#%H:%M:%S")
+                except ValueError:
+                    # Catching this allows us to raise a single exception and avoid a nested exception
+                    pass
+            if unaware_now is None:
+                raise ValueError("Invalid start time for time travel")
             aware_now = self.AD.tz.localize(unaware_now)
             self.now = aware_now.astimezone(pytz.utc)
         else:
