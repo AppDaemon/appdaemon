@@ -319,7 +319,7 @@ class Dashboard:
                 self._log_yaml_dash_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
 
-            # Substitute variables in the parsed widget definiton.
+            # Substitute variables in the parsed widget definition.
             final_widget, templates = self._do_subs(final_widget, instantiated_widget)
 
             #
@@ -343,7 +343,7 @@ class Dashboard:
                 if key != "widget_type" and key not in templates:
                     # if it is an existing key and it is a style attribute, prepend, don't overwrite
                     if key in final_widget and key.find("style") != -1:
-                        # if it is an existing key and it is a style attirpute, prepend, don't overwrite
+                        # if it is an existing key and it is a style attribute, prepend, don't overwrite
                         final_widget[key] = final_widget[key] + ";" + instantiated_widget[key]
                     else:
                         final_widget[key] = instantiated_widget[key]
@@ -382,8 +382,8 @@ class Dashboard:
 
     @staticmethod
     def _widget_exists(widgets, _id):
-        for widge in widgets:
-            if widge["id"] == _id:
+        for widget in widgets:
+            if widget["id"] == _id:
                 return True
         return False
 
@@ -863,7 +863,7 @@ class Dashboard:
             dash = self._conditional_compile(name, skin, recompile)
 
             if dash is None:
-                errors = ["An unrecoverable error occured - check log for details"]
+                errors = ["An unrecoverable error occurred - check log for details"]
             else:
                 errors = dash["errors"]
 

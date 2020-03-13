@@ -102,8 +102,11 @@ None
 - Added `list_services` api call
 - Added the ability to fire an event callback only once, using the `oneshot` flag
 - Added the ability to use async functions as endpoint callback
-- Added the ability for `input_select` to auto-update when the options changes, without need of refreshing the browser page
-- Added events for when a webscoket client connects and disconnects
+- Added the ability for ``input_select`` to auto-update when the options changes, without need of refreshing the browser page
+- Added events for when a websocket client connects and disconnects
+- Added the ability for apps to register web routes, thereby utilizing AD's internal web server
+- Added static folder `web`, which can used to serve content like images using AD's internal web server
+- Added ability for users to define static folders, which can used to serve content like images using AD's internal web server
 - Added support for python 3.8
 
 **Fixes**
@@ -173,12 +176,12 @@ None
 - Added ``parse_datetime()``
 - ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - Refactored appdaemon.py for greater readability and easier maintenance
-- Expanded on the ability to trigger ``listen_state`` callbacks immediately using the ``immediate`` flag, without need of specifing the ``new`` nor ``duration`` parameter.
+- Expanded on the ability to trigger ``listen_state`` callbacks immediately using the ``immediate`` flag, without need of specifying the ``new`` nor ``duration`` parameter.
 - Allowed to make use of ``attribute`` when using the ``immediate`` flag in ``listen_state``
 - Added initial version of the Admin Interface
 - Added User Defined Namespaces
 - Rewrote logging to include user defined logs and formats
-- Added a unified http component to handle API, ADMIN and DASBOARD access on a single port
+- Added a unified http component to handle API, ADMIN and DASHBOARD access on a single port
 - Added startup conditions to the HASS plugin
 - Added duplicate filtering for logs
 - Added standalone pidfile functionality
@@ -199,7 +202,7 @@ None
 - Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
 - Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
-- Allow to specify a MQTT message to be sent when AD shutsdown cleanly e.g. ``offline``
+- Allow to specify a MQTT message to be sent when AD shutdowns cleanly e.g. ``offline``
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
 - Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
@@ -217,7 +220,7 @@ None
 - Fixes to listen_state() function when it fires even when new and old states are same
 - Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
 - Fixed an issue of when MQTT Plugin not connected to broker, and it holds up AD startup
-- Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
+- Fix to Forecast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
 - Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
@@ -226,7 +229,7 @@ None
 - Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann <https://github.com/fhirschmann>`__
 - Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 - Fix for ``log_type`` flag in ``listen_log`` callback
-- Relative paths for appdaemon's config directory now work corrcetly
+- Relative paths for appdaemon's config directory now work correctly
 - Fix to Dialogflow after format changes
 - MQTT fix to subscribing using wildcards - contributed by `Daniel Lashua <https://github.com/dlashua>`__
 
@@ -314,7 +317,7 @@ None
 - Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
 - Many Font Awesome Icon names have changed - any custom icons you have on dashboards will need to be changed to suit - see `docs <https://appdaemon.readthedocs.io/en/latest/DASHBOARD_CREATION.html#a-note-on-font-awesome-upgrade>`__ for more detail.
 
-While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+While working through the upgrade it is strongly advised that you clear your browser cache and force the recompilation of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
 
 3.0.1 (2018-04-18)
 ------------------
@@ -327,7 +330,7 @@ While working through the upgrade it is strongly advised that you clear your bro
 - Exiting from the commandline with ctrl-c will now cleanly terminate apps
 - Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
 - Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
-- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
+- Weather widget adds the ability to change sensors, more dynamic units, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
 
 **Fixes**
 
@@ -578,7 +581,7 @@ None
 - Addition of check to highlight excessive time in scheduler loop
 - Split app configuration out into a separate file in preparation for HASS integration
 - Enhance widget API to handle all event types instead of just click
-- Add example HADashboard focussed Apps for Oslo City Bikes, Caching of local AppDaemon events, Monitoring events and logging, Google Calendar Feed, Oslo Public Transport, YR Weather - contributed by `Torkild Retvedt <https://github.com/torkildr>`__
+- Add example HADashboard focused Apps for Oslo City Bikes, Caching of local AppDaemon events, Monitoring events and logging, Google Calendar Feed, Oslo Public Transport, YR Weather - contributed by `Torkild Retvedt <https://github.com/torkildr>`__
 
 **Fixes**
 
@@ -885,9 +888,9 @@ None
 -  Add option to turn off verification for self signed certs
    (contributed by `janwh <https://github.com/janwh>`__)
 -  AppDaemon configuration now uses YAML, among other things this allows
-   arbitarily complex nested data structures in App parameters
+   arbitrarily complex nested data structures in App parameters
 -  Added ability to convert from old cfg file to YAML
--  AppDaemon Apps can now publish arbitary state to other Apps and the
+-  AppDaemon Apps can now publish arbitrary state to other Apps and the
    dashboard
 -  Added Gauge Widget
 -  Added RSS Widget
@@ -1131,7 +1134,7 @@ None
 -  notify() now supports names
 -  It is now possible to set a timeout value for underlying calls to the
    HA EventStream
--  It is no longer neccesary to specify latitude, longitude and timezone
+-  It is no longer necessary to specify latitude, longitude and timezone
    in the config file, the info is pulled from HA
 -  When being reloaded, Apps are now able to clean up if desired by
    creating an optional ``terminate()`` function.
@@ -1224,7 +1227,7 @@ None
 
 **Features**
 
--  Add ability to specify a cert dirctory for self-signed certs
+-  Add ability to specify a cert directory for self-signed certs
 -  Add ability for ``listen_event()`` to listen to any event
 -  Add filter options to listen\_event()
 
@@ -1397,7 +1400,7 @@ None
 -  As a result of the repackaging for PIP3 installation, all apps must
    be edited to change the import statement of the api to
    ``import appdaemon.appapi as appapi``
--  Config must now be explicitly specfied with the -c option if you
+-  Config must now be explicitly specified with the -c option if you
    don't want it to pick a default file location
 -  Logfile will no longer implicitly redirect to STDOUT if running
    without the -d flag, instead specify STDOUT in the config file or

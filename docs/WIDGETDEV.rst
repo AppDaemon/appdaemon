@@ -717,7 +717,7 @@ the change: ``self.call_service()``
 The additional logic and loop when state is off is to construct the necessary dictionary of additional parameters in
 the format the ``turn_on`` service expects to set brightness, color, etc, that may be passed into the widget.
 
-Usually, HADasboard understands ``args`` values as a single string. If you need to use a service that expects to
+Usually, HADashboard understands ``args`` values as a single string. If you need to use a service that expects to
 receive a list or a dictionary then you may use the special key ``json_args`` and set its value to a stringified
 json. For example, suppose you want to pass to the service a list called ``colors``, then you could change the above
 code and include another check:

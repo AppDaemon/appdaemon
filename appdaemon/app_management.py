@@ -948,7 +948,7 @@ class AppManagement:
                 deplist.append(app)
             self.get_dependent_apps(app, deplist)
 
-        # Need to gove the topological sort a full list of apps or it will fail
+        # Need to give the topological sort a full list of apps or it will fail
         full_list = list(self.app_config.keys())
 
         deps = []

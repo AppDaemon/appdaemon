@@ -16,7 +16,7 @@
 #  total_objects = the amount off object you want to track                                #
 #  object1 = HA entity_ID without the platform part. (for switch.light1 use light1)       #
 #  object2 = ...                                                                          #
-#  object3 = untill you reached youre total_object amount                                 #
+#  object3 = until you reached you're total_object amount                                 #
 #                                                                                         #
 #  note that you need to set a new sections in the cfg for each type of object you like   #
 #  to track. if you want to track 1 switch and 1 sensor you need to make to sections.     #

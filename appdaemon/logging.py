@@ -159,7 +159,7 @@ class LogSubscriptionHandler(StreamHandler):
                 )
         except Exception:
             logger.warning("-" * 60)
-            logger.warning("Unexpected error occured in LogSubscriptionHandler.emit()")
+            logger.warning("Unexpected error occurred in LogSubscriptionHandler.emit()")
             logger.warning("-" * 60)
             logger.warning(traceback.format_exc())
             logger.warning("-" * 60)

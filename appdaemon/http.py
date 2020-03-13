@@ -376,7 +376,7 @@ class HTTP:
             password = data["password"]
 
             if password == self.password:
-                self.access.info("Succesful logon from %s", request.host)
+                self.access.info("Successful logon from %s", request.host)
                 hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
                 if self.admin is not None:
                     response = await self._admin_page(request)
