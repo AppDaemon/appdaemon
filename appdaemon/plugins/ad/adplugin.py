@@ -795,6 +795,8 @@ class AdPlugin(PluginBase):
             return  # meaning it should be ignored
 
         namespace = kwargs.get("__namespace")
+        if "namespace" in data:
+            del data["namespace"]
 
         if event != "__AD_LOG_EVENT":  # this is to avoid a potential loop
             self.logger.debug(
