@@ -92,7 +92,7 @@ class WSStream:
 
         except Exception:
             self.logger.debug("-" * 60)
-            self.logger.debug("Client disconnected unexpectedly")
+            self.logger.debug("Client disconnected unexpectedly from %s", self.client_name)
             self.access.info("Client disconnected unexpectedly from %s", self.client_name)
             self.logger.debug("-" * 60)
             self.logger.debug(traceback.format_exc())
