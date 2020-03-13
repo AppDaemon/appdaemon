@@ -441,11 +441,6 @@ class AdPlugin(PluginBase):
             # else:  # subscribe to all events
             #    await self.AD.events.add_event_callback(self.name, "global", self.forward_events, None, __silent=True, __namespace=namespace)
 
-            # now add the local system's namespace
-            self.remote_namespaces[
-                f"{self.client_name}_{self.namespace}"
-            ] = self.namespace
-
             # setup to receive instructions for this local instance from the remote one
             subscription = {"namespace": f"{self.client_name}*", "event": "*"}
             asyncio.ensure_future(self.run_subscription("event", subscription))
@@ -477,6 +472,9 @@ class AdPlugin(PluginBase):
 
             for namespace in list(self.remote_namespaces.values()):
                 res.extend(self.AD.services.list_services(namespace))
+
+            # now get the local namespace services
+            res.extend(self.AD.services.list_services(self.namespace))
 
             response = "get_services_response"
 
