@@ -36,6 +36,7 @@ Change Log
 - Fixed up socketio support to work with the new stream semantics
 - Fixed a bug that allowed multiple copies of an App to run if there was an error in the signature of terminate()
 - AppDaemon's REST API no longer needs to be active to use the dashboard or Admin interfaces
+- Fix tzdata error in docker build for RPI - contributed by `Guy Khmelnitsky <https://github.com/GuyKh>`__
 
 **Breaking Changes**
 
