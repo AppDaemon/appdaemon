@@ -910,6 +910,7 @@ class HTTP:
     @route_secure
     async def app_webserver(self, request):
 
+        name = None
         route = request.match_info.get("route")
         token = request.query.get("token")
 

@@ -49,12 +49,13 @@ class Secure(hass.Hass):
 
     def state_event(self, entity, attribute, old, new, kwargs):
         # self.verbose_log("Monitored entity changed state: {}: {} -> {}".format(entity, old, new))
+        armed = False
+        zone_list = []
+
         if "alarm_entity" in self.args:
             state = self.get_state(self.args["alarm_entity"])
             # self.verbose_log("Alarm state is: {}".format(state))
 
-            armed = False
-            zone_list = []
             if state == "armed_home":
                 zone_list = self.args["armed_home_zones"]
                 armed = True
