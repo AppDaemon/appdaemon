@@ -113,10 +113,7 @@ class Plugins:
                         if "namespace" not in self.plugins[name]:
                             self.plugins[name]["namespace"] = namespace
 
-                        self.plugin_objs[namespace] = {
-                            "object": plugin,
-                            "active": False,
-                        }
+                        self.plugin_objs[namespace] = {"object": plugin, "active": False, "name": name}
 
                         #
                         # Create app entry for the plugin so we can listen_state/event
@@ -135,6 +132,9 @@ class Plugins:
         self.stopping = True
         for plugin in self.plugin_objs:
             self.plugin_objs[plugin]["object"].stop()
+            name = self.plugin_objs[plugin]["name"]
+            self.AD.loop.create_task(self.AD.callbacks.clear_callbacks(name))
+            self.AD.futures.cancel_futures(name)
 
     def run_plugin_utility(self):
         for plugin in self.plugin_objs:
