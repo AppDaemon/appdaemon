@@ -40,6 +40,7 @@ class WSStream:
 
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
+        self.ws = None
         self.client_name = kwargs.get("client_name")
 
     def set_client_name(self, client_name):
@@ -92,7 +93,7 @@ class WSStream:
 
         except Exception:
             self.logger.debug("-" * 60)
-            self.logger.debug("Client disconnected unexpectedly")
+            self.logger.debug("Client disconnected unexpectedly from %s", self.client_name)
             self.access.info("Client disconnected unexpectedly from %s", self.client_name)
             self.logger.debug("-" * 60)
             self.logger.debug(traceback.format_exc())

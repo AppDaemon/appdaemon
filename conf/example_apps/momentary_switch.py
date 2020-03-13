@@ -6,7 +6,7 @@ import globals
 # Args:
 #
 # switch: switch to make momentary e.g. switch.garage
-# delay: amount of time to waut upon activation of the switch before turning it off
+# delay: amount of time to wait upon activation of the switch before turning it off
 #
 #
 # Release Notes

@@ -76,6 +76,11 @@ class SocketIOStream:
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()
 
+        self.client_name = None
+
+    def set_client_name(self, client_name):
+        self.client_name = client_name
+
     async def run(self):
         pass
 
@@ -87,14 +92,14 @@ class SocketIOStream:
             await self.ns.emit("up", msg, room=self.client_id)
         except TypeError as e:
             self.logger.debug("-" * 60)
-            self.logger.warning("Unexpected error in JSON conversion when writing to stream")
+            self.logger.warning("Unexpected error in JSON conversion when writing to stream from %s", self.client_name)
             self.logger.debug("Data is: %s", data)
             self.logger.debug("Error is: %s", e)
             self.logger.debug("-" * 60)
         except Exception:
             self.logger.debug("-" * 60)
-            self.logger.debug("Client disconnected unexpectedly")
-            self.access.info("Client disconnected unexpectedly")
+            self.logger.debug("Client disconnected unexpectedly from %s", self.client_name)
+            self.access.info("Client disconnected unexpectedly from %s", self.client_name)
             self.logger.debug("-" * 60)
             self.logger.debug(traceback.format_exc())
             self.logger.debug("-" * 60)

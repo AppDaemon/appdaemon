@@ -61,7 +61,7 @@ called ``Hello.dash`` and paste in the following:
         - label(2x2)
 
 When you have added the lines to the config and created the dashboards
-directory and test dashbboard, restart AppDaemon and you will be ready
+directory and test dashboard, restart AppDaemon and you will be ready
 to go. If you navigate to the top level, e.g.,
 ``http://192.168.1.20:5050`` in the case above, you will see a welcome
 page with a list of configured dashboards. If you haven't yet configured
@@ -70,7 +70,7 @@ any the list will be empty.
 When you have created a dashboard you can navigate to it by going to
 ``http://192.168.1.20:5050/<Dashboard Name>``
 
-If you are using AppDaemon just for the dasboard and not the Apps, you
+If you are using AppDaemon just for the dashboard and not the Apps, you
 can disable the app engine with the following directive:
 
 .. code:: yaml
@@ -82,7 +82,7 @@ This will free up some CPU and memory.
 
 HADashboard pre-compiles all of the user created Dashboard for
 efficiency. It will detect when changes have been made to widgets,
-styles or dahsboards and automatically recompile. This is usually
+styles or dashboards and automatically recompile. This is usually
 desirable as compilation can take several seconds on slower hardware for
 a fully loaded dashboard, however to force a recompilation every time,
 use the following directive:

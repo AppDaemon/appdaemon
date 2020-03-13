@@ -78,7 +78,7 @@ class ADMain:
             self.logger.info("Keyboard interrupt")
             self.stop()
         if signum == signal.SIGTERM:
-            self.logger.info("SIGTERM Recieved")
+            self.logger.info("SIGTERM Received")
             self.stop()
 
     def stop(self):
@@ -396,7 +396,7 @@ class ADMain:
                 with pid.PidFile(name, dir):
                     self.run(appdaemon, hadashboard, admin, api, http)
             except pid.PidFileError:
-                self.logger.error("Unable to aquire pidfile - terminating")
+                self.logger.error("Unable to acquire pidfile - terminating")
         else:
             self.run(appdaemon, hadashboard, admin, api, http)
 

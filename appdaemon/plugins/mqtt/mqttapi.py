@@ -30,7 +30,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
       - ``Subscribe``
       - ``Unsubscribe``
 
-    By simply specifing within the function what is to be done. It uses configuration specified in the plugin configuration which simplifies the call within the app significantly. Different brokers can be accessed within an app, as long as they are all declared
+    By simply specifying within the function what is to be done. It uses configuration specified in the plugin configuration which simplifies the call within the app significantly. Different brokers can be accessed within an app, as long as they are all declared
     when the plugins are configured, and using the ``namespace`` parameter.
 
     Examples
@@ -109,23 +109,23 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         Examples:
             Listen all events.
 
-            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE")
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE")
 
             Listen events for a specific subscribed topic.
 
-            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", topic = 'homeassistant/bedroom/light')
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic = 'homeassistant/bedroom/light')
 
             Listen events for a specific subscribed high level topic.
 
-            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
 
             Listen plugin's `disconnected` events from the broker.
 
-            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", state = 'Disconnected', topic = None)
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state = 'Disconnected', topic = None)
 
             Listen plugin's' `connected` events from the broker.
 
-            >>> self.listen_event(self.mqtt_message_recieved_event, "MQTT_MESSAGE", state = 'Connected', topic = None)
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state = 'Connected', topic = None)
 
         Notes:
             At this point, it is not possible to use single level wildcard like using ``homeassistant/+/light`` instead of ``homeassistant/bedroom/light``. This could be added later, if need be.
@@ -188,7 +188,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         Send data to a different broker.
 
-        >>> self.mqtt_publish("homeassistant/living_room/light", "ON", qos = 0, retain = True, namepace = "mqtt2")
+        >>> self.mqtt_publish("homeassistant/living_room/light", "ON", qos = 0, retain = True, namespace = "mqtt2")
 
         """
 
