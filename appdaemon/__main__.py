@@ -173,10 +173,14 @@ class ADMain:
             "-t", "--timewarp", help="speed that the scheduler will work at for time travel", default=1, type=float,
         )
         parser.add_argument(
-            "-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str,
+            "-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>", type=str,
         )
         parser.add_argument(
-            "-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None,
+            "-e",
+            "--endtime",
+            help="end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>",
+            type=str,
+            default=None,
         )
         parser.add_argument(
             "-D",
