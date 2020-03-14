@@ -477,53 +477,56 @@ class Logging:
             # Add the callback
             #
 
-            if name not in self.AD.callbacks.callbacks:
-                self.AD.callbacks.callbacks[name] = {}
+            with self.AD.callbacks.callbacks_lock:
+                if name not in self.AD.callbacks.callbacks:
+                    self.AD.callbacks.callbacks[name] = {}
 
-            # Add a separate callback for each log level
-            handles = []
-            for thislevel in self.log_levels:
-                if self.log_levels[thislevel] >= self.log_levels[level]:
-                    handle = uuid.uuid4().hex
-                    cb_kwargs = copy.deepcopy(kwargs)
-                    cb_kwargs["level"] = thislevel
-                    self.AD.callbacks.callbacks[name][handle] = {
-                        "name": name,
-                        "id": self.AD.app_management.objects[name]["id"],
-                        "type": "log",
-                        "function": cb,
-                        "namespace": namespace,
-                        "pin_app": pin_app,
-                        "pin_thread": pin_thread,
-                        "kwargs": cb_kwargs,
-                    }
-
-                    handles.append(handle)
-
-                    #
-                    # If we have a timeout parameter, add a scheduler entry to delete the callback later
-                    #
-                    if "timeout" in cb_kwargs:
-                        exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
-
-                        cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                            name, exec_time, None, False, None, __log_handle=handle,
-                        )
-
-                    await self.AD.state.add_entity(
-                        "admin",
-                        "log_callback.{}".format(handle),
-                        "active",
-                        {
-                            "app": name,
-                            "function": cb.__name__,
-                            "pinned": pin_app,
-                            "pinned_thread": pin_thread,
-                            "fired": 0,
-                            "executed": 0,
+                # Add a separate callback for each log level
+                handles = []
+                for thislevel in self.log_levels:
+                    if self.log_levels[thislevel] >= self.log_levels[level]:
+                        handle = uuid.uuid4().hex
+                        cb_kwargs = copy.deepcopy(kwargs)
+                        cb_kwargs["level"] = thislevel
+                        self.AD.callbacks.callbacks[name][handle] = {
+                            "name": name,
+                            "id": self.AD.app_management.objects[name]["id"],
+                            "type": "log",
+                            "function": cb,
+                            "namespace": namespace,
+                            "pin_app": pin_app,
+                            "pin_thread": pin_thread,
                             "kwargs": cb_kwargs,
-                        },
-                    )
+                        }
+
+                        handles.append(handle)
+
+                        #
+                        # If we have a timeout parameter, add a scheduler entry to delete the callback later
+                        #
+                        if "timeout" in cb_kwargs:
+                            exec_time = await self.AD.sched.get_now() + datetime.timedelta(
+                                seconds=int(kwargs["timeout"])
+                            )
+
+                            cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                                name, exec_time, None, False, None, __log_handle=handle,
+                            )
+
+                        await self.AD.state.add_entity(
+                            "admin",
+                            "log_callback.{}".format(handle),
+                            "active",
+                            {
+                                "app": name,
+                                "function": cb.__name__,
+                                "pinned": pin_app,
+                                "pinned_thread": pin_thread,
+                                "fired": 0,
+                                "executed": 0,
+                                "kwargs": cb_kwargs,
+                            },
+                        )
 
             return handles
 
@@ -538,43 +541,44 @@ class Logging:
         # Process log callbacks
 
         removes = []
-        for name in self.AD.callbacks.callbacks.keys():
-            for uuid_ in self.AD.callbacks.callbacks[name]:
-                callback = self.AD.callbacks.callbacks[name][uuid_]
-                if callback["type"] == "log" and (
-                    callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
-                ):
+        with self.AD.callbacks.callbacks_lock:
+            for name in self.AD.callbacks.callbacks.keys():
+                for uuid_ in self.AD.callbacks.callbacks[name]:
+                    callback = self.AD.callbacks.callbacks[name][uuid_]
+                    if callback["type"] == "log" and (
+                        callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
+                    ):
 
-                    # Check any filters
-                    _run = True
-                    if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["log_type"]:
-                        _run = False
+                        # Check any filters
+                        _run = True
+                        if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["log_type"]:
+                            _run = False
 
-                    if "level" in callback["kwargs"] and callback["kwargs"]["level"] != data["level"]:
-                        _run = False
+                        if "level" in callback["kwargs"] and callback["kwargs"]["level"] != data["level"]:
+                            _run = False
 
-                    if _run:
-                        if name in self.AD.app_management.objects:
-                            executed = await self.AD.threading.dispatch_worker(
-                                name,
-                                {
-                                    "id": uuid_,
-                                    "name": name,
-                                    "objectid": self.AD.app_management.objects[name]["id"],
-                                    "type": "log",
-                                    "function": callback["function"],
-                                    "data": data,
-                                    "pin_app": callback["pin_app"],
-                                    "pin_thread": callback["pin_thread"],
-                                    "kwargs": callback["kwargs"],
-                                },
-                            )
+                        if _run:
+                            if name in self.AD.app_management.objects:
+                                executed = await self.AD.threading.dispatch_worker(
+                                    name,
+                                    {
+                                        "id": uuid_,
+                                        "name": name,
+                                        "objectid": self.AD.app_management.objects[name]["id"],
+                                        "type": "log",
+                                        "function": callback["function"],
+                                        "data": data,
+                                        "pin_app": callback["pin_app"],
+                                        "pin_thread": callback["pin_thread"],
+                                        "kwargs": callback["kwargs"],
+                                    },
+                                )
 
-                            # Remove the callback if appropriate
-                            if executed is True:
-                                remove = callback["kwargs"].get("oneshot", False)
-                                if remove is True:
-                                    removes.append({"name": callback["name"], "uuid": uuid_})
+                                # Remove the callback if appropriate
+                                if executed is True:
+                                    remove = callback["kwargs"].get("oneshot", False)
+                                    if remove is True:
+                                        removes.append({"name": callback["name"], "uuid": uuid_})
 
         for remove in removes:
             await self.cancel_log_callback(remove["name"], remove["uuid"])
@@ -594,9 +598,10 @@ class Logging:
         if not isinstance(handles, list):
             handles = [handles]
 
-        for handle in handles:
-            if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
-                del self.AD.callbacks.callbacks[name][handle]
-                await self.AD.state.remove_entity("admin", "log_callback.{}".format(handle))
-            if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
-                del self.AD.callbacks.callbacks[name]
+        with self.AD.callbacks.callbacks_lock:
+            for handle in handles:
+                if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+                    del self.AD.callbacks.callbacks[name][handle]
+                    await self.AD.state.remove_entity("admin", "log_callback.{}".format(handle))
+                if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
+                    del self.AD.callbacks.callbacks[name]
