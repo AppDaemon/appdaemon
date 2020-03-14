@@ -570,11 +570,11 @@ class Logging:
                                 },
                             )
 
-                        # Remove the callback if appropriate
-                        if executed is True:
-                            remove = callback["kwargs"].get("oneshot", False)
-                            if remove is True:
-                                removes.append({"name": callback["name"], "uuid": uuid_})
+                            # Remove the callback if appropriate
+                            if executed is True:
+                                remove = callback["kwargs"].get("oneshot", False)
+                                if remove is True:
+                                    removes.append({"name": callback["name"], "uuid": uuid_})
 
         for remove in removes:
             await self.cancel_log_callback(remove["name"], remove["uuid"])

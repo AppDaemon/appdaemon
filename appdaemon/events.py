@@ -52,20 +52,21 @@ class Events:
             else:
                 pin_thread = self.AD.app_management.objects[name]["pin_thread"]
 
-            if name not in self.AD.callbacks.callbacks:
-                self.AD.callbacks.callbacks[name] = {}
-            handle = uuid.uuid4().hex
-            self.AD.callbacks.callbacks[name][handle] = {
-                "name": name,
-                "id": self.AD.app_management.objects[name]["id"],
-                "type": "event",
-                "function": cb,
-                "namespace": namespace,
-                "event": event,
-                "pin_app": pin_app,
-                "pin_thread": pin_thread,
-                "kwargs": kwargs,
-            }
+            with self.AD.callbacks.callbacks_lock:
+                if name not in self.AD.callbacks.callbacks:
+                    self.AD.callbacks.callbacks[name] = {}
+                handle = uuid.uuid4().hex
+                self.AD.callbacks.callbacks[name][handle] = {
+                    "name": name,
+                    "id": self.AD.app_management.objects[name]["id"],
+                    "type": "event",
+                    "function": cb,
+                    "namespace": namespace,
+                    "event": event,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
+                    "kwargs": kwargs,
+                }
 
             if "timeout" in kwargs:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
@@ -105,11 +106,12 @@ class Events:
 
         """
 
-        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
-            del self.AD.callbacks.callbacks[name][handle]
-            await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
-        if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
-            del self.AD.callbacks.callbacks[name]
+        with self.AD.callbacks.callbacks_lock:
+            if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+                del self.AD.callbacks.callbacks[name][handle]
+                await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
+            if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
+                del self.AD.callbacks.callbacks[name]
 
     async def info_event_callback(self, name, handle):
         """Gets the information of an event callback.
@@ -123,11 +125,12 @@ class Events:
 
         """
 
-        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
-            callback = self.AD.callbacks.callbacks[name][handle]
-            return callback["event"], callback["kwargs"].copy()
-        else:
-            raise ValueError("Invalid handle: {}".format(handle))
+        with self.AD.callbacks.callbacks_lock:
+            if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+                callback = self.AD.callbacks.callbacks[name][handle]
+                return callback["event"], callback["kwargs"].copy()
+            else:
+                raise ValueError("Invalid handle: {}".format(handle))
 
     async def fire_event(self, namespace, event, **kwargs):
         """Fires an event.
@@ -199,7 +202,7 @@ class Events:
 
             # Check for log callbacks and exit to prevent loops
             if data["event_type"] == "__AD_LOG_EVENT":
-                if self.has_log_callback(data["data"]["app_name"]):
+                if await self.has_log_callback(data["data"]["app_name"]):
                     self.logger.debug("Discarding event for loop avoidance")
                     return
 
@@ -238,7 +241,7 @@ class Events:
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
 
-    def has_log_callback(self, name):
+    async def has_log_callback(self, name):
         """Returns ``True`` if the app has a log callback, ``False`` otherwise.
 
         Used to prevent callback loops. In the calling logic, if this function returns
@@ -253,13 +256,14 @@ class Events:
         if name == "AppDaemon._stream":
             has_log_callback = True
         else:
-            for callback in self.AD.callbacks.callbacks:
-                for _uuid in self.AD.callbacks.callbacks[callback]:
-                    cb = self.AD.callbacks.callbacks[callback][_uuid]
-                    if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
-                        has_log_callback = True
-                    elif cb["name"] == name and cb["type"] == "log":
-                        has_log_callback = True
+            with self.AD.callbacks.callbacks_lock:
+                for callback in self.AD.callbacks.callbacks:
+                    for _uuid in self.AD.callbacks.callbacks[callback]:
+                        cb = self.AD.callbacks.callbacks[callback][_uuid]
+                        if cb["name"] == name and cb["type"] == "event" and cb["event"] == "__AD_LOG_EVENT":
+                            has_log_callback = True
+                        elif cb["name"] == name and cb["type"] == "log":
+                            has_log_callback = True
 
         return has_log_callback
 
@@ -281,54 +285,58 @@ class Events:
         self.logger.debug("process_event_callbacks() %s %s", namespace, data)
 
         removes = []
-        for name in self.AD.callbacks.callbacks.keys():
-            for uuid_ in self.AD.callbacks.callbacks[name]:
-                callback = self.AD.callbacks.callbacks[name][uuid_]
-                if callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global":
-                    #
-                    # Check for either a blank event (for all events)
-                    # Or the event is a match
-                    # But don't allow a global listen for any system events (events that start with __)
-                    #
-                    if "event" in callback and (
-                        (callback["event"] is None and data["event_type"][:2] != "__")
-                        or data["event_type"] == callback["event"]
-                    ):
+        with self.AD.callbacks.callbacks_lock:
+            for name in self.AD.callbacks.callbacks.keys():
+                for uuid_ in self.AD.callbacks.callbacks[name]:
+                    callback = self.AD.callbacks.callbacks[name][uuid_]
+                    if callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global":
+                        #
+                        # Check for either a blank event (for all events)
+                        # Or the event is a match
+                        # But don't allow a global listen for any system events (events that start with __)
+                        #
+                        if "event" in callback and (
+                            (callback["event"] is None and data["event_type"][:2] != "__")
+                            or data["event_type"] == callback["event"]
+                        ):
 
-                        # Check any filters
+                            # Check any filters
 
-                        _run = True
-                        for key in callback["kwargs"]:
-                            if key in data["data"] and callback["kwargs"][key] != data["data"][key]:
-                                _run = False
+                            _run = True
+                            for key in callback["kwargs"]:
+                                if key in data["data"] and callback["kwargs"][key] != data["data"][key]:
+                                    _run = False
 
-                        if data["event_type"] == "__AD_LOG_EVENT":
-                            if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["data"]["log_type"]:
-                                _run = False
+                            if data["event_type"] == "__AD_LOG_EVENT":
+                                if (
+                                    "log" in callback["kwargs"]
+                                    and callback["kwargs"]["log"] != data["data"]["log_type"]
+                                ):
+                                    _run = False
 
-                        if _run:
-                            if name in self.AD.app_management.objects:
-                                executed = await self.AD.threading.dispatch_worker(
-                                    name,
-                                    {
-                                        "id": uuid_,
-                                        "name": name,
-                                        "objectid": self.AD.app_management.objects[name]["id"],
-                                        "type": "event",
-                                        "event": data["event_type"],
-                                        "function": callback["function"],
-                                        "data": data["data"],
-                                        "pin_app": callback["pin_app"],
-                                        "pin_thread": callback["pin_thread"],
-                                        "kwargs": callback["kwargs"],
-                                    },
-                                )
+                            if _run:
+                                if name in self.AD.app_management.objects:
+                                    executed = await self.AD.threading.dispatch_worker(
+                                        name,
+                                        {
+                                            "id": uuid_,
+                                            "name": name,
+                                            "objectid": self.AD.app_management.objects[name]["id"],
+                                            "type": "event",
+                                            "event": data["event_type"],
+                                            "function": callback["function"],
+                                            "data": data["data"],
+                                            "pin_app": callback["pin_app"],
+                                            "pin_thread": callback["pin_thread"],
+                                            "kwargs": callback["kwargs"],
+                                        },
+                                    )
 
-                                # Remove the callback if appropriate
-                                if executed is True:
-                                    remove = callback["kwargs"].get("oneshot", False)
-                                    if remove is True:
-                                        removes.append({"name": name, "uuid": uuid_})
+                                    # Remove the callback if appropriate
+                                    if executed is True:
+                                        remove = callback["kwargs"].get("oneshot", False)
+                                        if remove is True:
+                                            removes.append({"name": name, "uuid": uuid_})
 
         for remove in removes:
             await self.cancel_event_callback(remove["name"], remove["uuid"])
