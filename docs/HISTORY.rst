@@ -41,10 +41,11 @@ Change Log
 - AppDaemon's REST API no longer needs to be active to use the dashboard or Admin interfaces
 - Fix tzdata error in docker build for RPI - contributed by `Guy Khmelnitsky <https://github.com/GuyKh>`__
 - Fix for `get_tz_offset()` not working in some circumstances - contributed by `sillyfrog <https://github.com/sillyfrog>`__
+- Added some locking to prevent array size change errors
 
 **Breaking Changes**
 
-- Changed ``websocket_connected`` and ``websocket_disconnected`` to ``stream_connected`` and ``stream_disconnected`` respectively
+- Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
 
 None
 

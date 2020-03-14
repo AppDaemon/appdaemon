@@ -71,21 +71,22 @@ class State:
             # Add the callback
             #
 
-            if name not in self.AD.callbacks.callbacks:
-                self.AD.callbacks.callbacks[name] = {}
+            with self.AD.callbacks.callbacks_lock:
+                if name not in self.AD.callbacks.callbacks:
+                    self.AD.callbacks.callbacks[name] = {}
 
-            handle = uuid.uuid4().hex
-            self.AD.callbacks.callbacks[name][handle] = {
-                "name": name,
-                "id": self.AD.app_management.objects[name]["id"],
-                "type": "state",
-                "function": cb,
-                "entity": entity,
-                "namespace": namespace,
-                "pin_app": pin_app,
-                "pin_thread": pin_thread,
-                "kwargs": kwargs,
-            }
+                handle = uuid.uuid4().hex
+                self.AD.callbacks.callbacks[name][handle] = {
+                    "name": name,
+                    "id": self.AD.app_management.objects[name]["id"],
+                    "type": "state",
+                    "function": cb,
+                    "entity": entity,
+                    "namespace": namespace,
+                    "pin_app": pin_app,
+                    "pin_thread": pin_thread,
+                    "kwargs": kwargs,
+                }
 
             #
             # If we have a timeout parameter, add a scheduler entry to delete the callback later
@@ -173,26 +174,28 @@ class State:
             return None
 
     async def cancel_state_callback(self, handle, name):
-        if name not in self.AD.callbacks.callbacks or handle not in self.AD.callbacks.callbacks[name]:
-            self.logger.warning("Invalid callback in cancel_state_callback() from app {}".format(name))
+        with self.AD.callbacks.callbacks_lock:
+            if name not in self.AD.callbacks.callbacks or handle not in self.AD.callbacks.callbacks[name]:
+                self.logger.warning("Invalid callback in cancel_state_callback() from app {}".format(name))
 
-        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
-            del self.AD.callbacks.callbacks[name][handle]
-            await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
-        if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
-            del self.AD.callbacks.callbacks[name]
+            if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+                del self.AD.callbacks.callbacks[name][handle]
+                await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
+            if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
+                del self.AD.callbacks.callbacks[name]
 
     async def info_state_callback(self, handle, name):
-        if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
-            callback = self.AD.callbacks.callbacks[name][handle]
-            return (
-                callback["namespace"],
-                callback["entity"],
-                callback["kwargs"].get("attribute", None),
-                self.sanitize_state_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"]),
-            )
-        else:
-            raise ValueError("Invalid handle: {}".format(handle))
+        with self.AD.callbacks.callbacks_lock:
+            if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+                callback = self.AD.callbacks.callbacks[name][handle]
+                return (
+                    callback["namespace"],
+                    callback["entity"],
+                    callback["kwargs"].get("attribute", None),
+                    self.sanitize_state_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"]),
+                )
+            else:
+                raise ValueError("Invalid handle: {}".format(handle))
 
     async def process_state_callbacks(self, namespace, state):
         data = state["data"]
@@ -203,46 +206,63 @@ class State:
         # Process state callbacks
 
         removes = []
-        for name in self.AD.callbacks.callbacks.keys():
-            for uuid_ in self.AD.callbacks.callbacks[name]:
-                callback = self.AD.callbacks.callbacks[name][uuid_]
-                if callback["type"] == "state" and (
-                    callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
-                ):
-                    cdevice = None
-                    centity = None
-                    if callback["entity"] is not None:
-                        if "." not in callback["entity"]:
-                            cdevice = callback["entity"]
-                            centity = None
+        with self.AD.callbacks.callbacks_lock:
+            for name in self.AD.callbacks.callbacks.keys():
+                for uuid_ in self.AD.callbacks.callbacks[name]:
+                    callback = self.AD.callbacks.callbacks[name][uuid_]
+                    if callback["type"] == "state" and (
+                        callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
+                    ):
+                        cdevice = None
+                        centity = None
+                        if callback["entity"] is not None:
+                            if "." not in callback["entity"]:
+                                cdevice = callback["entity"]
+                                centity = None
+                            else:
+                                cdevice, centity = callback["entity"].split(".")
+                        if callback["kwargs"].get("attribute") is None:
+                            cattribute = "state"
                         else:
-                            cdevice, centity = callback["entity"].split(".")
-                    if callback["kwargs"].get("attribute") is None:
-                        cattribute = "state"
-                    else:
-                        cattribute = callback["kwargs"].get("attribute")
+                            cattribute = callback["kwargs"].get("attribute")
 
-                    cold = callback["kwargs"].get("old")
-                    cnew = callback["kwargs"].get("new")
+                        cold = callback["kwargs"].get("old")
+                        cnew = callback["kwargs"].get("new")
 
-                    executed = False
-                    if cdevice is None:
-                        executed = await self.AD.threading.check_and_dispatch_state(
-                            name,
-                            callback["function"],
-                            entity_id,
-                            cattribute,
-                            data["new_state"],
-                            data["old_state"],
-                            cold,
-                            cnew,
-                            callback["kwargs"],
-                            uuid_,
-                            callback["pin_app"],
-                            callback["pin_thread"],
-                        )
-                    elif centity is None:
-                        if device == cdevice:
+                        executed = False
+                        if cdevice is None:
+                            executed = await self.AD.threading.check_and_dispatch_state(
+                                name,
+                                callback["function"],
+                                entity_id,
+                                cattribute,
+                                data["new_state"],
+                                data["old_state"],
+                                cold,
+                                cnew,
+                                callback["kwargs"],
+                                uuid_,
+                                callback["pin_app"],
+                                callback["pin_thread"],
+                            )
+                        elif centity is None:
+                            if device == cdevice:
+                                executed = await self.AD.threading.check_and_dispatch_state(
+                                    name,
+                                    callback["function"],
+                                    entity_id,
+                                    cattribute,
+                                    data["new_state"],
+                                    data["old_state"],
+                                    cold,
+                                    cnew,
+                                    callback["kwargs"],
+                                    uuid_,
+                                    callback["pin_app"],
+                                    callback["pin_thread"],
+                                )
+
+                        elif device == cdevice and entity == centity:
                             executed = await self.AD.threading.check_and_dispatch_state(
                                 name,
                                 callback["function"],
@@ -258,27 +278,11 @@ class State:
                                 callback["pin_thread"],
                             )
 
-                    elif device == cdevice and entity == centity:
-                        executed = await self.AD.threading.check_and_dispatch_state(
-                            name,
-                            callback["function"],
-                            entity_id,
-                            cattribute,
-                            data["new_state"],
-                            data["old_state"],
-                            cold,
-                            cnew,
-                            callback["kwargs"],
-                            uuid_,
-                            callback["pin_app"],
-                            callback["pin_thread"],
-                        )
-
-                    # Remove the callback if appropriate
-                    if executed is True:
-                        remove = callback["kwargs"].get("oneshot", False)
-                        if remove is True:
-                            removes.append({"name": callback["name"], "uuid": uuid_})
+                        # Remove the callback if appropriate
+                        if executed is True:
+                            remove = callback["kwargs"].get("oneshot", False)
+                            if remove is True:
+                                removes.append({"name": callback["name"], "uuid": uuid_})
 
         for remove in removes:
             await self.cancel_state_callback(remove["uuid"], remove["name"])
