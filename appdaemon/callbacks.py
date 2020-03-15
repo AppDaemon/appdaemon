@@ -1,4 +1,4 @@
-import threading
+import asyncio
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -10,7 +10,7 @@ class Callbacks:
         self.AD = ad
 
         self.callbacks = {}
-        self.callbacks_lock = threading.RLock()
+        self.callbacks_lock = asyncio.Lock()
         self.logger = ad.logging.get_child("_callbacks")
         self.diag = ad.logging.get_diag()
 
@@ -19,7 +19,7 @@ class Callbacks:
     #
 
     async def dump_callbacks(self):
-        with self.callbacks_lock:
+        async with self.callbacks_lock:
             if self.callbacks == {}:
                 self.diag.info("No callbacks")
             else:
@@ -34,7 +34,7 @@ class Callbacks:
 
     async def get_callback_entries(self, type="all"):
         callbacks = {}
-        with self.callbacks_lock:
+        async with self.callbacks_lock:
             for name in self.callbacks.keys():
                 for uuid_ in self.callbacks[name]:
                     if self.callbacks[name][uuid_]["type"] == type or type == "all":
@@ -70,7 +70,7 @@ class Callbacks:
 
     async def clear_callbacks(self, name):
         self.logger.debug("Clearing callbacks for %s", name)
-        with self.callbacks_lock:
+        async with self.callbacks_lock:
             if name in self.callbacks:
                 for cid in self.callbacks[name]:
                     if self.callbacks[name][cid]["type"] == "event":

@@ -477,7 +477,7 @@ class Logging:
             # Add the callback
             #
 
-            with self.AD.callbacks.callbacks_lock:
+            async with self.AD.callbacks.callbacks_lock:
                 if name not in self.AD.callbacks.callbacks:
                     self.AD.callbacks.callbacks[name] = {}
 
@@ -541,7 +541,7 @@ class Logging:
         # Process log callbacks
 
         removes = []
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
                     callback = self.AD.callbacks.callbacks[name][uuid_]
@@ -598,7 +598,7 @@ class Logging:
         if not isinstance(handles, list):
             handles = [handles]
 
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             for handle in handles:
                 if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                     del self.AD.callbacks.callbacks[name][handle]
