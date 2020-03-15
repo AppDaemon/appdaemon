@@ -52,7 +52,7 @@ class Events:
             else:
                 pin_thread = self.AD.app_management.objects[name]["pin_thread"]
 
-            with self.AD.callbacks.callbacks_lock:
+            async with self.AD.callbacks.callbacks_lock:
                 if name not in self.AD.callbacks.callbacks:
                     self.AD.callbacks.callbacks[name] = {}
                 handle = uuid.uuid4().hex
@@ -106,7 +106,7 @@ class Events:
 
         """
 
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
                 await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
@@ -125,7 +125,7 @@ class Events:
 
         """
 
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 callback = self.AD.callbacks.callbacks[name][handle]
                 return callback["event"], callback["kwargs"].copy()
@@ -256,7 +256,7 @@ class Events:
         if name == "AppDaemon._stream":
             has_log_callback = True
         else:
-            with self.AD.callbacks.callbacks_lock:
+            async with self.AD.callbacks.callbacks_lock:
                 for callback in self.AD.callbacks.callbacks:
                     for _uuid in self.AD.callbacks.callbacks[callback]:
                         cb = self.AD.callbacks.callbacks[callback][_uuid]
@@ -285,7 +285,7 @@ class Events:
         self.logger.debug("process_event_callbacks() %s %s", namespace, data)
 
         removes = []
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
                     callback = self.AD.callbacks.callbacks[name][uuid_]

@@ -71,7 +71,7 @@ class State:
             # Add the callback
             #
 
-            with self.AD.callbacks.callbacks_lock:
+            async with self.AD.callbacks.callbacks_lock:
                 if name not in self.AD.callbacks.callbacks:
                     self.AD.callbacks.callbacks[name] = {}
 
@@ -174,7 +174,7 @@ class State:
             return None
 
     async def cancel_state_callback(self, handle, name):
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             if name not in self.AD.callbacks.callbacks or handle not in self.AD.callbacks.callbacks[name]:
                 self.logger.warning("Invalid callback in cancel_state_callback() from app {}".format(name))
 
@@ -185,7 +185,7 @@ class State:
                 del self.AD.callbacks.callbacks[name]
 
     async def info_state_callback(self, handle, name):
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 callback = self.AD.callbacks.callbacks[name][handle]
                 return (
@@ -206,7 +206,7 @@ class State:
         # Process state callbacks
 
         removes = []
-        with self.AD.callbacks.callbacks_lock:
+        async with self.AD.callbacks.callbacks_lock:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
                     callback = self.AD.callbacks.callbacks[name][uuid_]
@@ -339,7 +339,7 @@ class State:
         if entity in self.state[namespace]:
             self.state[namespace].pop(entity)
             data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity}}
-            await self.AD.events.process_event(namespace, data)
+            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     async def add_entity(self, namespace, entity, state, attributes=None):
         if await self.entity_exists(namespace, entity):
@@ -497,7 +497,11 @@ class State:
                 "data": {"entity_id": entity, "new_state": new_state, "old_state": old_state},
             }
 
-            await self.AD.events.process_event(namespace, data)
+            #
+            # Schedule this rather than awaiting to avoid locking ourselves out
+            #
+            # await self.AD.events.process_event(namespace, data)
+            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
         return new_state
 
