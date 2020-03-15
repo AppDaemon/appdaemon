@@ -339,7 +339,7 @@ class State:
         if entity in self.state[namespace]:
             self.state[namespace].pop(entity)
             data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity}}
-            await self.AD.events.process_event(namespace, data)
+            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     async def add_entity(self, namespace, entity, state, attributes=None):
         if await self.entity_exists(namespace, entity):
