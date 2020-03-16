@@ -15,7 +15,7 @@ paho-mqtt==1.5.0
 python-socketio==4.4.0
 deepdiff==4.3.1
 python-dateutil==2.8.1
-pid==2.2.5
+pid==3.0.0
 azure==4.0.0
 pygments==2.6.1
 sockjs==0.10.0
