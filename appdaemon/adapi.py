@@ -143,7 +143,11 @@ class ADAPI:
         else:
             logger = self.logger
 
-        msg = self._sub_stack(msg)
+        try:
+            msg = self._sub_stack(msg)
+        except IndexError as i:
+            kwargs["level"] = "ERROR"
+            self._log(self.err, i, *args, **kwargs)
 
         self._log(logger, msg, *args, **kwargs)
 
