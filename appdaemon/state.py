@@ -363,7 +363,7 @@ class State:
             "data": {"entity_id": entity, "state": state},
         }
 
-        await self.AD.events.process_event(namespace, data)
+        self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     async def get_state(self, name, namespace, entity_id=None, attribute=None, default=None, copy=True):
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
