@@ -102,8 +102,6 @@ class Scheduler:
     # noinspection PyBroadException
     async def exec_schedule(self, name, args, uuid_):
         try:
-            if "inactive" in args:
-                return
             # Call function
             if "__entity" in args["kwargs"]:
                 #
@@ -383,7 +381,39 @@ class Scheduler:
 
         return next_entries
 
-    async def loop(self):
+    async def process_dst(self, old, new, next_entries):
+        #
+        # Rewrite timestamps to new local time
+        #
+        offset = old - new
+        for app in self.schedule:
+            for entry in self.schedule[app]:
+                args = self.schedule[app][entry]
+                # Sunrise and sunset will already be correct. Anything else needs to be reset to a new local time
+                if args["type"] != "next_rising" and args["type"] != "next_setting":
+                    args["timestamp"] += offset
+                    args["basetime"] += offset
+
+        for entry in next_entries:
+            entry["timestamp"] += offset
+
+    def get_next_dst_offset(self, base, limit):
+        #
+        # I can't believe there isn't a better way to find the next DST transition but ...
+        # We know the lower and upper bounds of DST so do a search to find the actual transition time
+        # I don't want to rely on heuristics such as "it occurs at 2am" because I don't know if that holds
+        # true for every timezone. With this method, as long as pytz's dst() function is correct, this should work
+        #
+
+        # TODO: Convert this to some sort of binary search for efficiency
+        current = base.astimezone(self.AD.tz).dst()
+        for offset in range(0, int(limit) - 1):
+            candidate = (base + timedelta(seconds=offset)).astimezone(self.AD.tz)
+            if candidate.dst() != current:
+                return offset
+        return -1
+
+    async def loop(self):  # noqa: C901
         self.active = True
         self.logger.debug("Starting scheduler loop()")
         self.AD.booted = await self.get_now_naive()
@@ -404,6 +434,8 @@ class Scheduler:
         next_entries = []
         result = False
         idle_time = 60
+        delay = 0
+        old_dst_offset = (await self.get_now()).astimezone(self.AD.tz).dst()
         while not self.stopping:
             try:
                 if self.endtime is not None and self.now >= self.endtime:
@@ -411,9 +443,6 @@ class Scheduler:
                     if self.AD.stop_function is not None:
                         self.AD.stop_function()
                     else:
-                        #
-                        # We aren't in a standalone environment so the best we can do is terminate the AppDaemon parts
-                        #
                         self.stop()
                 now = pytz.utc.localize(datetime.datetime.utcnow())
                 if self.realtime is True:
@@ -425,7 +454,7 @@ class Scheduler:
                     else:
                         if len(next_entries) > 0:
                             # Time is progressing infinitely fast and it's already time for our next callback
-                            delta = (next_entries[0]["timestamp"] - self.now).total_seconds()
+                            delta = delay
                         else:
                             # No kick, no scheduler expiry ...
                             delta = idle_time
@@ -434,6 +463,18 @@ class Scheduler:
 
                 self.last_fired = pytz.utc.localize(datetime.datetime.utcnow())
                 self.logger.debug("self.now = %s", self.now)
+                #
+                # Now we're awake and know what time it is
+                #
+                dst_offset = (await self.get_now()).astimezone(self.AD.tz).dst()
+                if old_dst_offset != dst_offset:
+                    #
+                    # DST begin or ended, we need to go fix any existing scheduler entries to match the new local time
+                    #
+                    self.logger.info("Daylight Savings Time transition detected - rewriting events to new local time")
+                    await self.process_dst(old_dst_offset, dst_offset, next_entries)
+
+                old_dst_offset = dst_offset
                 #
                 # OK, lets fire the entries
                 #
@@ -463,6 +504,20 @@ class Scheduler:
                     delay = idle_time
 
                 self.logger.debug("Delay = %s seconds", delay)
+
+                #
+                # We are about to go to sleep, but we need to ensure we don't miss a DST transition or we will
+                # sleep in and potentially miss an event that should happen earlier than expected due to the time change
+                #
+
+                next = self.now + timedelta(seconds=delay)
+
+                if await self.is_dst() != await self.is_dst(next):
+                    #
+                    # Reset delay to wake up at the DST change so we can re-jig everything
+                    #
+                    delay = self.get_next_dst_offset(self.now, delay)
+
                 if delay > 0 and self.AD.timewarp > 0:
                     result = await self.sleep(delay / self.AD.timewarp)
                     self.logger.debug("result = %s", result)
@@ -491,7 +546,7 @@ class Scheduler:
 
     async def kick(self):
         while self.sleep_task is None:
-            await asyncio.sleep(0)
+            await asyncio.sleep(1)
         self.sleep_task.cancel()
 
     #
@@ -566,8 +621,11 @@ class Scheduler:
 
         return ordered_schedule
 
-    async def is_dst(self):
-        return (await self.get_now()).astimezone(self.AD.tz).dst() != datetime.timedelta(0)
+    async def is_dst(self, dt=None):
+        if dt is None:
+            return (await self.get_now()).astimezone(self.AD.tz).dst() != datetime.timedelta(0)
+        else:
+            return dt.astimezone(self.AD.tz).dst() != datetime.timedelta(0)
 
     async def get_now(self):
         if self.realtime is True:
