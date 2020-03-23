@@ -368,7 +368,7 @@ class AdPlugin(PluginBase):
             except Exception:
                 if self.forward_namespaces is not None:
                     # remove callback from getting local events
-                    await self.AD.events.clear_callbacks(self.name)
+                    await self.AD.callbacks.clear_callbacks(self.name)
 
                 self.reading_messages = False
                 self.is_booting = True
