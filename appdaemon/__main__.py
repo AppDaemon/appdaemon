@@ -151,6 +151,31 @@ class ADMain:
 
             self.logger.info("AppDaemon Exited")
 
+    def setup_sentry(self, config):
+        """Configure Sentry integration.
+
+        Config supports the following attributes:
+
+        - dsn
+        - environment
+        - release (defaults to appdaemon-{version})
+        """
+        import sentry_sdk
+        from sentry_sdk.integrations.logging import LoggingIntegration
+
+        # https://docs.sentry.io/platforms/python/logging/
+        sentry_logging = LoggingIntegration(
+            level=logging.INFO,  # Capture info and above as breadcrumbs
+            event_level=logging.ERROR,  # Send errors as events
+        )
+
+        sentry_sdk.init(
+            dsn=config.get("dsn"),
+            environment=config.get("environment"),
+            integrations=[sentry_logging],
+            release=config.get("release") or f"appdaemon-{utils.__version__}",
+        )
+
     # noinspection PyBroadException
     def main(self):  # noqa: C901
         """Initial AppDaemon entry point.
@@ -389,6 +414,12 @@ class ADMain:
 
         if exit is True:
             sys.exit(1)
+
+        if "sentry" in config:
+            try:
+                self.setup_sentry(config["sentry"])
+            except Exception:
+                self.logger.exception("Unable to setup Sentry")
 
         utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
 
