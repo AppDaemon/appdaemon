@@ -430,6 +430,58 @@ class ADAPI:
         return self._namespace
 
     @utils.sync_wrapper
+    async def add_namespace(self, namespace, writeback=None):
+        """Used to add a user-defined namespaces from apps, which has a database file associated with it.
+
+        This way, when AD restarts these entities will be reloaded into AD with its
+        previous states within the namespace. This can be used as a basic form of
+        non-volatile storage of entity data. Depending on the configuration of the
+        namespace, this function can be setup to constantly be running automatically
+        or only when AD shutdown. This function also allows for users to manually
+        execute the command as when needed.
+
+        Args:
+            namespace (str): The namespace to be newly created, which must not be same as the operating namespace
+            writeback (optional): The writeback to be used.
+
+
+        Returns:
+            The file path to the newly created namespace
+
+        Examples:
+            create a new namespace called `storage`.
+
+            >>> self.create_namespace("storage", "safe")
+
+        """
+        if namespace == self.get_namespace():  # if it belongs to this app's namespace
+            raise ValueError("Cannot add namespace with the same name as operating namespace")
+
+        return await self.AD.state.add_namespace(namespace, writeback)
+
+    @utils.sync_wrapper
+    async def remove_namespace(self, namespace):
+        """Used to remove a previously user-defined namespaces from apps, which has a database file associated with it.
+
+        Args:
+            namespace (str): The namespace to be removed, which must not be same as the operating namespace
+
+
+        Returns:
+            The file path to the deleted namespace
+
+        Examples:
+            removes the namespace called `storage`.
+
+            >>> self.remove_namespace("storage", "safe")
+
+        """
+        if namespace == self.get_namespace():  # if it belongs to this app's namespace
+            raise ValueError("Cannot remove namespace with the same name as operating namespace")
+
+        return await self.AD.state.remove_namespace(namespace)
+
+    @utils.sync_wrapper
     async def list_namespaces(self):
         """Returns a list of available namespaces.
 
