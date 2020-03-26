@@ -430,7 +430,7 @@ class ADAPI:
         return self._namespace
 
     @utils.sync_wrapper
-    async def add_namespace(self, namespace, writeback=None):
+    async def add_namespace(self, namespace, writeback="safe"):
         """Used to add a user-defined namespaces from apps, which has a database file associated with it.
 
         This way, when AD restarts these entities will be reloaded into AD with its
@@ -451,7 +451,7 @@ class ADAPI:
         Examples:
             create a new namespace called `storage`.
 
-            >>> self.create_namespace("storage", "safe")
+            >>> self.create_namespace("storage")
 
         """
         if namespace == self.get_namespace():  # if it belongs to this app's namespace
@@ -473,7 +473,7 @@ class ADAPI:
         Examples:
             removes the namespace called `storage`.
 
-            >>> self.remove_namespace("storage", "safe")
+            >>> self.remove_namespace("storage")
 
         """
         if namespace == self.get_namespace():  # if it belongs to this app's namespace
