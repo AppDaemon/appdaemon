@@ -6,6 +6,7 @@ import asyncio
 import async_timeout
 
 from appdaemon.appdaemon import AppDaemon
+import appdaemon.utils as utils
 
 
 class PluginBase:
@@ -201,21 +202,33 @@ class Plugins:
                     for namesp in namespaces:
 
                         if state[namesp] is not None:
-                            self.AD.state.set_namespace_state(
-                                namesp, state[namesp], self.plugins[name].get("persist_entities", False)
+                            await utils.run_in_executor(
+                                self,
+                                self.AD.state.set_namespace_state,
+                                namesp,
+                                state[namesp],
+                                self.plugins[name].get("persist_entities", False),
                             )
 
                     #
                     # now set the main namespace
                     #
 
-                    self.AD.state.set_namespace_state(
-                        namespace, state[namespace], self.plugins[name].get("persist_entities", False)
+                    await utils.run_in_executor(
+                        self,
+                        self.AD.state.set_namespace_state,
+                        namespace,
+                        state[namespace],
+                        self.plugins[name].get("persist_entities", False),
                     )
 
                 else:
-                    self.AD.state.set_namespace_state(
-                        namespace, state, self.plugins[name].get("persist_entities", False)
+                    await utils.run_in_executor(
+                        self,
+                        self.AD.state.set_namespace_state,
+                        namespace,
+                        state,
+                        self.plugins[name].get("persist_entities", False),
                     )
 
                 if not first_time:
