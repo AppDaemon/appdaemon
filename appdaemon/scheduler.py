@@ -406,9 +406,12 @@ class Scheduler:
         #
 
         # TODO: Convert this to some sort of binary search for efficiency
+        self.logger.debug("get_next_dst_offset() base=%s limit=%s", base, limit)
         current = base.astimezone(self.AD.tz).dst()
-        for offset in range(0, int(limit) - 1):
+        self.logger.debug("current=%s", current)
+        for offset in range(1, int(limit) + 1):
             candidate = (base + timedelta(seconds=offset)).astimezone(self.AD.tz)
+            print(candidate)
             if candidate.dst() != current:
                 return offset
         return -1
@@ -467,9 +470,15 @@ class Scheduler:
                 # Now we're awake and know what time it is
                 #
                 dst_offset = (await self.get_now()).astimezone(self.AD.tz).dst()
+                self.logger.debug(
+                    "local now=%s old_dst_offset=%s new_dst_offset=%s",
+                    self.now.astimezone(self.AD.tz),
+                    old_dst_offset,
+                    dst_offset,
+                )
                 if old_dst_offset != dst_offset:
                     #
-                    # DST begin or ended, we need to go fix any existing scheduler entries to match the new local time
+                    # DST began or ended, we need to go fix any existing scheduler entries to match the new local time
                     #
                     self.logger.info("Daylight Savings Time transition detected - rewriting events to new local time")
                     await self.process_dst(old_dst_offset, dst_offset, next_entries)
@@ -503,8 +512,6 @@ class Scheduler:
                     # Nothing to do, lets wait for a while, we will get woken up if anything new comes along
                     delay = idle_time
 
-                self.logger.debug("Delay = %s seconds", delay)
-
                 #
                 # We are about to go to sleep, but we need to ensure we don't miss a DST transition or we will
                 # sleep in and potentially miss an event that should happen earlier than expected due to the time change
@@ -512,11 +519,16 @@ class Scheduler:
 
                 next = self.now + timedelta(seconds=delay)
 
+                self.logger.debug("next event=%s", next)
+
                 if await self.is_dst() != await self.is_dst(next):
                     #
                     # Reset delay to wake up at the DST change so we can re-jig everything
                     #
+
                     delay = self.get_next_dst_offset(self.now, delay)
+
+                self.logger.debug("Delay = %s seconds", delay)
 
                 if delay > 0 and self.AD.timewarp > 0:
                     result = await self.sleep(delay / self.AD.timewarp)
