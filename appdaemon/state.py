@@ -505,8 +505,14 @@ class State:
 
         return new_state
 
-    def set_namespace_state(self, namespace, state):
-        self.state[namespace] = state
+    def set_namespace_state(self, namespace, state, persist=False):
+        if persist is True:
+            self.add_persistent_namespace(namespace, "safe")
+            self.state[namespace] = state
+        else:
+            # first in case it had been created before, it should be deleted
+            self.remove_persistent_namespace(namespace)
+            self.state[namespace] = state
 
     def update_namespace_state(self, namespace, state):
         if isinstance(namespace, list):  # if its a list, meaning multiple namespaces to be updated
