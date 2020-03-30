@@ -25,7 +25,7 @@ class State:
 
         for ns in self.AD.namespaces:
             writeback = self.AD.namespaces[ns].get("writeback", "safe")
-            self.add_user_namespace(ns, writeback)
+            self.add_persistent_namespace(ns, writeback)
 
     async def add_namespace(self, namespace, writeback="safe", name=None):
         """Used to Add Namespaces from Apps"""
@@ -34,7 +34,7 @@ class State:
             self.logger.warning("Namespace %s already exists", namespace)
             return None
 
-        nspath_file = await utils.run_in_executor(self, self.add_user_namespace, namespace, writeback)
+        nspath_file = await utils.run_in_executor(self, self.add_persistent_namespace, namespace, writeback)
 
         self.app_added_namespaces.append(namespace)
 
@@ -55,7 +55,7 @@ class State:
         result = None
         if namespace in self.app_added_namespaces:
             result = self.state.pop(namespace)
-            nspath_file = await utils.run_in_executor(self, self.remove_user_namespace, namespace)
+            nspath_file = await utils.run_in_executor(self, self.remove_persistent_namespace, namespace)
             self.app_added_namespaces.remove(namespace)
 
             self.logger.warning("Namespace %s, has ben removed", namespace)
@@ -77,7 +77,7 @@ class State:
 
         return result
 
-    def add_user_namespace(self, namespace, writeback):
+    def add_persistent_namespace(self, namespace, writeback):
         """Used to add a database file for a created namespace"""
 
         try:
@@ -98,7 +98,7 @@ class State:
 
         return nspath_file
 
-    def remove_user_namespace(self, namespace):
+    def remove_persistent_namespace(self, namespace):
         """Used to remove the file for a created namespace"""
 
         try:
