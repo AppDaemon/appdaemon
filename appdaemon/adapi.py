@@ -468,7 +468,7 @@ class ADAPI:
 
 
         Returns:
-            The file path to the deleted namespace
+            The data within that namespace
 
         Examples:
             removes the namespace called `storage`.
