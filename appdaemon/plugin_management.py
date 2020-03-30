@@ -201,16 +201,22 @@ class Plugins:
                     for namesp in namespaces:
 
                         if state[namesp] is not None:
-                            self.AD.state.set_namespace_state(namesp, state[namesp])
+                            self.AD.state.set_namespace_state(
+                                namesp, state[namesp], self.plugins[name].get("persist_entities", False)
+                            )
 
                     #
                     # now set the main namespace
                     #
 
-                    self.AD.state.set_namespace_state(namespace, state[namespace])
+                    self.AD.state.set_namespace_state(
+                        namespace, state[namespace], self.plugins[name].get("persist_entities", False)
+                    )
 
                 else:
-                    self.AD.state.set_namespace_state(namespace, state)
+                    self.AD.state.set_namespace_state(
+                        namespace, state, self.plugins[name].get("persist_entities", False)
+                    )
 
                 if not first_time:
                     await self.AD.app_management.check_app_updates(
