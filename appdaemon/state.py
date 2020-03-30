@@ -620,15 +620,16 @@ class State:
             self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
-        if namespace in self.AD.namespaces:
+        if isinstance(self.state[namespace], utils.PersistentDict):
             self.state[namespace].sync()
         else:
             self.logger.warning("Namespace: %s cannot be saved", namespace)
         return None
 
     def save_all_namespaces(self):
-        for ns in self.AD.namespaces:
-            self.state[ns].sync()
+        for ns in self.state:
+            if isinstance(self.state[ns], utils.PersistentDict):
+                self.state[ns].sync()
 
     def save_hybrid_namespaces(self):
         for ns in self.AD.namespaces:
