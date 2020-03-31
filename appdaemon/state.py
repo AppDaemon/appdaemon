@@ -32,7 +32,7 @@ class State:
 
         if namespace in self.state:  # it already exists
             self.logger.warning("Namespace %s already exists", namespace)
-            return None
+            return False
 
         nspath_file = await utils.run_in_executor(self, self.add_persistent_namespace, namespace, writeback)
 
@@ -48,6 +48,12 @@ class State:
         # TODO need to update and reload the admin page to show the new namespace in real-time
 
         return nspath_file
+
+    async def namespace_exists(self, namespace):
+        if namespace in self.state:
+            return True
+        else:
+            return False
 
     async def remove_namespace(self, namespace):
         """Used to Remove Namespaces from Apps"""
