@@ -91,7 +91,7 @@ class State:
             nspath = os.path.join(self.AD.config_dir, "namespaces")
             safe = bool(writeback == "safe")
 
-            nspath_file = os.path.join(nspath, namespace)
+            nspath_file = os.path.join(nspath, f"{namespace}.db")
             self.state[namespace] = utils.PersistentDict(nspath_file, safe)
 
             self.logger.info("Persistent Namespace '%s' initialized", namespace)
