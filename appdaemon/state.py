@@ -25,16 +25,17 @@ class State:
 
         for ns in self.AD.namespaces:
             writeback = self.AD.namespaces[ns].get("writeback", "safe")
-            self.add_user_namespace(ns, writeback)
+            self.add_persistent_namespace(ns, writeback)
+            self.logger.info("User Defined Namespace '%s' initialized", ns)
 
     async def add_namespace(self, namespace, writeback="safe", name=None):
         """Used to Add Namespaces from Apps"""
 
         if namespace in self.state:  # it already exists
             self.logger.warning("Namespace %s already exists", namespace)
-            return None
+            return False
 
-        nspath_file = await utils.run_in_executor(self, self.add_user_namespace, namespace, writeback)
+        nspath_file = await utils.run_in_executor(self, self.add_persistent_namespace, namespace, writeback)
 
         self.app_added_namespaces.append(namespace)
 
@@ -49,13 +50,19 @@ class State:
 
         return nspath_file
 
+    async def namespace_exists(self, namespace):
+        if namespace in self.state:
+            return True
+        else:
+            return False
+
     async def remove_namespace(self, namespace):
         """Used to Remove Namespaces from Apps"""
 
         result = None
         if namespace in self.app_added_namespaces:
             result = self.state.pop(namespace)
-            nspath_file = await utils.run_in_executor(self, self.remove_user_namespace, namespace)
+            nspath_file = await utils.run_in_executor(self, self.remove_persistent_namespace, namespace)
             self.app_added_namespaces.remove(namespace)
 
             self.logger.warning("Namespace %s, has ben removed", namespace)
@@ -77,7 +84,7 @@ class State:
 
         return result
 
-    def add_user_namespace(self, namespace, writeback):
+    def add_persistent_namespace(self, namespace, writeback):
         """Used to add a database file for a created namespace"""
 
         try:
@@ -87,7 +94,7 @@ class State:
             nspath_file = os.path.join(nspath, namespace)
             self.state[namespace] = utils.PersistentDict(nspath_file, safe)
 
-            self.logger.info("User Defined Namespace '%s' initialized", namespace)
+            self.logger.info("Persistent Namespace '%s' initialized", namespace)
 
         except Exception:
             self.logger.warning("-" * 60)
@@ -98,7 +105,7 @@ class State:
 
         return nspath_file
 
-    def remove_user_namespace(self, namespace):
+    def remove_persistent_namespace(self, namespace):
         """Used to remove the file for a created namespace"""
 
         try:
@@ -616,15 +623,16 @@ class State:
             self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
-        if namespace in self.AD.namespaces:
+        if isinstance(self.state[namespace], utils.PersistentDict):
             self.state[namespace].sync()
         else:
             self.logger.warning("Namespace: %s cannot be saved", namespace)
         return None
 
     def save_all_namespaces(self):
-        for ns in self.AD.namespaces:
-            self.state[ns].sync()
+        for ns in self.state:
+            if isinstance(self.state[ns], utils.PersistentDict):
+                self.state[ns].sync()
 
     def save_hybrid_namespaces(self):
         for ns in self.AD.namespaces:
