@@ -26,6 +26,7 @@ class State:
         for ns in self.AD.namespaces:
             writeback = self.AD.namespaces[ns].get("writeback", "safe")
             self.add_persistent_namespace(ns, writeback)
+            self.logger.info("User Defined Namespace '%s' initialized", ns)
 
     async def add_namespace(self, namespace, writeback="safe", name=None):
         """Used to Add Namespaces from Apps"""
@@ -93,7 +94,7 @@ class State:
             nspath_file = os.path.join(nspath, namespace)
             self.state[namespace] = utils.PersistentDict(nspath_file, safe)
 
-            self.logger.info("User Defined Namespace '%s' initialized", namespace)
+            self.logger.info("Persistent Namespace '%s' initialized", namespace)
 
         except Exception:
             self.logger.warning("-" * 60)
