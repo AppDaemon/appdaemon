@@ -430,6 +430,25 @@ class ADAPI:
         return self._namespace
 
     @utils.sync_wrapper
+    async def namespace_exists(self, namespace):
+        """Checks the existence of a namespace in AppDaemon.
+
+        Args:
+            namespace (str): The namespace to be checked if it exists.
+
+        Returns:
+            bool: ``True`` if the namespace exists, ``False`` otherwise.
+
+        Examples:
+            Check if the namespace ``storage`` exists within AD
+
+            >>> if self.namespace_exists("storage"):
+            >>>     #do something like create it
+
+        """
+        return await self.AD.state.namespace_exists(namespace)
+
+    @utils.sync_wrapper
     async def add_namespace(self, namespace, writeback="safe"):
         """Used to add a user-defined namespaces from apps, which has a database file associated with it.
 
@@ -449,9 +468,9 @@ class ADAPI:
             The file path to the newly created namespace
 
         Examples:
-            create a new namespace called `storage`.
+            Add a new namespace called `storage`.
 
-            >>> self.create_namespace("storage")
+            >>> self.add_namespace("storage")
 
         """
         if namespace == self.get_namespace():  # if it belongs to this app's namespace
@@ -471,7 +490,7 @@ class ADAPI:
             The data within that namespace
 
         Examples:
-            removes the namespace called `storage`.
+            Removes the namespace called `storage`.
 
             >>> self.remove_namespace("storage")
 
