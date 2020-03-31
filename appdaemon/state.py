@@ -508,7 +508,7 @@ class State:
     def set_namespace_state(self, namespace, state, persist=False):
         if persist is True:
             self.add_persistent_namespace(namespace, "safe")
-            self.state[namespace] = state
+            self.state[namespace].update(state)
         else:
             # first in case it had been created before, it should be deleted
             self.remove_persistent_namespace(namespace)
