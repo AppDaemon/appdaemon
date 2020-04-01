@@ -89,7 +89,8 @@ class AdPlugin(PluginBase):
 
         self.subscriptions = args.get("subscriptions")
 
-        self.forward_namespaces = args.get("forward_namespaces")
+        self.forward_namespaces = args.get("forward_namespaces", {})
+        self.forward_namespaces["forwarded_namespaces"] = {}
 
         self.tls_version = args.get("tls_version", "auto")
 
@@ -316,12 +317,6 @@ class AdPlugin(PluginBase):
                 )
 
                 #
-                # check if Local event upload is required and subscribe
-                #
-
-                await self.setup_forward_events()
-
-                #
                 # Finally Loop forever consuming events
                 #
 
@@ -366,7 +361,7 @@ class AdPlugin(PluginBase):
                             ].set()  # time for pickup
 
             except Exception:
-                if self.forward_namespaces is not None:
+                if self.forward_namespaces.get("allow") is True:
                     # remove callback from getting local events
                     await self.AD.callbacks.clear_callbacks(self.name)
 
@@ -404,44 +399,11 @@ class AdPlugin(PluginBase):
                 for subscription in self.subscriptions["event"]:
                     asyncio.ensure_future(self.run_subscription("event", subscription))
 
-    async def setup_forward_events(self):
-        if self.forward_namespaces is not None:
-
-            self.restricted_namespaces = self.forward_namespaces.get(
-                "restricted_namespaces", []
-            )
-
-            if not isinstance(self.restricted_namespaces, list):
-                self.restricted_namespaces = [self.restricted_namespaces]
-
-            self.non_restricted_namespaces = self.forward_namespaces.get(
-                "non_restricted_namespaces", []
-            )
-
-            if not isinstance(self.non_restricted_namespaces, list):
-                self.non_restricted_namespaces = [self.non_restricted_namespaces]
-
-            # register callback to get local stream
-
-            allowed_namespaces = []
-            if self.non_restricted_namespaces != []:  # only allowed namespaces
-                allowed_namespaces.extend(self.non_restricted_namespaces)
-
-            if allowed_namespaces != []:
-                for namespace in allowed_namespaces:
-                    await self.AD.events.add_event_callback(
-                        self.name,
-                        namespace,
-                        self.forward_events,
-                        None,
-                        __silent=True,
-                        __namespace=namespace,
-                    )
-
-            # else:  # subscribe to all events
-            #    await self.AD.events.add_event_callback(self.name, "global", self.forward_events, None, __silent=True, __namespace=namespace)
-
-            # setup to receive instructions for this local instance from the remote one
+        if self.forward_namespaces.get("allow") is True:
+            # meaning it is to forward the stream
+            # so setup to receive instructions for this local instance from the remote one
+            # self.client_name* is used, to make it easy for the far-end to use namespace just
+            # using the client's name
             subscription = {"namespace": f"{self.client_name}*", "event": "*"}
             asyncio.ensure_future(self.run_subscription("event", subscription))
 
@@ -463,8 +425,12 @@ class AdPlugin(PluginBase):
 
         elif data["event_type"] == "get_state":  # get state
             entity_id = data["data"].get("entity_id")
-            namespace = data["data"].get("namespace", local_namespace)
-            res = self.AD.state.get_entity(namespace, entity_id, self.client_name)
+            requested_namespace = data["data"].get(
+                "requested_namespace", local_namespace
+            )
+            res = self.AD.state.get_entity(
+                requested_namespace, entity_id, self.client_name
+            )
             response = "get_state_response"
 
         elif data["event_type"] == "get_services":  # get services
@@ -498,6 +464,40 @@ class AdPlugin(PluginBase):
             )
             response = "call_service_response"
 
+        elif (
+            data["event_type"] == "listen_event"
+        ):  # instruct AD to listen then forward these events
+
+            requested_namespace = data["data"]["requested_namespace"]
+
+            if not isinstance(requested_namespace, list):
+                namespaces = [requested_namespace]
+
+            elif requested_namespace == "global":  # get events from all namespaces
+                namespaces = await self.AD.state.list_namespaces()
+
+            res = await self.setup_forward_events(namespaces)
+            response = "listen_event_response"
+
+        elif (
+            data["event_type"] == "cancel_listen_event"
+        ):  # instruct AD to cancel listen then don't forward these events
+
+            requested_namespace = data["data"]["requested_namespace"]
+
+            if not isinstance(requested_namespace, list):
+                namespaces = [requested_namespace]
+
+            elif requested_namespace == "global":  # get events from all namespaces
+                namespaces = await self.AD.state.list_namespaces()
+
+            for namespace in namespaces:
+                if namespace in self.forward_namespaces["forwarded_namespaces"]:
+                    handle = self.forward_namespaces["forwarded_namespaces"].pop(
+                        namespace
+                    )
+                    await self.AD.events.cancel_event_callback(self.name, handle)
+
         else:
             data["data"]["__AD_ORIGIN"] = self.client_name
 
@@ -518,6 +518,60 @@ class AdPlugin(PluginBase):
                 remote_namespace = f"{self.client_name}_{local_namespace}"
 
             await self.fire_plugin_event(response, remote_namespace, **data)
+
+    async def setup_forward_events(self, namespaces):
+        handles = {}
+        if self.forward_namespaces.get("allow") is True:
+
+            restricted_namespaces = self.forward_namespaces.get(
+                "restricted_namespaces", []
+            )
+
+            if not isinstance(restricted_namespaces, list):
+                restricted_namespaces = [restricted_namespaces]
+
+            non_restricted_namespaces = self.forward_namespaces.get(
+                "non_restricted_namespaces", []
+            )
+
+            if not isinstance(non_restricted_namespaces, list):
+                non_restricted_namespaces = [non_restricted_namespaces]
+
+            # register callback to get local stream
+
+            for namespace in namespaces:
+                # first check if it hasn't subcribed to the namespace before
+                if (
+                    namespace not in self.forward_namespaces["forwarded_namespaces"]
+                    and (
+                        non_restricted_namespaces == []
+                        or (
+                            non_restricted_namespaces != []
+                            and namespace in non_restricted_namespaces
+                        )
+                    )
+                    and (
+                        restricted_namespaces == []
+                        or (
+                            restricted_namespaces != []
+                            and namespace not in restricted_namespaces
+                        )
+                    )
+                    and namespace != "global"
+                ):
+                    handle = await self.AD.events.add_event_callback(
+                        self.name,
+                        namespace,
+                        self.forward_events,
+                        None,
+                        __silent=True,
+                        __namespace=namespace,
+                    )
+
+                    handles[namespace] = handle
+                    self.forward_namespaces["forwarded_namespaces"][namespace] = handle
+
+        return handles
 
     def get_namespace(self):
         return self.namespace
@@ -806,16 +860,6 @@ class AdPlugin(PluginBase):
         if namespace in list(
             self.remote_namespaces.values()
         ):  # meaning it was gotten from remote AD
-            forward = False
-
-        elif self.restricted_namespaces != [] and self.check_namespace(
-            namespace, self.restricted_namespaces
-        ):  # don't pass these ones
-            forward = False
-
-        elif self.non_restricted_namespaces != [] and not self.check_namespace(
-            namespace, self.non_restricted_namespaces
-        ):  # pass these ones
             forward = False
 
         if forward is True:  # it is good to go
