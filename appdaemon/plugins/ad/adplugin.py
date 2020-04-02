@@ -296,6 +296,8 @@ class AdPlugin(PluginBase):
                     if accept is False:  # reject this namespace
                         continue
 
+                    print(ns)
+
                     self.AD.services.register_service(
                         ns, domain, service, self.call_plugin_service
                     )
@@ -382,7 +384,7 @@ class AdPlugin(PluginBase):
                     self.logger.debug("Unexpected error:")
                     self.logger.debug("-" * 60)
                     self.logger.debug(traceback.format_exc())
-                    # print(traceback.format_exc())
+                    print(traceback.format_exc())
                     self.logger.debug("-" * 60)
                     await asyncio.sleep(5)
 
@@ -410,6 +412,8 @@ class AdPlugin(PluginBase):
     async def process_data_from_remote_ad(
         self, local_namespace, remote_namespace, data
     ):
+
+        # for any service requesting data, it should only send forwarded namespaces
         res = None
         response = None
 
@@ -424,23 +428,40 @@ class AdPlugin(PluginBase):
             )
 
         elif data["event_type"] == "get_state":  # get state
+            forwarded_namespaces = list(self.forward_namespaces["forwarded_namespaces"].keys())
             entity_id = data["data"].get("entity_id")
             requested_namespace = data["data"].get(
                 "requested_namespace", local_namespace
             )
-            res = self.AD.state.get_entity(
-                requested_namespace, entity_id, self.client_name
-            )
+
+            if requested_namespace is None:
+                requested_namespace = forwarded_namespaces
+
+            elif not isinstance(remote_namespace, list):
+                requested_namespace = [requested_namespace]
+            
+            states = {}
+            for namespace in requested_namespace:
+                if namespace in forwarded_namespaces:
+                    state = self.AD.state.get_entity(
+                        namespace, entity_id, self.client_name
+                    )
+
+                    states[namespace] = {}
+                    states[namespace].update(state)
+
+            res = states
             response = "get_state_response"
 
         elif data["event_type"] == "get_services":  # get services
+            forwarded_namespaces = list(self.forward_namespaces["forwarded_namespaces"].keys())
             res = []
 
-            for namespace in list(self.remote_namespaces.values()):
+            for namespace in forwarded_namespaces:
                 res.extend(self.AD.services.list_services(namespace))
 
             # now get the local namespace services
-            res.extend(self.AD.services.list_services(self.namespace))
+            # res.extend(self.AD.services.list_services(self.namespace))
 
             response = "get_services_response"
 
@@ -458,10 +479,10 @@ class AdPlugin(PluginBase):
                 domain = data["data"]["domain"]
 
             service_data = data["data"].get("data", {})
-            namespace = data["data"].get("namespace", local_namespace)
             res = await self.AD.services.call_service(
-                namespace, domain, service, service_data
+                local_namespace, domain, service, service_data
             )
+            print(local_namespace, domain, service, service_data, res)
             response = "call_service_response"
 
         elif (
@@ -475,6 +496,9 @@ class AdPlugin(PluginBase):
 
             elif requested_namespace == "global":  # get events from all namespaces
                 namespaces = await self.AD.state.list_namespaces()
+            
+            else:
+                namespaces = requested_namespace
 
             res = await self.setup_forward_events(namespaces)
             response = "listen_event_response"
@@ -490,6 +514,9 @@ class AdPlugin(PluginBase):
 
             elif requested_namespace == "global":  # get events from all namespaces
                 namespaces = await self.AD.state.list_namespaces()
+
+            else:
+                namespaces = requested_namespace
 
             for namespace in namespaces:
                 if namespace in self.forward_namespaces["forwarded_namespaces"]:
@@ -674,6 +701,7 @@ class AdPlugin(PluginBase):
 
         if namespace not in list(self.remote_namespaces.values()):
             self.logger.warning("Unidentified namespace given as %s", namespace)
+            print("call_plugin_service", namespace, domain, service)
             return res
 
         else:
@@ -716,6 +744,7 @@ class AdPlugin(PluginBase):
 
         try:
             data["entity_id"] = entity_id
+            print("set_plugin_state", namespace, entity_id, data)
             res = await self.call_plugin_service(namespace, "state", "set", data)
 
         except Exception:
@@ -742,7 +771,10 @@ class AdPlugin(PluginBase):
             ns = namespace
 
         elif namespace not in list(self.remote_namespaces.values()):
-            self.logger.warning("Unidentified namespace given as %s", namespace)
+            if not  namespace.startswith(self.client_name):
+                self.logger.warning("Unidentified namespace given as %s", namespace)
+
+            print("fire_plugin_event", event, namespace)
             return None
 
         else:
@@ -842,30 +874,46 @@ class AdPlugin(PluginBase):
 
     async def forward_events(self, event, data, kwargs):
         """Callback for event forwarding"""
+        try:
+            if data.get("__AD_ORIGIN") == self.client_name:
+                return  # meaning it should be ignored
 
-        if data.get("__AD_ORIGIN") == self.client_name:
-            return  # meaning it should be ignored
+            namespace = kwargs.get("__namespace")
+            if "namespace" in data:
+                del data["namespace"]
 
-        namespace = kwargs.get("__namespace")
-        if "namespace" in data:
-            del data["namespace"]
+            if event != "__AD_LOG_EVENT":  # this is to avoid a potential loop
+                self.logger.debug(
+                    "forward_events() event=%s namespace=%s data=%s", event, namespace, data
+                )
+            
+            if event == "__AD_ENTITY_ADDED":
+                event = "state_changed"
+                new_state = data["state"]
+                old_state = {}
+                entity_id = data["entity_id"]
 
-        if event != "__AD_LOG_EVENT":  # this is to avoid a potential loop
-            self.logger.debug(
-                "forward_events() event=%s namespace=%s data=%s", event, namespace, data
-            )
+                data = {"entity_id": entity_id, "new_state": new_state, "old_state": old_state}
 
-        forward = True
+            forward = True
 
-        if namespace in list(
-            self.remote_namespaces.values()
-        ):  # meaning it was gotten from remote AD
-            forward = False
+            if namespace not in list(
+                self.forward_namespaces["forwarded_namespaces"].keys()
+            ):  # meaning it was gotten from remote AD
+                forward = False
 
-        if forward is True:  # it is good to go
-            namespace = f"{self.client_name}_{namespace}"
+            if forward is True:  # it is good to go
+                namespace = f"{self.client_name}_{namespace}"
 
-            await self.fire_plugin_event(event, namespace, **data)
+                await self.fire_plugin_event(event, namespace, **data)
+        
+        except Exception:
+            self.logger.debug("-" * 60)
+            self.logger.error("Unexpected error during forward_event()")
+            self.logger.debug("-" * 60)
+            self.logger.debug(traceback.format_exc())
+            print(traceback.format_exc())
+            self.logger.debug("-" * 60)
 
     async def get_ad_state(self, entity_id=None):
         self.logger.debug("get_ad_state()")
@@ -916,14 +964,16 @@ class AdPlugin(PluginBase):
     async def get_ad_services(self):
         self.logger.debug("get_ad_services()")
 
-        services = {}
+        services = []
         request_id = uuid.uuid4().hex
         kwargs = {"request_type": "get_services", "request_id": request_id}
 
         result = await self.process_request(request_id, kwargs)
 
         if result is not None:
-            services = result["data"]
+            for res in result["data"]:
+                if res["namespace"] in list(self.remote_namespaces.keys()):
+                    services.append(res)
 
         return services
 
@@ -985,7 +1035,7 @@ class AdPlugin(PluginBase):
 
         elif namespace.startswith("{}".format(self.client_name)):
             # it is for a local namespace, fired by the remote one
-            local_namespace = namespace.replace("{}".format(self.client_name), "")
+            local_namespace = namespace.replace(self.client_name, "")
 
             # if it is empty
             if local_namespace in ["", "_"]:
