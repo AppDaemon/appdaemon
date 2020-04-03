@@ -31,6 +31,7 @@ Change Log
 - Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
 - Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 - Additional format for time travel start and end times accepted
+- Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
 
 **Fixes**
 
@@ -46,6 +47,7 @@ Change Log
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
+- if using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
 
 None
 

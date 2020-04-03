@@ -28,14 +28,19 @@ class State:
             self.add_persistent_namespace(ns, writeback)
             self.logger.info("User Defined Namespace '%s' initialized", ns)
 
-    async def add_namespace(self, namespace, writeback="safe", name=None):
+    async def add_namespace(self, namespace, writeback, persist, name=None):
         """Used to Add Namespaces from Apps"""
 
         if namespace in self.state:  # it already exists
-            self.logger.warning("Namespace %s already exists", namespace)
+            self.logger.warning("Namespace %s already exists. Cannot process add_namespace from %s", namespace, name)
             return False
 
-        nspath_file = await utils.run_in_executor(self, self.add_persistent_namespace, namespace, writeback)
+        if persist is True:
+            nspath_file = await utils.run_in_executor(self, self.add_persistent_namespace, namespace, writeback)
+
+        else:
+            nspath_file = None
+            self.state[namespace] = {}
 
         self.app_added_namespaces.append(namespace)
 
@@ -91,7 +96,7 @@ class State:
             nspath = os.path.join(self.AD.config_dir, "namespaces")
             safe = bool(writeback == "safe")
 
-            nspath_file = os.path.join(nspath, namespace)
+            nspath_file = os.path.join(nspath, f"{namespace}.db")
             self.state[namespace] = utils.PersistentDict(nspath_file, safe)
 
             self.logger.info("Persistent Namespace '%s' initialized", namespace)
@@ -563,7 +568,9 @@ class State:
             await self.add_entity(namespace, entity_id, state, attributes)
 
         elif service == "add_namespace":
-            await self.add_namespace(namespace, kwargs.get("writeback"))
+            writeback = kwargs.get("writeback")
+            persist = kwargs.get("persist")
+            await self.add_namespace(namespace, writeback, persist, kwargs.get("name"))
 
         elif service == "remove_namespace":
             await self.remove_namespace(namespace)
