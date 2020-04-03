@@ -449,7 +449,7 @@ class ADAPI:
         return await self.AD.state.namespace_exists(namespace)
 
     @utils.sync_wrapper
-    async def add_namespace(self, namespace, writeback="safe"):
+    async def add_namespace(self, namespace, **kwargs):
         """Used to add a user-defined namespaces from apps, which has a database file associated with it.
 
         This way, when AD restarts these entities will be reloaded into AD with its
@@ -462,10 +462,17 @@ class ADAPI:
         Args:
             namespace (str): The namespace to be newly created, which must not be same as the operating namespace
             writeback (optional): The writeback to be used.
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            writeback (str, optional): The writeback to be used. WIll be safe by default
+            persist (bool, optional): If to make the namespace persistent. So if AD reboots
+                it will startup will all the created entities being intact. It is persistent by default
+
 
 
         Returns:
-            The file path to the newly created namespace
+            The file path to the newly created namespace. WIll be None if not persistent
 
         Examples:
             Add a new namespace called `storage`.
@@ -476,7 +483,10 @@ class ADAPI:
         if namespace == self.get_namespace():  # if it belongs to this app's namespace
             raise ValueError("Cannot add namespace with the same name as operating namespace")
 
-        return await self.AD.state.add_namespace(namespace, writeback)
+        writeback = kwargs.get("writeback", "safe")
+        persist = kwargs.get("persist", True)
+
+        return await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
 
     @utils.sync_wrapper
     async def remove_namespace(self, namespace):
