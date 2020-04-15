@@ -11,6 +11,7 @@ import shelve
 import threading
 import datetime
 import dateutil.parser
+import yaml
 import copy
 import json
 from functools import wraps
@@ -264,6 +265,13 @@ def _env_var_yaml(loader, node):
         raise ValueError("{} not found in as environment varibale".format(env_var))
 
     return os.environ[env_var]
+
+
+def write_to_file(yaml_file, **kwargs):
+    """Used to write the app to Yaml file"""
+
+    with open(yaml_file, "w") as stream:
+        yaml.dump(kwargs, stream, Dumper=yaml.SafeDumper)
 
 
 def rreplace(s, old, new, occurrence):
