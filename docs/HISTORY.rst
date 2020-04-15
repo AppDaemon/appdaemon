@@ -32,6 +32,7 @@ Change Log
 - Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 - Additional format for time travel start and end times accepted
 - Moved `appdaemon` services to `admin` namespace
+- Added services for creating, editting, removing, enabling, disabling apps
 
 **Fixes**
 
