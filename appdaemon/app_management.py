@@ -1164,6 +1164,12 @@ class AppManagement:
         try:
             utils.write_to_file(app_file, **new_config)
 
+            data = {
+                "event_type": "app_created",
+                "data": {"app": app, **app_config[app]},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
         except Exception:
             self.error.warning("-" * 60)
             self.error.warning("Unexpected error while writing to file: %s", app_file)
@@ -1200,6 +1206,12 @@ class AppManagement:
         try:
             utils.write_to_file(app_file, **new_config)
 
+            data = {
+                "event_type": "app_edited",
+                "data": {"app": app, **app_config},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
         except Exception:
             self.error.warning("-" * 60)
             self.error.warning("Unexpected error while writing to file: %s", app_file)
@@ -1234,6 +1246,12 @@ class AppManagement:
 
             else:
                 utils.write_to_file(app_file, **file_config)
+
+            data = {
+                "event_type": "app_removed",
+                "data": {"app": app},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
 
         except Exception:
             self.error.warning("-" * 60)
