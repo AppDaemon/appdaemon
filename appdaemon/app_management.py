@@ -1085,6 +1085,7 @@ class AppManagement:
 
         executed = True
         app_file = kwargs.pop("app_file", None)
+        apps_directory = kwargs.pop("app_dir", None)
         app_config = {}
         new_config = OrderedDict()
 
@@ -1121,17 +1122,19 @@ class AppManagement:
             self.logger.info("The given app filename %s doesn't exist, will be creating it", app_file)
 
         if create_file is True:
-            created_apps_directory = os.path.join(self.AD.app_dir, "ad_apps")
-            if not os.path.isdir(created_apps_directory):
+            if apps_directory is None:
+                apps_directory = os.path.join(self.AD.app_dir, "ad_apps")
+
+            if not os.path.isdir(apps_directory):
                 # now create the directory
                 try:
-                    os.mkdir(created_apps_directory)
+                    os.makedirs(apps_directory)
                 except Exception:
-                    self.logger.error("Could not create directory for AD created apps %s", created_apps_directory)
+                    self.logger.error("Could not create directory for AD created apps %s", apps_directory)
                     return False
 
             if app_file is None:
-                app_file = os.path.join(created_apps_directory, f"{app}.yaml")
+                app_file = os.path.join(apps_directory, f"{app}.yaml")
                 self.logger.info("Creating app using filename %s", app_file)
 
             else:
