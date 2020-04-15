@@ -1116,7 +1116,7 @@ class AppManagement:
         if app_file is None:  # no app file given to create one
             create_file = True
 
-        elif app_file is not None and not os.path.isdir(app_file):
+        elif app_file is not None and not os.path.isfile(app_file):
             create_file = True
             self.logger.info("The given app filename %s doesn't exist, will be creating it", app_file)
 
