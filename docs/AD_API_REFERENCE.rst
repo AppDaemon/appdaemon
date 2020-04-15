@@ -139,7 +139,7 @@ AppDaemon has a predefined list of namespaces that can be used only for particul
 
 **app/create**
 
-Used to create a new app. For this service to be used, the module must be existing and provided with the module's class. If no `app` name is given, the module name will be used for as the app's name. The service call also accepts ``app_file`` if wanting to create the app within a certain `yaml` file name. If no file is given, by default the app `yaml` file will be generated in a directory ``ad_apps``, using the app's name. 
+Used to create a new app. For this service to be used, the module must be existing and provided with the module's class. If no `app` name is given, the module name will be used for as the app's name. The service call also accepts ``app_file`` if wanting to create the app within a certain `yaml` file name. If no file is given, by default the app `yaml` file will be generated in a directory ``ad_apps``, using the app's name.
 
 .. code:: python
     data = {}
