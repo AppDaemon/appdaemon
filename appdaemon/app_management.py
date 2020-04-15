@@ -1085,7 +1085,7 @@ class AppManagement:
 
         executed = True
         app_file = kwargs.pop("app_file", None)
-        apps_directory = kwargs.pop("app_dir", None)
+        app_directory = kwargs.pop("app_dir", None)
         app_config = {}
         new_config = OrderedDict()
 
@@ -1122,36 +1122,32 @@ class AppManagement:
             self.logger.info("The given app filename %s doesn't exist, will be creating it", app_file)
 
         if create_file is True:
-            if apps_directory is None:
-                apps_directory = os.path.join(self.AD.app_dir, "ad_apps")
+            if app_directory is None:
+                app_directory = os.path.join(self.AD.app_dir, "ad_apps")
 
-            if not os.path.isdir(apps_directory):
-                # now create the directory
-                try:
-                    os.makedirs(apps_directory)
-                except Exception:
-                    self.logger.error("Could not create directory for AD created apps %s", apps_directory)
-                    return False
+            else:
+                app_directory = os.path.join(self.AD.app_dir, app_directory)
 
             if app_file is None:
-                app_file = os.path.join(apps_directory, f"{app}.yaml")
+                app_file = os.path.join(app_directory, f"{app}.yaml")
                 self.logger.info("Creating app using filename %s", app_file)
 
             else:
+                if app_file[4:] != ".yaml":
+                    app_file = f"{app_file}.yaml"
+
+                app_file = os.path.join(app_directory, app_file)
+
+                # in case the given app_file is multi level
+                filename = app_file.split("/")[-1]
+                app_directory = app_file.replace(f"/{filename}", "")
+
+            if not os.path.isdir(app_directory):
+                # now create the directory
                 try:
-                    filename = app_file.split("/")[-1]
-                    app_directory = app_file.replace(f"/{filename}", "")
-
-                    if not os.path.isdir(app_directory):
-                        # the directory doesn't exist, so need to be created
-                        os.makedirs(app_directory)
-
+                    os.makedirs(app_directory)
                 except Exception:
-                    self.error.warning("-" * 60)
-                    self.error.warning("Unexpected error while creating directory for file: %s", app_file)
-                    self.error.warning("-" * 60)
-                    self.error.warning(traceback.format_exc())
-                    self.error.warning("-" * 60)
+                    self.logger.error("Could not create directory %s", app_directory)
                     return False
 
         elif os.path.isfile(app_file):
