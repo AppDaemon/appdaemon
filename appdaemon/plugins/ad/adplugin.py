@@ -296,8 +296,6 @@ class AdPlugin(PluginBase):
                     if accept is False:  # reject this namespace
                         continue
 
-                    print(ns)
-
                     self.AD.services.register_service(
                         ns, domain, service, self.call_plugin_service
                     )
@@ -384,7 +382,7 @@ class AdPlugin(PluginBase):
                     self.logger.debug("Unexpected error:")
                     self.logger.debug("-" * 60)
                     self.logger.debug(traceback.format_exc())
-                    print(traceback.format_exc())
+                    #print(traceback.format_exc())
                     self.logger.debug("-" * 60)
                     await asyncio.sleep(5)
 
@@ -915,7 +913,7 @@ class AdPlugin(PluginBase):
             print(traceback.format_exc())
             self.logger.debug("-" * 60)
 
-    async def get_ad_state(self, entity_id=None):
+    async def get_ad_state(self):
         self.logger.debug("get_ad_state()")
 
         state = {}
@@ -977,7 +975,7 @@ class AdPlugin(PluginBase):
 
         return services
 
-    async def process_request(self, request_id, data):
+    async def process_request(self, request_id, data, wait=5.0):
         res = None
         result = None
 
@@ -995,7 +993,7 @@ class AdPlugin(PluginBase):
 
             try:
                 await asyncio.wait_for(
-                    self.stream_results[request_id]["event"].wait(), 5.0
+                    self.stream_results[request_id]["event"].wait(), wait
                 )
                 res = self.stream_results[request_id].pop("response")
 
