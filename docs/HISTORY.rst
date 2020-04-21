@@ -43,6 +43,7 @@ Change Log
 - Fix tzdata error in docker build for RPI - contributed by `Guy Khmelnitsky <https://github.com/GuyKh>`__
 - Fix for `get_tz_offset()` not working in some circumstances - contributed by `sillyfrog <https://github.com/sillyfrog>`__
 - Added some locking to prevent array size change errors
+- Fix for registering services created in HA, after it had started
 
 **Breaking Changes**
 
