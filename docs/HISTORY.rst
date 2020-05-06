@@ -47,6 +47,7 @@ Change Log
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
+- if using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
 
 None
 
