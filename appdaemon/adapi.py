@@ -2727,7 +2727,71 @@ class ADAPI:
     #
 
     async def run_in_executor(self, func, *args, **kwargs):
+        """Runs a Sync function from within an Async function using Executor threads.
+            The function is actually awaited during execution
+        Args:
+            func: The function to be executed.
+            *args (optional): Any additional arguments to be used by the function
+            **kwargs (optional): Any additional keyword arguments to be used by the function
+        Returns:
+            None
+        Examples:
+            >>> await self.run_in_executor(self.run_request)
+        """
         return await utils.run_in_executor(self, func, *args, **kwargs)
+
+    def submit_to_executor(self, func, *args, **kwargs):
+        """Submits a Sync function from within another Sync function to be executed using Executor threads.
+            The function is not waited to be executed. As it submits and continues the rest of the code.
+            This can be useful if wanting to execute a long running code, and don't want it to hold up the
+            thread for other callbacks.
+        Args:
+            func: The function to be executed.
+            *args (optional): Any additional arguments to be used by the function
+            **kwargs (optional): Any additional keyword arguments to be used by the function.
+            Part of the keyword arguments will be the ``callback``, which will be ran when the function has completed execution
+        Returns:
+            A Future, which can be cancelled by calling f.cancel().
+        Examples:
+            >>> f = self.submit_to_executor(self.run_request, callback=self.callback)
+            >>>
+            >>> def callback(self, kwargs):
+        """
+
+        callback = kwargs.pop("callback", None)
+
+        # get stuff we'll need to fake scheduler call
+        sched_data = {
+            "id": uuid.uuid4().hex,
+            "name": self.name,
+            "objectid": self.AD.app_management.objects[self.name]["id"],
+            "type": "scheduler",
+            "function": callback,
+            "pin_app": self.get_app_pin(),
+            "pin_thread": self.get_pin_thread(),
+        }
+
+        def callback_inner(f):
+            try:
+                # TODO: use our own callback type instead of borrowing
+                # from scheduler
+                rargs = {}
+                rargs["result"] = f.result()
+                sched_data["kwargs"] = rargs
+                self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
+
+                # callback(f.result(), kwargs)
+            except Exception as e:
+                self.error(e, level="ERROR")
+
+        f = self.AD.executor.submit(func, *args, **kwargs)
+
+        if callback is not None:
+            self.logger.debug("Adding add_done_callback for future %s for %s", f, self.name)
+            f.add_done_callback(callback_inner)
+
+        self.AD.futures.add_future(self.name, f)
+        return f
 
     @utils.sync_wrapper
     async def create_task(self, coro, callback=None, **kwargs):
@@ -2772,7 +2836,7 @@ class ADAPI:
 
         f = asyncio.ensure_future(coro)
         if callback is not None:
-            self.logger.debug("Adding add_done_callback for coro %s for %s", f, self.name)
+            self.logger.debug("Adding add_done_callback for future %s for %s", f, self.name)
             f.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, f)
