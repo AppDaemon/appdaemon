@@ -126,6 +126,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
             >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
 
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard = 'homeassistant/+/motion')
+
             Listen events for binary payload
 
             >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic = 'hermes/audioServer/#', _binary = True)
