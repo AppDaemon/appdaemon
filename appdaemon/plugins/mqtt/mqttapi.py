@@ -160,7 +160,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
             else:
 
-                if topic in plugin.mqtt_binary_topics:
+                if topic is not None and hasattr(plugin, "mqtt_binary_topics") and topic in plugin.mqtt_binary_topics:
                     self.logger.debug("Removing topic %s, from binary payload topics", topic)
                     plugin.remove_mqtt_binary(topic)
 
