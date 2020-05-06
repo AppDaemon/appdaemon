@@ -149,19 +149,20 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         plugin = await self.AD.plugins.get_plugin_object(namespace)
         topic = kwargs.get("topic", kwargs.get("wildcard"))
 
-        if kwargs.pop("_binary", None) is True:
-            if topic is not None:
-                self.logger.debug("Adding topic %s, to binary payload topics", topic)
-                plugin.add_mqtt_binary(topic)
+        if plugin is not None:
+            if kwargs.pop("_binary", None) is True:
+                if topic is not None:
+                    self.logger.debug("Adding topic %s, to binary payload topics", topic)
+                    plugin.add_mqtt_binary(topic)
+
+                else:
+                    self.logger.warning("Cannot register for binary data, since no topic nor wildcard given")
 
             else:
-                self.logger.warning("Cannot register for binary data, since no topic nor wildcard given")
 
-        else:
-
-            if topic in plugin.mqtt_binary_topics:
-                self.logger.debug("Removing topic %s, from binary payload topics", topic)
-                plugin.remove_mqtt_binary(topic)
+                if topic in plugin.mqtt_binary_topics:
+                    self.logger.debug("Removing topic %s, from binary payload topics", topic)
+                    plugin.remove_mqtt_binary(topic)
 
         return super(Mqtt, self).listen_event(callback, event, **kwargs)
 
