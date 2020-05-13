@@ -88,7 +88,13 @@ function baseselect(widget_id, url, skin, parameters)
             if (self.initial != 1)
             {
                 args = self.parameters.post_service;
-                args["option"] = self.state;
+
+                if (args.service == "state/set"){
+                    args["state"] = self.state;
+                }
+
+                else args["option"] = self.state;
+                
                 self.call_service(self, args)
             }
             else
