@@ -94,7 +94,7 @@ function baseselect(widget_id, url, skin, parameters)
                 }
 
                 else args["option"] = self.state;
-                
+
                 self.call_service(self, args)
             }
             else
