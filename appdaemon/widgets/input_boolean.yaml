@@ -4,10 +4,10 @@ state_active: "on"
 state_inactive: "off"
 enable: 1
 post_service_active:
-    service: homeassistant/turn_on
+    service: input_boolean/turn_on
     entity_id: "{{entity}}"
 post_service_inactive:
-    service: homeassistant/turn_off
+    service: input_boolean/turn_off
     entity_id: "{{entity}}"
 fields:
   title: "{{title}}"
