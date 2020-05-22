@@ -126,6 +126,11 @@ class DbPlugin(PluginBase):
         first_time = True
         self.reading = False
         self._event = asyncio.Event()
+        if self.connection_url.startswith("sqlite:///"): #sqlite in use, so lock required
+            self._lock = asyncio.Lock() # lock will be used to access the connection
+        
+        else:
+            self._lock = None
 
         # set to continue
         self._event.set()
@@ -213,7 +218,7 @@ class DbPlugin(PluginBase):
                         self.logger.error("-" * 60)
 
                         kwargs["state"] = "disconnected"
-                
+
                     await self.state_update(entity_id, kwargs, not first_time)
 
                 if len(self.database_connections) > 0:  # at least 1 of them connected
@@ -254,16 +259,19 @@ class DbPlugin(PluginBase):
                                     __namespace=_namespace,
                                 )
 
-                                if self.tables[_namespace] is not None and "events" in self.tables[_namespace]:
+                                if (
+                                    self.tables[_namespace] is not None
+                                    and "events" in self.tables[_namespace]
+                                ):
                                     for event in self.tables[_namespace]["events"]:
                                         await self.AD.events.add_event_callback(
-                                        self.name,
-                                        _namespace,
-                                        self.event_callback,
-                                        event,
-                                        __silent=True,
-                                        __namespace=_namespace,
-                                    )
+                                            self.name,
+                                            _namespace,
+                                            self.event_callback,
+                                            event,
+                                            __silent=True,
+                                            __namespace=_namespace,
+                                        )
 
                             else:  # it didn't create the table as requested
                                 await self.database_connections[
@@ -281,10 +289,16 @@ class DbPlugin(PluginBase):
                         self.namespace, "database", "execute", self.call_plugin_service
                     )
                     self.AD.services.register_service(
-                        self.namespace, "database", "fetch_one", self.call_plugin_service
+                        self.namespace,
+                        "database",
+                        "fetch_one",
+                        self.call_plugin_service,
                     )
                     self.AD.services.register_service(
-                        self.namespace, "database", "fetch_all", self.call_plugin_service
+                        self.namespace,
+                        "database",
+                        "fetch_all",
+                        self.call_plugin_service,
                     )
                     self.AD.services.register_service(
                         self.namespace, "database", "create", self.call_plugin_service
@@ -293,7 +307,10 @@ class DbPlugin(PluginBase):
                         self.namespace, "database", "drop", self.call_plugin_service
                     )
                     self.AD.services.register_service(
-                        self.namespace, "database", "get_history", self.call_plugin_service
+                        self.namespace,
+                        "database",
+                        "get_history",
+                        self.call_plugin_service,
                     )
                     self.AD.services.register_service(
                         self.namespace, "server", "execute", self.call_plugin_service
@@ -369,7 +386,7 @@ class DbPlugin(PluginBase):
 
             elif service == "fetch_one":
                 res = await self.database_fetch(database, query, values, "one")
-            
+
             elif service == "fetch_all":
                 res = await self.database_fetch(database, query, values, "all")
 
@@ -390,7 +407,7 @@ class DbPlugin(PluginBase):
                         "Cannot drop Database %s, as it doesn't exists", database
                     )
                     return
-                
+
                 elif self.tables != {} and database == "appdaemon":
                     self.logger.warning(
                         "Cannot drop Database %s, as it used by AD", database
@@ -418,7 +435,9 @@ class DbPlugin(PluginBase):
                     if entity_id in self.state:
                         del self.state[entity_id]
 
-                    self.logger.info("Removal of the Database %s was successful", database)
+                    self.logger.info(
+                        "Removal of the Database %s was successful", database
+                    )
 
                 except Exception as e:
                     self.logger.error("-" * 60)
@@ -426,7 +445,7 @@ class DbPlugin(PluginBase):
                     self.logger.error(e)
                     self.logger.debug(traceback.format_exc())
                     self.logger.error("-" * 60)
-            
+
             elif service == "get_history":
                 return await self.get_history(**kwargs)
 
@@ -481,6 +500,10 @@ class DbPlugin(PluginBase):
         """Used to execute a database query"""
 
         executed = False
+
+        if self._lock is not None: # means sqlite used
+            await self._lock.acquire()
+
         try:
             if database not in self.database_connections:
                 self.logger.warning(
@@ -513,8 +536,8 @@ class DbPlugin(PluginBase):
             ):  # its an internal error. Possible connection lost so will need to be restarted
                 del self.database_connections[database]
                 self._event.set()  # continue to process connection
-                entity_id = f"database.{database.lower()}"   
-                await self.state_update(entity_id, {"state" : "disconnected"})
+                entity_id = f"database.{database.lower()}"
+                await self.state_update(entity_id, {"state": "disconnected"})
 
         except Exception as e:
             self.logger.error("-" * 60)
@@ -523,6 +546,10 @@ class DbPlugin(PluginBase):
             self.logger.error(e)
             self.logger.debug(traceback.format_exc())
             self.logger.error("-" * 60)
+        
+        finally:
+            if self._lock is not None: # means sqlite used
+                self._lock.release()
 
         return executed
 
@@ -530,6 +557,9 @@ class DbPlugin(PluginBase):
         """Used to fetch data from a database"""
 
         res = None
+
+        if self._lock is not None: # means sqlite used
+            await self._lock.acquire()
 
         try:
             if database not in self.database_connections:
@@ -555,8 +585,8 @@ class DbPlugin(PluginBase):
             ):  # its an internal error. Possible connection lost so will need to be restarted
                 del self.database_connections[database]
                 self._event.set()  # continue to process connection
-                entity_id = f"database.{database.lower()}"   
-                await self.state_update(entity_id, {"state" : "disconnected"})
+                entity_id = f"database.{database.lower()}"
+                await self.state_update(entity_id, {"state": "disconnected"})
 
         except Exception as e:
             self.logger.error("-" * 60)
@@ -565,6 +595,10 @@ class DbPlugin(PluginBase):
             self.logger.error(e)
             self.logger.debug(traceback.format_exc())
             self.logger.error("-" * 60)
+        
+        finally:
+            if self._lock is not None: # means sqlite used
+                self._lock.release()
 
         return res
 
@@ -580,7 +614,7 @@ class DbPlugin(PluginBase):
                 self.logger.error(e)
                 self.logger.debug(traceback.format_exc())
                 self.logger.error("-" * 60)
-    
+
     async def get_history(self, **kwargs):
         """Get the history of data from the database"""
 
@@ -593,7 +627,7 @@ class DbPlugin(PluginBase):
         table = kwargs.get("table")
 
         # first process time interval of the request
-        if days is None and start_time is None and end_time is None: # nothing provided
+        if days is None and start_time is None and end_time is None:  # nothing provided
             raise ValueError("Provided either days, start_time or end_time")
 
         if start_time is not None:
@@ -612,7 +646,7 @@ class DbPlugin(PluginBase):
             else:
                 raise ValueError("Invalid type for end time")
 
-        if days is not None:    
+        if days is not None:
             # if starttime is declared and end_time is not declared, and days specified
             if start_time is not None and end_time is None:
                 end_time = start_time + datetime.timedelta(days=days)
@@ -627,27 +661,29 @@ class DbPlugin(PluginBase):
 
         if isinstance(table, str):
             table = table.split(",")
-        
+
         elif table is None:
             list(self.tables.keys())
 
         for tab in table:
-            r = {} # story data
+            r = {}  # story data
             tab = tab.strip()
             r[tab] = []
             values = {}
             query = f"SELECT * FROM {tab} "
 
-            # decide if to get the 
+            # decide if to get the
             if entity_id is not None:
                 query = query + "WHERE entity_id = :entity_id "
                 values["entity_id"] = entity_id
-            
+
             elif event is not None:
                 query = query + "WHERE event_type = :event "
                 values["event"] = event
-            
-            if "entity_id" not in values and "event" not in values: #one of them was seen            
+
+            if (
+                "entity_id" not in values and "event" not in values
+            ):  # one of them was seen
                 values = None
 
             start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -655,11 +691,14 @@ class DbPlugin(PluginBase):
 
             if "WHERE" in query:
                 query = query + "AND "
-            
+
             else:
                 query = query + "WHERE "
 
-            query = query + f"timestamp BETWEEN '{start_time}' AND '{end_time}' ORDER BY timestamp"
+            query = (
+                query
+                + f"timestamp BETWEEN '{start_time}' AND '{end_time}' ORDER BY timestamp"
+            )
             results = await self.database_fetch("appdaemon", query, values)
 
             # now process result
@@ -669,7 +708,7 @@ class DbPlugin(PluginBase):
                     r[tab].append(json.loads(result[3]))
 
             res.append(r)
-        
+
         return res
 
     async def event_callback(self, event, data, kwargs):
@@ -679,7 +718,7 @@ class DbPlugin(PluginBase):
         ts = await self.AD.sched.get_now()
 
         ts = ts.strftime("%Y-%m-%d %H:%M:%S")
-        
+
         if event == "state_changed":
             entity_id = data["entity_id"]
 
@@ -701,7 +740,7 @@ class DbPlugin(PluginBase):
                 "data": json.dumps(new_state),
                 "timestamp": ts,
             }
-        
+
         else:
             query = f"""INSERT INTO {_namespace}
                     (event_type, data, timestamp) 
@@ -772,7 +811,7 @@ class DbPlugin(PluginBase):
 
             new_state = copy.deepcopy(old_state)
 
-            if "attributes" not in new_state: #just to ensure
+            if "attributes" not in new_state:  # just to ensure
                 new_state["attributes"] = {}
 
             if "state" in kwargs:
@@ -785,23 +824,34 @@ class DbPlugin(PluginBase):
             else:
                 new_state["attributes"].update(kwargs)
 
-            if "_local" in new_state["attributes"]: #check if there is local flag
-                del new_state["attributes"]["_local"] #delete it
+            if "_local" in new_state["attributes"]:  # check if there is local flag
+                del new_state["attributes"]["_local"]  # delete it
 
             try:
-                last_changed = utils.dt_to_str((await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz) #possible AD isn"t ready at this point
+                last_changed = utils.dt_to_str(
+                    (await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz
+                )  # possible AD isn"t ready at this point
             except:
                 last_changed = None
-            
+
             new_state["last_changed"] = last_changed
 
-            if notified is True: # AD had been updated of this namespace
-                data = {"event_type": "state_changed", "data": {"entity_id": entity_id, "new_state": new_state, "old_state": old_state}}
+            if notified is True:  # AD had been updated of this namespace
+                data = {
+                    "event_type": "state_changed",
+                    "data": {
+                        "entity_id": entity_id,
+                        "new_state": new_state,
+                        "old_state": old_state,
+                    },
+                }
 
-                await self.AD.events.process_event(self.namespace, data) #this is put ahead, to ensure integrity of the data. Breaks if not
+                await self.AD.events.process_event(
+                    self.namespace, data
+                )  # this is put ahead, to ensure integrity of the data. Breaks if not
 
             self.state[entity_id].update(new_state)
-        
+
         except Exception as e:
             self.logger.error("-" * 60)
             self.logger.error("-" * 60)
