@@ -23,6 +23,7 @@ class DbPlugin(PluginBase):
         self.name = name
         self.initialized = False
         self.state = {}
+        self._lock = None
 
         if "namespace" in self.config:
             self.namespace = self.config["namespace"]
@@ -126,11 +127,9 @@ class DbPlugin(PluginBase):
         first_time = True
         self.reading = False
         self._event = asyncio.Event()
+
         if self.connection_url.startswith("sqlite:///"): #sqlite in use, so lock required
-            self._lock = asyncio.Lock() # lock will be used to access the connection
-        
-        else:
-            self._lock = None
+            self._lock = {}
 
         # set to continue
         self._event.set()
@@ -163,6 +162,8 @@ class DbPlugin(PluginBase):
                             )
 
                             self.database_connections[database] = Database(database_url)
+
+                            self._lock[database] = asyncio.Lock() # lock will be used to access the connection
 
                         else:
                             # first will need confirmation that the database exists, so attempt creating it
@@ -207,6 +208,9 @@ class DbPlugin(PluginBase):
                     except Exception as e:
                         if database in self.database_connections:
                             del self.database_connections[database]
+
+                            if self._lock is not None and database in self._lock:
+                                del self._lock[database]
 
                         self.logger.error("-" * 60)
                         self.logger.error(
@@ -426,6 +430,9 @@ class DbPlugin(PluginBase):
 
                         if os.path.isfile(database_url):
                             os.remove(database_url)
+                        
+                        if database in self._lock:
+                            del self._lock[database]
 
                     await self.database_connections[database].disconnect()
                     del self.database_connections[database]
@@ -502,7 +509,7 @@ class DbPlugin(PluginBase):
         executed = False
 
         if self._lock is not None: # means sqlite used
-            await self._lock.acquire()
+            await self._lock[database].acquire()
 
         try:
             if database not in self.database_connections:
@@ -549,7 +556,7 @@ class DbPlugin(PluginBase):
         
         finally:
             if self._lock is not None: # means sqlite used
-                self._lock.release()
+                self._lock[database].release()
 
         return executed
 
@@ -559,7 +566,7 @@ class DbPlugin(PluginBase):
         res = None
 
         if self._lock is not None: # means sqlite used
-            await self._lock.acquire()
+            await self._lock[database].acquire()
 
         try:
             if database not in self.database_connections:
@@ -598,7 +605,7 @@ class DbPlugin(PluginBase):
         
         finally:
             if self._lock is not None: # means sqlite used
-                self._lock.release()
+                self._lock[database].release()
 
         return res
 
