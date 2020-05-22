@@ -644,7 +644,7 @@ class DbPlugin(PluginBase):
                 values["entity_id"] = entity_id
             
             elif event is not None:
-                query = query + "WHERE event = :event "
+                query = query + "WHERE event_type = :event "
                 values["event"] = event
             
             if "entity_id" not in values and "event" not in values: #one of them was seen            
@@ -653,12 +653,20 @@ class DbPlugin(PluginBase):
             start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
             end_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
 
-            query = query + f"AND timestamp BETWEEN '{start_time}' AND '{end_time}' ORDER BY timestamp"
+            if "WHERE" in query:
+                query = query + "AND "
+            
+            else:
+                query = query + "WHERE "
+
+            query = query + f"timestamp BETWEEN '{start_time}' AND '{end_time}' ORDER BY timestamp"
             results = await self.database_fetch("appdaemon", query, values)
 
             # now process result
-            for result in results:
-                r[tab].append(json.loads(result[3]))
+
+            if results is not None:
+                for result in results:
+                    r[tab].append(json.loads(result[3]))
 
             res.append(r)
         
