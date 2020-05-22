@@ -127,8 +127,10 @@ class Db(adbase.ADBase, adapi.ADAPI):
         """
 
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         
-        await self.call_service("database/execute", databse=database, query=query, **kwargs)
+        await self.call_service("database/execute", databse=database, query=query, namespace=namespace, **kwargs)
         
         return None
 
@@ -158,8 +160,10 @@ class Db(adbase.ADBase, adapi.ADAPI):
         """
 
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         
-        return await self.call_service("database/fetch_one", database=database, query=query, **kwargs)
+        return await self.call_service("database/fetch_one", database=database, query=query, namespace=namespace, **kwargs)
 
     @utils.sync_wrapper
     async def database_fetch_all(self, database, query, **kwargs):
@@ -187,5 +191,7 @@ class Db(adbase.ADBase, adapi.ADAPI):
         """
 
         namespace = self._get_namespace(**kwargs)
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
         
-        return await self.call_service("database/fetch_all", database=database, query=query, **kwargs)
+        return await self.call_service("database/fetch_all", database=database, query=query, namespace=namespace, **kwargs)
