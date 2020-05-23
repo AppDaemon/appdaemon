@@ -61,7 +61,7 @@ class DbPlugin(PluginBase):
 
                 except Exception:
                     raise Exception(
-                        "Cannot create directory %s for database", connection_url
+                        "Cannot create directory %s for database", connection_url,
                     )
 
             self.connection_url = f"sqlite:///{connection_url}"
@@ -140,7 +140,8 @@ class DbPlugin(PluginBase):
         while not self.stopping:
             await self._event.wait()
             while len(self.databases) != len(self.database_connections):
-                # now create the connection to the databases, and store the connections
+                # now create the connection to the databases
+                # and store the connections
                 for database in self.databases:
                     if database in self.database_connections:
                         continue
@@ -161,7 +162,7 @@ class DbPlugin(PluginBase):
                                 self.connection_url, f"{database}.db"
                             )
                             self.logger.debug(
-                                "Creating connection to Database %s", database_url
+                                "Creating connection to Database %s", database_url,
                             )
 
                             self.database_connections[database] = Database(database_url)
@@ -173,11 +174,14 @@ class DbPlugin(PluginBase):
                             )  # lock will be used to access the connection
 
                         else:
-                            # first will need confirmation that the database exists, so attempt creating it
+                            # first will need confirmation
+                            # that the database exists,
+                            # so attempt creating it
                             try:
                                 async with Database(self.connection_url) as connection:
                                     await connection.execute(
-                                        query=f"CREATE DATABASE IF NOT EXISTS {database}"
+                                        query=f"""CREATE DATABASE IF NOT EXISTS
+                                                {database}"""
                                     )
 
                             except SQLERR.ProgrammingError as p:
@@ -189,7 +193,7 @@ class DbPlugin(PluginBase):
 
                             database_url = f"{self.connection_url}/{database}"
                             self.logger.debug(
-                                "Creating connection to Database %s", database_url
+                                "Creating connection to Database %s", database_url,
                             )
 
                             prams = {}
@@ -221,7 +225,7 @@ class DbPlugin(PluginBase):
 
                         self.logger.error("-" * 60)
                         self.logger.error(
-                            "Could not setup connection to database %s", database_url
+                            "Could not setup connection to database %s", database_url,
                         )
                         self.logger.error("-" * 60)
                         self.logger.error(e)
@@ -242,18 +246,18 @@ class DbPlugin(PluginBase):
                         for _namespace in self.tables:
                             if self.connection_url.startswith("sqlite:///"):
                                 query = f"""CREATE TABLE IF NOT EXISTS {_namespace} (
-                                        event_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+                                        event_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                         event_type VARCHAR(100),
-                                        entity_id VARCHAR(100), 
-                                        data TEXT(10000), 
+                                        entity_id VARCHAR(100),
+                                        data TEXT(10000),
                                         timestamp TIMESTAMP)"""
 
                             else:
                                 query = f"""CREATE TABLE IF NOT EXISTS {_namespace} (
-                                        event_id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, 
+                                        event_id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
                                         event_type VARCHAR(100),
-                                        entity_id VARCHAR(100), 
-                                        data TEXT(10000), 
+                                        entity_id VARCHAR(100),
+                                        data TEXT(10000),
                                         timestamp TIMESTAMP)"""
 
                             executed = await self.database_execute(
@@ -266,7 +270,9 @@ class DbPlugin(PluginBase):
                                         self.name, self._handles[_namespace]
                                     )
 
-                                self._handles[_namespace] = await self.AD.events.add_event_callback(
+                                self._handles[
+                                    _namespace
+                                ] = await self.AD.events.add_event_callback(
                                     self.name,
                                     _namespace,
                                     self.event_callback,
@@ -286,7 +292,9 @@ class DbPlugin(PluginBase):
                                     )
 
                                     # listen to everything in that namespace
-                                    self._handles[_namespace] = await self.AD.events.add_event_callback(
+                                    self._handles[
+                                        _namespace
+                                    ] = await self.AD.events.add_event_callback(
                                         self.name,
                                         _namespace,
                                         self.event_callback,
@@ -308,7 +316,7 @@ class DbPlugin(PluginBase):
                         break
 
                     self.AD.services.register_service(
-                        self.namespace, "database", "execute", self.call_plugin_service
+                        self.namespace, "database", "execute", self.call_plugin_service,
                     )
                     self.AD.services.register_service(
                         self.namespace,
@@ -323,10 +331,10 @@ class DbPlugin(PluginBase):
                         self.call_plugin_service,
                     )
                     self.AD.services.register_service(
-                        self.namespace, "database", "create", self.call_plugin_service
+                        self.namespace, "database", "create", self.call_plugin_service,
                     )
                     self.AD.services.register_service(
-                        self.namespace, "database", "drop", self.call_plugin_service
+                        self.namespace, "database", "drop", self.call_plugin_service,
                     )
                     self.AD.services.register_service(
                         self.namespace,
@@ -335,10 +343,10 @@ class DbPlugin(PluginBase):
                         self.call_plugin_service,
                     )
                     self.AD.services.register_service(
-                        self.namespace, "server", "execute", self.call_plugin_service
+                        self.namespace, "server", "execute", self.call_plugin_service,
                     )
                     self.AD.services.register_service(
-                        self.namespace, "server", "fetch", self.call_plugin_service
+                        self.namespace, "server", "fetch", self.call_plugin_service,
                     )
 
                     states = await self.get_complete_state()
@@ -353,6 +361,8 @@ class DbPlugin(PluginBase):
 
                     first_time = False
                     already_notified = False
+
+                    asyncio.ensure_future(self.check_database_sizes())
 
                 elif len(self.database_connections) == 0 and already_notified is False:
                     await self.AD.plugins.notify_plugin_stopped(
@@ -415,7 +425,7 @@ class DbPlugin(PluginBase):
             elif service == "create":
                 if database in self.databases:
                     self.logger.warning(
-                        "Cannot create Database %s, as it already exists", database
+                        "Cannot create Database %s, as it already exists", database,
                     )
                     return
 
@@ -426,7 +436,7 @@ class DbPlugin(PluginBase):
             elif service == "drop":
                 if database not in self.databases:
                     self.logger.warning(
-                        "Cannot drop Database %s, as it doesn't exists", database
+                        "Cannot drop Database %s, as it doesn't exists", database,
                     )
                     return
 
@@ -436,7 +446,7 @@ class DbPlugin(PluginBase):
                     )
                     return
 
-                await self.database_drop(database)
+                await self.database_drop(database, kwargs.get("clean", False))
 
             elif service == "get_history":
                 return await self.get_history(**kwargs)
@@ -473,7 +483,7 @@ class DbPlugin(PluginBase):
                     await connection.execute(query=query)
 
             except Exception as e:
-                execute = False
+                executed = False
                 self.logger.error("-" * 60)
                 self.logger.error("Could not create Database for %s", database)
                 self.logger.error("-" * 60)
@@ -503,8 +513,10 @@ class DbPlugin(PluginBase):
                 database_path = self.connection_url.replace("sqlite:///", "")
                 database_url = os.path.join(database_path, f"{database}.db")
 
-                if clean and os.path.isfile(database_url):
-                    os.remove(database_url)
+                if clean and await utils.run_in_executor(
+                    self, os.path.isfile, database_url
+                ):
+                    await utils.run_in_executor(self, os.remove, database_url)
 
                 if database in self._lock:
                     del self._lock[database]
@@ -609,9 +621,8 @@ class DbPlugin(PluginBase):
         except SQLERR.InternalError as i:
             self.logger.critical(i)
 
-            if (
-                i.args[0] == 1049
-            ):  # its an internal error. Possible connection lost so will need to be restarted
+            if i.args[0] == 1049:  # its an internal error.
+                # Possible connection lost so will need to be restarted
                 del self.database_connections[database]
                 self._event.set()  # continue to process connection
                 entity_id = f"database.{database.lower()}"
@@ -676,11 +687,13 @@ class DbPlugin(PluginBase):
                 raise ValueError("Invalid type for end time")
 
         if days is not None:
-            # if starttime is declared and end_time is not declared, and days specified
+            # if starttime is declared and end_time is not declared,
+            # and days specified
             if start_time is not None and end_time is None:
                 end_time = start_time + datetime.timedelta(days=days)
 
-            # if endtime is declared and start_time is not declared, and days specified
+            # if endtime is declared and start_time is not declared,
+            # and days specified
             elif end_time is not None and start_time is None:
                 start_time = end_time - datetime.timedelta(days=days)
 
@@ -726,7 +739,8 @@ class DbPlugin(PluginBase):
 
             query = (
                 query
-                + f"timestamp BETWEEN '{start_time}' AND '{end_time}' ORDER BY timestamp"
+                + f"""timestamp BETWEEN '{start_time}'
+                    AND '{end_time}' ORDER BY timestamp"""
             )
             results = await self.database_fetch("appdaemon", query, values)
 
@@ -761,10 +775,8 @@ class DbPlugin(PluginBase):
 
             state = await self.process_entity_id(_namespace, entity_id, new_state)
 
-            print(state)
-
             query = f"""INSERT INTO {_namespace}
-                    (event_type, entity_id, data, timestamp) 
+                    (event_type, entity_id, data, timestamp)
                     VALUES (:event_type, :entity_id, :data, :timestamp)"""
 
             values = {
@@ -778,10 +790,8 @@ class DbPlugin(PluginBase):
             if not await self.check_event(_namespace, event):  # should not be stored
                 return
 
-            print(event)
-
             query = f"""INSERT INTO {_namespace}
-                    (event_type, data, timestamp) 
+                    (event_type, data, timestamp)
                     VALUES (:event_type, :data, :timestamp)"""
 
             values = {
@@ -903,6 +913,52 @@ class DbPlugin(PluginBase):
 
         return new_state
 
+    async def check_database_sizes(self):
+        """Used to check database size every hour"""
+
+        await asyncio.sleep(5)
+
+        while not self.stopping:
+            try:
+                for database in self.database_connections:
+                    entity_id = f"database.{database}"
+                    kwargs = {}
+                    kwargs["attributes"] = {}
+                    size = 0
+
+                    if self.connection_url.startswith("sqlite:///"):
+                        # its sqlite so just delete it
+                        database_path = self.connection_url.replace("sqlite:///", "")
+                        database_url = os.path.join(database_path, f"{database}.db")
+
+                        if os.path.isfile(database_url):
+                            size = await utils.run_in_executor(
+                                self, os.path.getsize, database_url
+                            )
+
+                    else:
+                        pass
+                        # async with Database(self.connection_url) as connection:
+                        #    query = ""
+                        #    await connection.execute(query=query)
+
+                    kwargs["attributes"]["size_in_mega_bytes"] = size
+
+                    self.logger.debug(
+                        "Database size for %s retrieved as %s", database, size
+                    )
+
+                    await self.state_update(entity_id, kwargs)
+
+            except Exception as e:
+                self.logger.error("-" * 60)
+                self.logger.error("-" * 60)
+                self.logger.error(e)
+                self.logger.debug(traceback.format_exc())
+                self.logger.error("-" * 60)
+
+            await asyncio.sleep(3600)
+
     def get_namespace(self):
         return self.namespace
 
@@ -940,7 +996,7 @@ class DbPlugin(PluginBase):
 
             try:
                 last_changed = utils.dt_to_str(
-                    (await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz
+                    (await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz,
                 )  # possible AD isn"t ready at this point
             except Exception:
                 last_changed = None
@@ -957,9 +1013,9 @@ class DbPlugin(PluginBase):
                     },
                 }
 
-                await self.AD.events.process_event(
-                    self.namespace, data
-                )  # this is put ahead, to ensure integrity of the data. Breaks if not
+                # this is put ahead, to ensure integrity of the data.
+                # Breaks if not
+                await self.AD.events.process_event(self.namespace, data)
 
             self.state[entity_id].update(new_state)
 
