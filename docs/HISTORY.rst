@@ -31,6 +31,7 @@ Change Log
 - Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
 - Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 - Additional format for time travel start and end times accepted
+- Added the ability to specify a callback to hass get_history. This way,  large amount of data can be retrieved from the database, without AD cancelling the task
 
 **Fixes**
 
