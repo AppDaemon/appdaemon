@@ -19,3 +19,7 @@ pid==2.2.5
 azure==4.0.0
 pygments==2.6.1
 sockjs==0.10.0
+databases=0.3.2
+databases[postgresql]
+databases[mysql]
+databases[sqlite]
