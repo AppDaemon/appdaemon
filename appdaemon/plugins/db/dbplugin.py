@@ -905,7 +905,7 @@ class DbPlugin(PluginBase):
 
                 # now has finished, so check if to remove
                 if remove_attributes is True:
-                    del new_state["attributes"]
+                    new_state.pop("attributes", None)
                     return new_state
 
         if "states_only" in self.tables[namespace]:
