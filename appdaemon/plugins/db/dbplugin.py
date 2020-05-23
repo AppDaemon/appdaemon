@@ -495,6 +495,9 @@ class DbPlugin(PluginBase):
             # now add it to the list, so the database is created
             if database not in self.databases:
                 self.databases.append(database)
+            
+            if database not in self.database_metadata["databases"]:
+                self.database_metadata.append(database)
 
         return executed
 
@@ -523,6 +526,10 @@ class DbPlugin(PluginBase):
 
             del self.database_connections[database]
             self.databases.remove(database)
+
+            if database in self.database_metadata["databases"]:
+                self.database_metadata.remove(database)
+
             entity_id = f"database.{database.title()}"
             await self.AD.state.remove_entity(self.namespace, entity_id)
             if entity_id in self.state:
@@ -661,12 +668,70 @@ class DbPlugin(PluginBase):
         res = []
         entity_id = kwargs.get("entity_id")
         event = kwargs.get("event")
-        days = kwargs.get("days")
-        start_time = kwargs.get("start_time")
-        end_time = kwargs.get("end_time")
         table = kwargs.get("table")
 
         # first process time interval of the request
+        start_time, end_time = self.get_history_time(**kwargs)
+
+        if isinstance(table, str):
+            table = table.split(",")
+
+        elif table is None:
+            table = list(self.tables.keys())
+
+        for tab in table:
+            r = {}  # story data
+            tab = tab.strip()
+            r[tab] = []
+            values = {}
+            query = f"SELECT * FROM {tab} "
+
+            # decide if to get the
+            if entity_id is not None:
+                query = query + "WHERE entity_id = :entity_id "
+                values["entity_id"] = entity_id
+
+            elif event is not None:
+                query = query + "WHERE event_type = :event "
+                values["event"] = event
+
+            if (
+                "entity_id" not in values and "event" not in values
+            ):  # one of them was seen
+                values = None
+
+            st = start_time.strftime("%Y-%m-%d %H:%M:%S")
+            et = end_time.strftime("%Y-%m-%d %H:%M:%S")
+
+            if "WHERE" in query:
+                query = query + "AND "
+
+            else:
+                query = query + "WHERE "
+
+            query = (
+                query
+                + f"""timestamp BETWEEN '{st}'
+                    AND '{et}' ORDER BY timestamp"""
+            )
+            results = await self.database_fetch("appdaemon", query, values)
+
+            # now process result
+
+            if results is not None:
+                for result in results:
+                    r[tab].append(json.loads(result[3]))
+
+            res.append(r)
+
+        return res
+
+    def get_history_time(self, **kwargs):
+
+        days = kwargs.get("days")
+        start_time = kwargs.get("start_time")
+        end_time = kwargs.get("end_time")
+
         if days is None and start_time is None and end_time is None:  # nothing provided
             raise ValueError("Provided either days, start_time or end_time")
 
@@ -700,59 +765,8 @@ class DbPlugin(PluginBase):
             elif start_time is None and end_time is None:
                 end_time = datetime.datetime.now()
                 start_time = end_time - datetime.timedelta(days=days)
-
-        if isinstance(table, str):
-            table = table.split(",")
-
-        elif table is None:
-            list(self.tables.keys())
-
-        for tab in table:
-            r = {}  # story data
-            tab = tab.strip()
-            r[tab] = []
-            values = {}
-            query = f"SELECT * FROM {tab} "
-
-            # decide if to get the
-            if entity_id is not None:
-                query = query + "WHERE entity_id = :entity_id "
-                values["entity_id"] = entity_id
-
-            elif event is not None:
-                query = query + "WHERE event_type = :event "
-                values["event"] = event
-
-            if (
-                "entity_id" not in values and "event" not in values
-            ):  # one of them was seen
-                values = None
-
-            start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
-            end_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
-
-            if "WHERE" in query:
-                query = query + "AND "
-
-            else:
-                query = query + "WHERE "
-
-            query = (
-                query
-                + f"""timestamp BETWEEN '{start_time}'
-                    AND '{end_time}' ORDER BY timestamp"""
-            )
-            results = await self.database_fetch("appdaemon", query, values)
-
-            # now process result
-
-            if results is not None:
-                for result in results:
-                    r[tab].append(json.loads(result[3]))
-
-            res.append(r)
-
-        return res
+        
+        return start_time, end_time
 
     async def event_callback(self, event, data, kwargs):
         self.logger.debug("event_callback: %s %s %s", kwargs, event, data)
