@@ -729,7 +729,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> data = self.get_history(end_time = end_time, days = 5)
 
         """
-        
+
         namespace = self._get_namespace(**kwargs)
         plugin = await self.AD.plugins.get_plugin_object(namespace)
 
@@ -737,14 +737,13 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             callback = kwargs.pop("callback", None)
             if callback is not None and callable(callback):
                 self.create_task(plugin.get_history(**kwargs), callback)
-                
+
             else:
                 return await plugin.get_history(**kwargs)
 
         else:
             self.logger.warning(
-                "Wrong Namespace selected, as %s has no database plugin attached to it",
-                namespace,
+                "Wrong Namespace selected, as %s has no database plugin attached to it", namespace,
             )
             return None
 
