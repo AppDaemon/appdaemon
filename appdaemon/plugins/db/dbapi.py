@@ -23,7 +23,7 @@ class Db(adbase.ADBase, adapi.ADAPI):
     #
     # Helper Functions
     #
-    
+
     @utils.sync_wrapper
     async def get_history(self, **kwargs):
         """Gets access to the AD's Database.
@@ -35,33 +35,37 @@ class Db(adbase.ADBase, adapi.ADAPI):
         Args:
             **kwargs (optional): Zero or more keyword arguments.
         Keyword Args:
-            entity_id (str): Fully qualified id of the device to be querying, e.g.,
+            entity_id (str, optional): Fully qualified id of the device to be querying, e.g.,
                 ``mqtt.office_lamp`` or ``sequence.ligths_on`` This can be any entity_id
                 in the database. If this is left empty, the state of all entities will be
                 retrieved within the specified time.
-            event (str): The event type to be querying, e.g., ``zwave``, ``mqtt``
+            event (str, optional): The event type to be querying, e.g., ``zwave``, ``mqtt``
                 This can be any event in the database. If this is left empty, and no entity_id supplied
                 the state of all entities and events will be retrieved within the specified time.
                 If ``entity_id`` is specified alonside the ``event``,  the ``event`` will be ignored.
-            table (str | list): The table to get the data from, which corresponds to the namespaces the data is 
+            table (str | list, optional): The table to get the data from, which corresponds to the namespaces the data is 
                 to be retrieved from e.g. ``hass``. If not specified, AD will attempt to get the data from all
                 the tables. For example getting data on the entity_id ``sensor.time``, if ``table`` not specified
                 it will get data from all tables (namespaces) that might have entity_id ``sensor.time``.
                 This accepts a list, or comma serparated string.
             days (int, optional): The days from the present-day walking backwards that is
-                required from the database.
-            start_time (optional): The start time from when the data should be retrieved.
+                required from the database. Either days, start_time or end_time must be defined.
+            start_time (str | datetime, optional): The start time from when the data should be retrieved.
                 This should be the furthest time backwards, like if we wanted to get data from
                 now until two days ago. Your start time will be the last two days datetime.
                 ``start_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00``
-                or a ``datetime.datetime`` object.
-            end_time (optional): The end time from when the data should be retrieved. This should
+                or a ``datetime.datetime`` object. Either days, start_time or end_time must be defined.
+            end_time (str | datetime, optional): The end time from when the data should be retrieved. This should
                 be the latest time like if we wanted to get data from now until two days ago. Your
                 end time will be today's datetime ``end_time`` time can be either a UTC aware time
                 string like ``2019-04-16 12:00:03+01:00`` or a ``datetime.datetime`` object. It should
                 be noted that it is not possible to declare only ``end_time``. If only ``end_time``
                 is declared without ``start_time`` or ``days``, it will revert to default to the latest
-                history state.
+                history state. Either days, start_time or end_time must be defined.
+            callback (callable, optional): If wanting to access the database to get a large amount of data,
+                using a direct call to this function will take a long time to run and lead to AD cancelling the task.
+                To get around this, it is better to pass a function, which will be responsible of receiving the result
+                from the database. The signature of this function follows that of a scheduler call.
             namespace (str, optional): Namespace to use for the call, which which the database is functioning. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -91,16 +95,21 @@ class Db(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         plugin = await self.AD.plugins.get_plugin_object(namespace)
 
-        if hasattr(plugin,  "get_history"):
-            return await plugin.get_history(**kwargs)
-        
+        if hasattr(plugin, "get_history"):
+            callback = kwargs.pop("callback", None)
+            if callback is not None and callable(callback):
+                self.create_task(plugin.get_history(**kwargs), callback)
+                
+            else:
+                return await plugin.get_history(**kwargs)
+
         else:
             self.logger.warning(
-                    "Wrong Namespace selected, as %s has no database plugin attached to it",
-                    namespace,
-                )
+                "Wrong Namespace selected, as %s has no database plugin attached to it",
+                namespace,
+            )
             return None
-    
+
     @utils.sync_wrapper
     async def database_execute(self, database, query, **kwargs):
         """Executes a query against a defined Database. 
@@ -129,9 +138,15 @@ class Db(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        
-        await self.call_service("database/execute", databse=database, query=query, namespace=namespace, **kwargs)
-        
+
+        await self.call_service(
+            "database/execute",
+            databse=database,
+            query=query,
+            namespace=namespace,
+            **kwargs
+        )
+
         return None
 
     @utils.sync_wrapper
@@ -162,8 +177,14 @@ class Db(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        
-        return await self.call_service("database/fetch_one", database=database, query=query, namespace=namespace, **kwargs)
+
+        return await self.call_service(
+            "database/fetch_one",
+            database=database,
+            query=query,
+            namespace=namespace,
+            **kwargs
+        )
 
     @utils.sync_wrapper
     async def database_fetch_all(self, database, query, **kwargs):
@@ -193,5 +214,11 @@ class Db(adbase.ADBase, adapi.ADAPI):
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
-        
-        return await self.call_service("database/fetch_all", database=database, query=query, namespace=namespace, **kwargs)
+
+        return await self.call_service(
+            "database/fetch_all",
+            database=database,
+            query=query,
+            namespace=namespace,
+            **kwargs
+        )
