@@ -24,6 +24,7 @@ class DbPlugin(PluginBase):
         self.initialized = False
         self.state = {}
         self._lock = None
+        self._handles = {}
 
         if "namespace" in self.config:
             self.namespace = self.config["namespace"]
@@ -128,7 +129,9 @@ class DbPlugin(PluginBase):
         self.reading = False
         self._event = asyncio.Event()
 
-        if self.connection_url.startswith("sqlite:///"): #sqlite in use, so lock required
+        if self.connection_url.startswith(
+            "sqlite:///"
+        ):  # sqlite in use, so lock required
             self._lock = {}
 
         # set to continue
@@ -163,7 +166,11 @@ class DbPlugin(PluginBase):
 
                             self.database_connections[database] = Database(database_url)
 
-                            self._lock[database] = asyncio.Lock() # lock will be used to access the connection
+                            self._lock[
+                                database
+                            ] = (
+                                asyncio.Lock()
+                            )  # lock will be used to access the connection
 
                         else:
                             # first will need confirmation that the database exists, so attempt creating it
@@ -254,7 +261,12 @@ class DbPlugin(PluginBase):
                             )
 
                             if executed is True:
-                                await self.AD.events.add_event_callback(
+                                if self._handles.get(_namespace) is not None:
+                                    await self.AD.events.cancel_event_callback(
+                                        self.name, self._handles[_namespace]
+                                    )
+
+                                self._handles[_namespace] = await self.AD.events.add_event_callback(
                                     self.name,
                                     _namespace,
                                     self.event_callback,
@@ -267,15 +279,21 @@ class DbPlugin(PluginBase):
                                     self.tables[_namespace] is not None
                                     and "events" in self.tables[_namespace]
                                 ):
-                                    for event in self.tables[_namespace]["events"]:
-                                        await self.AD.events.add_event_callback(
-                                            self.name,
-                                            _namespace,
-                                            self.event_callback,
-                                            event,
-                                            __silent=True,
-                                            __namespace=_namespace,
-                                        )
+
+                                    # first cancel the previous one and subscribe to all
+                                    await self.AD.events.cancel_event_callback(
+                                        self.name, self._handles[_namespace]
+                                    )
+
+                                    # listen to everything in that namespace
+                                    self._handles[_namespace] = await self.AD.events.add_event_callback(
+                                        self.name,
+                                        _namespace,
+                                        self.event_callback,
+                                        None,
+                                        __silent=True,
+                                        __namespace=_namespace,
+                                    )
 
                             else:  # it didn't create the table as requested
                                 await self.database_connections[
@@ -418,40 +436,7 @@ class DbPlugin(PluginBase):
                     )
                     return
 
-                try:
-                    if not self.connection_url.startswith("sqlite:///"):
-                        async with Database(self.connection_url) as connection:
-                            await connection.execute(query=f"DROP DATABASE {database}")
-
-                    else:
-                        # its sqlite so just delete it
-                        database_path = self.connection_url.replace("sqlite:///", "")
-                        database_url = os.path.join(database_path, f"{database}.db")
-
-                        if os.path.isfile(database_url):
-                            os.remove(database_url)
-                        
-                        if database in self._lock:
-                            del self._lock[database]
-
-                    await self.database_connections[database].disconnect()
-                    del self.database_connections[database]
-                    self.databases.remove(database)
-                    entity_id = f"database.{database.title()}"
-                    await self.AD.state.remove_entity(self.namespace, entity_id)
-                    if entity_id in self.state:
-                        del self.state[entity_id]
-
-                    self.logger.info(
-                        "Removal of the Database %s was successful", database
-                    )
-
-                except Exception as e:
-                    self.logger.error("-" * 60)
-                    self.logger.error("-" * 60)
-                    self.logger.error(e)
-                    self.logger.debug(traceback.format_exc())
-                    self.logger.error("-" * 60)
+                await self.database_drop(database)
 
             elif service == "get_history":
                 return await self.get_history(**kwargs)
@@ -503,12 +488,49 @@ class DbPlugin(PluginBase):
 
         return executed
 
+    async def database_drop(self, database, clean=False):
+        """Used to drop a database"""
+
+        try:
+            await self.database_connections[database].disconnect()
+
+            if not self.connection_url.startswith("sqlite:///"):
+                async with Database(self.connection_url) as connection:
+                    await connection.execute(query=f"DROP DATABASE {database}")
+
+            else:
+                # its sqlite so just delete it
+                database_path = self.connection_url.replace("sqlite:///", "")
+                database_url = os.path.join(database_path, f"{database}.db")
+
+                if clean and os.path.isfile(database_url):
+                    os.remove(database_url)
+
+                if database in self._lock:
+                    del self._lock[database]
+
+            del self.database_connections[database]
+            self.databases.remove(database)
+            entity_id = f"database.{database.title()}"
+            await self.AD.state.remove_entity(self.namespace, entity_id)
+            if entity_id in self.state:
+                del self.state[entity_id]
+
+            self.logger.info("Removal of the Database %s was successful", database)
+
+        except Exception as e:
+            self.logger.error("-" * 60)
+            self.logger.error("-" * 60)
+            self.logger.error(e)
+            self.logger.debug(traceback.format_exc())
+            self.logger.error("-" * 60)
+
     async def database_execute(self, database, query, values):
         """Used to execute a database query"""
 
         executed = False
 
-        if self._lock is not None: # means sqlite used
+        if self._lock is not None:  # means sqlite used
             await self._lock[database].acquire()
 
         try:
@@ -553,9 +575,9 @@ class DbPlugin(PluginBase):
             self.logger.error(e)
             self.logger.debug(traceback.format_exc())
             self.logger.error("-" * 60)
-        
+
         finally:
-            if self._lock is not None: # means sqlite used
+            if self._lock is not None:  # means sqlite used
                 self._lock[database].release()
 
         return executed
@@ -565,7 +587,7 @@ class DbPlugin(PluginBase):
 
         res = None
 
-        if self._lock is not None: # means sqlite used
+        if self._lock is not None:  # means sqlite used
             await self._lock[database].acquire()
 
         try:
@@ -602,9 +624,9 @@ class DbPlugin(PluginBase):
             self.logger.error(e)
             self.logger.debug(traceback.format_exc())
             self.logger.error("-" * 60)
-        
+
         finally:
-            if self._lock is not None: # means sqlite used
+            if self._lock is not None:  # means sqlite used
                 self._lock[database].release()
 
         return res
@@ -729,13 +751,17 @@ class DbPlugin(PluginBase):
         if event == "state_changed":
             entity_id = data["entity_id"]
 
-            if _namespace not in self.tables or not self.store_entity(
+            if _namespace not in self.tables or not await self.check_entity_id(
                 _namespace, entity_id
             ):
                 return
 
             new_state = data["new_state"]
             del new_state["entity_id"]  # remove the entity_id, unnecessary data
+
+            state = await self.process_entity_id(_namespace, entity_id, new_state)
+
+            print(state)
 
             query = f"""INSERT INTO {_namespace}
                     (event_type, entity_id, data, timestamp) 
@@ -744,11 +770,16 @@ class DbPlugin(PluginBase):
             values = {
                 "event_type": "state_changed",
                 "entity_id": entity_id,
-                "data": json.dumps(new_state),
+                "data": json.dumps(state),
                 "timestamp": ts,
             }
 
         else:
+            if not await self.check_event(_namespace, event):  # should not be stored
+                return
+
+            print(event)
+
             query = f"""INSERT INTO {_namespace}
                     (event_type, data, timestamp) 
                     VALUES (:event_type, :data, :timestamp)"""
@@ -762,7 +793,36 @@ class DbPlugin(PluginBase):
         if self.stopping is False:
             asyncio.ensure_future(self.database_execute("appdaemon", query, values))
 
-    def store_entity(self, namespace, entity_id):
+    async def check_event(self, namespace, event):
+        """Check if to store the event's data"""
+
+        execute = False
+        events = self.tables[namespace]["events"]
+
+        if events is None:
+            execute = True
+
+        else:
+            if isinstance(events, str):
+                if events == event or (
+                    events.endswith("*") and event.startswith(events[:-1])
+                ):
+                    execute = True
+
+            elif isinstance(events, list):
+                for e in events:
+                    if e == event:
+                        execute = True
+
+                    elif e.endswith("*") and event.startswith(e[:-1]):
+                        execute = True
+
+                    if execute is True:
+                        break
+
+        return execute
+
+    async def check_entity_id(self, namespace, entity_id):
         """Check if to store the entity's data"""
 
         execute = True
@@ -771,33 +831,77 @@ class DbPlugin(PluginBase):
             # there is no filers used for the namespace
             pass
 
-        elif "exclude_domains" in self.tables[namespace]:
-            excluded_domains = self.tables[namespace]["exclude_domains"]
-            domain, _ = entity_id.split(".")
-
-            if domain in excluded_domains:
-                execute = False
-
-        elif "include_domains" in self.tables[namespace]:
-            included_domains = self.tables[namespace]["include_domains"]
-            domain, _ = entity_id.split(".")
-
-            if domain not in included_domains:
-                execute = False
-
         elif "exclude_entities" in self.tables[namespace]:
             excluded_entities = self.tables[namespace]["exclude_entities"]
 
-            if entity_id in excluded_entities:
-                execute = False
+            for entity in excluded_entities:
+                if entity == entity_id:
+                    execute = False
+
+                elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
+                    execute = False
+
+                if execute is False:
+                    break
 
         elif "inlude_entities" in self.tables[namespace]:
+            execute = False
             included_entities = self.tables[namespace]["include_entities"]
 
-            if entity_id not in included_entities:
-                execute = False
+            for entity in included_entities:
+                if entity == entity_id:
+                    execute = True
+
+                elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
+                    execute = True
+
+                if execute is True:
+                    break
 
         return execute
+
+    async def process_entity_id(self, namespace, entity_id, new_state):
+        """Used to check if more filters applied"""
+
+        remove_attributes = False
+        state_only = False
+
+        if "exclude_attributes" in self.tables[namespace]:
+            exclude_attributes = self.tables[namespace]["exclude_attributes"]
+            if isinstance(exclude_attributes, list):
+                for entity in exclude_attributes:
+                    if entity == entity_id:
+                        remove_attributes = True
+
+                    elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
+                        remove_attributes = True
+
+                    if remove_attributes is True:
+                        break
+
+                # now has finished, so check if to remove
+                if remove_attributes is True:
+                    del new_state["attributes"]
+                    return new_state
+
+        if "states_only" in self.tables[namespace]:
+            states_only = self.tables[namespace]["states_only"]
+            if isinstance(states_only, list):
+                for entity in states_only:
+                    if entity == entity_id:
+                        state_only = True
+
+                    elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
+                        state_only = True
+
+                    if state_only is True:
+                        break
+
+                # now has finished, so check if to send only state
+                if state_only is True:
+                    return {"state": new_state.get("state")}
+
+        return new_state
 
     def get_namespace(self):
         return self.namespace
@@ -838,7 +942,7 @@ class DbPlugin(PluginBase):
                 last_changed = utils.dt_to_str(
                     (await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz
                 )  # possible AD isn"t ready at this point
-            except:
+            except Exception:
                 last_changed = None
 
             new_state["last_changed"] = last_changed
