@@ -19,6 +19,9 @@ pid==2.2.5
 azure==4.0.0
 pygments==2.6.1
 sockjs==0.10.0
+pymysql=0.9.3
+aiosqlite=0.13.0
+aiomysql=0.0.20
 databases=0.3.2
 databases[postgresql]
 databases[mysql]
