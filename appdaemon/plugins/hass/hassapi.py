@@ -707,7 +707,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            An iterable list of entity_ids and their history state.
+            An iterable list of entity_ids and their history state or task future object if callback supplied.
 
         Examples:
             Get device state over the last 5 days.
@@ -736,7 +736,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         if hasattr(plugin, "get_history"):
             callback = kwargs.pop("callback", None)
             if callback is not None and callable(callback):
-                self.create_task(plugin.get_history(**kwargs), callback)
+                return await self.create_task(plugin.get_history(**kwargs), callback)
 
             else:
                 return await plugin.get_history(**kwargs)
