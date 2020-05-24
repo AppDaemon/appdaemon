@@ -244,16 +244,18 @@ class DbPlugin(PluginBase):
                         # first we need to ensure we create the tables based on namespaces
 
                         for _namespace in self.tables:
+                            ad_namespace = f"ad_{_namespace}"
+
                             if self.connection_url.startswith("sqlite:///"):
-                                query = f"""CREATE TABLE IF NOT EXISTS {_namespace} (
+                                query = f"""CREATE TABLE IF NOT EXISTS {ad_namespace} (
                                         event_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                         event_type VARCHAR(100),
                                         entity_id VARCHAR(100),
                                         data TEXT(10000),
                                         timestamp TIMESTAMP)"""
 
-                            else:
-                                query = f"""CREATE TABLE IF NOT EXISTS {_namespace} (
+                            else: # if mqsql, to avoid a clash with internal data structure
+                                query = f"""CREATE TABLE IF NOT EXISTS {ad_namespace} (
                                         event_id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
                                         event_type VARCHAR(100),
                                         entity_id VARCHAR(100),
@@ -680,11 +682,13 @@ class DbPlugin(PluginBase):
             table = list(self.tables.keys())
 
         for tab in table:
-            r = {}  # story data
+            r = {}  # store data
             tab = tab.strip()
+            ad_namespace = f"ad_{tab}"
+
             r[tab] = []
             values = {}
-            query = f"SELECT * FROM {tab} "
+            query = f"SELECT * FROM {ad_namespace} "
 
             # decide if to get the
             if entity_id is not None:
@@ -772,6 +776,8 @@ class DbPlugin(PluginBase):
         self.logger.debug("event_callback: %s %s %s", kwargs, event, data)
 
         _namespace = kwargs["__namespace"]
+        ad_namespace = f"ad_{_namespace}"
+
         ts = await self.AD.sched.get_now()
 
         ts = ts.strftime("%Y-%m-%d %H:%M:%S")
@@ -785,11 +791,11 @@ class DbPlugin(PluginBase):
                 return
 
             new_state = data["new_state"]
-            del new_state["entity_id"]  # remove the entity_id, unnecessary data
+            new_state.pop("entity_id", None)  # remove the entity_id if available, unnecessary data
 
             state = await self.process_entity_id(_namespace, entity_id, new_state)
 
-            query = f"""INSERT INTO {_namespace}
+            query = f"""INSERT INTO {ad_namespace}
                     (event_type, entity_id, data, timestamp)
                     VALUES (:event_type, :entity_id, :data, :timestamp)"""
 
@@ -804,7 +810,7 @@ class DbPlugin(PluginBase):
             if not await self.check_event(_namespace, event):  # should not be stored
                 return
 
-            query = f"""INSERT INTO {_namespace}
+            query = f"""INSERT INTO {ad_namespace}
                     (event_type, data, timestamp)
                     VALUES (:event_type, :data, :timestamp)"""
 
@@ -889,6 +895,9 @@ class DbPlugin(PluginBase):
 
         remove_attributes = False
         state_only = False
+
+        if self.tables[namespace] is None:
+            return new_state
 
         if "exclude_attributes" in self.tables[namespace]:
             exclude_attributes = self.tables[namespace]["exclude_attributes"]
