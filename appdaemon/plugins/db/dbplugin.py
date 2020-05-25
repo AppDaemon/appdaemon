@@ -4,6 +4,7 @@ import os
 import json
 from pymysql import err as SQLERR
 import datetime
+import iso8601
 
 from databases import Database
 from appdaemon.appdaemon import AppDaemon
@@ -24,7 +25,7 @@ class DbPlugin(PluginBase):
         self.initialized = False
         self.state = {}
         self._lock = None
-        self._handles = {}
+        self._namespaces = {}
 
         if "namespace" in self.config:
             self.namespace = self.config["namespace"]
@@ -41,14 +42,18 @@ class DbPlugin(PluginBase):
         else:
             self.ssl = None
 
-        self.tables = self.config.get("tables", {})
-        self.databases = self.config.get("databases", ["appdaemon"])
+        databases = self.config.get("databases", {})
 
-        if isinstance(self.databases, str):
-            self.databases = self.databases.split(",")
+        if isinstance(databases, str):
+            databases = databases.split(",")
 
-        if self.tables != {} and "appdaemon" not in self.databases:
-            self.databases.append("appdaemon")
+        self.databases = {}
+        if isinstance(databases, list):
+            for db in databases:
+                self.databases[db] = None
+
+        else:
+            self.databases = databases
 
         self.database_connections = {}
         self.connection_pool = int(self.config.get("connection_pool", 20))
@@ -71,8 +76,7 @@ class DbPlugin(PluginBase):
         self.database_metadata = {
             "version": "1.0",
             "connection_url": self.connection_url,
-            "databases": self.databases,
-            "tables": self.tables,
+            "databases": list(self.databases.keys()),
             "connection_pool": self.connection_pool,
         }
 
@@ -173,6 +177,8 @@ class DbPlugin(PluginBase):
                                 asyncio.Lock()
                             )  # lock will be used to access the connection
 
+                            increment = "AUTOINCREMENT"  # to be used later
+
                         else:
                             # first will need confirmation
                             # that the database exists,
@@ -190,6 +196,8 @@ class DbPlugin(PluginBase):
                                         "Database %s already existing, so couldn't create it",
                                         database,
                                     )
+
+                            increment = "AUTO_INCREMENT"  # to be used later
 
                             database_url = f"{self.connection_url}/{database}"
                             self.logger.debug(
@@ -237,84 +245,89 @@ class DbPlugin(PluginBase):
                     await self.state_update(entity_id, kwargs, not first_time)
 
                 if len(self.database_connections) > 0:  # at least 1 of them connected
-                    executed = True
+                    execs = []
 
-                    if self.tables != {} and "appdaemon" in self.database_connections:
-                        # need to setup entities database
-                        # first we need to ensure we create the tables based on namespaces
+                    for database in self.database_connections:
+                        if self.databases[database] is None:
+                            continue
 
-                        for _namespace in self.tables:
-                            ad_namespace = f"ad_{_namespace}"
+                        if await self.check_database(
+                            database
+                        ):  # it is to be used by AD
+                            # there are one of the those settings, so most likely a namespace
+                            # need to setup entities and events database
 
-                            if self.connection_url.startswith("sqlite:///"):
-                                query = f"""CREATE TABLE IF NOT EXISTS {ad_namespace} (
-                                        event_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                                        event_type VARCHAR(100),
-                                        entity_id VARCHAR(100),
-                                        data TEXT(10000),
-                                        timestamp TIMESTAMP)"""
+                            # first get the namespace
+                            # if no namespace specified, it should use the name by default
 
-                            else: # if mqsql, to avoid a clash with internal data structure
-                                query = f"""CREATE TABLE IF NOT EXISTS {ad_namespace} (
-                                        event_id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-                                        event_type VARCHAR(100),
-                                        entity_id VARCHAR(100),
-                                        data TEXT(10000),
-                                        timestamp TIMESTAMP)"""
+                            _namespace = self.databases.get("namespace", database)
+
+                            if _namespace not in self._namespaces:
+                                self._namespaces[_namespace] = {}
+                                self._namespaces[_namespace]["handle"] = None
+                                self._namespaces[_namespace]["databases"] = []
+
+                            if (
+                                database
+                                not in self._namespaces[_namespace]["databases"]
+                            ):
+                                self._namespaces[_namespace]["databases"].append(
+                                    database
+                                )
+
+                            # next we need to ensure we create the states tables
+                            query = f"""CREATE TABLE IF NOT EXISTS states (
+                                    state_id INTEGER NOT NULL PRIMARY KEY {increment},
+                                    domain VARCHAR(100),
+                                    entity_id VARCHAR(100),
+                                    state VARCHAR(512),
+                                    attributes TEXT,
+                                    last_changed DATETIME,
+                                    timestamp DATETIME)"""
 
                             executed = await self.database_execute(
-                                "appdaemon", query, None
+                                database, query, None
                             )
 
-                            if executed is True:
-                                if self._handles.get(_namespace) is not None:
-                                    await self.AD.events.cancel_event_callback(
-                                        self.name, self._handles[_namespace]
-                                    )
+                            execs.append(executed)
 
-                                self._handles[
-                                    _namespace
+                            # next we need to ensure we create the events tables
+                            query = f"""CREATE TABLE IF NOT EXISTS events (
+                                    event_id INTEGER NOT NULL PRIMARY KEY {increment},
+                                    event_type VARCHAR(100),
+                                    event_data TEXT,
+                                    timestamp DATETIME)"""
+
+                            executed = await self.database_execute(
+                                database, query, None
+                            )
+
+                            execs.append(executed)
+
+                            if executed is True:
+                                handle = self._namespaces[_namespace]["handle"]
+                                if handle is not None:
+                                    continue  # already been setup do no need
+
+                                self._namespaces[_namespace][
+                                    "handle"
                                 ] = await self.AD.events.add_event_callback(
                                     self.name,
                                     _namespace,
                                     self.event_callback,
-                                    "state_changed",
+                                    None,
                                     __silent=True,
                                     __namespace=_namespace,
                                 )
 
-                                if (
-                                    self.tables[_namespace] is not None
-                                    and "events" in self.tables[_namespace]
-                                ):
-
-                                    # first cancel the previous one and subscribe to all
-                                    await self.AD.events.cancel_event_callback(
-                                        self.name, self._handles[_namespace]
-                                    )
-
-                                    # listen to everything in that namespace
-                                    self._handles[
-                                        _namespace
-                                    ] = await self.AD.events.add_event_callback(
-                                        self.name,
-                                        _namespace,
-                                        self.event_callback,
-                                        None,
-                                        __silent=True,
-                                        __namespace=_namespace,
-                                    )
-
                             else:  # it didn't create the table as requested
-                                await self.database_connections[
-                                    "appdaemon"
-                                ].disconnect()
-                                del self.database_connections["appdaemon"]
+                                await self.database_connections[database].disconnect()
+                                del self.database_connections[database]
                                 break
 
                     if (
-                        executed is False
-                    ):  # there  was an error when processing appdaemon table, so no need continuing processing
+                        all(execs) is False
+                    ):  # there  was an error when processing one of the tables, so no need continuing processing
                         break
 
                     self.AD.services.register_service(
@@ -440,13 +453,13 @@ class DbPlugin(PluginBase):
                     self.logger.warning(
                         "Cannot drop Database %s, as it doesn't exists", database,
                     )
-                    return
+                    return None
 
-                elif self.tables != {} and database == "appdaemon":
+                if await self.check_database(database):
                     self.logger.warning(
                         "Cannot drop Database %s, as it used by AD", database
                     )
-                    return
+                    return None
 
                 await self.database_drop(database, kwargs.get("clean", False))
 
@@ -497,7 +510,7 @@ class DbPlugin(PluginBase):
             # now add it to the list, so the database is created
             if database not in self.databases:
                 self.databases.append(database)
-            
+
             if database not in self.database_metadata["databases"]:
                 self.database_metadata.append(database)
 
@@ -531,6 +544,19 @@ class DbPlugin(PluginBase):
 
             if database in self.database_metadata["databases"]:
                 self.database_metadata.remove(database)
+
+            ns = None
+
+            # remove database from namespace
+            for namespace in self._namespaces:
+                if database in self._namespaces[namespace]["databases"]:
+                    ns = namespace
+
+                if ns is not None:
+                    break
+
+            if ns is not None:
+                self._namespaces[ns]["databases"].remove(database)
 
             entity_id = f"database.{database.title()}"
             await self.AD.state.remove_entity(self.namespace, entity_id)
@@ -670,39 +696,42 @@ class DbPlugin(PluginBase):
         res = []
         entity_id = kwargs.get("entity_id")
         event = kwargs.get("event")
+        databases = kwargs.get("database")
         table = kwargs.get("table")
 
         # first process time interval of the request
         start_time, end_time = self.get_history_time(**kwargs)
 
-        if isinstance(table, str):
-            table = table.split(",")
+        if isinstance(databases, str):
+            databases = databases.split(",")
 
-        elif table is None:
-            table = list(self.tables.keys())
+        elif databases is None:
+            databases = list(self.databases.keys())
 
-        for tab in table:
+        for database in databases:
             r = {}  # store data
-            tab = tab.strip()
-            ad_namespace = f"ad_{tab}"
+            database = database.strip()
 
-            r[tab] = []
+            if not await self.check_database(database):
+                continue
+
             values = {}
-            query = f"SELECT * FROM {ad_namespace} "
 
             # decide if to get the
             if entity_id is not None:
-                query = query + "WHERE entity_id = :entity_id "
+                query = query + "SELECT * FROM states WHERE entity_id = :entity_id "
                 values["entity_id"] = entity_id
 
             elif event is not None:
-                query = query + "WHERE event_type = :event "
+                query = query + "SELECT * FROM events WHERE event_type = :event "
                 values["event"] = event
 
-            if (
-                "entity_id" not in values and "event" not in values
-            ):  # one of them was seen
+            elif table is not None and table in ["events", "states"]:
+                query = f"SELECT * FROM {table} "
                 values = None
+
+            else:
+                raise ValueError("Specify either entity_id, events, or table to access")
 
             st = start_time.strftime("%Y-%m-%d %H:%M:%S")
             et = end_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -718,13 +747,7 @@ class DbPlugin(PluginBase):
                 + f"""timestamp BETWEEN '{st}'
                     AND '{et}' ORDER BY timestamp"""
             )
-            results = await self.database_fetch("appdaemon", query, values)
-
-            # now process result
-
-            if results is not None:
-                for result in results:
-                    r[tab].append(json.loads(result[3]))
+            r[database] = await self.database_fetch(database, query, values)
 
             res.append(r)
 
@@ -732,12 +755,9 @@ class DbPlugin(PluginBase):
 
     def get_history_time(self, **kwargs):
 
-        days = kwargs.get("days")
+        days = kwargs.get("days", 1)
         start_time = kwargs.get("start_time")
         end_time = kwargs.get("end_time")
-
-        if days is None and start_time is None and end_time is None:  # nothing provided
-            raise ValueError("Provided either days, start_time or end_time")
 
         if start_time is not None:
             if isinstance(start_time, str):
@@ -755,79 +775,103 @@ class DbPlugin(PluginBase):
             else:
                 raise ValueError("Invalid type for end time")
 
-        if days is not None:
-            # if starttime is declared and end_time is not declared,
-            # and days specified
-            if start_time is not None and end_time is None:
-                end_time = start_time + datetime.timedelta(days=days)
+        if start_time is not None and end_time is None:
+            end_time = start_time + datetime.timedelta(days=days)
 
-            # if endtime is declared and start_time is not declared,
-            # and days specified
-            elif end_time is not None and start_time is None:
-                start_time = end_time - datetime.timedelta(days=days)
+        # if endtime is declared and start_time is not declared,
+        # and days specified
+        elif end_time is not None and start_time is None:
+            start_time = end_time - datetime.timedelta(days=days)
 
-            elif start_time is None and end_time is None:
-                end_time = datetime.datetime.now()
-                start_time = end_time - datetime.timedelta(days=days)
-        
+        elif start_time is None and end_time is None:
+            end_time = datetime.datetime.now()
+            start_time = end_time - datetime.timedelta(days=days)
+
         return start_time, end_time
 
     async def event_callback(self, event, data, kwargs):
         self.logger.debug("event_callback: %s %s %s", kwargs, event, data)
 
         _namespace = kwargs["__namespace"]
-        ad_namespace = f"ad_{_namespace}"
 
         ts = await self.AD.sched.get_now()
-
         ts = ts.strftime("%Y-%m-%d %H:%M:%S")
 
-        if event == "state_changed":
-            entity_id = data["entity_id"]
+        databases = self._namespaces[_namespace][
+            "databases"
+        ]  # get the databases in this namespace
 
-            if _namespace not in self.tables or not await self.check_entity_id(
-                _namespace, entity_id
-            ):
-                return
+        for database in databases:
+            if event == "state_changed":
+                entity_id = data["entity_id"]
 
-            new_state = data["new_state"]
-            new_state.pop("entity_id", None)  # remove the entity_id if available, unnecessary data
+                if database not in self.databases or not await self.check_entity_id(
+                    database, entity_id
+                ):
+                    continue
 
-            state = await self.process_entity_id(_namespace, entity_id, new_state)
+                new_state = data["new_state"]
+                new_state.pop(
+                    "entity_id", None
+                )  # remove the entity_id if available, unnecessary data
+                domain, _ = entity_id.split(".")
 
-            query = f"""INSERT INTO {ad_namespace}
-                    (event_type, entity_id, data, timestamp)
-                    VALUES (:event_type, :entity_id, :data, :timestamp)"""
+                states = await self.database_entity_id(database, entity_id, new_state)
 
-            values = {
-                "event_type": "state_changed",
-                "entity_id": entity_id,
-                "data": json.dumps(state),
-                "timestamp": ts,
-            }
+                query = f"""INSERT INTO states
+                        (domain, entity_id, state, attributes, last_changed, timestamp)
+                        VALUES (:domain, :entity_id, :state, :attributes, :last_changed, :timestamp)"""
 
-        else:
-            if not await self.check_event(_namespace, event):  # should not be stored
-                return
+                state = states.get("state")
+                if isinstance(state, dict):
+                    state = json.dumps(state)
 
-            query = f"""INSERT INTO {ad_namespace}
-                    (event_type, data, timestamp)
-                    VALUES (:event_type, :data, :timestamp)"""
+                attributes = states.get("attributes")
+                if isinstance(attributes, dict):
+                    attributes = json.dumps(attributes)
 
-            values = {
-                "event_type": event,
-                "data": json.dumps(data),
-                "timestamp": ts,
-            }
+                lc = states.get("last_changed")
+                if lc is None:
+                    last_changed = ts
 
-        if self.stopping is False:
-            asyncio.ensure_future(self.database_execute("appdaemon", query, values))
+                else:
+                    last_changed = iso8601.parse_date(lc).strftime("%Y-%m-%d %H:%M:%S")
 
-    async def check_event(self, namespace, event):
+                values = {
+                    "domain": domain,
+                    "entity_id": entity_id,
+                    "state": state,
+                    "attributes": attributes,
+                    "last_changed": last_changed,
+                    "timestamp": ts,
+                }
+
+            else:
+                if not await self.check_event(database, event):  # should not be stored
+                    continue
+
+                query = f"""INSERT INTO events
+                        (event_type, event_data, timestamp)
+                        VALUES (:event_type, :event_data, :timestamp)"""
+
+                values = {
+                    "event_type": event,
+                    "event_data": json.dumps(data),
+                    "timestamp": ts,
+                }
+
+            if self.stopping is False:
+                asyncio.ensure_future(self.database_execute(database, query, values))
+
+    async def check_event(self, database, event):
         """Check if to store the event's data"""
 
         execute = False
-        events = self.tables[namespace]["events"]
+
+        if "events" not in self.databases[database]:
+            return execute
+
+        events = self.databases[database]["events"]
 
         if events is None:
             execute = True
@@ -852,55 +896,71 @@ class DbPlugin(PluginBase):
 
         return execute
 
-    async def check_entity_id(self, namespace, entity_id):
+    async def check_entity_id(self, database, entity_id):
         """Check if to store the entity's data"""
 
         execute = True
 
-        if self.tables[namespace] is None:
-            # there is no filers used for the namespace
+        if self.databases[database] is None:
+            # there is no filers used for the database
             pass
 
-        elif "exclude_entities" in self.tables[namespace]:
-            excluded_entities = self.tables[namespace]["exclude_entities"]
+        elif "exclude_entities" in self.databases[database]:
+            excluded_entities = self.databases[database]["exclude_entities"]
 
-            for entity in excluded_entities:
-                if entity == entity_id:
+            if isinstance(excluded_entities, str):
+                if excluded_entities == entity_id or (
+                    excluded_entities.endswith("*")
+                    and entity_id.startswith(excluded_entities[:-1])
+                ):
                     execute = False
 
-                elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
-                    execute = False
+            elif isinstance(excluded_entities, list):
+                for entity in excluded_entities:
+                    if entity == entity_id:
+                        execute = False
 
-                if execute is False:
-                    break
+                    elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
+                        execute = False
 
-        elif "inlude_entities" in self.tables[namespace]:
+                    if execute is False:
+                        break
+
+        elif "inlude_entities" in self.databases[database]:
             execute = False
-            included_entities = self.tables[namespace]["include_entities"]
+            included_entities = self.databases[database]["include_entities"]
 
-            for entity in included_entities:
-                if entity == entity_id:
+            if isinstance(included_entities, str):
+                if included_entities == entity_id or (
+                    included_entities.endswith("*")
+                    and entity_id.startswith(included_entities[:-1])
+                ):
                     execute = True
 
-                elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
-                    execute = True
+            elif isinstance(included_entities, list):
+                for entity in included_entities:
+                    if entity == entity_id:
+                        execute = True
 
-                if execute is True:
-                    break
+                    elif entity.endswith("*") and entity_id.startswith(entity[:-1]):
+                        execute = True
+
+                    if execute is True:
+                        break
 
         return execute
 
-    async def process_entity_id(self, namespace, entity_id, new_state):
+    async def database_entity_id(self, database, entity_id, new_state):
         """Used to check if more filters applied"""
 
         remove_attributes = False
         state_only = False
 
-        if self.tables[namespace] is None:
+        if self.databases[database] is None:
             return new_state
 
-        if "exclude_attributes" in self.tables[namespace]:
-            exclude_attributes = self.tables[namespace]["exclude_attributes"]
+        if "exclude_attributes" in self.databases[database]:
+            exclude_attributes = self.databases[database]["exclude_attributes"]
             if isinstance(exclude_attributes, list):
                 for entity in exclude_attributes:
                     if entity == entity_id:
@@ -917,8 +977,8 @@ class DbPlugin(PluginBase):
                     new_state.pop("attributes", None)
                     return new_state
 
-        if "states_only" in self.tables[namespace]:
-            states_only = self.tables[namespace]["states_only"]
+        if "states_only" in self.databases[database]:
+            states_only = self.databases[database]["states_only"]
             if isinstance(states_only, list):
                 for entity in states_only:
                     if entity == entity_id:
@@ -935,6 +995,24 @@ class DbPlugin(PluginBase):
                     return {"state": new_state.get("state")}
 
         return new_state
+
+    async def check_database(self, database):
+        """Check if Database will be used by AD"""
+
+        data = self.databases[database]
+        options = [
+            "include_entities",
+            "exclude_entities",
+            "states_only",
+            "exclude_attributes",
+            "events",
+            "namespace",
+        ]
+
+        if isinstance(data, dict) and any(map(lambda x: x in data, options)):
+            return True
+
+        return False
 
     async def check_database_sizes(self):
         """Used to check database size every hour"""
