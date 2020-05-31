@@ -2784,7 +2784,7 @@ class ADAPI:
         (not available in sync apps)
 
         Args:
-            delay (int): Number of seconds to pause.
+            delay (float): Number of seconds to pause.
             result (optional): Result to return upon delay completion.
 
         Returns:
