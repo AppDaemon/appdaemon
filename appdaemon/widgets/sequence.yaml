@@ -9,7 +9,6 @@ resident_namespace: rules
 post_service_active:
     service: sequence/run
     entity_id: "{{entity}}"
-    resident_namespace: rules
 post_service_inactive:
     service: sequence/run
     entity_id: "{{entity}}"
