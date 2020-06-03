@@ -509,10 +509,10 @@ class DbPlugin(PluginBase):
         if executed is True:
             # now add it to the list, so the database is created
             if database not in self.databases:
-                self.databases.append(database)
+                self.databases[database] = None
 
             if database not in self.database_metadata["databases"]:
-                self.database_metadata.append(database)
+                self.database_metadata["databases"].append(database)
 
         return executed
 
@@ -540,10 +540,10 @@ class DbPlugin(PluginBase):
                     del self._lock[database]
 
             del self.database_connections[database]
-            self.databases.remove(database)
+            del self.databases[database]
 
             if database in self.database_metadata["databases"]:
-                self.database_metadata.remove(database)
+                self.database_metadata["databases"].remove(database)
 
             ns = None
 
