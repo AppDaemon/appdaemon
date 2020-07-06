@@ -80,6 +80,11 @@ class HassPlugin(PluginBase):
         else:
             self.timeout = None
 
+        if "retry_secs" in args:
+            self.retry_secs = int(args["retry_secs"])
+        else:
+            self.retry_secs = 5
+
         if "cert_verify" in args:
             self.cert_verify = args["cert_verify"]
         else:
@@ -369,14 +374,13 @@ class HassPlugin(PluginBase):
                     await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     self.already_notified = True
                 if not self.stopping:
-                    self.logger.warning("Disconnected from Home Assistant, retrying in 5 seconds")
+                    self.logger.warning("Disconnected from Home Assistant, retrying in %s seconds", self.retry_secs)
                     self.logger.debug("-" * 60)
                     self.logger.debug("Unexpected error:")
                     self.logger.debug("-" * 60)
                     self.logger.debug(traceback.format_exc())
-                    print(traceback.format_exc())
                     self.logger.debug("-" * 60)
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(self.retry_secs)
 
         self.logger.info("Disconnecting from Home Assistant")
 
