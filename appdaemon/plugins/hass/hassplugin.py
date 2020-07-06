@@ -229,7 +229,7 @@ class HassPlugin(PluginBase):
             domain = data["domain"]
             service = data["service"]
             self.AD.services.register_service(
-                self.get_namespace(), domain, service, self.call_plugin_service,
+                self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
             )
 
     # async def schedule(self, kwargs):
