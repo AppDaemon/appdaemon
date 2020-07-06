@@ -323,7 +323,7 @@ class HassPlugin(PluginBase):
                 for domain in self.services:
                     for service in domain["services"]:
                         self.AD.services.register_service(
-                            self.get_namespace(), domain["domain"], service, self.call_plugin_service,
+                            self.get_namespace(), domain["domain"], service, self.call_plugin_service, __silent=True
                         )
 
                 # Decide if we can start yet
@@ -374,6 +374,7 @@ class HassPlugin(PluginBase):
                     self.logger.debug("Unexpected error:")
                     self.logger.debug("-" * 60)
                     self.logger.debug(traceback.format_exc())
+                    print(traceback.format_exc())
                     self.logger.debug("-" * 60)
                     await asyncio.sleep(5)
 
@@ -463,80 +464,18 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        if domain == "database":
-            if "entity_id" in data and data["entity_id"] != "":
-                filter_entity_id = "?filter_entity_id={}".format(data["entity_id"])
-            else:
-                filter_entity_id = ""
-            start_time = ""
-            end_time = ""
-            if "days" in data:
-                days = data["days"]
-                if days - 1 < 0:
-                    days = 1
-            else:
-                days = 1
-            if "start_time" in data:
-                if isinstance(data["start_time"], str):
-                    start_time = utils.str_to_dt(data["start_time"]).replace(microsecond=0)
-                elif isinstance(data["start_time"], datetime.datetime):
-                    start_time = self.AD.tz.localize(data["start_time"]).replace(microsecond=0)
-                else:
-                    raise ValueError("Invalid type for start time")
-
-            if "end_time" in data:
-                if isinstance(data["end_time"], str):
-                    end_time = utils.str_to_dt(data["end_time"]).replace(microsecond=0)
-                elif isinstance(data["end_time"], datetime.datetime):
-                    end_time = self.AD.tz.localize(data["end_time"]).replace(microsecond=0)
-                else:
-                    raise ValueError("Invalid type for end time")
-
-            # if both are declared, it can't process entity_id
-            if start_time != "" and end_time != "":
-                filter_entity_id = ""
-
-            # if starttime is not declared and entity_id is declared, and days specified
-            elif (filter_entity_id != "" and start_time == "") and "days" in data:
-                start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days=days)
-
-            # if starttime is declared and entity_id is not declared, and days specified
-            elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in data:
-                end_time = start_time + datetime.timedelta(days=days)
-
-            # if endtime is declared and entity_id is not declared, and days specified
-            elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in data:
-                start_time = end_time - datetime.timedelta(days=days)
-
-            if start_time != "":
-                timestamp = "/{}".format(utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz))
-
-                if filter_entity_id != "":  # if entity_id is specified, end_time cannot be used
-                    end_time = ""
-
-                if end_time != "":
-                    end_time = "?end_time={}".format(
-                        quote(utils.dt_to_str(end_time.replace(microsecond=0), self.AD.tz))
-                    )
-
-            # if no start_time is specified, other parameters are invalid
-            else:
-                timestamp = ""
-                end_time = ""
-
-            api_url = "{}/api/history/period{}{}{}".format(config["ha_url"], timestamp, filter_entity_id, end_time)
-
-        elif domain == "template":
+        if domain == "template":
             api_url = "{}/api/template".format(config["ha_url"])
+
+        elif domain == "database":
+            return await self.get_history(**data)
 
         else:
             api_url = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
 
         try:
-            if domain == "database":
-                r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
-            else:
-                r = await self.session.post(api_url, headers=headers, json=data, verify_ssl=self.cert_verify)
+
+            r = await self.session.post(api_url, headers=headers, json=data, verify_ssl=self.cert_verify)
 
             if r.status == 200 or r.status == 201:
                 if domain == "template":
@@ -566,6 +505,111 @@ class HassPlugin(PluginBase):
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
             return None
+
+    async def get_history(self, **kwargs):
+        """Used to get HA's History"""
+
+        # TODO cert_path is not used
+        if "cert_path" in self.config:
+            cert_path = self.config["cert_path"]
+        else:
+            cert_path = False  # noqa: F841
+
+        if "token" in self.config:
+            headers = {"Authorization": "Bearer {}".format(self.config["token"])}
+        elif "ha_key" in self.config:
+            headers = {"x-ha-access": self.config["ha_key"]}
+        else:
+            headers = {}
+
+        try:
+            api_url = await self.get_history_api(**kwargs)
+
+            r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+
+            if r.status == 200 or r.status == 201:
+                result = await r.json()
+            else:
+                self.logger.warning("Error calling Home Assistant to get_history")
+                txt = await r.text()
+                self.logger.warning("Code: %s, error: %s", r.status, txt)
+                result = None
+
+            return result
+
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            self.logger.warning("HASS Disconnected unexpectedly during get_history()")
+
+        except Exception:
+            self.logger.error("-" * 60)
+            self.logger.error("Unexpected error during get_history")
+            self.logger.error("-" * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error("-" * 60)
+
+        return None
+
+    async def get_history_api(self, **kwargs):
+
+        if "entity_id" in kwargs and kwargs["entity_id"] != "":
+            filter_entity_id = "?filter_entity_id={}".format(kwargs["entity_id"])
+        else:
+            filter_entity_id = ""
+        start_time = ""
+        end_time = ""
+        if "days" in kwargs:
+            days = kwargs["days"]
+            if days - 1 < 0:
+                days = 1
+        else:
+            days = 1
+        if "start_time" in kwargs:
+            if isinstance(kwargs["start_time"], str):
+                start_time = utils.str_to_dt(kwargs["start_time"]).replace(microsecond=0)
+            elif isinstance(kwargs["start_time"], datetime.datetime):
+                start_time = self.AD.tz.localize(kwargs["start_time"]).replace(microsecond=0)
+            else:
+                raise ValueError("Invalid type for start time")
+
+        if "end_time" in kwargs:
+            if isinstance(kwargs["end_time"], str):
+                end_time = utils.str_to_dt(kwargs["end_time"]).replace(microsecond=0)
+            elif isinstance(kwargs["end_time"], datetime.datetime):
+                end_time = self.AD.tz.localize(kwargs["end_time"]).replace(microsecond=0)
+            else:
+                raise ValueError("Invalid type for end time")
+
+        # if both are declared, it can't process entity_id
+        if start_time != "" and end_time != "":
+            filter_entity_id = ""
+
+        # if starttime is not declared and entity_id is declared, and days specified
+        elif (filter_entity_id != "" and start_time == "") and "days" in kwargs:
+            start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days=days)
+
+        # if starttime is declared and entity_id is not declared, and days specified
+        elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in kwargs:
+            end_time = start_time + datetime.timedelta(days=days)
+
+        # if endtime is declared and entity_id is not declared, and days specified
+        elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in kwargs:
+            start_time = end_time - datetime.timedelta(days=days)
+
+        if start_time != "":
+            timestamp = "/{}".format(utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz))
+
+            if filter_entity_id != "":  # if entity_id is specified, end_time cannot be used
+                end_time = ""
+
+            if end_time != "":
+                end_time = "?end_time={}".format(quote(utils.dt_to_str(end_time.replace(microsecond=0), self.AD.tz)))
+
+        # if no start_time is specified, other parameters are invalid
+        else:
+            timestamp = ""
+            end_time = ""
+
+        return "{}/api/history/period{}{}{}".format(self.config["ha_url"], timestamp, filter_entity_id, end_time)
 
     async def get_hass_state(self, entity_id=None):
 

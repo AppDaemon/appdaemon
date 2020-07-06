@@ -31,7 +31,7 @@ Change Log
 - Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
 - Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 - Additional format for time travel start and end times accepted
-- Moved `appdaemon` services to `admin` namespace
+- Added the ability to specify a callback to hass get_history. This way,  large amount of data can be retrieved from the database, without AD cancelling the task
 
 **Fixes**
 
@@ -48,7 +48,7 @@ Change Log
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
-- Moved `appdaemon` based services to function within the `admin` namespace. So services for apps and logs will not function within `admin` and not `appdaemon`
+- Changed the `get_history` api, as `entity_id` has been removed from the api
 
 None
 
