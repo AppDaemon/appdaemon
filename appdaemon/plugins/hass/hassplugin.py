@@ -221,8 +221,17 @@ class HassPlugin(PluginBase):
     #
     # async def state(self, entity, attribute, old, new, kwargs):
     #    self.logger.info("State: %s %s %s %s {}".format(kwargs), entity, attribute, old, new)
-    # async def event(self, event, data, kwargs):
-    #    self.logger.info("Event: %s %s {}".format(kwargs), event, data)
+
+    async def event(self, event, data, kwargs):
+        self.logger.debug("Event: %s %s %s", kwargs, event, data)
+
+        if event == "service_registered":  # hass just registered a service
+            domain = data["domain"]
+            service = data["service"]
+            self.AD.services.register_service(
+                self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+            )
+
     # async def schedule(self, kwargs):
     #    self.logger.info("Schedule: {}".format(kwargs))
     #
@@ -239,7 +248,9 @@ class HassPlugin(PluginBase):
         # Testing
         #
         # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
-        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "state_changed")
+
+        # listen for service_registered event
+        await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "service_registered")
         # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
         # await self.AD.sched.insert_schedule(
         #    self.name,
@@ -351,6 +362,9 @@ class HassPlugin(PluginBase):
             except Exception:
                 self.reading_messages = False
                 self.hass_booting = True
+                # remove callback from getting local events
+                await self.AD.callbacks.clear_callbacks(self.name)
+
                 if not self.already_notified:
                     await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     self.already_notified = True

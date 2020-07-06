@@ -31,6 +31,7 @@ Change Log
 - Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
 - Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 - Additional format for time travel start and end times accepted
+- Moved `appdaemon` services to `admin` namespace
 
 **Fixes**
 
@@ -42,10 +43,12 @@ Change Log
 - Fix tzdata error in docker build for RPI - contributed by `Guy Khmelnitsky <https://github.com/GuyKh>`__
 - Fix for `get_tz_offset()` not working in some circumstances - contributed by `sillyfrog <https://github.com/sillyfrog>`__
 - Added some locking to prevent array size change errors
+- Fix for registering services created in HA, after it had started
 
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
+- Moved `appdaemon` based services to function within the `admin` namespace. So services for apps and logs will not function within `admin` and not `appdaemon`
 
 None
 
