@@ -47,6 +47,7 @@ Change Log
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
+- Changed the `get_history` api, as `entity_id` has been removed from the api
 
 None
 
