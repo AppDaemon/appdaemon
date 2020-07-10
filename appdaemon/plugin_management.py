@@ -266,7 +266,6 @@ class Plugins:
     async def update_plugin_state(self):
         for plugin in self.plugin_objs:
             if self.plugin_objs[plugin]["active"] is True:
-
                 name = self.get_plugin_from_namespace(plugin)
                 if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
                     seconds=self.plugins[name]["refresh_delay"]
