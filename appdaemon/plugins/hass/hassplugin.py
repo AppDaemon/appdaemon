@@ -98,12 +98,12 @@ class HassPlugin(PluginBase):
         if "appdaemon_startup_conditions" in args:
             self.appdaemon_startup_conditions = args["appdaemon_startup_conditions"]
         else:
-            self.appdaemon_startup_conditions = None
+            self.appdaemon_startup_conditions = {}
 
         if "plugin_startup_conditions" in args:
             self.plugin_startup_conditions = args["plugin_startup_conditions"]
         else:
-            self.plugin_startup_conditions = None
+            self.plugin_startup_conditions = {}
 
         self.session = None
         self.first_time = False
@@ -152,67 +152,86 @@ class HassPlugin(PluginBase):
     # Handle state updates
     #
 
-    async def evaluate_started(self, delay_done, plugin_booting, event=None):
+    async def evaluate_started(self, first_time, plugin_booting, event=None):  # noqa: C901
+
+        if first_time is True:
+            self.hass_ready = False
+            self.state_matched = False
 
         if plugin_booting is True:
             startup_conditions = self.plugin_startup_conditions
         else:
             startup_conditions = self.appdaemon_startup_conditions
 
-        state_start = False
-        event_start = False
-        if startup_conditions is None:
-            state_start = True
-            event_start = True
-        else:
-            if "delay" in startup_conditions:
-                if delay_done is False:
-                    self.logger.info("Delaying startup for %s seconds", startup_conditions["delay"])
-                    await asyncio.sleep(int(startup_conditions["delay"]))
+        start_ok = True
 
-            if "state" in startup_conditions:
-                state = await self.get_complete_state()
-                entry = startup_conditions["state"]
-                if "value" in entry:
-                    # print(entry["value"], state[entry["entity"]])
-                    # print(DeepDiff(state[entry["entity"]], entry["value"]))
-                    if entry["entity"] in state and "values_changed" not in DeepDiff(
-                        entry["value"], state[entry["entity"]]
-                    ):
+        if "hass_state" not in startup_conditions:
+            startup_conditions["hass_state"] = "RUNNING"
+
+        if "delay" in startup_conditions:
+            if first_time is True:
+                self.logger.info("Delaying startup for %s seconds", startup_conditions["delay"])
+                await asyncio.sleep(int(startup_conditions["delay"]))
+
+        if "hass_state" in startup_conditions:
+            self.metadata = await self.get_hass_config()
+            if "state" in self.metadata:
+                if self.metadata["state"] == startup_conditions["hass_state"]:
+                    if self.hass_ready is False:
+                        self.logger.info("Startup condition met: hass state=RUNNING")
+                        self.hass_ready = True
+                else:
+                    start_ok = False
+
+        if "state" in startup_conditions:
+            state = await self.get_complete_state()
+            entry = startup_conditions["state"]
+            if "value" in entry:
+                # print(entry["value"], state[entry["entity"]])
+                # print(DeepDiff(state[entry["entity"]], entry["value"]))
+                if entry["entity"] in state and "values_changed" not in DeepDiff(
+                    entry["value"], state[entry["entity"]]
+                ):
+                    if self.state_matched is False:
                         self.logger.info(
                             "Startup condition met: %s=%s", entry["entity"], entry["value"],
                         )
-                        state_start = True
-                elif entry["entity"] in state:
+                        self.state_matched = True
+                else:
+                    start_ok = False
+            elif entry["entity"] in state:
+                if self.state_matched is False:
                     self.logger.info("Startup condition met: %s exists", entry["entity"])
-                    state_start = True
-            else:
-                state_start = True
+                    self.state_matched = True
+                else:
+                    start_ok = False
 
-            if "event" in startup_conditions:
-                if event is not None:
-                    entry = startup_conditions["event"]
-                    if "data" not in entry:
-                        if entry["event_type"] == event["event_type"]:
-                            event_start = True
+        if "event" in startup_conditions:
+            if event is not None:
+                entry = startup_conditions["event"]
+                if "data" not in entry:
+                    if entry["event_type"] == event["event_type"]:
+                        self.logger.info(
+                            "Startup condition met: event type %s fired", event["event_type"],
+                        )
+                    else:
+                        start_ok = False
+                else:
+                    if entry["event_type"] == event["event_type"]:
+                        if "values_changed" not in DeepDiff(event["data"], entry["data"]):
                             self.logger.info(
-                                "Startup condition met: event type %s fired", event["event_type"],
+                                "Startup condition met: event type %s, data = %s fired",
+                                event["event_type"],
+                                entry["data"],
                             )
                     else:
-                        if entry["event_type"] == event["event_type"]:
-                            if "values_changed" not in DeepDiff(event["data"], entry["data"]):
-                                event_start = True
-                                self.logger.info(
-                                    "Startup condition met: event type %s, data = %s fired",
-                                    event["event_type"],
-                                    entry["data"],
-                                )
-
+                        start_ok = False
             else:
-                event_start = True
+                start_ok = False
 
-        if state_start is True and event_start is True:
+        if start_ok is True:
             # We are good to go
+            self.logger.info("All startup conditions met")
             self.reading_messages = True
             state = await self.get_complete_state()
             await self.AD.plugins.notify_plugin_started(
@@ -333,7 +352,7 @@ class HassPlugin(PluginBase):
 
                 # Decide if we can start yet
                 self.logger.info("Evaluating startup conditions")
-                await self.evaluate_started(False, self.hass_booting)
+                await self.evaluate_started(True, self.hass_booting)
 
                 # state = await self.get_complete_state()
                 # self.reading_messages = True
@@ -356,9 +375,9 @@ class HassPlugin(PluginBase):
 
                     if self.reading_messages is False:
                         if result["type"] == "event":
-                            await self.evaluate_started(True, self.hass_booting, result["event"])
+                            await self.evaluate_started(False, self.hass_booting, result["event"])
                         else:
-                            await self.evaluate_started(True, self.hass_booting)
+                            await self.evaluate_started(False, self.hass_booting)
                     else:
                         await self.AD.events.process_event(self.namespace, result["event"])
 
