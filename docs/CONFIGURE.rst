@@ -116,6 +116,7 @@ The ``appdaemon:`` section has a number of directives:
 - ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``. This can also be changed from within apps, using the ``set_production_mode`` API call.
 - ``thread_duration_warning_threshold`` (optional) - AppDaemon monitors the time that each tread spends in an App. If a thread is taking too long to finish a callback, it may impact other apps. AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is 30 seconds, setting this value to ``00`` will disable the check.
 - ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events, and state changes - this can be useful for troubleshooting thread starvation issues
+
 When using the ``exclude_dirs`` directive, you should supply a list of directory names that should be ignored. For example:
 
 .. code:: yaml

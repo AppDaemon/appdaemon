@@ -1,8 +1,23 @@
 Change Log
 ==========
 
-4.0.4
+4.0.5
 -----
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+one
+
+4.0.4 (2020-07-11)
+------------------
 
 **Features**
 
@@ -33,6 +48,7 @@ Change Log
 - Additional format for time travel start and end times accepted
 - Added the ability to specify a callback to hass get_history. This way,  large amount of data can be retrieved from the database, without AD cancelling the task
 - Added retry_secs parameter to the hass plugin
+
 **Fixes**
 
 - Re-added support for SSL in the http module (should also fix dialogflow)
@@ -44,13 +60,12 @@ Change Log
 - Fix for `get_tz_offset()` not working in some circumstances - contributed by `sillyfrog <https://github.com/sillyfrog>`__
 - Added some locking to prevent array size change errors
 - Fix for registering services created in HA, after it had started
+- Added additional logic to wait for full HASS startup
 
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
 - Changed the `get_history` api, as `entity_id` has been removed from the api
-
-None
 
 4.0.3 (2020-02-29)
 ------------------
