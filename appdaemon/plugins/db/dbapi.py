@@ -13,12 +13,8 @@ class Db(adbase.ADBase, adapi.ADAPI):
     ):
 
         # Call Super Classes
-        adbase.ADBase.__init__(
-            self, ad, name, logging, args, config, app_config, global_vars
-        )
-        adapi.ADAPI.__init__(
-            self, ad, name, logging, args, config, app_config, global_vars
-        )
+        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
+        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
 
     #
     # Helper Functions
@@ -45,7 +41,7 @@ class Db(adbase.ADBase, adapi.ADAPI):
                 If ``entity_id`` is specified alonside the ``event``,  the ``event`` will be ignored.
             table (str, optional): The table the expected data is requested from. This is either ``events``
                 or ``states``. Either an `event`, `entity_id` or `table` must be specified.
-            database (str | list, optional): The database to get the data from, which corresponds to the namespaces the data is 
+            database (str | list, optional): The database to get the data from, which corresponds to the namespaces the data is
                 to be retrieved from e.g. ``hass``. If not specified, AD will attempt to get the data from all
                 the databases. For example getting data on the entity_id ``sensor.time``, if ``database`` not specified
                 it will get data from all databases (namespaces) that might have entity_id ``sensor.time``.
@@ -107,20 +103,19 @@ class Db(adbase.ADBase, adapi.ADAPI):
 
         else:
             self.logger.warning(
-                "Wrong Namespace selected, as %s has no database plugin attached to it",
-                namespace,
+                "Wrong Namespace selected, as %s has no database plugin attached to it", namespace,
             )
             return None
 
     @utils.sync_wrapper
     async def database_execute(self, database, query, **kwargs):
-        """Executes a query against a defined Database. 
+        """Executes a query against a defined Database.
         This is a convenience function that allows accessing and executing a query against
-        a database AD has access to. This database must be valid,  and must have been created 
+        a database AD has access to. This database must be valid,  and must have been created
         prior to accessing.
         Args:
             database (str): The database to be accessed
-            query (str): A valid SQL query command, to be executed against the database            
+            query (str): A valid SQL query command, to be executed against the database
             **kwargs (optional): Zero or more keyword arguments.
         Keyword Args:
             values (dict|list): Values to be executed alongside the query command. This must follow the
@@ -141,8 +136,6 @@ class Db(adbase.ADBase, adapi.ADAPI):
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        callback = kwargs.pop("callback", None)
-
         kwargs["database"] = database
         kwargs["query"] = query
         kwargs["namespace"] = namespace
@@ -154,11 +147,11 @@ class Db(adbase.ADBase, adapi.ADAPI):
     @utils.sync_wrapper
     async def database_fetch_one(self, database, query, **kwargs):
         """Executes a query against a defined Database, to get a single row of data.
-        This is a convenience function that allows accessing data from a databse using a query. 
+        This is a convenience function that allows accessing data from a databse using a query.
         This database must be valid,  and must have been created pior to accessing.
         Args:
             database (str): The database to be accessed
-            query (str): A valid SQL query command, to be used to fetch the data against the database            
+            query (str): A valid SQL query command, to be used to fetch the data against the database
             **kwargs (optional): Zero or more keyword arguments.
         Keyword Args:
             values (dict): Values to be executed alongside the query command. This must follow the
@@ -191,9 +184,7 @@ class Db(adbase.ADBase, adapi.ADAPI):
         kwargs["namespace"] = namespace
 
         if callback is not None and callable(callback):
-            self.create_task(
-                self.call_service("database/fetch_one", **kwargs), callback
-            )
+            self.create_task(self.call_service("database/fetch_one", **kwargs), callback)
 
         else:
             return await self.call_service("database/fetch_one", **kwargs)
@@ -201,11 +192,11 @@ class Db(adbase.ADBase, adapi.ADAPI):
     @utils.sync_wrapper
     async def database_fetch_all(self, database, query, **kwargs):
         """Executes a query against a defined Database, to get all rows of data.
-        This is a convenience function that allows accessing data from a databse using a query. 
+        This is a convenience function that allows accessing data from a databse using a query.
         This database must be valid,  and must have been created pior to accessing.
         Args:
             database (str): The database to be accessed
-            query (str): A valid SQL query command, to be used to fetch the data against the database            
+            query (str): A valid SQL query command, to be used to fetch the data against the database
             **kwargs (optional): Zero or more keyword arguments.
         Keyword Args:
             values (dict): Values to be executed alongside the query command. This must follow the
@@ -238,9 +229,7 @@ class Db(adbase.ADBase, adapi.ADAPI):
         kwargs["namespace"] = namespace
 
         if callback is not None and callable(callback):
-            self.create_task(
-                self.call_service("database/fetch_all", **kwargs), callback
-            )
+            self.create_task(self.call_service("database/fetch_all", **kwargs), callback)
 
         else:
             return await self.call_service("database/fetch_all", **kwargs)
