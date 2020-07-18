@@ -13,6 +13,7 @@ None
 None
 
 **Breaking Changes**
+- Moved the local static folder for serving static files from `web` to `www`
 
 one
 
