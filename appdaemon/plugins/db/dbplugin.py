@@ -58,6 +58,12 @@ class DbPlugin(PluginBase):
         self.database_connections = {}
         self.connection_pool = int(self.config.get("connection_pool", 20))
 
+        if self.connection_pool < 5:
+            self.logger.warning(
+                "Cannot use %s for Connection Pool, must be higher than 5. Reverting to 6", self.connection_pool
+            )
+            self.connection_pool = 6
+
         if self.connection_url is None:  # by default make use of the sqlite
             connection_url = os.path.join(self.AD.config_dir, "databases")
             if not os.path.isdir(connection_url):  # it doesn't exist
@@ -92,8 +98,7 @@ class DbPlugin(PluginBase):
         if len(self.database_connections) > 0:
             for database, connection in self.database_connections.items():
                 self.logger.info(
-                    "Closing Database Connection to %s",
-                    f"{self.connection_url}/{database}",
+                    "Closing Database Connection to %s", f"{self.connection_url}/{database}",
                 )
                 self.loop.create_task(connection.disconnect())
 
@@ -133,16 +138,12 @@ class DbPlugin(PluginBase):
         self.reading = False
         self._event = asyncio.Event()
 
-        if self.connection_url.startswith(
-            "sqlite:///"
-        ):  # sqlite in use, so lock required
-            self._lock = {}
-
         # set to continue
         self._event.set()
 
         while not self.stopping:
             await self._event.wait()
+
             while len(self.databases) != len(self.database_connections):
                 # now create the connection to the databases
                 # and store the connections
@@ -156,26 +157,22 @@ class DbPlugin(PluginBase):
 
                     try:
                         if entity_id not in self.state:
-                            kwargs["attributes"][
-                                "friendly_name"
-                            ] = f"{database.title()} Database"
+                            kwargs["attributes"]["friendly_name"] = f"{database.title()} Database"
                             kwargs["attributes"]["url"] = None
 
                         if self.connection_url.startswith("sqlite:///"):
-                            database_url = os.path.join(
-                                self.connection_url, f"{database}.db"
-                            )
+
+                            if self._lock is None:
+                                self._lock = {}
+
+                            database_url = os.path.join(self.connection_url, f"{database}.db")
                             self.logger.debug(
                                 "Creating connection to Database %s", database_url,
                             )
 
                             self.database_connections[database] = Database(database_url)
 
-                            self._lock[
-                                database
-                            ] = (
-                                asyncio.Lock()
-                            )  # lock will be used to access the connection
+                            self._lock[database] = asyncio.Lock()  # lock will be used to access the connection
 
                             increment = "AUTOINCREMENT"  # to be used later
 
@@ -183,19 +180,10 @@ class DbPlugin(PluginBase):
                             # first will need confirmation
                             # that the database exists,
                             # so attempt creating it
-                            try:
-                                async with Database(self.connection_url) as connection:
-                                    await connection.execute(
-                                        query=f"""CREATE DATABASE IF NOT EXISTS
-                                                {database}"""
-                                    )
+                            query = f"""CREATE DATABASE IF NOT EXISTS
+                                    {database}"""
 
-                            except SQLERR.ProgrammingError as p:
-                                if p.args[0] == 1007:  # it already exists
-                                    self.logger.info(
-                                        "Database %s already existing, so couldn't create it",
-                                        database,
-                                    )
+                            await self.database_create(database, query)
 
                             increment = "AUTO_INCREMENT"  # to be used later
 
@@ -211,15 +199,11 @@ class DbPlugin(PluginBase):
                             prams["min_size"] = 5
                             prams["max_size"] = self.connection_pool
 
-                            self.database_connections[database] = Database(
-                                database_url, **prams
-                            )
+                            self.database_connections[database] = Database(database_url, **prams)
 
                         await self.database_connections[database].connect()
 
-                        self.logger.info(
-                            "Connected to Database using URL %s", database_url
-                        )
+                        self.logger.info("Connected to Database using URL %s", database_url)
 
                         kwargs["state"] = "connected"
                         kwargs["attributes"]["url"] = database_url
@@ -245,159 +229,129 @@ class DbPlugin(PluginBase):
                     await self.state_update(entity_id, kwargs, not first_time)
 
                 if len(self.database_connections) > 0:  # at least 1 of them connected
-                    execs = []
+                    executed = await self.process_databases(increment)
 
-                    for database in self.database_connections:
-                        if self.databases[database] is None:
-                            continue
-
-                        if await self.check_database(
-                            database
-                        ):  # it is to be used by AD
-                            # there are one of the those settings, so most likely a namespace
-                            # need to setup entities and events database
-
-                            # first get the namespace
-                            # if no namespace specified, it should use the name by default
-
-                            _namespace = self.databases.get("namespace", database)
-
-                            if _namespace not in self._namespaces:
-                                self._namespaces[_namespace] = {}
-                                self._namespaces[_namespace]["handle"] = None
-                                self._namespaces[_namespace]["databases"] = []
-
-                            if (
-                                database
-                                not in self._namespaces[_namespace]["databases"]
-                            ):
-                                self._namespaces[_namespace]["databases"].append(
-                                    database
-                                )
-
-                            # next we need to ensure we create the states tables
-                            query = f"""CREATE TABLE IF NOT EXISTS states (
-                                    state_id INTEGER NOT NULL PRIMARY KEY {increment},
-                                    domain VARCHAR(100),
-                                    entity_id VARCHAR(100),
-                                    state VARCHAR(512),
-                                    attributes TEXT,
-                                    last_changed DATETIME,
-                                    timestamp DATETIME)"""
-
-                            executed = await self.database_execute(
-                                database, query, None
-                            )
-
-                            execs.append(executed)
-
-                            # next we need to ensure we create the events tables
-                            query = f"""CREATE TABLE IF NOT EXISTS events (
-                                    event_id INTEGER NOT NULL PRIMARY KEY {increment},
-                                    event_type VARCHAR(100),
-                                    event_data TEXT,
-                                    timestamp DATETIME)"""
-
-                            executed = await self.database_execute(
-                                database, query, None
-                            )
-
-                            execs.append(executed)
-
-                            if executed is True:
-                                handle = self._namespaces[_namespace]["handle"]
-                                if handle is not None:
-                                    continue  # already been setup do no need
-
-                                self._namespaces[_namespace][
-                                    "handle"
-                                ] = await self.AD.events.add_event_callback(
-                                    self.name,
-                                    _namespace,
-                                    self.event_callback,
-                                    None,
-                                    __silent=True,
-                                    __namespace=_namespace,
-                                )
-
-                            else:  # it didn't create the table as requested
-                                await self.database_connections[database].disconnect()
-                                del self.database_connections[database]
-                                break
-
-                    if (
-                        all(execs) is False
-                    ):  # there  was an error when processing one of the tables, so no need continuing processing
+                    if executed is False:
                         break
-
-                    self.AD.services.register_service(
-                        self.namespace, "database", "execute", self.call_plugin_service,
-                    )
-                    self.AD.services.register_service(
-                        self.namespace,
-                        "database",
-                        "fetch_one",
-                        self.call_plugin_service,
-                    )
-                    self.AD.services.register_service(
-                        self.namespace,
-                        "database",
-                        "fetch_all",
-                        self.call_plugin_service,
-                    )
-                    self.AD.services.register_service(
-                        self.namespace, "database", "create", self.call_plugin_service,
-                    )
-                    self.AD.services.register_service(
-                        self.namespace, "database", "drop", self.call_plugin_service,
-                    )
-                    self.AD.services.register_service(
-                        self.namespace,
-                        "database",
-                        "get_history",
-                        self.call_plugin_service,
-                    )
-                    self.AD.services.register_service(
-                        self.namespace, "server", "execute", self.call_plugin_service,
-                    )
-                    self.AD.services.register_service(
-                        self.namespace, "server", "fetch", self.call_plugin_service,
-                    )
 
                     states = await self.get_complete_state()
 
                     await self.AD.plugins.notify_plugin_started(
-                        self.name,
-                        self.namespace,
-                        self.database_metadata,
-                        states,
-                        first_time,
+                        self.name, self.namespace, self.database_metadata, states, first_time,
                     )
+
+                    asyncio.ensure_future(self.check_database_sizes())
 
                     first_time = False
                     already_notified = False
 
-                    asyncio.ensure_future(self.check_database_sizes())
-
                 elif len(self.database_connections) == 0 and already_notified is False:
-                    await self.AD.plugins.notify_plugin_stopped(
-                        self.name, self.namespace
-                    )
+                    await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     already_notified = True
 
-                if len(self.databases) != len(
-                    self.database_connections
-                ):  # some did not work
-                    self.logger.warning(
-                        "Could not connect to all Databases, will attempt in 5 seconds"
-                    )
+                if len(self.databases) != len(self.database_connections):  # some did not work
+                    self.logger.warning("Could not connect to all Databases, will attempt in 5 seconds")
 
-                elif len(self.databases) == len(
-                    self.database_connections
-                ):  # all initialized, so can wait
+                elif len(self.databases) == len(self.database_connections):  # all initialized, so can wait
                     self._event.clear()  # it should stop
 
             await asyncio.sleep(5)
+
+    async def process_databases(self, increment):
+        """Process the databases"""
+        execs = []
+
+        for database in self.database_connections:
+            if self.databases[database] is None:
+                continue
+
+            if await self.check_database(database):  # it is to be used by AD
+                # there are one of the those settings, so most likely a namespace
+                # need to setup entities and events database
+
+                # first get the namespace
+                # if no namespace specified, it should use the name by default
+
+                _namespace = self.databases.get("namespace", database)
+
+                if _namespace not in self._namespaces:
+                    self._namespaces[_namespace] = {}
+                    self._namespaces[_namespace]["handle"] = None
+                    self._namespaces[_namespace]["databases"] = []
+
+                if database not in self._namespaces[_namespace]["databases"]:
+                    self._namespaces[_namespace]["databases"].append(database)
+
+                # next we need to ensure we create the states tables
+                query = f"""CREATE TABLE IF NOT EXISTS states (
+                        state_id INTEGER NOT NULL PRIMARY KEY {increment},
+                        domain VARCHAR(100),
+                        entity_id VARCHAR(100),
+                        state VARCHAR(512),
+                        attributes TEXT,
+                        last_changed DATETIME,
+                        timestamp DATETIME)"""
+
+                executed = await self.database_execute(database, query, None)
+
+                execs.append(executed)
+
+                # next we need to ensure we create the events tables
+                query = f"""CREATE TABLE IF NOT EXISTS events (
+                        event_id INTEGER NOT NULL PRIMARY KEY {increment},
+                        event_type VARCHAR(100),
+                        event_data TEXT,
+                        timestamp DATETIME)"""
+
+                executed = await self.database_execute(database, query, None)
+
+                execs.append(executed)
+
+                if executed is True:
+                    handle = self._namespaces[_namespace]["handle"]
+                    if handle is not None:
+                        continue  # already been setup do no need
+
+                    self._namespaces[_namespace]["handle"] = await self.AD.events.add_event_callback(
+                        self.name, _namespace, self.event_callback, None, __silent=True, __namespace=_namespace,
+                    )
+
+                else:  # it didn't create the table as requested
+                    await self.database_connections[database].disconnect()
+                    del self.database_connections[database]
+                    break
+
+        if (
+            all(execs) is False
+        ):  # there  was an error when processing one of the tables, so no need continuing processing
+            return False
+
+        self.AD.services.register_service(
+            self.namespace, "database", "execute", self.call_plugin_service,
+        )
+        self.AD.services.register_service(
+            self.namespace, "database", "fetch_one", self.call_plugin_service,
+        )
+        self.AD.services.register_service(
+            self.namespace, "database", "fetch_all", self.call_plugin_service,
+        )
+        self.AD.services.register_service(
+            self.namespace, "database", "create", self.call_plugin_service,
+        )
+        self.AD.services.register_service(
+            self.namespace, "database", "drop", self.call_plugin_service,
+        )
+        self.AD.services.register_service(
+            self.namespace, "database", "get_history", self.call_plugin_service,
+        )
+        self.AD.services.register_service(
+            self.namespace, "server", "execute", self.call_plugin_service,
+        )
+        self.AD.services.register_service(
+            self.namespace, "server", "fetch", self.call_plugin_service,
+        )
+
+        return True
 
     #
     # Service Call
@@ -405,83 +359,101 @@ class DbPlugin(PluginBase):
 
     async def call_plugin_service(self, namespace, domain, service, kwargs):
         self.logger.debug(
-            "call_plugin_service() namespace=%s domain=%s service=%s kwargs=%s",
-            namespace,
-            domain,
-            service,
-            kwargs,
+            "call_plugin_service() namespace=%s domain=%s service=%s kwargs=%s", namespace, domain, service, kwargs,
         )
         res = None
 
         database = kwargs.get("database")
         query = kwargs.get("query")
-        values = kwargs.get("values")
 
         if database is None and domain != "server":
-            self.logger.warning(
-                "Could not execute service call, as Database not provided"
-            )
+            self.logger.warning("Could not execute service call, as Database not provided")
             return res
 
         elif query is None and service not in ["drop", "create"]:
             self.logger.warning("Could not execute service call, as Query not provided")
             return res
 
+        kwargs["service"] = service
+
         if domain == "database":
-            if service == "execute":
-                asyncio.ensure_future(self.database_execute(database, query, values))
-
-            elif service == "fetch_one":
-                res = await self.database_fetch(database, query, values, "one")
-
-            elif service == "fetch_all":
-                res = await self.database_fetch(database, query, values, "all")
-
-            elif service == "create":
-                if database in self.databases:
-                    self.logger.warning(
-                        "Cannot create Database %s, as it already exists", database,
-                    )
-                    return
-
-                executed = await self.database_create(database, query)
-                if executed is True:
-                    self._event.set()  # continue to process connection
-
-            elif service == "drop":
-                if database not in self.databases:
-                    self.logger.warning(
-                        "Cannot drop Database %s, as it doesn't exists", database,
-                    )
-                    return None
-
-                if await self.check_database(database):
-                    self.logger.warning(
-                        "Cannot drop Database %s, as it used by AD", database
-                    )
-                    return None
-
-                await self.database_drop(database, kwargs.get("clean", False))
-
-            elif service == "get_history":
-                return await self.get_history(**kwargs)
+            res = await self.database_service(**kwargs)
 
         elif domain == "server":
-            if service == "execute":
-                asyncio.ensure_future(self.server_execute(query, values))
+            res = await self.server_service(**kwargs)
 
-            elif service == "fetch":
-                if not self.connection_url.startswith("sqlite:///"):
-                    try:
-                        async with Database(self.connection_url) as connection:
-                            res = await connection.fetch_all(query=query)
+        return res
 
-                    except Exception as e:
-                        self.logger.error("-" * 60)
-                        self.logger.error("-" * 60)
-                        self.logger.error(e)
-                        self.logger.debug(traceback.format_exc())
-                        self.logger.error("-" * 60)
+    async def database_service(self, **kwargs):
+        """Database Service"""
+
+        res = None
+        database = kwargs.get("database")
+        values = kwargs.get("values")
+        query = kwargs.get("query")
+        service = kwargs["service"]
+
+        if service == "execute":
+            asyncio.ensure_future(self.database_execute(database, query, values))
+
+        elif service == "fetch_one":
+            res = await self.database_fetch(database, query, values, "one")
+
+        elif service == "fetch_all":
+            res = await self.database_fetch(database, query, values, "all")
+
+        elif service == "create":
+            if database in self.databases:
+                self.logger.warning(
+                    "Cannot create Database %s, as it already exists", database,
+                )
+                return
+
+            executed = await self.database_create(database, query)
+            if executed is True:
+                self._event.set()  # continue to process connection
+
+        elif service == "drop":
+            if database not in self.databases:
+                self.logger.warning(
+                    "Cannot drop Database %s, as it doesn't exists", database,
+                )
+                return None
+
+            if await self.check_database(database):
+                self.logger.warning("Cannot drop Database %s, as it used by AD", database)
+                return None
+
+            await self.database_drop(database, kwargs.get("clean", False))
+
+        elif service == "get_history":
+            return await self.get_history(**kwargs)
+
+        return res
+
+    async def server_service(self, **kwargs):
+        """Server Service"""
+
+        res = None
+        values = kwargs.get("values")
+        query = kwargs.get("query")
+        service = kwargs["service"]
+
+        if service == "execute":
+            asyncio.ensure_future(self.server_execute(query, values))
+
+        elif service == "fetch":
+            if not self.connection_url.startswith("sqlite:///"):
+                try:
+                    async with Database(self.connection_url) as connection:
+                        res = await connection.fetch_all(query=query)
+
+                except Exception as e:
+                    self.logger.error("-" * 60)
+                    self.logger.error("-" * 60)
+                    self.logger.error(e)
+                    self.logger.debug(traceback.format_exc())
+                    self.logger.error("-" * 60)
 
         return res
 
@@ -496,6 +468,12 @@ class DbPlugin(PluginBase):
             try:
                 async with Database(self.connection_url) as connection:
                     await connection.execute(query=query)
+
+            except SQLERR.ProgrammingError as p:
+                if p.args[0] == 1007:  # it already exists
+                    self.logger.info(
+                        "Database %s already existing, so couldn't create it", database,
+                    )
 
             except Exception as e:
                 executed = False
@@ -531,9 +509,7 @@ class DbPlugin(PluginBase):
                 database_path = self.connection_url.replace("sqlite:///", "")
                 database_url = os.path.join(database_path, f"{database}.db")
 
-                if clean and await utils.run_in_executor(
-                    self, os.path.isfile, database_url
-                ):
+                if clean and await utils.run_in_executor(self, os.path.isfile, database_url):
                     await utils.run_in_executor(self, os.remove, database_url)
 
                 if database in self._lock:
@@ -583,8 +559,7 @@ class DbPlugin(PluginBase):
         try:
             if database not in self.database_connections:
                 self.logger.warning(
-                    "Could not connect to Database %s, as no valid connection to it",
-                    database,
+                    "Could not connect to Database %s, as no valid connection to it", database,
                 )
                 return executed
 
@@ -607,9 +582,7 @@ class DbPlugin(PluginBase):
         except SQLERR.InternalError as i:
             self.logger.critical(i)
 
-            if (
-                i.args[0] == 1049
-            ):  # its an internal error. Possible connection lost so will need to be restarted
+            if i.args[0] == 1049:  # its an internal error. Possible connection lost so will need to be restarted
                 del self.database_connections[database]
                 self._event.set()  # continue to process connection
                 entity_id = f"database.{database.lower()}"
@@ -640,8 +613,7 @@ class DbPlugin(PluginBase):
         try:
             if database not in self.database_connections:
                 self.logger.warning(
-                    "Could not connect to Database %s, as no valid connection to it",
-                    database,
+                    "Could not connect to Database %s, as no valid connection to it", database,
                 )
                 return res
 
@@ -698,6 +670,7 @@ class DbPlugin(PluginBase):
         event = kwargs.get("event")
         databases = kwargs.get("database")
         table = kwargs.get("table")
+        query = ""
 
         # first process time interval of the request
         start_time, end_time = self.get_history_time(**kwargs)
@@ -797,28 +770,22 @@ class DbPlugin(PluginBase):
         ts = await self.AD.sched.get_now()
         ts = ts.strftime("%Y-%m-%d %H:%M:%S")
 
-        databases = self._namespaces[_namespace][
-            "databases"
-        ]  # get the databases in this namespace
+        databases = self._namespaces[_namespace]["databases"]  # get the databases in this namespace
 
         for database in databases:
             if event == "state_changed":
                 entity_id = data["entity_id"]
 
-                if database not in self.databases or not await self.check_entity_id(
-                    database, entity_id
-                ):
+                if database not in self.databases or not await self.check_entity_id(database, entity_id):
                     continue
 
                 new_state = data["new_state"]
-                new_state.pop(
-                    "entity_id", None
-                )  # remove the entity_id if available, unnecessary data
+                new_state.pop("entity_id", None)  # remove the entity_id if available, unnecessary data
                 domain, _ = entity_id.split(".")
 
                 states = await self.database_entity_id(database, entity_id, new_state)
 
-                query = f"""INSERT INTO states
+                query = """INSERT INTO states
                         (domain, entity_id, state, attributes, last_changed, timestamp)
                         VALUES (:domain, :entity_id, :state, :attributes, :last_changed, :timestamp)"""
 
@@ -850,7 +817,7 @@ class DbPlugin(PluginBase):
                 if not await self.check_event(database, event):  # should not be stored
                     continue
 
-                query = f"""INSERT INTO events
+                query = """INSERT INTO events
                         (event_type, event_data, timestamp)
                         VALUES (:event_type, :event_data, :timestamp)"""
 
@@ -878,9 +845,7 @@ class DbPlugin(PluginBase):
 
         else:
             if isinstance(events, str):
-                if events == event or (
-                    events.endswith("*") and event.startswith(events[:-1])
-                ):
+                if events == event or (events.endswith("*") and event.startswith(events[:-1])):
                     execute = True
 
             elif isinstance(events, list):
@@ -910,8 +875,7 @@ class DbPlugin(PluginBase):
 
             if isinstance(excluded_entities, str):
                 if excluded_entities == entity_id or (
-                    excluded_entities.endswith("*")
-                    and entity_id.startswith(excluded_entities[:-1])
+                    excluded_entities.endswith("*") and entity_id.startswith(excluded_entities[:-1])
                 ):
                     execute = False
 
@@ -932,8 +896,7 @@ class DbPlugin(PluginBase):
 
             if isinstance(included_entities, str):
                 if included_entities == entity_id or (
-                    included_entities.endswith("*")
-                    and entity_id.startswith(included_entities[:-1])
+                    included_entities.endswith("*") and entity_id.startswith(included_entities[:-1])
                 ):
                     execute = True
 
@@ -1033,9 +996,7 @@ class DbPlugin(PluginBase):
                         database_url = os.path.join(database_path, f"{database}.db")
 
                         if os.path.isfile(database_url):
-                            size = await utils.run_in_executor(
-                                self, os.path.getsize, database_url
-                            )
+                            size = await utils.run_in_executor(self, os.path.getsize, database_url)
 
                     else:
                         pass
@@ -1045,9 +1006,7 @@ class DbPlugin(PluginBase):
 
                     kwargs["attributes"]["size_in_mega_bytes"] = size
 
-                    self.logger.debug(
-                        "Database size for %s retrieved as %s", database, size
-                    )
+                    self.logger.debug("Database size for %s retrieved as %s", database, size)
 
                     await self.state_update(entity_id, kwargs)
 
@@ -1107,11 +1066,7 @@ class DbPlugin(PluginBase):
             if notified is True:  # AD had been updated of this namespace
                 data = {
                     "event_type": "state_changed",
-                    "data": {
-                        "entity_id": entity_id,
-                        "new_state": new_state,
-                        "old_state": old_state,
-                    },
+                    "data": {"entity_id": entity_id, "new_state": new_state, "old_state": old_state},
                 }
 
                 # this is put ahead, to ensure integrity of the data.
