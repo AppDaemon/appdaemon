@@ -18,6 +18,9 @@ class Services:
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
         )
+
+        __silent = kwargs.pop("__silent", False)
+
         with self.services_lock:
             if namespace not in self.services:
                 self.services[namespace] = {}
@@ -25,11 +28,12 @@ class Services:
                 self.services[namespace][domain] = {}
             self.services[namespace][domain][service] = {"callback": callback, **kwargs}
 
-            data = {
-                "event_type": "service_registered",
-                "data": {"namespace": namespace, "domain": domain, "service": service},
-            }
-            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
+            if __silent is False:
+                data = {
+                    "event_type": "service_registered",
+                    "data": {"namespace": namespace, "domain": domain, "service": service},
+                }
+                self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     def list_services(self, ns="global"):
         result = []

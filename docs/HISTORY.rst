@@ -1,8 +1,23 @@
 Change Log
 ==========
 
-4.0.4
+4.0.5
 -----
+
+**Features**
+
+- Added ability to receive binary payload from MQTT broker
+
+**Fixes**
+
+- Allowed for both multi and single level MQTT wildcard subscription
+
+**Breaking Changes**
+
+- ``binary`` is now a reserved keyward argument used when listening to MQTT events
+
+4.0.4 (2020-07-11)
+------------------
 
 **Features**
 
@@ -31,8 +46,8 @@ Change Log
 - Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
 - Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 - Additional format for time travel start and end times accepted
-- Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
-- Added ability to receive binary payload from MQTT broker
+- Added the ability to specify a callback to hass get_history. This way,  large amount of data can be retrieved from the database, without AD cancelling the task
+- Added retry_secs parameter to the hass plugin
 
 **Fixes**
 
@@ -44,14 +59,13 @@ Change Log
 - Fix tzdata error in docker build for RPI - contributed by `Guy Khmelnitsky <https://github.com/GuyKh>`__
 - Fix for `get_tz_offset()` not working in some circumstances - contributed by `sillyfrog <https://github.com/sillyfrog>`__
 - Added some locking to prevent array size change errors
-- Allowed for both multi and single level MQTT wildcard subscription
+- Fix for registering services created in HA, after it had started
+- Added additional logic to wait for full HASS startup
 
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
-- if using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
-
-None
+- Changed the `get_history` api, as `entity_id` has been removed from the api
 
 4.0.3 (2020-02-29)
 ------------------

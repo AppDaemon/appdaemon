@@ -328,6 +328,7 @@ class State:
             None.
 
         """
+        # print("remove {}:{}".format(namespace, entity))
 
         self.logger.debug("remove_entity() %s %s", namespace, entity)
         plugin = await self.AD.plugins.get_plugin_object(namespace)
