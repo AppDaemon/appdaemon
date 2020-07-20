@@ -15,6 +15,7 @@ Change Log
 **Breaking Changes**
 
 - ``binary`` is now a reserved keyword argument used when listening to MQTT events
+- When using ``wildcard`` to listen for events within an app, only those used to subscribe to the broker can be used. so if using ``camera/#`` to subscribe to all camera related topics, AD will not recognise ``camera/front-door/#`` as a valid wildcard when listening for events; unless ``camera/front-door/#`` was used for subscription itself.
 
 4.0.4 (2020-07-11)
 ------------------
