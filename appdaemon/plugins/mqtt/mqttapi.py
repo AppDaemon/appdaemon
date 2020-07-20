@@ -105,7 +105,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
 
-            _binary (bool, optional): If wanting the payload to be returned as binary, this should
+            binary (bool, optional): If wanting the payload to be returned as binary, this should
                 be specified. If not given, AD will return the payload as decoded data. It should
                 be noted that it is not possible to have different apps receieve both binary and non-binary
                 data on the same topic
@@ -120,25 +120,25 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
             Listen events for a specific subscribed topic.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic = 'homeassistant/bedroom/light')
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic='homeassistant/bedroom/light')
 
             Listen events for a specific subscribed high level topic.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard='homeassistant/#')
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard = 'homeassistant/+/motion')
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard='homeassistant/+/motion')
 
             Listen events for binary payload
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic = 'hermes/audioServer/#', _binary = True)
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic='hermes/audioServer/#', binary=True)
 
             Listen plugin's `disconnected` events from the broker.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state = 'Disconnected', topic = None)
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state='Disconnected', topic=None)
 
             Listen plugin's' `connected` events from the broker.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state = 'Connected', topic = None)
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state='Connected', topic=None)
 
         Notes:
             At this point, it is not possible to use single level wildcard like using ``homeassistant/+/light`` instead of ``homeassistant/bedroom/light``. This could be added later, if need be.
@@ -150,7 +150,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         topic = kwargs.get("topic", kwargs.get("wildcard"))
 
         if plugin is not None:
-            if kwargs.pop("_binary", None) is True:
+            if kwargs.pop("binary", None) is True:
                 if topic is not None:
                     self.logger.debug("Adding topic %s, to binary payload topics", topic)
                     plugin.add_mqtt_binary(topic)
