@@ -14,7 +14,7 @@ Change Log
 
 **Breaking Changes**
 
-- ``binary`` is now a reserved keyward argument used when listening to MQTT events
+- ``binary`` is now a reserved keyword argument used when listening to MQTT events
 
 4.0.4 (2020-07-11)
 ------------------
