@@ -72,11 +72,11 @@ class Db(adbase.ADBase, adapi.ADAPI):
 
         Examples:
             Get device state over the last 5 days.
-            >>> data = self.get_history(entity_id="light.office_lamp", days = 5)
+            >>> data = self.get_history(entity_id="light.office_lamp", days=5)
             Get device zwave data over the last 2 days and walk forward.
             >>> import datetime
             >>> from datetime import timedelta
-            >>> start_time = datetime.datetime.now() - timedelta(days = 2)
+            >>> start_time = datetime.datetime.now() - timedelta(days=2)
             >>> data = self.get_history(event="zwave", start_time=start_time)
             Get event data from the hass and mqtt namespaces over the past 5 days.
             >>> import datetime
