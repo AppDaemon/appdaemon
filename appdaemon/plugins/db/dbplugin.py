@@ -612,10 +612,9 @@ class DbPlugin(PluginBase):
 
         try:
             if database not in self.database_connections:
-                self.logger.warning(
+                raise ValueError(
                     "Could not connect to Database %s, as no valid connection to it", database,
                 )
-                return res
 
             connection = self.database_connections[database]
 
