@@ -66,6 +66,8 @@ class DbPlugin(PluginBase):
 
         if self.connection_url is None:  # by default make use of the sqlite
             connection_url = os.path.join(self.AD.config_dir, "databases")
+            db_url = f"sqlite:///{connection_url}"
+            self.logger.warning("No Connection URL given, will be using %s as Database URL", db_url)
             if not os.path.isdir(connection_url):  # it doesn't exist
                 try:
                     os.makedirs(connection_url)
@@ -75,7 +77,7 @@ class DbPlugin(PluginBase):
                         "Cannot create directory %s for database", connection_url,
                     )
 
-            self.connection_url = f"sqlite:///{connection_url}"
+            self.connection_url = db_url
 
         self.loop = self.AD.loop  # get AD loop
 
