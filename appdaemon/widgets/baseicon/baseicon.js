@@ -64,10 +64,7 @@ function baseicon(widget_id, url, skin, parameters)
 
     function OnIconClick(self) {
         if (self.post_service != undefined) {
-            args = self.post_service;
-            args["namespace"] = self.parameters.namespace;
-
-            self.call_service(self, args);
+            self.call_service(self, self.post_service);
         }
     }
 
@@ -108,11 +105,17 @@ function baseicon(widget_id, url, skin, parameters)
 
     function set_service_call(self, data) {
         if (data.sequence != undefined) {
+            self.post_service = {
+                service: "sequence/run",
+                sequence: data.sequence,
+                namespace: "rules"
+            }
             self.post_service = data.sequence;
         } else if (data.script != undefined) {
             self.post_service = {
                 service: "homeassistant/turn_on",
-                entity_id: data.script
+                entity_id: data.script,
+                namespace: self.parameters.namespace
             }
         } else {
             self.post_service = undefined;
