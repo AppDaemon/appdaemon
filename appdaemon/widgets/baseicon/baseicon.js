@@ -51,8 +51,8 @@ function baseicon(widget_id, url, skin, parameters)
         self.state = state.state;
 
         delay_time = self.parameters.update_delay;
-        if (delay_time != undefined) {
-            if (self.timeout != undefined) {
+        if (delay_time !== undefined) {
+            if (self.timeout !== undefined) {
                 clearTimeout(self.timeout);
             }
 
@@ -63,7 +63,7 @@ function baseicon(widget_id, url, skin, parameters)
     }
 
     function OnIconClick(self) {
-        if (self.post_service != undefined) {
+        if (self.post_service !== undefined) {
             self.call_service(self, self.post_service);
         }
     }
@@ -104,18 +104,18 @@ function baseicon(widget_id, url, skin, parameters)
     }
 
     function set_service_call(self, data) {
-        if (data.service != undefined) {
+        if (data.service !== undefined) {
             self.post_service = data.service;
-            if (self.post_service["namespace"] == undefined) {
+            if (self.post_service["namespace"] === undefined) {
                 self.post_service["namespace"] = self.parameters.namespace;
-            };
-        } else if (data.sequence != undefined) {
+            }
+        } else if (data.sequence !== undefined) {
             self.post_service = {
                 service: "sequence/run",
                 sequence: "sequence." + data.sequence,
                 namespace: "rules"
             }
-        } else if (data.script != undefined) {
+        } else if (data.script !== undefined) {
             self.post_service = {
                 service: "homeassistant/turn_on",
                 entity_id: "script." + data.script,
