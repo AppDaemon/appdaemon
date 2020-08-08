@@ -112,7 +112,7 @@ function baseicon(widget_id, url, skin, parameters)
         } else if (data.sequence !== undefined) {
             self.post_service = {
                 service: "sequence/run",
-                sequence: "sequence." + data.sequence,
+                entity_id: "sequence." + data.sequence,
                 namespace: "rules"
             }
         } else if (data.script !== undefined) {
