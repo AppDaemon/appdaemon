@@ -13,15 +13,18 @@ function baseicon(widget_id, url, skin, parameters)
 
     self.parameters = parameters;
 
-    var callbacks = [];
-
     self.OnStateAvailable = OnStateAvailable;
     self.OnStateUpdate = OnStateUpdate;
+    self.OnIconClick = OnIconClick;
 
     var monitored_entities =
         [
             {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
         ];
+
+        var callbacks = [
+            {"selector": '#' + widget_id, "action": "click", "callback": self.OnIconClick},
+        ]
 
     // Finally, call the parent constructor to get things moving
 
@@ -46,7 +49,26 @@ function baseicon(widget_id, url, skin, parameters)
     function OnStateUpdate(self, state)
     {
         self.state = state.state;
-        set_view(self, self.state)
+
+        delay_time = self.parameters.update_delay;
+        if (delay_time != undefined) {
+            if (self.timeout != undefined) {
+                clearTimeout(self.timeout);
+            }
+    
+            self.timeout = setTimeout(() => set_view(self, self.state), delay_time * 1000);
+        } else {
+            set_view(self, self.state);
+        }
+    }
+
+    function OnIconClick(self) {
+        if (self.post_service != undefined) {
+            args = self.post_service;
+            args["namespace"] = self.parameters.namespace;
+
+            self.call_service(self, args);
+        }
     }
 
     // Set view is a helper function to set all aspects of the widget to its
@@ -60,17 +82,20 @@ function baseicon(widget_id, url, skin, parameters)
             if (state in self.parameters.icons)
             {
                 self.set_icon(self, "icon", self.parameters.icons[state].icon);
-                self.set_field(self, "icon_style", self.parameters.icons[state].style)
+                self.set_field(self, "icon_style", self.parameters.icons[state].style);
+                set_service_call(self, self.parameters.icons[state]);
             }
             else if ("default" in self.parameters.icons)
             {
                 self.set_icon(self, "icon", self.parameters.icons.default.icon);
-                self.set_field(self, "icon_style", self.parameters.icons.default.style)
+                self.set_field(self, "icon_style", self.parameters.icons.default.style);
+                set_service_call(self, self.parameters.default);
             }
             else
             {
                 self.set_icon(self, "icon", "fa-circle-thin");
-                self.set_field(self, "icon_style", "color: white")
+                self.set_field(self, "icon_style", "color: white");
+                self.post_service = undefined;
             }
 
         }
@@ -78,6 +103,19 @@ function baseicon(widget_id, url, skin, parameters)
         if ("state_text" in self.parameters && self.parameters.state_text == 1)
         {
             self.set_field(self, "state_text", self.map_state(self, state))
+        }
+    }
+
+    function set_service_call(self, data) {
+        if (data.sequence != undefined) {
+            self.post_service = data.sequence;
+        } else if (data.script_entity != undefined) {
+            self.post_service = {
+                service: "homeassistant/turn_on",
+                entity_id: data.script_entity
+            }
+        } else {
+            self.post_service = undefined;
         }
     }
 }
