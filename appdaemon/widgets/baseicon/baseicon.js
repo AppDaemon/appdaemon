@@ -109,10 +109,10 @@ function baseicon(widget_id, url, skin, parameters)
     function set_service_call(self, data) {
         if (data.sequence != undefined) {
             self.post_service = data.sequence;
-        } else if (data.script_entity != undefined) {
+        } else if (data.script != undefined) {
             self.post_service = {
                 service: "homeassistant/turn_on",
-                entity_id: data.script_entity
+                entity_id: data.script
             }
         } else {
             self.post_service = undefined;
