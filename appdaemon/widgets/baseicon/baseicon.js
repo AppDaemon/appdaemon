@@ -92,7 +92,7 @@ function baseicon(widget_id, url, skin, parameters)
             {
                 self.set_icon(self, "icon", "fa-circle-thin");
                 self.set_field(self, "icon_style", "color: white");
-                self.post_service = undefined;
+                set_service_call(self, {});
             }
 
         }
