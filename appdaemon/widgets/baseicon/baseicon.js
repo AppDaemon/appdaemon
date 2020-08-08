@@ -22,9 +22,9 @@ function baseicon(widget_id, url, skin, parameters)
             {"entity": parameters.entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
         ];
 
-        var callbacks = [
-            {"selector": '#' + widget_id, "action": "click", "callback": self.OnIconClick},
-        ]
+    var callbacks = [
+        {"selector": '#' + widget_id, "action": "click", "callback": self.OnIconClick},
+    ]
 
     // Finally, call the parent constructor to get things moving
 
@@ -55,7 +55,7 @@ function baseicon(widget_id, url, skin, parameters)
             if (self.timeout != undefined) {
                 clearTimeout(self.timeout);
             }
-    
+
             self.timeout = setTimeout(() => set_view(self, self.state), delay_time * 1000);
         } else {
             set_view(self, self.state);
@@ -104,13 +104,17 @@ function baseicon(widget_id, url, skin, parameters)
     }
 
     function set_service_call(self, data) {
-        if (data.sequence != undefined) {
+        if (data.service != undefined) {
+            self.post_service = data.service;
+            if (self.post_service["namespace"] == undefined) {
+                self.post_service["namespace"] = self.parameters.namespace;
+            }
+        } else if (data.sequence != undefined) {
             self.post_service = {
                 service: "sequence/run",
                 sequence: data.sequence,
                 namespace: "rules"
             }
-            self.post_service = data.sequence;
         } else if (data.script != undefined) {
             self.post_service = {
                 service: "homeassistant/turn_on",
