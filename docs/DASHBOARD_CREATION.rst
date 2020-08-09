@@ -1101,7 +1101,7 @@ A widget to monitor the state of an entity and display a different icon and styl
 
 The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``.
 
-Each icon can have a service call assigned - on icon click, specified service like HA script or AD sequence is called.
+Each icon can have a service call assigned by post_service_active entry - on icon click, specified service like HA script or AD sequence is called for currently active state.
 
 The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
