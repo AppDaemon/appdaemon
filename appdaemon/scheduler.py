@@ -3,6 +3,7 @@ import datetime
 from datetime import timedelta
 import pytz
 import astral
+from astral.sun import sun
 import random
 import uuid
 import re
@@ -24,7 +25,7 @@ class Scheduler:
         self.last_fired = None
         self.sleep_task = None
         self.active = False
-        self.location = None
+        self.locationInfo = None
         self.schedule = {}
 
         self.now = pytz.utc.localize(datetime.datetime.utcnow())
@@ -215,9 +216,7 @@ class Scheduler:
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        elevation = self.AD.elevation
-
-        self.location = astral.Location(("", "", latitude, longitude, self.AD.tz.zone, elevation))
+        self.locationInfo = astral.LocationInfo("", "", self.AD.tz.zone, latitude, longitude)
 
     def sun(self, type, offset):
         if offset < 0:
@@ -237,9 +236,9 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_rising_dt = self.location.sunrise(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                time = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_rising_dt = sun(self.locationInfo.observer, time)["sunrise"]
+
                 if next_rising_dt > self.now:
                     break
             except astral.AstralError:
@@ -252,9 +251,9 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_setting_dt = self.location.sunset(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                time = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_setting_dt = sun(self.locationInfo.observer, time)["sunset"]
+
                 if next_setting_dt > self.now:
                     break
             except astral.AstralError:
