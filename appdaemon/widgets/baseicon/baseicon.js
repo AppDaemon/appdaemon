@@ -104,22 +104,10 @@ function baseicon(widget_id, url, skin, parameters)
     }
 
     function set_service_call(self, data) {
-        if (data.service !== undefined) {
-            self.post_service = data.service;
+        if (data.service_call !== undefined) {
+            self.post_service = data.service_call;
             if (self.post_service["namespace"] === undefined) {
                 self.post_service["namespace"] = self.parameters.namespace;
-            }
-        } else if (data.sequence !== undefined) {
-            self.post_service = {
-                service: "sequence/run",
-                entity_id: "sequence." + data.sequence,
-                namespace: "rules"
-            }
-        } else if (data.script !== undefined) {
-            self.post_service = {
-                service: "homeassistant/turn_on",
-                entity_id: "script." + data.script,
-                namespace: self.parameters.namespace
             }
         } else {
             self.post_service = undefined;
