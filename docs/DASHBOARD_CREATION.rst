@@ -1083,13 +1083,13 @@ A widget to monitor the state of an entity and display a different icon and styl
        "active":
          icon: fas-glass
          style: "color: green"
-         service_call:
+         post_service_active:
            service: homeassistant/turn_on
            entity_id: script.deactivate
        "inactive":
          icon: fas-repeat
          style: "color: blue"
-         service_call:
+         post_service_active:
            service: homeassistant/turn_on
            entity_id: script.activate
        "idle":

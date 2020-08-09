@@ -63,8 +63,8 @@ function baseicon(widget_id, url, skin, parameters)
     }
 
     function OnIconClick(self) {
-        if (self.post_service !== undefined) {
-            self.call_service(self, self.post_service);
+        if (self.post_service_active !== undefined) {
+            self.call_service(self, self.post_service_active);
         }
     }
 
@@ -104,13 +104,13 @@ function baseicon(widget_id, url, skin, parameters)
     }
 
     function set_service_call(self, data) {
-        if (data.service_call !== undefined) {
-            self.post_service = data.service_call;
-            if (self.post_service["namespace"] === undefined) {
-                self.post_service["namespace"] = self.parameters.namespace;
+        if (data.post_service_active !== undefined) {
+            self.post_service_active = data.post_service_active;
+            if (self.post_service_active["namespace"] === undefined) {
+                self.post_service_active["namespace"] = self.parameters.namespace;
             }
         } else {
-            self.post_service = undefined;
+            self.post_service_active = undefined;
         }
     }
 }
