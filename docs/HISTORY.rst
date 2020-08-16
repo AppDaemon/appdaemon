@@ -8,7 +8,7 @@ Change Log
 
 None
 
-**Fixes**
+- Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
 
 None
 
