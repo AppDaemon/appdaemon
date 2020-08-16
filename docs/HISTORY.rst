@@ -1,8 +1,23 @@
 Change Log
 ==========
 
-4.0.4
+4.0.5
 -----
+
+**Features**
+
+None
+
+- Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
+
+None
+
+**Breaking Changes**
+
+one
+
+4.0.4 (2020-07-11)
+------------------
 
 **Features**
 
@@ -51,8 +66,6 @@ Change Log
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
 - Changed the `get_history` api, as `entity_id` has been removed from the api
-
-None
 
 4.0.3 (2020-02-29)
 ------------------
