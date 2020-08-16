@@ -1,20 +1,35 @@
 Change Log
 ==========
 
-4.0.5
+4.0.6
 -----
 
 **Features**
 
 None
 
-- Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
+**Fixes**
 
 None
 
 **Breaking Changes**
 
-one
+None
+
+4.0.5 (2020-08-16)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
+
+**Breaking Changes**
+
+None
 
 4.0.4 (2020-07-11)
 ------------------
