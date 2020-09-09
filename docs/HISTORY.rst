@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-None
+- Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
 
 **Breaking Changes**
 
