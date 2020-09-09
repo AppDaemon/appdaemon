@@ -275,7 +275,7 @@ class AppManagement:
                     return
                 else:
                     pin = app_args["pin_thread"]
-            
+
             elif name in self.objects and "pin_thread" in self.objects[name]:
                 pin = self.objects[name]["pin_thread"]
 
