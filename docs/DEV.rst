@@ -75,7 +75,7 @@ Pull Requests
 
 If you see a way to improve on AppDaemon, We are pleased to receive Pull Requests. The official AppDaemon repository is here:
 
-https://github.com/home-assistant/appdaemon
+https://github.com/AppDaemon/appdaemon
 
 Please note, if documentation is required to make sense of the PR, the PR will not be accepted without it.
 
