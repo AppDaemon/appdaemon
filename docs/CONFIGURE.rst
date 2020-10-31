@@ -15,6 +15,10 @@ Your initial ``appdaemon.yaml`` file should look something like this if you are 
 .. code:: yaml
 
      appdaemon:
+       time_zone: CET
+       latitude: 51.725
+       longitude: 14.3434
+       elevation: 0
        plugins:
          HASS:
            type: hass
