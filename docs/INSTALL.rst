@@ -96,7 +96,7 @@ AppDaemon arguments
       -d, --daemon          run as a background process
 
 -c is the path to the configuration directory. If not specified,
-AppDaemon will look for a file named ``appdaemon.cfg`` first in
+AppDaemon will look for a file named ``appdaemon.yaml`` first in
 ``~/.homeassistant`` then in ``/etc/appdaemon``. If the directory is not
 specified and it is not found in either location, AppDaemon will raise
 an exception. In addition, AppDaemon expects to find a dir named
