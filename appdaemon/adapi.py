@@ -1952,7 +1952,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def now_is_between(self, start_time, end_time, name=None):
-        """Determines is the current `time` is within the specified start and end times.
+        """Determines if the current `time` is within the specified start and end times.
 
         This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
         offset and returns ``true`` if the current time is between those 2 times. Its
