@@ -629,10 +629,6 @@ class HassPlugin(PluginBase):
             if end_time:
                 query["end_time"] = end_time            
             apiurl+= f'?{urlencode(query)}'
-        
-        orig_api_url = (await self.get_history_api_orig(**kwargs))
-        self.logger.debug(f'HASSPLUGIN - ORIG method: {orig_api_url}')
-        self.logger.debug(f'HASSPLUGIN - NEW  method: {apiurl}')
 
         return apiurl        
 
