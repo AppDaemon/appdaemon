@@ -264,6 +264,37 @@ WebRoute
 .. autofunction:: appdaemon.adapi.ADAPI.register_route
 .. autofunction:: appdaemon.adapi.ADAPI.unregister_route
 
+Callback Signatures
+~~~~~~~~~
+
+This section summarizes the key callback signatures for easy reference. See the links below for complete descriptions.
+
+**State Callback**
+
+
+.. code:: python
+
+      def my_callback(self, entity, attribute, old, new, kwargs):
+        <do some useful work here>
+`Full documentation <APPGUIDE.html#state-callbacks>`__
+
+
+**Scheduler Callback**
+
+.. code:: python
+
+      def my_callback(self, kwargs):
+        <do some useful work here>
+`Full documentation <APPGUIDE.html#about-schedule-callbacks>`__        
+
+**Event Callback**
+
+.. code:: python
+
+      def my_callback(self, event_name, data, kwargs):
+        <do some useful work here>
+`Full documentation <APPGUIDE.html#about-event-callbacks>`__        
+
 Other
 ~~~~~
 
