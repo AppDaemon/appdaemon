@@ -1645,8 +1645,8 @@ class ADAPI:
         """Registers a callback for a specific event, or any event.
 
         Args:
-            callback: Function to be invoked when the event is fired.
-                It must conform to the standard Event Callback format documented `here <APPGUIDE.html#about-event-callbacks>`__
+            callback: Function to be invoked when the requested state change occurs.
+                It must conform to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
             event (optional): Name of the event to subscribe to. Can be a standard
                 Home Assistant event such as `service_registered` or an arbitrary
                 custom event such as `"MODE_CHANGE"`. If no event is specified,
