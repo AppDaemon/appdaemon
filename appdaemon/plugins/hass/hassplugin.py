@@ -1,7 +1,6 @@
 import asyncio
 import json
 import ssl
-from time import time
 import websocket
 import traceback
 import aiohttp
@@ -9,7 +8,7 @@ import pytz
 from deepdiff import DeepDiff
 import datetime
 from urllib.parse import quote
-from urllib.parse import urlsplit, urlunsplit, urlencode
+from urllib.parse import urlencode
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
