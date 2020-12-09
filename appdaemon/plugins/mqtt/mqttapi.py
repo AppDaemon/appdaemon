@@ -146,7 +146,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                 )
                 return
 
-        return super(Mqtt, self).listen_event(callback, event, **kwargs)
+        return await super(Mqtt, self).listen_event(callback, event, **kwargs)
 
     #
     # service calls
