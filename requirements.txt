@@ -16,6 +16,10 @@ python-socketio==4.4.0
 deepdiff==4.3.1
 python-dateutil==2.8.1
 pid==2.2.5
-azure==4.0.0
+azure-mgmt-compute
+azure-mgmt-storage
+azure-mgmt-resource
+azure-keyvault-secrets
+azure-storage-blob
 pygments==2.6.1
 sockjs==0.10.0
