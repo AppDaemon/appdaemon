@@ -355,9 +355,9 @@ class AppManagement:
                                             # We don't care what it looks like just pass it through
                                             #
                                             valid_apps[app] = config[app]
-                                        elif app.startswith("."):
+                                        elif "." in app:
                                             #
-                                            # We ignore any configuration starting with a dot.
+                                            # We ignore any app containing a dot.
                                             # This could be useful to not comment everything
                                             # and ignore common code when using YAML anchors.
                                             #
