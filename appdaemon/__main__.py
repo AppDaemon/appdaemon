@@ -130,7 +130,11 @@ class ADMain:
 
             self.logger.debug("Start Main Loop")
 
-            pending = asyncio.Task.all_tasks()
+            try:
+                pending = asyncio.Task.all_tasks()
+            except AttributeError:
+                pending = asyncio.all_tasks(loop)
+
             loop.run_until_complete(asyncio.gather(*pending))
 
             #
