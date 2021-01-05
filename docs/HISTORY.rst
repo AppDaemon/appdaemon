@@ -16,6 +16,7 @@ Change Log
 
 - Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
 - Allowed for both multi and single level MQTT wildcard subscription
+- Diabled the ability to use a "." in app name. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
 
 **Breaking Changes**
 
@@ -36,6 +37,7 @@ None
 - Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
 
 **Breaking Changes**
+- Moved the local static folder for serving static files from `web` to `www`
 
 None
 
