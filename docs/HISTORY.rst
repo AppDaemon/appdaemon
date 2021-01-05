@@ -10,15 +10,19 @@ Change Log
 - Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
 - Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
 - Added services for creating, editting, removing, enabling, disabling apps
+- Added ability to receive binary payload from MQTT broker
 
 **Fixes**
 
 - Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Allowed for both multi and single level MQTT wildcard subscription
 
 **Breaking Changes**
 
 - If using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
 - Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
+- ``binary`` is now a reserved keyword argument used when listening to MQTT events
+- When using ``wildcard`` to listen for events within an app, only those used to subscribe to the broker can be used. so if using ``camera/#`` to subscribe to all camera related topics, AD will not recognise ``camera/front-door/#`` as a valid wildcard when listening for events; unless ``camera/front-door/#`` was used for subscription itself.
 
 4.0.5 (2020-08-16)
 ------------------
