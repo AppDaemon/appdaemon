@@ -424,6 +424,7 @@ class State:
             None.
 
         """
+        # print("remove {}:{}".format(namespace, entity))
 
         self.logger.debug("remove_entity() %s %s", namespace, entity)
         plugin = await self.AD.plugins.get_plugin_object(namespace)
@@ -532,7 +533,11 @@ class State:
             await self.set_state(name, namespace, entity_id, attributes=state["attributes"])
 
     def set_state_simple(self, namespace, entity_id, state):
-        self.state[namespace][entity_id] = state
+        #
+        # Set state without any checks or triggering amy evernts, and only if the entity exists
+        #
+        if namespace in self.state and entity_id in self.state[namespace]:
+            self.state[namespace][entity_id] = state
 
     async def state_services(self, namespace, domain, service, kwargs):
         self.logger.debug("state_services: %s, %s, %s, %s", namespace, domain, service, kwargs)
