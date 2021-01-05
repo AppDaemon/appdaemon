@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-- Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
+None
 
 **Fixes**
 
