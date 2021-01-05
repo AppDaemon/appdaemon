@@ -365,6 +365,13 @@ class AppManagement:
                                             # We don't care what it looks like just pass it through
                                             #
                                             valid_apps[app] = config[app]
+                                        elif "." in app:
+                                            #
+                                            # We ignore any app containing a dot.
+                                            # This could be useful to not comment everything
+                                            # and ignore common code when using YAML anchors.
+                                            #
+                                            pass
                                         elif (
                                             isinstance(config[app], dict)
                                             and "class" in config[app]
