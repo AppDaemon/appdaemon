@@ -748,7 +748,7 @@ class HTTP:
         #
         # Add static path for apps
         #
-        apps_static = os.path.join(self.AD.config_dir, "web")
+        apps_static = os.path.join(self.AD.config_dir, "www")
         exists = True
 
         if not os.path.isdir(apps_static):  # check if the folder exists
@@ -761,7 +761,7 @@ class HTTP:
                 self.logger.debug("Successfully created the Web directory %s ", apps_static)
 
         if exists:
-            self.app.router.add_static("/web", apps_static)
+            self.app.router.add_static("/local", apps_static)
         #
         # Setup user defined static paths
         #

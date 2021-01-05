@@ -37,6 +37,7 @@ None
 - Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
 
 **Breaking Changes**
+- Moved the local static folder for serving static files from `web` to `www`
 
 None
 
