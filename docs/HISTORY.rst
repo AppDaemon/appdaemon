@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
+- Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
 
 **Fixes**
 
