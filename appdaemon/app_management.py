@@ -10,6 +10,8 @@ import io
 import pstats
 import logging
 import asyncio
+import copy
+from collections import OrderedDict
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -57,6 +59,12 @@ class AppManagement:
         self.AD.services.register_service("admin", "app", "start", self.manage_services)
         self.AD.services.register_service("admin", "app", "stop", self.manage_services)
         self.AD.services.register_service("admin", "app", "restart", self.manage_services)
+        self.AD.services.register_service("admin", "app", "disable", self.manage_services)
+        self.AD.services.register_service("admin", "app", "enable", self.manage_services)
+        self.AD.services.register_service("admin", "app", "reload", self.manage_services)
+        self.AD.services.register_service("admin", "app", "create", self.manage_services)
+        self.AD.services.register_service("admin", "app", "edit", self.manage_services)
+        self.AD.services.register_service("admin", "app", "remove", self.manage_services)
         self.AD.services.register_service("admin", "app", "reload", self.manage_services)
 
         self.active_apps = []
@@ -330,12 +338,14 @@ class AppManagement:
                 if root[-11:] != "__pycache__":
                     for file in files:
                         if file[-5:] == ".yaml" and file[0] != ".":
-                            self.logger.debug("Reading %s", os.path.join(root, file))
-                            config = await utils.run_in_executor(self, self.read_config_file, os.path.join(root, file))
+                            path = os.path.join(root, file)
+                            self.logger.debug("Reading %s", path)
+                            config = await utils.run_in_executor(self, self.read_config_file, path)
                             valid_apps = {}
                             if type(config).__name__ == "dict":
                                 for app in config:
                                     if config[app] is not None:
+                                        app_valid = True
                                         if app == "global_modules":
                                             #
                                             # Check the parameter format for string or list
@@ -362,10 +372,18 @@ class AppManagement:
                                         ):
                                             valid_apps[app] = config[app]
                                         else:
+                                            app_valid = False
                                             if self.AD.invalid_yaml_warnings:
                                                 self.logger.warning(
                                                     "App '%s' missing 'class' or 'module' entry - ignoring", app,
                                                 )
+
+                                        if app_valid is True:
+                                            # now add app to the path
+                                            if path not in self.app_config_files:
+                                                self.app_config_files[path] = []
+
+                                            self.app_config_files[path].append(app)
                             else:
                                 if self.AD.invalid_yaml_warnings:
                                     self.logger.warning(
@@ -462,7 +480,11 @@ class AppManagement:
                     if file not in self.app_config_files:
                         later_files["files"].append(file)
 
-            self.app_config_files = app_config_files
+                        self.app_config_files[file] = []
+
+            # now remove the unused files from the files
+            for file in later_files["deleted"]:
+                del self.app_config_files[file]
 
             return later_files
 
@@ -1059,6 +1081,187 @@ class AppManagement:
 
         return apps
 
+    def create_app(self, app=None, **kwargs):
+        """Used to create an app, which is written to a Yaml file"""
+
+        executed = True
+        app_file = kwargs.pop("app_file", None)
+        app_directory = kwargs.pop("app_dir", None)
+        app_config = {}
+        new_config = OrderedDict()
+
+        app_module = kwargs.get("module")
+        app_class = kwargs.get("class")
+
+        if app is None:  # app name not given
+            # use the module name as the app's name
+            app = app_module
+
+            app_config[app] = kwargs
+
+        else:
+            if app_module is None and app in kwargs:
+                app_module = kwargs[app].get("module")
+                app_class = kwargs[app].get("class")
+
+                app_config[app] = kwargs[app]
+
+            else:
+                app_config[app] = kwargs
+
+        if app_module is None or app_class is None:
+            self.logger.error("Could not create app %s, as module and class is required", app)
+            return False
+
+        if app_directory is None:
+            app_directory = os.path.join(self.AD.app_dir, "ad_apps")
+
+        else:
+            app_directory = os.path.join(self.AD.app_dir, app_directory)
+
+        if app_file is None:
+            app_file = os.path.join(app_directory, f"{app}.yaml")
+            self.logger.info("Creating app using filename %s", app_file)
+
+        else:
+            if app_file[4:] != ".yaml":
+                app_file = f"{app_file}.yaml"
+
+            app_file = os.path.join(app_directory, app_file)
+
+            # in case the given app_file is multi level
+            filename = app_file.split("/")[-1]
+            app_directory = app_file.replace(f"/{filename}", "")
+
+        if os.path.isfile(app_file):
+            # the file exists so there might be apps there already so read to update
+            # now open the file and edit the yaml
+            new_config.update(self.read_config_file(app_file))
+
+        elif not os.path.isdir(app_directory):
+            self.logger.info("The given app filename %s doesn't exist, will be creating it", app_file)
+            # now create the directory
+            try:
+                os.makedirs(app_directory)
+            except Exception:
+                self.logger.error("Could not create directory %s", app_directory)
+                return False
+
+        # now load up the new config
+        new_config.update(app_config)
+        new_config.move_to_end(app)
+
+        # at this point now to create write to file
+        try:
+            utils.write_to_file(app_file, **new_config)
+
+            data = {
+                "event_type": "app_created",
+                "data": {"app": app, **app_config[app]},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+        except Exception:
+            self.error.warning("-" * 60)
+            self.error.warning("Unexpected error while writing to file: %s", app_file)
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
+            executed = False
+
+        return executed
+
+    def edit_app(self, app, **kwargs):
+        """Used to edit an app, which is already in Yaml. It is expecting the app's name"""
+
+        executed = True
+        app_config = copy.deepcopy(self.app_config[app])
+        new_config = OrderedDict()
+
+        # now update the app config
+        app_config.update(kwargs)
+
+        # now get the app's file
+        app_file = self.get_app_file(app)
+        if app_file is None:
+            self.logger.warning("Unable to find app %s's file. Cannot edit the app", app)
+            return False
+
+        # now open the file and edit the yaml
+        new_config.update(self.read_config_file(app_file))
+
+        # now load up the new config
+        new_config[app].update(app_config)
+
+        # now update the file with the new data
+        try:
+            utils.write_to_file(app_file, **new_config)
+
+            data = {
+                "event_type": "app_edited",
+                "data": {"app": app, **app_config},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+        except Exception:
+            self.error.warning("-" * 60)
+            self.error.warning("Unexpected error while writing to file: %s", app_file)
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
+            executed = False
+
+        return executed
+
+    def remove_app(self, app, **kwargs):
+        """Used to remove an app"""
+
+        result = None
+        # now get the app's file
+        app_file = self.get_app_file(app)
+        if app_file is None:
+            self.logger.warning("Unable to find app %s's file. Cannot remove the app", app)
+            return False
+
+        # now open the file and edit the yaml
+        file_config = self.read_config_file(app_file)
+
+        # now now delete the app's config
+        result = file_config.pop(app)
+
+        # now update the file with the new data
+        try:
+            if len(file_config) == 0:  # meaning no more apps in file
+                # delete it
+                os.remove(app_file)
+
+            else:
+                utils.write_to_file(app_file, **file_config)
+
+            data = {
+                "event_type": "app_removed",
+                "data": {"app": app},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+        except Exception:
+            self.error.warning("-" * 60)
+            self.error.warning("Unexpected error while writing to file: %s", app_file)
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
+
+        return result
+
+    def get_app_file(self, app):
+        """Used to get the file an app is located"""
+
+        for app_file, app_list in self.app_config_files.items():
+            if app in app_list:
+                return app_file
+
+        return None
+
     async def register_module_dependency(self, name, *modules):
         for module in modules:
             module_name = None
@@ -1084,19 +1287,18 @@ class AppManagement:
                 )
 
     async def manage_services(self, namespace, domain, service, kwargs):
-        app = None
-        if "app" in kwargs:
-            app = kwargs["app"]
+        app = kwargs.pop("app", None)
+        __name = kwargs.pop("__name", None)
 
-        elif service == "reload":
+        if service in ["reload", "create"]:
             pass
 
-        else:
-            self.logger.warning("App not specified when calling '%s' service. Specify App", service)
+        elif app is None:
+            self.logger.warning("App not specified when calling '%s' service from %s. Specify App", service, __name)
             return None
 
-        if service != "reload" and app not in self.app_config:
-            self.logger.warning("Specified App '%s' is not a valid App", app)
+        if service not in ["reload", "create"] and app not in self.app_config:
+            self.logger.warning("Specified App '%s' is not a valid App from %s", app, __name)
             return None
 
         if service == "start":
@@ -1110,6 +1312,33 @@ class AppManagement:
 
         elif service == "reload":
             await self.check_app_updates(mode="init")
+
+        elif service in ["create", "edit", "remove", "enable", "disable"]:
+            # first the check app updates needs to be stopped if on
+            mode = copy.deepcopy(self.AD.production_mode)
+
+            if mode is False:  # it was off
+                self.AD.production_mode = True
+                await asyncio.sleep(0.5)
+
+            if service == "enable":
+                result = await utils.run_in_executor(self, self.edit_app, app, disable=False)
+
+            elif service == "disable":
+                result = await utils.run_in_executor(self, self.edit_app, app, disable=True)
+
+            else:
+
+                func = getattr(self, f"{service}_app")
+                result = await utils.run_in_executor(self, func, app, **kwargs)
+
+            if mode is False:  # meaning it was not in production mode
+                await asyncio.sleep(1)
+                self.AD.production_mode = mode
+
+            return result
+
+        return None
 
     async def increase_active_apps(self, name):
         if name not in self.active_apps:
