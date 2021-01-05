@@ -81,8 +81,10 @@ class Utility:
                 # only default, rules or it belongs to a local plugin. Don't allow for admin/appdaemon/global namespaces
 
                 if ns in ["default", "rules"] or ns in self.AD.plugins.plugin_objs or ns in self.AD.namespaces:
+                    self.AD.services.register_service(ns, "state", "add_namespace", self.AD.state.state_services)
                     self.AD.services.register_service(ns, "state", "add_entity", self.AD.state.state_services)
                     self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+                    self.AD.services.register_service(ns, "state", "remove_namespace", self.AD.state.state_services)
                     self.AD.services.register_service(ns, "state", "remove_entity", self.AD.state.state_services)
 
                 #

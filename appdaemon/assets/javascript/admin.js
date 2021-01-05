@@ -342,96 +342,117 @@ function update_admin(msg)
 
     // Entity Update
 
-    if (data.event_type === "state_changed")
-    {
-        //console.log(data)
+    if (data.event_type === "state_changed") {
         namespace = data.namespace;
         entity = data.data.entity_id;
         last_changed = data.data.new_state.last_changed;
         state = data.data.new_state.state;
         attributes = data.data.new_state.attributes;
         item = window[namespace + "_table"].get("name", entity);
+        if (item.length > 0)
+        {
 
-        // TODO: This breaks if a new entity shows up
+            // TODO: This breaks if a new entity shows up
 
-        item[0].values({name: entity, state: state, last_changed: last_changed, attributes: JSON.stringify(attributes)});
+            item[0].values({
+                name: entity,
+                state: state,
+                last_changed: last_changed,
+                attributes: JSON.stringify(attributes)
+            });
+        }
         if (namespace === "admin")
         {
             if (device(entity) === "app")
             {
                 item = window.app_table.get("name", name(entity));
-                item[0].values({
+                if (item.length > 0)
+                {
+                    item[0].values({
                     name: name(entity),
                     state: state,
                     instancecallbacks: attributes.instancecallbacks,
                     totalcallbacks: attributes.totalcallbacks,
                     arguments: JSON.stringify(attributes.args)
-                });
+                    });
+                }
             }
             if (device(entity) === "thread")
             {
                 item = window.thread_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    q_size: attributes.q,
-                    callback: state,
-                    time_called: attributes.time_called,
-                    alive: attributes.is_alive,
-                    pinned_apps: JSON.stringify(attributes.pinned_apps)
-                })
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        q_size: attributes.q,
+                        callback: state,
+                        time_called: attributes.time_called,
+                        alive: attributes.is_alive,
+                        pinned_apps: JSON.stringify(attributes.pinned_apps)
+                    })
+                }
             }
 
             if (device(entity) === "scheduler_callback")
             {
                 item = window.scheduler_callback_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    app: attributes.app,
-                    execution_time: attributes.execution_time,
-                    repeat: attributes.repeat,
-                    function: attributes.function,
-                    fired: attributes.fired,
-                    executed: attributes.executed,
-                    pinned: attributes.pinned,
-                    pinned_thread: attributes.pinned_thread,
-                    kwargs: JSON.stringify(attributes.kwargs)
-                })
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        app: attributes.app,
+                        execution_time: attributes.execution_time,
+                        repeat: attributes.repeat,
+                        function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    })
+                }
             }
 
 
             if (device(entity) === "state_callback")
             {
                 item = window.state_callback_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    app: attributes.app,
-                    last_changed: last_changed,
-                    entity: attributes.listened_entity,
-                    function: attributes.function,
-                    fired: attributes.fired,
-                    executed: attributes.executed,
-                    pinned: attributes.pinned,
-                    pinned_thread: attributes.pinned_thread,
-                    kwargs: JSON.stringify(attributes.kwargs)
-                });
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        app: attributes.app,
+                        last_changed: last_changed,
+                        entity: attributes.listened_entity,
+                        function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    });
+                }
                 window.state_callback_table.sort('app')
             }
 
             if (device(entity) === "event_callback")
             {
                 item = window.event_callback_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    app: attributes.app,
-                    last_changed: last_changed,
-                    event_name: attributes.event_name,
-                    function: attributes.function,
-                    fired: attributes.fired,
-                    executed: attributes.executed,
-                    pinned: attributes.pinned,
-                    pinned_thread: attributes.pinned_thread,
-                    kwargs: JSON.stringify(attributes.kwargs)
-                });
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        app: attributes.app,
+                        last_changed: last_changed,
+                        event_name: attributes.event_name,
+                        function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    });
+                }
                 window.event_callback_table.sort('app')
             }
 
@@ -547,7 +568,7 @@ function update_admin(msg)
         entity = data.data.entity_id;
 
         // Remove from entities
-        window[namespace + "_table"].remove("name", data.data.entity);
+        window[namespace + "_table"].remove("name", entity);
 
         if (namespace === "admin")
         {
