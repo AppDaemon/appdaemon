@@ -430,6 +430,87 @@ class ADAPI:
         return self._namespace
 
     @utils.sync_wrapper
+    async def namespace_exists(self, namespace):
+        """Checks the existence of a namespace in AppDaemon.
+
+        Args:
+            namespace (str): The namespace to be checked if it exists.
+
+        Returns:
+            bool: ``True`` if the namespace exists, ``False`` otherwise.
+
+        Examples:
+            Check if the namespace ``storage`` exists within AD
+
+            >>> if self.namespace_exists("storage"):
+            >>>     #do something like create it
+
+        """
+        return await self.AD.state.namespace_exists(namespace)
+
+    @utils.sync_wrapper
+    async def add_namespace(self, namespace, **kwargs):
+        """Used to add a user-defined namespaces from apps, which has a database file associated with it.
+
+        This way, when AD restarts these entities will be reloaded into AD with its
+        previous states within the namespace. This can be used as a basic form of
+        non-volatile storage of entity data. Depending on the configuration of the
+        namespace, this function can be setup to constantly be running automatically
+        or only when AD shutdown. This function also allows for users to manually
+        execute the command as when needed.
+
+        Args:
+            namespace (str): The namespace to be newly created, which must not be same as the operating namespace
+            writeback (optional): The writeback to be used.
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            writeback (str, optional): The writeback to be used. WIll be safe by default
+            persist (bool, optional): If to make the namespace persistent. So if AD reboots
+                it will startup will all the created entities being intact. It is persistent by default
+
+
+
+        Returns:
+            The file path to the newly created namespace. WIll be None if not persistent
+
+        Examples:
+            Add a new namespace called `storage`.
+
+            >>> self.add_namespace("storage")
+
+        """
+        if namespace == self.get_namespace():  # if it belongs to this app's namespace
+            raise ValueError("Cannot add namespace with the same name as operating namespace")
+
+        writeback = kwargs.get("writeback", "safe")
+        persist = kwargs.get("persist", True)
+
+        return await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
+
+    @utils.sync_wrapper
+    async def remove_namespace(self, namespace):
+        """Used to remove a previously user-defined namespaces from apps, which has a database file associated with it.
+
+        Args:
+            namespace (str): The namespace to be removed, which must not be same as the operating namespace
+
+
+        Returns:
+            The data within that namespace
+
+        Examples:
+            Removes the namespace called `storage`.
+
+            >>> self.remove_namespace("storage")
+
+        """
+        if namespace == self.get_namespace():  # if it belongs to this app's namespace
+            raise ValueError("Cannot remove namespace with the same name as operating namespace")
+
+        return await self.AD.state.remove_namespace(namespace)
+
+    @utils.sync_wrapper
     async def list_namespaces(self):
         """Returns a list of available namespaces.
 
@@ -1645,8 +1726,8 @@ class ADAPI:
         """Registers a callback for a specific event, or any event.
 
         Args:
-            callback: Function to be invoked when the requested state change occurs.
-                It must conform to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
+            callback: Function to be invoked when the event is fired.
+                It must conform to the standard Event Callback format documented `here <APPGUIDE.html#about-event-callbacks>`__
             event (optional): Name of the event to subscribe to. Can be a standard
                 Home Assistant event such as `service_registered` or an arbitrary
                 custom event such as `"MODE_CHANGE"`. If no event is specified,

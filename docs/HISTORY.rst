@@ -1,8 +1,38 @@
 Change Log
 ==========
 
-4.0.4
+4.0.6
 -----
+
+**Features**
+
+- Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
+
+**Fixes**
+
+- Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
+
+**Breaking Changes**
+
+- if using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
+
+4.0.5 (2020-08-16)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
+
+**Breaking Changes**
+
+None
+
+4.0.4 (2020-07-11)
+------------------
 
 **Features**
 
@@ -31,6 +61,8 @@ Change Log
 - Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
 - Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
 - Additional format for time travel start and end times accepted
+- Added the ability to specify a callback to hass get_history. This way,  large amount of data can be retrieved from the database, without AD cancelling the task
+- Added retry_secs parameter to the hass plugin
 
 **Fixes**
 
@@ -42,12 +74,13 @@ Change Log
 - Fix tzdata error in docker build for RPI - contributed by `Guy Khmelnitsky <https://github.com/GuyKh>`__
 - Fix for `get_tz_offset()` not working in some circumstances - contributed by `sillyfrog <https://github.com/sillyfrog>`__
 - Added some locking to prevent array size change errors
+- Fix for registering services created in HA, after it had started
+- Added additional logic to wait for full HASS startup
 
 **Breaking Changes**
 
 - Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
-
-None
+- Changed the `get_history` api, as `entity_id` has been removed from the api
 
 4.0.3 (2020-02-29)
 ------------------
