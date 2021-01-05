@@ -24,7 +24,7 @@ Change Log
 - Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
 - ``binary`` is now a reserved keyword argument used when listening to MQTT events
 - When using ``wildcard`` to listen for events within an app, only those used to subscribe to the broker can be used. so if using ``camera/#`` to subscribe to all camera related topics, AD will not recognise ``camera/front-door/#`` as a valid wildcard when listening for events; unless ``camera/front-door/#`` was used for subscription itself.
-- Moved the local static folder for serving static files from `web` to `www`
+- Moved the local static folder for serving static files from `web` to `www`. If using ``web`` already, simply add it to `static_dirs` in the ``http`` component as described `here <https://appdaemon.readthedocs.io/en/latest/CONFIGURE.html#configuring-the-http-component>`__
 
 4.0.5 (2020-08-16)
 ------------------
