@@ -109,7 +109,7 @@ class Sequences:
                                 del parameters["namespace"]
                             else:
                                 ns = namespace
-
+                            parameters["__name"] = entity_id
                             await self.AD.services.call_service(ns, domain, service, parameters)
                 if loop is not True:
                     break

@@ -664,9 +664,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @hass_check
     @utils.sync_wrapper
-    async def get_history(self, entity_id="", **kwargs):
+    async def get_history(self, **kwargs):
         """Gets access to the HA Database.
-
         This is a convenience function that allows accessing the HA Database, so the
         history state of a device can be retrieved. It allows for a level of flexibility
         when retrieving the data, and returns it as a dictionary list. Caution must be
@@ -674,16 +673,16 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         a long time to process.
 
         Args:
-            entity_id (str): Fully qualified id of the device to be querying, e.g.,
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            entity_id (str, optional): Fully qualified id of the device to be querying, e.g.,
                 ``light.office_lamp`` or ``scene.downstairs_on`` This can be any entity_id
                 in the database. If this is left empty, the state of all entities will be
                 retrieved within the specified time. If both ``end_time`` and ``start_time``
                 explained below are declared, and ``entity_id`` is specified, the specified
                 ``entity_id`` will be ignored and the history states of `all` entity_id in
                 the database will be retrieved within the specified time.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             days (int, optional): The days from the present-day walking backwards that is
                 required from the database.
             start_time (optional): The start time from when the data should be retrieved.
@@ -699,6 +698,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 is declared without ``start_time`` or ``days``, it will revert to default to the latest
                 history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
                 If ``entity_id`` is specified, ``end_time`` will be ignored.
+            callback (callable, optional): If wanting to access the database to get a large amount of data,
+                using a direct call to this function will take a long time to run and lead to AD cancelling the task.
+                To get around this, it is better to pass a function, which will be responsible of receiving the result
+                from the database. The signature of this function follows that of a scheduler call.
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -726,23 +729,23 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> data = self.get_history(end_time = end_time, days = 5)
 
         """
+
         namespace = self._get_namespace(**kwargs)
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
 
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
+        if hasattr(plugin, "get_history"):
+            callback = kwargs.pop("callback", None)
+            if callback is not None and callable(callback):
+                self.create_task(plugin.get_history(**kwargs), callback)
 
-        if entity_id != "":
-            await self._check_entity(namespace, entity_id)
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id}
+            else:
+                return await plugin.get_history(**kwargs)
+
         else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
-
-        rargs["namespace"] = namespace
-
-        result = await self.call_service("database/history", **rargs)
-        return result
+            self.logger.warning(
+                "Wrong Namespace selected, as %s has no database plugin attached to it", namespace,
+            )
+            return None
 
     @hass_check
     def render_template(self, template, **kwargs):
