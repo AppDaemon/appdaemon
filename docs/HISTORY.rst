@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-None
+- Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
 
 **Breaking Changes**
 
