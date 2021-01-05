@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
 
 **Fixes**
 
@@ -14,7 +14,7 @@ None
 
 **Breaking Changes**
 
-None
+- if using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
 
 4.0.5 (2020-08-16)
 ------------------
