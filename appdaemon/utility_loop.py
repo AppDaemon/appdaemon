@@ -101,12 +101,12 @@ class Utility:
             #
             # Register production_mode service
             #
-            self.AD.services.register_service("appdaemon", "production_mode", "set", self.production_mode_service)
+            self.AD.services.register_service("admin", "production_mode", "set", self.production_mode_service)
 
             #
             # Register logging services
             #
-            self.AD.services.register_service("appdaemon", "logs", "get_admin", self.AD.logging.manage_services)
+            self.AD.services.register_service("admin", "logs", "get_admin", self.AD.logging.manage_services)
 
             #
             # Start the scheduler

@@ -8,6 +8,7 @@ Change Log
 
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
 - Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
+- Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
 
 **Fixes**
 
@@ -15,7 +16,8 @@ Change Log
 
 **Breaking Changes**
 
-- if using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
+- If using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
+- Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
 
 4.0.5 (2020-08-16)
 ------------------

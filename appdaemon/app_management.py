@@ -54,10 +54,10 @@ class AppManagement:
         #
         # Register App Services
         #
-        self.AD.services.register_service("appdaemon", "app", "start", self.manage_services)
-        self.AD.services.register_service("appdaemon", "app", "stop", self.manage_services)
-        self.AD.services.register_service("appdaemon", "app", "restart", self.manage_services)
-        self.AD.services.register_service("appdaemon", "app", "reload", self.manage_services)
+        self.AD.services.register_service("admin", "app", "start", self.manage_services)
+        self.AD.services.register_service("admin", "app", "stop", self.manage_services)
+        self.AD.services.register_service("admin", "app", "restart", self.manage_services)
+        self.AD.services.register_service("admin", "app", "reload", self.manage_services)
 
         self.active_apps = []
         self.inactive_apps = []
