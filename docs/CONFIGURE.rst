@@ -256,6 +256,7 @@ Plugins also support some optional parameters:
 
 - ``refresh_delay`` - How often the complete state of the plugin is refreshed, in seconds. Default is 600 seconds.
 - ``refresh_timeout`` - How long to wait for the state refresh before cancelling it, in seconds. Default is 30 seconds.
+- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persitent within AD. So in the event of a restart, the entities will be recreated in the same namespace
 
 The rest will vary depending upon which plugin type is in use.
 
