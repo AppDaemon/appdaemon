@@ -305,6 +305,7 @@ Other
 ~~~~~
 
 .. autofunction:: appdaemon.adapi.ADAPI.run_in_thread
+.. autofunction:: appdaemon.adapi.ADAPI.submit_to_executor
 .. autofunction:: appdaemon.adapi.ADAPI.get_thread_info
 .. autofunction:: appdaemon.adapi.ADAPI.get_scheduler_entries
 .. autofunction:: appdaemon.adapi.ADAPI.get_callback_entries
