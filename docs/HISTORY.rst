@@ -21,7 +21,7 @@ Change Log
 - Documentation fixes - contributed by `Jason Lachowsky <https://github.com/dajo>`__
 - Documentation fixes - contributed by `Jonas Pedersen <https://github.com/JonasPed>`__
 - Allowed for both multi and single level MQTT wildcard subscription
-- Diabled the ability to use a "." in app name. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
+- Ensured AD doesn't break, when a "." is used in app name, while it is ignored. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
 - Fix for MQTT Listen Event using Async - contributed by `Ross Rosen <https://github.com/rr326>`__
 
 **Breaking Changes**
