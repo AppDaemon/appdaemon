@@ -6,6 +6,7 @@ import asyncio
 import async_timeout
 
 from appdaemon.appdaemon import AppDaemon
+import appdaemon.utils as utils
 
 
 class PluginBase:
@@ -201,16 +202,34 @@ class Plugins:
                     for namesp in namespaces:
 
                         if state[namesp] is not None:
-                            self.AD.state.set_namespace_state(namesp, state[namesp])
+                            await utils.run_in_executor(
+                                self,
+                                self.AD.state.set_namespace_state,
+                                namesp,
+                                state[namesp],
+                                self.plugins[name].get("persist_entities", False),
+                            )
 
                     #
                     # now set the main namespace
                     #
 
-                    self.AD.state.set_namespace_state(namespace, state[namespace])
+                    await utils.run_in_executor(
+                        self,
+                        self.AD.state.set_namespace_state,
+                        namespace,
+                        state[namespace],
+                        self.plugins[name].get("persist_entities", False),
+                    )
 
                 else:
-                    self.AD.state.set_namespace_state(namespace, state)
+                    await utils.run_in_executor(
+                        self,
+                        self.AD.state.set_namespace_state,
+                        namespace,
+                        state,
+                        self.plugins[name].get("persist_entities", False),
+                    )
 
                 if not first_time:
                     await self.AD.app_management.check_app_updates(
@@ -266,7 +285,6 @@ class Plugins:
     async def update_plugin_state(self):
         for plugin in self.plugin_objs:
             if self.plugin_objs[plugin]["active"] is True:
-
                 name = self.get_plugin_from_namespace(plugin)
                 if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
                     seconds=self.plugins[name]["refresh_delay"]
