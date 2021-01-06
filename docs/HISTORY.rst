@@ -11,6 +11,7 @@ Change Log
 - Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
 - Added services for creating, editting, removing, enabling, disabling apps
 - Added ability to receive binary payload from MQTT broker
+- Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
 
 **Fixes**
 
