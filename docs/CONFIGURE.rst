@@ -589,7 +589,7 @@ AD's internal web server. This can range from images, videos, html pages and the
         pictures: /home/pi/pictures
 
 The above configuration assumes that the user has a folder, that has stored within it video clips from like cameras. To access
-the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/pictures/<picture to be accessed>``.
+the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/local/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/local/pictures/<picture to be accessed>``. Using this directive does support the use of relative paths.
 
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
