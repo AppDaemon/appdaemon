@@ -164,7 +164,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                     self.logger.debug("Removing topic %s, from binary payload topics", topic)
                     plugin.remove_mqtt_binary(topic)
 
-        return super(Mqtt, self).listen_event(callback, event, **kwargs)
+        return await super(Mqtt, self).listen_event(callback, event, **kwargs)
 
     #
     # service calls
