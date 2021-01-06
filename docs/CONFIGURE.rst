@@ -584,7 +584,7 @@ AD's internal web server. This can range from images, videos, html pages and the
 .. code:: yaml
 
     http:
-      custom_dirs:
+      static_dirs:
         videos: /home/pi/video_clips
         pictures: /home/pi/pictures
 
