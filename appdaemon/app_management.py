@@ -177,7 +177,7 @@ class AppManagement:
             await self.set_state(name, state="initialize_error")
             await self.increase_inactive_apps(name)
 
-    async def terminate_app(self, name):
+    async def terminate_app(self, name, delete=True):
         term = None
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
             self.logger.info("Calling terminate() for {}".format(name))
@@ -207,11 +207,12 @@ class AppManagement:
                         "Logged an error to %s", self.AD.logging.get_filename("error_log"),
                     )
 
-        if name in self.objects:
-            del self.objects[name]
+        if delete:
+            if name in self.objects:
+                del self.objects[name]
 
-        if name in self.global_module_dependencies:
-            del self.global_module_dependencies[name]
+            if name in self.global_module_dependencies:
+                del self.global_module_dependencies[name]
 
         await self.increase_inactive_apps(name)
 
@@ -239,10 +240,10 @@ class AppManagement:
         else:
             await self.initialize_app(app)
 
-    async def stop_app(self, app):
+    async def stop_app(self, app, delete=True):
         try:
             self.logger.info("Terminating %s", app)
-            await self.terminate_app(app)
+            await self.terminate_app(app, delete)
         except Exception:
             error_logger = logging.getLogger("Error.{}".format(app))
             error_logger.warning("-" * 60)
@@ -254,7 +255,7 @@ class AppManagement:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
     async def restart_app(self, app):
-        await self.stop_app(app)
+        await self.stop_app(app, delete=False)
         await self.start_app(app)
 
     def get_app_debug_level(self, app):
@@ -282,6 +283,10 @@ class AppManagement:
                     return
                 else:
                     pin = app_args["pin_thread"]
+
+            elif name in self.objects and "pin_thread" in self.objects[name]:
+                pin = self.objects[name]["pin_thread"]
+
             else:
                 pin = -1
 
@@ -1312,7 +1317,7 @@ class AppManagement:
             await self.start_app(app)
 
         elif service == "stop":
-            await self.stop_app(app)
+            await self.stop_app(app, delete=False)
 
         elif service == "restart":
             await self.restart_app(app)
