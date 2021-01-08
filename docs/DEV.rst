@@ -25,7 +25,7 @@ First, we need to get a clean copy of the dev branch. To do this, create a new d
 
 .. code:: bash
 
-    $ git clone -b dev https://github.com/home-assistant/appdaemon.git
+    $ git clone -b dev https://github.com/AppDaemon/appdaemon.git
 
 This will create a directory called ``appdaemon`` - this is your repository directory, and all commands will need to be run from inside it.
 
