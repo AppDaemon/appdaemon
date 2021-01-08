@@ -114,7 +114,7 @@ class ADMain:
 
             # if to use uvloop
             if appdaemon.get("uvloop") is True:
-                self.logger.info("Running AD using uv_loop")
+                self.logger.info("Running AD using uvloop")
                 uvloop.install()
 
             loop = asyncio.get_event_loop()
