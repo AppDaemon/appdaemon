@@ -146,8 +146,9 @@ class ADAPI:
         try:
             msg = self._sub_stack(msg)
         except IndexError as i:
-            kwargs["level"] = "ERROR"
-            self._log(self.err, i, *args, **kwargs)
+            rargs = deepcopy(kwargs)
+            rargs["level"] = "ERROR"
+            self._log(self.err, i, *args, **rargs)
 
         self._log(logger, msg, *args, **kwargs)
 
