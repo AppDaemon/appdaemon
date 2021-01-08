@@ -113,7 +113,7 @@ class ADMain:
         try:
 
             # if to use uvloop
-            if appdaemon.get("uv_loop") is True:
+            if appdaemon.get("uvloop") is True:
                 self.logger.info("Running AD using uv_loop")
                 uvloop.install()
 
