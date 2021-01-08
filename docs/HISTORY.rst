@@ -1,8 +1,36 @@
 Change Log
 ==========
 
-4.0.5
+4.0.6
 -----
+
+**Features**
+
+- Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
+- Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
+- Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
+- Added services for creating, editting, removing, enabling, disabling apps
+- Added ability to receive binary payload from MQTT broker
+- Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
+- Added the ability to submit tasks to executor threads
+
+**Fixes**
+
+- Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
+- Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Allowed for both multi and single level MQTT wildcard subscription
+- Diabled the ability to use a "." in app name. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
+
+**Breaking Changes**
+
+- If using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
+- Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
+- ``binary`` is now a reserved keyword argument used when listening to MQTT events
+- When using ``wildcard`` to listen for events within an app, only those used to subscribe to the broker can be used. so if using ``camera/#`` to subscribe to all camera related topics, AD will not recognise ``camera/front-door/#`` as a valid wildcard when listening for events; unless ``camera/front-door/#`` was used for subscription itself.
+- Moved the local static folder for serving static files from `web` to `www`. If using ``web`` already, simply add it to `static_dirs` in the ``http`` component as described `here <https://appdaemon.readthedocs.io/en/latest/CONFIGURE.html#configuring-the-http-component>`__
+
+4.0.5 (2020-08-16)
+------------------
 
 **Features**
 
@@ -10,11 +38,11 @@ None
 
 **Fixes**
 
-None
+- Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
 
 **Breaking Changes**
 
-one
+None
 
 4.0.4 (2020-07-11)
 ------------------

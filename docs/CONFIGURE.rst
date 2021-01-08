@@ -15,6 +15,10 @@ Your initial ``appdaemon.yaml`` file should look something like this if you are 
 .. code:: yaml
 
      appdaemon:
+       time_zone: CET
+       latitude: 51.725
+       longitude: 14.3434
+       elevation: 0
        plugins:
          HASS:
            type: hass
@@ -256,6 +260,7 @@ Plugins also support some optional parameters:
 
 - ``refresh_delay`` - How often the complete state of the plugin is refreshed, in seconds. Default is 600 seconds.
 - ``refresh_timeout`` - How long to wait for the state refresh before cancelling it, in seconds. Default is 30 seconds.
+- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persitent within AD. So in the event of a restart, the entities will be recreated in the same namespace
 
 The rest will vary depending upon which plugin type is in use.
 
@@ -517,7 +522,7 @@ when we first run it.
 Configuring the HTTP Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled. This component also creates a folder in the configuration directory called ``web``, if it doesn't exist. To serve custom static content like images, videos or html pages, simply drop the content into the web folder and it becomes available via the browser or dashboard. Content stored in this folder can be accessed using ``http://AD_IP:Port/web/<content to be accessed>``. Where `AD_IP:Port` is the url as defined below using the http component.
+The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled. This component also creates a folder in the configuration directory called ``www``, if it doesn't exist. To serve custom static content like images, videos or html pages, simply drop the content into the www folder and it becomes available via the browser or dashboard. Content stored in this folder can be accessed using ``http://AD_IP:Port/local/<content to be accessed>``. Where `AD_IP:Port` is the url as defined below using the http component.
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
@@ -583,7 +588,7 @@ AD's internal web server. This can range from images, videos, html pages and the
 .. code:: yaml
 
     http:
-      custom_dirs:
+      static_dirs:
         videos: /home/pi/video_clips
         pictures: /home/pi/pictures
 
