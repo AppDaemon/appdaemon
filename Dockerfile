@@ -1,4 +1,4 @@
-FROM python:3.8-alpine
+FROM python:3.8
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
@@ -18,14 +18,11 @@ VOLUME /certs
 WORKDIR /usr/src/app
 COPY . .
 
-# Install timezone data
-RUN apk add tzdata
+# Install timezone and curl
+RUN apt-get update && apt-get install -y tzdata curl
 
 # Install dependencies
-RUN apk add --no-cache gcc libffi-dev openssl-dev musl-dev \
-    && pip install --no-cache-dir .
-# Install additional packages
-RUN apk add --no-cache curl
+RUN pip install --no-cache-dir .
 
 # Start script
 RUN chmod +x /usr/src/app/dockerStart.sh
