@@ -24,6 +24,7 @@ Change Log
 - Allowed for both multi and single level MQTT wildcard subscription
 - Ensured AD doesn't break, when a "." is used in app name, while it is ignored. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
 - Fix for MQTT Listen Event using Async - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Fix for using async method as constraints, contributed by `Mithras <https://github.com/Mithras>`__
 
 **Breaking Changes**
 
