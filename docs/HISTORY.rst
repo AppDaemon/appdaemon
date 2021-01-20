@@ -20,8 +20,14 @@ Change Log
 - Prevented the loading of hidden folders into AD; those starting with a `.`
 - Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
 - Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Documentation fixes - contributed by `Dougal Matthews <https://github.com/d0ugal>`__
+- Documentation fixes - contributed by `Jason Lachowsky <https://github.com/dajo>`__
+- Documentation fixes - contributed by `Jonas Pedersen <https://github.com/JonasPed>`__
+- Documentation fixes - contributed by `chbndrhnns <https://github.com/chbndrhnns>`__
 - Allowed for both multi and single level MQTT wildcard subscription
-- Diabled the ability to use a "." in app name. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
+- Ensured AD doesn't break, when a "." is used in app name, while it is ignored. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
+- Fix for MQTT Listen Event using Async - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Fix for using async method as constraints, contributed by `Mithras <https://github.com/Mithras>`__
 
 **Breaking Changes**
 
