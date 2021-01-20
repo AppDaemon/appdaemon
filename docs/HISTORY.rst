@@ -13,6 +13,7 @@ Change Log
 - Added ability to receive binary payload from MQTT broker
 - Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
 - Added the ability to submit tasks to executor threads
+- Added the ability to make use of uvloop to improve speed, compared to the default asyncio loop
 
 **Fixes**
 

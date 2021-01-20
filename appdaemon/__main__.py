@@ -17,6 +17,7 @@ import yaml
 import asyncio
 import pytz
 import pid
+import uvloop
 
 import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
@@ -110,6 +111,12 @@ class ADMain:
         """
 
         try:
+
+            # if to use uvloop
+            if appdaemon.get("uvloop") is True:
+                self.logger.info("Running AD using uvloop")
+                uvloop.install()
+
             loop = asyncio.get_event_loop()
 
             # Initialize AppDaemon
