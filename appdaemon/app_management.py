@@ -340,7 +340,7 @@ class AppManagement:
         else:
             for root, subdirs, files in os.walk(self.AD.app_dir):
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
-                if root[-11:] != "__pycache__":
+                if root[-11:] != "__pycache__" and root[0] != ".":
                     for file in files:
                         if file[-5:] == ".yaml" and file[0] != ".":
                             path = os.path.join(root, file)
@@ -472,7 +472,7 @@ class AppManagement:
             later_files["deleted"] = []
             for root, subdirs, files in os.walk(self.AD.app_dir):
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
-                if root[-11:] != "__pycache__":
+                if root[-11:] != "__pycache__" and root[0] != ".":
                     for file in files:
                         if file[-5:] == ".yaml":
                             path = os.path.join(root, file)
@@ -811,7 +811,7 @@ class AppManagement:
             #
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
 
-            if root[-11:] != "__pycache__":
+            if root[-11:] != "__pycache__" and root[0] != ".":
                 if root not in self.module_dirs:
                     self.logger.info("Adding %s to module import path", root)
                     sys.path.insert(0, root)

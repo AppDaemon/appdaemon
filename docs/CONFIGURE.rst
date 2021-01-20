@@ -147,6 +147,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 -  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
 -  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
 -  ``qsize_warning_iterations`` - if set to a value greater than 0, when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes but not until the qsize has been excessive for a minimum of ``qsize_warning_iterations``. This allows you to tune out brief expected spikes in Q size. Default is 5, usually meaning 5 seconds.
+-  ``uvloop`` (optional) - When ``True``, AD will switch from using default python asyncio loop, to utilizing the uvloop. This is said to improve the speed of the loop. More can be read `here <https://magic.io/blog/uvloop-blazing-fast-python-networking>`__ about uvloop.
 - namespaces (optional) - configure one or more User Defined Namespaces and set their writeback strategy
 
 .. code:: yaml
@@ -593,7 +594,7 @@ AD's internal web server. This can range from images, videos, html pages and the
         pictures: /home/pi/pictures
 
 The above configuration assumes that the user has a folder, that has stored within it video clips from like cameras. To access
-the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/pictures/<picture to be accessed>``.
+the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/local/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/local/pictures/<picture to be accessed>``. Using this directive does support the use of relative paths.
 
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
