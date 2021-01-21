@@ -818,7 +818,7 @@ class AppManagement:
                     self.module_dirs.append(root)
 
             for file in files:
-                if file[-3:] == ".py":
+                if file[-3:] == ".py" and file[0] != ".":
                     found_files.append(os.path.join(root, file))
 
         for file in found_files:
