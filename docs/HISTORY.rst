@@ -17,6 +17,7 @@ Change Log
 
 **Fixes**
 
+- Prevented the loading of hidden python files into AD; those starting with a `.`
 - Prevented the loading of hidden folders into AD; those starting with a `.`
 - Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
 - Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
