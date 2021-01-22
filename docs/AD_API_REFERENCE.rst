@@ -135,31 +135,68 @@ See the section on `namespaces <APPGUIDE.html#namespaces>`__ for a detailed desc
 
 AppDaemon has a predefined list of namespaces that can be used only for particular services. Listed below are the services by namespace.
 
-``appdaemon`` namespace only:
+``admin`` namespace only:
+
+**app/create**
+
+Used to create a new app. For this service to be used, the module must be existing and provided with the module's class. If no `app` name is given, the module name will be used as the app's name by default. The service call also accepts ``app_file`` if wanting to create the app within a certain `yaml` file. Or ``app_dir``, if wanting the created app's `yaml` file within a certain directory. If no file or directory is given, by default the app `yaml` file will be generated in a directory ``ad_apps``, using the app's name. It should be noted that ``app_dir`` and ``app_file`` when specified, will be created within the AD's apps directory.
+
+.. code:: python
+    data = {}
+    data["module"] = "web_app"
+    data["class"] = "WebApp"
+    data["namespace"] = "admin"
+    data["app"] = "web_app3"
+
+    self.adbase.call_service("app/create", **data)
+
+**app/edit**
+
+Used to edit an existing app. This way, an app' args can be edited in realtime with new args
+
+    >>> self.call_service("app/edit", app="light_app", module="light_system", namespace="admin")
+
+**app/remove**
+
+Used to remove an existing app. This way, an existing app will be deleted. If the app is the last app in the ``yaml`` file, the file will be delected
+
+    >>> self.call_service("app/remove", app="light_app", namespace="admin")
 
 **app/start**
 
 Starts an app that has been terminated. The `app` name arg is required.
 
-    >>> self.call_service("app/start", app="light_app", namespace="appdaemon")
+    >>> self.call_service("app/start", app="light_app", namespace="admin")
 
 **app/stop**
 
 Stops a running app. The `app` name arg is required.
 
-    >>> self.call_service("app/stop", app="light_app", namespace="appdaemon")
+    >>> self.call_service("app/stop", app="light_app", namespace="admin")
 
 **app/restart**
 
 Restarts a running app. This service basically stops and starts the app. The `app` name arg is required.
 
-    >>> self.call_service("app/restart", app="light_app", namespace="appdaemon")
+    >>> self.call_service("app/restart", app="light_app", namespace="admin")
 
 **app/reload**
 
 Checks for an app update. Useful if AD is running in production mode, and app changes need to be checked and loaded.
 
-    >>> self.call_service("app/reload", namespace="appdaemon")
+    >>> self.call_service("app/reload", namespace="admin")
+
+**app/enable**
+
+Enables a disabled app, so it can be loaded by AD.
+
+    >>> self.call_service("app/enable", app="living_room_app", namespace="admin")
+
+**app/disable**
+
+Disables an enabled app, so it cannot be loaded by AD. This service call is persistent, so even if AD restarts, the app will not be restarted
+
+    >>> self.call_service("app/enable", app="living_room_app", namespace="admin")
 
 **production_mode/set**
 
@@ -268,6 +305,7 @@ Other
 ~~~~~
 
 .. autofunction:: appdaemon.adapi.ADAPI.run_in_thread
+.. autofunction:: appdaemon.adapi.ADAPI.submit_to_executor
 .. autofunction:: appdaemon.adapi.ADAPI.get_thread_info
 .. autofunction:: appdaemon.adapi.ADAPI.get_scheduler_entries
 .. autofunction:: appdaemon.adapi.ADAPI.get_callback_entries

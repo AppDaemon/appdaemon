@@ -146,8 +146,9 @@ class ADAPI:
         try:
             msg = self._sub_stack(msg)
         except IndexError as i:
-            kwargs["level"] = "ERROR"
-            self._log(self.err, i, *args, **kwargs)
+            rargs = deepcopy(kwargs)
+            rargs["level"] = "ERROR"
+            self._log(self.err, i, *args, **rargs)
 
         self._log(logger, msg, *args, **kwargs)
 
@@ -428,6 +429,87 @@ class ADAPI:
     def get_namespace(self):
         """Returns the App's namespace."""
         return self._namespace
+
+    @utils.sync_wrapper
+    async def namespace_exists(self, namespace):
+        """Checks the existence of a namespace in AppDaemon.
+
+        Args:
+            namespace (str): The namespace to be checked if it exists.
+
+        Returns:
+            bool: ``True`` if the namespace exists, ``False`` otherwise.
+
+        Examples:
+            Check if the namespace ``storage`` exists within AD
+
+            >>> if self.namespace_exists("storage"):
+            >>>     #do something like create it
+
+        """
+        return await self.AD.state.namespace_exists(namespace)
+
+    @utils.sync_wrapper
+    async def add_namespace(self, namespace, **kwargs):
+        """Used to add a user-defined namespaces from apps, which has a database file associated with it.
+
+        This way, when AD restarts these entities will be reloaded into AD with its
+        previous states within the namespace. This can be used as a basic form of
+        non-volatile storage of entity data. Depending on the configuration of the
+        namespace, this function can be setup to constantly be running automatically
+        or only when AD shutdown. This function also allows for users to manually
+        execute the command as when needed.
+
+        Args:
+            namespace (str): The namespace to be newly created, which must not be same as the operating namespace
+            writeback (optional): The writeback to be used.
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            writeback (str, optional): The writeback to be used. WIll be safe by default
+            persist (bool, optional): If to make the namespace persistent. So if AD reboots
+                it will startup will all the created entities being intact. It is persistent by default
+
+
+
+        Returns:
+            The file path to the newly created namespace. WIll be None if not persistent
+
+        Examples:
+            Add a new namespace called `storage`.
+
+            >>> self.add_namespace("storage")
+
+        """
+        if namespace == self.get_namespace():  # if it belongs to this app's namespace
+            raise ValueError("Cannot add namespace with the same name as operating namespace")
+
+        writeback = kwargs.get("writeback", "safe")
+        persist = kwargs.get("persist", True)
+
+        return await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
+
+    @utils.sync_wrapper
+    async def remove_namespace(self, namespace):
+        """Used to remove a previously user-defined namespaces from apps, which has a database file associated with it.
+
+        Args:
+            namespace (str): The namespace to be removed, which must not be same as the operating namespace
+
+
+        Returns:
+            The data within that namespace
+
+        Examples:
+            Removes the namespace called `storage`.
+
+            >>> self.remove_namespace("storage")
+
+        """
+        if namespace == self.get_namespace():  # if it belongs to this app's namespace
+            raise ValueError("Cannot remove namespace with the same name as operating namespace")
+
+        return await self.AD.state.remove_namespace(namespace)
 
     @utils.sync_wrapper
     async def list_namespaces(self):
@@ -780,7 +862,8 @@ class ADAPI:
 
         """
         kwargs["app"] = app
-        kwargs["namespace"] = "appdaemon"
+        kwargs["namespace"] = "admin"
+        kwargs["__name"] = self.name
         self.call_service("app/start", **kwargs)
         return None
 
@@ -799,7 +882,8 @@ class ADAPI:
 
         """
         kwargs["app"] = app
-        kwargs["namespace"] = "appdaemon"
+        kwargs["namespace"] = "admin"
+        kwargs["__name"] = self.name
         self.call_service("app/stop", **kwargs)
         return None
 
@@ -818,7 +902,8 @@ class ADAPI:
 
         """
         kwargs["app"] = app
-        kwargs["namespace"] = "appdaemon"
+        kwargs["namespace"] = "admin"
+        kwargs["__name"] = self.name
         self.call_service("app/restart", **kwargs)
         return None
 
@@ -838,7 +923,8 @@ class ADAPI:
             >>> self.reload_apps()
 
         """
-        kwargs["namespace"] = "appdaemon"
+        kwargs["namespace"] = "admin"
+        kwargs["__name"] = self.name
         self.call_service("app/reload", **kwargs)
         return None
 
@@ -1645,8 +1731,8 @@ class ADAPI:
         """Registers a callback for a specific event, or any event.
 
         Args:
-            callback: Function to be invoked when the requested state change occurs.
-                It must conform to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
+            callback: Function to be invoked when the event is fired.
+                It must conform to the standard Event Callback format documented `here <APPGUIDE.html#about-event-callbacks>`__
             event (optional): Name of the event to subscribe to. Can be a standard
                 Home Assistant event such as `service_registered` or an arbitrary
                 custom event such as `"MODE_CHANGE"`. If no event is specified,
@@ -2727,7 +2813,71 @@ class ADAPI:
     #
 
     async def run_in_executor(self, func, *args, **kwargs):
+        """Runs a Sync function from within an Async function using Executor threads.
+            The function is actually awaited during execution
+        Args:
+            func: The function to be executed.
+            *args (optional): Any additional arguments to be used by the function
+            **kwargs (optional): Any additional keyword arguments to be used by the function
+        Returns:
+            None
+        Examples:
+            >>> await self.run_in_executor(self.run_request)
+        """
         return await utils.run_in_executor(self, func, *args, **kwargs)
+
+    def submit_to_executor(self, func, *args, **kwargs):
+        """Submits a Sync function from within another Sync function to be executed using Executor threads.
+            The function is not waited to be executed. As it submits and continues the rest of the code.
+            This can be useful if wanting to execute a long running code, and don't want it to hold up the
+            thread for other callbacks.
+        Args:
+            func: The function to be executed.
+            *args (optional): Any additional arguments to be used by the function
+            **kwargs (optional): Any additional keyword arguments to be used by the function.
+            Part of the keyword arguments will be the ``callback``, which will be ran when the function has completed execution
+        Returns:
+            A Future, which can be cancelled by calling f.cancel().
+        Examples:
+            >>> f = self.submit_to_executor(self.run_request, callback=self.callback)
+            >>>
+            >>> def callback(self, kwargs):
+        """
+
+        callback = kwargs.pop("callback", None)
+
+        # get stuff we'll need to fake scheduler call
+        sched_data = {
+            "id": uuid.uuid4().hex,
+            "name": self.name,
+            "objectid": self.AD.app_management.objects[self.name]["id"],
+            "type": "scheduler",
+            "function": callback,
+            "pin_app": self.get_app_pin(),
+            "pin_thread": self.get_pin_thread(),
+        }
+
+        def callback_inner(f):
+            try:
+                # TODO: use our own callback type instead of borrowing
+                # from scheduler
+                rargs = {}
+                rargs["result"] = f.result()
+                sched_data["kwargs"] = rargs
+                self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
+
+                # callback(f.result(), kwargs)
+            except Exception as e:
+                self.error(e, level="ERROR")
+
+        f = self.AD.executor.submit(func, *args, **kwargs)
+
+        if callback is not None:
+            self.logger.debug("Adding add_done_callback for future %s for %s", f, self.name)
+            f.add_done_callback(callback_inner)
+
+        self.AD.futures.add_future(self.name, f)
+        return f
 
     @utils.sync_wrapper
     async def create_task(self, coro, callback=None, **kwargs):
@@ -2772,7 +2922,7 @@ class ADAPI:
 
         f = asyncio.ensure_future(coro)
         if callback is not None:
-            self.logger.debug("Adding add_done_callback for coro %s for %s", f, self.name)
+            self.logger.debug("Adding add_done_callback for future %s for %s", f, self.name)
             f.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, f)

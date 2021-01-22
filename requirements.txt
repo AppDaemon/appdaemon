@@ -3,6 +3,8 @@ pytz==2019.3
 requests>=2.22.0
 websocket-client==0.57.0
 aiohttp==3.6.2
+aiodns==2.0.0
+cchardet==2.1.7
 yarl==1.4.2
 Jinja2==2.11.1
 aiohttp_jinja2==1.2.0
@@ -19,3 +21,4 @@ pid==2.2.5
 azure==4.0.0
 pygments==2.6.1
 sockjs==0.10.0
+uvloop==0.14.0
