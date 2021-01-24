@@ -379,19 +379,19 @@ class ADMain:
         exit = False
 
         if "time_zone" not in config["appdaemon"]:
-            self.logger.error("time_zone not specified in appdaemon.cfg")
+            self.logger.error("time_zone not specified in appdaemon.yaml")
             exit = True
 
         if "latitude" not in config["appdaemon"]:
-            self.logger.error("latitude not specified in appdaemon.cfg")
+            self.logger.error("latitude not specified in appdaemon.yaml")
             exit = True
 
         if "longitude" not in config["appdaemon"]:
-            self.logger.error("longitude not specified in appdaemon.cfg")
+            self.logger.error("longitude not specified in appdaemon.yaml")
             exit = True
 
         if "elevation" not in config["appdaemon"]:
-            self.logger.error("elevation not specified in appdaemon.cfg")
+            self.logger.error("elevation not specified in appdaemon.yaml")
             exit = True
 
         if exit is True:
