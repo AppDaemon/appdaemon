@@ -7,22 +7,30 @@ also creates the loop and kicks everything off
 
 """
 
-import sys
 import argparse
+import asyncio
 import os
 import os.path
-import signal
 import platform
-import yaml
-import asyncio
-import pytz
-import pid
-import uvloop
+import signal
+import sys
 
-import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.http as adhttp
 import appdaemon.logging as logging
+import appdaemon.utils as utils
+import pytz
+import yaml
+
+try:
+    import pid
+except ImportError:
+    pid = None
+
+try:
+    import uvloop
+except ImportError:
+    uvloop = None
 
 
 class ADMain:
@@ -113,7 +121,7 @@ class ADMain:
         try:
 
             # if to use uvloop
-            if appdaemon.get("uvloop") is True:
+            if appdaemon.get("uvloop") is True and uvloop:
                 self.logger.info("Running AD using uvloop")
                 uvloop.install()
 
