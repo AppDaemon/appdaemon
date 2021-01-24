@@ -474,7 +474,7 @@ class AppManagement:
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
                 if root[-11:] != "__pycache__" and root[0] != ".":
                     for file in files:
-                        if file[-5:] == ".yaml":
+                        if file[-5:] == ".yaml" and file[0] != ".":
                             path = os.path.join(root, file)
                             app_config_files.append(path)
                             ts = os.path.getmtime(path)
@@ -818,7 +818,7 @@ class AppManagement:
                     self.module_dirs.append(root)
 
             for file in files:
-                if file[-3:] == ".py":
+                if file[-3:] == ".py" and file[0] != ".":
                     found_files.append(os.path.join(root, file))
 
         for file in found_files:
