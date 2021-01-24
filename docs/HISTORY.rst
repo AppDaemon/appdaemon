@@ -17,6 +17,9 @@ Change Log
 
 **Fixes**
 
+- Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
+- Fix for Hass Api async api - contributed by `Oxan van Leeuwen <https://github.com/oxan>`__
+- Prevented the loading of hidden files into AD; those starting with a `.`
 - Prevented the loading of hidden python files into AD; those starting with a `.`
 - Prevented the loading of hidden folders into AD; those starting with a `.`
 - Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
