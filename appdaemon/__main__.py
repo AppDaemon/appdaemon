@@ -27,11 +27,6 @@ try:
 except ImportError:
     pid = None
 
-try:
-    import uvloop
-except ImportError:
-    uvloop = None
-
 
 class ADMain:
     """
@@ -119,11 +114,6 @@ class ADMain:
         """
 
         try:
-
-            # if to use uvloop
-            if appdaemon.get("uvloop") is True and uvloop:
-                self.logger.info("Running AD using uvloop")
-                uvloop.install()
 
             loop = asyncio.get_event_loop()
 
