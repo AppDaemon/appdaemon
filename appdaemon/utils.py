@@ -14,6 +14,7 @@ import dateutil.parser
 import yaml
 import copy
 import json
+import inspect
 from functools import wraps
 from appdaemon.version import __version__  # noqa: F401
 
@@ -318,6 +319,14 @@ def run_coroutine_threadsafe(self, coro):
     else:
         self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
 
+    return result
+
+
+async def run_async_sync_func(self, method, *args, **kwargs):
+    if inspect.iscoroutinefunction(method):
+        result = await method(*args, **kwargs)
+    else:
+        result = await run_in_executor(self, method, *args, **kwargs)
     return result
 
 
