@@ -18,6 +18,7 @@ Change Log
 
 **Fixes**
 
+- Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
 - Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
 - Fix for Hass Api async api - contributed by `Oxan van Leeuwen <https://github.com/oxan>`__
 - Prevented the loading of hidden files into AD; those starting with a `.`
