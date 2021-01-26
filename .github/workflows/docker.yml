@@ -9,7 +9,7 @@ jobs:
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v1.11.0
       with:
-        images: ghcr.io/lexfrei/appdaemon/appdaemon
+        images: ghcr.io/AppDaemon/appdaemon/appdaemon
         tag-sha: true
 
     - name: Set up QEMU
