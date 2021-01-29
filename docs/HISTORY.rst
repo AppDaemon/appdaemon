@@ -6,6 +6,7 @@ Change Log
 
 **Features**
 
+- Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
 - Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
 - Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
@@ -17,9 +18,16 @@ Change Log
 
 **Fixes**
 
+- Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
+- Bumped paho-mqtt from 1.5.0 to 1.5.1
+- Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
+- Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
+- Fix for Hass Api async api - contributed by `Oxan van Leeuwen <https://github.com/oxan>`__
+- Prevented the loading of hidden files into AD; those starting with a `.`
 - Prevented the loading of hidden python files into AD; those starting with a `.`
 - Prevented the loading of hidden folders into AD; those starting with a `.`
 - Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
+- Documentation fixes - contributed by `Bob Gray <https://github.com/bg1000>`__
 - Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
 - Documentation fixes - contributed by `Dougal Matthews <https://github.com/d0ugal>`__
 - Documentation fixes - contributed by `Jason Lachowsky <https://github.com/dajo>`__

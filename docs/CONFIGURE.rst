@@ -364,10 +364,12 @@ HASS Plugin Startup Conditions
 
 The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
 
-- appdaemon_startup_conditions - conditions that must be met when AppDaemon starts up
-- plugin_startup_conditions - conditions that must be met when HASS restarts while AppDaemon is up
+- appdaemon_startup_conditions - These conditions are checked when AppDaemon starts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
+- plugin_startup_conditions - These conditions are checked if HASS restarts while AppDaemon is up.  AppDaemon will not start the HASS plugin until all of these conditions are met.
 
-AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. Each set of conditions takes the same format, and there are 3 types of conditions:
+
+
+AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. **These two sets of conditions operate independently.  If you want the same behavior during both startup scenarios then you need to include both sets of conditions in the configuration file and make them the same. Each set of conditions takes the same format, and there are 3 types of conditions. Currently each condition block supports only one of each type of condition.**
 
 delay
 '''''
@@ -423,7 +425,6 @@ Wait for a specific input boolean to be triggered when AppDaemon restarts:
 
     appdaemon_startup_conditions:
         event: {event_type: call_service, data:{domain: homeassistant, service_data:{entity_id: input_boolean.heating}, service: turn_on}}
-
 
 
 Configuration of the MQTT Plugin
