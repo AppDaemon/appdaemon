@@ -20,6 +20,7 @@ Change Log
 
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
+- Bumped aiohttp from 3.6.2 to 3.7.3
 - Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
 - Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
 - Fix for Hass Api async api - contributed by `Oxan van Leeuwen <https://github.com/oxan>`__
