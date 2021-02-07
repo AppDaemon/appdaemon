@@ -88,6 +88,8 @@ function baseswitch(widget_id, url, skin, parameters)
         {
             args = self.parameters.post_service_active
         }
+        args["namespace"] = self.parameters.namespace
+
         self.call_service(self, args);
         toggle(self);
         if ("momentary" in self.parameters)

@@ -15,6 +15,10 @@ Your initial ``appdaemon.yaml`` file should look something like this if you are 
 .. code:: yaml
 
      appdaemon:
+       time_zone: CET
+       latitude: 51.725
+       longitude: 14.3434
+       elevation: 0
        plugins:
          HASS:
            type: hass
@@ -116,6 +120,7 @@ The ``appdaemon:`` section has a number of directives:
 - ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``. This can also be changed from within apps, using the ``set_production_mode`` API call.
 - ``thread_duration_warning_threshold`` (optional) - AppDaemon monitors the time that each tread spends in an App. If a thread is taking too long to finish a callback, it may impact other apps. AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is 30 seconds, setting this value to ``00`` will disable the check.
 - ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events, and state changes - this can be useful for troubleshooting thread starvation issues
+
 When using the ``exclude_dirs`` directive, you should supply a list of directory names that should be ignored. For example:
 
 .. code:: yaml
@@ -142,6 +147,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 -  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
 -  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
 -  ``qsize_warning_iterations`` - if set to a value greater than 0, when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes but not until the qsize has been excessive for a minimum of ``qsize_warning_iterations``. This allows you to tune out brief expected spikes in Q size. Default is 5, usually meaning 5 seconds.
+-  ``uvloop`` (optional) - When ``True``, AD will switch from using default python asyncio loop, to utilizing the uvloop. This is said to improve the speed of the loop. More can be read `here <https://magic.io/blog/uvloop-blazing-fast-python-networking>`__ about uvloop.
 - namespaces (optional) - configure one or more User Defined Namespaces and set their writeback strategy
 
 .. code:: yaml
@@ -255,6 +261,7 @@ Plugins also support some optional parameters:
 
 - ``refresh_delay`` - How often the complete state of the plugin is refreshed, in seconds. Default is 600 seconds.
 - ``refresh_timeout`` - How long to wait for the state refresh before cancelling it, in seconds. Default is 30 seconds.
+- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persitent within AD. So in the event of a restart, the entities will be recreated in the same namespace
 
 The rest will vary depending upon which plugin type is in use.
 
@@ -273,7 +280,7 @@ To configure the HASS plugin, in addition to the required parameters above, you 
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
-
+-  ``retry_secs`` (optional) - If specified, AD will wait for this many seconds in between retries to connect to HASS (default 5 seconds)
 - appdaemon_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
 - plugin_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
 
@@ -357,10 +364,12 @@ HASS Plugin Startup Conditions
 
 The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
 
-- appdaemon_startup_conditions - conditions that must be met when AppDaemon starts up
-- plugin_startup_conditions - conditions that must be met when HASS restarts while AppDaemon is up
+- appdaemon_startup_conditions - These conditions are checked when AppDaemon starts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
+- plugin_startup_conditions - These conditions are checked if HASS restarts while AppDaemon is up.  AppDaemon will not start the HASS plugin until all of these conditions are met.
 
-AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. Each set of conditions takes the same format, and there are 3 types of conditions:
+
+
+AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. **These two sets of conditions operate independently.  If you want the same behavior during both startup scenarios then you need to include both sets of conditions in the configuration file and make them the same. Each set of conditions takes the same format, and there are 3 types of conditions. Currently each condition block supports only one of each type of condition.**
 
 delay
 '''''
@@ -416,7 +425,6 @@ Wait for a specific input boolean to be triggered when AppDaemon restarts:
 
     appdaemon_startup_conditions:
         event: {event_type: call_service, data:{domain: homeassistant, service_data:{entity_id: input_boolean.heating}, service: turn_on}}
-
 
 
 Configuration of the MQTT Plugin
@@ -516,7 +524,7 @@ when we first run it.
 Configuring the HTTP Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled. This component also creates a folder in the configuration directory called ``web``, if it doesn't exist. To serve custom static content like images, videos or html pages, simply drop the content into the web folder and it becomes available via the browser or dashboard. Content stored in this folder can be accessed using ``http://AD_IP:Port/web/<content to be accessed>``. Where `AD_IP:Port` is the url as defined below using the http component.
+The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled. This component also creates a folder in the configuration directory called ``www``, if it doesn't exist. To serve custom static content like images, videos or html pages, simply drop the content into the www folder and it becomes available via the browser or dashboard. Content stored in this folder can be accessed using ``http://AD_IP:Port/local/<content to be accessed>``. Where `AD_IP:Port` is the url as defined below using the http component.
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
@@ -582,12 +590,12 @@ AD's internal web server. This can range from images, videos, html pages and the
 .. code:: yaml
 
     http:
-      custom_dirs:
+      static_dirs:
         videos: /home/pi/video_clips
         pictures: /home/pi/pictures
 
 The above configuration assumes that the user has a folder, that has stored within it video clips from like cameras. To access
-the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/pictures/<picture to be accessed>``.
+the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/local/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/local/pictures/<picture to be accessed>``. Using this directive does support the use of relative paths.
 
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~
