@@ -22,6 +22,7 @@ Change Log
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
 - Bumped aiohttp from 3.6.2 to 3.7.3
 - Bumped python-socketio from 4.4.2 to 4.6.1
+- Bumped deepdiff from 4.3.1 to 5.2.2
 - Fixed issue with socketIO, where the client is incompatible with server
 - Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
 - Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
