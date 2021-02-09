@@ -9,6 +9,7 @@ import appdaemon.utils as utils
 from appdaemon.stream.socketio_handler import SocketIOHandler
 from appdaemon.stream.ws_handler import WSHandler
 from appdaemon.stream.sockjs_handler import SockJSHandler
+from appdaemon.exceptions import RequestHandlerException
 
 
 class ADStream:
@@ -397,7 +398,3 @@ class RequestHandler:
         del self.subscriptions["event"][data["handle"]]
 
         return True
-
-
-class RequestHandlerException(Exception):
-    pass
