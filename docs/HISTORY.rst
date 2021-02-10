@@ -18,6 +18,7 @@ Change Log
 
 **Fixes**
 
+- Fixed issue with newly registered HASS services
 - Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
