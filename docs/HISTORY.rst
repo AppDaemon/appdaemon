@@ -19,6 +19,7 @@ Change Log
 
 **Fixes**
 
+- Prevent the ability for apps to register services in non-existent namespaces
 - Fixed issue with newly registered HASS services
 - Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
