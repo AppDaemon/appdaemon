@@ -15,9 +15,12 @@ Change Log
 - Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
 - Added the ability to submit tasks to executor threads
 - Added the ability to make use of uvloop to improve speed, compared to the default asyncio loop
+- Added the `module_path` and app config `yaml_path` to the app's entity_id
 
 **Fixes**
 
+- Fixed issue with newly registered HASS services
+- Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
 - Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__

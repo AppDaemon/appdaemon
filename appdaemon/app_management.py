@@ -291,6 +291,7 @@ class AppManagement:
                 pin = -1
 
             modname = await utils.run_in_executor(self, __import__, app_args["module"])
+
             app_class = getattr(modname, app_args["class"], None)
             if app_class is None:
                 self.logger.warning(
@@ -311,6 +312,10 @@ class AppManagement:
                     "pin_app": self.AD.threading.app_should_be_pinned(name),
                     "pin_thread": pin,
                 }
+
+                # load the module path into app entity
+                module_path = await utils.run_in_executor(self, os.path.abspath, modname.__file__)
+                await self.set_state(name, module_path=module_path)
 
         else:
             self.logger.warning(
@@ -383,6 +388,7 @@ class AppManagement:
                                             and "module" in config[app]
                                         ):
                                             valid_apps[app] = config[app]
+                                            valid_apps[app]["yaml_path"] = path
                                         else:
                                             app_valid = False
                                             if self.AD.invalid_yaml_warnings:
@@ -567,6 +573,9 @@ class AppManagement:
                         continue
 
                     if name in new_config:
+                        # first we need to remove thhe yaml path if it exists
+                        yaml_path = new_config[name].pop("yaml_path", None)
+
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
 
@@ -574,6 +583,12 @@ class AppManagement:
                                 self.logger.info("App '%s' changed", name)
                             terminate_apps[name] = 1
                             initialize_apps[name] = 1
+
+                        if yaml_path:
+                            yaml_path = await utils.run_in_executor(self, os.path.abspath, yaml_path)
+
+                            # now we update the entity
+                            await self.set_state(name, yaml_path=yaml_path)
                     else:
 
                         # Section has been deleted, clear it out
@@ -595,11 +610,25 @@ class AppManagement:
                         #
                         # New section added!
                         #
+
                         if "class" in new_config[name] and "module" in new_config[name]:
+
+                            # first we need to remove thhe yaml path if it exists
+                            yaml_path = await utils.run_in_executor(
+                                self, os.path.abspath, new_config[name].pop("yaml_path")
+                            )
+
                             self.logger.info("App '%s' added", name)
                             initialize_apps[name] = 1
                             await self.add_entity(
-                                name, "loaded", {"totalcallbacks": 0, "instancecallbacks": 0, "args": new_config[name]},
+                                name,
+                                "loaded",
+                                {
+                                    "totalcallbacks": 0,
+                                    "instancecallbacks": 0,
+                                    "args": new_config[name],
+                                    "yaml_path": yaml_path,
+                                },
                             )
                         elif name in self.non_apps:
                             pass
@@ -1268,11 +1297,8 @@ class AppManagement:
     def get_app_file(self, app):
         """Used to get the file an app is located"""
 
-        for app_file, app_list in self.app_config_files.items():
-            if app in app_list:
-                return app_file
-
-        return None
+        app_file = utils.run_coroutine_threadsafe(self, self.get_state(app, attribute="yaml_path"))
+        return app_file
 
     async def register_module_dependency(self, name, *modules):
         for module in modules:

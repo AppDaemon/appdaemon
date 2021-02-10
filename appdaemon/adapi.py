@@ -2674,7 +2674,7 @@ class ADAPI:
 
         Keyword Args:
             offset (int, optional): The time in seconds that the callback should be delayed after
-                sunrise. A negative value will result in the callback occurring before sunrise.
+                sunset. A negative value will result in the callback occurring before sunset.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
