@@ -44,7 +44,7 @@ Change Log
 
 **Breaking Changes**
 
-- Those using non-existent namespaces to register app services, will need to create a UDM and use that to register the service
+- Those using non-existent namespaces to register app services, will need to create a UDN and use that to register the service as described `here <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#user-defined-namespaces>`__
 - If using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
 - Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
 - ``binary`` is now a reserved keyword argument used when listening to MQTT events
