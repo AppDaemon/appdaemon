@@ -37,6 +37,20 @@ function get_monitored_entities(widgets)
     return entities
 }
 
+const ID_STORAGE_KEY = 'hadasboard-device-id';
+
+function get_set_deviceID() {
+  if(!localStorage[ID_STORAGE_KEY])
+  {
+    const s4 = () => {
+      return Math.floor((1+Math.random())*100000).toString(16).substring(1);
+    };
+      localStorage[ID_STORAGE_KEY] = `${s4()}${s4()}-${s4()}${s4()}`;
+  }
+  return localStorage[ID_STORAGE_KEY];
+};
+
+
 var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
     var self = this;
@@ -59,7 +73,8 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         {
             self.stream.listen_state(entities[i].namespace, entities[i].entity, self.update_dash)
         }
-
+        var deviceID = get_set_deviceID();
+        console.log("deviceID = ", deviceID);   
     };
 
     this.on_message = function(data)
@@ -90,7 +105,8 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         data = msg.data;
         if (data.event_type === "__HADASHBOARD_EVENT")
         {
-            if (data.data.command === "navigate")
+            //check if we should navigate based on deviceid
+            if (data.data.command === "navigate" && (!data.data.deviceid || data.data.deviceid === localStorage['hadasboard-device-id']) )
             {
                 var timeout_params = "";
                 if ("timeout" in data.data)
