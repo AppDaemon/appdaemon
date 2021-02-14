@@ -585,7 +585,7 @@ through a variety of means:
 
 The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
-`AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
+`AppDaemon API Pages <API.html>`__. The custom event name is ``__HADASHBOARD_EVENT`` and the
 dashboard will respond to various commands with associated data.
 
 To create a suitable custom event within a HASS automation, script or
@@ -596,7 +596,7 @@ Alexa Intent, simply define the event and associated data as follows
 
     alias: Navigate
     sequence:
-    - event: hadashboard
+    - event: __HADASHBOARD_EVENT
       event_data:
         command: navigate
         timeout: 10
@@ -626,6 +626,8 @@ timeout expires, the timeout will be cancelled.
 ``timeout`` - length of time to stay on the new dashboard
 ``return`` - dashboard to return to after the timeout has elapsed.
 ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``deviceid``: If set, only the device(s) which has the same deviceid will navigate. Each device can either auto-generate a ID or it can be set using the deviceid widget. "Device" is a combination of machine+browser, so a computer+firefox could be one device, while the same computer+safari can be another.
+``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate. ex: if dashid is set to "kichen", it will match devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.
 
 Namespaces
 ----------
