@@ -74,7 +74,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
             self.stream.listen_state(entities[i].namespace, entities[i].entity, self.update_dash)
         }
         var deviceID = get_set_deviceID();
-        console.log("deviceID = ", deviceID);   
+        console.log("deviceID = ", deviceID);  
     };
 
     this.on_message = function(data)
@@ -105,8 +105,15 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         data = msg.data;
         if (data.event_type === "__HADASHBOARD_EVENT")
         {
-            //check if we should navigate based on deviceid
-            if (data.data.command === "navigate" && (!data.data.deviceid || data.data.deviceid === localStorage['hadasboard-device-id']) )
+             //check if we should navigate based on deviceid or dashid
+            // 3 possible cases: 1) deviceid is set and equal to our deviceid
+            // 2) dashid is set and match a substring of our dashboard title
+            // 3) neither deviceid or dashid is set
+            if (data.data.command === "navigate" && 
+               ( (data.data.deviceid && data.data.deviceid === localStorage['hadasboard-device-id']) ||
+                 (data.data.dashid && title.includes(data.data.dashid)) ||
+                 (!data.data.deviceid && !data.data.dashid)
+                ))
             {
                 var timeout_params = "";
                 if ("timeout" in data.data)
