@@ -2769,7 +2769,7 @@ class ADAPI:
     # Dashboard
     #
 
-    def dash_navigate(self, target, timeout=-1, ret=None, sticky=0):
+    def dash_navigate(self, target, timeout=-1, ret=None, sticky=0, deviceid=None, dashid=None):
         """Forces all connected Dashboards to navigate to a new URL.
 
         Args:
@@ -2786,6 +2786,10 @@ class ADAPI:
                 By using a different value (sticky= 5), clicking the dashboard will extend
                 the amount of time (in seconds), but it will return to the original dashboard
                 after a period of inactivity equal to timeout.
+            deviceid (str): If set, only the device which has the same deviceid will navigate.    
+            dashid (str): If set, all devices currently on a dashboard which the title contains
+                the substring dashid will navigate. ex: if dashid is "kichen", it will match
+                devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.    
 
         Returns:
             None.
@@ -2806,6 +2810,10 @@ class ADAPI:
             kwargs["timeout"] = timeout
         if ret is not None:
             kwargs["return"] = ret
+        if deviceid is not None:
+            kwargs["deviceid"] = deviceid
+        if dashid is not None:
+            kwargs["dashid"] = dashid    
         self.fire_event("__HADASHBOARD_EVENT", **kwargs)
 
     #

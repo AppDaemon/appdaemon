@@ -70,6 +70,12 @@ any the list will be empty.
 When you have created a dashboard you can navigate to it by going to
 ``http://192.168.1.20:5050/<Dashboard Name>``
 
+When you first access a dashboard from a given device+browser, a device id
+will be created and hadashboard will ask you to enter a device id or 
+accept the auto generated one by just reloading the page. Later, this device 
+id could be used with `External commands 
+<DASHBOARD_CREATION.html#external-command>`__.
+
 If you are using AppDaemon just for the dashboard and not the Apps, you
 can disable the app engine with the following directive:
 
