@@ -126,7 +126,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
             (data.data.dashid && title.includes(data.data.dashid)) ||
             (!data.data.deviceid && !data.data.dashid))
         {
-            if (data.data.command === "navigate") 
+            if (data.data.command === "navigate")
             {
                 var timeout_params = "";
                 if ("timeout" in data.data)
