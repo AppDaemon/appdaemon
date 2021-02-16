@@ -585,7 +585,7 @@ through a variety of means:
 
 The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
-`AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
+`AppDaemon API Pages <API.html>`__. The custom event name is ``__HADASHBOARD_EVENT`` and the
 dashboard will respond to various commands with associated data.
 
 To create a suitable custom event within a HASS automation, script or
@@ -596,12 +596,23 @@ Alexa Intent, simply define the event and associated data as follows
 
     alias: Navigate
     sequence:
-    - event: hadashboard
+    - event: __HADASHBOARD_EVENT
       event_data:
         command: navigate
         timeout: 10
         target: SensorPanel
         sticky: 0
+
+These following arguments are optional and can be used to determine
+if a given device or dashboard should execute the command or not:
+
+``deviceid``: If set, only the device(s) which has the same deviceid will 
+execute the command. 
+``dashid``: If set, all devices currently on a dashboard which the title 
+contains the substring defined by dashid will execute the command. ex: if 
+dashid is set to "kichen", it will match devices which are on "kitchen lights",
+"kitchen sensors", "ipad - kitchen", etc.
+
 
 The current list of commands supported and associated arguments are as
 follows:
@@ -609,23 +620,24 @@ follows:
 navigate
 ~~~~~~~~
 
-Force any connected dashboards to navigate to a new page
+Force one or more connected dashboards to navigate to a new page
 
 Arguments:
 ^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
-``SensorPanel`` - this is not a URL. ``timeout`` - length of time to
-stay on the new dashboard before returning to the original. This
-argument is optional, and if not specified, the navigation will be
-permanent.
+``SensorPanel`` - this is not a URL. 
+``timeout`` - length of time to stay on the new dashboard before returning to 
+the original. This argument is optional, and if not specified, the navigation
+will be permanent.
 
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``timeout`` - length of time to stay on the new dashboard
 ``return`` - dashboard to return to after the timeout has elapsed.
 ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``deviceid``: If set, only the device(s) which has the same deviceid will navigate. Each device can either auto-generate a ID or it can be set using the deviceid widget. "Device" is a combination of machine+browser, so a computer+firefox could be one device, while the same computer+safari can be another.
+``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate. ex: if dashid is set to "kichen", it will match devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.
 
 Namespaces
 ----------
