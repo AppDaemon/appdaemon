@@ -18,7 +18,7 @@ python-engineio==3.13.2
 python-socketio==4.6.1
 deepdiff==5.2.2
 python-dateutil==2.8.1
-pid==2.2.5
+pid==3.0.4
 azure-mgmt-compute==5.0.0
 azure-mgmt-storage==16.0.0
 azure-mgmt-resource==15.0.0
