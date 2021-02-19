@@ -1,4 +1,4 @@
-lesfunction getCookie(cname) {
+function getCookie(cname) {
     var name = cname + "=";
     var decodedCookie = decodeURIComponent(document.cookie);
     var ca = decodedCookie.split(';');
@@ -89,7 +89,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
     {
         data = msg.data;
         if (data.event_type === "__HADASHBOARD_EVENT"  &&
-           ((data.data.deviceid && data.data.deviceid === my_deviceid) ||
+           ((data.data.deviceid && data.data.deviceid === myDeviceID) ||
             (data.data.dashid && title.includes(data.data.dashid)) ||
             (!data.data.deviceid && !data.data.dashid)))    
         {
