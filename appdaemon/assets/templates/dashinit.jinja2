@@ -1,5 +1,6 @@
+var myDeviceID;
 $(function(){ //DOM Ready
-
+    
     function navigate(url)
     {
         window.location.href = url;
@@ -56,6 +57,30 @@ $(function(){ //DOM Ready
         result[item[0]] = decodeURIComponent(item[1]);
         });
 
+        if ("deviceid" in result)
+        {
+            myDeviceID = result.deviceid;
+            try
+            {
+                localStorage['hadashboard-deviceid'] = myDeviceID;
+            }
+            catch (e) 
+            { 
+                console.log(e); 
+            }
+        } 
+        else
+        {
+            try
+            {
+                myDeviceID = localStorage['hadashboard-deviceid'];
+            }
+            catch (e)
+            {
+                console.log(e);
+                myDeviceID = null;
+            }
+        }
         if ("timeout" in result && "return" in result)
         {
             url = result.return
@@ -70,7 +95,7 @@ $(function(){ //DOM Ready
                     }
                     else
                     {
-                        url += "?";
+                        url += "&";
                     }
                     argcount ++;
                     url += arg + "=" + result[arg]

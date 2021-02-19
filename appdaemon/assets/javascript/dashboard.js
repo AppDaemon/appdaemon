@@ -1,4 +1,4 @@
-function getCookie(cname) {
+lesfunction getCookie(cname) {
     var name = cname + "=";
     var decodedCookie = decodeURIComponent(document.cookie);
     var ca = decodedCookie.split(';');
@@ -37,31 +37,6 @@ function get_monitored_entities(widgets)
     return entities
 }
 
-function get_set_deviceID() {
-
-  const ID_STORAGE_KEY = 'hadasboard-device-id';
-
-  if(!localStorage[ID_STORAGE_KEY])
-  {
-    const s4 = () => {
-      return Math.floor((1+Math.random())*100000).toString(16).substring(1);
-    };
-
-    var auto_id  = `${s4()}${s4()}`;
-
-    localStorage[ID_STORAGE_KEY] = auto_id;
-
-    var id =  prompt("Please enter a device ID or just reload this window to accept the default value:", auto_id);
-
-    if (id != null && id != undefined)
-    {
-        localStorage[ID_STORAGE_KEY] = id;
-    }
-  }
-  return localStorage[ID_STORAGE_KEY]
-};
-
-
 var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
     var self = this;
@@ -85,9 +60,6 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
             self.stream.listen_state(entities[i].namespace, entities[i].entity, self.update_dash)
         }
 
-        // get device_id. If it's not set, ask for it
-        var deviceID = get_set_deviceID();
-        //console.log("deviceID = ", deviceID);
     };
 
     this.on_message = function(data)
@@ -116,15 +88,10 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
     this.update_dash = function(msg)
     {
         data = msg.data;
-
-        //check if we should listen to this event based on deviceid or dashid
-        // 3 possible cases: 1) deviceid is set and equal to our deviceid
-        // 2) dashid is set and match a substring of our dashboard title
-        // 3) neither deviceid or dashid is set
         if (data.event_type === "__HADASHBOARD_EVENT"  &&
-           ((data.data.deviceid && data.data.deviceid === localStorage['hadasboard-device-id']) ||
+           ((data.data.deviceid && data.data.deviceid === my_deviceid) ||
             (data.data.dashid && title.includes(data.data.dashid)) ||
-            (!data.data.deviceid && !data.data.dashid)))
+            (!data.data.deviceid && !data.data.dashid)))    
         {
             if (data.data.command === "navigate")
             {

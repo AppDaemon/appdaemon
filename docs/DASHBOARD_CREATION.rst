@@ -607,11 +607,27 @@ These following arguments are optional and can be used to determine
 if a given device or dashboard should execute the command or not:
 
 ``deviceid``: If set, only the device(s) which has the same deviceid will 
-execute the command. 
+execute the command. See below how to set a deviceid.
 ``dashid``: If set, all devices currently on a dashboard which the title 
 contains the substring defined by dashid will execute the command. ex: if 
 dashid is set to "kichen", it will match devices which are on "kitchen lights",
 "kitchen sensors", "ipad - kitchen", etc.
+
+
+Setting a deviceid
+~~~~~~~~~~~~~~~~~~~
+
+A "device" is a combination of machine+browser, so a computer+firefox could 
+be one device, while the same computer+safari can be another. To set the
+``deviceid`` of a device add the ```deviceid=your_deviceid``` parameter to
+the dashboard url, for instance:
+
+``http://192.168.1.20:5050/mypanel?deviceid=kitchentablet``
+
+HADashboard will try to store the deviceid on the device so you don't need
+to use this parameter everytime. You may use it again if you want to set
+a new deviceid or if you cleaned device's cookies or the device doesnt 
+support it.
 
 
 The current list of commands supported and associated arguments are as
@@ -636,8 +652,8 @@ timeout expires, the timeout will be cancelled.
 
 ``return`` - dashboard to return to after the timeout has elapsed.
 ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
-``deviceid``: If set, only the device(s) which has the same deviceid will navigate. Each device can either auto-generate a ID or it can be set using the deviceid widget. "Device" is a combination of machine+browser, so a computer+firefox could be one device, while the same computer+safari can be another.
-``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate. ex: if dashid is set to "kichen", it will match devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.
+``deviceid``: If set, only the device(s) which has the same deviceid will navigate.
+``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate.
 
 Namespaces
 ----------
