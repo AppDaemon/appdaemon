@@ -15,10 +15,14 @@ Change Log
 - Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
 - Added the ability to submit tasks to executor threads
 - Added the ability to make use of uvloop to improve speed, compared to the default asyncio loop
+- Added the `module_path` and app config `yaml_path` to the app's entity_id
 
 **Fixes**
 
 - Fixed Azure packages by droping deprecated packages - contributed by `freezeboy <https://github.com/freezeboy>`__
+- Prevent the ability for apps to register services in non-existent namespaces
+- Fixed issue with newly registered HASS services
+- Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
 - Bumped astral from 1.10.1 to 2.2
@@ -48,6 +52,7 @@ Change Log
 
 **Breaking Changes**
 
+- Those using non-existent namespaces to register app services, will need to create a UDN and use that to register the service as described `here <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#user-defined-namespaces>`__
 - If using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
 - Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
 - ``binary`` is now a reserved keyword argument used when listening to MQTT events

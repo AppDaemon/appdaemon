@@ -3,6 +3,7 @@ import traceback
 import asyncio
 
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.exceptions import NamespaceException
 import appdaemon.utils as utils
 
 
@@ -22,10 +23,16 @@ class Services:
         __silent = kwargs.pop("__silent", False)
 
         with self.services_lock:
+            # first we confirm if the namespace exists
+            if "__name" in kwargs and namespace not in self.AD.state.state:
+                raise NamespaceException(f"Namespace '{namespace}', doesn't exist")
+
             if namespace not in self.services:
                 self.services[namespace] = {}
+
             if domain not in self.services[namespace]:
                 self.services[namespace][domain] = {}
+
             self.services[namespace][domain][service] = {"callback": callback, **kwargs}
 
             if __silent is False:
