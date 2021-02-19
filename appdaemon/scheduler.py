@@ -217,7 +217,7 @@ class Scheduler:
 
         elevation = self.AD.elevation
 
-        self.location = astral.Location(("", "", latitude, longitude, self.AD.tz.zone, elevation))
+        self.location = astral.location.Location(("", "", latitude, longitude, self.AD.tz.zone, elevation))
 
     def sun(self, type, offset):
         if offset < 0:
