@@ -215,9 +215,7 @@ class Scheduler:
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        elevation = self.AD.elevation
-
-        self.location = astral.location.Location(("", "", latitude, longitude, self.AD.tz.zone, elevation))
+        self.location = astral.location.Location(("", "", latitude, longitude, self.AD.tz.zone))
 
     def sun(self, type, offset):
         if offset < 0:
@@ -237,9 +235,8 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_rising_dt = self.location.sunrise(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_rising_dt = self.location.sunrise(date=dt, local=False, observer_elevation=self.AD.elevation)
                 if next_rising_dt > self.now:
                     break
             except astral.AstralError:
@@ -252,9 +249,8 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_setting_dt = self.location.sunset(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_setting_dt = self.location.sunset(date=dt, local=False, observer_elevation=self.AD.elevation)
                 if next_setting_dt > self.now:
                     break
             except astral.AstralError:
