@@ -790,6 +790,12 @@ class HTTP:
         if os.path.isdir(custom_css):
             self.app.router.add_static("/custom_css", custom_css)
 
+        # Add path for custom_javascript if it exists
+
+        custom_javascript = os.path.join(self.dashboard_obj.config_dir, "custom_javascript")
+        if os.path.isdir(custom_javascript):
+            self.app.router.add_static("/custom_javascript", custom_javascript)
+
     # API
 
     async def terminate_app(self, name):
