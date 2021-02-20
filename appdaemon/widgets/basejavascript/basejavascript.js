@@ -56,7 +56,7 @@ function basejavascript(widget_id, url, skin, parameters)
     }
     else if ("url" in parameters || "dashboard" in parameters)
     {
-        var append = appendURL();
+        var append = "";
 
         if ("url" in parameters)
         {
@@ -65,6 +65,10 @@ function basejavascript(widget_id, url, skin, parameters)
         else
         {
             url = "/" + parameters.dashboard
+            if ("forward_parameters" in parameters)
+            {
+                append = appendURL(parameters.forward_parameters);
+            }
         }
         var i = 0;
 
@@ -144,7 +148,6 @@ function basejavascript(widget_id, url, skin, parameters)
                 i++
             }
         }
-
         if ( append != "" )
         {
             if (i == 0)
@@ -167,7 +170,7 @@ function basejavascript(widget_id, url, skin, parameters)
 
     self.command = command;
      
-    function appendURL()
+    function appendURL(forward_list)
     {
         var append = "";
         if (location.search != "")
@@ -179,11 +182,11 @@ function basejavascript(widget_id, url, skin, parameters)
                 result[item[0]] = decodeURIComponent(item[1]);
             });
             
-            
             var useand = false; 
             for (arg in result)
             {
-                if (arg != "timeout" && arg != "return" && arg != "sticky" && arg != "skin")
+                if (arg != "timeout" && arg != "return" && arg != "sticky" && arg != "skin" && 
+                    (forward_list.includes(arg) || forward_list.includes("all")) )
                 {
                     if (useand)
                     {
