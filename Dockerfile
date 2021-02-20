@@ -1,4 +1,5 @@
-FROM python:3.8-alpine
+ARG IMAGE=3.8-alpine
+FROM python:${IMAGE}
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
