@@ -1722,6 +1722,13 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.
 -  ``skin`` - Skin to use with the new screen (for HADash URLs only)
+-  ``forward_parameters`` - a list of URL parameters that should be forwarded
+   from the current dashboard URL to the next dashboard. For example, if the 
+   current dashboard was called with "&deviceid=1234&otherparameter=foo", 
+   adding "deviceid" to ``forward_parameters`` will preserve "deviceid" and 
+   discard "otherparameter=foo". You may add "all" to the ``forward_parameters``
+   to forward all parameters, except "timeout", "return", "sticky" as this can cause
+   problems. If ``forward_parameters`` is not used, then only skin is preserved.
 
 For an arbitrary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
