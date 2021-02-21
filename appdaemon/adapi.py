@@ -1563,6 +1563,8 @@ class ADAPI:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
+        kwargs["__name"] = self.name
+
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
     def list_services(self, **kwargs):
