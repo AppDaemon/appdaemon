@@ -15,24 +15,120 @@ class State:
 
         self.state = {"default": {}, "admin": {}, "rules": {}}
         self.logger = ad.logging.get_child("_state")
+        self.app_added_namespaces = []
 
         # Initialize User Defined Namespaces
 
         nspath = os.path.join(self.AD.config_dir, "namespaces")
+        if not os.path.isdir(nspath):
+            os.makedirs(nspath)
+
+        for ns in self.AD.namespaces:
+            writeback = self.AD.namespaces[ns].get("writeback", "safe")
+            self.add_persistent_namespace(ns, writeback)
+            self.logger.info("User Defined Namespace '%s' initialized", ns)
+
+    async def add_namespace(self, namespace, writeback, persist, name=None):
+        """Used to Add Namespaces from Apps"""
+
+        if namespace in self.state:  # it already exists
+            self.logger.warning("Namespace %s already exists. Cannot process add_namespace from %s", namespace, name)
+            return False
+
+        if persist is True:
+            nspath_file = await utils.run_in_executor(self, self.add_persistent_namespace, namespace, writeback)
+
+        else:
+            nspath_file = None
+            self.state[namespace] = {}
+
+        self.app_added_namespaces.append(namespace)
+
+        data = {
+            "event_type": "__AD_NAMESPACE_ADDED",
+            "data": {"namespace": namespace, "writeback": writeback, "database_filename": nspath_file},
+        }
+
+        await self.AD.events.process_event("admin", data)
+
+        # TODO need to update and reload the admin page to show the new namespace in real-time
+
+        return nspath_file
+
+    async def namespace_exists(self, namespace):
+        if namespace in self.state:
+            return True
+        else:
+            return False
+
+    async def remove_namespace(self, namespace):
+        """Used to Remove Namespaces from Apps"""
+
+        result = None
+        if namespace in self.app_added_namespaces:
+            result = self.state.pop(namespace)
+            nspath_file = await utils.run_in_executor(self, self.remove_persistent_namespace, namespace)
+            self.app_added_namespaces.remove(namespace)
+
+            self.logger.warning("Namespace %s, has ben removed", namespace)
+
+            data = {
+                "event_type": "__AD_NAMESPACE_REMOVED",
+                "data": {"namespace": namespace, "database_filename": nspath_file},
+            }
+
+            await self.AD.events.process_event("admin", data)
+
+            # TODO need to update and reload the admin page to show the removed namespace in real-time
+
+        elif namespace in self.state:
+            self.logger.warning("Cannot delete namespace %s, as not an app defined namespace", namespace)
+
+        else:
+            self.logger.warning("Namespace %s doesn't exists", namespace)
+
+        return result
+
+    def add_persistent_namespace(self, namespace, writeback):
+        """Used to add a database file for a created namespace"""
+
         try:
-            if not os.path.isdir(nspath):
-                os.makedirs(nspath)
-            for ns in self.AD.namespaces:
-                self.logger.info("User Defined Namespace '%s' initialized", ns)
-                writeback = self.AD.namespaces[ns].get("writeback", "safe")
-                safe = bool(writeback == "safe")
-                self.state[ns] = utils.PersistentDict(os.path.join(nspath, ns), safe)
+            nspath = os.path.join(self.AD.config_dir, "namespaces")
+            safe = bool(writeback == "safe")
+
+            nspath_file = os.path.join(nspath, f"{namespace}.db")
+            self.state[namespace] = utils.PersistentDict(nspath_file, safe)
+
+            self.logger.info("Persistent Namespace '%s' initialized", namespace)
+
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in namespace setup")
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
+
+        return nspath_file
+
+    def remove_persistent_namespace(self, namespace):
+        """Used to remove the file for a created namespace"""
+
+        try:
+            nspath = os.path.join(self.AD.config_dir, "namespaces")
+            database_file = f"{namespace}.db"
+            nspath_file = os.path.join(nspath, database_file)
+
+            if os.path.isfile(nspath_file) is True:  # if the file exists remove it
+                os.remove(nspath_file)
+
+        except Exception:
+            self.logger.warning("-" * 60)
+            self.logger.warning("Unexpected error in namespace removal")
+            self.logger.warning("-" * 60)
+            self.logger.warning(traceback.format_exc())
+            self.logger.warning("-" * 60)
+
+        return nspath_file
 
     async def list_namespaces(self):
         ns = []
@@ -150,7 +246,7 @@ class State:
                         __attribute=__attribute,
                         __old_state=None,
                         __new_state=__new_state,
-                        **kwargs
+                        **kwargs,
                     )
 
             await self.AD.state.add_entity(
@@ -445,12 +541,25 @@ class State:
 
     async def state_services(self, namespace, domain, service, kwargs):
         self.logger.debug("state_services: %s, %s, %s, %s", namespace, domain, service, kwargs)
-        if "entity_id" not in kwargs:
-            self.logger.warning("Entity not specified in set_state service call: %s", kwargs)
-            return
-        else:
-            entity_id = kwargs["entity_id"]
-            del kwargs["entity_id"]
+        if service in ["add_entity", "remove_entity", "set"]:
+
+            if "entity_id" not in kwargs:
+                self.logger.warning("Entity not specified in %s service call: %s", service, kwargs)
+                return
+
+            else:
+                entity_id = kwargs["entity_id"]
+                del kwargs["entity_id"]
+
+        elif service in ["add_namespace", "remove_namespace"]:
+
+            if "namespace" not in kwargs:
+                self.logger.warning("Namespace not specified in %s service call: %s", service, kwargs)
+                return
+
+            else:
+                namespace = kwargs["namespace"]
+                del kwargs["namespace"]
 
         if service == "set":
             await self.set_state(domain, namespace, entity_id, **kwargs)
@@ -462,6 +571,14 @@ class State:
             state = kwargs.get("state")
             attributes = kwargs.get("attributes")
             await self.add_entity(namespace, entity_id, state, attributes)
+
+        elif service == "add_namespace":
+            writeback = kwargs.get("writeback")
+            persist = kwargs.get("persist")
+            await self.add_namespace(namespace, writeback, persist, kwargs.get("name"))
+
+        elif service == "remove_namespace":
+            await self.remove_namespace(namespace)
 
         else:
             self.logger.warning("Unknown service in state service call: %s", kwargs)
@@ -510,8 +627,14 @@ class State:
 
         return new_state
 
-    def set_namespace_state(self, namespace, state):
-        self.state[namespace] = state
+    def set_namespace_state(self, namespace, state, persist=False):
+        if persist is True:
+            self.add_persistent_namespace(namespace, "safe")
+            self.state[namespace].update(state)
+        else:
+            # first in case it had been created before, it should be deleted
+            self.remove_persistent_namespace(namespace)
+            self.state[namespace] = state
 
     def update_namespace_state(self, namespace, state):
         if isinstance(namespace, list):  # if its a list, meaning multiple namespaces to be updated
@@ -522,15 +645,16 @@ class State:
             self.state[namespace].update(state)
 
     async def save_namespace(self, namespace):
-        if namespace in self.AD.namespaces:
+        if isinstance(self.state[namespace], utils.PersistentDict):
             self.state[namespace].sync()
         else:
             self.logger.warning("Namespace: %s cannot be saved", namespace)
         return None
 
     def save_all_namespaces(self):
-        for ns in self.AD.namespaces:
-            self.state[ns].sync()
+        for ns in self.state:
+            if isinstance(self.state[ns], utils.PersistentDict):
+                self.state[ns].sync()
 
     def save_hybrid_namespaces(self):
         for ns in self.AD.namespaces:

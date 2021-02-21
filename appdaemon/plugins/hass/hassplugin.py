@@ -245,16 +245,9 @@ class HassPlugin(PluginBase):
     #
     # async def state(self, entity, attribute, old, new, kwargs):
     #    self.logger.info("State: %s %s %s %s {}".format(kwargs), entity, attribute, old, new)
-
-    async def event(self, event, data, kwargs):
-        self.logger.debug("Event: %s %s %s", kwargs, event, data)
-
-        if event == "service_registered":  # hass just registered a service
-            domain = data["domain"]
-            service = data["service"]
-            self.AD.services.register_service(
-                self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
-            )
+    #
+    # async def event(self, event, data, kwargs):
+    #    self.logger.debug("Event: %s %s %s", kwargs, event, data)
 
     # async def schedule(self, kwargs):
     #    self.logger.info("Schedule: {}".format(kwargs))
@@ -274,7 +267,7 @@ class HassPlugin(PluginBase):
         # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
 
         # listen for service_registered event
-        await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "service_registered")
+        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "service_registered")
         # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
         # await self.AD.sched.insert_schedule(
         #    self.name,
@@ -380,6 +373,16 @@ class HassPlugin(PluginBase):
                             await self.evaluate_started(False, self.hass_booting)
                     else:
                         await self.AD.events.process_event(self.namespace, result["event"])
+
+                        if result["event"].get("event_type") == "service_registered":
+                            data = result["event"]["data"]
+                            domain = data.get("domain")
+                            service = data.get("service")
+
+                            if domain and service:
+                                self.AD.services.register_service(
+                                    self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                                )
 
                 self.reading_messages = False
 
