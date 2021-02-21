@@ -14,10 +14,14 @@ EXPOSE 5050
 VOLUME /conf
 VOLUME /certs
 
-# Copy appdaemon into image
 WORKDIR /usr/src/app
-COPY . .
 
+# Install dependencies
+ADD ./requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt --no-cache-dir
+
+# Add appdaemon to image
+ADD . .
 RUN pip install --no-cache-dir .
 
 # Start script
