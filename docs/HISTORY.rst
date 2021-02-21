@@ -6,6 +6,7 @@ Change Log
 
 **Features**
 
+- Improved the how the Alarm Panel Cancel button looks - contributed by `Chris Johns <https://github.com/ChrisJohns-me>`__
 - Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
 - Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
