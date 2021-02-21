@@ -2788,10 +2788,10 @@ class ADAPI:
                 By using a different value (sticky= 5), clicking the dashboard will extend
                 the amount of time (in seconds), but it will return to the original dashboard
                 after a period of inactivity equal to timeout.
-            deviceid (str): If set, only the device which has the same deviceid will navigate.    
+            deviceid (str): If set, only the device which has the same deviceid will navigate.
             dashid (str): If set, all devices currently on a dashboard which the title contains
                 the substring dashid will navigate. ex: if dashid is "kichen", it will match
-                devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.    
+                devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.
 
         Returns:
             None.
@@ -2815,7 +2815,7 @@ class ADAPI:
         if deviceid is not None:
             kwargs["deviceid"] = deviceid
         if dashid is not None:
-            kwargs["dashid"] = dashid    
+            kwargs["dashid"] = dashid
         self.fire_event("__HADASHBOARD_EVENT", **kwargs)
 
     #

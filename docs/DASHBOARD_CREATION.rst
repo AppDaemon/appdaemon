@@ -606,10 +606,10 @@ Alexa Intent, simply define the event and associated data as follows
 These following arguments are optional and can be used to determine
 if a given device or dashboard should execute the command or not:
 
-``deviceid``: If set, only the device(s) which has the same deviceid will 
+``deviceid``: If set, only the device(s) which has the same deviceid will
 execute the command. See below how to set a deviceid.
-``dashid``: If set, all devices currently on a dashboard which the title 
-contains the substring defined by dashid will execute the command. ex: if 
+``dashid``: If set, all devices currently on a dashboard which the title
+contains the substring defined by dashid will execute the command. ex: if
 dashid is set to "kichen", it will match devices which are on "kitchen lights",
 "kitchen sensors", "ipad - kitchen", etc.
 
@@ -617,7 +617,7 @@ dashid is set to "kichen", it will match devices which are on "kitchen lights",
 Setting a deviceid
 ~~~~~~~~~~~~~~~~~~~
 
-A "device" is a combination of machine+browser, so a computer+firefox could 
+A "device" is a combination of machine+browser, so a computer+firefox could
 be one device, while the same computer+safari can be another. To set the
 ``deviceid`` of a device add the ```deviceid=your_deviceid``` parameter to
 the dashboard url, for instance:
@@ -626,7 +626,7 @@ the dashboard url, for instance:
 
 HADashboard will try to store the deviceid on the device so you don't need
 to use this parameter everytime. You may use it again if you want to set
-a new deviceid or if you cleaned device's cookies or the device doesnt 
+a new deviceid or if you cleaned device's cookies or the device doesnt
 support it.
 
 
@@ -642,8 +642,8 @@ Arguments:
 ^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
-``SensorPanel`` - this is not a URL. 
-``timeout`` - length of time to stay on the new dashboard before returning to 
+``SensorPanel`` - this is not a URL.
+``timeout`` - length of time to stay on the new dashboard before returning to
 the original. This argument is optional, and if not specified, the navigation
 will be permanent.
 
@@ -1732,9 +1732,9 @@ Optional Arguments:
 -  ``args`` - a list of arguments.
 -  ``skin`` - Skin to use with the new screen (for HADash URLs only)
 -  ``forward_parameters`` - a list of URL parameters that should be forwarded
-   from the current dashboard URL to the next dashboard. For example, if the 
-   current dashboard was called with "&deviceid=1234&otherparameter=foo", 
-   adding "deviceid" to ``forward_parameters`` will preserve "deviceid" and 
+   from the current dashboard URL to the next dashboard. For example, if the
+   current dashboard was called with "&deviceid=1234&otherparameter=foo",
+   adding "deviceid" to ``forward_parameters`` will preserve "deviceid" and
    discard "otherparameter=foo". You may add "all" to the ``forward_parameters``
    to forward all parameters, except "timeout", "return", "sticky" as this can cause
    problems. If ``forward_parameters`` is not used, then only skin is preserved.

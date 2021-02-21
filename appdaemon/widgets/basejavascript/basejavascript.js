@@ -169,7 +169,7 @@ function basejavascript(widget_id, url, skin, parameters)
     self.set_field(self, "icon_style", self.css.icon_inactive_style);
 
     self.command = command;
-     
+
     function appendURL(forward_list)
     {
         var append = "";
@@ -181,11 +181,11 @@ function basejavascript(widget_id, url, skin, parameters)
                 var item = part.split("=");
                 result[item[0]] = decodeURIComponent(item[1]);
             });
-            
-            var useand = false; 
+
+            var useand = false;
             for (arg in result)
             {
-                if (arg != "timeout" && arg != "return" && arg != "sticky" && arg != "skin" && 
+                if (arg != "timeout" && arg != "return" && arg != "sticky" && arg != "skin" &&
                     (forward_list.includes(arg) || forward_list.includes("all")) )
                 {
                     if (useand)
@@ -193,13 +193,13 @@ function basejavascript(widget_id, url, skin, parameters)
                         append += "&";
                     }
                     useand = true;
-                    append += arg 
+                    append += arg
                     if (result[arg] != "undefined" )
                     {
                         append += "=" + result[arg]
                     }
                 }
-            }    
+            }
         }
         return append
     }
