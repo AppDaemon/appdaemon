@@ -91,7 +91,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         if (data.event_type === "__HADASHBOARD_EVENT"  &&
            ((data.data.deviceid && data.data.deviceid === myDeviceID) ||
             (data.data.dashid && title.includes(data.data.dashid)) ||
-            (!data.data.deviceid && !data.data.dashid)))    
+            (!data.data.deviceid && !data.data.dashid)))
         {
             if (data.data.command === "navigate")
             {
