@@ -585,7 +585,7 @@ through a variety of means:
 
 The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
-`AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
+`AppDaemon API Pages <API.html>`__. The custom event name is ``__HADASHBOARD_EVENT`` and the
 dashboard will respond to various commands with associated data.
 
 To create a suitable custom event within a HASS automation, script or
@@ -596,12 +596,39 @@ Alexa Intent, simply define the event and associated data as follows
 
     alias: Navigate
     sequence:
-    - event: hadashboard
+    - event: __HADASHBOARD_EVENT
       event_data:
         command: navigate
         timeout: 10
         target: SensorPanel
         sticky: 0
+
+These following arguments are optional and can be used to determine
+if a given device or dashboard should execute the command or not:
+
+``deviceid``: If set, only the device(s) which has the same deviceid will
+execute the command. See below how to set a deviceid.
+``dashid``: If set, all devices currently on a dashboard which the title
+contains the substring defined by dashid will execute the command. ex: if
+dashid is set to "kichen", it will match devices which are on "kitchen lights",
+"kitchen sensors", "ipad - kitchen", etc.
+
+
+Setting a deviceid
+~~~~~~~~~~~~~~~~~~~
+
+A "device" is a combination of machine+browser, so a computer+firefox could
+be one device, while the same computer+safari can be another. To set the
+``deviceid`` of a device add the ```deviceid=your_deviceid``` parameter to
+the dashboard url, for instance:
+
+``http://192.168.1.20:5050/mypanel?deviceid=kitchentablet``
+
+HADashboard will try to store the deviceid on the device so you don't need
+to use this parameter everytime. You may use it again if you want to set
+a new deviceid or if you cleaned device's cookies or the device doesnt
+support it.
+
 
 The current list of commands supported and associated arguments are as
 follows:
@@ -609,23 +636,24 @@ follows:
 navigate
 ~~~~~~~~
 
-Force any connected dashboards to navigate to a new page
+Force one or more connected dashboards to navigate to a new page
 
 Arguments:
 ^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
-``SensorPanel`` - this is not a URL. ``timeout`` - length of time to
-stay on the new dashboard before returning to the original. This
-argument is optional, and if not specified, the navigation will be
-permanent.
+``SensorPanel`` - this is not a URL.
+``timeout`` - length of time to stay on the new dashboard before returning to
+the original. This argument is optional, and if not specified, the navigation
+will be permanent.
 
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``timeout`` - length of time to stay on the new dashboard
 ``return`` - dashboard to return to after the timeout has elapsed.
-``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1``, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``deviceid``: If set, only the device(s) which has the same deviceid will navigate.
+``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate.
 
 Namespaces
 ----------
@@ -1694,6 +1722,13 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.
 -  ``skin`` - Skin to use with the new screen (for HADash URLs only)
+-  ``forward_parameters`` - a list of URL parameters that should be forwarded
+   from the current dashboard URL to the next dashboard. For example, if the
+   current dashboard was called with "&deviceid=1234&otherparameter=foo",
+   adding "deviceid" to ``forward_parameters`` will preserve "deviceid" and
+   discard "otherparameter=foo". You may add "all" to the ``forward_parameters``
+   to forward all parameters, except "timeout", "return", "sticky" as this can cause
+   problems. If ``forward_parameters`` is not used, then only skin is preserved.
 
 For an arbitrary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
