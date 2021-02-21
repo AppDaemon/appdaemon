@@ -63,7 +63,7 @@ if [ -n "$ELEVATION" ]; then
 fi
 
 #install user-specific packages
-apk add --no-cache $(find $CONF -name system_packages.txt | xargs cat | tr '\n' ' ')
+apt install $(find $CONF -name system_packages.txt | xargs cat | tr '\n' ' ')
 #check recursively under CONF for additional python dependencies defined in requirements.txt
 find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
 
