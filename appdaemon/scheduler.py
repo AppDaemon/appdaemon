@@ -215,7 +215,7 @@ class Scheduler:
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        self.location = Location(LocationInfo("", "", latitude, longitude, self.AD.tz.zone))
+        self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude, self.AD.tz.zone))
 
     def sun(self, type, offset):
         if offset < 0:
