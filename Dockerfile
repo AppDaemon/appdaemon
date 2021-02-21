@@ -1,5 +1,5 @@
-ARG IMAGE=3.8-alpine
-FROM python:${IMAGE}
+ARG IMAGE=python:3.8-alpine
+FROM ${IMAGE}
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now

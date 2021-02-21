@@ -220,7 +220,7 @@ You can then build and run the docker image locally as follows:
 
 .. code:: bash
 
-    $ docker build -t appdaemon --build-arg IMAGE=3.8-alpine3.12 --network=host .
+    $ docker build -t appdaemon --build-arg IMAGE=python:3.8-alpine3.12 --network=host .
     $ docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<Your HA_URL value>" \
