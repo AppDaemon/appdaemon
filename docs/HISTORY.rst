@@ -22,7 +22,8 @@ Change Log
 
 **Fixes**
 
-- Fixed `get_state` api in stream.js
+
+- Fixed an issue with stream api using `get_state` api call
 - Fixed Azure packages by droping deprecated packages - contributed by `freezeboy <https://github.com/freezeboy>`__
 - Prevent the ability for apps to register services in non-existent namespaces
 - Fixed issue with newly registered HASS services
