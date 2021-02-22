@@ -92,12 +92,19 @@ class Scheduler:
         self.stopping = True
 
     async def cancel_timer(self, name, handle):
+        executed = False
         self.logger.debug("Canceling timer for %s", name)
         if name in self.schedule and handle in self.schedule[name]:
             del self.schedule[name][handle]
             await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle))
+            executed = True
         if name in self.schedule and self.schedule[name] == {}:
             del self.schedule[name]
+
+        if not executed:
+            self.logger.warning("Invalid callback handle '{}' in cancel_timer() from app {}".format(handle, name))
+
+        return executed
 
     # noinspection PyBroadException
     async def exec_schedule(self, name, args, uuid_):
