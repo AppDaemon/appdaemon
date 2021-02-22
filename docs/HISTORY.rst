@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-- Cancelling either an event, state or timer now returns a boolean value to indicate if executed or not
+- Cancelling either an event, state, log or timer now returns a boolean value to indicate if executed or not
 - Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
 - Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
@@ -20,7 +20,7 @@ Change Log
 
 **Fixes**
 
-- Fixed issue whereby when an invalid handler is used to cancel `event/state/timer`, it gives no warning its invalid
+- Fixed issue whereby when an invalid handler is used to cancel `event/state/log/timer`, it gives no warning its invalid
 - Fixed an issue with stream api using `get_state` api call
 - Fixed Azure packages by droping deprecated packages - contributed by `freezeboy <https://github.com/freezeboy>`__
 - Prevent the ability for apps to register services in non-existent namespaces
