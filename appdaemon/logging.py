@@ -610,6 +610,8 @@ class Logging:
                     del self.AD.callbacks.callbacks[name]
 
         if not executed:
-            self.logger.warning("Invalid callback handles '{}' in cancel_log_callback() from app {}".format(handles, name))
-        
+            self.logger.warning(
+                "Invalid callback handles '{}' in cancel_log_callback() from app {}".format(handles, name)
+            )
+
         return executed

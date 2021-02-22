@@ -6,7 +6,6 @@ import datetime
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
-from exceptions import HandlerException
 
 
 class State:
@@ -281,10 +280,12 @@ class State:
 
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
-        
+
         if not executed:
-            self.logger.warning("Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name))
-        
+            self.logger.warning(
+                "Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name)
+            )
+
         return executed
 
     async def info_state_callback(self, handle, name):

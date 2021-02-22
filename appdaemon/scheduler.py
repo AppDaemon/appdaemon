@@ -100,10 +100,10 @@ class Scheduler:
             executed = True
         if name in self.schedule and self.schedule[name] == {}:
             del self.schedule[name]
-        
+
         if not executed:
             self.logger.warning("Invalid callback handle '{}' in cancel_timer() from app {}".format(handle, name))
-        
+
         return executed
 
     # noinspection PyBroadException

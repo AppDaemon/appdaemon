@@ -118,7 +118,9 @@ class Events:
                 del self.AD.callbacks.callbacks[name]
 
         if not executed:
-            self.logger.warning("Invalid callback handle '{}' in cancel_event_callback() from app {}".format(handle, name))
+            self.logger.warning(
+                "Invalid callback handle '{}' in cancel_event_callback() from app {}".format(handle, name)
+            )
 
         return executed
 
