@@ -2816,7 +2816,7 @@ class ADAPI:
             kwargs["deviceid"] = deviceid
         if dashid is not None:
             kwargs["dashid"] = dashid
-        self.fire_event("__HADASHBOARD_EVENT", **kwargs)
+        self.fire_event("ad_dashboard", **kwargs)
 
     #
     # Async

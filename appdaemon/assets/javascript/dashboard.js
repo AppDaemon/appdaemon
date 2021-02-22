@@ -49,6 +49,9 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
 
         // subscribe to all events
 
+        self.stream.listen_event('*', 'ad_dashboard', self.update_dash);
+
+        //deprecated. Will be removed.
         self.stream.listen_event('*', '__HADASHBOARD_EVENT', self.update_dash);
 
         // Subscribe to just the entities we care about for this dashboard
@@ -88,10 +91,11 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
     this.update_dash = function(msg)
     {
         data = msg.data;
-        if (data.event_type === "__HADASHBOARD_EVENT"  &&
-           ((data.data.deviceid && data.data.deviceid === myDeviceID) ||
-            (data.data.dashid && title.includes(data.data.dashid)) ||
-            (!data.data.deviceid && !data.data.dashid)))
+        if ( (data.event_type === "__HADASHBOARD_EVENT" || 
+              data.event_type === "ad_dashboard")  &&
+             ((data.data.deviceid && data.data.deviceid === myDeviceID) ||
+              (data.data.dashid && title.includes(data.data.dashid)) ||
+              (!data.data.deviceid && !data.data.dashid)))
         {
             if (data.data.command === "navigate")
             {
