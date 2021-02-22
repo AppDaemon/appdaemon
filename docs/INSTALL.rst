@@ -208,7 +208,7 @@ prior to installing AppDaemon with the pip3 method:
 Raspberry Pi Docker
 -------------------
 
-Since the official Docker image isn't compatible with raspberry Pi, you will need to build your own docker image
+Since the official Docker image isn't compatible with Raspberry Pi, you will need to build your own docker image
 from the downloaded repository.
 
 .. code:: bash
@@ -220,7 +220,7 @@ You can then build and run the docker image locally as follows:
 
 .. code:: bash
 
-    $ docker build -t appdaemon --network=host .
+    $ docker build -t appdaemon --build-arg IMAGE=python:3.8-alpine3.12 --network=host .
     $ docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<Your HA_URL value>" \
