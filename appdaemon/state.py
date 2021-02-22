@@ -6,6 +6,7 @@ import datetime
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from exceptions import HandlerException
 
 
 class State:
@@ -270,15 +271,21 @@ class State:
             return None
 
     async def cancel_state_callback(self, handle, name):
+        executed = False
         async with self.AD.callbacks.callbacks_lock:
-            if name not in self.AD.callbacks.callbacks or handle not in self.AD.callbacks.callbacks[name]:
-                self.logger.warning("Invalid callback in cancel_state_callback() from app {}".format(name))
 
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
                 await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
+                executed = True
+
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
+        
+        if not executed:
+            self.logger.warning("Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name))
+        
+        return executed
 
     async def info_state_callback(self, handle, name):
         async with self.AD.callbacks.callbacks_lock:
