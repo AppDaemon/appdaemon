@@ -585,7 +585,7 @@ through a variety of means:
 
 The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
-`AppDaemon API Pages <API.html>`__. The custom event name is ``__HADASHBOARD_EVENT`` and the
+`AppDaemon API Pages <API.html>`__. The custom event name is ``ad_dashboard`` and the
 dashboard will respond to various commands with associated data.
 
 To create a suitable custom event within a HASS automation, script or
@@ -596,7 +596,7 @@ Alexa Intent, simply define the event and associated data as follows
 
     alias: Navigate
     sequence:
-    - event: __HADASHBOARD_EVENT
+    - event: ad_dashboard
       event_data:
         command: navigate
         timeout: 10
