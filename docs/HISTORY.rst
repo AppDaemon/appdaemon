@@ -6,6 +6,8 @@ Change Log
 
 **Features**
 
+- Added Icon widget service calls and state update delay - contributed by `Jakub Macoun <https://github.com/JakubMacoun>`__
+- Improved the how the Alarm Panel Cancel button looks - contributed by `Chris Johns <https://github.com/ChrisJohns-me>`__
 - Cancelling either an event, state, log or timer now returns a boolean value to indicate if executed or not
 - Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
@@ -41,6 +43,7 @@ Change Log
 - Prevented the loading of hidden python files into AD; those starting with a `.`
 - Prevented the loading of hidden folders into AD; those starting with a `.`
 - Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
+- Documentation fixes - contributed by `Rock coaxial <https://github.com/coaxial>`__
 - Documentation fixes - contributed by `Bob Gray <https://github.com/bg1000>`__
 - Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
 - Documentation fixes - contributed by `Dougal Matthews <https://github.com/d0ugal>`__
