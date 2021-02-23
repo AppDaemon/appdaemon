@@ -2461,6 +2461,24 @@ to see how they are put together. Start off with the ``dashboard.css``
 and ``variables.yaml`` from an existing file and edit to suit your
 needs.
 
+Javascript
+----------
+
+There are a lot of ways to use javascript in Dashboard.
+You can create custom widgets that will need javascript, use the javascript
+widget to trigger a javascript function or you can add javascript directly
+to the head includes or body includes.
+
+Custom widgets require their own special .js files, but to trigger a function
+from the javascript widget or from the body includes you can create a
+``custom_javascript`` directory in the configuration directory.
+All files that are placed in that directory will automaticly included in
+Dashboard.
+All functions you place in a .js file inside that directory will be
+available everywhere in dashboard.
+Remember that you do this on your own responsibility. javscript code in 
+those files can break Dashboards, and create vulnerabilities.
+
 Example Dashboards
 ------------------
 
