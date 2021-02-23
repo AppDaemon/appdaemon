@@ -91,7 +91,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
     this.update_dash = function(msg)
     {
         data = msg.data;
-        if ( (data.event_type === "__HADASHBOARD_EVENT" || 
+        if ( (data.event_type === "__HADASHBOARD_EVENT" ||
               data.event_type === "ad_dashboard")  &&
              ((data.data.deviceid && data.data.deviceid === myDeviceID) ||
               (data.data.dashid && title.includes(data.data.dashid)) ||
