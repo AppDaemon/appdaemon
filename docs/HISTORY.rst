@@ -6,6 +6,8 @@ Change Log
 
 **Features**
 
+- Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__
+- Added the ability to navigate to different dashboards on different devices based on the set `deviceId` - contributed by `clyra <https://github.com/clyra>`__
 - Added Icon widget service calls and state update delay - contributed by `Jakub Macoun <https://github.com/JakubMacoun>`__
 - Improved the how the Alarm Panel Cancel button looks - contributed by `Chris Johns <https://github.com/ChrisJohns-me>`__
 - Cancelling either an event, state, log or timer now returns a boolean value to indicate if executed or not
