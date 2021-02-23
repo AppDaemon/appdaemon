@@ -124,6 +124,8 @@ The dashboard URL supports a couple of extra parameters:
 -  ``skin`` - name of the skin you want to use, default is ``default``
 -  ``recompile`` - set to anything to force a recompilation of the
    dashboard
+- ``deviceid``- set a deviceid. See how to use it in
+  `External Commands <DASHBOARD_CREATION.html#external-commands>`__.
 
 For example, the following url will load a dashboard called main with the
 obsidian skin:
