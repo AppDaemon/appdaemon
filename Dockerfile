@@ -1,4 +1,5 @@
-FROM python:3.8-alpine
+ARG IMAGE=python:3.8-alpine
+FROM ${IMAGE}
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
@@ -24,6 +25,7 @@ RUN apk add tzdata
 # Install dependencies
 RUN apk add --no-cache build-base gcc libffi-dev openssl-dev musl-dev cargo \
     && pip install --no-cache-dir .
+
 # Install additional packages
 RUN apk add --no-cache curl
 

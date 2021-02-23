@@ -14,3 +14,7 @@ class NamespaceException(Exception):
 
 class AppException(Exception):
     pass
+
+
+class HandlerException(Exception):
+    pass

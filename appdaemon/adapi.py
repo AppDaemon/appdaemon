@@ -235,14 +235,14 @@ class ADAPI:
             handle: The handle returned when the `listen_log` call was made.
 
         Returns:
-            None.
+            Boolean.
 
         Examples:
               >>> self.cancel_listen_log(handle)
 
         """
         self.logger.debug("Canceling listen_log for %s", self.name)
-        await self.AD.logging.cancel_log_callback(self.name, handle)
+        return await self.AD.logging.cancel_log_callback(self.name, handle)
 
     def get_main_log(self):
         """Returns the underlying logger object used for the main log.
@@ -1382,14 +1382,14 @@ class ADAPI:
             handle: The handle returned when the ``listen_state()`` call was made.
 
         Returns:
-            None.
+            Boolean.
 
         Examples:
             >>> self.cancel_listen_state(self.office_light_handle)
 
         """
         self.logger.debug("Canceling listen_state for %s", self.name)
-        await self.AD.state.cancel_state_callback(handle, self.name)
+        return await self.AD.state.cancel_state_callback(handle, self.name)
 
     @utils.sync_wrapper
     async def info_listen_state(self, handle):
@@ -1808,14 +1808,14 @@ class ADAPI:
             handle: A handle returned from a previous call to ``listen_event()``.
 
         Returns:
-            None.
+            Boolean.
 
         Examples:
             >>> self.cancel_listen_event(handle)
 
         """
         self.logger.debug("Canceling listen_event for %s", self.name)
-        await self.AD.events.cancel_event_callback(self.name, handle)
+        return await self.AD.events.cancel_event_callback(self.name, handle)
 
     @utils.sync_wrapper
     async def info_listen_event(self, handle):
@@ -2173,7 +2173,7 @@ class ADAPI:
             handle: A handle value returned from the original call to create the timer.
 
         Returns:
-            None.
+            Boolean.
 
         Examples:
             >>> self.cancel_timer(handle)
@@ -2181,7 +2181,7 @@ class ADAPI:
         """
         name = self.name
         self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
-        await self.AD.sched.cancel_timer(name, handle)
+        return await self.AD.sched.cancel_timer(name, handle)
 
     @utils.sync_wrapper
     async def info_timer(self, handle):

@@ -106,12 +106,23 @@ class Events:
 
         """
 
+        executed = False
+
         async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
                 await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
+                executed = True
+
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
+
+        if not executed:
+            self.logger.warning(
+                "Invalid callback handle '{}' in cancel_event_callback() from app {}".format(handle, name)
+            )
+
+        return executed
 
     async def info_event_callback(self, name, handle):
         """Gets the information of an event callback.

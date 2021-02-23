@@ -1111,9 +1111,15 @@ A widget to monitor the state of an entity and display a different icon and styl
        "active":
          icon: fas-glass
          style: "color: green"
+         post_service_active:
+           service: homeassistant/turn_on
+           entity_id: script.deactivate
        "inactive":
          icon: fas-repeat
          style: "color: blue"
+         post_service_active:
+           service: homeassistant/turn_on
+           entity_id: script.activate
        "idle":
          icon: fas-frown
          style: "color: red"
@@ -1121,7 +1127,9 @@ A widget to monitor the state of an entity and display a different icon and styl
          icon: fas-rocket
          style: "color: cyan"
 
-The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``.
+
+Each icon can have a service call assigned by post_service_active entry - on icon click, specified service like HA script or AD sequence is called for currently active state.
 
 The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
@@ -1129,7 +1137,7 @@ Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
--  ``icons`` - a list of icons and styles to be applied for various states.
+-  ``icons`` - a list of icons, styles and service calls to be applied for various states
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -1138,6 +1146,7 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``state_text``
 -  ``state_map``
+-  ``update_delay`` - seconds to wait before processing state update
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^^^
