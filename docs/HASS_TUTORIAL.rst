@@ -249,7 +249,7 @@ If this has whet your appetite, feel free to give it a try. You can find
 installation instructions, `here <INSTALL.rst>`__, including full
 installation instructions, an API reference, and several fully
 fleshed-out `examples <https://github.com/home-assistant/appdaemon/tree/dev/conf/example_apps>`__ and
-`tutorials <COMMUNITY_TUTORIALS.rst>`__.
+`tutorials <COMMUNITY_TUTORIALS.html>`__.
 
 **Happy Automating!**
 
