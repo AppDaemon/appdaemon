@@ -6,6 +6,8 @@ Change Log
 
 **Features**
 
+- Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__
+- Added the ability to navigate to different dashboards on different devices based on the set `deviceId` - contributed by `clyra <https://github.com/clyra>`__
 - Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
 - Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
