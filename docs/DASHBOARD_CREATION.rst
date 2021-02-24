@@ -2476,7 +2476,7 @@ All files that are placed in that directory will automaticly included in
 Dashboard.
 All functions you place in a .js file inside that directory will be
 available everywhere in dashboard.
-Remember that you do this on your own responsibility. javscript code in
+Remember that you do this on your own responsibility. javscript code in 
 those files can break Dashboards, and create vulnerabilities.
 
 Example Dashboards
