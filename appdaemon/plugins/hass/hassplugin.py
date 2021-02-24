@@ -575,25 +575,27 @@ class HassPlugin(PluginBase):
             self.logger.error("-" * 60)
 
         return None
-       
+
     async def get_history_api(self, **kwargs):
-        query={}
+        query = {}
         entity_id = None
         days = None
         start_time = None
-        end_time = None         
+        end_time = None
 
         kwargkeys = set(kwargs.keys())
 
-        if {"days", "start_time"} <= kwargkeys: 
-            raise ValueError(f'Can not have both days and start time. days: {kwargs["days"]} -- start_time: {kwargs["start_time"]}')
+        if {"days", "start_time"} <= kwargkeys:
+            raise ValueError(
+                f'Can not have both days and start time. days: {kwargs["days"]} -- start_time: {kwargs["start_time"]}'
+            )
 
         if "end_time" in kwargkeys and {"start_time", "days"}.isdisjoint(kwargkeys):
-            raise ValueError(f'Can not have end_time without start_time or days')
+            raise ValueError(f"Can not have end_time without start_time or days")
 
-        entity_id=kwargs.get("entity_id","").strip()
+        entity_id = kwargs.get("entity_id", "").strip()
         days = max(0, kwargs.get("days", 0))
- 
+
         def as_datetime(args, key):
             if key in args:
                 if isinstance(args[key], str):
@@ -602,7 +604,8 @@ class HassPlugin(PluginBase):
                     return self.AD.tz.localize(args(key)).replace(microsecond=0)
                 else:
                     raise ValueError(f"Invalid type for {key}")
-        start_time = as_datetime(kwargs, "start_time")        
+
+        start_time = as_datetime(kwargs, "start_time")
         end_time = as_datetime(kwargs, "end_time")
 
         # end_time default - now
@@ -626,10 +629,10 @@ class HassPlugin(PluginBase):
             if entity_id:
                 query["filter_entity_id"] = entity_id
             if end_time:
-                query["end_time"] = end_time            
-            apiurl+= f'?{urlencode(query)}'
+                query["end_time"] = end_time
+            apiurl += f"?{urlencode(query)}"
 
-        return apiurl        
+        return apiurl
 
     async def get_hass_state(self, entity_id=None):
 
