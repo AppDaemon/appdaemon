@@ -24,6 +24,7 @@ Change Log
 
 **Fixes**
 
+- Fixed issue with `listen_state` when `immediate` or `duration` is used with it
 - Fixed issue whereby when an invalid handler is used to cancel `event/state/log/timer`, it gives no warning its invalid
 - Fixed an issue with stream api using `get_state` api call
 - Fixed Azure packages by droping deprecated packages - contributed by `freezeboy <https://github.com/freezeboy>`__
