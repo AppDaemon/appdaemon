@@ -249,7 +249,7 @@ class State:
                         **kwargs,
                     )
 
-                    if __duration >= 1: # it only stores it when needed
+                    if __duration >= 1:  # it only stores it when needed
                         kwargs["__duration"] = __scheduler_handle
 
             await self.AD.state.add_entity(

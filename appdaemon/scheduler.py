@@ -106,12 +106,12 @@ class Scheduler:
             self.logger.warning("Invalid callback handle '{}' in cancel_timer() from app {}".format(handle, name))
 
         return executed
-    
+
     def check_handle(self, name, handle):
         """Check if the handler is valid"""
         if name in self.schedule and handle in self.schedule[name]:
             return True
-        
+
         return False
 
     # noinspection PyBroadException
@@ -606,7 +606,7 @@ class Scheduler:
         return self.next_sunrise() < self.next_sunset()
 
     async def info_timer(self, handle, name):
-        if self.check_handle(name,  handle):
+        if self.check_handle(name, handle):
             callback = self.schedule[name][handle]
             return (
                 self.make_naive(callback["timestamp"]),
