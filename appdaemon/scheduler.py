@@ -114,6 +114,11 @@ class Scheduler:
                 #
                 # it's a "duration" entry
                 #
+
+                # first remove the duration parameter
+                if args["kwargs"].get("__duration"):
+                    del args["kwargs"]["__duration"]
+
                 executed = await self.AD.threading.dispatch_worker(
                     name,
                     {

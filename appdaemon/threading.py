@@ -654,6 +654,7 @@ class Threading:
                     # Either way, we cancel the old timer
                     #
                     await self.AD.sched.cancel_timer(name, kwargs["__duration"])
+                    del kwargs["__duration"]
 
                 #
                 # Check if we care about the change
