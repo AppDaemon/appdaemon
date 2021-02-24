@@ -197,7 +197,7 @@ class State:
             # In the case of a quick_start parameter,
             # start the clock immediately if the device is already in the new state
             #
-            if "immediate" in kwargs and kwargs["immediate"] is True:
+            if kwargs.get("immediate") is True:
                 __duration = 0  # run it immediately
                 __new_state = None
                 __attribute = None
@@ -229,14 +229,14 @@ class State:
                                 __new_state = self.state[namespace][entity]
 
                     if "duration" in kwargs:
-                        __duration = kwargs["duration"]
+                        __duration = int(kwargs["duration"])
                 if run:
-                    exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(__duration))
+                    exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=__duration)
 
                     if kwargs.get("oneshot", False):
                         kwargs["__handle"] = handle
 
-                    kwargs["__duration"] = await self.AD.sched.insert_schedule(
+                    __scheduler_handle = await self.AD.sched.insert_schedule(
                         name,
                         exec_time,
                         cb,
@@ -248,6 +248,9 @@ class State:
                         __new_state=__new_state,
                         **kwargs,
                     )
+
+                    if __duration >= 1:  # it only stores it when needed
+                        kwargs["__duration"] = __scheduler_handle
 
             await self.AD.state.add_entity(
                 "admin",
