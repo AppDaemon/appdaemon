@@ -6,6 +6,7 @@ Change Log
 
 **Features**
 
+- Added the ability to add custom javascript code to dashboard - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__
 - Added the ability to navigate to different dashboards on different devices based on the set `deviceId` - contributed by `clyra <https://github.com/clyra>`__
 - Added Icon widget service calls and state update delay - contributed by `Jakub Macoun <https://github.com/JakubMacoun>`__
@@ -24,6 +25,7 @@ Change Log
 
 **Fixes**
 
+- Fixed issue with `listen_state` when `immediate` or `duration` is used with it
 - Fixed issue whereby when an invalid handler is used to cancel `event/state/log/timer`, it gives no warning its invalid
 - Fixed an issue with stream api using `get_state` api call
 - Fixed Azure packages by droping deprecated packages - contributed by `freezeboy <https://github.com/freezeboy>`__
