@@ -619,6 +619,18 @@ class Dashboard:
             dash["head_includes"] = css_vars["head_includes"]
         else:
             dash["head_includes"] = []
+
+        #
+        # adds custom_javascripts to the head includes if they exist
+        #
+        custom_js = os.path.join(self.config_dir, "custom_javascript")
+        if os.path.isdir(custom_js):
+            for filename in os.listdir(custom_js):
+                if filename.endswith(".js"):
+                    dash["head_includes"].append(
+                        '<script type="text/javascript" src="custom_javascript/{}"></script>'.format(filename)
+                    )
+
         if "body_includes" in css_vars and css_vars["body_includes"] is not None:
             dash["body_includes"] = css_vars["body_includes"]
         else:
