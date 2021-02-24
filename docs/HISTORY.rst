@@ -21,6 +21,7 @@ Change Log
 - Added the ability to submit tasks to executor threads
 - Added the ability to make use of uvloop to improve speed, compared to the default asyncio loop
 - Added the `module_path` and app config `yaml_path` to the app's entity_id
+- Pinned requests to 2.25.1
 
 **Fixes**
 

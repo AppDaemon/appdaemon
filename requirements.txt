@@ -1,6 +1,6 @@
 astral==2.2
 pytz==2019.3
-requests>=2.22.0
+requests==2.25.1
 websocket-client==0.57.0
 aiohttp==3.7.3
 aiodns==2.0.0
