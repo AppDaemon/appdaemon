@@ -121,32 +121,19 @@ class HTTP:
         self.template_dir = os.path.join(os.path.dirname(__file__), "assets", "templates")
 
         self.password = None
-        self._process_arg("password", http)
-
         self.valid_tokens = []
-        self._process_arg("tokens", http)
-
         self.url = None
-        self._process_arg("url", http)
-
         self.work_factor = 12
-        self._process_arg("work_factor", http)
-
         self.ssl_certificate = None
-        self._process_arg("ssl_certificate", http)
-
         self.ssl_key = None
-        self._process_arg("ssl_key", http)
-
         self.transport = "ws"
-        self._process_arg("transport", http)
-        self.logger.info("Using '%s' for event stream", self.transport)
 
         self.config_dir = None
         self._process_arg("config_dir", dashboard)
 
         self.static_dirs = {}
-        self._process_arg("static_dirs", http)
+
+        self._process_http(http)
 
         self.stopping = False
 
@@ -333,6 +320,25 @@ class HTTP:
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
+
+    def _process_http(self, http):
+        self._process_arg("password", http)
+        self._process_arg("tokens", http)
+        self._process_arg("work_factor", http)
+        self._process_arg("ssl_certificate", http)
+        self._process_arg("ssl_key", http)
+
+        self._process_arg("url", http)
+        if not self.url:
+            self.logger.warning(
+                "'{arg}' is '{value}'. Please configure appdaemon.yaml".format(arg="url", value=self.url)
+            )
+            exit(0)
+
+        self._process_arg("transport", http)
+        self.logger.info("Using '%s' for event stream", self.transport)
+
+        self._process_arg("static_dirs", http)
 
     async def start_server(self):
 
@@ -748,7 +754,7 @@ class HTTP:
         #
         # Add static path for apps
         #
-        apps_static = os.path.join(self.AD.config_dir, "web")
+        apps_static = os.path.join(self.AD.config_dir, "www")
         exists = True
 
         if not os.path.isdir(apps_static):  # check if the folder exists
@@ -761,7 +767,7 @@ class HTTP:
                 self.logger.debug("Successfully created the Web directory %s ", apps_static)
 
         if exists:
-            self.app.router.add_static("/web", apps_static)
+            self.app.router.add_static("/local", apps_static)
         #
         # Setup user defined static paths
         #

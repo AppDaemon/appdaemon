@@ -595,6 +595,8 @@ class Logging:
 
         """
 
+        executed = False
+
         if not isinstance(handles, list):
             handles = [handles]
 
@@ -603,5 +605,13 @@ class Logging:
                 if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                     del self.AD.callbacks.callbacks[name][handle]
                     await self.AD.state.remove_entity("admin", "log_callback.{}".format(handle))
+                    executed = True
                 if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                     del self.AD.callbacks.callbacks[name]
+
+        if not executed:
+            self.logger.warning(
+                "Invalid callback handles '{}' in cancel_log_callback() from app {}".format(handles, name)
+            )
+
+        return executed
