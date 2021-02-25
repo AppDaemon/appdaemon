@@ -550,7 +550,7 @@ class Threading:
         unconstrained = True
         if key in app.list_constraints():
             method = getattr(app, key)
-            unconstrained = await utils.run_in_executor(self, method, value)
+            unconstrained = await utils.run_async_sync_func(self, method, value)
 
         return unconstrained
 
@@ -653,7 +653,10 @@ class Threading:
                     # Or we won't if they are not.
                     # Either way, we cancel the old timer
                     #
-                    await self.AD.sched.cancel_timer(name, kwargs["__duration"])
+                    if self.AD.sched.check_handle(name, kwargs["__duration"]):
+                        await self.AD.sched.cancel_timer(name, kwargs["__duration"])
+
+                    del kwargs["__duration"]
 
                 #
                 # Check if we care about the change

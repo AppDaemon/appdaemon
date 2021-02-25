@@ -24,7 +24,7 @@ to carry out service calls from within an AppDaemon app. See the documentation o
 function `here <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.call_service>`__
 for a detailed description.
 
-Th function ``call_service()`` allows the app to carry out one of the following services:
+The function ``call_service()`` allows the app to carry out one of the following services:
 
   - ``Publish``
   - ``Subscribe``

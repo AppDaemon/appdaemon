@@ -149,6 +149,7 @@ Configuration of Apps
 
 Apps are configured by specifying new sections in an app configuration
 file. The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml``. You can have one single file for configuration of all apps, or break it down to have one ``yaml`` file per App, or anything in between. Coupled with the fact that you can have any number of subdirectories for apps and ``yaml`` files, this gives you the flexibility to structure your apps as you see fit.
+It should also be noted that a "dot" ``.`` is not allowed in the app name.
 
 The entry for an individual App within a ``yaml`` file is simply a dictionary entry naming the App, with subfields to supply various parameters. The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
 

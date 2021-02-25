@@ -42,6 +42,28 @@ if [ -n "$DASH_URL" ]; then
   fi
 fi
 
+# if ENV TIMEZONE is set, change the value in appdaemon.yaml
+if [ -n "$TIMEZONE" ]; then
+  sed -i "s/^  time_zone:.*/  time_zone: $(echo $TIMEZONE | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+fi
+
+# if ENV LATITUDE is set, change the value in appdaemon.yaml
+if [ -n "$LATITUDE" ]; then
+  sed -i "s/^  latitude:.*/  latitude: $LATITUDE/" $CONF/appdaemon.yaml
+fi
+
+# if ENV LONGITUDE is set, change the value in appdaemon.yaml
+if [ -n "$LONGITUDE" ]; then
+  sed -i "s/^  longitude:.*/  longitude: $LONGITUDE/" $CONF/appdaemon.yaml
+fi
+
+# if ENV ELEVATION is set, change the value in appdaemon.yaml
+if [ -n "$ELEVATION" ]; then
+  sed -i "s/^  elevation:.*/  elevation: $ELEVATION/" $CONF/appdaemon.yaml
+fi
+
+#install user-specific packages
+apk add --no-cache $(find $CONF -name system_packages.txt | xargs cat | tr '\n' ' ')
 #check recursively under CONF for additional python dependencies defined in requirements.txt
 find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
 

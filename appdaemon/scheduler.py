@@ -2,7 +2,6 @@ import traceback
 import datetime
 from datetime import timedelta
 import pytz
-import astral
 import random
 import uuid
 import re
@@ -12,6 +11,7 @@ from collections import OrderedDict
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from astral.location import Location, LocationInfo
 
 
 class Scheduler:
@@ -92,12 +92,27 @@ class Scheduler:
         self.stopping = True
 
     async def cancel_timer(self, name, handle):
+        executed = False
         self.logger.debug("Canceling timer for %s", name)
-        if name in self.schedule and handle in self.schedule[name]:
+        if self.check_handle(name, handle):
             del self.schedule[name][handle]
             await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle))
+            executed = True
+
         if name in self.schedule and self.schedule[name] == {}:
             del self.schedule[name]
+
+        if not executed:
+            self.logger.warning("Invalid callback handle '{}' in cancel_timer() from app {}".format(handle, name))
+
+        return executed
+
+    def check_handle(self, name, handle):
+        """Check if the handler is valid"""
+        if name in self.schedule and handle in self.schedule[name]:
+            return True
+
+        return False
 
     # noinspection PyBroadException
     async def exec_schedule(self, name, args, uuid_):
@@ -107,6 +122,11 @@ class Scheduler:
                 #
                 # it's a "duration" entry
                 #
+
+                # first remove the duration parameter
+                if args["kwargs"].get("__duration"):
+                    del args["kwargs"]["__duration"]
+
                 executed = await self.AD.threading.dispatch_worker(
                     name,
                     {
@@ -215,9 +235,7 @@ class Scheduler:
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        elevation = self.AD.elevation
-
-        self.location = astral.Location(("", "", latitude, longitude, self.AD.tz.zone, elevation))
+        self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
     def sun(self, type, offset):
         if offset < 0:
@@ -237,12 +255,11 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_rising_dt = self.location.sunrise(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_rising_dt = self.location.sunrise(date=dt, local=False, observer_elevation=self.AD.elevation)
                 if next_rising_dt > self.now:
                     break
-            except astral.AstralError:
+            except ValueError:
                 pass
             mod += 1
 
@@ -252,12 +269,11 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_setting_dt = self.location.sunset(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_setting_dt = self.location.sunset(date=dt, local=False, observer_elevation=self.AD.elevation)
                 if next_setting_dt > self.now:
                     break
-            except astral.AstralError:
+            except ValueError:
                 pass
             mod += 1
 
@@ -381,21 +397,24 @@ class Scheduler:
 
         return next_entries
 
-    async def process_dst(self, old, new, next_entries):
+    async def process_dst(self, old, new):
         #
         # Rewrite timestamps to new local time
         #
         offset = old - new
+        self.logger.debug("Process_dst()")
+        self.logger.debug("offset  %s", offset)
         for app in self.schedule:
             for entry in self.schedule[app]:
                 args = self.schedule[app][entry]
                 # Sunrise and sunset will already be correct. Anything else needs to be reset to a new local time
+                self.logger.debug("Before rewrite: %s", args)
                 if args["type"] != "next_rising" and args["type"] != "next_setting":
-                    args["timestamp"] += offset
-                    args["basetime"] += offset
-
-        for entry in next_entries:
-            entry["timestamp"] += offset
+                    # If our interval is less than the jump don't rewrite the timestamp
+                    if float(args["interval"]) > abs(offset.total_seconds()):
+                        args["timestamp"] += offset
+                        args["basetime"] += offset
+                self.logger.debug("After rewrite: %s", args)
 
     def get_next_dst_offset(self, base, limit):
         #
@@ -406,15 +425,16 @@ class Scheduler:
         #
 
         # TODO: Convert this to some sort of binary search for efficiency
+        # TODO: This really should support sub 1 second periods better
         self.logger.debug("get_next_dst_offset() base=%s limit=%s", base, limit)
         current = base.astimezone(self.AD.tz).dst()
         self.logger.debug("current=%s", current)
         for offset in range(1, int(limit) + 1):
             candidate = (base + timedelta(seconds=offset)).astimezone(self.AD.tz)
-            print(candidate)
+            # print(candidate)
             if candidate.dst() != current:
                 return offset
-        return -1
+        return limit
 
     async def loop(self):  # noqa: C901
         self.active = True
@@ -436,7 +456,7 @@ class Scheduler:
 
         next_entries = []
         result = False
-        idle_time = 60
+        idle_time = 1
         delay = 0
         old_dst_offset = (await self.get_now()).astimezone(self.AD.tz).dst()
         while not self.stopping:
@@ -481,7 +501,11 @@ class Scheduler:
                     # DST began or ended, we need to go fix any existing scheduler entries to match the new local time
                     #
                     self.logger.info("Daylight Savings Time transition detected - rewriting events to new local time")
-                    await self.process_dst(old_dst_offset, dst_offset, next_entries)
+                    await self.process_dst(old_dst_offset, dst_offset)
+                    #
+                    # Re calculate next entries
+                    #
+                    next_entries = self.get_next_entries()
 
                 old_dst_offset = dst_offset
                 #
@@ -512,6 +536,10 @@ class Scheduler:
                     # Nothing to do, lets wait for a while, we will get woken up if anything new comes along
                     delay = idle_time
 
+                # Initially we don't want to skip over any events that haven;t had a chance to be registered yet, but now
+                # we can loosen up a little
+                idle_time = 60
+
                 #
                 # We are about to go to sleep, but we need to ensure we don't miss a DST transition or we will
                 # sleep in and potentially miss an event that should happen earlier than expected due to the time change
@@ -527,10 +555,16 @@ class Scheduler:
                     #
 
                     delay = self.get_next_dst_offset(self.now, delay)
+                    self.logger.debug(
+                        "DST transition before next event: %s %s", await self.is_dst(), await self.is_dst(next)
+                    )
 
                 self.logger.debug("Delay = %s seconds", delay)
 
                 if delay > 0 and self.AD.timewarp > 0:
+                    #
+                    # Sleep until the next event
+                    #
                     result = await self.sleep(delay / self.AD.timewarp)
                     self.logger.debug("result = %s", result)
                 else:
@@ -572,7 +606,7 @@ class Scheduler:
         return self.next_sunrise() < self.next_sunset()
 
     async def info_timer(self, handle, name):
-        if name in self.schedule and handle in self.schedule[name]:
+        if self.check_handle(name, handle):
             callback = self.schedule[name][handle]
             return (
                 self.make_naive(callback["timestamp"]),

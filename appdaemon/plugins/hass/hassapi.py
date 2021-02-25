@@ -13,22 +13,22 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
-def hass_check(func):
-    @wraps(func)
-    def func_wrapper(*args, **kwargs):
+def hass_check(coro):
+    @wraps(coro)
+    async def coro_wrapper(*args, **kwargs):
         self = args[0]
         ns = self._get_namespace(**kwargs)
-        plugin = utils.run_coroutine_threadsafe(self, self.AD.plugins.get_plugin_object(ns))
+        plugin = await self.AD.plugins.get_plugin_object(ns)
         if plugin is None:
-            self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, func.__name__)
-            return lambda *args: None
-        if not utils.run_coroutine_threadsafe(self, plugin.am_reading_messages()):
-            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
-            return lambda *args: None
+            self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, coro.__name__)
+            return None
+        if not await plugin.am_reading_messages():
+            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", coro.__name__)
+            return None
         else:
-            return func(*args, **kwargs)
+            return await coro(*args, **kwargs)
 
-    return func_wrapper
+    return coro_wrapper
 
 
 #
@@ -336,8 +336,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Helper functions for services
     #
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def turn_on(self, entity_id, **kwargs):
         """Turns `on` a Home Assistant entity.
 
@@ -387,8 +387,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs["namespace"] = namespace
         await self.call_service("homeassistant/turn_on", **rargs)
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def turn_off(self, entity_id, **kwargs):
         """Turns `off` a Home Assistant entity.
 
@@ -436,8 +436,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         else:
             await self.call_service("homeassistant/turn_off", **rargs)
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def toggle(self, entity_id, **kwargs):
         """Toggles between ``on`` and ``off`` for the selected entity.
 
@@ -477,8 +477,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs["namespace"] = namespace
         await self.call_service("homeassistant/toggle", **rargs)
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def set_value(self, entity_id, value, **kwargs):
         """Sets the value of an `input_number`.
 
@@ -517,8 +517,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs["namespace"] = namespace
         await self.call_service("input_number/set_value", **rargs)
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def set_textvalue(self, entity_id, value, **kwargs):
         """Sets the value of an `input_text`.
 
@@ -558,8 +558,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs["namespace"] = namespace
         await self.call_service("input_text/set_value", **rargs)
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def select_option(self, entity_id, option, **kwargs):
         """Sets the value of an `input_option`.
 
@@ -602,8 +602,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs["namespace"] = namespace
         await self.call_service("input_select/select_option", **rargs)
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def notify(self, message, **kwargs):
         """Sends a notification.
 
@@ -639,8 +639,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         await self.call_service(service, **kwargs)
 
-    @hass_check
     @utils.sync_wrapper
+    @hass_check
     async def persistent_notification(self, message, title=None, id=None):
         """
 
@@ -662,11 +662,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             kwargs["notification_id"] = id
         await self.call_service("persistent_notification/create", **kwargs)
 
-    @hass_check
     @utils.sync_wrapper
-    async def get_history(self, entity_id="", **kwargs):
+    @hass_check
+    async def get_history(self, **kwargs):
         """Gets access to the HA Database.
-
         This is a convenience function that allows accessing the HA Database, so the
         history state of a device can be retrieved. It allows for a level of flexibility
         when retrieving the data, and returns it as a dictionary list. Caution must be
@@ -674,16 +673,16 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         a long time to process.
 
         Args:
-            entity_id (str): Fully qualified id of the device to be querying, e.g.,
+            **kwargs (optional): Zero or more keyword arguments.
+
+        Keyword Args:
+            entity_id (str, optional): Fully qualified id of the device to be querying, e.g.,
                 ``light.office_lamp`` or ``scene.downstairs_on`` This can be any entity_id
                 in the database. If this is left empty, the state of all entities will be
                 retrieved within the specified time. If both ``end_time`` and ``start_time``
                 explained below are declared, and ``entity_id`` is specified, the specified
                 ``entity_id`` will be ignored and the history states of `all` entity_id in
                 the database will be retrieved within the specified time.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             days (int, optional): The days from the present-day walking backwards that is
                 required from the database.
             start_time (optional): The start time from when the data should be retrieved.
@@ -699,6 +698,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 is declared without ``start_time`` or ``days``, it will revert to default to the latest
                 history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
                 If ``entity_id`` is specified, ``end_time`` will be ignored.
+            callback (callable, optional): If wanting to access the database to get a large amount of data,
+                using a direct call to this function will take a long time to run and lead to AD cancelling the task.
+                To get around this, it is better to pass a function, which will be responsible of receiving the result
+                from the database. The signature of this function follows that of a scheduler call.
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
@@ -726,26 +729,27 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> data = self.get_history(end_time = end_time, days = 5)
 
         """
+
         namespace = self._get_namespace(**kwargs)
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
 
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
+        if hasattr(plugin, "get_history"):
+            callback = kwargs.pop("callback", None)
+            if callback is not None and callable(callback):
+                self.create_task(plugin.get_history(**kwargs), callback)
 
-        if entity_id != "":
-            await self._check_entity(namespace, entity_id)
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id}
+            else:
+                return await plugin.get_history(**kwargs)
+
         else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
+            self.logger.warning(
+                "Wrong Namespace selected, as %s has no database plugin attached to it", namespace,
+            )
+            return None
 
-        rargs["namespace"] = namespace
-
-        result = await self.call_service("database/history", **rargs)
-        return result
-
+    @utils.sync_wrapper
     @hass_check
-    def render_template(self, template, **kwargs):
+    async def render_template(self, template, **kwargs):
         """Renders a Home Assistant Template
 
         Args:
@@ -777,7 +781,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs["namespace"] = namespace
         rargs["template"] = template
 
-        result = self.call_service("template/render", **rargs)
+        result = await self.call_service("template/render", **rargs)
         try:
             return literal_eval(result)
         except (SyntaxError, ValueError):
