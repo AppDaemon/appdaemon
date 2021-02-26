@@ -211,7 +211,7 @@ class AppManagement:
                     self.logger.warning(
                         "Logged an error to %s", self.AD.logging.get_filename("error_log"),
                     )
-                
+
                 executed = False
 
         if delete:
@@ -220,7 +220,7 @@ class AppManagement:
 
             if name in self.global_module_dependencies:
                 del self.global_module_dependencies[name]
-        
+
         else:
             self.objects[name]["running"] = False
 
@@ -241,7 +241,7 @@ class AppManagement:
 
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
-        
+
         return executed
 
     async def start_app(self, app):
@@ -272,7 +272,7 @@ class AppManagement:
             error_logger.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
-        
+
         return executed
 
     async def restart_app(self, app):
@@ -332,7 +332,7 @@ class AppManagement:
                     "id": uuid.uuid4().hex,
                     "pin_app": self.AD.threading.app_should_be_pinned(name),
                     "pin_thread": pin,
-                    "running": True
+                    "running": True,
                 }
 
                 # load the module path into app entity
@@ -353,7 +353,7 @@ class AppManagement:
             "id": uuid.uuid4().hex,
             "pin_app": False,
             "pin_thread": -1,
-            "running": False
+            "running": False,
         }
 
     async def read_config(self):  # noqa: C901
@@ -946,8 +946,8 @@ class AppManagement:
                     apps["init"][app] = 1
 
         # Terminate apps
-        
-        apps_terminated = {} # store apps properly terminated is any
+
+        apps_terminated = {}  # store apps properly terminated is any
         if apps is not None and apps["term"]:
             prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
 
@@ -991,9 +991,9 @@ class AppManagement:
                         await self.set_state(app, state="disabled")
                         await self.increase_inactive_apps(app)
                     else:
-                        if apps_terminated.get(app, True) is True: # the app terminated properly
+                        if apps_terminated.get(app, True) is True:  # the app terminated properly
                             await self.init_object(app)
-                        
+
                         else:
                             self.logger.warning("Cannot initialize app %s, as it didn't terminate properly", app)
 
@@ -1017,9 +1017,9 @@ class AppManagement:
                 if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
                     pass
                 else:
-                    if apps_terminated.get(app, True) is True: # the app terminated properly
+                    if apps_terminated.get(app, True) is True:  # the app terminated properly
                         await self.initialize_app(app)
-                    
+
                     else:
                         self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
 
