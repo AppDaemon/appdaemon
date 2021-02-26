@@ -1340,10 +1340,10 @@ class AppManagement:
             return None
 
         if service == "start":
-            await self.start_app(app)
+            asyncio.create_task(self.start_app(app))
 
         elif service == "stop":
-            await self.stop_app(app, delete=False)
+            asyncio.create_task(self.stop_app(app, delete=False))
 
         elif service == "restart":
             asyncio.create_task(self.restart_app(app))
