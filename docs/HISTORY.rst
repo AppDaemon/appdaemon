@@ -26,6 +26,8 @@ Change Log
 
 **Fixes**
 
+- Fixed issue whereby it is possible to use the app api to "start" an already running app
+- Fixed issue whereby when app api is used, AD could hook itself since it gets into a loop depending on how the app is written
 - Fixed `get_history_api` for HASS - contributed by `Ross Rosen <https://github.com/rr326>`__
 - Fixed issue with `listen_state` when `immediate` or `duration` is used with it
 - Fixed issue whereby when an invalid handler is used to cancel `event/state/log/timer`, it gives no warning its invalid
@@ -38,6 +40,7 @@ Change Log
 - Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
 - Bumped astral from 1.10.1 to 2.2
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
+- Bumped aiohttp from 3.7.3 to 3.7.4
 - Bumped aiohttp from 3.6.2 to 3.7.3
 - Bumped python-socketio from 4.4.2 to 4.6.1
 - Bumped deepdiff from 4.3.1 to 5.2.2
