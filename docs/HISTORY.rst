@@ -26,6 +26,7 @@ Change Log
 
 **Fixes**
 
+- FIxed issue whereby when a non properly terminated app has an error,  AD starts the app automatically
 - Fixed issue whereby it is possible to use the app api to "start" an already running app
 - Fixed issue whereby when app api is used, AD could hook itself since it gets into a loop depending on how the app is written
 - Fixed `get_history_api` for HASS - contributed by `Ross Rosen <https://github.com/rr326>`__
