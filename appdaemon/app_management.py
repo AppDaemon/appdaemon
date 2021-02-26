@@ -149,6 +149,7 @@ class AppManagement:
         else:
             self.logger.warning("Unable to find module %s - initialize() skipped", name)
             await self.increase_inactive_apps(name)
+            self.objects[name]["running"] = False
             return
 
         # Call its initialize function
@@ -990,7 +991,12 @@ class AppManagement:
                         await self.set_state(app, state="disabled")
                         await self.increase_inactive_apps(app)
                     else:
-                        await self.init_object(app)
+                        if apps_terminated.get(app, True) is True: # the app terminated properly
+                            await self.init_object(app)
+                        
+                        else:
+                            self.logger.warning("Cannot initialize app %s, as it didn't terminate properly", app)
+
                 except Exception:
                     error_logger = logging.getLogger("Error.{}".format(app))
                     error_logger.warning("-" * 60)
@@ -1013,6 +1019,9 @@ class AppManagement:
                 else:
                     if apps_terminated.get(app, True) is True: # the app terminated properly
                         await self.initialize_app(app)
+                    
+                    else:
+                        self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
 
         if self.AD.check_app_updates_profile is True:
             pr.disable()
