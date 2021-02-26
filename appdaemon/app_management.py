@@ -214,7 +214,7 @@ class AppManagement:
 
             if name in self.global_module_dependencies:
                 del self.global_module_dependencies[name]
-        
+
         else:
             self.objects[name]["running"] = False
 
@@ -321,7 +321,7 @@ class AppManagement:
                     "id": uuid.uuid4().hex,
                     "pin_app": self.AD.threading.app_should_be_pinned(name),
                     "pin_thread": pin,
-                    "running": True
+                    "running": True,
                 }
 
                 # load the module path into app entity
@@ -342,7 +342,7 @@ class AppManagement:
             "id": uuid.uuid4().hex,
             "pin_app": False,
             "pin_thread": -1,
-            "running": False
+            "running": False,
         }
 
     async def read_config(self):  # noqa: C901
