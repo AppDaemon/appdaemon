@@ -180,6 +180,7 @@ class AppManagement:
 
     async def terminate_app(self, name, delete=True):
         term = None
+        executed = True
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
             self.logger.info("Calling terminate() for {}".format(name))
 
@@ -196,6 +197,8 @@ class AppManagement:
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
+                executed = False
+
             except BaseException:
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning("-" * 60)
@@ -207,6 +210,8 @@ class AppManagement:
                     self.logger.warning(
                         "Logged an error to %s", self.AD.logging.get_filename("error_log"),
                     )
+                
+                executed = False
 
         if delete:
             if name in self.objects:
@@ -214,7 +219,7 @@ class AppManagement:
 
             if name in self.global_module_dependencies:
                 del self.global_module_dependencies[name]
-
+        
         else:
             self.objects[name]["running"] = False
 
@@ -235,6 +240,8 @@ class AppManagement:
 
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
+        
+        return executed
 
     async def start_app(self, app):
 
@@ -251,9 +258,10 @@ class AppManagement:
             await self.initialize_app(app)
 
     async def stop_app(self, app, delete=True):
+        executed = False
         try:
             self.logger.info("Terminating %s", app)
-            await self.terminate_app(app, delete)
+            executed = await self.terminate_app(app, delete)
         except Exception:
             error_logger = logging.getLogger("Error.{}".format(app))
             error_logger.warning("-" * 60)
@@ -263,6 +271,8 @@ class AppManagement:
             error_logger.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+        
+        return executed
 
     async def restart_app(self, app):
         await self.stop_app(app, delete=False)
@@ -321,7 +331,7 @@ class AppManagement:
                     "id": uuid.uuid4().hex,
                     "pin_app": self.AD.threading.app_should_be_pinned(name),
                     "pin_thread": pin,
-                    "running": True,
+                    "running": True
                 }
 
                 # load the module path into app entity
@@ -342,7 +352,7 @@ class AppManagement:
             "id": uuid.uuid4().hex,
             "pin_app": False,
             "pin_thread": -1,
-            "running": False,
+            "running": False
         }
 
     async def read_config(self):  # noqa: C901
@@ -935,13 +945,14 @@ class AppManagement:
                     apps["init"][app] = 1
 
         # Terminate apps
-
+        
+        apps_terminated = {} # store apps properly terminated is any
         if apps is not None and apps["term"]:
-
             prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
 
             for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
-                await self.stop_app(app)
+                executed = await self.stop_app(app)
+                apps_terminated[app] = executed
 
         # Load/reload modules
 
@@ -1000,7 +1011,8 @@ class AppManagement:
                 if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
                     pass
                 else:
-                    await self.initialize_app(app)
+                    if apps_terminated.get(app, True) is True: # the app terminated properly
+                        await self.initialize_app(app)
 
         if self.AD.check_app_updates_profile is True:
             pr.disable()
