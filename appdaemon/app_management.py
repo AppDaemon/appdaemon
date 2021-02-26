@@ -143,6 +143,7 @@ class AppManagement:
             init = getattr(self.objects[name]["object"], "initialize", None)
             if init is None:
                 self.logger.warning("Unable to find initialize() function in module %s - skipped", name)
+                self.objects[name]["running"] = False
                 await self.increase_inactive_apps(name)
                 return
         else:
@@ -213,6 +214,9 @@ class AppManagement:
 
             if name in self.global_module_dependencies:
                 del self.global_module_dependencies[name]
+        
+        else:
+            self.objects[name]["running"] = False
 
         await self.increase_inactive_apps(name)
 
@@ -233,6 +237,12 @@ class AppManagement:
             await self.AD.http.terminate_app(name)
 
     async def start_app(self, app):
+
+        # first we check if running already
+        if app in self.objects and self.objects[app]["running"] is True:
+            self.logger.warning("Cannot start app %s, as it is already running", app)
+            return
+
         await self.init_object(app)
 
         if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
@@ -311,6 +321,7 @@ class AppManagement:
                     "id": uuid.uuid4().hex,
                     "pin_app": self.AD.threading.app_should_be_pinned(name),
                     "pin_thread": pin,
+                    "running": True
                 }
 
                 # load the module path into app entity
@@ -331,6 +342,7 @@ class AppManagement:
             "id": uuid.uuid4().hex,
             "pin_app": False,
             "pin_thread": -1,
+            "running": False
         }
 
     async def read_config(self):  # noqa: C901
