@@ -1346,10 +1346,10 @@ class AppManagement:
             await self.stop_app(app, delete=False)
 
         elif service == "restart":
-            await self.restart_app(app)
+            asyncio.create_task(self.restart_app(app))
 
         elif service == "reload":
-            await self.check_app_updates(mode="init")
+            asyncio.create_task(self.check_app_updates(mode="init"))
 
         elif service in ["create", "edit", "remove", "enable", "disable"]:
             # first the check app updates needs to be stopped if on
