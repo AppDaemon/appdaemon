@@ -208,7 +208,10 @@ module, it will automatically reload and recompile the module. It will
 also figure out which Apps were using that Module and restart them,
 causing their ``terminate()`` functions to be called if they exist, all
 of their existing callbacks to be cleared, and their ``initialize()``
-function to be called.
+function to be called. It should be noted that if a terminate function exists,
+and while executing it AD encounters an error, the app will not be auto reloaded.
+The app will only be reloaded, when next the app's file has been changed, presumably
+to fix the issue.
 
 The same is true if changes are made to an App's configuration -
 changing the class, or arguments (see later) will cause that App to be
