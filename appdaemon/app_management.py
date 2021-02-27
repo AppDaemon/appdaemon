@@ -1373,16 +1373,16 @@ class AppManagement:
             return None
 
         if service == "start":
-            asyncio.create_task(self.start_app(app))
+            asyncio.ensure_future(self.start_app(app))
 
         elif service == "stop":
-            asyncio.create_task(self.stop_app(app, delete=False))
+            asyncio.ensure_future(self.stop_app(app, delete=False))
 
         elif service == "restart":
-            asyncio.create_task(self.restart_app(app))
+            asyncio.ensure_future(self.restart_app(app))
 
         elif service == "reload":
-            asyncio.create_task(self.check_app_updates(mode="init"))
+            asyncio.ensure_future(self.check_app_updates(mode="init"))
 
         elif service in ["create", "edit", "remove", "enable", "disable"]:
             # first the check app updates needs to be stopped if on
