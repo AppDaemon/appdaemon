@@ -97,11 +97,18 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
                 Filtering will work with any event type, but it will be necessary to figure out
                 the data associated with the event to understand what values can be filtered on.
+                If using ``wildcard``, only those used to subscribe to the broker can be used as wildcards.
+                The plugin supports the use both single and multi-level wildcards.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+
+            binary (bool, optional): If wanting the payload to be returned as binary, this should
+                be specified. If not given, AD will return the payload as decoded data. It should
+                be noted that it is not possible to have different apps receieve both binary and non-binary
+                data on the same topic
 
         Returns:
             A handle that can be used to cancel the callback.
@@ -113,19 +120,25 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
             Listen events for a specific subscribed topic.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic = 'homeassistant/bedroom/light')
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic='homeassistant/bedroom/light')
 
             Listen events for a specific subscribed high level topic.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard = 'homeassistant/#')
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard='homeassistant/#')
+
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", wildcard='homeassistant/+/motion')
+
+            Listen events for binary payload
+
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", topic='hermes/audioServer/#', binary=True)
 
             Listen plugin's `disconnected` events from the broker.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state = 'Disconnected', topic = None)
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state='Disconnected', topic=None)
 
             Listen plugin's' `connected` events from the broker.
 
-            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state = 'Connected', topic = None)
+            >>> self.listen_event(self.mqtt_message_received_event, "MQTT_MESSAGE", state='Connected', topic=None)
 
         Notes:
             At this point, it is not possible to use single level wildcard like using ``homeassistant/+/light`` instead of ``homeassistant/bedroom/light``. This could be added later, if need be.
@@ -133,20 +146,25 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         """
 
         namespace = self._get_namespace(**kwargs)
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        topic = kwargs.get("topic", kwargs.get("wildcard"))
 
-        if "wildcard" in kwargs:
-            wildcard = kwargs["wildcard"]
-            if wildcard[-2:] == "/#" and len(wildcard.split("/")[0]) >= 1:
-                plugin = await self.AD.plugins.get_plugin_object(namespace)
-                await plugin.process_mqtt_wildcard(kwargs["wildcard"])
+        if plugin is not None:
+            if kwargs.pop("binary", None) is True:
+                if topic is not None:
+                    self.logger.debug("Adding topic %s, to binary payload topics", topic)
+                    plugin.add_mqtt_binary(topic)
+
+                else:
+                    self.logger.warning("Cannot register for binary data, since no topic nor wildcard given")
+
             else:
-                self.logger.warning(
-                    "Using %s as MQTT Wildcard for Event is not valid, use another. Listen Event will not be registered",
-                    wildcard,
-                )
-                return
 
-        return super(Mqtt, self).listen_event(callback, event, **kwargs)
+                if topic is not None and hasattr(plugin, "mqtt_binary_topics") and topic in plugin.mqtt_binary_topics:
+                    self.logger.debug("Removing topic %s, from binary payload topics", topic)
+                    plugin.remove_mqtt_binary(topic)
+
+        return await super(Mqtt, self).listen_event(callback, event, **kwargs)
 
     #
     # service calls

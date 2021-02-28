@@ -8,6 +8,7 @@ import pytz
 from deepdiff import DeepDiff
 import datetime
 from urllib.parse import quote
+from urllib.parse import urlencode
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -80,6 +81,11 @@ class HassPlugin(PluginBase):
         else:
             self.timeout = None
 
+        if "retry_secs" in args:
+            self.retry_secs = int(args["retry_secs"])
+        else:
+            self.retry_secs = 5
+
         if "cert_verify" in args:
             self.cert_verify = args["cert_verify"]
         else:
@@ -93,12 +99,12 @@ class HassPlugin(PluginBase):
         if "appdaemon_startup_conditions" in args:
             self.appdaemon_startup_conditions = args["appdaemon_startup_conditions"]
         else:
-            self.appdaemon_startup_conditions = None
+            self.appdaemon_startup_conditions = {}
 
         if "plugin_startup_conditions" in args:
             self.plugin_startup_conditions = args["plugin_startup_conditions"]
         else:
-            self.plugin_startup_conditions = None
+            self.plugin_startup_conditions = {}
 
         self.session = None
         self.first_time = False
@@ -147,67 +153,86 @@ class HassPlugin(PluginBase):
     # Handle state updates
     #
 
-    async def evaluate_started(self, delay_done, plugin_booting, event=None):
+    async def evaluate_started(self, first_time, plugin_booting, event=None):  # noqa: C901
+
+        if first_time is True:
+            self.hass_ready = False
+            self.state_matched = False
 
         if plugin_booting is True:
             startup_conditions = self.plugin_startup_conditions
         else:
             startup_conditions = self.appdaemon_startup_conditions
 
-        state_start = False
-        event_start = False
-        if startup_conditions is None:
-            state_start = True
-            event_start = True
-        else:
-            if "delay" in startup_conditions:
-                if delay_done is False:
-                    self.logger.info("Delaying startup for %s seconds", startup_conditions["delay"])
-                    await asyncio.sleep(int(startup_conditions["delay"]))
+        start_ok = True
 
-            if "state" in startup_conditions:
-                state = await self.get_complete_state()
-                entry = startup_conditions["state"]
-                if "value" in entry:
-                    # print(entry["value"], state[entry["entity"]])
-                    # print(DeepDiff(state[entry["entity"]], entry["value"]))
-                    if entry["entity"] in state and "values_changed" not in DeepDiff(
-                        entry["value"], state[entry["entity"]]
-                    ):
+        if "hass_state" not in startup_conditions:
+            startup_conditions["hass_state"] = "RUNNING"
+
+        if "delay" in startup_conditions:
+            if first_time is True:
+                self.logger.info("Delaying startup for %s seconds", startup_conditions["delay"])
+                await asyncio.sleep(int(startup_conditions["delay"]))
+
+        if "hass_state" in startup_conditions:
+            self.metadata = await self.get_hass_config()
+            if "state" in self.metadata:
+                if self.metadata["state"] == startup_conditions["hass_state"]:
+                    if self.hass_ready is False:
+                        self.logger.info("Startup condition met: hass state=RUNNING")
+                        self.hass_ready = True
+                else:
+                    start_ok = False
+
+        if "state" in startup_conditions:
+            state = await self.get_complete_state()
+            entry = startup_conditions["state"]
+            if "value" in entry:
+                # print(entry["value"], state[entry["entity"]])
+                # print(DeepDiff(state[entry["entity"]], entry["value"]))
+                if entry["entity"] in state and "values_changed" not in DeepDiff(
+                    entry["value"], state[entry["entity"]]
+                ):
+                    if self.state_matched is False:
                         self.logger.info(
                             "Startup condition met: %s=%s", entry["entity"], entry["value"],
                         )
-                        state_start = True
-                elif entry["entity"] in state:
+                        self.state_matched = True
+                else:
+                    start_ok = False
+            elif entry["entity"] in state:
+                if self.state_matched is False:
                     self.logger.info("Startup condition met: %s exists", entry["entity"])
-                    state_start = True
-            else:
-                state_start = True
+                    self.state_matched = True
+                else:
+                    start_ok = False
 
-            if "event" in startup_conditions:
-                if event is not None:
-                    entry = startup_conditions["event"]
-                    if "data" not in entry:
-                        if entry["event_type"] == event["event_type"]:
-                            event_start = True
+        if "event" in startup_conditions:
+            if event is not None:
+                entry = startup_conditions["event"]
+                if "data" not in entry:
+                    if entry["event_type"] == event["event_type"]:
+                        self.logger.info(
+                            "Startup condition met: event type %s fired", event["event_type"],
+                        )
+                    else:
+                        start_ok = False
+                else:
+                    if entry["event_type"] == event["event_type"]:
+                        if "values_changed" not in DeepDiff(event["data"], entry["data"]):
                             self.logger.info(
-                                "Startup condition met: event type %s fired", event["event_type"],
+                                "Startup condition met: event type %s, data = %s fired",
+                                event["event_type"],
+                                entry["data"],
                             )
                     else:
-                        if entry["event_type"] == event["event_type"]:
-                            if "values_changed" not in DeepDiff(event["data"], entry["data"]):
-                                event_start = True
-                                self.logger.info(
-                                    "Startup condition met: event type %s, data = %s fired",
-                                    event["event_type"],
-                                    entry["data"],
-                                )
-
+                        start_ok = False
             else:
-                event_start = True
+                start_ok = False
 
-        if state_start is True and event_start is True:
+        if start_ok is True:
             # We are good to go
+            self.logger.info("All startup conditions met")
             self.reading_messages = True
             state = await self.get_complete_state()
             await self.AD.plugins.notify_plugin_started(
@@ -221,8 +246,10 @@ class HassPlugin(PluginBase):
     #
     # async def state(self, entity, attribute, old, new, kwargs):
     #    self.logger.info("State: %s %s %s %s {}".format(kwargs), entity, attribute, old, new)
+    #
     # async def event(self, event, data, kwargs):
-    #    self.logger.info("Event: %s %s {}".format(kwargs), event, data)
+    #    self.logger.debug("Event: %s %s %s", kwargs, event, data)
+
     # async def schedule(self, kwargs):
     #    self.logger.info("Schedule: {}".format(kwargs))
     #
@@ -239,7 +266,9 @@ class HassPlugin(PluginBase):
         # Testing
         #
         # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
-        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "state_changed")
+
+        # listen for service_registered event
+        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "service_registered")
         # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
         # await self.AD.sched.insert_schedule(
         #    self.name,
@@ -312,12 +341,12 @@ class HassPlugin(PluginBase):
                 for domain in self.services:
                     for service in domain["services"]:
                         self.AD.services.register_service(
-                            self.get_namespace(), domain["domain"], service, self.call_plugin_service,
+                            self.get_namespace(), domain["domain"], service, self.call_plugin_service, __silent=True
                         )
 
                 # Decide if we can start yet
                 self.logger.info("Evaluating startup conditions")
-                await self.evaluate_started(False, self.hass_booting)
+                await self.evaluate_started(True, self.hass_booting)
 
                 # state = await self.get_complete_state()
                 # self.reading_messages = True
@@ -340,28 +369,41 @@ class HassPlugin(PluginBase):
 
                     if self.reading_messages is False:
                         if result["type"] == "event":
-                            await self.evaluate_started(True, self.hass_booting, result["event"])
+                            await self.evaluate_started(False, self.hass_booting, result["event"])
                         else:
-                            await self.evaluate_started(True, self.hass_booting)
+                            await self.evaluate_started(False, self.hass_booting)
                     else:
                         await self.AD.events.process_event(self.namespace, result["event"])
+
+                        if result["event"].get("event_type") == "service_registered":
+                            data = result["event"]["data"]
+                            domain = data.get("domain")
+                            service = data.get("service")
+
+                            if domain and service:
+                                self.AD.services.register_service(
+                                    self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                                )
 
                 self.reading_messages = False
 
             except Exception:
                 self.reading_messages = False
                 self.hass_booting = True
+                # remove callback from getting local events
+                await self.AD.callbacks.clear_callbacks(self.name)
+
                 if not self.already_notified:
                     await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     self.already_notified = True
                 if not self.stopping:
-                    self.logger.warning("Disconnected from Home Assistant, retrying in 5 seconds")
+                    self.logger.warning("Disconnected from Home Assistant, retrying in %s seconds", self.retry_secs)
                     self.logger.debug("-" * 60)
                     self.logger.debug("Unexpected error:")
                     self.logger.debug("-" * 60)
                     self.logger.debug(traceback.format_exc())
                     self.logger.debug("-" * 60)
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(self.retry_secs)
 
         self.logger.info("Disconnecting from Home Assistant")
 
@@ -449,80 +491,18 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        if domain == "database":
-            if "entity_id" in data and data["entity_id"] != "":
-                filter_entity_id = "?filter_entity_id={}".format(data["entity_id"])
-            else:
-                filter_entity_id = ""
-            start_time = ""
-            end_time = ""
-            if "days" in data:
-                days = data["days"]
-                if days - 1 < 0:
-                    days = 1
-            else:
-                days = 1
-            if "start_time" in data:
-                if isinstance(data["start_time"], str):
-                    start_time = utils.str_to_dt(data["start_time"]).replace(microsecond=0)
-                elif isinstance(data["start_time"], datetime.datetime):
-                    start_time = self.AD.tz.localize(data["start_time"]).replace(microsecond=0)
-                else:
-                    raise ValueError("Invalid type for start time")
-
-            if "end_time" in data:
-                if isinstance(data["end_time"], str):
-                    end_time = utils.str_to_dt(data["end_time"]).replace(microsecond=0)
-                elif isinstance(data["end_time"], datetime.datetime):
-                    end_time = self.AD.tz.localize(data["end_time"]).replace(microsecond=0)
-                else:
-                    raise ValueError("Invalid type for end time")
-
-            # if both are declared, it can't process entity_id
-            if start_time != "" and end_time != "":
-                filter_entity_id = ""
-
-            # if starttime is not declared and entity_id is declared, and days specified
-            elif (filter_entity_id != "" and start_time == "") and "days" in data:
-                start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days=days)
-
-            # if starttime is declared and entity_id is not declared, and days specified
-            elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in data:
-                end_time = start_time + datetime.timedelta(days=days)
-
-            # if endtime is declared and entity_id is not declared, and days specified
-            elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in data:
-                start_time = end_time - datetime.timedelta(days=days)
-
-            if start_time != "":
-                timestamp = "/{}".format(utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz))
-
-                if filter_entity_id != "":  # if entity_id is specified, end_time cannot be used
-                    end_time = ""
-
-                if end_time != "":
-                    end_time = "?end_time={}".format(
-                        quote(utils.dt_to_str(end_time.replace(microsecond=0), self.AD.tz))
-                    )
-
-            # if no start_time is specified, other parameters are invalid
-            else:
-                timestamp = ""
-                end_time = ""
-
-            api_url = "{}/api/history/period{}{}{}".format(config["ha_url"], timestamp, filter_entity_id, end_time)
-
-        elif domain == "template":
+        if domain == "template":
             api_url = "{}/api/template".format(config["ha_url"])
+
+        elif domain == "database":
+            return await self.get_history(**data)
 
         else:
             api_url = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
 
         try:
-            if domain == "database":
-                r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
-            else:
-                r = await self.session.post(api_url, headers=headers, json=data, verify_ssl=self.cert_verify)
+
+            r = await self.session.post(api_url, headers=headers, json=data, verify_ssl=self.cert_verify)
 
             if r.status == 200 or r.status == 201:
                 if domain == "template":
@@ -552,6 +532,107 @@ class HassPlugin(PluginBase):
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
             return None
+
+    async def get_history(self, **kwargs):
+        """Used to get HA's History"""
+
+        # TODO cert_path is not used
+        if "cert_path" in self.config:
+            cert_path = self.config["cert_path"]
+        else:
+            cert_path = False  # noqa: F841
+
+        if "token" in self.config:
+            headers = {"Authorization": "Bearer {}".format(self.config["token"])}
+        elif "ha_key" in self.config:
+            headers = {"x-ha-access": self.config["ha_key"]}
+        else:
+            headers = {}
+
+        try:
+            api_url = await self.get_history_api(**kwargs)
+
+            r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+
+            if r.status == 200 or r.status == 201:
+                result = await r.json()
+            else:
+                self.logger.warning("Error calling Home Assistant to get_history")
+                txt = await r.text()
+                self.logger.warning("Code: %s, error: %s", r.status, txt)
+                result = None
+
+            return result
+
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            self.logger.warning("HASS Disconnected unexpectedly during get_history()")
+
+        except Exception:
+            self.logger.error("-" * 60)
+            self.logger.error("Unexpected error during get_history")
+            self.logger.error("-" * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error("-" * 60)
+
+        return None
+
+    async def get_history_api(self, **kwargs):
+        query = {}
+        entity_id = None
+        days = None
+        start_time = None
+        end_time = None
+
+        kwargkeys = set(kwargs.keys())
+
+        if {"days", "start_time"} <= kwargkeys:
+            raise ValueError(
+                f'Can not have both days and start time. days: {kwargs["days"]} -- start_time: {kwargs["start_time"]}'
+            )
+
+        if "end_time" in kwargkeys and {"start_time", "days"}.isdisjoint(kwargkeys):
+            raise ValueError(f"Can not have end_time without start_time or days")
+
+        entity_id = kwargs.get("entity_id", "").strip()
+        days = max(0, kwargs.get("days", 0))
+
+        def as_datetime(args, key):
+            if key in args:
+                if isinstance(args[key], str):
+                    return utils.str_to_dt(args(key)).replace(microsecond=0)
+                elif isinstance(args[key], datetime.datetime):
+                    return self.AD.tz.localize(args(key)).replace(microsecond=0)
+                else:
+                    raise ValueError(f"Invalid type for {key}")
+
+        start_time = as_datetime(kwargs, "start_time")
+        end_time = as_datetime(kwargs, "end_time")
+
+        # end_time default - now
+        now = (await self.AD.sched.get_now()).replace(microsecond=0)
+        end_time = end_time if end_time else now
+
+        # Days: Calculate start_time (now-days) and end_time (now)
+        if days:
+            now = (await self.AD.sched.get_now()).replace(microsecond=0)
+            start_time = now - datetime.timedelta(days=days)
+            end_time = now
+
+        # Build the url
+        # /api/history/period/<start_time>?filter_entity_id=<entity_id>&end_time=<end_time>
+        apiurl = f'{self.config["ha_url"]}/api/history/period'
+
+        if start_time:
+            apiurl += "/" + utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz)
+
+        if entity_id or end_time:
+            if entity_id:
+                query["filter_entity_id"] = entity_id
+            if end_time:
+                query["end_time"] = end_time
+            apiurl += f"?{urlencode(query)}"
+
+        return apiurl
 
     async def get_hass_state(self, entity_id=None):
 

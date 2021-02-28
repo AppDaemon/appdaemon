@@ -1,4 +1,8 @@
 appdaemon:
+  latitude: 0
+  longitude: 0
+  elevation: 30
+  time_zone: Europe/Berlin
   plugins:
     HASS:
       type: hass

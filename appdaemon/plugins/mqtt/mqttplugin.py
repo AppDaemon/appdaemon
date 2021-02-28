@@ -99,6 +99,7 @@ class MqttPlugin(PluginBase):
         self.loop = self.AD.loop  # get AD loop
 
         self.mqtt_wildcards = list()
+        self.mqtt_binary_topics = list()
         self.mqtt_metadata = {
             "version": "1.0",
             "host": self.mqtt_client_host,
@@ -138,10 +139,7 @@ class MqttPlugin(PluginBase):
                 "Stopping MQTT Plugin and Unsubscribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port,
             )
             for topic in self.mqtt_client_topics:
-                self.logger.debug("Unsubscribing from Topic: %s", topic)
-                result = self.mqtt_client.unsubscribe(topic)
-                if result[0] == 0:
-                    self.logger.debug("Unsubscribing from Topic %s Successful", topic)
+                self.mqtt_unsubscribe(topic)
 
             self.mqtt_client.publish(
                 self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain,
@@ -178,16 +176,10 @@ class MqttPlugin(PluginBase):
                 self.AD.services.register_service(self.namespace, "mqtt", "unsubscribe", self.call_plugin_service)
                 self.AD.services.register_service(self.namespace, "mqtt", "publish", self.call_plugin_service)
 
-                for topic in self.mqtt_client_topics:
-                    self.logger.debug("Subscribing to Topic: %s", topic)
-                    result = self.mqtt_client.subscribe(topic, self.mqtt_qos)
-                    if result[0] == 0:
-                        self.logger.debug("Subscription to Topic %s Successful", topic)
-                    else:
-                        self.mqtt_client_topics.remove(topic)
-                        self.logger.debug(
-                            "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected", topic,
-                        )
+                topics = copy.deepcopy(self.mqtt_client_topics)
+
+                for topic in topics:
+                    self.mqtt_subscribe(topic, self.mqtt_qos)
 
                 self.mqtt_connected = True
 
@@ -249,24 +241,30 @@ class MqttPlugin(PluginBase):
         try:
             self.logger.debug("Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
             topic = msg.topic
+            payload = msg.payload
+            wildcard = None
+            data = {"topic": topic}
 
-            if (
-                self.mqtt_wildcards != [] and list(filter(lambda x: x in topic, self.mqtt_wildcards)) != []
-            ):  # check if any of the wildcards belong
-                wildcard = list(filter(lambda x: topic.startswith(x), self.mqtt_wildcards))[0] + "#"
+            if self.mqtt_wildcards != []:
+                # now check if the topic belongs to any of the wildcards
+                for sub in self.mqtt_wildcards:
+                    if mqtt.topic_matches_sub(sub, topic):
+                        wildcard = sub
+                        break
 
-                data = {
-                    "event_type": self.mqtt_event_name,
-                    "data": {"topic": topic, "payload": msg.payload.decode(), "wildcard": wildcard},
-                }
+            if topic not in self.mqtt_binary_topics and wildcard not in self.mqtt_binary_topics:
+                # the binary data is not required
+                payload = payload.decode()
 
-            else:
-                data = {
-                    "event_type": self.mqtt_event_name,
-                    "data": {"topic": topic, "payload": msg.payload.decode(), "wildcard": None},
-                }
+            data.update({"wildcard": wildcard, "payload": payload})
 
-            self.loop.create_task(self.send_ad_event(data))
+            event_data = {
+                "event_type": self.mqtt_event_name,
+                "data": data,
+            }
+
+            self.loop.create_task(self.send_ad_event(event_data))
+
         except UnicodeDecodeError:
             self.logger.info("Unable to decode MQTT message")
             self.logger.debug(
@@ -277,6 +275,60 @@ class MqttPlugin(PluginBase):
             self.logger.debug(
                 "There was an error while processing an MQTT message, with Traceback: %s", traceback.format_exc(),
             )
+
+    def mqtt_subscribe(self, topic, qos):
+        self.logger.debug("Subscribing to Topic: %s, with Qos %s", topic, qos)
+
+        result = None
+        try:
+
+            result = self.mqtt_client.subscribe(topic, qos)
+            if result[0] == 0:
+                self.logger.debug("Subscription to Topic %s Successful", topic)
+                if topic not in self.mqtt_client_topics:
+                    self.mqtt_client_topics.append(topic)
+
+                if "#" in topic or "+" in topic:
+                    # its a wildcard
+                    self.add_mqtt_wildcard(topic)
+
+            else:
+                if topic in self.mqtt_client_topics:
+                    self.mqtt_client_topics.remove(topic)
+
+                self.logger.debug(
+                    "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected", topic,
+                )
+
+        except Exception as e:
+            self.logger.warning("There was an error while subscribing to topic %s, %s", topic, e)
+            self.logger.debug(traceback.format_exc())
+
+        return result
+
+    def mqtt_unsubscribe(self, topic):
+        self.logger.debug("Unsubscribing from Topic: %s", topic)
+
+        result = None
+        try:
+
+            result = self.mqtt_client.unsubscribe(topic)
+            if result[0] == 0:
+                self.logger.debug("Unsubscription from Topic %s Successful", topic)
+                if topic in self.mqtt_client_topics:
+                    self.mqtt_client_topics.remove(topic)
+
+                self.remove_mqtt_binary(topic)
+                self.remove_mqtt_wildcard(topic)
+
+            else:
+                self.logger.warning("Unsubscription from Topic %s was not Successful", topic)
+
+        except Exception as e:
+            self.logger.warning("There was an error while unsubscribing from topic %s, %s", topic, e)
+            self.logger.debug(traceback.format_exc())
+
+        return result
 
     async def call_plugin_service(self, namespace, domain, service, kwargs):
 
@@ -306,29 +358,18 @@ class MqttPlugin(PluginBase):
                         )
 
                 elif service == "subscribe":
-                    self.logger.debug("Subscribe to Topic: %s", topic)
-
                     if topic not in self.mqtt_client_topics:
-                        result = await utils.run_in_executor(self, self.mqtt_client.subscribe, topic, qos)
+                        result = await utils.run_in_executor(self, self.mqtt_subscribe, topic, qos)
 
-                        if result[0] == 0:
-                            self.logger.debug("Subscription to Topic %s Successful", topic)
-                            self.mqtt_client_topics.append(topic)
-                        else:
-                            self.logger.warning("Subscription to Topic %s was not Successful", topic)
                     else:
                         self.logger.info("Topic %s already subscribed to", topic)
 
                 elif service == "unsubscribe":
-                    self.logger.debug("Unsubscribe from Topic: %s", topic)
+                    if topic in self.mqtt_client_topics:
+                        result = await utils.run_in_executor(self, self.mqtt_unsubscribe, topic)
 
-                    result = await utils.run_in_executor(self, self.mqtt_client.unsubscribe, topic)
-                    if result[0] == 0:
-                        self.logger.debug("Unsubscription from Topic %s Successful", topic)
-                        if topic in self.mqtt_client_topics:
-                            self.mqtt_client_topics.remove(topic)
                     else:
-                        self.logger.warning("Unsubscription from Topic %s was not Successful", topic)
+                        self.logger.info("Topic %s already unsubscribed from", topic)
 
                 else:
                     self.logger.warning("Wrong Service Call %s for MQTT", service)
@@ -353,9 +394,41 @@ class MqttPlugin(PluginBase):
 
         return result
 
-    async def process_mqtt_wildcard(self, wildcard):
-        if wildcard.rstrip("#") not in self.mqtt_wildcards:
-            self.mqtt_wildcards.append(wildcard.rstrip("#"))
+    def add_mqtt_wildcard(self, wildcard):
+        """Used to add to the plugin wildcard"""
+
+        if wildcard not in self.mqtt_wildcards:
+            self.mqtt_wildcards.append(wildcard)
+            return True
+
+        return False
+
+    def remove_mqtt_wildcard(self, wildcard):
+        """Used to remove remove from the plugin wildcard"""
+
+        if wildcard in self.mqtt_wildcards:
+            self.mqtt_wildcards.remove(wildcard)
+            return True
+
+        return False
+
+    def add_mqtt_binary(self, topic):
+        """Used to add to the plugin binary topic"""
+
+        if topic not in self.mqtt_binary_topics:
+            self.mqtt_binary_topics.append(topic)
+            return True
+
+        return False
+
+    def remove_mqtt_binary(self, topic):
+        """Used to remove from the plugin binary topic"""
+
+        if topic in self.mqtt_binary_topics:
+            self.mqtt_binary_topics.remove(topic)
+            return True
+
+        return False
 
     async def mqtt_client_state(self):
         return self.mqtt_connected
