@@ -2025,7 +2025,8 @@ class ADAPI:
             2019-08-16 21:17:41.098813+00:00
 
         """
-        return await self.AD.sched.get_now()
+        now = await self.AD.sched.get_now()
+        return now.astimezone(self.AD.tz)
 
     @utils.sync_wrapper
     async def get_now_ts(self):
