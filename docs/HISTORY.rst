@@ -26,6 +26,7 @@ Change Log
 
 **Fixes**
 
+- Fixed `get_now` api, whereby it returned UTC time instead of local time
 - FIxed issue whereby when a non properly terminated app has an error,  AD starts the app automatically
 - Fixed issue whereby it is possible to use the app api to "start" an already running app
 - Fixed issue whereby when app api is used, AD could hook itself since it gets into a loop depending on how the app is written
