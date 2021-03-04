@@ -338,7 +338,7 @@ This section summarizes the key callback signatures for easy reference. See the 
 
       def my_callback(self, app_name, timestamp, log_level, log_name, log_message, kwargs):
         <do some useful work here>
-        
+
 Full documentation - *TBD*
 
 Other
