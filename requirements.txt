@@ -8,7 +8,7 @@ cchardet==2.1.7
 yarl==1.4.2
 Jinja2==2.11.2
 aiohttp_jinja2==1.2.0
-pyyaml==5.3
+pyyaml==5.4.1
 voluptuous==0.11.7
 feedparser==5.2.1
 iso8601==0.1.12
