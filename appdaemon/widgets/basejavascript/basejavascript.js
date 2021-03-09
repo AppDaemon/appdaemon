@@ -49,12 +49,15 @@ function basejavascript(widget_id, url, skin, parameters)
     // self.state[<entity>] has valid information for the requested entity
     // state is the initial state
 
+
     if ("command" in parameters)
     {
         command = parameters.command
     }
     else if ("url" in parameters || "dashboard" in parameters)
     {
+        var append = "";
+
         if ("url" in parameters)
         {
             url = parameters.url
@@ -62,6 +65,10 @@ function basejavascript(widget_id, url, skin, parameters)
         else
         {
             url = "/" + parameters.dashboard
+            if ("forward_parameters" in parameters)
+            {
+                append = appendURL(parameters.forward_parameters);
+            }
         }
         var i = 0;
 
@@ -141,8 +148,19 @@ function basejavascript(widget_id, url, skin, parameters)
                 i++
             }
         }
-
-
+        if ( append != "" )
+        {
+            if (i == 0)
+            {
+                url = url + "?" + append;
+                i++
+            }
+            else
+            {
+                url = url + "&" + append;
+                i++
+            }
+        }
 
         command = "window.location.href = '" + url + "'"
     }
@@ -151,6 +169,40 @@ function basejavascript(widget_id, url, skin, parameters)
     self.set_field(self, "icon_style", self.css.icon_inactive_style);
 
     self.command = command;
+
+    function appendURL(forward_list)
+    {
+        var append = "";
+        if (location.search != "")
+        {
+            var query = location.search.substr(1);
+            var result = {};
+            query.split("&").forEach(function(part) {
+                var item = part.split("=");
+                result[item[0]] = decodeURIComponent(item[1]);
+            });
+
+            var useand = false;
+            for (arg in result)
+            {
+                if (arg != "timeout" && arg != "return" && arg != "sticky" && arg != "skin" &&
+                    (forward_list.includes(arg) || forward_list.includes("all")) )
+                {
+                    if (useand)
+                    {
+                        append += "&";
+                    }
+                    useand = true;
+                    append += arg
+                    if (result[arg] != "undefined" )
+                    {
+                        append += "=" + result[arg]
+                    }
+                }
+            }
+        }
+        return append
+    }
 
     function OnButtonClick(self)
     {

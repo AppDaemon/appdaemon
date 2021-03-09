@@ -149,6 +149,7 @@ Configuration of Apps
 
 Apps are configured by specifying new sections in an app configuration
 file. The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml``. You can have one single file for configuration of all apps, or break it down to have one ``yaml`` file per App, or anything in between. Coupled with the fact that you can have any number of subdirectories for apps and ``yaml`` files, this gives you the flexibility to structure your apps as you see fit.
+It should also be noted that a "dot" ``.`` is not allowed in the app name.
 
 The entry for an individual App within a ``yaml`` file is simply a dictionary entry naming the App, with subfields to supply various parameters. The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
 
@@ -207,7 +208,10 @@ module, it will automatically reload and recompile the module. It will
 also figure out which Apps were using that Module and restart them,
 causing their ``terminate()`` functions to be called if they exist, all
 of their existing callbacks to be cleared, and their ``initialize()``
-function to be called.
+function to be called. It should be noted that if a terminate function exists,
+and while executing it AD encounters an error, the app will not be auto reloaded.
+The app will only be reloaded, when next the app's file has been changed, presumably
+to fix the issue.
 
 The same is true if changes are made to an App's configuration -
 changing the class, or arguments (see later) will cause that App to be
@@ -2612,6 +2616,9 @@ If you prefer, you can use YAML's inline capabilities for a more compact represe
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
+Looping a Sequence
+~~~~~~~~~~~~~~~~~~~
+
 Sequences can be created that will loop forever by adding the value ``loop: True`` to the sequence:
 
 .. code:: yaml
@@ -2626,6 +2633,9 @@ Sequences can be created that will loop forever by adding the value ``loop: True
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
 This sequence once started will loop until either the sequence is canceled, the app is restarted or terminated, or AppDaemon is shutdown.
+
+Defining a Sequence Call Namespace
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
 basis if required.

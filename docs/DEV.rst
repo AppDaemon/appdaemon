@@ -25,7 +25,7 @@ First, we need to get a clean copy of the dev branch. To do this, create a new d
 
 .. code:: bash
 
-    $ git clone -b dev https://github.com/home-assistant/appdaemon.git
+    $ git clone -b dev https://github.com/AppDaemon/appdaemon.git
 
 This will create a directory called ``appdaemon`` - this is your repository directory, and all commands will need to be run from inside it.
 
@@ -75,7 +75,7 @@ Pull Requests
 
 If you see a way to improve on AppDaemon, We are pleased to receive Pull Requests. The official AppDaemon repository is here:
 
-https://github.com/home-assistant/appdaemon
+https://github.com/AppDaemon/appdaemon
 
 Please note, if documentation is required to make sense of the PR, the PR will not be accepted without it.
 
