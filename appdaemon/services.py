@@ -3,6 +3,7 @@ import traceback
 import asyncio
 
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.exceptions import NamespaceException
 import appdaemon.utils as utils
 
 
@@ -18,18 +19,28 @@ class Services:
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
         )
+
+        __silent = kwargs.pop("__silent", False)
+
         with self.services_lock:
+            # first we confirm if the namespace exists
+            if "__name" in kwargs and namespace not in self.AD.state.state:
+                raise NamespaceException(f"Namespace '{namespace}', doesn't exist")
+
             if namespace not in self.services:
                 self.services[namespace] = {}
+
             if domain not in self.services[namespace]:
                 self.services[namespace][domain] = {}
+
             self.services[namespace][domain][service] = {"callback": callback, **kwargs}
 
-            data = {
-                "event_type": "service_registered",
-                "data": {"namespace": namespace, "domain": domain, "service": service},
-            }
-            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
+            if __silent is False:
+                data = {
+                    "event_type": "service_registered",
+                    "data": {"namespace": namespace, "domain": domain, "service": service},
+                }
+                self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     def list_services(self, ns="global"):
         result = []
