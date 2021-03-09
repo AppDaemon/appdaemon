@@ -149,7 +149,8 @@ class AppManagement:
         else:
             self.logger.warning("Unable to find module %s - initialize() skipped", name)
             await self.increase_inactive_apps(name)
-            self.objects[name]["running"] = False
+            if name in self.objects:
+                self.objects[name]["running"] = False
             return
 
         # Call its initialize function
