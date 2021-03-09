@@ -40,6 +40,8 @@ Change Log
 - Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
+- Bumped pid from 2.2.5 to 3.0.4
+- Bumped pygments from 2.6.1 to 2.8.1
 - Bumped iso8601 from 0.1.12 to 0.1.14
 - Bumped pytz from 2019.3 to 2020.1
 - Bumped bcrypt from 3.1.7 to 3.2.0
