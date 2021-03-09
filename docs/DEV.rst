@@ -87,17 +87,17 @@ adding to the docs to make them more helpful. To work on the docs, submit a pull
 will review and merge them in the usual way. I use `readthedocs` to build and host the docs, and you can easily
 set up a preview of your edits as follows:
 
-First, install sphinx.
+First, install sphinx and support libraries.
 
 .. code:: bash
 
-    $ pip3 install sphinx
+    $ pip3 install sphinx sphinx-rtd-theme sphinx-autobuild
 
 Then `cd` to the `docs` subdirectory, where all the `rst` files are found, and run the following command:
 
 .. code:: bash
 
-    $ sphinx-autobuild -H 0.0.0.0 . _build_html
+    $ sphinx-autobuild  --host=0.0.0.0  . _build_html
 
 Sphinx will take a minute or so to build the current version of the docs, and it will then be available on port 8000
 (e.g., http://localhost:8080) of the machine hosting sphinx. As you make changes. Sphinx will automatically detect them
