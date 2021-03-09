@@ -40,6 +40,11 @@ Change Log
 - Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
+- Bumped bcrypt from 3.1.7 to 3.2.0
+- Bumped feedparser from 5.2.1 to 6.0.2
+- Bumped yarl from 1.4.2 to 1.6.3
+- Bumped voluptuous from 0.11.7 to 0.12.1
+- Bumped pyyaml from 5.3 to 5.4.1
 - Bumped jinja2 from 2.11.1 to 2.11.2
 - Bumped astral from 1.10.1 to 2.2
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
