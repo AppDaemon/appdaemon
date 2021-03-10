@@ -538,7 +538,7 @@ The next step is to set up the widget to respond to various events such as butto
 
 There could be occasions when it is desirable to register for an event other than just "click", and get the whole event data.
 This is possible by registering and passing "event" and boolen `true`, so that dashboard is aware of the fact the entire
-event data is required. Below is an example 
+event data is required. Below is an example
 
 .. code:: javascript
 
@@ -546,9 +546,9 @@ event data is required. Below is an example
             // They are defined as functions below and can be any name as long as the
             // 'self'variables match the callbacks array below
             // We need to add them into the object for later reference
-    
+
             self.OnMouseEvent = OnMouseEvent
-    
+
             var callbacks =
                 [
                     {"selector": '#' + widget_id + ' > span', "action": ["mousedown", "mouseup"], "event": true, "callback": self.OnMouseEvent}

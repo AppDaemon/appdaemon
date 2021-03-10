@@ -416,7 +416,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 
             }
 
-            else 
+            else
             {
                 $(callbacks[i].selector).on(callbacks[i].action, (
                     function (callback, ch, params) {
