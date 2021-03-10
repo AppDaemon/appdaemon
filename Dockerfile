@@ -1,4 +1,5 @@
-FROM python:3.7-alpine
+ARG IMAGE=python:3.8-alpine
+FROM ${IMAGE}
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
@@ -21,12 +22,9 @@ COPY . .
 # Install timezone data
 RUN apk add tzdata
 
-# Fix for current dev branch
-RUN pip3 install --no-cache-dir python-dateutil
-
 # Install dependencies
-RUN apk add --no-cache gcc libffi-dev musl-dev \
-    && pip3 install --no-cache-dir .
+RUN apk add --no-cache build-base gcc libffi-dev openssl-dev musl-dev cargo \
+    && pip install --no-cache-dir .
 
 # Install additional packages
 RUN apk add --no-cache curl

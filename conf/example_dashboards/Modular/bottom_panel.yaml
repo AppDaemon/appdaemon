@@ -27,6 +27,6 @@ load_controls:
     title: Controls
     icon_inactive: fa-dashboard
     dashboard: Controls
-    
-layout: 
+
+layout:
     - load_main_panel(2x1), load_office_panel(2x1), load_weather(2x1),load_controls(2x1)

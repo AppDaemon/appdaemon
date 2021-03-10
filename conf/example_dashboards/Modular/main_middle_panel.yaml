@@ -7,7 +7,7 @@ wlamp:
     on_attributes:
       brightness: 255
       color_temp: 276
-    
+
 downstairs_thermometer:
     widget_type: climate
     title: Downstairs
@@ -33,7 +33,7 @@ light_level:
     precision: 0
     shorten: 1
     entity: sensor.side_multisensor_luminance
-    
+
 layout:
-    - wlamp, scene.downstairs_on, scene.downstairs_off, scene.downstairs_bright, upstairs_thermometer, downstairs_thermometer, basement_thermometer, light_level  
+    - wlamp, scene.downstairs_on, scene.downstairs_off, scene.downstairs_bright, upstairs_thermometer, downstairs_thermometer, basement_thermometer, light_level
     - scene.outside_bright, scene.outside_off, scene.porch_on, scene.porch_off, input_boolean.night_outside_motion, input_boolean.guest, input_boolean.cooling, input_boolean.heating

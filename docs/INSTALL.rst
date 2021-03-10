@@ -82,7 +82,7 @@ AppDaemon arguments
     optional arguments:
       -h, --help            show this help message and exit
       -c CONFIG, --config CONFIG
-                            full path to config diectory
+                            full path to config directory
       -p PIDFILE, --pidfile PIDFILE
                             full path to PID File
       -t TIMEWARP, --timewarp multiplication factor for the scheduler time (see Time TraveL)
@@ -96,7 +96,7 @@ AppDaemon arguments
       -d, --daemon          run as a background process
 
 -c is the path to the configuration directory. If not specified,
-AppDaemon will look for a file named ``appdaemon.cfg`` first in
+AppDaemon will look for a file named ``appdaemon.yaml`` first in
 ``~/.homeassistant`` then in ``/etc/appdaemon``. If the directory is not
 specified and it is not found in either location, AppDaemon will raise
 an exception. In addition, AppDaemon expects to find a dir named
@@ -128,7 +128,7 @@ First, create a new file using vi:
     $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
 
 Add the following, making sure to use the correct full path for your
-config directory. Also make sure you edit the ``User`` to a valid user
+config directory. Also, make sure you edit the ``User`` to a valid user
 to run AppDaemon, usually the same user as you are running Home
 Assistant with is a good choice.
 
@@ -173,12 +173,12 @@ If you are using docker, refer to the steps in the tutorial.
 Windows Support
 ---------------
 
-AppDaemon runs under windows and has been tested with the official 3.5.2
+AppDaemon runs under windows and has been tested with the official 3.8.1
 release of python. However, there are a couple of caveats:
 
 -  The ``-d`` or ``--daemonize`` option is not supported owing to
    limitations in the Windows implementation of Python.
--  Some internal diagnostics are disabled. This is not user visible but
+-  Some internal diagnostics are disabled. This is not user-visible but
    may hamper troubleshooting of internal issues if any crop up
 
 AppDaemon can be installed exactly as per the instructions for every
@@ -208,7 +208,7 @@ prior to installing AppDaemon with the pip3 method:
 Raspberry Pi Docker
 -------------------
 
-Since the official Docker image isn't compatible with raspberry Pi, you will need to build your own docker image
+Since the official Docker image isn't compatible with Raspberry Pi, you will need to build your own docker image
 from the downloaded repository.
 
 .. code:: bash
@@ -220,7 +220,7 @@ You can then build and run the docker image locally as follows:
 
 .. code:: bash
 
-    $ docker build -t appdaemon .
+    $ docker build -t appdaemon --build-arg IMAGE=python:3.8-alpine3.12 --network=host .
     $ docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<Your HA_URL value>" \

@@ -5,7 +5,6 @@ import threading
 
 
 class AppDaemon:
-
     def __init__(self, logging, loop, **kwargs):
 
         #
@@ -73,13 +72,13 @@ class AppDaemon:
         utils.process_arg(self, "starttime", kwargs)
 
         self.latitude = None
-        utils.process_arg(self, "latitude", kwargs)
+        utils.process_arg(self, "latitude", kwargs, float=True)
 
         self.longitude = None
-        utils.process_arg(self, "longitude", kwargs)
+        utils.process_arg(self, "longitude", kwargs, float=True)
 
         self.elevation = None
-        utils.process_arg(self, "elevation", kwargs)
+        utils.process_arg(self, "elevation", kwargs, int=True)
 
         self.time_zone = None
         utils.process_arg(self, "time_zone", kwargs)
@@ -187,7 +186,6 @@ class AppDaemon:
         #
         self.sched = scheduler.Scheduler(self)
 
-
         #
         # Set up state
         #
@@ -207,7 +205,6 @@ class AppDaemon:
         # Set up futures
         #
         self.futures = futures.Futures(self)
-
 
         if self.apps is True:
             if self.app_dir is None:
@@ -229,13 +226,13 @@ class AppDaemon:
             self.threading = appdaemon.threading.Threading(self, kwargs)
 
         self.stopping = False
-        
+
         #
         # Set up Executor ThreadPool
         #
         if "threadpool_workers" in kwargs:
             self.threadpool_workers = int(kwargs["threadpool_workers"])
-            
+
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         # Initialize Plugins
@@ -295,4 +292,3 @@ class AppDaemon:
 
             self.admin_loop = admin_loop.AdminLoop(self)
             self.loop.create_task(self.admin_loop.loop())
-

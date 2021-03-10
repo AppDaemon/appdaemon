@@ -19,15 +19,15 @@ Base Widgets live in subdirectories, Derived Widgets are simply yaml files.
 
 The reason for the 2 types of widget is one of design philosophy. The goal is to have relatively few
 Base Widgets, and multiple derived widgets that map to them with minor parameter changes.
-For example, in Home Assistant, a light and a group are fairly similar, and require identical controls and status displays.
-This makes it possible to create a single Base Widget, and map to it with two separate Derived Widgets.
+For example, in Home Assistant, a light and a group are fairly similar and require identical controls and status displays.
+This makes it possible to create a single Base Widget and map to it with two separate Derived Widgets.
 When creating a new Widget type, attempt to do one of the following in order of preference:
 
 #. Create a new Derived Widget that works with an existing Base Widget
 #. Create a new Derived Widget that works with modifications to an existing Base Widget
 #. Create a new Derived and Base Widget
 
-We also talk abour a third type of widgets, an ``Instantiated Widget`` -
+We also talk about a third type of widgets, an ``Instantiated Widget`` -
 this refers to an actual widget in a dashboard configuration file which will have a widget type and a number of
 specific variables.
 
@@ -47,7 +47,7 @@ the custom widget will be used in preference to allow existing widgets to be eas
 
 When a widget has been created and tested, and the author desires to contribute the widget back to the community,
 all that is required is that the Derived and Base Widgets are placed in the Git Repository in the standard widget directory
-(``appdaemon/widgets``) then a Pull Request may be issued in the ususal way.
+(``appdaemon/widgets``) then a Pull Request may be issued in the usual way.
 
 Derived Widgets
 ---------------
@@ -106,7 +106,7 @@ Top Level Variables
     entity: {{entity}}
 
 Any entries at the top level are simply variables to be passed to the Base Widget. Some of them have special meanings
-(listed in the following sections) but any values are allowed, and are all passed to the Base Widget.
+(listed in the following sections) but any values are allowed and are all passed to the Base Widget.
 The exception to this is the ``widget_type`` entry, which is required and refers to the Base Widget that this Derived
 Widget works with.
 
@@ -117,7 +117,7 @@ For example, a Base Widget may require a ``service`` parameter for which service
 A ``switch`` Derived Widget may hard code this as ``switch.turn_on`` while a ``light`` derived widget may hard code it
 as ``light.turn_on``. Both however require the entity name from the Instantiated widget.
 In practice, this example is somewhat artificial as you could use ``home_assistant.turn_on`` for both service calls,
-and in fact lights and switches have different Base Widgets, but the concept remains valid.
+and in fact, lights and switches have different Base Widgets, but the concept remains valid.
 
 An example of the above can be seen in action here:
 
@@ -208,12 +208,12 @@ CSS
       icon_style_active: $light_icon_style_active
       icon_style_inactive: $light_icon_style_inactive
 
-The `css` parameters are analogous to the ``icons`` - they are styles that are expected to be maipulated as part of the Widget's operation.
+The `css` parameters are analogous to the ``icons`` - they are styles that are expected to be manipulated as part of the Widget's operation.
 They will be made available to the widget at initialization time, and are mapped through the skin.
 
-In the case of the light Base Widget they remain the same, but inb a scene for instance,
+In the case of the light Base Widget they remain the same, but in a scene, for instance,
 the touch pad is grey except when it is activated when it changes to green -
-these styles are made available to the Base Widget to use for changing th style when the button is pressed.
+these styles are made available to the Base Widget to use for changing the style when the button is pressed.
 
 Static CSS
 ~~~~~~~~~~
@@ -232,9 +232,9 @@ Static CSS
       widget_style: $light_widget_style
 
 
-The ``statis_css`` entry is used for styles that are automatically applied to various fields.
+The ``static_css`` entry is used for styles that are automatically applied to various fields.
 As with ``static_icons``, these are expected to be static and are automatically applied when the widget initializes.
-Again, the variables are derived from the skin, and refer top things like titles that remain static for the lifetime of the widget.
+Again, the variables are derived from the skin, and refer to things like titles that remain static for the lifetime of the widget.
 
 
 Empty Values
@@ -252,7 +252,7 @@ Summary
 
 In summary, a Derived Widget has 2 main functions:
 
-#. Map values from the Instantiated Widget to the Base Widget, supplying hard coded parameters where necessary
+#. Map values from the Instantiated Widget to the Base Widget, supplying hard-coded parameters where necessary
 #. Interact with the skin in use to provide the correct styles and icons to the Base Widget
 
 It is technically possible to load a Base Widget into a dashboard directly but this is discouraged
@@ -283,29 +283,29 @@ also named for the widget:
 
 The files are:
 
-#. An HTML file that describes the various elements that the widget has, such as titles, value fields etc.
+#. An HTML file that describes the various elements that the widget has, such as titles, value fields, etc.
    The HTML file also defines data bindings that the JavaScript piece uses.
 #. A CSS File - this describes the basic styles for the widget and is used for placement of elements too
 #. A JavaScript file - this file uses the Widget API and contains all of the logic for the widget.
 
-For the pusposes of this document we will provide examples from the ``baselight`` Base Widget.
+For the purposes of this document, we will provide examples from the ``baselight`` Base Widget.
 
 Widget HTML Files
 ~~~~~~~~~~~~~~~~~
 
 The HTML files exist to provide a basic layout for the widget and insert the styles. They are usually fairly simple.
 
-By convention, the variaous tag types have styling suitable for some common elements although that can be overriden in
+By convention, the various tag types have styling suitable for some common elements although that can be overidden in
 the css file or the skin:
 
 - <h1> is styled for small text such as titles or state text
 - <h2> is styled for large icons or text values
 - <p> is styled for small unit labels, e.g. ``%``
 
-To assist with programatically changing values and styles in the HTML, HADashboard uses `Knockout <http://knockoutjs.com/index.html>`__
+To assist with programmatically changing values and styles in the HTML, HADashboard uses `Knockout <http://knockoutjs.com/index.html>`__
 From their web page:
 
-    Knockout is a JavaScript library that helps you to create rich, responsive display and editor user interfaces with a clean underlying data model. Any time you have sections of UI that update dynamically (e.g., changing depending on the user’s actions or when an external data source changes), KO can help you implement it more simply and maintainably.
+    Knockout is a JavaScript library that helps you to create rich, responsive display and editor user interfaces with a clean underlying data model. Any time you have sections of UI that update dynamically (e.g., changing depending on the user’s actions or when an external data source changes), KO can help you implement it more simply and maintainable.
 
 Knockout bindings are used to set various attributes and the binding types in use are as follows:
 
@@ -336,7 +336,7 @@ Here is an example of an HTML file.
   their names must match
 - The ``<h2>`` tag introduces a large icon, presumably of a lightbulb or something similar. Here, because of the way that icons work,
   we are using a class attribute in Knockout to directly set the class of the element which has the effect of forcing an icon to be displayed
-- The ``<span>`` is set up to allow the user to toggle the widget on and off and is reffered to later in the JavaScript
+- The ``<span>`` is set up to allow the user to toggle the widget on and off and is referred to later in the JavaScript
 - The ``<div>`` here is used for grouping the level and unit labels for the light, along with the included ``<p>`` tags which introduce the actual elements
 - The last 2 ``<p>`` elements are for the up and down icons.
 
@@ -345,7 +345,7 @@ Widget CSS Files
 
 CSS files in widgets are used primarily for positioning of elements since most of the styling occurs in the skins.
 Since each widget must have a unique id, the ``{id}}`` piece of each selector name will be substituted with a unique
-id ewnsuring that even if there are multiple instances of the same widget they will all behave correctly.
+id ensuring that even if there are multiple instances of the same widget they will all behave correctly.
 
 Other than that, this is standard CSS used for laying out the various HTML elements appropriately.
 
@@ -438,13 +438,13 @@ Here is an example that works with the HTML above.
 Widget JavaScript Files
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The JavaScript file is responsible fore glueing all the pieces together:
+The JavaScript file is responsible for glueing all the pieces together:
 
 - Registering callbacks for events
 - Registering callbacks for touches
 - Updating the fields, icons, styles as necessary
 
-Lets take a look at a typical JavaScript Widget - the Baselight Widget.
+Let's take a look at a typical JavaScript Widget - the Baselight Widget.
 
 .. code:: javascript
 
@@ -454,7 +454,7 @@ Lets take a look at a typical JavaScript Widget - the Baselight Widget.
 All widgets are declared with an initial function named for the widget functions within the .js file
 although they are technically objects.
 
-This fucntion is in fact the constructor and is initially called when the widget is first loaded.
+This function is, in fact, the constructor and is initially called when the widget is first loaded.
 It is handed a number of parameters:
 
 - widget_id - Unique identifier of the widget
@@ -472,9 +472,9 @@ Next we need to set up our ``self`` variable:
         self = this
 
 For the uninitiated, JavaScript has a somewhat confused notion of scopes when using objects, as scopes can be inherited
-from different places depebding on the mechanism for calling intto the code. In Widgets, various tricks have been used
+from different places depending on the mechanism for calling into the code. In Widgets, various tricks have been used
 to present a consistent view to the user which requires an initial declaration of the self variable. From then on,
-all calls pass this variable between calls to ensure consistency. It is recomended that the convention of
+all calls pass this variable between calls to ensure consistency. It is recommended that the convention of
 declaring ``self = this`` at the top of the function then rigidly sticking to the use of ``self`` is adhered to,
 to avoid confusion.
 
@@ -560,8 +560,8 @@ there is an issue with race conditions if we subscribe to the normal `change` ev
 and our `onChange` function may be called before the knockout binding has an opportunity to update itself,
 and we will see the old value. To handle this situation, a second type of event subscription is provided -
 we will subscribe to the knockout binding changing rather than the control itself. This is done in a similar way
-to the previous mechanism, the only differentce is that instead of a `selector` parameter, we use an
-`observable` parameter whcih is the name of the binding you want to subscribe to. For instance:
+to the previous mechanism, the only difference is that instead of a `selector` parameter, we use an
+`observable` parameter which is the name of the binding you want to subscribe to. For instance:
 
 
 .. code:: javascript
@@ -594,9 +594,9 @@ we care about 2 separate things:
 #. Tracking changes to the state over time
 
 The first is accomplished by a callback when the widget is first loaded. We add a callback for the entity we are
-interested in and identify which routine will be called initially whrn the widget is loaded, and which callback will be
+interested in and identify which routine will be called initially when the widget is loaded, and which callback will be
 called whenever we see a state update. These functions will be responsible for updating the fields necessary to show
-initial state and changes over time. How that happens is a function of the widget design, but for instance a
+initial state and changes over time. How that happens is a function of the widget design, but for instance, a
 change to a sensor will usually result in that value being displayed in one of the HTML fields.
 
 Here we are tracking just one entity, but it is possible to register callbacks on as many entities as you need for your
@@ -618,7 +618,7 @@ not every widget needs to respond to touches, not every widget needs to respond 
 After this call completes, the initializer is complete and from now on, activity in the widget is governed by
 callbacks either from initial state, state changes or button clicks,
 
-Next we will define our state callbacks:
+Next, we will define our state callbacks:
 
 .. code:: javascript
 
@@ -644,7 +644,7 @@ Next we will define our state callbacks:
 
 This function was one of the ones that we referred to earlier in the ``monitored_entities`` list. Since we identified
 this as the ``initial`` callback, it will be called with an initial value for the entities state when the widget is
-first loaded, but after the constructor function has completed. It is handed a self reference, and the state for the
+first loaded, but after the constructor function has completed. It is handed a self-reference, and the state for the
 entity it subscribed to. What happens when this code is called is up to the widget. In the case of Base Light it will
 set the icon type depending on whether the light is on or off, and also update the level.
 Since this is done elsewhere in the widget, I added a function called ``set_view`` to set these things up.
@@ -652,7 +652,7 @@ There is also some logic here to account for the fact that in Home Assistant a l
 off, so ``0`` is assumed. Here, we also make a note of the current state for later reference - ``self.state = state.state``
 
 - ``self.state`` is an object attribute
-- ``state.state`` is the actual state of the entity. Like othe Home Assistant state descriptions it can also have
+- ``state.state`` is the actual state of the entity. Like other Home Assistant state descriptions it can also have
   a set of sub-attributes under ``state.attributes`` for values like brightness or color etc.
 
 ``OnStateUpdate`` at least for this widget is very similar to ``OnStateAvailable``,
@@ -680,7 +680,7 @@ in fact it could probably be a single function for both ``initial`` and ``update
         }
 
 
-Next we define the functions that we referenced in the ``callback`` list for the various click actions. First,
+Next, we define the functions that we referenced in the ``callback`` list for the various click actions. First,
 ``OnButtonClick`` is responding to someone touching the widget to toggle the state from off to on or vice-versa.
 
 .. code:: javascript
@@ -710,16 +710,16 @@ This is less complicated than it looks. What is happening here is that based on 
 we are selecting which service to call to change that state. We are looking it up in our parameters that we saved earlier.
 
 So, if the light is ``off`` we consult our parameters for ``post_service_active`` which should be set to a service that
-will turn ther light on (e.g. ``light/turn_on``). Similarly if it is on, we look for ``post_service_inactive`` to
+will turn the light on (e.g. ``light/turn_on``). Similarly, if it is on, we look for ``post_service_inactive`` to
 find out how to turn it off. Once we have made that choice we make the service call to effect
 the change: ``self.call_service()``
 
 The additional logic and loop when state is off is to construct the necessary dictionary of additional parameters in
-the format the ``turn_on`` service expects to set brightness, color etc, that may be passed in to the widget.
+the format the ``turn_on`` service expects to set brightness, color, etc, that may be passed into the widget.
 
-Usually HADasboard understands ``args`` values as a single string. If you need to use a service which expects to 
-receive a list or a dictionary then you may use the special key ``json_args`` and set its value to a stringified 
-json. For example, suppose you want to pass to the service a list called ``colors``, then you could change the above 
+Usually, HADashboard understands ``args`` values as a single string. If you need to use a service that expects to
+receive a list or a dictionary then you may use the special key ``json_args`` and set its value to a stringified
+json. For example, suppose you want to pass to the service a list called ``colors``, then you could change the above
 code and include another check:
 
 .. code:: javascript
@@ -810,7 +810,7 @@ changed.
 
         // Set view is a helper function to set all aspects of the widget to its
         // current state - it is called by widget code when an update occurs
-        // or some other event that requires a an update of the view
+        // or some other event that requires an update of the view
 
         function set_view(self, state, level)
         {
@@ -1026,7 +1026,7 @@ That is the anatomy of a typical widget - here it is in full:
 
         // Set view is a helper function to set all aspects of the widget to its
         // current state - it is called by widget code when an update occurs
-        // or some other event that requires a an update of the view
+        // or some other event that requires an update of the view
 
         function set_view(self, state, level)
         {
@@ -1058,10 +1058,6 @@ That is the anatomy of a typical widget - here it is in full:
 A Note on Skinning
 ------------------
 
-As you have seen, when creating a new wiget, it is also necessary to add entries for the skinning variables.
+As you have seen, when creating a new widget, it is also necessary to add entries for the skinning variables.
 When contributing widgets back, please ensure that you have provided entries for all of the included skins
 that are sympathetic to the original look and feel, or the PR will not be accepted.
-
-
-
-

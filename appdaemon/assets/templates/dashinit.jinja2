@@ -1,3 +1,4 @@
+var myDeviceID;
 $(function(){ //DOM Ready
 
     function navigate(url)
@@ -16,15 +17,15 @@ $(function(){ //DOM Ready
         max_size_x: {{columns}},
         shift_widgets_up: false
     }).data('gridster').disable();
-    
+
     // Add Widgets
 
     var gridster = $(".gridster ul").gridster().data('gridster');
     {% for widget in widgets%}
         gridster.add_widget('<li><div data-bind="attr: {style: widget_style}" class="widget widget-{{widget.parameters.widget_type}}-{{widget.id}}" id="{{widget.id}}">{{widget.html.replace('\'', '\\\'')}}</div></li>', {{widget.size[0]}}, {{widget.size[1]}}, {{widget.position[0]}}, {{widget.position[1]}})
     {% endfor %}
-    
-    
+
+
     var widgets = {}
     // Initialize Widgets
     {% for widget in widgets%}
@@ -56,6 +57,30 @@ $(function(){ //DOM Ready
         result[item[0]] = decodeURIComponent(item[1]);
         });
 
+        if ("deviceid" in result)
+        {
+            myDeviceID = result.deviceid;
+            try
+            {
+                localStorage['hadashboard-deviceid'] = myDeviceID;
+            }
+            catch (e)
+            {
+                console.log(e);
+            }
+        }
+        else
+        {
+            try
+            {
+                myDeviceID = localStorage['hadashboard-deviceid'];
+            }
+            catch (e)
+            {
+                console.log(e);
+                myDeviceID = null;
+            }
+        }
         if ("timeout" in result && "return" in result)
         {
             url = result.return
@@ -70,7 +95,7 @@ $(function(){ //DOM Ready
                     }
                     else
                     {
-                        url += "?";
+                        url += "&";
                     }
                     argcount ++;
                     url += arg + "=" + result[arg]
@@ -86,22 +111,8 @@ $(function(){ //DOM Ready
         }
     }
 
-    // Start listening for HA Events
+    // Start listening for AD Events
 
-    {% if transport == "ws" %}
-    if (location.protocol == 'https:')
-    {
-        wsprot = "wss:"
-    }
-    else
-    {
-        wsprot = "ws:"
-    }
-    var stream_url = wsprot + '//' + location.host + '/stream'
-    {% else %}
-        var stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
-    {% endif %}
-
-    ha_status(stream_url, "{{ title }}", widgets, "{{ transport }}");
+    window.dashstream = new DashStream("{{ transport }}", location.protocol, document.domain, location.port, "{{ title }}", widgets);
 
 });

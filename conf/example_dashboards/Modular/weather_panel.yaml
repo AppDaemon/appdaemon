@@ -3,11 +3,11 @@ weather_frame:
     title: Radar
     refresh: 300
     frame_style: ""
-    img_list: 
+    img_list:
       - https://icons.wxug.com/data/weather-maps/radar/united-states/hartford-connecticut-region-current-radar-animation.gif
 
 
-      
+
 layout:
     - weather_frame(4x5), sensor.dark_sky_minutely_summary(2x1), sensor.dark_sky_hourly_summary(2x1)
     - sensor.dark_sky_daily_summary(2x1), sensor.dark_sky_pressure(2x1)

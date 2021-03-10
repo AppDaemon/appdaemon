@@ -198,7 +198,7 @@ Lets look at a couple more examples of widget definitions:
         widget_type: binary_sensor
         title: Porch
         entity: binary_sensor.porch_multisensor_sensor_27_0
-        
+
     side_temperature:
         widget_type: sensor
         title: Temperature
@@ -360,7 +360,7 @@ contained submodules (mode\_panel.yaml):
         precision: 0
         shorten: 1
         entity: sensor.side_multisensor_luminance_25_3
-            
+
     porch_motion:
         widget_type: binary_sensor
         title: Porch
@@ -397,10 +397,10 @@ we have included in the other files:
         - include: bottom_panel
         - clock(2x1), weather(2x2), side_temperature, side_humidity, andrew_presence, wendy_presence
         - mode(2x1), light_level(2x1), porch_motion, garage
-        - wlamp_scene, don_scene, doff_scene, dbright_scene, upstairs_thermometer, downstairs_thermometer, basement_thermometer, thermostat_setpoint  
+        - wlamp_scene, don_scene, doff_scene, dbright_scene, upstairs_thermometer, downstairs_thermometer, basement_thermometer, thermostat_setpoint
         - obright_scene, ooff_scene, pon_scene, poff_scene, night_motion, guest_mode, cooling, heat
         - morning(2x1), day(2x1), evening(2x1), night(2x1)
-        - load_main_panel, load_upstairs_panel, load_upstairs, load_downstairs, load_outside, load_doors, load_controls, reload  
+        - load_main_panel, load_upstairs_panel, load_upstairs, load_downstairs, load_outside, load_doors, load_controls, reload
 
 In this case, the actual layout including a widget must be after the
 include as you might expect.
@@ -446,7 +446,7 @@ itself, and include the header in the layout:
     label:
         widget_type: label
         text: Welcome to the Den
-        
+
     layout:
         - include: header
 
@@ -544,12 +544,12 @@ Each widget could have custom text for title a title2. You can use the option to
 -  ``title2_is_friendly_name`` - set title2 as entity friendly name if exists
 
 Example:
- 
+
 .. code:: yaml
 
     title_is_friendly_name: 1
     title2_is_friendly_name: 1
-    
+
 Icons
 -----
 
@@ -585,7 +585,7 @@ through a variety of means:
 
 The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
-`AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
+`AppDaemon API Pages <API.html>`__. The custom event name is ``ad_dashboard`` and the
 dashboard will respond to various commands with associated data.
 
 To create a suitable custom event within a HASS automation, script or
@@ -596,12 +596,39 @@ Alexa Intent, simply define the event and associated data as follows
 
     alias: Navigate
     sequence:
-    - event: hadashboard
+    - event: ad_dashboard
       event_data:
         command: navigate
         timeout: 10
         target: SensorPanel
         sticky: 0
+
+These following arguments are optional and can be used to determine
+if a given device or dashboard should execute the command or not:
+
+``deviceid``: If set, only the device(s) which has the same deviceid will
+execute the command. See below how to set a deviceid.
+``dashid``: If set, all devices currently on a dashboard which the title
+contains the substring defined by dashid will execute the command. ex: if
+dashid is set to "kichen", it will match devices which are on "kitchen lights",
+"kitchen sensors", "ipad - kitchen", etc.
+
+
+Setting a deviceid
+~~~~~~~~~~~~~~~~~~~
+
+A "device" is a combination of machine+browser, so a computer+firefox could
+be one device, while the same computer+safari can be another. To set the
+``deviceid`` of a device add the ```deviceid=your_deviceid``` parameter to
+the dashboard url, for instance:
+
+``http://192.168.1.20:5050/mypanel?deviceid=kitchentablet``
+
+HADashboard will try to store the deviceid on the device so you don't need
+to use this parameter everytime. You may use it again if you want to set
+a new deviceid or if you cleaned device's cookies or the device doesnt
+support it.
+
 
 The current list of commands supported and associated arguments are as
 follows:
@@ -609,23 +636,24 @@ follows:
 navigate
 ~~~~~~~~
 
-Force any connected dashboards to navigate to a new page
+Force one or more connected dashboards to navigate to a new page
 
 Arguments:
 ^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
-``SensorPanel`` - this is not a URL. ``timeout`` - length of time to
-stay on the new dashboard before returning to the original. This
-argument is optional, and if not specified, the navigation will be
-permanent.
+``SensorPanel`` - this is not a URL.
+``timeout`` - length of time to stay on the new dashboard before returning to
+the original. This argument is optional, and if not specified, the navigation
+will be permanent.
 
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``timeout`` - length of time to stay on the new dashboard
 ``return`` - dashboard to return to after the timeout has elapsed.
-``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1``, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``deviceid``: If set, only the device(s) which has the same deviceid will navigate.
+``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate.
 
 Namespaces
 ----------
@@ -1083,9 +1111,15 @@ A widget to monitor the state of an entity and display a different icon and styl
        "active":
          icon: fas-glass
          style: "color: green"
+         post_service_active:
+           service: homeassistant/turn_on
+           entity_id: script.deactivate
        "inactive":
          icon: fas-repeat
          style: "color: blue"
+         post_service_active:
+           service: homeassistant/turn_on
+           entity_id: script.activate
        "idle":
          icon: fas-frown
          style: "color: red"
@@ -1093,7 +1127,9 @@ A widget to monitor the state of an entity and display a different icon and styl
          icon: fas-rocket
          style: "color: cyan"
 
-The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``.
+
+Each icon can have a service call assigned by post_service_active entry - on icon click, specified service like HA script or AD sequence is called for currently active state.
 
 The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
@@ -1101,7 +1137,7 @@ Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
--  ``icons`` - a list of icons and styles to be applied for various states.
+-  ``icons`` - a list of icons, styles and service calls to be applied for various states
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -1110,6 +1146,7 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``state_text``
 -  ``state_map``
+-  ``update_delay`` - seconds to wait before processing state update
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^^^
@@ -1694,6 +1731,13 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.
 -  ``skin`` - Skin to use with the new screen (for HADash URLs only)
+-  ``forward_parameters`` - a list of URL parameters that should be forwarded
+   from the current dashboard URL to the next dashboard. For example, if the
+   current dashboard was called with "&deviceid=1234&otherparameter=foo",
+   adding "deviceid" to ``forward_parameters`` will preserve "deviceid" and
+   discard "otherparameter=foo". You may add "all" to the ``forward_parameters``
+   to forward all parameters, except "timeout", "return", "sticky" as this can cause
+   problems. If ``forward_parameters`` is not used, then only skin is preserved.
 
 For an arbitrary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
@@ -2321,7 +2365,7 @@ The skin itself consists of 2 separate files:
 Dashboard.css is a regular CSS file, and knowledge of CSS is required to
 make changes to it.
 
-Variables.yaml is really a set of overrise styles, so you can use
+Variables.yaml is really a set of override styles, so you can use
 fragments of CSS here, basically, anything that you could normally put in
 an HTML ``style`` tag. Variables .yaml also supports variable expansion
 to make structuring the file easier. Anything that starts with a ``$``
@@ -2417,6 +2461,24 @@ to see how they are put together. Start off with the ``dashboard.css``
 and ``variables.yaml`` from an existing file and edit to suit your
 needs.
 
+Javascript
+----------
+
+There are a lot of ways to use javascript in Dashboard.
+You can create custom widgets that will need javascript, use the javascript
+widget to trigger a javascript function or you can add javascript directly
+to the head includes or body includes.
+
+Custom widgets require their own special .js files, but to trigger a function
+from the javascript widget or from the body includes you can create a
+``custom_javascript`` directory in the configuration directory.
+All files that are placed in that directory will automaticly included in
+Dashboard.
+All functions you place in a .js file inside that directory will be
+available everywhere in dashboard.
+Remember that you do this on your own responsibility. javscript code in
+those files can break Dashboards, and create vulnerabilities.
+
 Example Dashboards
 ------------------
 
@@ -2437,4 +2499,4 @@ To ease the transition further, a legacy mode has been included in HADashboard. 
 
 This is not intended as a permanent fix and may be removed at some point, but for now, this will enable existing skins and icons to work correctly, giving you an opportunity to work through your configurations and fix things.
 
-While working through the upgrade, it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+While working through the upgrade, it is strongly advised that you clear your browser cache and force recompile all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.

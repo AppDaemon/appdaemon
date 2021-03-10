@@ -7,21 +7,30 @@ also creates the loop and kicks everything off
 
 """
 
-import sys
 import argparse
+import asyncio
 import os
 import os.path
-import signal
 import platform
-import yaml
-import asyncio
-import pytz
-import pid
+import signal
+import sys
 
-import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.http as adhttp
 import appdaemon.logging as logging
+import appdaemon.utils as utils
+import pytz
+import yaml
+
+try:
+    import pid
+except ImportError:
+    pid = None
+
+try:
+    import uvloop
+except ImportError:
+    uvloop = None
 
 
 class ADMain:
@@ -78,7 +87,7 @@ class ADMain:
             self.logger.info("Keyboard interrupt")
             self.stop()
         if signum == signal.SIGTERM:
-            self.logger.info("SIGTERM Recieved")
+            self.logger.info("SIGTERM Received")
             self.stop()
 
     def stop(self):
@@ -110,6 +119,12 @@ class ADMain:
         """
 
         try:
+
+            # if to use uvloop
+            if appdaemon.get("uvloop") is True and uvloop:
+                self.logger.info("Running AD using uvloop")
+                uvloop.install()
+
             loop = asyncio.get_event_loop()
 
             # Initialize AppDaemon
@@ -120,8 +135,7 @@ class ADMain:
 
             if http is not None and (hadashboard is not None or admin is not None or api is not False):
                 self.logger.info("Initializing HTTP")
-                self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api,
-                                               http)
+                self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api, http,)
                 self.AD.register_http(self.http_object)
             else:
                 if http is not None:
@@ -142,18 +156,18 @@ class ADMain:
 
             self.logger.info("AppDaemon is stopped.")
 
-        except:
-            self.logger.warning('-' * 60)
+        except Exception:
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
-            self.logger.warning('-' * 60, exc_info=True)
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60, exc_info=True)
+            self.logger.warning("-" * 60)
 
             self.logger.debug("End Loop")
 
             self.logger.info("AppDaemon Exited")
 
     # noinspection PyBroadException
-    def main(self):
+    def main(self):  # noqa: C901
         """Initial AppDaemon entry point.
 
         Parse command line arguments, load configuration, set up logging.
@@ -166,18 +180,33 @@ class ADMain:
 
         parser = argparse.ArgumentParser()
 
-        parser.add_argument("-c", "--config", help="full path to config directory", type=str, default=None)
+        parser.add_argument(
+            "-c", "--config", help="full path to config directory", type=str, default=None,
+        )
         parser.add_argument("-p", "--pidfile", help="full path to PID File", default=None)
-        parser.add_argument("-t", "--timewarp", help="speed that the scheduler will work at for time travel", default=1, type=float)
-        parser.add_argument("-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str)
-        parser.add_argument("-e", "--endtime", help="end time for scheduler <YYYY-MM-DD HH:MM:SS>", type=str, default=None)
-        parser.add_argument("-D", "--debug", help="global debug level", default="INFO", choices=
-                            [
-                                "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
-                            ])
-        parser.add_argument('-m', '--moduledebug', nargs=2, action='append', help=argparse.SUPPRESS)
-        parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + utils.__version__)
-        parser.add_argument('--profiledash', help=argparse.SUPPRESS, action='store_true')
+        parser.add_argument(
+            "-t", "--timewarp", help="speed that the scheduler will work at for time travel", default=1, type=float,
+        )
+        parser.add_argument(
+            "-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>", type=str,
+        )
+        parser.add_argument(
+            "-e",
+            "--endtime",
+            help="end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>",
+            type=str,
+            default=None,
+        )
+        parser.add_argument(
+            "-D",
+            "--debug",
+            help="global debug level",
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        )
+        parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
+        parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
+        parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
 
         args = parser.parse_args()
 
@@ -205,10 +234,16 @@ class ADMain:
         try:
 
             #
+            # Read config file using environment variables
+            #
+
+            yaml.add_constructor("!env_var", utils._env_var_yaml, Loader=yaml.SafeLoader)
+
+            #
             # Initially load file to see if secret directive is present
             #
-            yaml.add_constructor('!secret', utils._dummy_secret, Loader=yaml.SafeLoader)
-            with open(config_file_yaml, 'r') as yamlfd:
+            yaml.add_constructor("!secret", utils._dummy_secret, Loader=yaml.SafeLoader)
+            with open(config_file_yaml, "r") as yamlfd:
                 config_file_contents = yamlfd.read()
 
             config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
@@ -222,29 +257,32 @@ class ADMain:
             # Read Secrets
             #
             if os.path.isfile(secrets_file):
-                with open(secrets_file, 'r') as yamlfd:
+                with open(secrets_file, "r") as yamlfd:
                     secrets_file_contents = yamlfd.read()
 
                 utils.secrets = yaml.load(secrets_file_contents, Loader=yaml.SafeLoader)
 
             else:
                 if "secrets" in config:
-                    print("ERROR", "Error loading secrets file: {}".format(config["secrets"]))
+                    print(
+                        "ERROR", "Error loading secrets file: {}".format(config["secrets"]),
+                    )
                     sys.exit()
 
             #
             # Read config file again, this time with secrets
             #
-            yaml.add_constructor('!secret', utils._secret_yaml, Loader=yaml.SafeLoader)
 
-            with open(config_file_yaml, 'r') as yamlfd:
+            yaml.add_constructor("!secret", utils._secret_yaml, Loader=yaml.SafeLoader)
+
+            with open(config_file_yaml, "r") as yamlfd:
                 config_file_contents = yamlfd.read()
 
             config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
         except yaml.YAMLError as exc:
             print("ERROR", "Error loading configuration")
-            if hasattr(exc, 'problem_mark'):
+            if hasattr(exc, "problem_mark"):
                 if exc.context is not None:
                     print("ERROR", "parser says")
                     print("ERROR", str(exc.problem_mark))
@@ -320,7 +358,9 @@ class ADMain:
         # Setup _logging
 
         if "log" in config:
-            print("ERROR", "'log' directive deprecated, please convert to new 'logs' syntax")
+            print(
+                "ERROR", "'log' directive deprecated, please convert to new 'logs' syntax",
+            )
             sys.exit(1)
         if "logs" in config:
             logs = config["logs"]
@@ -336,6 +376,9 @@ class ADMain:
         # Startup message
 
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
+        self.logger.info(
+            "Python version is %s.%s.%s", sys.version_info[0], sys.version_info[1], sys.version_info[2],
+        )
         self.logger.info("Configuration read from: %s", config_file_yaml)
         self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
@@ -344,19 +387,19 @@ class ADMain:
         exit = False
 
         if "time_zone" not in config["appdaemon"]:
-            self.logger.error("time_zone not specified in appdaemon.cfg")
+            self.logger.error("time_zone not specified in appdaemon.yaml")
             exit = True
 
         if "latitude" not in config["appdaemon"]:
-            self.logger.error("latitude not specified in appdaemon.cfg")
+            self.logger.error("latitude not specified in appdaemon.yaml")
             exit = True
 
         if "longitude" not in config["appdaemon"]:
-            self.logger.error("longitude not specified in appdaemon.cfg")
+            self.logger.error("longitude not specified in appdaemon.yaml")
             exit = True
 
         if "elevation" not in config["appdaemon"]:
-            self.logger.error("elevation not specified in appdaemon.cfg")
+            self.logger.error("elevation not specified in appdaemon.yaml")
             exit = True
 
         if exit is True:
@@ -369,10 +412,10 @@ class ADMain:
             dir = os.path.dirname(pidfile)
             name = os.path.basename(pidfile)
             try:
-                with pid.PidFile(name, dir) as p:
+                with pid.PidFile(name, dir):
                     self.run(appdaemon, hadashboard, admin, api, http)
             except pid.PidFileError:
-                self.logger.error("Unable to aquire pidfile - terminating")
+                self.logger.error("Unable to acquire pidfile - terminating")
         else:
             self.run(appdaemon, hadashboard, admin, api, http)
 

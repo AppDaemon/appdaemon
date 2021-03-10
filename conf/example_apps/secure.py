@@ -1,6 +1,5 @@
 import hassapi as hass
 import threading
-import datetime
 import time
 import random
 import re
@@ -14,8 +13,8 @@ import re
 # Version 1.0:
 #   Initial Version
 
-class Secure(hass.Hass):
 
+class Secure(hass.Hass):
     def initialize(self):
         self.action_lock = threading.RLock()
         for entity in self.list_entities():
@@ -30,7 +29,11 @@ class Secure(hass.Hass):
             if data["service"] == "alarm_arm_home" or data["service"] == "alarm_arm_away":
                 insecure, message = self.query_house({"type": data["service"]})
                 if insecure:
-                    self.call_service("alarm_control_panel/alarm_disarm", entity_id=self.args["alarm_entity"], code=self.args["alarm_code"])
+                    self.call_service(
+                        "alarm_control_panel/alarm_disarm",
+                        entity_id=self.args["alarm_entity"],
+                        code=self.args["alarm_code"],
+                    )
 
     def alarm_state(self, entity, attribute, old, new, kwargs):
         if old == "disarmed" and new == "pending":
@@ -45,13 +48,14 @@ class Secure(hass.Hass):
             self.alarm_alert()
 
     def state_event(self, entity, attribute, old, new, kwargs):
-        #self.verbose_log("Monitored entity changed state: {}: {} -> {}".format(entity, old, new))
+        # self.verbose_log("Monitored entity changed state: {}: {} -> {}".format(entity, old, new))
+        armed = False
+        zone_list = []
+
         if "alarm_entity" in self.args:
             state = self.get_state(self.args["alarm_entity"])
-            #self.verbose_log("Alarm state is: {}".format(state))
+            # self.verbose_log("Alarm state is: {}".format(state))
 
-            armed = False
-            zone_list = []
             if state == "armed_home":
                 zone_list = self.args["armed_home_zones"]
                 armed = True
@@ -60,13 +64,15 @@ class Secure(hass.Hass):
                 armed = True
 
         if armed:
-            entities = { key: value for (key, value) in self.filter_entities(zone_list)}
+            entities = {key: value for (key, value) in self.filter_entities(zone_list)}
             if entity in entities and old == entities[entity]["desired_state"]:
                 self.log("Alert - activating alarm!")
-                self.call_service("alarm_control_panel/alarm_trigger", entity_id=self.args["alarm_entity"],
-                                  code=self.args["alarm_code"])
-                #self.notify_alarm(entity, old, new)
-
+                self.call_service(
+                    "alarm_control_panel/alarm_trigger",
+                    entity_id=self.args["alarm_entity"],
+                    code=self.args["alarm_code"],
+                )
+                # self.notify_alarm(entity, old, new)
 
     def security_event(self, event_name, data, kwargs):
         if data["type"] == "secure" or data["type"] == "query":
@@ -92,7 +98,7 @@ class Secure(hass.Hass):
                 entities.append(entity)
         return entities
 
-    def query_house(self, data):
+    def query_house(self, data):  # noqa: C901
 
         self.timeout = 0
         secure_items = []
@@ -124,7 +130,7 @@ class Secure(hass.Hass):
         elif data["type"] == "alarm_arm_away":
             zone_list = self.args["armed_away_zones"]
         elif data["type"] == "alarm_disarm":
-            #self.tts_log(self.get_message("alarm_disarm_message"), 0.5, 2)
+            # self.tts_log(self.get_message("alarm_disarm_message"), 0.5, 2)
             return False, ""
 
         # Figure out which items are secure vs insecure
@@ -164,7 +170,7 @@ class Secure(hass.Hass):
                     self.unsecured_items.append(id)
 
             self.retry = 0
-            #self.handle = self.run_every(self.check_actions, self.datetime(), 1)
+            # self.handle = self.run_every(self.check_actions, self.datetime(), 1)
 
             #
             # Wait until all actions complete or timeout occurs
@@ -177,7 +183,7 @@ class Secure(hass.Hass):
                         complete = True
                 self.retry += 1
                 if "caller" in data and self.retry > 7:
-                    #We are in danger of Alexa timing out so respond with what we have
+                    # We are in danger of Alexa timing out so respond with what we have
                     message = self.report()
                     return True, message
 
@@ -208,74 +214,73 @@ class Secure(hass.Hass):
 
     def report(self, all_secure=False):
 
-            if all_secure:
+        if all_secure:
 
-                return self.get_secure_message()
+            return self.get_secure_message()
 
-            data = self.data
-            secured_items = self.secured_items
-            unsecured_items = self.unsecured_items
+        secured_items = self.secured_items
+        unsecured_items = self.unsecured_items
 
-            # Lets work out what to say
-            secured_items_list = ""
-            for item in secured_items:
-                if item not in self.attempted_items:
-                    entity = self.find_entity(item)
-                    if "state_map" in entity:
-                        state = entity["state_map"][self.get_state(item)]
-                    else:
-                        state = self.get_state(item)
-                    name = self.friendly_name(item)
-                    secured_items_list += " {} is {}, ".format(name, state)
-
-            unsecured_items_list = ""
-            for item in unsecured_items:
+        # Lets work out what to say
+        secured_items_list = ""
+        for item in secured_items:
+            if item not in self.attempted_items:
                 entity = self.find_entity(item)
                 if "state_map" in entity:
                     state = entity["state_map"][self.get_state(item)]
                 else:
                     state = self.get_state(item)
                 name = self.friendly_name(item)
-                unsecured_items_list += " {} is {}, ".format(name, state)
+                secured_items_list += " {} is {}, ".format(name, state)
 
-            failed_items_list = ""
-            for item in self.attempted_items:
-                entity = self.find_entity(item)
-                if "state_map" in entity:
-                    state = entity["state_map"][self.get_state(item)]
-                else:
-                    state = self.get_state(item)
-                name = self.friendly_name(item)
-                failed_items_list += " {} is {}, ".format(name, state)
-
-            message = ""
-            if unsecured_items_list != "":
-                message +=  self.get_message("insecure_message")
-                message += unsecured_items_list
-
-            if secured_items_list != "":
-                message +=  self.get_message("securing_message")
-                message += " " + secured_items_list
-
-            if failed_items_list != "":
-                message +=  self.get_message("failed_message")
-                message += " " + failed_items_list
-
-            if unsecured_items_list == "" and failed_items_list == "":
-                message += self.get_message("secure_message")
-                if self.data["type"] in ["alarm_arm_home", "alarm_arm_away"]:
-                    message += ". " + self.get_message("alarm_arm_message")
+        unsecured_items_list = ""
+        for item in unsecured_items:
+            entity = self.find_entity(item)
+            if "state_map" in entity:
+                state = entity["state_map"][self.get_state(item)]
             else:
-                message += self.get_message("not_secure_message")
-                if self.data["type"] in ["alarm_arm_home", "alarm_arm_away"]:
-                    message += ". " + self.get_message("alarm_cancel_message")
+                state = self.get_state(item)
+            name = self.friendly_name(item)
+            unsecured_items_list += " {} is {}, ".format(name, state)
 
-            # Clean up the message
-            message = re.sub(r'^\s+', "", message)
-            message = re.sub(r'\s+$', "", message)
-            message = re.sub(r'\s+', " ", message)
+        failed_items_list = ""
+        for item in self.attempted_items:
+            entity = self.find_entity(item)
+            if "state_map" in entity:
+                state = entity["state_map"][self.get_state(item)]
+            else:
+                state = self.get_state(item)
+            name = self.friendly_name(item)
+            failed_items_list += " {} is {}, ".format(name, state)
 
-            return message
+        message = ""
+        if unsecured_items_list != "":
+            message += self.get_message("insecure_message")
+            message += unsecured_items_list
+
+        if secured_items_list != "":
+            message += self.get_message("securing_message")
+            message += " " + secured_items_list
+
+        if failed_items_list != "":
+            message += self.get_message("failed_message")
+            message += " " + failed_items_list
+
+        if unsecured_items_list == "" and failed_items_list == "":
+            message += self.get_message("secure_message")
+            if self.data["type"] in ["alarm_arm_home", "alarm_arm_away"]:
+                message += ". " + self.get_message("alarm_arm_message")
+        else:
+            message += self.get_message("not_secure_message")
+            if self.data["type"] in ["alarm_arm_home", "alarm_arm_away"]:
+                message += ". " + self.get_message("alarm_cancel_message")
+
+        # Clean up the message
+        message = re.sub(r"^\s+", "", message)
+        message = re.sub(r"\s+$", "", message)
+        message = re.sub(r"\s+", " ", message)
+
+        return message
 
     def tts_log(self, message, volume, duration):
         self.log(message)
@@ -297,7 +302,7 @@ class Secure(hass.Hass):
     def triggered_alert(self):
         self.log("Alarm is about to go off")
 
-    #def notify_alarm(self, entity, old, new):
+    # def notify_alarm(self, entity, old, new):
     #    if "alarm_notify" in self.args:
     #        notifications = self.args["alarm_notify"]
     #        if "tts" in notifications:

@@ -10,13 +10,14 @@ import io
 import pstats
 import logging
 import asyncio
+import copy
+from collections import OrderedDict
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 
 class AppManagement:
-
     def __init__(self, ad: AppDaemon, config):
 
         self.AD = ad
@@ -55,10 +56,16 @@ class AppManagement:
         #
         # Register App Services
         #
-        self.AD.services.register_service("appdaemon", "app", "start", self.manage_services)
-        self.AD.services.register_service("appdaemon", "app", "stop", self.manage_services)
-        self.AD.services.register_service("appdaemon", "app", "restart", self.manage_services)
-        self.AD.services.register_service("appdaemon", "app", "reload", self.manage_services)
+        self.AD.services.register_service("admin", "app", "start", self.manage_services)
+        self.AD.services.register_service("admin", "app", "stop", self.manage_services)
+        self.AD.services.register_service("admin", "app", "restart", self.manage_services)
+        self.AD.services.register_service("admin", "app", "disable", self.manage_services)
+        self.AD.services.register_service("admin", "app", "enable", self.manage_services)
+        self.AD.services.register_service("admin", "app", "reload", self.manage_services)
+        self.AD.services.register_service("admin", "app", "create", self.manage_services)
+        self.AD.services.register_service("admin", "app", "edit", self.manage_services)
+        self.AD.services.register_service("admin", "app", "remove", self.manage_services)
+        self.AD.services.register_service("admin", "app", "reload", self.manage_services)
 
         self.active_apps = []
         self.inactive_apps = []
@@ -96,9 +103,9 @@ class AppManagement:
 
     async def init_admin_stats(self):
         # create sensors
-        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name":"Active Apps"})
-        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name":"Inactive Apps"})
-        await self.add_entity(self.total_apps_sensor, 0, {"friendly_name":"Total Apps"})
+        await self.add_entity(self.active_apps_sensor, 0, {"friendly_name": "Active Apps"})
+        await self.add_entity(self.inactive_apps_sensor, 0, {"friendly_name": "Inactive Apps"})
+        await self.add_entity(self.total_apps_sensor, 0, {"friendly_name": "Total Apps"})
 
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
@@ -119,6 +126,12 @@ class AppManagement:
         else:
             return None
 
+    def get_app_info(self, name):
+        if name in self.objects:
+            return self.objects[name]
+        else:
+            return None
+
     async def get_app_instance(self, name, id):
         if name in self.objects and self.objects[name]["id"] == id:
             return self.AD.app_management.objects[name]["object"]
@@ -130,11 +143,14 @@ class AppManagement:
             init = getattr(self.objects[name]["object"], "initialize", None)
             if init is None:
                 self.logger.warning("Unable to find initialize() function in module %s - skipped", name)
+                self.objects[name]["running"] = False
                 await self.increase_inactive_apps(name)
                 return
         else:
             self.logger.warning("Unable to find module %s - initialize() skipped", name)
             await self.increase_inactive_apps(name)
+            if name in self.objects:
+                self.objects[name]["running"] = False
             return
 
         # Call its initialize function
@@ -146,22 +162,27 @@ class AppManagement:
             await self.set_state(name, state="idle")
             await self.increase_active_apps(name)
 
+            event_data = {"event_type": "app_initialized", "data": {"app": name}}
+
+            await self.AD.events.process_event("admin", event_data)
+
         except TypeError:
             self.AD.threading.report_callback_sig(name, "initialize", init, {})
-        except:
+        except Exception:
             error_logger = logging.getLogger("Error.{}".format(name))
-            error_logger.warning('-' * 60)
+            error_logger.warning("-" * 60)
             error_logger.warning("Unexpected error running initialize() for %s", name)
-            error_logger.warning('-' * 60)
+            error_logger.warning("-" * 60)
             error_logger.warning(traceback.format_exc())
-            error_logger.warning('-' * 60)
+            error_logger.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
             await self.set_state(name, state="initialize_error")
             await self.increase_inactive_apps(name)
 
-    async def terminate_app(self, name):
+    async def terminate_app(self, name, delete=True):
         term = None
+        executed = True
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
             self.logger.info("Calling terminate() for {}".format(name))
 
@@ -175,25 +196,34 @@ class AppManagement:
                     await term()
                 else:
                     await utils.run_in_executor(self, term)
-                await self.set_state(name, state="terminated")
 
             except TypeError:
                 self.AD.threading.report_callback_sig(name, "terminate", term, {})
-            except:
+                executed = False
+
+            except BaseException:
                 error_logger = logging.getLogger("Error.{}".format(name))
-                error_logger.warning('-' * 60)
+                error_logger.warning("-" * 60)
                 error_logger.warning("Unexpected error running terminate() for %s", name)
-                error_logger.warning('-' * 60)
+                error_logger.warning("-" * 60)
                 error_logger.warning(traceback.format_exc())
-                error_logger.warning('-' * 60)
+                error_logger.warning("-" * 60)
                 if self.AD.logging.separate_error_log() is True:
-                    self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+                    self.logger.warning(
+                        "Logged an error to %s", self.AD.logging.get_filename("error_log"),
+                    )
 
-        if name in self.objects:
-            del self.objects[name]
+                executed = False
 
-        if name in self.global_module_dependencies:
-            del self.global_module_dependencies[name]
+        if delete:
+            if name in self.objects:
+                del self.objects[name]
+
+            if name in self.global_module_dependencies:
+                del self.global_module_dependencies[name]
+
+        else:
+            self.objects[name]["running"] = False
 
         await self.increase_inactive_apps(name)
 
@@ -203,33 +233,51 @@ class AppManagement:
 
         await self.AD.sched.terminate_app(name)
 
+        await self.set_state(name, state="terminated")
+        await self.set_state(name, instancecallbacks=0)
+
+        event_data = {"event_type": "app_terminated", "data": {"app": name}}
+
+        await self.AD.events.process_event("admin", event_data)
+
         if self.AD.http is not None:
             await self.AD.http.terminate_app(name)
 
+        return executed
+
     async def start_app(self, app):
+
+        # first we check if running already
+        if app in self.objects and self.objects[app]["running"] is True:
+            self.logger.warning("Cannot start app %s, as it is already running", app)
+            return
+
         await self.init_object(app)
-        
+
         if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
             pass
         else:
             await self.initialize_app(app)
 
-    async def stop_app(self, app):
+    async def stop_app(self, app, delete=True):
+        executed = False
         try:
             self.logger.info("Terminating %s", app)
-            await self.terminate_app(app)
-        except:
+            executed = await self.terminate_app(app, delete)
+        except Exception:
             error_logger = logging.getLogger("Error.{}".format(app))
-            error_logger.warning('-' * 60)
+            error_logger.warning("-" * 60)
             error_logger.warning("Unexpected error terminating app: %s:", app)
-            error_logger.warning('-' * 60)
+            error_logger.warning("-" * 60)
             error_logger.warning(traceback.format_exc())
-            error_logger.warning('-' * 60)
+            error_logger.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
+        return executed
+
     async def restart_app(self, app):
-        await self.stop_app(app)
+        await self.stop_app(app, delete=False)
         await self.start_app(app)
 
     def get_app_debug_level(self, app):
@@ -239,59 +287,99 @@ class AppManagement:
             return "None"
 
     async def init_object(self, name):
+
         app_args = self.app_config[name]
-        self.logger.info("Initializing app %s using class %s from module %s", name, app_args["class"], app_args["module"])
+        self.logger.info(
+            "Initializing app %s using class %s from module %s", name, app_args["class"], app_args["module"],
+        )
 
         if self.get_file_from_module(app_args["module"]) is not None:
 
             if "pin_thread" in app_args:
                 if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.total_threads:
-                    self.logger.warning("pin_thread out of range ({}) in app definition for {} - app will be discarded".format(app_args["pin_thread"], name))
+                    self.logger.warning(
+                        "pin_thread out of range ({}) in app definition for {} - app will be discarded".format(
+                            app_args["pin_thread"], name
+                        )
+                    )
                     return
                 else:
                     pin = app_args["pin_thread"]
+
+            elif name in self.objects and "pin_thread" in self.objects[name]:
+                pin = self.objects[name]["pin_thread"]
+
             else:
                 pin = -1
 
             modname = await utils.run_in_executor(self, __import__, app_args["module"])
+
             app_class = getattr(modname, app_args["class"], None)
             if app_class is None:
-                self.logger.warning("Unable to find class %s in module %s - '%s' is not initialized", app_args["class"], app_args["module"], name)
+                self.logger.warning(
+                    "Unable to find class %s in module %s - '%s' is not initialized",
+                    app_args["class"],
+                    app_args["module"],
+                    name,
+                )
                 await self.increase_inactive_apps(name)
 
             else:
                 self.objects[name] = {
+                    "type": "app",
                     "object": app_class(
-                        self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars
+                        self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars,
                     ),
                     "id": uuid.uuid4().hex,
                     "pin_app": self.AD.threading.app_should_be_pinned(name),
-                    "pin_thread": pin
+                    "pin_thread": pin,
+                    "running": True,
                 }
 
+                # load the module path into app entity
+                module_path = await utils.run_in_executor(self, os.path.abspath, modname.__file__)
+                await self.set_state(name, module_path=module_path)
+
         else:
-            self.logger.warning("Unable to find module module %s - '%s' is not initialized", app_args["module"], name)
+            self.logger.warning(
+                "Unable to find module module %s - '%s' is not initialized", app_args["module"], name,
+            )
             await self.increase_inactive_apps(name)
 
-    async def read_config(self):
+    def init_plugin_object(self, name, object):
+
+        self.objects[name] = {
+            "type": "plugin",
+            "object": object,
+            "id": uuid.uuid4().hex,
+            "pin_app": False,
+            "pin_thread": -1,
+            "running": False,
+        }
+
+    async def read_config(self):  # noqa: C901
 
         new_config = None
 
         if await utils.run_in_executor(self, os.path.isfile, self.app_config_file):
-            self.logger.warning("apps.yaml in the Config directory is deprecated. Please move apps.yaml to the apps directory.")
+            self.logger.warning(
+                "apps.yaml in the Config directory is deprecated. Please move apps.yaml to the apps directory."
+            )
             new_config = utils.run_in_executor(self.read_config_file, self.app_config_file)
         else:
             for root, subdirs, files in os.walk(self.AD.app_dir):
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
-                if root[-11:] != "__pycache__":
+                if root[-11:] != "__pycache__" and root[0] != ".":
                     for file in files:
                         if file[-5:] == ".yaml" and file[0] != ".":
-                            self.logger.debug("Reading %s", os.path.join(root, file))
-                            config = await utils.run_in_executor(self, self.read_config_file, os.path.join(root, file))
+                            path = os.path.join(root, file)
+                            self.logger.debug("Reading %s", path)
+                            config = await utils.run_in_executor(self, self.read_config_file, path)
                             valid_apps = {}
                             if type(config).__name__ == "dict":
                                 for app in config:
                                     if config[app] is not None:
+                                        app_valid = True
                                         if app == "global_modules":
                                             #
                                             # Check the parameter format for string or list
@@ -302,20 +390,47 @@ class AppManagement:
                                                 valid_apps[app] = config[app]
                                             else:
                                                 if self.AD.invalid_yaml_warnings:
-                                                    self.logger.warning("global_modules should be a list or a string in File '%s' - ignoring", file)
+                                                    self.logger.warning(
+                                                        "global_modules should be a list or a string in File '%s' - ignoring",
+                                                        file,
+                                                    )
                                         elif app == "sequence":
                                             #
                                             # We don't care what it looks like just pass it through
                                             #
                                             valid_apps[app] = config[app]
-                                        elif "class" in config[app] and "module" in config[app]:
+                                        elif "." in app:
+                                            #
+                                            # We ignore any app containing a dot.
+                                            # This could be useful to not comment everything
+                                            # and ignore common code when using YAML anchors.
+                                            #
+                                            pass
+                                        elif (
+                                            isinstance(config[app], dict)
+                                            and "class" in config[app]
+                                            and "module" in config[app]
+                                        ):
                                             valid_apps[app] = config[app]
+                                            valid_apps[app]["yaml_path"] = path
                                         else:
+                                            app_valid = False
                                             if self.AD.invalid_yaml_warnings:
-                                                self.logger.warning("App '%s' missing 'class' or 'module' entry - ignoring", app)
+                                                self.logger.warning(
+                                                    "App '%s' missing 'class' or 'module' entry - ignoring", app,
+                                                )
+
+                                        if app_valid is True:
+                                            # now add app to the path
+                                            if path not in self.app_config_files:
+                                                self.app_config_files[path] = []
+
+                                            self.app_config_files[path].append(app)
                             else:
                                 if self.AD.invalid_yaml_warnings:
-                                    self.logger.warning("File '%s' invalid structure - ignoring", os.path.join(root, file))
+                                    self.logger.warning(
+                                        "File '%s' invalid structure - ignoring", os.path.join(root, file),
+                                    )
 
                             if new_config is None:
                                 new_config = {}
@@ -326,22 +441,59 @@ class AppManagement:
                                         continue
                                 if app == "sequence":
                                     if app in new_config:
-                                        new_config[app] = {**new_config[app], **valid_apps[app]}
+                                        new_config[app] = {
+                                            **new_config[app],
+                                            **valid_apps[app],
+                                        }
                                         continue
 
                                 if app in new_config:
-                                    self.logger.warning("File '%s' duplicate app: %s - ignoring", os.path.join(root, file), app)
+                                    self.logger.warning(
+                                        "File '%s' duplicate app: %s - ignoring", os.path.join(root, file), app,
+                                    )
                                 else:
                                     new_config[app] = valid_apps[app]
 
-        await self.AD.sequences.add_sequences(new_config.get("sequence", {}))
+        await self.check_sequence_update(new_config.get("sequence", {}))
+
         return new_config
+
+    async def check_sequence_update(self, sequence_config):
+        if self.app_config.get("sequences", {}) != sequence_config:
+            #
+            # now remove the old ones no longer needed
+            #
+            deleted_sequences = []
+            for sequence, config in self.app_config.get("sequence", {}).items():
+                if sequence not in sequence_config:
+                    deleted_sequences.append(sequence)
+
+            if deleted_sequences != []:
+                await self.AD.sequences.remove_sequences(deleted_sequences)
+
+            modified_sequences = {}
+
+            #
+            # now load up the modified one
+            #
+            for sequence, config in sequence_config.items():
+                if (sequence not in self.app_config.get("sequence", {})) or self.app_config.get("sequence", {}).get(
+                    sequence
+                ) != sequence_config.get(sequence):
+                    # meaning it has been modified
+                    modified_sequences[sequence] = config
+
+            if modified_sequences != {}:
+                await self.AD.sequences.add_sequences(modified_sequences)
 
     # Run in executor
     def check_later_app_configs(self, last_latest):
         if os.path.isfile(self.app_config_file):
             ts = os.path.getmtime(self.app_config_file)
-            return {"latest": ts, "files": [{"name": self.app_config_file, "ts": os.path.getmtime(self.app_config_file)}]}
+            return {
+                "latest": ts,
+                "files": [{"name": self.app_config_file, "ts": os.path.getmtime(self.app_config_file)}],
+            }
         else:
             later_files = {}
             app_config_files = []
@@ -350,9 +502,9 @@ class AppManagement:
             later_files["deleted"] = []
             for root, subdirs, files in os.walk(self.AD.app_dir):
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
-                if root[-11:] != "__pycache__":
+                if root[-11:] != "__pycache__" and root[0] != ".":
                     for file in files:
-                        if file[-5:] == ".yaml":
+                        if file[-5:] == ".yaml" and file[0] != ".":
                             path = os.path.join(root, file)
                             app_config_files.append(path)
                             ts = os.path.getmtime(path)
@@ -370,7 +522,11 @@ class AppManagement:
                     if file not in self.app_config_files:
                         later_files["files"].append(file)
 
-            self.app_config_files = app_config_files
+                        self.app_config_files[file] = []
+
+            # now remove the unused files from the files
+            for file in later_files["deleted"]:
+                del self.app_config_files[file]
 
             return later_files
 
@@ -379,7 +535,7 @@ class AppManagement:
 
         new_config = None
         try:
-            with open(file, 'r') as yamlfd:
+            with open(file, "r") as yamlfd:
                 config_file_contents = yamlfd.read()
 
             try:
@@ -387,7 +543,7 @@ class AppManagement:
 
             except yaml.YAMLError as exc:
                 self.logger.warning("Error loading configuration")
-                if hasattr(exc, 'problem_mark'):
+                if hasattr(exc, "problem_mark"):
                     if exc.context is not None:
                         self.logger.warning("parser says")
                         self.logger.warning(str(exc.problem_mark))
@@ -399,16 +555,16 @@ class AppManagement:
 
             return new_config
 
-        except:
+        except Exception:
 
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error loading config file: %s", file)
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
 
     # noinspection PyBroadException
-    async def check_config(self, silent=False, add_threads=True):
+    async def check_config(self, silent=False, add_threads=True):  # noqa: C901
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
@@ -441,6 +597,9 @@ class AppManagement:
                         continue
 
                     if name in new_config:
+                        # first we need to remove thhe yaml path if it exists
+                        yaml_path = new_config[name].pop("yaml_path", None)
+
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
 
@@ -448,6 +607,12 @@ class AppManagement:
                                 self.logger.info("App '%s' changed", name)
                             terminate_apps[name] = 1
                             initialize_apps[name] = 1
+
+                        if yaml_path:
+                            yaml_path = await utils.run_in_executor(self, os.path.abspath, yaml_path)
+
+                            # now we update the entity
+                            await self.set_state(name, yaml_path=yaml_path)
                     else:
 
                         # Section has been deleted, clear it out
@@ -469,36 +634,56 @@ class AppManagement:
                         #
                         # New section added!
                         #
+
                         if "class" in new_config[name] and "module" in new_config[name]:
+
+                            # first we need to remove thhe yaml path if it exists
+                            yaml_path = await utils.run_in_executor(
+                                self, os.path.abspath, new_config[name].pop("yaml_path")
+                            )
+
                             self.logger.info("App '%s' added", name)
                             initialize_apps[name] = 1
-                            await self.add_entity(name, "loaded", {"callbacks": 0, "args": new_config[name]})
+                            await self.add_entity(
+                                name,
+                                "loaded",
+                                {
+                                    "totalcallbacks": 0,
+                                    "instancecallbacks": 0,
+                                    "args": new_config[name],
+                                    "yaml_path": yaml_path,
+                                },
+                            )
                         elif name in self.non_apps:
                             pass
                         else:
                             if self.AD.invalid_yaml_warnings:
                                 if silent is False:
-                                    self.logger.warning("App '%s' missing 'class' or 'module' entry - ignoring", name)
+                                    self.logger.warning(
+                                        "App '%s' missing 'class' or 'module' entry - ignoring", name,
+                                    )
 
                 self.app_config = new_config
                 total_apps = len(self.app_config)
 
                 for name in self.non_apps:
                     if name in self.app_config:
-                        total_apps -=1 # remove one
+                        total_apps -= 1  # remove one
 
-                #if silent is False:
+                # if silent is False:
                 self.logger.info("Found %s total apps", total_apps)
-                
-                await self.set_state(self.total_apps_sensor, state=total_apps)
-                
+
+                await self.set_state(
+                    self.total_apps_sensor, state=total_apps, attributes={"friendly_name": "Total Apps"}
+                )
+
                 active_apps = self.get_active_app_count()
 
                 inactive_apps = total_apps - active_apps
                 if inactive_apps > 0:
                     self.logger.info("Found %s active apps", active_apps)
                     self.logger.info("Found %s inactive apps", inactive_apps)
-                    
+
             # Now we know if we have any new apps we can create new threads if pinning
 
             active_apps = self.get_active_app_count()
@@ -508,13 +693,18 @@ class AppManagement:
                     for i in range(active_apps - self.AD.threading.thread_count):
                         await self.AD.threading.add_thread(False, True)
 
-            return {"init": initialize_apps, "term": terminate_apps, "total": total_apps, "active": active_apps}
-        except:
-            self.logger.warning('-' * 60)
+            return {
+                "init": initialize_apps,
+                "term": terminate_apps,
+                "total": total_apps,
+                "active": active_apps,
+            }
+        except Exception:
+            self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error:")
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
-            self.logger.warning('-' * 60)
+            self.logger.warning("-" * 60)
 
     def get_active_app_count(self):
         c = 0
@@ -574,7 +764,6 @@ class AppManagement:
                 if self.AD.missing_app_warnings:
                     self.logger.warning("No app description found for: %s - ignoring", file)
 
-
     @staticmethod
     def get_module_from_path(path):
         name = os.path.basename(path)
@@ -627,12 +816,12 @@ class AppManagement:
                                 command_line = command_line.replace("$2", outfile)
                                 try:
                                     subprocess.Popen(command_line, shell=True)
-                                except:
-                                    self.logger.warning('-' * 60)
+                                except Exception:
+                                    self.logger.warning("-" * 60)
                                     self.logger.warning("Unexpected running filter on: %s:", infile)
-                                    self.logger.warning('-' * 60)
+                                    self.logger.warning("-" * 60)
                                     self.logger.warning(traceback.format_exc())
-                                    self.logger.warning('-' * 60)
+                                    self.logger.warning("-" * 60)
 
     @staticmethod
     def file_in_modules(file, modules):
@@ -646,8 +835,8 @@ class AppManagement:
         fh = open(file)
         fh.close()
 
-    #@_timeit
-    async def check_app_updates(self, plugin=None, mode="normal"):
+    # @_timeit
+    async def check_app_updates(self, plugin=None, mode="normal"):  # noqa: C901
 
         if self.AD.apps is False:
             return
@@ -675,14 +864,14 @@ class AppManagement:
             #
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
 
-            if root[-11:] != "__pycache__":
+            if root[-11:] != "__pycache__" and root[0] != ".":
                 if root not in self.module_dirs:
                     self.logger.info("Adding %s to module import path", root)
                     sys.path.insert(0, root)
                     self.module_dirs.append(root)
 
             for file in files:
-                if file[-3:] == ".py":
+                if file[-3:] == ".py" and file[0] != ".":
                     found_files.append(os.path.join(root, file))
 
         for file in found_files:
@@ -701,7 +890,7 @@ class AppManagement:
                 else:
                     self.logger.debug("Found module %s", file)
                     modules.append({"name": file, "reload": False})
-                    self. monitored_files[file] = modified
+                    self.monitored_files[file] = modified
             except IOError as err:
                 self.logger.warning("Unable to read app %s: %s - skipping", file, err)
 
@@ -759,24 +948,25 @@ class AppManagement:
 
         # Terminate apps
 
+        apps_terminated = {}  # store apps properly terminated is any
         if apps is not None and apps["term"]:
-
             prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
 
             for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
-                await self.stop_app(app)
+                executed = await self.stop_app(app)
+                apps_terminated[app] = executed
 
         # Load/reload modules
 
         for mod in modules:
             try:
                 await utils.run_in_executor(self, self.read_app, mod["name"], mod["reload"])
-            except:
-                self.error.warning('-' * 60)
+            except Exception:
+                self.error.warning("-" * 60)
                 self.error.warning("Unexpected error loading module: %s:", mod["name"])
-                self.error.warning('-' * 60)
+                self.error.warning("-" * 60)
                 self.error.warning(traceback.format_exc())
-                self.error.warning('-' * 60)
+                self.error.warning("-" * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning("Unexpected error loading module: %s:", mod["name"])
 
@@ -802,16 +992,23 @@ class AppManagement:
                         await self.set_state(app, state="disabled")
                         await self.increase_inactive_apps(app)
                     else:
-                        await self.init_object(app)
-                except:
+                        if apps_terminated.get(app, True) is True:  # the app terminated properly
+                            await self.init_object(app)
+
+                        else:
+                            self.logger.warning("Cannot initialize app %s, as it didn't terminate properly", app)
+
+                except Exception:
                     error_logger = logging.getLogger("Error.{}".format(app))
-                    error_logger.warning('-' * 60)
+                    error_logger.warning("-" * 60)
                     error_logger.warning("Unexpected error initializing app: %s:", app)
-                    error_logger.warning('-' * 60)
+                    error_logger.warning("-" * 60)
                     error_logger.warning(traceback.format_exc())
-                    error_logger.warning('-' * 60)
+                    error_logger.warning("-" * 60)
                     if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
+                        self.logger.warning(
+                            "Logged an error to %s", self.AD.logging.get_filename("error_log"),
+                        )
 
             await self.AD.threading.calculate_pin_threads()
 
@@ -821,13 +1018,17 @@ class AppManagement:
                 if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
                     pass
                 else:
-                    await self.initialize_app(app)
+                    if apps_terminated.get(app, True) is True:  # the app terminated properly
+                        await self.initialize_app(app)
+
+                    else:
+                        self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
 
         if self.AD.check_app_updates_profile is True:
             pr.disable()
 
         s = io.StringIO()
-        sortby = 'cumulative'
+        sortby = "cumulative"
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()
         self.check_app_updates_profile_stats = s.getvalue()
@@ -844,7 +1045,7 @@ class AppManagement:
                 deplist.append(app)
             self.get_dependent_apps(app, deplist)
 
-        # Need to gove the topological sort a full list of apps or it will fail
+        # Need to give the topological sort a full list of apps or it will fail
         full_list = list(self.app_config.keys())
 
         deps = []
@@ -896,7 +1097,7 @@ class AppManagement:
         for app in self.app_config:
             if "dependencies" in self.app_config[app]:
                 for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
-                    #print("app= {} dep = {}, dependee = {} deps = {}".format(app, dep, dependee, deps))
+                    # print("app= {} dep = {}, dependee = {} deps = {}".format(app, dep, dependee, deps))
                     if dep == dependee and app not in deps:
                         deps.append(app)
                         new_deps = self.get_dependent_apps(app, deps)
@@ -928,7 +1129,7 @@ class AppManagement:
                     for dep in pend[1]:
                         deps += "{} ".format(dep)
                     self.logger.warning("%s depends on %s", pend[0], deps)
-                raise ValueError("cyclic dependancy detected")
+                raise ValueError("cyclic dependency detected")
             pending = next_pending
             emitted = next_emitted
 
@@ -955,6 +1156,184 @@ class AppManagement:
 
         return apps
 
+    def create_app(self, app=None, **kwargs):
+        """Used to create an app, which is written to a Yaml file"""
+
+        executed = True
+        app_file = kwargs.pop("app_file", None)
+        app_directory = kwargs.pop("app_dir", None)
+        app_config = {}
+        new_config = OrderedDict()
+
+        app_module = kwargs.get("module")
+        app_class = kwargs.get("class")
+
+        if app is None:  # app name not given
+            # use the module name as the app's name
+            app = app_module
+
+            app_config[app] = kwargs
+
+        else:
+            if app_module is None and app in kwargs:
+                app_module = kwargs[app].get("module")
+                app_class = kwargs[app].get("class")
+
+                app_config[app] = kwargs[app]
+
+            else:
+                app_config[app] = kwargs
+
+        if app_module is None or app_class is None:
+            self.logger.error("Could not create app %s, as module and class is required", app)
+            return False
+
+        if app_directory is None:
+            app_directory = os.path.join(self.AD.app_dir, "ad_apps")
+
+        else:
+            app_directory = os.path.join(self.AD.app_dir, app_directory)
+
+        if app_file is None:
+            app_file = os.path.join(app_directory, f"{app}.yaml")
+            self.logger.info("Creating app using filename %s", app_file)
+
+        else:
+            if app_file[4:] != ".yaml":
+                app_file = f"{app_file}.yaml"
+
+            app_file = os.path.join(app_directory, app_file)
+
+            # in case the given app_file is multi level
+            filename = app_file.split("/")[-1]
+            app_directory = app_file.replace(f"/{filename}", "")
+
+        if os.path.isfile(app_file):
+            # the file exists so there might be apps there already so read to update
+            # now open the file and edit the yaml
+            new_config.update(self.read_config_file(app_file))
+
+        elif not os.path.isdir(app_directory):
+            self.logger.info("The given app filename %s doesn't exist, will be creating it", app_file)
+            # now create the directory
+            try:
+                os.makedirs(app_directory)
+            except Exception:
+                self.logger.error("Could not create directory %s", app_directory)
+                return False
+
+        # now load up the new config
+        new_config.update(app_config)
+        new_config.move_to_end(app)
+
+        # at this point now to create write to file
+        try:
+            utils.write_to_file(app_file, **new_config)
+
+            data = {
+                "event_type": "app_created",
+                "data": {"app": app, **app_config[app]},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+        except Exception:
+            self.error.warning("-" * 60)
+            self.error.warning("Unexpected error while writing to file: %s", app_file)
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
+            executed = False
+
+        return executed
+
+    def edit_app(self, app, **kwargs):
+        """Used to edit an app, which is already in Yaml. It is expecting the app's name"""
+
+        executed = True
+        app_config = copy.deepcopy(self.app_config[app])
+        new_config = OrderedDict()
+
+        # now update the app config
+        app_config.update(kwargs)
+
+        # now get the app's file
+        app_file = self.get_app_file(app)
+        if app_file is None:
+            self.logger.warning("Unable to find app %s's file. Cannot edit the app", app)
+            return False
+
+        # now open the file and edit the yaml
+        new_config.update(self.read_config_file(app_file))
+
+        # now load up the new config
+        new_config[app].update(app_config)
+
+        # now update the file with the new data
+        try:
+            utils.write_to_file(app_file, **new_config)
+
+            data = {
+                "event_type": "app_edited",
+                "data": {"app": app, **app_config},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+        except Exception:
+            self.error.warning("-" * 60)
+            self.error.warning("Unexpected error while writing to file: %s", app_file)
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
+            executed = False
+
+        return executed
+
+    def remove_app(self, app, **kwargs):
+        """Used to remove an app"""
+
+        result = None
+        # now get the app's file
+        app_file = self.get_app_file(app)
+        if app_file is None:
+            self.logger.warning("Unable to find app %s's file. Cannot remove the app", app)
+            return False
+
+        # now open the file and edit the yaml
+        file_config = self.read_config_file(app_file)
+
+        # now now delete the app's config
+        result = file_config.pop(app)
+
+        # now update the file with the new data
+        try:
+            if len(file_config) == 0:  # meaning no more apps in file
+                # delete it
+                os.remove(app_file)
+
+            else:
+                utils.write_to_file(app_file, **file_config)
+
+            data = {
+                "event_type": "app_removed",
+                "data": {"app": app},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+
+        except Exception:
+            self.error.warning("-" * 60)
+            self.error.warning("Unexpected error while writing to file: %s", app_file)
+            self.error.warning("-" * 60)
+            self.error.warning(traceback.format_exc())
+            self.error.warning("-" * 60)
+
+        return result
+
+    def get_app_file(self, app):
+        """Used to get the file an app is located"""
+
+        app_file = utils.run_coroutine_threadsafe(self, self.get_state(app, attribute="yaml_path"))
+        return app_file
+
     async def register_module_dependency(self, name, *modules):
         for module in modules:
             module_name = None
@@ -964,9 +1343,10 @@ class AppManagement:
                 module_name = module.__name__
 
             if (
-                    module_name is not None
-                    and "global_modules" in self.app_config 
-                    and module_name in self.app_config["global_modules"]):
+                module_name is not None
+                and "global_modules" in self.app_config
+                and module_name in self.app_config["global_modules"]
+            ):
 
                 if name not in self.global_module_dependencies:
                     self.global_module_dependencies[name] = []
@@ -974,43 +1354,71 @@ class AppManagement:
                 if module_name not in self.global_module_dependencies[name]:
                     self.global_module_dependencies[name].append(module_name)
             else:
-                self.logger.warning("Module %s not in global_modules in register_module_dependency() for %s", module_name, name)
+                self.logger.warning(
+                    "Module %s not in global_modules in register_module_dependency() for %s", module_name, name,
+                )
 
     async def manage_services(self, namespace, domain, service, kwargs):
-        app = None
-        if "app" in kwargs:
-            app = kwargs["app"]
+        app = kwargs.pop("app", None)
+        __name = kwargs.pop("__name", None)
 
-        elif service == "reload":
+        if service in ["reload", "create"]:
             pass
 
-        else:
-            self.logger.warning("App not specified when calling '%s' serivce. Specify App", service)
+        elif app is None:
+            self.logger.warning("App not specified when calling '%s' service from %s. Specify App", service, __name)
             return None
 
-        if service != "reload" and app not in self.app_config:
-            self.logger.warning("Specified App '%s' is not a valid App", app)
+        if service not in ["reload", "create"] and app not in self.app_config:
+            self.logger.warning("Specified App '%s' is not a valid App from %s", app, __name)
             return None
 
         if service == "start":
-            await self.start_app(app)
-        
+            asyncio.ensure_future(self.start_app(app))
+
         elif service == "stop":
-            await self.stop_app(app)
-        
+            asyncio.ensure_future(self.stop_app(app, delete=False))
+
         elif service == "restart":
-            await self.restart_app(app)
+            asyncio.ensure_future(self.restart_app(app))
 
         elif service == "reload":
-            await self.check_app_updates(mode="init")
+            asyncio.ensure_future(self.check_app_updates(mode="init"))
+
+        elif service in ["create", "edit", "remove", "enable", "disable"]:
+            # first the check app updates needs to be stopped if on
+            mode = copy.deepcopy(self.AD.production_mode)
+
+            if mode is False:  # it was off
+                self.AD.production_mode = True
+                await asyncio.sleep(0.5)
+
+            if service == "enable":
+                result = await utils.run_in_executor(self, self.edit_app, app, disable=False)
+
+            elif service == "disable":
+                result = await utils.run_in_executor(self, self.edit_app, app, disable=True)
+
+            else:
+
+                func = getattr(self, f"{service}_app")
+                result = await utils.run_in_executor(self, func, app, **kwargs)
+
+            if mode is False:  # meaning it was not in production mode
+                await asyncio.sleep(1)
+                self.AD.production_mode = mode
+
+            return result
+
+        return None
 
     async def increase_active_apps(self, name):
         if name not in self.active_apps:
-            self.active_apps.append(name)            
+            self.active_apps.append(name)
 
         if name in self.inactive_apps:
             self.inactive_apps.remove(name)
-        
+
         active_apps = len(self.active_apps)
         inactive_apps = len(self.inactive_apps)
 
@@ -1019,11 +1427,11 @@ class AppManagement:
 
     async def increase_inactive_apps(self, name):
         if name not in self.inactive_apps:
-            self.inactive_apps.append(name)            
+            self.inactive_apps.append(name)
 
         if name in self.active_apps:
             self.active_apps.remove(name)
-        
+
         inactive_apps = len(self.inactive_apps)
         active_apps = len(self.active_apps)
 

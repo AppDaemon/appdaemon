@@ -98,7 +98,7 @@ Persistent Configuration
 
 In Docker, containers (the running application) are considered
 ephemeral. Any state that you want to be able to preserve must be stored
-outside of the container so that the container can be disposed and
+outside of the container so that the container can be disposed of and
 recreated at any time. In the case of AppDaemon, this means you would be
 concerned about your ``conf`` folder.
 
@@ -237,7 +237,7 @@ Run the following commands:
       -v <your_conf_folder>:/conf \
       acockburn/appdaemon:latest -D DEBUG
 
-Once you are done with the debug, start the non-debug container back up:
+Once you are done with the debugging, start the non-debug container back up:
 
 ::
 
@@ -281,3 +281,5 @@ Adding Dependencies
 -------------------
 
 Sometimes it can be helpful to install additional Python dependencies into the Docker container before AppDaemon starts, to allow additional libraries to be used from Apps. The Docker script will recursively search the CONF directory for any files named ``requirements.txt``. All the found requirements will be used as input to pip3 to install any packages that they describe.
+
+It's also often helpful to add system packages to the Docker container before AppDaemon starts, to allow any custom python packages that depend on other `system packages <https://pkgs.alpinelinux.org/packages>`_ to install without issue. The Docker script will recursively search the CONF directory for any files named ``system_packages.txt``. Packages should be listed either space delimited or newline delimited. These packages will be used as input to ``apk add`` to install any packages that they describe.

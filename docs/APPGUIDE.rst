@@ -71,7 +71,7 @@ In every case, the App is responsible for recreating any state it might
 need as if it were the first time it was ever started. If
 ``initialize()`` is called, the App can safely assume that it is either
 being loaded for the first time, or that all callbacks and timers have
-been cancelled. In either case, the App will need to recreate them.
+been canceled. In either case, the App will need to recreate them.
 Depending upon the application, it may be desirable for the App to
 establish a state, such as whether or not a particular light is on,
 within the ``initialize()`` function to ensure that everything is as
@@ -149,6 +149,7 @@ Configuration of Apps
 
 Apps are configured by specifying new sections in an app configuration
 file. The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml``. You can have one single file for configuration of all apps, or break it down to have one ``yaml`` file per App, or anything in between. Coupled with the fact that you can have any number of subdirectories for apps and ``yaml`` files, this gives you the flexibility to structure your apps as you see fit.
+It should also be noted that a "dot" ``.`` is not allowed in the app name.
 
 The entry for an individual App within a ``yaml`` file is simply a dictionary entry naming the App, with subfields to supply various parameters. The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
 
@@ -207,7 +208,10 @@ module, it will automatically reload and recompile the module. It will
 also figure out which Apps were using that Module and restart them,
 causing their ``terminate()`` functions to be called if they exist, all
 of their existing callbacks to be cleared, and their ``initialize()``
-function to be called.
+function to be called. It should be noted that if a terminate function exists,
+and while executing it AD encounters an error, the app will not be auto reloaded.
+The app will only be reloaded, when next the app's file has been changed, presumably
+to fix the issue.
 
 The same is true if changes are made to an App's configuration -
 changing the class, or arguments (see later) will cause that App to be
@@ -284,6 +288,7 @@ Apps can use arbitrarily complex structures within arguments, e.g.:
 Which can be accessed as a list in python with:
 
 .. code:: python
+
     for entity in self.args["entities"]:
       do some stuff
 
@@ -301,13 +306,13 @@ required:
         type:moisture
         warning_level: 100
         units: %
-        
+
 It is also possible to get some constants like the app directory within apps. This can be accessed using the attribute ``self.app_dir``
 
-secrets
+Secrets
 ~~~~~~~
 
-AppDaemon supports the ability to pass sensitive arguments to apps, via the use of secrets in the app config file. This will allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the ``apps.yaml`` file.
+AppDaemon supports the ability to pass sensitive arguments to apps, via the use of secrets in the main or app config file. This will allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a ``!secret`` tag in the ``apps.yaml`` file.
 
 An example ``secrets.yaml`` might look like this:
 
@@ -323,6 +328,31 @@ The secrets can then be referred to in the ``apps.yaml`` file as follows:
       class: AppClass
       module: appmodule
       application_api_key: !secret application_api_key
+
+In the App, the api_key can be accessed like every other argument the App can access.
+
+Environment Variables
+~~~~~~~~~~~~~~~~~~~~~
+
+If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The varibales can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
+
+An example using the os's time zone for AD:
+
+.. code:: yaml
+
+    appdaemon:
+      time_zone: !env_var TZ
+      latitude: !env_var LAT
+      longitude: !env_var LONG
+
+The variables can also be referred to in the ``apps.yaml`` file as follows:
+
+.. code:: yaml
+
+    appname:
+      class: AppClass
+      module: appmodule
+      application_api_key: !env_var application_api_key
 
 In the App, the api_key can be accessed like every other argument the App can access.
 
@@ -493,7 +523,7 @@ To make an App explicitly reload when only this plugin and no other is restarted
         class: some_class
         plugin: HASS
 
-If you have more than one plugin, you can make an App dependent on more than one plgin by specifying a YAML list:
+If you have more than one plugin, you can make an App dependent on more than one plugin by specifying a YAML list:
 
 .. code:: yaml
 
@@ -675,10 +705,31 @@ trackers. It takes 3 possible values:
 
     constrain_presence: anyone
     # or
-    constrain_presence: someone
+    constrain_presence: everyone
     # or
     constrain_presence: noone
-    
+
+Callback constraints can also be applied to individual callbacks within
+Apps, see later for more details.
+
+person
+^^^^^^^^
+
+The person constraint will constrain based on presence of person entities
+trackers. It takes 3 possible values:
+
+- ``noone`` - only allow callback execution when no one is home
+- ``anyone`` - only allow callback execution when one or more person is home
+- ``everyone`` - only allow callback execution when everyone is home
+
+.. code:: yaml
+
+    constrain_person: anyone
+    # or
+    constrain_person: everyone
+    # or
+    constrain_person: noone
+
 Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
 
@@ -974,9 +1025,14 @@ Although pinning and scheduling has been thoroughly tested, in current real-worl
 ASYNC Apps
 ----------
 
-Note: This is an advanced feature and should only be used if you unserstand the usage and implications of async programming in Python. If you do not, then the previously described threaded model of apps is much safer and easier to work with.
+Note: This is an advanced feature and should only be used if you understand the usage and implications of async programming
+in Python. If you do not, then the previously described threaded model of apps is much safer and easier to work with.
 
-AppDaemon supports the use of async libraries from within apps as well as allowing a partial or complete async programming model. Operation is transparent and is managed by AppDaemon. If you want a particular callback to be a coroutine, simply declare it with the async keyword as for any other coroutine. AppDaemon will detect this and arrange for the callback to be executed by scheduling it on the loop. This also works for ``initialize()`` and ``terminate()``. Apps can be a mix of sync and async callbacks as desired. A fully async app might look like this:
+AppDaemon supports the use of async libraries from within apps as well as allowing a partial or complete async programming
+model. Callback functions can be converted into coroutines by using the `async` keyword during their declaration.
+AppDaemon will automatically detect all the App's coroutines and will schedule their execution on the main async loop.
+This also works for ``initialize()`` and ``terminate()``. Apps can be a mix of `sync` and `async` callbacks as desired.
+A fully async app might look like this:
 
 .. code:: PYTHON
 
@@ -995,23 +1051,43 @@ AppDaemon supports the use of async libraries from within apps as well as allowi
             # do some async stuff
 
             # Sleeps are perfectly acceptable
-            self.sleep(10)
+            await self.sleep(10)
 
             # Call another coroutine
             await my_function()
 
+When writing ASYNC apps, please be aware that most of the methods available in ADAPI (generally referenced as ``self.method_name()`` in an app) are async methods. While these coroutines are automatically turned into a ``future`` for you, if you intend to use the data they return you'll need to ``await`` them.
+
+This will not give the expected result:
+
+.. code:: PYTHON
+
+    async def some_method(self):
+        handle = self.run_in(self.cb, 30)
+
+This, however, will:
+
+.. code:: PYTHON
+
+    async def some_method(self):
+        handle = await self.run_in(self.cb, 30)
+
+If you do not need to use the return result of the method, and you do not need to know that it has completed before executing the next line of your code, then you do not need to ``await`` the method.
+
 ASYNC Advantages
 ~~~~~~~~~~~~~~~~
 
-- Programming using async constructs can seem natural to advanced users who have used it before, and in some cases can provide performance benefits depending on the exact nature of the task.
-- Some external libraries are designed to be used in an async environmant and prior to AppDaemon async support it was not possible to make use of such libraries.
+- Programming using async constructs can seem natural to advanced users who have used it before, and in some cases, can provide performance benefits depending on the exact nature of the task.
+- Some external libraries are designed to be used in an async environment, and prior to AppDaemon async support it was not possible to make use of such libraries.
 - Scheduling heavily concurrent tasks is very easy using async
 - Using ``sleep()`` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
 
 ASYNC Caveats
 ~~~~~~~~~~~~~
 
-The AppDaemon implementation of ASYNC apps utilizes the same loop as the AppDaemon core. This means that a badly behaved app will not just tie up an individual app, it can potentially tie up all other apps, and the internals of AppDaemon. For this reason it is recommended that only experienced users create apps with this model.
+The AppDaemon implementation of ASYNC apps utilizes the same loop as the AppDaemon core. This means that a badly behaved
+app will not just tie up an individual app; it can potentially tie up all other apps, and the internals of AppDaemon.
+For this reason, it is recommended that only experienced users create apps with this model.
 
 
 ASYNC Tools
@@ -1022,30 +1098,40 @@ AppDaemon supplies a number of helper functions to make things a little easier:
 Creating Tasks
 ^^^^^^^^^^^^^^
 
-For additional multitasking, Apps are fully able to create tasks or futures, however, the app has the responsibility to manage them. In particular, any created tasks or futures must be completed or actively cancelled when the app is terminated or reloaded. If this is not the case the code will not reload correctly due to Pyhton's garbage collection strategy. To assist with this, AppDameon has a ``create_task()`` call, which returns a future. Tasks created in this way can be manipulated as desired, however, AppDaemon keeps track of them and will automatically cancel any outstanding futures if the app terminates or reloads. For this reason, AppDaemon's ``create_task()`` is the recommended way of doing this.
+For additional multitasking, Apps are fully able to create tasks or futures, however, the app has the responsibility to
+manage them. In particular, any created tasks or futures must be completed or actively canceled when the app is terminated
+or reloaded. If this is not the case, the code will not reload correctly due to Pyhton's garbage collection strategy. To assist
+with this, AppDaemon has a ``create_task()`` call, which returns a future. Tasks created in this way can be manipulated as
+desired, however, AppDaemon keeps track of them and will automatically cancel any outstanding futures if the app terminates
+or reloads. For this reason, AppDaemon's ``create_task()`` is the recommended way of doing this.
 
 Use of Executors
 ^^^^^^^^^^^^^^^^
 
-A standard pattern for running I/O intensive tasks such as file or network access in the async programming model is to use executor threads for these types of activities. AppDaemon supplies the ``run_in_executor()`` function to facilitate this, which uses a predefined threadpool for execution. As mentioned above, holding up the loop with any kind of blocking activity is harmful not only to the app but all other apps and AppDaemon's internals, so always use an executor for any function that may require it.
+A standard pattern for running I/O intensive tasks such as file or network access in the async programming model is to
+use executor threads for these types of activities. AppDaemon supplies the ``run_in_executor()`` function to facilitate
+this, which uses a predefined thread-pool for execution. As mentioned above, holding up the loop with any blocking activity
+is harmful not only to the app but all other apps and AppDaemon's internals, so always use an executor for any function
+that may require it.
 
 Sleeping
 ^^^^^^^^
 
-Sleeping in Apps is perfectly fine using the async model. For this purpose AppDaemon provides the ``sleep()`` function. If this function is used in a non-async callback it will raise an exception.
+Sleeping in Apps is perfectly fine using the async model. For this purpose, AppDaemon provides the ``sleep()`` function.
+If this function is used in a non-async callback, it will raise an exception.
 
 ASYNC Threading Considerations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Bear in mind, that although the async programming model is single threaded, in an event driven environment such as AppDaemon, concurrency is still possible, wheras in the pinned threading model it is eliminated. This may lead to requirements to lock data structures in async apps.
+- Bear in mind, that although the async programming model is single threaded, in an event-driven environment such as AppDaemon, concurrency is still possible, whereas in the pinned threading model it is eliminated. This may lead to requirements to lock data structures in async apps.
 - By default, AppDaemon creates a thread for each App (unless you are managing the threads yourself). For a fully async app, the thread will be created but never used.
-- If you have a 100% async environment, you can prevent creation of any threads by setting ``total_threads: 0`` in ``appdaemon.yaml``
+- If you have a 100% async environment, you can prevent the creation of any threads by setting ``total_threads: 0`` in ``appdaemon.yaml``
 
 
 State Operations
 ----------------
 
-AppDaemon maintains a master state list segmented by namespace. As state changes are notified by the various plugins, AppDaemon listens and stores the updated state locally.
+AppDaemon maintains a master state list segmented by namespace. As plugins notify state changes, AppDaemon listens and stores the updated state locally.
 
 The MQTT plugin does not use state at all, and it relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
 
@@ -1400,12 +1486,14 @@ In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
 Assistant bus:
 
--  ``appd_started`` - fired once when AppDaemon is first started and
-   after Apps are initialized
--  ``plugin_started`` - fired every time AppDaemon detects a Home Assistant
-   restart
--  ``plugin_stopped`` - fired once every time AppDaemon loses its
-   connection with HASS
+-  ``appd_started`` - fired once when AppDaemon is first started and after Apps are initialized. It is fired within the `global` namespace
+- ``app_initialized`` - fired when an App is initialized. It is fired within the `admin` namespace
+- ``app_terminated`` - fired when an App is terminated. It is fired within the `admin` namespace
+-  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection to Home Assistant. It is fired within the plugin's namespace
+-  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection from an external system like an MQTT broker. It is fired within the plugin's namespace
+-  ``service_registered`` - fired when a service is registered in AD. It is fired within the namespace it was registered
+- ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
+- ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
 
 About Event Callbacks
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1658,7 +1746,7 @@ from within apps in a different namespace. This is done by simply passing in the
 
 .. code:: python
     ## from within a HASS App, and wanting to access the client Id of the MQTT Plugin
-    
+
     config = self.get_config(namespace = 'mqtt')
     self.log("The Mqtt Client ID is ".format(config["client_id"]))
 
@@ -1985,7 +2073,7 @@ Here we see the default port being remapped to port 5000 which is where
 AppDamon is listening in my setup.
 
 Since each individual Skill has its own URL it is possible to have
-different skills for Home Assitant and AppDaemon.
+different skills for Home Assistant and AppDaemon.
 
 Putting it together in an App
 -----------------------------
@@ -2345,7 +2433,7 @@ They are configured in the ``appdaemon.yaml`` file as follows:
         my_namespace3:
           writeback: hybrid
 
-Here we are defining 3 new namespaces - you can have as many as you want. Ther names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
+Here we are defining 3 new namespaces - you can have as many as you want. Their names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
 
 - ``safe`` - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible performance impact for systems with slower disks, or that set state on many UDMs at a time.
 - ``performance`` - the namespace is written when AD exits, meaning that all processing is in memory for the best performance. Although this style of UDM will survive a restart, data may be lost if AppDaemon or the host crashes.
@@ -2470,7 +2558,7 @@ There are 2 types of sequence - predefined sequences and inline sequences.
 Defining a Sequence
 ~~~~~~~~~~~~~~~~~~~
 
-A predefined sequence is created by addin a ``sequence`` section to your apps.yaml file. If you have apps.yaml split into
+A predefined sequence is created by adding a ``sequence`` section to your apps.yaml file. If you have apps.yaml split into
 multiple files, you can have sequences defined in each one if desired. For clarity, it is strongly recommended that
 sequences are created in their own standalone yaml files, ideally in a separate directory from the app argument files.
 
@@ -2528,7 +2616,10 @@ If you prefer, you can use YAML's inline capabilities for a more compact represe
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
-Sequences can be cretaed that will loop forever by adding the value ``loop: True`` to the sequence:
+Looping a Sequence
+~~~~~~~~~~~~~~~~~~~
+
+Sequences can be created that will loop forever by adding the value ``loop: True`` to the sequence:
 
 .. code:: yaml
 
@@ -2541,7 +2632,10 @@ Sequences can be cretaed that will loop forever by adding the value ``loop: True
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
-This sequence once started will loop until either the sequence is cancelled, the app is restarted or terminated, or AppDaemon is shutdown.
+This sequence once started will loop until either the sequence is canceled, the app is restarted or terminated, or AppDaemon is shutdown.
+
+Defining a Sequence Call Namespace
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
 basis if required.
@@ -2564,6 +2658,16 @@ basis if required.
 Just like app parameters and code, sequences will be reloaded after any change has been made allowing scenes to be
 developed and modified without restarting AppDaemon.
 
+Sequence Commands
+~~~~~~~~~~~~~~~~~
+
+In addition to a straightforward service name plus data, sequences can take a few additional commands:
+
+- sleep - pause execution of the sequence for a number of seconds. e.g. `sleep: 30` will pause the sequence for 30 seconds
+- sequence - run a sub sequence. This must be a predefined sequence, and cannot be an inline sequence. Provide the entity
+name of the sub-sequence to be run, e.g. `sequence: sequcene.my_sub_sequence`. Sub sequences can be nested arbitrarily
+to any desired level.
+
 Running a Sequence
 ~~~~~~~~~~~~~~~~~~
 
@@ -2578,7 +2682,7 @@ A call to run the above sequence would look like this:
 
     handle = self.run_sequence("sequence.outside_motion_light")
 
-The handle value can be used to terminate a running sequence by suppliting it to the ``cancel_sequence()`` call.
+The handle value can be used to terminate a running sequence by supplying it to the ``cancel_sequence()`` call.
 
 When an app is terminated or reloaded, all running sequences that it started are immediately terminated. There is no way
 to terminate a sequence started using HADashboard.
@@ -2595,4 +2699,3 @@ Sequences can be run without the need to predefine them by specifying the steps 
             {'sleep': 1},
             {'light/turn_off': {'entity_id': 'light.office_1'}},
             ])
-

@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#ffffff">
 	<title>{{ title }}</title>
 	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-web-app-capable" content="yes">	
+	<meta name="apple-web-app-capable" content="yes">
     <meta name='mobile-web-app-capable' content='yes'>
 	<link rel="stylesheet" type="text/css" href="compiled_css/{{skin}}/{{name}}_application.css">
 	<link rel="stylesheet" type="text/css" href="css/jquery.gridster.css">
@@ -41,9 +41,15 @@
     <script type="text/javascript" src="javascript/d3.layout.min.js"></script>
     <script type="text/javascript" src="javascript/rickshaw.min.js"></script>
     <script type="text/javascript" src="javascript/gauge.min.js"></script>
+    {% if transport == "ws" %}
 	<script type="text/javascript" src="javascript/reconnecting-websocket.min.js"></script>
+    {% elif transport == "socketio" %}
     <script type="text/javascript" src="javascript/socket.io.js"></script>
+    {%  elif transport == "sockjs" %}
+    <script type="text/javascript" src="javascript/sockjs.min.js"></script>
+    {% endif %}
 	<script type="text/javascript" src="javascript/dashboard.js"></script>
+	<script type="text/javascript" src="javascript/stream.js"></script>
 	<script type="text/javascript" src="compiled_javascript/application.js"></script>
 	<script type="text/javascript" src="compiled_javascript/{{skin}}/{{name}}_init.js"></script>
 

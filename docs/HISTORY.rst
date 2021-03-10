@@ -1,8 +1,233 @@
 Change Log
 ==========
 
-4.0.0 Beta 2
-------------
+4.0.6
+-----
+
+**Features**
+
+- Added the ability to add custom javascript code to dashboard - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__
+- Added the ability to navigate to different dashboards on different devices based on the set `deviceId` - contributed by `clyra <https://github.com/clyra>`__
+- Added Icon widget service calls and state update delay - contributed by `Jakub Macoun <https://github.com/JakubMacoun>`__
+- Improved the how the Alarm Panel Cancel button looks - contributed by `Chris Johns <https://github.com/ChrisJohns-me>`__
+- Cancelling either an event, state, log or timer now returns a boolean value to indicate if executed or not
+- Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
+- Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
+- Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
+- Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
+- Added services for creating, editting, removing, enabling, disabling apps
+- Added ability to receive binary payload from MQTT broker
+- Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
+- Added the ability to submit tasks to executor threads
+- Added the ability to make use of uvloop to improve speed, compared to the default asyncio loop
+- Added the `module_path` and app config `yaml_path` to the app's entity_id
+- Pinned requests to 2.25.1
+
+**Fixes**
+
+- Fixed `get_now` api, whereby it returned UTC time instead of local time
+- FIxed issue whereby when a non properly terminated app has an error,  AD starts the app automatically
+- Fixed issue whereby it is possible to use the app api to "start" an already running app
+- Fixed issue whereby when app api is used, AD could hook itself since it gets into a loop depending on how the app is written
+- Fixed `get_history_api` for HASS - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Fixed issue with `listen_state` when `immediate` or `duration` is used with it
+- Fixed issue whereby when an invalid handler is used to cancel `event/state/log/timer`, it gives no warning its invalid
+- Fixed an issue with stream api using `get_state` api call
+- Fixed Azure packages by droping deprecated packages - contributed by `freezeboy <https://github.com/freezeboy>`__
+- Prevent the ability for apps to register services in non-existent namespaces
+- Fixed issue with newly registered HASS services
+- Fix Cryptography Rust compile issue
+- Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
+- Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
+- Bumped pid from 2.2.5 to 3.0.4
+- Bumped pygments from 2.6.1 to 2.8.1
+- Bumped iso8601 from 0.1.12 to 0.1.14
+- Bumped pytz from 2019.3 to 2020.1
+- Bumped bcrypt from 3.1.7 to 3.2.0
+- Bumped feedparser from 5.2.1 to 6.0.2
+- Bumped yarl from 1.4.2 to 1.6.3
+- Bumped voluptuous from 0.11.7 to 0.12.1
+- Bumped pyyaml from 5.3 to 5.4.1
+- Bumped jinja2 from 2.11.1 to 2.11.2
+- Bumped astral from 1.10.1 to 2.2
+- Bumped paho-mqtt from 1.5.0 to 1.5.1
+- Bumped aiohttp from 3.7.3 to 3.7.4
+- Bumped aiohttp from 3.6.2 to 3.7.3
+- Bumped python-socketio from 4.4.2 to 4.6.1
+- Bumped deepdiff from 4.3.1 to 5.2.2
+- Fixed issue with socketIO, where the client is incompatible with server
+- Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
+- Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
+- Fix for Hass Api async api - contributed by `Oxan van Leeuwen <https://github.com/oxan>`__
+- Prevented the loading of hidden files into AD; those starting with a `.`
+- Prevented the loading of hidden python files into AD; those starting with a `.`
+- Prevented the loading of hidden folders into AD; those starting with a `.`
+- Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
+- Documentation fixes - contributed by `Rock coaxial <https://github.com/coaxial>`__
+- Documentation fixes - contributed by `Bob Gray <https://github.com/bg1000>`__
+- Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Documentation fixes - contributed by `Dougal Matthews <https://github.com/d0ugal>`__
+- Documentation fixes - contributed by `Jason Lachowsky <https://github.com/dajo>`__
+- Documentation fixes - contributed by `Jonas Pedersen <https://github.com/JonasPed>`__
+- Documentation fixes - contributed by `chbndrhnns <https://github.com/chbndrhnns>`__
+- Documentation fixes - contributed by `Addison Lynch <https://github.com/addisonlynch>`__
+- Allowed for both multi and single level MQTT wildcard subscription
+- Ensured AD doesn't break, when a "." is used in app name, while it is ignored. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
+- Fix for MQTT Listen Event using Async - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Fix for using async method as constraints, contributed by `Mithras <https://github.com/Mithras>`__
+
+**Breaking Changes**
+
+- Those using non-existent namespaces to register app services, will need to create a UDN and use that to register the service as described `here <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#user-defined-namespaces>`__
+- If using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
+- Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
+- ``binary`` is now a reserved keyword argument used when listening to MQTT events
+- When using ``wildcard`` to listen for events within an app, only those used to subscribe to the broker can be used. so if using ``camera/#`` to subscribe to all camera related topics, AD will not recognise ``camera/front-door/#`` as a valid wildcard when listening for events; unless ``camera/front-door/#`` was used for subscription itself.
+- Moved the local static folder for serving static files from `web` to `www`. If using ``web`` already, simply add it to `static_dirs` in the ``http`` component as described `here <https://appdaemon.readthedocs.io/en/latest/CONFIGURE.html#configuring-the-http-component>`__
+
+4.0.5 (2020-08-16)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a duo of bugs that left entities lying around in the AUI and AD's internals tat eventually led to slowdown and crash
+
+**Breaking Changes**
+
+None
+
+4.0.4 (2020-07-11)
+------------------
+
+**Features**
+
+- All module dependencies pinned to exact versions for better environmental predictability
+- Bump pyyaml to 5.3
+- Bump yarl to 1.4.2
+- Bump bcrypt to 3.1.7
+- Bump jinja2 to 2.10.3
+- Bump aiohttp-jinja2 to 1.2.0
+- Bump deepdiff from 4.0.9 to 4.2.0
+- Bump jinja2 from 2.11.0 to 2.11.1
+- Bump deepdiff from 4.2.0 to 4.3.1
+- Bump pygments from 2.5.2 to 2.6.1
+- Add Azure pipelines for Black and Flake - contributed by `Bas Nijholt <https://github.com/basnijholt>`__
+- Added service call for ``remove_entity``
+- Added ability to use ``now`` in ``run_every``. Also seconds can be added by simply using ``now+10`` for example
+- Presence convenience functions now support a ``person`` flag to use person entities rather than device trackers for presence detection
+- ``constrain_person`` constraints added to support person entities
+- Add stream support for SockJS
+- Dashboard component now only sends event updates for relevant dashboard entities rather than broadcasting all state_change events
+- Admin UI now breaks out App instance and lifetime callback stats separately
+- Convert admin and dashboard to get_state from stream
+- Increase default work factor for password hashes to 12
+- Added `add_entity` api call, alongeside `state/add_entity` service call
+- Added the ability to remove plugin entities like `HA` when using the `remove_entity` api
+- Cleanup sequences when modified. This ensures removed sequences are also removed from the Admin UI and AD
+- Added support to use environment variables using the `!env_var` tag, if not wanting to use the `!secrets` tag
+- Additional format for time travel start and end times accepted
+- Added the ability to specify a callback to hass get_history. This way,  large amount of data can be retrieved from the database, without AD cancelling the task
+- Added retry_secs parameter to the hass plugin
+
+**Fixes**
+
+- Re-added support for SSL in the http module (should also fix dialogflow)
+- Add openssl-dev package to docker image (required for RPI)
+- Fixed up socketio support to work with the new stream semantics
+- Fixed a bug that allowed multiple copies of an App to run if there was an error in the signature of terminate()
+- AppDaemon's REST API no longer needs to be active to use the dashboard or Admin interfaces
+- Fix tzdata error in docker build for RPI - contributed by `Guy Khmelnitsky <https://github.com/GuyKh>`__
+- Fix for `get_tz_offset()` not working in some circumstances - contributed by `sillyfrog <https://github.com/sillyfrog>`__
+- Added some locking to prevent array size change errors
+- Fix for registering services created in HA, after it had started
+- Added additional logic to wait for full HASS startup
+
+**Breaking Changes**
+
+- Changed ``websocket_connected`` and ``websocket_disconnected`` events to ``stream_connected`` and ``stream_disconnected`` respectively
+- Changed the `get_history` api, as `entity_id` has been removed from the api
+
+4.0.3 (2020-02-29)
+------------------
+
+**Features**
+
+- Pinned astral to v1.10.1
+
+**Fixes**
+
+- Pinned astral to prevent a bug in the latest v2 astral
+
+**Breaking Changes**
+
+None
+
+4.0.2 (2020-02-28)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed a critical bug that cause multiple scheduler errors during a leap year - contributed by `Chad McCune <https://github.com/chadmccune>`__
+
+**Breaking Changes**
+
+None
+
+
+
+4.0.1
+-----
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+- Fixed an issue that prevented dashboards from working on older iPads
+
+**Breaking Changes**
+
+None
+
+4.0.0 (2020-01-12)
+------------------
+
+**Features**
+
+- Added events for when an app is initialized or terminated
+- Added `event_fire` service call
+- Added `production_mode` service call
+- Added `list_services` api call
+- Added the ability to fire an event callback only once, using the `oneshot` flag
+- Added the ability to use async functions as endpoint callback
+- Added the ability for ``input_select`` to auto-update when the options changes, without need of refreshing the browser page
+- Added events for when a websocket client connects and disconnects
+- Added the ability for apps to register web routes, thereby utilizing AD's internal web server
+- Added static folder `web`, which can used to serve content like images using AD's internal web server
+- Added ability for users to define static folders, which can used to serve content like images using AD's internal web server
+- Added support for python 3.8
+
+**Fixes**
+
+- Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
+
+**Breaking Changes**
+
+None
+
+4.0.0 Beta 2 (2019-10-19)
+-------------------------
 
 **Features**
 
@@ -56,16 +281,16 @@ Change Log
 - Moved ``constrain_days`` from being Hass only to all app, regardless of plugin used
 - Added checking for overdue threads
 - Added error checking for callback signatures
-- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps 
+- Added app attributes that allows to access AD's ``config`` and ``apps`` directories within apps
 - Added ``parse_datetime()``
 - ``run_once()``, ``run_at()`` and ``run_daily()`` now optionally take ``parse_time()`` or ``parse_datetime()`` style arguments for specifying time
 - Refactored appdaemon.py for greater readability and easier maintenance
-- Expanded on the ability to trigger ``listen_state`` callbacks immediately using the ``immediate`` flag, without need of specifing the ``new`` nor ``duration`` parameter.
+- Expanded on the ability to trigger ``listen_state`` callbacks immediately using the ``immediate`` flag, without need of specifying the ``new`` nor ``duration`` parameter.
 - Allowed to make use of ``attribute`` when using the ``immediate`` flag in ``listen_state``
 - Added initial version of the Admin Interface
 - Added User Defined Namespaces
 - Rewrote logging to include user defined logs and formats
-- Added a unified http component to handle API, ADMIN and DASBOARD access on a single port
+- Added a unified http component to handle API, ADMIN and DASHBOARD access on a single port
 - Added startup conditions to the HASS plugin
 - Added duplicate filtering for logs
 - Added standalone pidfile functionality
@@ -86,7 +311,7 @@ Change Log
 - Various YAML fixes and refactoring - contributed by `Rolf Schäuble <https://github.com/rschaeuble>`__
 - Allow more natural addition of commandline arguments to Docker and allow spaces - contributed by `Christoph Roeder <https://github.com/brightdroid>`__
 - Allowed for subscribing to MQTT events using wildcards. e.g. ``homeassistant/#`` - contributed by `Odianosen Ejale <https://github.com/Odianosen25>`__
-- Allow to specify a MQTT message to be sent when AD shutsdown cleanly e.g. ``offline``
+- Allow to specify a MQTT message to be sent when AD shutdowns cleanly e.g. ``offline``
 - MQTT Retain setting for birth and will messages - contributed by `Clifford W. Hansen <https://github.com/cliffordwhansen>`__
 - Added Note on long lived tokens for Docker users -  contributed by `Bob Anderson <https://github.com/rwa>`__
 - Documentation fixes - contributed by `Johann Schmitz <https://github.com/ercpe>`__
@@ -104,7 +329,7 @@ Change Log
 - Fixes to listen_state() function when it fires even when new and old states are same
 - Fixed an issue causing incorrect busy thread counts when app callbacks had exceptions
 - Fixed an issue of when MQTT Plugin not connected to broker, and it holds up AD startup
-- Fix to Forcast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
+- Fix to Forecast min/max in weather widget - contributed by `adipose <https://github.com/adipose>`__
 - Fix climate widget docs - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Fix to harmonize ``units`` vs ``unit``  - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added missing import in sound.py example   - contributed by `cclaus <https://github.com/cclauss>`__
@@ -113,7 +338,7 @@ Change Log
 - Fixed issue of AppDaemon loading all ``.yaml`` files, even those starting with a ``.`` which are hidden or binary files. Contributed by `fhirschmann <https://github.com/fhirschmann>`__
 - Fix for error generated when a none existent schedule timer is passed to ``info_timer``
 - Fix for ``log_type`` flag in ``listen_log`` callback
-- Relative paths for appdaemon's config directory now work corrcetly
+- Relative paths for appdaemon's config directory now work correctly
 - Fix to Dialogflow after format changes
 - MQTT fix to subscribing using wildcards - contributed by `Daniel Lashua <https://github.com/dlashua>`__
 
@@ -138,7 +363,7 @@ Change Log
 - Due to a fix for ``info_timer``, this function can now return ``None`` if the timer handle is invalid
 - As a result of a change in the way AD auto generates MQTT client status topic, if not defined previously the new topic needs to be used
 - In the appdaemon configuration section, ``latitude``, ``longitude``, ``elevation`` and ``timezone`` are now mandatory
-- MQTT client status api change from ``clientConnected`` to ``is_client_connected``  
+- MQTT client status api change from ``clientConnected`` to ``is_client_connected``
 
 3.0.4 (2019-04-04)
 ------------------
@@ -201,7 +426,7 @@ Change Log
 - Use of ha_key for authentication is deprecated and will be removed at some point. For now it will still work
 - Many Font Awesome Icon names have changed - any custom icons you have on dashboards will need to be changed to suit - see `docs <https://appdaemon.readthedocs.io/en/latest/DASHBOARD_CREATION.html#a-note-on-font-awesome-upgrade>`__ for more detail.
 
-While working through the upgrade it is strongly advised that you clear your browser cache and force recompiles of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
+While working through the upgrade it is strongly advised that you clear your browser cache and force the recompilation of all of your dashboards to flush out references to old icons. This can be done by manually removing the ``compiled`` subdirectory in ``conf_dir``, specifying ``recompile=1`` in the arguments to the dashboard, or setting the hadashboard option ``dash_compile_on_start`` to ``1``.
 
 3.0.1 (2018-04-18)
 ------------------
@@ -214,7 +439,7 @@ While working through the upgrade it is strongly advised that you clear your bro
 - Exiting from the commandline with ctrl-c will now cleanly terminate apps
 - Sending SIGTERM to an appdaemon process will cause a clean shutdown, including orderly termination of all apps in dependency order
 - Added extra checking for HASS Initialization to prevent a race condition in which metadata could not be read
-- Weather widget facelift allowing ability to change sensors, more dynamic usnits, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
+- Weather widget adds the ability to change sensors, more dynamic units, forecast option, icon options, option to show Rain/Snow depending on precip_type sensor (and change icons), wind icon rotates according to wind bearing - contributed by `Marcin Domański <https://github.com/kabturek>`__
 
 **Fixes**
 
@@ -465,7 +690,7 @@ None
 - Addition of check to highlight excessive time in scheduler loop
 - Split app configuration out into a separate file in preparation for HASS integration
 - Enhance widget API to handle all event types instead of just click
-- Add example HADashboard focussed Apps for Oslo City Bikes, Caching of local AppDaemon events, Monitoring events and logging, Google Calendar Feed, Oslo Public Transport, YR Weather - contributed by `Torkild Retvedt <https://github.com/torkildr>`__
+- Add example HADashboard focused Apps for Oslo City Bikes, Caching of local AppDaemon events, Monitoring events and logging, Google Calendar Feed, Oslo Public Transport, YR Weather - contributed by `Torkild Retvedt <https://github.com/torkildr>`__
 
 **Fixes**
 
@@ -772,9 +997,9 @@ None
 -  Add option to turn off verification for self signed certs
    (contributed by `janwh <https://github.com/janwh>`__)
 -  AppDaemon configuration now uses YAML, among other things this allows
-   arbitarily complex nested data structures in App parameters
+   arbitrarily complex nested data structures in App parameters
 -  Added ability to convert from old cfg file to YAML
--  AppDaemon Apps can now publish arbitary state to other Apps and the
+-  AppDaemon Apps can now publish arbitrary state to other Apps and the
    dashboard
 -  Added Gauge Widget
 -  Added RSS Widget
@@ -809,11 +1034,11 @@ None
 
 **Fixes**
 
--  
+-
 
 **Breaking Changes**
 
--  
+-
 
 2.0.0beta3 (2017-03-27)
 -----------------------
@@ -1018,7 +1243,7 @@ None
 -  notify() now supports names
 -  It is now possible to set a timeout value for underlying calls to the
    HA EventStream
--  It is no longer neccesary to specify latitude, longitude and timezone
+-  It is no longer necessary to specify latitude, longitude and timezone
    in the config file, the info is pulled from HA
 -  When being reloaded, Apps are now able to clean up if desired by
    creating an optional ``terminate()`` function.
@@ -1111,7 +1336,7 @@ None
 
 **Features**
 
--  Add ability to specify a cert dirctory for self-signed certs
+-  Add ability to specify a cert directory for self-signed certs
 -  Add ability for ``listen_event()`` to listen to any event
 -  Add filter options to listen\_event()
 
@@ -1284,7 +1509,7 @@ None
 -  As a result of the repackaging for PIP3 installation, all apps must
    be edited to change the import statement of the api to
    ``import appdaemon.appapi as appapi``
--  Config must now be explicitly specfied with the -c option if you
+-  Config must now be explicitly specified with the -c option if you
    don't want it to pick a default file location
 -  Logfile will no longer implicitly redirect to STDOUT if running
    without the -d flag, instead specify STDOUT in the config file or

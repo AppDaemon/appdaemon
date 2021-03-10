@@ -12,7 +12,7 @@ To create apps based on just the MQTT API, use some code like the following:
 
     import mqttapi as mqtt
 
-    class MyApp(mqtt.Mqtt:
+    class MyApp(mqtt.Mqtt):
 
         def initialize(self):
 
@@ -24,7 +24,7 @@ to carry out service calls from within an AppDaemon app. See the documentation o
 function `here <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.call_service>`__
 for a detailed description.
 
-Th function ``call_service()`` allows the app to carry out one of the following services:
+The function ``call_service()`` allows the app to carry out one of the following services:
 
   - ``Publish``
   - ``Subscribe``
@@ -78,4 +78,3 @@ See More
 
 Read the `AppDaemon API Reference <AD_API_REFERENCE.html>`__ to learn other inherited helper functions that
 can be used by Hass applications.
-

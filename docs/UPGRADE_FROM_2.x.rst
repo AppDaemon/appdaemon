@@ -7,7 +7,7 @@ Note that not all changes will apply to everyone, some of them are in fairly obs
 
 - AppDaemon no longer supports python 3.4
 
-This is a fairly significant step, and the decision to do this was influenced by HASS' pending end of support for Python 3.4. There are many technical reasons why this is a good thing, but the bottom line is that you will need to upgrade your pyton version to run HASS anyway, so I took this opportunity to follow suit. AppDaemon 3.0 will remain in beta until HASS drops python 3.4 support entirely.
+This is a fairly significant step, and the decision to do this was influenced by HASS' pending end of support for Python 3.4. There are many technical reasons why this is a good thing, but the bottom line is that you will need to upgrade your python version to run HASS anyway, so I took this opportunity to follow suit. AppDaemon 3.0 will remain in beta until HASS drops python 3.4 support entirely.
 
 - Apps need to change the import and super class
 

@@ -2,19 +2,19 @@ function baselight(widget_id, url, skin, parameters)
 {
     // Will be using "self" throughout for the various flavors of "this"
     // so for consistency ...
-    
+
     self = this
-    
+
     // Initialization
-    
+
     self.widget_id = widget_id
-    
+
     // Parameters may come in useful later on
-    
+
     self.parameters = parameters
-    
+
     // Parameter handling
-    
+
     if ("monitored_entity" in self.parameters)
     {
         entity = self.parameters.monitored_entity
@@ -23,7 +23,7 @@ function baselight(widget_id, url, skin, parameters)
     {
         entity = self.parameters.entity
     }
-    
+
     if ("on_brightness" in self.parameters)
     {
         self.on_brightness = self.parameters.on_brightness
@@ -32,47 +32,47 @@ function baselight(widget_id, url, skin, parameters)
     {
         self.on_brightness = 127
     }
-    
+
     // Define callbacks for on click events
     // They are defined as functions below and can be any name as long as the
     // 'self'variables match the callbacks array below
     // We need to add them into the object for later reference
-   
+
     self.OnButtonClick = OnButtonClick
     self.OnRaiseLevelClick = OnRaiseLevelClick
     self.OnLowerLevelClick = OnLowerLevelClick
-    
+
     var callbacks =
         [
             {"selector": '#' + widget_id + ' > span', "action": "click", "callback": self.OnButtonClick},
             {"selector": '#' + widget_id + ' #level-up', "action": "click", "callback": self.OnRaiseLevelClick},
             {"selector": '#' + widget_id + ' #level-down', "action": "click", "callback": self.OnLowerLevelClick},
-        ]        
-     
+        ]
+
     // Define callbacks for entities - this model allows a widget to monitor multiple entities if needed
     // Initial will be called when the dashboard loads and state has been gathered for the entity
     // Update will be called every time an update occurs for that entity
-     
+
     self.OnStateAvailable = OnStateAvailable
     self.OnStateUpdate = OnStateUpdate
-    
-    var monitored_entities = 
+
+    var monitored_entities =
         [
             {"entity": entity, "initial": self.OnStateAvailable, "update": self.OnStateUpdate}
         ]
-    
+
     // Finally, call the parent constructor to get things moving
-    
-    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)  
+
+    WidgetBase.call(self, widget_id, url, skin, parameters, monitored_entities, callbacks)
 
     // Function Definitions
-    
-    // The StateAvailable function will be called when 
+
+    // The StateAvailable function will be called when
     // self.state[<entity>] has valid information for the requested entity
     // state is the initial state
-    
+
     function OnStateAvailable(self, state)
-    {        
+    {
         self.state = state.state;
         if ("brightness" in state.attributes)
         {
@@ -84,11 +84,11 @@ function baselight(widget_id, url, skin, parameters)
         }
         set_view(self, self.state, self.level)
     }
-    
+
     // The OnStateUpdate function will be called when the specific entity
     // receives a state update - its new values will be available
     // in self.state[<entity>] and returned in the state parameter
-    
+
     function OnStateUpdate(self, state)
     {
         self.state = state.state;
@@ -103,7 +103,7 @@ function baselight(widget_id, url, skin, parameters)
 
         set_view(self, self.state, self.level)
     }
-    
+
     function OnButtonClick(self)
     {
         if (self.state == "off")
@@ -155,7 +155,7 @@ function baselight(widget_id, url, skin, parameters)
             args = jQuery.extend(true, {}, self.parameters.post_service_active)
             args["brightness"] = self.level
         }
-        self.call_service(self, args)             
+        self.call_service(self, args)
     }
 
     function toggle(self)
@@ -171,14 +171,14 @@ function baselight(widget_id, url, skin, parameters)
         }
         set_view(self, self.state, self.level)
     }
-    
-    // Set view is a helper function to set all aspects of the widget to its 
+
+    // Set view is a helper function to set all aspects of the widget to its
     // current state - it is called by widget code when an update occurs
     // or some other event that requires a an update of the view
-    
+
     function set_view(self, state, level)
     {
-        
+
         if (state == "on")
         {
             // Set Icon will set the style correctly for an icon

@@ -15,6 +15,10 @@ Your initial ``appdaemon.yaml`` file should look something like this if you are 
 .. code:: yaml
 
      appdaemon:
+       time_zone: CET
+       latitude: 51.725
+       longitude: 14.3434
+       elevation: 0
        plugins:
          HASS:
            type: hass
@@ -63,7 +67,7 @@ All directives are optional with the exception of ``name`` for user defined logs
 
 The directives are as follows:
 
--  ``logfile`` (optional) is the path to where you want the file to be written. If the directive is not
+-  ``filename`` (optional) is the path to where you want the file to be written. If the directive is not
    specified, the output is sent to STDOUT.
 -  ``log_size`` (optional) is the maximum size a logfile will get to
    before it is rotated if not specified, this will default to 1000000
@@ -105,17 +109,18 @@ The ``appdaemon:`` section has a number of directives:
 
 -  ``filters`` (optional) - see below.
 -  ``plugins`` (required) - see below.
--  ``latitude`` (required) - latitude for AppDaemon to use.
--  ``longitude`` (required) - longitude for AppDaemon to use.
--  ``elevation`` (required) - elevation for AppDaemon to use.
--  ``time_zone`` (required) - timezone for AppDaemon to use.
+-  ``latitude`` (required) - latitude for AppDaemon to use (decimal format).
+-  ``longitude`` (required) - longitude for AppDaemon to use (decimal format).
+-  ``elevation`` (required) - elevation for AppDaemon to use in meters above sea level.
+-  ``time_zone`` (required) - timezone for AppDaemon to use (e.g. America/New_York).
 -  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
 -  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
 - ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
 - ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``. This can also be changed from within apps, using the ``set_production_mode`` API call.
-- ``thread_duration_warning_threshold`` (optional) - AppDaemon monitors the time that each tread spends in an App. If a thread is taking too long to finish a callback, it may impact other apps. AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is 30 seconds, setting this value to ``00`` will disable the check.
+- ``thread_duration_warning_threshold`` (optional) - AppDaemon monitors the time that each tread spends in an App. If a thread is taking too long to finish a callback, it may impact other apps. AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is 10 seconds, setting this value to ``00`` will disable the check.
 - ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events, and state changes - this can be useful for troubleshooting thread starvation issues
+
 When using the ``exclude_dirs`` directive, you should supply a list of directory names that should be ignored. For example:
 
 .. code:: yaml
@@ -137,11 +142,12 @@ The following items provide a high level of control over AppDaemon's internal fu
 -  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and locking of instance variables
 -  ``pin_threads`` (optional) - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. Default is to use all threads for pinned apps.
 - ``threadpool_workers`` (optional) - the number of max_workers threads to be used by AD internally to execute calls asynchronously. This defaults to ``10``.
-- ``load_distribution`` - Algorithm to use for load balancing between unpinned apps. Can be ``roundrobin`` (the default), ``random`` or ``load``
+- ``load_distribution`` - Algorithm to use for load balancing between unpinned apps. Can be ``round-robin`` (the default), ``random`` or ``load``
 -  ``timewarp`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
 -  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
 -  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
 -  ``qsize_warning_iterations`` - if set to a value greater than 0, when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes but not until the qsize has been excessive for a minimum of ``qsize_warning_iterations``. This allows you to tune out brief expected spikes in Q size. Default is 5, usually meaning 5 seconds.
+-  ``uvloop`` (optional) - When ``True``, AD will switch from using default python asyncio loop, to utilizing the uvloop. This is said to improve the speed of the loop. More can be read `here <https://magic.io/blog/uvloop-blazing-fast-python-networking>`__ about uvloop.
 - namespaces (optional) - configure one or more User Defined Namespaces and set their writeback strategy
 
 .. code:: yaml
@@ -255,6 +261,7 @@ Plugins also support some optional parameters:
 
 - ``refresh_delay`` - How often the complete state of the plugin is refreshed, in seconds. Default is 600 seconds.
 - ``refresh_timeout`` - How long to wait for the state refresh before cancelling it, in seconds. Default is 30 seconds.
+- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persitent within AD. So in the event of a restart, the entities will be recreated in the same namespace
 
 The rest will vary depending upon which plugin type is in use.
 
@@ -273,7 +280,7 @@ To configure the HASS plugin, in addition to the required parameters above, you 
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
-
+-  ``retry_secs`` (optional) - If specified, AD will wait for this many seconds in between retries to connect to HASS (default 5 seconds)
 - appdaemon_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
 - plugin_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
 
@@ -357,10 +364,12 @@ HASS Plugin Startup Conditions
 
 The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
 
-- appdaemon_startup_conditions - conditions that must be met when AppDaemon starts up
-- plugin_startup_conditions - conditions that must be met when HASS restarts while AppDaemon is up
+- appdaemon_startup_conditions - These conditions are checked when AppDaemon starts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
+- plugin_startup_conditions - These conditions are checked if HASS restarts while AppDaemon is up.  AppDaemon will not start the HASS plugin until all of these conditions are met.
 
-AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. Each set of conditions takes the same format, and there are 3 types of conditions:
+
+
+AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. **These two sets of conditions operate independently.  If you want the same behavior during both startup scenarios then you need to include both sets of conditions in the configuration file and make them the same. Each set of conditions takes the same format, and there are 3 types of conditions. Currently each condition block supports only one of each type of condition.**
 
 delay
 '''''
@@ -418,7 +427,6 @@ Wait for a specific input boolean to be triggered when AppDaemon restarts:
         event: {event_type: call_service, data:{domain: homeassistant, service_data:{entity_id: input_boolean.heating}, service: turn_on}}
 
 
-
 Configuration of the MQTT Plugin
 ================================
 
@@ -426,7 +434,7 @@ To configure the MQTT plugin, in addition to the required parameters above, you 
 
 
 -  ``type:`` This must be declared and it must be ``mqtt``
--  ``namepace:`` (optional) This will default to ``default``
+-  ``namespace:`` (optional) This will default to ``default``
 -  ``client_host:`` (optional) The IP address or DNS of the Broker. Defaults to 127.0.0.1 which is the localhost
 -  ``client_port:`` (optional) The port number used to access the broker. Defaults to ``1883``
 -  ``client_transport:`` (optional) The transport protocol used to access the broker. This can be either ``tcp`` or ``websockets`` Defaults to ``tcp``
@@ -516,7 +524,7 @@ when we first run it.
 Configuring the HTTP Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The HTTP component provides a unified front end to `Apdaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled.
+The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled. This component also creates a folder in the configuration directory called ``www``, if it doesn't exist. To serve custom static content like images, videos or html pages, simply drop the content into the www folder and it becomes available via the browser or dashboard. Content stored in this folder can be accessed using ``http://AD_IP:Port/local/<content to be accessed>``. Where `AD_IP:Port` is the url as defined below using the http component.
 
 It has it's own top-level section in AppDaemon.yaml, and one mandatory argument, ``url``:
 
@@ -532,8 +540,9 @@ It has it's own top-level section in AppDaemon.yaml, and one mandatory argument,
 To password protect ``AppDaemon`` use the ``password`` directive:
 
 .. code:: yaml
-
-      password: some_password
+    http:
+        url: http://192.168.1.20:5050
+        password: some_password
 
 Or you can use the secret function and place the actual password in your
 ``secrets.yaml`` file:
@@ -542,14 +551,15 @@ Or you can use the secret function and place the actual password in your
 
       password: !secret ad_password
 
-To enable https support for HADashboard, add the following directives
+To enable https support for the HTTP Component and by extention the HADashboard and Admin UI, add the following directives
 pointing to your certificate and keyfile:
 
 .. code:: yaml
-
-      dash_ssl_certificate: /etc/letsencrypt/live/somehost/fullchain.pem
-      dash_ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
-
+    http:
+        url: http://192.168.1.20:5050
+        password: some_password
+        ssl_certificate: /etc/letsencrypt/live/somehost/fullchain.pem
+        ssl_key: /etc/letsencrypt/live/somehost/privkey.pem
 
 AppDaemon uses websockets as the default protocol for streaming events from AppDaemon to the dashboard and admin interface so the dashboard can respond to events in real-time. Some older devices, e.g., original iPad models, do not support websockets. In this case, you may use the alternative socket.io protocol which has better support for older devices. To do this, set the ``transport`` parameter to ``socketio``. The default is ``ws`` which means the websockets protocol will be used:
 
@@ -573,6 +583,19 @@ Headers are especially useful for dealing with CORS. In order to allow CORS from
     http:
       headers:
         Access-Control-Allow-Origin: "*"
+
+This component can also be used to setup custom static directories, which has contents within it that needs to be served using
+AD's internal web server. This can range from images, videos, html pages and the likes. To do this, consider the configuration below:
+
+.. code:: yaml
+
+    http:
+      static_dirs:
+        videos: /home/pi/video_clips
+        pictures: /home/pi/pictures
+
+The above configuration assumes that the user has a folder, that has stored within it video clips from like cameras. To access
+the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/local/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/local/pictures/<picture to be accessed>``. Using this directive does support the use of relative paths.
 
 Configuring the Dashboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~

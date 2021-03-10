@@ -4,10 +4,10 @@ function getCookie(cname) {
     var ca = decodedCookie.split(';');
     for(var i = 0; i <ca.length; i++) {
         var c = ca[i];
-        while (c.charAt(0) == ' ') {
+        while (c.charAt(0) === ' ') {
             c = c.substring(1);
         }
-        if (c.indexOf(name) == 0) {
+        if (c.indexOf(name) === 0) {
             return c.substring(name.length, c.length);
         }
     }
@@ -24,31 +24,12 @@ function dom_ready(transport)
     $("#main_log_button")[0].click();
     $("#default_entity_button")[0].click();
 
-    // Start listening for Events
-
-    var stream_url;
-    if (transport === "ws")
-    {
-        if (location.protocol === 'https:')
-        {
-            wsprot = "wss:"
-        }
-        else
-        {
-            wsprot = "ws:"
-        }
-        stream_url = wsprot + '//' + location.host + '/stream'
-    }
-    else
-    {
-        stream_url = 'http://' + document.domain + ':' + location.port + "/stream"
-    }
-
-    admin_stream(stream_url, transport);
+    window.adminstream = new AdminStream(transport, location.protocol, document.domain, location.port);
 }
 
-function create_tables(entities)
+function create_tables(msg)
 {
+    entities = msg.data;
     window.ready = false;
 
     // Create Apps Table
@@ -59,10 +40,11 @@ function create_tables(entities)
             [
                 'name',
                 'state',
-                'callbacks',
+                'instancecallbacks',
+                'totalcallbacks',
                 'arguments'
             ],
-        item: '<tr><td class="name"></td><td class="state"></td><td class="callbacks"></td><td class="tooltip arguments"></td></tr>'
+        item: '<tr><td class="name"></td><td class="state"></td><td class="instancecallbacks"></td><td class="totalcallbacks"></td><td class="tooltip arguments"></td></tr>'
     };
 
     create_clear("app_table", id, options);
@@ -153,7 +135,7 @@ function create_tables(entities)
 
     // Iterate the namespaces for entities table
 
-    jQuery.each(entities.state, function(namespace)
+    jQuery.each(entities, function(namespace)
     {
         // Entities
         id = namespace + "-entities-table";
@@ -174,13 +156,13 @@ function create_tables(entities)
 
         entity_list = [];
 
-        jQuery.each(entities.state[namespace], function(entity)
+        jQuery.each(entities[namespace], function(entity)
         {
-            if (entities.state[namespace][entity] != null)
+            if (entities[namespace][entity] != null)
             {
-                state = entities.state[namespace][entity].state;
-                last_changed = entities.state[namespace][entity].last_changed;
-                attributes = entities.state[namespace][entity].attributes;
+                state = entities[namespace][entity].state;
+                last_changed = entities[namespace][entity].last_changed;
+                attributes = entities[namespace][entity].attributes;
 
                 entity_list.push({
                     name: entity,
@@ -194,12 +176,14 @@ function create_tables(entities)
 
                     if (device(entity) === "app")
                     {
-                        callbacks = attributes.callbacks;
+                        instancecallbacks = attributes.instancecallbacks;
+                        totalcallbacks = attributes.totalcallbacks;
                         window.app_table.add({
                             name: name(entity),
                             state: state,
+                            instancecallbacks: instancecallbacks,
+                            totalcallbacks: totalcallbacks,
                             arguments: JSON.stringify(attributes.args),
-                            callbacks: callbacks
                         });
                     }
 
@@ -333,8 +317,10 @@ function close_tooltip(e)
     $("#tooltiptext").css("visibility", "hidden")
 }
 
-function update_admin(data)
+function update_admin(msg)
 {
+
+    data = msg.data;
 
     if (window.ready !== true)
     {
@@ -356,95 +342,117 @@ function update_admin(data)
 
     // Entity Update
 
-    if (data.event_type === "state_changed")
-    {
-        //console.log(data)
+    if (data.event_type === "state_changed") {
         namespace = data.namespace;
         entity = data.data.entity_id;
         last_changed = data.data.new_state.last_changed;
         state = data.data.new_state.state;
         attributes = data.data.new_state.attributes;
         item = window[namespace + "_table"].get("name", entity);
+        if (item.length > 0)
+        {
 
-        // TODO: This breaks if a new entity shows up
+            // TODO: This breaks if a new entity shows up
 
-        item[0].values({name: entity, state: state, last_changed: last_changed, attributes: JSON.stringify(attributes)});
+            item[0].values({
+                name: entity,
+                state: state,
+                last_changed: last_changed,
+                attributes: JSON.stringify(attributes)
+            });
+        }
         if (namespace === "admin")
         {
             if (device(entity) === "app")
             {
                 item = window.app_table.get("name", name(entity));
-                item[0].values({
+                if (item.length > 0)
+                {
+                    item[0].values({
                     name: name(entity),
                     state: state,
-                    callbacks: attributes.callbacks,
+                    instancecallbacks: attributes.instancecallbacks,
+                    totalcallbacks: attributes.totalcallbacks,
                     arguments: JSON.stringify(attributes.args)
-                });
+                    });
+                }
             }
             if (device(entity) === "thread")
             {
                 item = window.thread_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    q_size: attributes.q,
-                    callback: state,
-                    time_called: attributes.time_called,
-                    alive: attributes.is_alive,
-                    pinned_apps: JSON.stringify(attributes.pinned_apps)
-                })
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        q_size: attributes.q,
+                        callback: state,
+                        time_called: attributes.time_called,
+                        alive: attributes.is_alive,
+                        pinned_apps: JSON.stringify(attributes.pinned_apps)
+                    })
+                }
             }
 
             if (device(entity) === "scheduler_callback")
             {
                 item = window.scheduler_callback_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    app: attributes.app,
-                    execution_time: attributes.execution_time,
-                    repeat: attributes.repeat,
-                    function: attributes.function,
-                    fired: attributes.fired,
-                    executed: attributes.executed,
-                    pinned: attributes.pinned,
-                    pinned_thread: attributes.pinned_thread,
-                    kwargs: JSON.stringify(attributes.kwargs)
-                })
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        app: attributes.app,
+                        execution_time: attributes.execution_time,
+                        repeat: attributes.repeat,
+                        function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    })
+                }
             }
 
 
             if (device(entity) === "state_callback")
             {
                 item = window.state_callback_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    app: attributes.app,
-                    last_changed: last_changed,
-                    entity: attributes.listened_entity,
-                    function: attributes.function,
-                    fired: attributes.fired,
-                    executed: attributes.executed,
-                    pinned: attributes.pinned,
-                    pinned_thread: attributes.pinned_thread,
-                    kwargs: JSON.stringify(attributes.kwargs)
-                });
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        app: attributes.app,
+                        last_changed: last_changed,
+                        entity: attributes.listened_entity,
+                        function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    });
+                }
                 window.state_callback_table.sort('app')
             }
 
             if (device(entity) === "event_callback")
             {
                 item = window.event_callback_table.get("id", name(entity));
-                item[0].values({
-                    id: name(entity),
-                    app: attributes.app,
-                    last_changed: last_changed,
-                    event_name: attributes.event_name,
-                    function: attributes.function,
-                    fired: attributes.fired,
-                    executed: attributes.executed,
-                    pinned: attributes.pinned,
-                    pinned_thread: attributes.pinned_thread,
-                    kwargs: JSON.stringify(attributes.kwargs)
-                });
+                if (item.length > 0)
+                {
+                    item[0].values({
+                        id: name(entity),
+                        app: attributes.app,
+                        last_changed: last_changed,
+                        event_name: attributes.event_name,
+                        function: attributes.function,
+                        fired: attributes.fired,
+                        executed: attributes.executed,
+                        pinned: attributes.pinned,
+                        pinned_thread: attributes.pinned_thread,
+                        kwargs: JSON.stringify(attributes.kwargs)
+                    });
+                }
                 window.event_callback_table.sort('app')
             }
 
@@ -481,7 +489,8 @@ function update_admin(data)
                 window.app_table.add({
                     name: name(entity),
                     state: state,
-                    callbacks: attributes.callbacks,
+                    instancecallbacks: instancecallbacks,
+                    totalcallbacks: totalcallbacks,
                     args: JSON.stringify(attributes.args)
                 });
                 window.app_table.sort('name')
@@ -559,7 +568,7 @@ function update_admin(data)
         entity = data.data.entity_id;
 
         // Remove from entities
-        window[namespace + "_table"].remove("name", data.data.entity);
+        window[namespace + "_table"].remove("name", entity);
 
         if (namespace === "admin")
         {
@@ -610,93 +619,36 @@ function device(entity)
     return entity.split(".")[0]
 }
 
-function admin_stream(stream, transport)
-{
+var AdminStream = function(transport, protocol, domain, port) {
 
-    if (transport === "ws")
-    {
-        var webSocket = new ReconnectingWebSocket(stream);
+    var self = this;
 
-        webSocket.onopen = function (event) {
-            var request = {
-                request_type: 'hello',
-                data: {
-                    client_name: 'Admin Browser',
-                }
-            }
+    this.on_connect = function(data) {
 
-            if (getCookie('adcreds') !== '') {
-                var creds = getCookie('adcreds')
-                creds = creds.substring(1, (creds.length - 1))
-                request['data']['cookie'] = creds
-            }
+        // Grab state
 
-            webSocket.send(JSON.stringify(request));
-            get_state(create_tables);
-        };
+        self.stream.get_state('*', '*', create_tables);
 
-        webSocket.onmessage = function (event) {
-            var data = JSON.parse(event.data);
+        // subscribe to all events
 
-            // Stream Authorized            
-            if (data.response_type === "hello" && data.response_success === true)
-            {
-                webSocket.send(JSON.stringify({
-                    request_type: 'listen_state',
-                    data: {
-                        namespace: '*',
-                        entity_id: '*',
-                    }
-                }))
-        
-                webSocket.send(JSON.stringify({
-                    request_type: 'listen_event',
-                    data: {
-                        namespace: '*',
-                        event: '*',
-                    }
-                }))
+        self.stream.listen_event('*', '*', update_admin);
 
-                return
-            }
+        // Subscribe to all state changes
 
-            // Stream Error
-            if (data.response_type === "error")
-            {
-                console.log('Stream Error', data.msg)
-                webSocket.refresh()
-                return
-            }
-            
-            update_admin(data)
-        };
+        self.stream.listen_state('*', '*', update_admin)
 
-        webSocket.onclose = function (event) {
-            // window.alert("Server closed connection")
-            // window.location.reload(false);
-        };
+    };
 
-        webSocket.onerror = function (event) {
-            //window.alert("Error occured")
-            //window.location.reload(true);
-        };
-    }
-    else
-    {
-        var iosocket = io.connect(stream);
+    this.on_message = function (data) {
+        // Do Nothing
+    };
 
-        iosocket.on("connect", function () {
-            iosocket.emit("up", "Admin Browser");
-            get_state(create_tables);
-        });
+    this.on_disconnect = function () {
+        // do nothing
+    };
 
-        iosocket.on("down", function (msg) {
-            var data = JSON.parse(msg);
-            update_admin(data)
-        });
-
-    }
-}
+    this.stream = new Stream(transport, protocol, domain, port, "Admin Client", this.on_connect, this.on_message, this.on_disconnect);
+};
 
 function openTab(evt, tabname, tabgroup) {
     // Declare all variables
@@ -726,80 +678,3 @@ function deauthorize()
 {
     window.location.href = "/";
 }
-
-function get_entity(namespace, entity, f)
-{
-    var state_url = "/api/appdaemon/state/" + namespace + "/" + entity;
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_namespaces(f)
-{
-    var state_url = "/api/appdaemon/state/";
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_namespace(namespace, f)
-{
-    var state_url = "/api/appdaemon/state/" + namespace;
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(namespace, data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-
-function get_state(f)
-{
-    var state_url = "/api/appdaemon/state";
-    $.ajax
-    ({
-        url: state_url,
-        type: 'GET',
-        success: function(data)
-                {
-                    f(data);
-                },
-        error: function(data)
-                {
-                    alert("Error getting state, check Java Console for details")
-                }
-
-    });
-}
-

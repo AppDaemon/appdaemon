@@ -1,10 +1,9 @@
 import hassapi as hass
-import globals
 
 #
 # App to turn lights on when motion detected then off again after a delay
 #
-# Use with constrints to activate only for the hours of darkness
+# Use with constraints to activate only for the hours of darkness
 #
 # Args:
 #
@@ -21,38 +20,36 @@ import globals
 # Version 1.0:
 #   Initial Version
 
+
 class MotionLights(hass.Hass):
+    def initialize(self):
 
-  def initialize(self):
-    
-    self.handle = None
-    
-    # Check some Params
+        self.handle = None
 
-    # Subscribe to sensors
-    if "sensor" in self.args:
-      self.listen_state(self.motion, self.args["sensor"])
-    else:
-      self.log("No sensor specified, doing nothing")
-    
-  def motion(self, entity, attribute, old, new, kwargs):
-    if new == "on":
-      if "entity_on" in self.args:
-        self.log("Motion detected: turning {} on".format(self.args["entity_on"]))
-        self.turn_on(self.args["entity_on"])
-      if "delay" in self.args:
-        delay = self.args["delay"]
-      else:
-        delay = 60
-      self.cancel_timer(self.handle)
-      self.handle = self.run_in(self.light_off, delay)
-  
-  def light_off(self, kwargs):
-    if "entity_off" in self.args:
-        self.log("Turning {} off".format(self.args["entity_off"]))
-        self.turn_off(self.args["entity_off"])
-        
-  def cancel(self):
-    self.cancel_timer(self.handle)
-      
+        # Check some Params
 
+        # Subscribe to sensors
+        if "sensor" in self.args:
+            self.listen_state(self.motion, self.args["sensor"])
+        else:
+            self.log("No sensor specified, doing nothing")
+
+    def motion(self, entity, attribute, old, new, kwargs):
+        if new == "on":
+            if "entity_on" in self.args:
+                self.log("Motion detected: turning {} on".format(self.args["entity_on"]))
+                self.turn_on(self.args["entity_on"])
+            if "delay" in self.args:
+                delay = self.args["delay"]
+            else:
+                delay = 60
+            self.cancel_timer(self.handle)
+            self.handle = self.run_in(self.light_off, delay)
+
+    def light_off(self, kwargs):
+        if "entity_off" in self.args:
+            self.log("Turning {} off".format(self.args["entity_off"]))
+            self.turn_off(self.args["entity_off"])
+
+    def cancel(self):
+        self.cancel_timer(self.handle)
