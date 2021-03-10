@@ -406,13 +406,26 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         if ("selector" in callbacks[i])
         {
-            $(callbacks[i].selector).on(callbacks[i].action, (
-                function (callback, ch, params) {
-                    return function () {
-                        callback(ch, params)
-                    };
-                }(callbacks[i].callback, child, callbacks[i].parameters))
-            );
+            if ("event" in callbacks[i] && callbacks[i].event === true)
+            {
+
+                var data = {};
+                data.parameters = callbacks[i].parameters;
+
+                $(callbacks[i].selector).on(callbacks[i].action, data, callbacks[i].callback);
+
+            }
+
+            else 
+            {
+                $(callbacks[i].selector).on(callbacks[i].action, (
+                    function (callback, ch, params) {
+                        return function () {
+                            callback(ch, params)
+                        };
+                    }(callbacks[i].callback, child, callbacks[i].parameters))
+                );
+            }
         }
         else if ("observable" in callbacks[i])
         {
