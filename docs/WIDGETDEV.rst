@@ -536,8 +536,8 @@ The next step is to set up the widget to respond to various events such as butto
             ]
 
 
-There could be occasions when it is desirable to register for an event other than just "click", and get the whole event data.
-This is possible by registering and passing "event" and boolen `true`, so that dashboard is aware of the fact the entire
+There could be occasions when it is desirable to register for an event, and get the whole event data.
+This is possible by registering and passing "DOMEventData" and boolen `true`, so that dashboard is aware of the fact the entire
 event data is required. Below is an example
 
 .. code:: javascript
@@ -551,7 +551,7 @@ event data is required. Below is an example
 
             var callbacks =
                 [
-                    {"selector": '#' + widget_id + ' > span', "action": ["mousedown", "mouseup"], "event": true, "callback": self.OnMouseEvent}
+                    {"selector": '#' + widget_id + ' > span', "action": ["mousedown", "mouseup"], "DOMEventData": true, "callback": self.OnMouseEvent}
                 ]
 
 Each widget has the opportunity to register itself for button clicks or touches, or any other event type such as ``change``.

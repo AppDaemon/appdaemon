@@ -406,7 +406,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
     {
         if ("selector" in callbacks[i])
         {
-            if ("event" in callbacks[i] && callbacks[i].event === true)
+            if ("DOMEventData" in callbacks[i] && callbacks[i].DOMEventData === true)
             {
 
                 var data = {};
