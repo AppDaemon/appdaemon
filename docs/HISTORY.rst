@@ -41,6 +41,7 @@ Change Log
 - Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
+- Bumped websocket-client from 0.57.0 to 0.58.0
 - Bumped pid from 2.2.5 to 3.0.4
 - Bumped pygments from 2.6.1 to 2.8.1
 - Bumped iso8601 from 0.1.12 to 0.1.14
@@ -50,13 +51,16 @@ Change Log
 - Bumped yarl from 1.4.2 to 1.6.3
 - Bumped voluptuous from 0.11.7 to 0.12.1
 - Bumped pyyaml from 5.3 to 5.4.1
-- Bumped jinja2 from 2.11.1 to 2.11.2
+- Bumped aiohttp-jinja2 from 1.2.0 to 1.4.2
+- Bumped jinja2 from 2.11.1 to 2.11.3
 - Bumped astral from 1.10.1 to 2.2
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
 - Bumped aiohttp from 3.7.3 to 3.7.4
-- Bumped aiohttp from 3.6.2 to 3.7.3
 - Bumped python-socketio from 4.4.2 to 4.6.1
-- Bumped deepdiff from 4.3.1 to 5.2.2
+- Bumped deepdiff from 4.3.1 to 5.2.3
+- Bumped azure-mgmt-storage from 16.0.0 to 17.0.0
+- Bumped azure-storage-blob from 12.7.1 to 12.8.0
+- Bumped azure-mgmt-resource from 15.0.0 to 16.0.0
 - Fixed issue with socketIO, where the client is incompatible with server
 - Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
 - Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
