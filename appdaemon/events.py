@@ -327,10 +327,6 @@ class Events:
 
                             if _run:
                                 if name in self.AD.app_management.objects:
-                                    _data = data.copy()
-                                    _data.pop("event_type")
-                                    _data.pop("data")
-                                    data["data"]["metadata"] = _data
                                     executed = await self.AD.threading.dispatch_worker(
                                         name,
                                         {
