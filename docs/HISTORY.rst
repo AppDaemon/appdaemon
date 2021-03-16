@@ -46,7 +46,7 @@ Change Log
 - Bumped pid from 2.2.5 to 3.0.4
 - Bumped pygments from 2.6.1 to 2.8.1
 - Bumped iso8601 from 0.1.12 to 0.1.14
-- Bumped pytz from 2019.3 to 2020.1
+- Bumped pytz from 2019.3 to 2021.1
 - Bumped bcrypt from 3.1.7 to 3.2.0
 - Bumped feedparser from 5.2.1 to 6.0.2
 - Bumped yarl from 1.4.2 to 1.6.3
@@ -62,6 +62,7 @@ Change Log
 - Bumped azure-mgmt-storage from 16.0.0 to 17.0.0
 - Bumped azure-storage-blob from 12.7.1 to 12.8.0
 - Bumped azure-mgmt-resource from 15.0.0 to 16.0.0
+- Bumped azure-mgmt-compute from 5.0.0 to 19.0.0
 - Fixed issue with socketIO, where the client is incompatible with server
 - Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
 - Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
