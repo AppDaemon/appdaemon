@@ -15,8 +15,8 @@ Change Log
 - Cancelling either an event, state, log or timer now returns a boolean value to indicate if executed or not
 - Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
-- Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
-- Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
+- Added ability to persist plugin entities. This can be useful for example if wanting to persist entities within MQTT namespace
+- Moved the ``appdaemon`` reladed services to the ``admin`` namespace. So no more ``appdaemon`` namespace
 - Added services for creating, editting, removing, enabling, disabling apps
 - Added ability to receive binary payload from MQTT broker
 - Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
@@ -27,6 +27,7 @@ Change Log
 
 **Fixes**
 
+- Updated material design icons to v5.4.55 - contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
 - Fixed `get_now` api, whereby it returned UTC time instead of local time
 - FIxed issue whereby when a non properly terminated app has an error,  AD starts the app automatically
 - Fixed issue whereby it is possible to use the app api to "start" an already running app
