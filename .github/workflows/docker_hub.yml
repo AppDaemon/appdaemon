@@ -1,0 +1,27 @@
+name: Build arm image
+
+on:
+  push:
+    branches: dev
+    paths-ignore:
+    - '.github/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with: {ref: dev}
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with: 
+          version: latest
+      - name: login to docker hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - name: build the image
+        run: |
+          docker buildx build --push \
+            --tag "${{ secrets.DOCKERHUB_USERNAME }}"/appdaemon:dev \
+            --platform linux/arm64,linux/arm/v7 .
