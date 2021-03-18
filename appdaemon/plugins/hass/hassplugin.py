@@ -373,10 +373,12 @@ class HassPlugin(PluginBase):
                         else:
                             await self.evaluate_started(False, self.hass_booting)
                     else:
-                        metadata = result["event"].copy()
-                        metadata.pop("event_type")
-                        metadata.pop("data")
+                        metadata = {}
+                        metadata["origin"] = result["event"].pop("origin", None)
+                        metadata["time_fired"] = result["event"].pop("time_fired", None)
+                        metadata["context"] = result["event"].pop("context", None)
                         result["event"]["data"]["metadata"] = metadata
+                        
                         await self.AD.events.process_event(self.namespace, result["event"])
 
                         if result["event"].get("event_type") == "service_registered":
