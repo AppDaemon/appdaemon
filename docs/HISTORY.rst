@@ -6,6 +6,7 @@ Change Log
 
 **Features**
 
+- Added the AD Plugin, which allows to connect to multiple AD instances at once, while allowing for all to work as a single system
 - Added the ability to allow widget to make use of mouse events, which can then be sent to AD backend
 - Added the ability to add custom javascript code to dashboard - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__

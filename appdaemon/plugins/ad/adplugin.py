@@ -409,6 +409,7 @@ class AdPlugin(PluginBase):
         if data["event_type"] == "get_state":  # get state
             forwarded_namespaces = list(self.forward_namespaces["forwarded_namespaces"].keys())
             entity_id = data["data"].get("entity_id")
+
             requested_namespace = data["data"].get("requested_namespace", local_namespace)
 
             if requested_namespace is None:
@@ -457,16 +458,7 @@ class AdPlugin(PluginBase):
 
         elif data["event_type"] == "listen_event":  # instruct AD to listen then forward these events
 
-            requested_namespace = data["data"]["requested_namespace"]
-
-            if not isinstance(requested_namespace, list):
-                namespaces = [requested_namespace]
-
-            elif requested_namespace == "global":  # get events from all namespaces
-                namespaces = await self.AD.state.list_namespaces()
-
-            else:
-                namespaces = requested_namespace
+            namespaces = await self.get_requested_namespace(data)
 
             res = await self.setup_forward_events(namespaces)
             response = "listen_event_response"
@@ -475,16 +467,7 @@ class AdPlugin(PluginBase):
             data["event_type"] == "cancel_listen_event"
         ):  # instruct AD to cancel listen then don't forward these events
 
-            requested_namespace = data["data"]["requested_namespace"]
-
-            if not isinstance(requested_namespace, list):
-                namespaces = [requested_namespace]
-
-            elif requested_namespace == "global":  # get events from all namespaces
-                namespaces = await self.AD.state.list_namespaces()
-
-            else:
-                namespaces = requested_namespace
+            namespaces = await self.get_requested_namespace(data)
 
             for namespace in namespaces:
                 if namespace in self.forward_namespaces["forwarded_namespaces"]:
@@ -492,6 +475,22 @@ class AdPlugin(PluginBase):
                     await self.AD.events.cancel_event_callback(self.name, handle)
 
         return res, response
+
+    async def get_requested_namespaces(self, data):
+        """Uused to get the requested namespace"""
+
+        requested_namespace = data["data"]["requested_namespace"]
+
+        if not isinstance(requested_namespace, list):
+            namespaces = [requested_namespace]
+
+        elif requested_namespace == "global":  # get events from all namespaces
+            namespaces = await self.AD.state.list_namespaces()
+
+        else:
+            namespaces = requested_namespace
+
+        return namespaces
 
     async def setup_forward_events(self, namespaces):
         handles = {}
