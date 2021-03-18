@@ -6,6 +6,7 @@ Change Log
 
 **Features**
 
+- Added the ability to allow widget to make use of mouse events, which can then be sent to AD backend
 - Added the ability to add custom javascript code to dashboard - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__
 - Added the ability to navigate to different dashboards on different devices based on the set `deviceId` - contributed by `clyra <https://github.com/clyra>`__
@@ -14,8 +15,8 @@ Change Log
 - Cancelling either an event, state, log or timer now returns a boolean value to indicate if executed or not
 - Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
-- Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
-- Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
+- Added ability to persist plugin entities. This can be useful for example if wanting to persist entities within MQTT namespace
+- Moved the ``appdaemon`` reladed services to the ``admin`` namespace. So no more ``appdaemon`` namespace
 - Added services for creating, editting, removing, enabling, disabling apps
 - Added ability to receive binary payload from MQTT broker
 - Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
@@ -26,6 +27,7 @@ Change Log
 
 **Fixes**
 
+- Updated material design icons to v5.4.55 - contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
 - Fixed `get_now` api, whereby it returned UTC time instead of local time
 - FIxed issue whereby when a non properly terminated app has an error,  AD starts the app automatically
 - Fixed issue whereby it is possible to use the app api to "start" an already running app
@@ -40,22 +42,27 @@ Change Log
 - Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
 - Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
+- Bumped websocket-client from 0.57.0 to 0.58.0
 - Bumped pid from 2.2.5 to 3.0.4
 - Bumped pygments from 2.6.1 to 2.8.1
 - Bumped iso8601 from 0.1.12 to 0.1.14
-- Bumped pytz from 2019.3 to 2020.1
+- Bumped pytz from 2019.3 to 2021.1
 - Bumped bcrypt from 3.1.7 to 3.2.0
 - Bumped feedparser from 5.2.1 to 6.0.2
 - Bumped yarl from 1.4.2 to 1.6.3
 - Bumped voluptuous from 0.11.7 to 0.12.1
 - Bumped pyyaml from 5.3 to 5.4.1
-- Bumped jinja2 from 2.11.1 to 2.11.2
+- Bumped aiohttp-jinja2 from 1.2.0 to 1.4.2
+- Bumped jinja2 from 2.11.1 to 2.11.3
 - Bumped astral from 1.10.1 to 2.2
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
 - Bumped aiohttp from 3.7.3 to 3.7.4
-- Bumped aiohttp from 3.6.2 to 3.7.3
 - Bumped python-socketio from 4.4.2 to 4.6.1
-- Bumped deepdiff from 4.3.1 to 5.2.2
+- Bumped deepdiff from 4.3.1 to 5.2.3
+- Bumped azure-mgmt-storage from 16.0.0 to 17.0.0
+- Bumped azure-storage-blob from 12.7.1 to 12.8.0
+- Bumped azure-mgmt-resource from 15.0.0 to 16.0.0
+- Bumped azure-mgmt-compute from 5.0.0 to 19.0.0
 - Fixed issue with socketIO, where the client is incompatible with server
 - Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
 - Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__

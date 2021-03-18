@@ -535,6 +535,25 @@ The next step is to set up the widget to respond to various events such as butto
                 {"selector": '#' + widget_id + ' #level-down', "action": "click", "callback": self.OnLowerLevelClick},
             ]
 
+
+There could be occasions when it is desirable to register for an event, and get the whole event data.
+This is possible by registering and passing "DOMEventData" and boolen `true`, so that dashboard is aware of the fact the entire
+event data is required. Below is an example
+
+.. code:: javascript
+
+            // Define callbacks for some mouse events
+            // They are defined as functions below and can be any name as long as the
+            // 'self'variables match the callbacks array below
+            // We need to add them into the object for later reference
+
+            self.OnMouseEvent = OnMouseEvent
+
+            var callbacks =
+                [
+                    {"selector": '#' + widget_id + ' > span', "action": ["mousedown", "mouseup"], "DOMEventData": true, "callback": self.OnMouseEvent}
+                ]
+
 Each widget has the opportunity to register itself for button clicks or touches, or any other event type such as ``change``.
 This is done by filling out the callbacks array (which is later used to initialize them).
 Here we are registering 3 callbacks.
