@@ -378,7 +378,7 @@ class HassPlugin(PluginBase):
                         metadata["time_fired"] = result["event"].pop("time_fired", None)
                         metadata["context"] = result["event"].pop("context", None)
                         result["event"]["data"]["metadata"] = metadata
-                        
+
                         await self.AD.events.process_event(self.namespace, result["event"])
 
                         if result["event"].get("event_type") == "service_registered":
