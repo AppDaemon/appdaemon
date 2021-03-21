@@ -175,17 +175,18 @@ var Stream = function(transport, protocol, domain, port, client_name, on_connect
     this.get_state = function(namespace, entity, callback)
     {
         var request = {
-            request_type: "get_state"
+            request_type: "get_state",
+            data: {}
         };
 
         if (namespace !== "*")
         {
-            request.namespace = namespace
+            request.data.namespace = namespace
         }
 
         if (entity !== "*")
         {
-            request.entity_id = namespace
+            request.data.entity_id = entity
         }
         self.send(request, callback)
     };

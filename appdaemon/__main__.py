@@ -7,21 +7,30 @@ also creates the loop and kicks everything off
 
 """
 
-import sys
 import argparse
+import asyncio
 import os
 import os.path
-import signal
 import platform
-import yaml
-import asyncio
-import pytz
-import pid
+import signal
+import sys
 
-import appdaemon.utils as utils
 import appdaemon.appdaemon as ad
 import appdaemon.http as adhttp
 import appdaemon.logging as logging
+import appdaemon.utils as utils
+import pytz
+import yaml
+
+try:
+    import pid
+except ImportError:
+    pid = None
+
+try:
+    import uvloop
+except ImportError:
+    uvloop = None
 
 
 class ADMain:
@@ -110,6 +119,12 @@ class ADMain:
         """
 
         try:
+
+            # if to use uvloop
+            if appdaemon.get("uvloop") is True and uvloop:
+                self.logger.info("Running AD using uvloop")
+                uvloop.install()
+
             loop = asyncio.get_event_loop()
 
             # Initialize AppDaemon
@@ -372,19 +387,19 @@ class ADMain:
         exit = False
 
         if "time_zone" not in config["appdaemon"]:
-            self.logger.error("time_zone not specified in appdaemon.cfg")
+            self.logger.error("time_zone not specified in appdaemon.yaml")
             exit = True
 
         if "latitude" not in config["appdaemon"]:
-            self.logger.error("latitude not specified in appdaemon.cfg")
+            self.logger.error("latitude not specified in appdaemon.yaml")
             exit = True
 
         if "longitude" not in config["appdaemon"]:
-            self.logger.error("longitude not specified in appdaemon.cfg")
+            self.logger.error("longitude not specified in appdaemon.yaml")
             exit = True
 
         if "elevation" not in config["appdaemon"]:
-            self.logger.error("elevation not specified in appdaemon.cfg")
+            self.logger.error("elevation not specified in appdaemon.yaml")
             exit = True
 
         if exit is True:

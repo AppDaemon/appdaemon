@@ -2,7 +2,6 @@ import traceback
 import datetime
 from datetime import timedelta
 import pytz
-import astral
 import random
 import uuid
 import re
@@ -12,6 +11,7 @@ from collections import OrderedDict
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from astral.location import Location, LocationInfo
 
 
 class Scheduler:
@@ -92,12 +92,27 @@ class Scheduler:
         self.stopping = True
 
     async def cancel_timer(self, name, handle):
+        executed = False
         self.logger.debug("Canceling timer for %s", name)
-        if name in self.schedule and handle in self.schedule[name]:
+        if self.check_handle(name, handle):
             del self.schedule[name][handle]
             await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle))
+            executed = True
+
         if name in self.schedule and self.schedule[name] == {}:
             del self.schedule[name]
+
+        if not executed:
+            self.logger.warning("Invalid callback handle '{}' in cancel_timer() from app {}".format(handle, name))
+
+        return executed
+
+    def check_handle(self, name, handle):
+        """Check if the handler is valid"""
+        if name in self.schedule and handle in self.schedule[name]:
+            return True
+
+        return False
 
     # noinspection PyBroadException
     async def exec_schedule(self, name, args, uuid_):
@@ -107,6 +122,11 @@ class Scheduler:
                 #
                 # it's a "duration" entry
                 #
+
+                # first remove the duration parameter
+                if args["kwargs"].get("__duration"):
+                    del args["kwargs"]["__duration"]
+
                 executed = await self.AD.threading.dispatch_worker(
                     name,
                     {
@@ -130,7 +150,9 @@ class Scheduler:
                     if remove is True:
                         await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
 
-                        if "__timeout" in args["kwargs"]:  # meaning there is a timeout for this callback
+                        if "__timeout" in args["kwargs"] and self.check_handle(
+                            name, args["kwargs"]["__timeout"]
+                        ):  # meaning there is a timeout for this callback
                             await self.cancel_timer(name, args["kwargs"]["__timeout"])  # cancel it as no more needed
 
             elif "__state_handle" in args["kwargs"]:
@@ -215,9 +237,7 @@ class Scheduler:
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        elevation = self.AD.elevation
-
-        self.location = astral.Location(("", "", latitude, longitude, self.AD.tz.zone, elevation))
+        self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
     def sun(self, type, offset):
         if offset < 0:
@@ -237,12 +257,11 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_rising_dt = self.location.sunrise(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_rising_dt = self.location.sunrise(date=dt, local=False, observer_elevation=self.AD.elevation)
                 if next_rising_dt > self.now:
                     break
-            except astral.AstralError:
+            except ValueError:
                 pass
             mod += 1
 
@@ -252,12 +271,11 @@ class Scheduler:
         mod = offset
         while True:
             try:
-                next_setting_dt = self.location.sunset(
-                    (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date(), local=False,
-                )
+                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
+                next_setting_dt = self.location.sunset(date=dt, local=False, observer_elevation=self.AD.elevation)
                 if next_setting_dt > self.now:
                     break
-            except astral.AstralError:
+            except ValueError:
                 pass
             mod += 1
 
@@ -590,7 +608,7 @@ class Scheduler:
         return self.next_sunrise() < self.next_sunset()
 
     async def info_timer(self, handle, name):
-        if name in self.schedule and handle in self.schedule[name]:
+        if self.check_handle(name, handle):
             callback = self.schedule[name][handle]
             return (
                 self.make_naive(callback["timestamp"]),
