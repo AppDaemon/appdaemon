@@ -1,8 +1,17 @@
 Change Log
 ==========
 
-4.0.6
+4.0.7
 -----
+
+**Features**
+
+**Fixes**
+
+**Breaking Changes**
+
+4.0.6 (2021-03-21)
+------------------
 
 **Features**
 
