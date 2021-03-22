@@ -607,7 +607,7 @@ class HassPlugin(PluginBase):
                 if isinstance(args[key], str):
                     return utils.str_to_dt(args(key)).replace(microsecond=0)
                 elif isinstance(args[key], datetime.datetime):
-                    return self.AD.tz.localize(args(key)).replace(microsecond=0)
+                    return self.AD.tz.localize(args[key]).replace(microsecond=0)
                 else:
                     raise ValueError(f"Invalid type for {key}")
 
