@@ -8,6 +8,8 @@ Change Log
 
 **Fixes**
 
+- Fixed `get_history` api for HASS plugin
+
 **Breaking Changes**
 
 4.0.6 (2021-03-21)
