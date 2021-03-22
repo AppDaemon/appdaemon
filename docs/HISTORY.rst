@@ -1,11 +1,21 @@
 Change Log
 ==========
 
-4.0.6
+4.0.7
 -----
 
 **Features**
 
+**Fixes**
+
+**Breaking Changes**
+
+4.0.6 (2021-03-21)
+------------------
+
+**Features**
+
+- Added the ability to have access to ``metadata`` from HASS events - contributed by `engrbm87 <https://github.com/engrbm87>`__
 - Added the ability to allow widget to make use of mouse events, which can then be sent to AD backend
 - Added the ability to add custom javascript code to dashboard - contributed by `Rene Tode <https://github.com/ReneTode>`__
 - Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__
