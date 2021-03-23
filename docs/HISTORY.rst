@@ -6,6 +6,8 @@ Change Log
 
 **Features**
 
+- Added new api `timer_running`, to be used to confirm if a previously scheduled timer is still running
+
 **Fixes**
 
 - Fixed `get_history` api for HASS plugin
