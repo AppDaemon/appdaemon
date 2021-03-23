@@ -68,6 +68,7 @@ Time
 Scheduler
 ~~~~~~~~~
 
+.. autofunction:: appdaemon.adapi.ADAPI.timer_running
 .. autofunction:: appdaemon.adapi.ADAPI.cancel_timer
 .. autofunction:: appdaemon.adapi.ADAPI.info_timer
 .. autofunction:: appdaemon.adapi.ADAPI.run_in

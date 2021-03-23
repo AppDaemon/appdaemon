@@ -2167,6 +2167,24 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
+    async def timer_running(self, handle):
+        """Checks if a previously created timer is still running.
+
+        Args:
+            handle: A handle value returned from the original call to create the timer.
+
+        Returns:
+            Boolean.
+
+        Examples:
+            >>> self.timer_running(handle)
+
+        """
+        name = self.name
+        self.logger.debug("Checking timer with handle %s for %s", handle, self.name)
+        return self.AD.sched.timer_running(name, handle)
+
+    @utils.sync_wrapper
     async def cancel_timer(self, handle):
         """Cancels a previously created timer.
 
