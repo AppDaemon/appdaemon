@@ -94,7 +94,7 @@ class Scheduler:
     async def cancel_timer(self, name, handle):
         executed = False
         self.logger.debug("Canceling timer for %s", name)
-        if self.check_handle(name, handle):
+        if self.timer_running(name, handle):
             del self.schedule[name][handle]
             await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle))
             executed = True
@@ -107,8 +107,10 @@ class Scheduler:
 
         return executed
 
-    def check_handle(self, name, handle):
-        """Check if the handler is valid"""
+    def timer_running(self, name, handle):
+        """Check if the handler is valid
+        by ensuring the timer is still running"""
+
         if name in self.schedule and handle in self.schedule[name]:
             return True
 
@@ -150,7 +152,7 @@ class Scheduler:
                     if remove is True:
                         await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
 
-                        if "__timeout" in args["kwargs"] and self.check_handle(
+                        if "__timeout" in args["kwargs"] and self.timer_running(
                             name, args["kwargs"]["__timeout"]
                         ):  # meaning there is a timeout for this callback
                             await self.cancel_timer(name, args["kwargs"]["__timeout"])  # cancel it as no more needed
@@ -608,7 +610,7 @@ class Scheduler:
         return self.next_sunrise() < self.next_sunset()
 
     async def info_timer(self, handle, name):
-        if self.check_handle(name, handle):
+        if self.timer_running(name, handle):
             callback = self.schedule[name][handle]
             return (
                 self.make_naive(callback["timestamp"]),

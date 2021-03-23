@@ -2182,7 +2182,7 @@ class ADAPI:
         """
         name = self.name
         self.logger.debug("Checking timer with handle %s for %s", handle, self.name)
-        return self.AD.sched.check_handle(name, handle)
+        return self.AD.sched.timer_running(name, handle)
 
     @utils.sync_wrapper
     async def cancel_timer(self, handle):
