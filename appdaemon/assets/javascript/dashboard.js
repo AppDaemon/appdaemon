@@ -14,6 +14,10 @@ function getCookie(cname) {
     return "";
 }
 
+function setCookie(cname, cvalue) {
+    document.cookie = cname + "=" + cvalue;
+}
+
 function get_monitored_entities(widgets)
 {
     index = 0;
