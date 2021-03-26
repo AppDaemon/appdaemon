@@ -62,7 +62,7 @@ $(function(){ //DOM Ready
             myDeviceID = result.deviceid;
             try
             {
-                localStorage['hadashboard-deviceid'] = myDeviceID;
+                setCookie('ADdevID', myDeviceID);
             }
             catch (e)
             {
@@ -73,7 +73,7 @@ $(function(){ //DOM Ready
         {
             try
             {
-                myDeviceID = localStorage['hadashboard-deviceid'];
+                myDeviceID = getCookie('ADdevID');
             }
             catch (e)
             {
