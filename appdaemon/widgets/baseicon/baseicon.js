@@ -50,13 +50,13 @@ function baseicon(widget_id, url, skin, parameters)
     {
         self.state = state.state;
 
-        delay_time = self.parameters.update_delay;
+        var delay_time = self.parameters.update_delay;
         if (delay_time !== undefined) {
             if (self.timeout !== undefined) {
                 clearTimeout(self.timeout);
             }
-
-            self.timeout = setTimeout(function() {set_view(self, self.state)}, delay_time * 1000);
+            
+            self.timeout = setTimeout(function(){set_view(self, self.state);}, delay_time * 1000);
         } else {
             set_view(self, self.state);
         }
