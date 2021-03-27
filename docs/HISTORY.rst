@@ -11,6 +11,7 @@ Change Log
 **Fixes**
 
 - Fixed `get_history` api for HASS plugin
+- Fixed issue with Dashboard not loading the icon widget properly 
 - Fixed issue with Dashboard not loading on old Tablets - contributed by `Rene Tode <https://github.com/ReneTode>`__
 
 **Breaking Changes**

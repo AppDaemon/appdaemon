@@ -55,8 +55,9 @@ function baseicon(widget_id, url, skin, parameters)
             if (self.timeout !== undefined) {
                 clearTimeout(self.timeout);
             }
-            
+
             self.timeout = setTimeout(function(){set_view(self, self.state);}, delay_time * 1000);
+            
         } else {
             set_view(self, self.state);
         }
