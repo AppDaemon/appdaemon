@@ -170,6 +170,25 @@ following command to update your copy:
 
 If you are using docker, refer to the steps in the tutorial.
 
+AppDaemon Versioning Strategy
+-----------------------------
+
+AppDaemon uses a simple 3 point versioning strategy of the form x.y.z
+
+- x = Major Version Number
+- y = Minor Version Number
+- z = Point Version Number
+
+Major versions will be released when very significant changes have been made to the platform, or
+sizeable new functionality has been added.
+
+Minor versions will be released when incremental new features have been added, or breaking changes have occured
+
+Point releases will typically contain bugfixes, and package upgrades
+
+Users should be able to expect point release upgrades to be seamless, but should check release notes for breaking changes and
+new functionality for minor or major releases.
+
 Windows Support
 ---------------
 
