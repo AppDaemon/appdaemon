@@ -47,9 +47,9 @@ $(function(){ //DOM Ready
     var myTimeoutUrl;
     var myTimeoutDelay;
     var myTimeoutSticky = 0;
-
     if (location.search != "")
     {
+        console.log("begin")
         var query = location.search.substr(1);
         var result = {};
         query.split("&").forEach(function(part) {
@@ -62,7 +62,7 @@ $(function(){ //DOM Ready
             myDeviceID = result.deviceid;
             try
             {
-                localStorage['hadashboard-deviceid'] = myDeviceID;
+                setCookie('ADdevID', myDeviceID);
             }
             catch (e)
             {
@@ -73,7 +73,7 @@ $(function(){ //DOM Ready
         {
             try
             {
-                myDeviceID = localStorage['hadashboard-deviceid'];
+                myDeviceID = getCookie('ADdevID');
             }
             catch (e)
             {
@@ -108,6 +108,18 @@ $(function(){ //DOM Ready
             myTimeoutUrl = url;
             myTimeoutDelay = result.timeout * 1000;
             myTimeout = setTimeout(function() { navigate(url); }, result.timeout * 1000);
+        }
+    }
+    else
+    {
+        try
+        {
+            myDeviceID = getCookie('ADdevID');
+        }
+        catch (e)
+        {
+            console.log(e);
+            myDeviceID = null;
         }
     }
 
