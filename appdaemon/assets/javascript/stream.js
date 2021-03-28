@@ -58,7 +58,7 @@ var Stream = function(transport, protocol, domain, port, client_name, on_connect
 
     this.ad_on_disconnect = function()
     {
-        // do nothing
+        self.on_disconnect();
     };
 
     this.send = function(request, callback)

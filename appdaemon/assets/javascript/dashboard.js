@@ -45,6 +45,8 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
 {
     var self = this;
 
+    self.dashEvents = {onConnect: {}, onDisconnect: {}};
+
     this.on_connect = function(data)
     {
         // Grab state
@@ -67,6 +69,24 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
             self.stream.listen_state(entities[i].namespace, entities[i].entity, self.update_dash)
         }
 
+        // now check if there are registered callbacks and run them
+        if (self.dashEvents.onConnect.length > 0) {
+            // now run callbacks
+            for (var name in self.dashEvents.onConnect) {
+
+                var callback = self.dashEvents.onConnect[name];
+
+                if (!callback) continue;
+
+                try {
+                    callback(data);
+
+                } catch (e) {
+                    console.error("An Error", e , " occured when when executing onConnect for ", name);
+                }
+            }
+        }
+
     };
 
     this.on_message = function(data)
@@ -76,7 +96,23 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
 
     this.on_disconnect = function(data)
     {
-        console.log("Disconnect", data)
+        // now check if there are registered callbacks and run them
+        if (self.dashEvents.onDisconnect.length > 0) {
+            // now run callbacks
+            for (var name in self.dashEvents.onDisconnect) {
+
+                var callback = self.dashEvents.onDisconnect[name];
+
+                if (!callback) continue;
+
+                try {
+                    callback(data);
+
+                } catch (e) {
+                    console.error("An Error", e , " occured when when executing onDisconnecr for ", name);
+                }
+            }
+        }
     };
 
     this.populate_dash = function(data) {
@@ -144,6 +180,17 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
             }
         })
     };
+
+    this.addListener = function(event, name, cb) {
+        // listens for dash events
+        if (event === "onConnect") {
+            self.dashEvents.onConnect[name] = cb
+
+        } else if (event === "onDisconnect") {
+            self.dashEvents.onDisconnect[name] = cb;
+        }
+
+    }
 
     this.stream = new Stream(transport, protocol, domain, port, title, this.on_connect, this.on_message, this.on_disconnect);
 
