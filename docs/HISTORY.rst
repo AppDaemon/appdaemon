@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 - Added new api `timer_running`, to be used to confirm if a previously scheduled timer is still running
+- Added the ability for custom scripts to listen for dashstream events
 
 **Fixes**
 
