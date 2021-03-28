@@ -1,8 +1,22 @@
 Change Log
 ==========
 
-4.0.6
+4.0.7
 -----
+
+**Features**
+
+- Added new api `timer_running`, to be used to confirm if a previously scheduled timer is still running
+
+**Fixes**
+
+- Fixed `get_history` api for HASS plugin
+- Fixed issue with Dashboard not loading on old Tablets - contributed by `Rene Tode <https://github.com/ReneTode>`__
+
+**Breaking Changes**
+
+4.0.6 (2021-03-21)
+------------------
 
 **Features**
 
