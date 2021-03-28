@@ -94,7 +94,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         console.log("Generic message", data)
     };
 
-    this.on_disconnect = function(data)
+    this.on_disconnect = function()
     {
         // now check if there are registered callbacks and run them
         if (self.dashEvents.onDisconnect.length > 0) {
@@ -106,7 +106,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
                 if (!callback) continue;
 
                 try {
-                    callback(data);
+                    callback();
 
                 } catch (e) {
                     console.error("An Error", e , " occured when when executing onDisconnecr for ", name);
