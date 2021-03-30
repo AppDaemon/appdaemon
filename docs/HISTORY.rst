@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+4.0.8
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed issue with Dashboard ``icon`` widgets breaking - contributed by `Rene Tode <https://github.com/ReneTode>`__
+
+**Breaking Changes**
+
+None
+
 4.0.7 (2021-03-28)
 ------------------
 
