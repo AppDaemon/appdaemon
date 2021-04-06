@@ -2152,6 +2152,9 @@ Optional Arguments:
 -  ``state_map``
 -  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
 -  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button)
+- ``simulate_feedback`` - set by default, but when set to `0`, the widget's feedback
+   will be solely based on the state of the entity. Also when set to `0`, the momentary option above
+   will be disabled
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^^^
