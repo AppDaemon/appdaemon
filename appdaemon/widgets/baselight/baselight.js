@@ -160,7 +160,7 @@ function baselight(widget_id, url, skin, parameters)
 
     function toggle(self)
     {
-        if (self.parameters.simulate_feedback === 0) return;
+        if (self.parameters.assume_state === 0) return;
 
         if (self.state == "on")
         {
