@@ -122,6 +122,7 @@ function baselight(widget_id, url, skin, parameters)
             args = jQuery.extend(true, {}, self.parameters.post_service_inactive)
         }
         self.call_service(self, args)
+        console.log(args);
         toggle(self)
     }
 
@@ -160,6 +161,8 @@ function baselight(widget_id, url, skin, parameters)
 
     function toggle(self)
     {
+        if (self.parameters.simulate_feedback === 0) return;
+
         if (self.state == "on")
         {
             self.state = "off";

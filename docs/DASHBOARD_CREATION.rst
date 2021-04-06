@@ -1483,6 +1483,8 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``on_attributes`` - a list of supported HA attributes to set as
    initial values for the light.
+- ``simulate_feedback`` - set by default, but when set to `0`, the widget's feedback
+   will be solely based on the state of the entity
 
 Note that ``rgb_color`` and ``xy_color`` are not specified with list
 syntax as in Home Assistant scenes. See below for examples.
