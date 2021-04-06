@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- Added the ability to disable dashboard widgets simulated feedback for both lights and switchs
 
 **Fixes**
 
