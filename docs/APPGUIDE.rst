@@ -829,6 +829,7 @@ However, if we add the decorator to the callback function like so:
 .. code:: python
 
     import hassapi as hass
+    import adbase as ad
     import datetime
 
     class Locking(hass.Hass):
