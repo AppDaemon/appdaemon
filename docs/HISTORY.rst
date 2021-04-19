@@ -10,7 +10,8 @@ Change Log
 
 **Fixes**
 
-None
+- Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
+- Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
 
 **Breaking Changes**
 
