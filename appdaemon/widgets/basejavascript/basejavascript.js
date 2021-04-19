@@ -153,7 +153,7 @@ function basejavascript(widget_id, url, skin, parameters)
                 }
                 catch
                 {
-                    console.log('not a dashboard?')
+                    console.log('failled to auto-set return dashboard')
                 }
             }
         }
