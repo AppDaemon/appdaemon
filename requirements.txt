@@ -26,5 +26,5 @@ azure-keyvault-secrets==4.2.0
 azure-storage-blob==12.8.0
 pygments==2.8.1
 sockjs==0.10.0
-uvloop==0.15.2; sys_platform != 'win32'
+uvloop==0.14.0; sys_platform != 'win32'
 wheel==0.34.2
