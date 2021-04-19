@@ -1746,7 +1746,7 @@ parameter, args have the following meaning:
 -  ``return`` - dashboard to return to after the timeout has elapsed.
 -  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
-Both ``timeout`` and ``return`` must be specified.
+If ``timeout`` is specified but ``return`` not, the widget will use the current dashboard as the return target.
 
 If adding arguments, use the args variable. Do not append them to the URL
 or you may break skinning. Add arguments like this:
