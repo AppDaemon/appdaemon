@@ -11,6 +11,8 @@ Change Log
 **Fixes**
 
 - Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
+- Bumped deepdiff from 5.2.3 to 5.3.0
+- Bumped wheel from 0.34.2 to 0.36.2
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
 
 **Breaking Changes**
