@@ -19,7 +19,7 @@ python-socketio==4.6.1
 deepdiff==5.2.3
 python-dateutil==2.8.1
 pid==3.0.4
-azure-mgmt-compute==19.0.0
+azure-mgmt-compute==20.0.0
 azure-mgmt-storage==17.0.0
 azure-mgmt-resource==16.0.0
 azure-keyvault-secrets==4.2.0
