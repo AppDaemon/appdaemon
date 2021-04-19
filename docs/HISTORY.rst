@@ -6,7 +6,7 @@ Change Log
 
 **Features**
 
-None
+- Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra`__
 
 **Fixes**
 
