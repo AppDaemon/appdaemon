@@ -10,6 +10,7 @@ Change Log
 
 **Fixes**
 
+- Fixed issue with when a plugin that is persistent re-initializes, and it creates an error
 - Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
 - Bumped deepdiff from 5.2.3 to 5.3.0
 - Bumped wheel from 0.34.2 to 0.36.2
