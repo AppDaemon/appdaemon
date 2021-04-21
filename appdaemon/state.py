@@ -93,10 +93,14 @@ class State:
         """Used to add a database file for a created namespace"""
 
         try:
+            if namespace in self.state and isinstance(self.state[namespace], utils.PersistentDict):
+                self.logger.info("Persistent Namespace '%s' already initialized", namespace)
+                return
+
             nspath = os.path.join(self.AD.config_dir, "namespaces")
             safe = bool(writeback == "safe")
-
             nspath_file = os.path.join(nspath, f"{namespace}.db")
+
             self.state[namespace] = utils.PersistentDict(nspath_file, safe)
 
             self.logger.info("Persistent Namespace '%s' initialized", namespace)
