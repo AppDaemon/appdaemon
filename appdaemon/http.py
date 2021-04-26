@@ -103,7 +103,7 @@ def route_secure(myfunc):
 
 
 class HTTP:
-    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, api, http):
+    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, aui, api, http):
 
         self.AD = ad
         self.logging = logging
@@ -114,6 +114,7 @@ class HTTP:
         self.dashboard = dashboard
         self.dashboard_dir = None
         self.admin = admin
+        self.aui = aui
         self.http = http
         self.api = api
         self.runner = None
@@ -151,6 +152,11 @@ class HTTP:
         self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
         self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
         self.images_dir = os.path.join(self.install_dir, "assets", "images")
+
+        # AUI
+        self.aui_dir = os.path.join(self.install_dir, "assets", "aui")
+        self.aui_css_dir = os.path.join(self.install_dir, "assets", "aui/css")
+        self.aui_js_dir = os.path.join(self.install_dir, "assets", "aui/js")
 
         try:
             url = urlparse(self.url)
@@ -738,7 +744,10 @@ class HTTP:
 
         # Add static path for css
         self.app.router.add_static("/css", self.css_dir)
-
+        if self.aui is not None:
+            self.app.router.add_static("/aui", self.aui_dir)
+            self.app.router.add_static("/aui/css", self.aui_css_dir)
+            self.app.router.add_static("/aui/js", self.aui_js_dir)
         if self.admin is not None:
             self.app.router.add_get("/", self.admin_page)
         elif self.dashboard is not None:
