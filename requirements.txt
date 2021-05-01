@@ -21,7 +21,7 @@ python-dateutil==2.8.1
 pid==3.0.4
 azure-mgmt-compute==20.0.0
 azure-mgmt-storage==17.1.0
-azure-mgmt-resource==16.0.0
+azure-mgmt-resource==16.1.0
 azure-keyvault-secrets==4.2.0
 azure-storage-blob==12.8.1
 pygments==2.8.1
