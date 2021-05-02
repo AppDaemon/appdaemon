@@ -267,6 +267,12 @@ class RequestHandler:
 
         return self.AD.services.list_services()
 
+    async def get_logs(self, data, request_id):
+        if not self.authed:
+            raise RequestHandlerException("unauthorized")
+
+        return await self.AD.logging.get_admin_logs()
+
     async def fire_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")

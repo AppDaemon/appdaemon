@@ -434,7 +434,7 @@ class Logging:
 
     def read_logfile(self, log):
         if self.is_alias(log):
-            return None
+            return []
         if self.config[log]["filename"] == "STDOUT" or self.config[log]["filename"] == "STDERR":
             return []
         else:
