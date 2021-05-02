@@ -748,7 +748,9 @@ class HTTP:
             self.app.router.add_static("/aui", self.aui_dir)
             self.app.router.add_static("/aui/css", self.aui_css_dir)
             self.app.router.add_static("/aui/js", self.aui_js_dir)
-        if self.admin is not None:
+            self.app.router.add_get("/", self.aui_page)
+            self.app.router.add_get("/admin", self.admin_page)
+        elif self.admin is not None:
             self.app.router.add_get("/", self.admin_page)
         elif self.dashboard is not None:
             self.app.router.add_get("/", self.list_dash)
@@ -979,6 +981,9 @@ class HTTP:
     #
     # Admin
     #
+
+    async def aui_page(self, request):
+        raise web.HTTPFound("/aui/index.html")
 
     @secure
     async def admin_page(self, request):
