@@ -6,6 +6,7 @@ Change Log
 
 **Features**
 
+- Added "get_logs" command to stream
 - Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra`__
 
 **Fixes**
