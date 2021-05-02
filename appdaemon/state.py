@@ -213,12 +213,11 @@ class State:
                     if "attribute" in kwargs:
                         __attribute = kwargs["attribute"]
                     if "new" in kwargs:
-                        if __attribute is None and self.state[namespace][entity]["state"] == kwargs["new"]:
+                        if __attribute is None and self.state[namespace][entity].get("state") == kwargs["new"]:
                             __new_state = kwargs["new"]
                         elif (
                             __attribute is not None
-                            and __attribute in self.state[namespace][entity]["attributes"]
-                            and self.state[namespace][entity]["attributes"][__attribute] == kwargs["new"]
+                            and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
                         ):
                             __new_state = kwargs["new"]
                         else:
