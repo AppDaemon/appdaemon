@@ -415,7 +415,7 @@ class Logging:
 
         return logger
 
-    async def get_admin_logs(self, maxlines=50):
+    async def get_admin_logs(self, maxlines=100):
         return await utils.run_in_executor(self, self._get_admin_logs, maxlines)
 
     def _get_admin_logs(self, maxlines):
@@ -425,11 +425,17 @@ class Logging:
             logs[log] = {}
             logs[log]["name"] = self.config[log]["name"]
             logs[log]["lines"] = self.read_logfile(log)
+            while len(logs[log]["lines"]) > maxlines:
+                logs[log]["lines"].pop(0)
+
         for log in self.config:
             if log not in logs:
                 logs[log] = {}
                 logs[log]["name"] = self.config[log]["name"]
                 logs[log]["lines"] = self.read_logfile(log)
+                while len(logs[log]["lines"]) > maxlines:
+                    logs[log]["lines"].pop(0)
+
         return logs
 
     def read_logfile(self, log):

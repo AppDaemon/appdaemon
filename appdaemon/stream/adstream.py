@@ -270,8 +270,12 @@ class RequestHandler:
     async def get_logs(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
+        if "maxlines" in data:
+            ml = data["maxlines"]
+        else:
+            ml = 100
 
-        return await self.AD.logging.get_admin_logs()
+        return await self.AD.logging.get_admin_logs(ml)
 
     async def fire_event(self, data, request_id):
         if not self.authed:
