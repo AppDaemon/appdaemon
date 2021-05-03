@@ -516,7 +516,7 @@ Then, we can create a file called apps.yaml in the apps directory and add an ent
       module: hello
       class: HelloWorld
 
-App configuration is fully described in the `API doc <API.md>`__.
+App configuration is fully described in the [API doc](https://appdaemon.readthedocs.io/en/latest/AD_API_REFERENCE.html).
 
 With this app in place we will be able to test the App part of AppDaemon
 when we first run it.
