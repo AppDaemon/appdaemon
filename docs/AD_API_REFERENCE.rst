@@ -197,7 +197,7 @@ Enables a disabled app, so it can be loaded by AD.
 
 Disables an enabled app, so it cannot be loaded by AD. This service call is persistent, so even if AD restarts, the app will not be restarted
 
-    >>> self.call_service("app/enable", app="living_room_app", namespace="admin")
+    >>> self.call_service("app/disable", app="living_room_app", namespace="admin")
 
 **production_mode/set**
 
