@@ -239,6 +239,12 @@ class ADMain:
         try:
 
             #
+            # Read config file using include directory
+            #
+
+            yaml.add_constructor("!include", utils._include_yaml, Loader=yaml.SafeLoader)
+
+            #
             # Read config file using environment variables
             #
 

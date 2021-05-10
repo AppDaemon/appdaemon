@@ -356,6 +356,30 @@ The variables can also be referred to in the ``apps.yaml`` file as follows:
 
 In the App, the api_key can be accessed like every other argument the App can access.
 
+Include YAML Files
+~~~~~~~~~~~~~~~~~~~~~
+
+If wanting to access data stored in an external yaml file, it is possible to use the ``!include`` tag in either AD or the apps config file.
+It should be noted that the full file path is required.
+
+An example storing data in a yaml file can be seen below:
+
+.. code:: yaml
+
+    appdaemon:
+        plugins: !include /home/ubuntu/dev/conf/plugins.yaml
+
+The tag can also be referred to in the ``apps.yaml`` file as follows:
+
+.. code:: yaml
+
+    appname:
+      class: AppClass
+      module: appmodule
+      app_users: !include /home/ubuntu/dev/conf/app_users.yaml
+
+In the App, the app_users can be accessed like every other argument the App can access.
+
 App Dependencies
 ----------------
 

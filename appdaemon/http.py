@@ -240,78 +240,7 @@ class HTTP:
             #
 
             if dashboard is not None:
-                self.logger.info("Starting Dashboards")
-
-                self._process_arg("dashboard_dir", dashboard)
-
-                self.compile_on_start = True
-                self._process_arg("compile_on_start", dashboard)
-
-                self.force_compile = False
-                self._process_arg("force_compile", dashboard)
-
-                self.profile_dashboard = False
-                self._process_arg("profile_dashboard", dashboard)
-
-                self.rss_feeds = None
-                self._process_arg("rss_feeds", dashboard)
-
-                self.fa4compatibility = False
-                self._process_arg("fa4compatibility", dashboard)
-
-                if "rss_feeds" in dashboard:
-                    self.rss_feeds = []
-                    for feed in dashboard["rss_feeds"]:
-                        if feed["target"].count(".") != 1:
-                            self.logger.warning("Invalid RSS feed target: %s", feed["target"])
-                        else:
-                            self.rss_feeds.append(feed)
-
-                self.rss_update = None
-                self._process_arg("rss_update", dashboard)
-
-                self.rss_last_update = None
-
-                # find dashboard dir
-
-                if self.dashboard_dir is None:
-                    if self.config_dir is None:
-                        self.dashboard_dir = utils.find_path("dashboards")
-                    else:
-                        self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
-
-                self.javascript_dir = os.path.join(self.install_dir, "assets", "javascript")
-                self.template_dir = os.path.join(self.install_dir, "assets", "templates")
-                self.css_dir = os.path.join(self.install_dir, "assets", "css")
-                self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
-                self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
-                self.images_dir = os.path.join(self.install_dir, "assets", "images")
-
-                #
-                # Setup compile directories
-                #
-                if self.config_dir is None:
-                    self.compile_dir = utils.find_path("compiled")
-                else:
-                    self.compile_dir = os.path.join(self.config_dir, "compiled")
-
-                self.dashboard_obj = addashboard.Dashboard(
-                    self.config_dir,
-                    self.logging,
-                    dash_compile_on_start=self.compile_on_start,
-                    dash_force_compile=self.force_compile,
-                    profile_dashboard=self.profile_dashboard,
-                    dashboard_dir=self.dashboard_dir,
-                    fa4compatibility=self.fa4compatibility,
-                    transport=self.transport,
-                    javascript_dir=self.javascript_dir,
-                    template_dir=self.template_dir,
-                    css_dir=self.css_dir,
-                    fonts_dir=self.fonts_dir,
-                    webfonts_dir=self.webfonts_dir,
-                    images_dir=self.images_dir,
-                )
-                self.setup_dashboard_routes()
+                self._process_dashboard(dashboard)
 
             else:
                 self.logger.info("Dashboards Disabled")
@@ -334,6 +263,80 @@ class HTTP:
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
+
+    def _process_dashboard(self, dashboard):
+        self.logger.info("Starting Dashboards")
+
+        self._process_arg("dashboard_dir", dashboard)
+
+        self.compile_on_start = True
+        self._process_arg("compile_on_start", dashboard)
+
+        self.force_compile = False
+        self._process_arg("force_compile", dashboard)
+
+        self.profile_dashboard = False
+        self._process_arg("profile_dashboard", dashboard)
+
+        self.rss_feeds = None
+        self._process_arg("rss_feeds", dashboard)
+
+        self.fa4compatibility = False
+        self._process_arg("fa4compatibility", dashboard)
+
+        if "rss_feeds" in dashboard:
+            self.rss_feeds = []
+            for feed in dashboard["rss_feeds"]:
+                if feed["target"].count(".") != 1:
+                    self.logger.warning("Invalid RSS feed target: %s", feed["target"])
+                else:
+                    self.rss_feeds.append(feed)
+
+        self.rss_update = None
+        self._process_arg("rss_update", dashboard)
+
+        self.rss_last_update = None
+
+        # find dashboard dir
+
+        if self.dashboard_dir is None:
+            if self.config_dir is None:
+                self.dashboard_dir = utils.find_path("dashboards")
+            else:
+                self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
+
+        self.javascript_dir = os.path.join(self.install_dir, "assets", "javascript")
+        self.template_dir = os.path.join(self.install_dir, "assets", "templates")
+        self.css_dir = os.path.join(self.install_dir, "assets", "css")
+        self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
+        self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
+        self.images_dir = os.path.join(self.install_dir, "assets", "images")
+
+        #
+        # Setup compile directories
+        #
+        if self.config_dir is None:
+            self.compile_dir = utils.find_path("compiled")
+        else:
+            self.compile_dir = os.path.join(self.config_dir, "compiled")
+
+        self.dashboard_obj = addashboard.Dashboard(
+            self.config_dir,
+            self.logging,
+            dash_compile_on_start=self.compile_on_start,
+            dash_force_compile=self.force_compile,
+            profile_dashboard=self.profile_dashboard,
+            dashboard_dir=self.dashboard_dir,
+            fa4compatibility=self.fa4compatibility,
+            transport=self.transport,
+            javascript_dir=self.javascript_dir,
+            template_dir=self.template_dir,
+            css_dir=self.css_dir,
+            fonts_dir=self.fonts_dir,
+            webfonts_dir=self.webfonts_dir,
+            images_dir=self.images_dir,
+        )
+        self.setup_dashboard_routes()
 
     def _process_http(self, http):
         self._process_arg("password", http)
