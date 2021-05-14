@@ -267,6 +267,17 @@ class RequestHandler:
 
         return self.AD.services.list_services()
 
+    async def list_dashes(self, data, request_id):
+        if not self.authed:
+            raise RequestHandlerException("unauthorized")
+
+        if self.AD.http is not None and self.AD.http.dashboard_obj is not None:
+            dashes = await utils.run_in_executor(self, self.AD.http.dashboard_obj.list_dashes)
+        else:
+            dashes = None
+
+        return dashes
+
     async def get_logs(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
