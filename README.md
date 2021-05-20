@@ -10,6 +10,17 @@ suitable for wall mounted tablets.
 
 For full instructions on installation and use check out the [AppDaemon Project Documentation](http://appdaemon.readthedocs.io).
 
+## Build image for multiple architectures
+
+`$ make multiple`
+
+## Github / image tags and versions
+
+| Github / Docker Image tag | AppDaemon version | Architectures |
+| ------------------------- | ----------------- | ------------- |
+| latest | 4.0.8 | linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7 |
+| 4.0.8 | 4.0.8 | linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7 |
+
 
 ## Development of the AppDaemon library
 
