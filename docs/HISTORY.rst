@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-4.0.9
+4.1.0
 ------------------
 
 **Features**
@@ -9,6 +9,7 @@ Change Log
 - Added "get_logs" command to stream
 - Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra`__
 - Added the use of the ``!include`` directive in AD. This can be used either in the main ``appdaemon`` or ``apps`` config
+- Added support for Python 3.9
 
 **Fixes**
 
@@ -23,7 +24,7 @@ Change Log
 
 **Breaking Changes**
 
-None
+- Dropped support for Python 3.6
 
 4.0.8 (2021-03-30)
 ------------------
