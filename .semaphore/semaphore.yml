@@ -1,0 +1,38 @@
+version: v1.0
+name: Build and deploy Pipeline
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+execution_time_limit:
+  hours: 3
+global_job_config:
+  prologue:
+    commands:
+      - echo $DOCKER_TOKEN | docker login --username "$DOCKER_USERNAME" --password-stdin
+  env_vars:
+    - name: DOCKER_USERNAME
+      value: sineverba
+    - name: DOCKER_IMAGE
+      value: appdaemon
+blocks:
+  - name: Build and deploy
+    run:
+      when: tag =~ '.*'
+    task:
+      jobs:
+        - name: Build and deploy
+          commands:
+            - checkout
+            - docker -v
+            - mkdir -vp ~/.docker/cli-plugins/
+            - 'curl --silent -L "https://github.com/docker/buildx/releases/download/v0.5.1/buildx-v0.5.1.linux-amd64" > ~/.docker/cli-plugins/docker-buildx'
+            - chmod a+x ~/.docker/cli-plugins/docker-buildx
+            - docker buildx version
+            - 'docker run --rm --privileged tonistiigi/binfmt:latest --install all'
+            - docker buildx ls
+            - docker buildx create --name multiarch --driver docker-container --use
+            - docker buildx inspect --bootstrap --builder multiarch
+            - 'docker buildx build --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7 --tag $DOCKER_USERNAME/$DOCKER_IMAGE:$SEMAPHORE_GIT_TAG_NAME --tag $DOCKER_USERNAME/$DOCKER_IMAGE:latest --push .'
+      secrets:
+        - name: DOCKER_TOKEN
