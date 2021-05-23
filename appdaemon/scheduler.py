@@ -251,10 +251,10 @@ class Scheduler:
             return self.next_sunset(day_offset)
 
     def next_sunrise(self, offset: int = 0):
-        mod = 0
+        day_offset = 0
         while True:
             try:
-                candidate_date = (self.now + datetime.timedelta(days=mod)).date()
+                candidate_date = (self.now + datetime.timedelta(days=day_offset)).astimezone(self.AD.tz).date()
                 next_rising_dt = self.location.sunrise(
                     date=candidate_date, local=False, observer_elevation=self.AD.elevation
                 )
@@ -262,15 +262,15 @@ class Scheduler:
                     break
             except ValueError:
                 pass
-            mod += 1
+            day_offset += 1
 
         return next_rising_dt
 
     def next_sunset(self, offset: int = 0):
-        mod = 0
+        day_offset = 0
         while True:
             try:
-                candidate_date = (self.now + datetime.timedelta(days=mod)).date()
+                candidate_date = (self.now + datetime.timedelta(days=day_offset)).astimezone(self.AD.tz).date()
                 next_setting_dt = self.location.sunset(
                     date=candidate_date, local=False, observer_elevation=self.AD.elevation
                 )
@@ -278,7 +278,7 @@ class Scheduler:
                     break
             except ValueError:
                 pass
-            mod += 1
+            day_offset += 1
 
         return next_setting_dt
 
