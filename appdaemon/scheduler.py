@@ -258,7 +258,7 @@ class Scheduler:
                 next_rising_dt = self.location.sunrise(
                     date=candidate_date, local=False, observer_elevation=self.AD.elevation
                 )
-                if next_rising_dt + datetime.timedelta(seconds=offset) > self.now:
+                if next_rising_dt + datetime.timedelta(seconds=offset) > (self.now + datetime.timedelta(seconds=1)):
                     break
             except ValueError:
                 pass
@@ -274,7 +274,7 @@ class Scheduler:
                 next_setting_dt = self.location.sunset(
                     date=candidate_date, local=False, observer_elevation=self.AD.elevation
                 )
-                if next_setting_dt + datetime.timedelta(seconds=offset) > self.now:
+                if next_setting_dt + datetime.timedelta(seconds=offset) > (self.now + datetime.timedelta(seconds=1)):
                     break
             except ValueError:
                 pass
