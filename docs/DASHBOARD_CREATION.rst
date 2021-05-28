@@ -2038,7 +2038,7 @@ Style Arguments:
 -  ``title_style``
 -  ``title2_style``
 
-scene
+sequence
 ~~~~~
 .. figure:: images/sequence.png
    :alt: sequence
