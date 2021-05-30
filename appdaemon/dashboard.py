@@ -742,7 +742,7 @@ class Dashboard:
                         widgets[widget] = {"js": js, "css": css, "html": html}
         return widgets
 
-    def _list_dashes(self):
+    def list_dashes(self):
         if not os.path.isdir(self.dashboard_dir):
             return {}
 
@@ -828,7 +828,7 @@ class Dashboard:
 
         dash = self._get_dash(name, skin, skindir)
         if dash is None:
-            dash_list = self._list_dashes()
+            dash_list = self.list_dashes()
             return {"errors": ["Dashboard has errors or is not found - check log for details"], "dash_list": dash_list}
 
         params = dash
@@ -957,7 +957,7 @@ class Dashboard:
     def get_dashboard_list(self, paramOverwrite=None):
 
         if paramOverwrite is None:
-            dash = self._list_dashes()
+            dash = self.list_dashes()
         else:
             dash = paramOverwrite
 

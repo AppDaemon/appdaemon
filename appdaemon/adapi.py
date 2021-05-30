@@ -214,6 +214,10 @@ class ADAPI:
 
             >>> self.handle = self.listen_log(self.cb, "WARNING")
 
+            Sample callback:
+
+            >>> def log_message(self, name, ts, level, type, message, kwargs):
+
             Listen to all ``WARNING`` log messages of the `main_log`.
 
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="main_log")

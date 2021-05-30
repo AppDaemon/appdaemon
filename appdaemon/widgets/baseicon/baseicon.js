@@ -104,13 +104,15 @@ function baseicon(widget_id, url, skin, parameters)
     }
 
     function set_service_call(self, data) {
-        if (data.post_service_active !== undefined) {
-            self.post_service_active = data.post_service_active;
-            if (self.post_service_active["namespace"] === undefined) {
-                self.post_service_active["namespace"] = self.parameters.namespace;
+        if (data !== undefined) {
+            if (data.post_service_active !== undefined) {
+                self.post_service_active = data.post_service_active;
+                if (self.post_service_active["namespace"] === undefined) {
+                    self.post_service_active["namespace"] = self.parameters.namespace;
+                }
+            } else {
+                self.post_service_active = undefined;
             }
-        } else {
-            self.post_service_active = undefined;
         }
     }
 }

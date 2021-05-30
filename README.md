@@ -10,6 +10,9 @@ suitable for wall mounted tablets.
 
 For full instructions on installation and use check out the [AppDaemon Project Documentation](http://appdaemon.readthedocs.io).
 
+## Build image for multiple architectures
+
+`$ make multiple`
 
 ## Development of the AppDaemon library
 
