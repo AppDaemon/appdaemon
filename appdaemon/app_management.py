@@ -840,7 +840,7 @@ class AppManagement:
         fh.close()
 
     # @_timeit
-    async def check_app_updates(self, plugin=None, mode="normal"):  # noqa: C901
+    async def check_app_updates(self, plugin: str = None, mode: str = "normal"):  # noqa: C901
 
         async with self.check_updates_lock:
             if self.AD.apps is False:
