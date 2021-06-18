@@ -303,7 +303,7 @@ class AdPlugin(PluginBase):
 
                         if accept is True:  # accept data
 
-                            # asyncio.ensure_future(self.process_data_from_remote_ad(local_namespace, remote_namespace, data))
+                            # asyncio.create_task(self.process_data_from_remote_ad(local_namespace, remote_namespace, data))
                             await self.process_data_from_remote_ad(local_namespace, remote_namespace, data)
 
                     else:  # not an event stream but a specific required response
@@ -340,12 +340,24 @@ class AdPlugin(PluginBase):
     def subscription_event_stream(self):
         if self.subscriptions is not None:
             if "state" in self.subscriptions:
+                subscribed_states = []
                 for subscription in self.subscriptions["state"]:
-                    asyncio.ensure_future(self.run_subscription("state", subscription))
+                    asyncio.create_task(self.run_subscription("state", subscription))
+                    namespace = subscription["namespace"]
+
+                    # need to subscribe for when entity added or removed
+                    if namespace not in subscribed_states:
+                        subscribed_states.append(namespace)
+                        asyncio.create_task(
+                            self.run_subscription("event", {"namespace": namespace, "event": "__AD_ENTITY_ADDED"})
+                        )
+                        asyncio.create_task(
+                            self.run_subscription("event", {"namespace": namespace, "event": "__AD_ENTITY_REMOVED"})
+                        )
 
             if "event" in self.subscriptions:
                 for subscription in self.subscriptions["event"]:
-                    asyncio.ensure_future(self.run_subscription("event", subscription))
+                    asyncio.create_task(self.run_subscription("event", subscription))
 
         if self.forward_namespaces["enabled"] is True:
             # meaning it is to forward the stream
@@ -353,7 +365,7 @@ class AdPlugin(PluginBase):
             # self.client_name* is used, to make it easy for the far-end to use namespace just
             # using the client's name
             subscription = {"namespace": f"{self.client_name}*", "event": "*"}
-            asyncio.ensure_future(self.run_subscription("event", subscription))
+            asyncio.create_task(self.run_subscription("event", subscription))
 
     async def process_data_from_remote_ad(self, local_namespace, remote_namespace, data):
 
@@ -942,7 +954,7 @@ class AdPlugin(PluginBase):
         return accept
 
     async def run_subscription(self, sub_type, subscription):
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
         namespace = subscription["namespace"]
 
         if namespace.startswith(self.client_name):  # for local instance remote subscription
