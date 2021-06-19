@@ -134,7 +134,29 @@ function basejavascript(widget_id, url, skin, parameters)
                 i++
             }
         }
-
+        else
+        {
+            if ("timeout" in parameters)
+            {
+                try {
+                    current_dash = location.pathname.split('/')[1];
+                    if (i == 0)
+                    {
+                        url = url + "?return=" + current_dash;
+                        i++
+                    }
+                    else
+                    {
+                        url = url + "&return=" + current_dash;
+                        i++
+                    }
+                }
+                catch
+                {
+                    console.log('failled to auto-set return dashboard')
+                }
+            }
+        }
         if ("timeout" in parameters)
         {
             if (i == 0)

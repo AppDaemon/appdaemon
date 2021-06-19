@@ -103,13 +103,14 @@ class ADMain:
             self.http_object.stop()
 
     # noinspection PyBroadException,PyBroadException
-    def run(self, appdaemon, hadashboard, admin, api, http):
+    def run(self, appdaemon, hadashboard, admin, aui, api, http):
         """ Start AppDaemon up after initial argument parsing.
 
         Args:
             appdaemon: Config for AppDaemon Object.
             hadashboard: Config for HADashboard Object.
             admin: Config for admin Object.
+            aui: Config for aui Object.
             api: Config for API Object
             http: Config for HTTP Object
 
@@ -133,9 +134,13 @@ class ADMain:
 
             # Initialize Dashboard/API/admin
 
-            if http is not None and (hadashboard is not None or admin is not None or api is not False):
+            if http is not None and (
+                hadashboard is not None or admin is not None or aui is not None or api is not False
+            ):
                 self.logger.info("Initializing HTTP")
-                self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, api, http,)
+                self.http_object = adhttp.HTTP(
+                    self.AD, loop, self.logging, appdaemon, hadashboard, admin, aui, api, http,
+                )
                 self.AD.register_http(self.http_object)
             else:
                 if http is not None:
@@ -145,7 +150,7 @@ class ADMain:
 
             self.logger.debug("Start Main Loop")
 
-            pending = asyncio.Task.all_tasks()
+            pending = asyncio.all_tasks(loop)
             loop.run_until_complete(asyncio.gather(*pending))
 
             #
@@ -232,6 +237,12 @@ class ADMain:
         # First locate secrets file
         #
         try:
+
+            #
+            # Read config file using include directory
+            #
+
+            yaml.add_constructor("!include", utils._include_yaml, Loader=yaml.SafeLoader)
 
             #
             # Read config file using environment variables
@@ -344,6 +355,12 @@ class ADMain:
                 admin = {}
             else:
                 admin = config["admin"]
+        aui = None
+        if "aui" in config:
+            if config["aui"] is None:
+                aui = {}
+            else:
+                aui = config["aui"]
         api = None
         if "api" in config:
             if config["api"] is None:
@@ -413,11 +430,11 @@ class ADMain:
             name = os.path.basename(pidfile)
             try:
                 with pid.PidFile(name, dir):
-                    self.run(appdaemon, hadashboard, admin, api, http)
+                    self.run(appdaemon, hadashboard, admin, aui, api, http)
             except pid.PidFileError:
                 self.logger.error("Unable to acquire pidfile - terminating")
         else:
-            self.run(appdaemon, hadashboard, admin, api, http)
+            self.run(appdaemon, hadashboard, admin, aui, api, http)
 
 
 def main():

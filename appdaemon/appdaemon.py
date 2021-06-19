@@ -287,7 +287,7 @@ class AppDaemon:
         self.http = http
         # Create admin loop
 
-        if http.admin is not None:
+        if http.admin is not None or http.aui is not None:
             self.logger.debug("Starting admin loop")
 
             self.admin_loop = admin_loop.AdminLoop(self)

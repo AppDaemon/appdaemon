@@ -373,6 +373,12 @@ class HassPlugin(PluginBase):
                         else:
                             await self.evaluate_started(False, self.hass_booting)
                     else:
+                        metadata = {}
+                        metadata["origin"] = result["event"].pop("origin", None)
+                        metadata["time_fired"] = result["event"].pop("time_fired", None)
+                        metadata["context"] = result["event"].pop("context", None)
+                        result["event"]["data"]["metadata"] = metadata
+
                         await self.AD.events.process_event(self.namespace, result["event"])
 
                         if result["event"].get("event_type") == "service_registered":
@@ -601,7 +607,7 @@ class HassPlugin(PluginBase):
                 if isinstance(args[key], str):
                     return utils.str_to_dt(args(key)).replace(microsecond=0)
                 elif isinstance(args[key], datetime.datetime):
-                    return self.AD.tz.localize(args(key)).replace(microsecond=0)
+                    return self.AD.tz.localize(args[key]).replace(microsecond=0)
                 else:
                     raise ValueError(f"Invalid type for {key}")
 

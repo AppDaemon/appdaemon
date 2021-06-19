@@ -14,6 +14,10 @@ function getCookie(cname) {
     return "";
 }
 
+function setCookie(cname, cvalue) {
+    document.cookie = cname + "=" + cvalue + "; expires=Sat, 1 Jan 2050 12:00:00 UTC;";
+}
+
 function get_monitored_entities(widgets)
 {
     index = 0;

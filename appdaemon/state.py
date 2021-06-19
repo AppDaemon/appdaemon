@@ -93,10 +93,14 @@ class State:
         """Used to add a database file for a created namespace"""
 
         try:
+            if namespace in self.state and isinstance(self.state[namespace], utils.PersistentDict):
+                self.logger.info("Persistent Namespace '%s' already initialized", namespace)
+                return
+
             nspath = os.path.join(self.AD.config_dir, "namespaces")
             safe = bool(writeback == "safe")
-
             nspath_file = os.path.join(nspath, f"{namespace}.db")
+
             self.state[namespace] = utils.PersistentDict(nspath_file, safe)
 
             self.logger.info("Persistent Namespace '%s' initialized", namespace)
@@ -209,12 +213,11 @@ class State:
                     if "attribute" in kwargs:
                         __attribute = kwargs["attribute"]
                     if "new" in kwargs:
-                        if __attribute is None and self.state[namespace][entity]["state"] == kwargs["new"]:
+                        if __attribute is None and self.state[namespace][entity].get("state") == kwargs["new"]:
                             __new_state = kwargs["new"]
                         elif (
                             __attribute is not None
-                            and __attribute in self.state[namespace][entity]["attributes"]
-                            and self.state[namespace][entity]["attributes"][__attribute] == kwargs["new"]
+                            and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
                         ):
                             __new_state = kwargs["new"]
                         else:

@@ -94,7 +94,7 @@ class Scheduler:
     async def cancel_timer(self, name, handle):
         executed = False
         self.logger.debug("Canceling timer for %s", name)
-        if self.check_handle(name, handle):
+        if self.timer_running(name, handle):
             del self.schedule[name][handle]
             await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle))
             executed = True
@@ -107,8 +107,10 @@ class Scheduler:
 
         return executed
 
-    def check_handle(self, name, handle):
-        """Check if the handler is valid"""
+    def timer_running(self, name, handle):
+        """Check if the handler is valid
+        by ensuring the timer is still running"""
+
         if name in self.schedule and handle in self.schedule[name]:
             return True
 
@@ -150,7 +152,7 @@ class Scheduler:
                     if remove is True:
                         await self.AD.state.cancel_state_callback(args["kwargs"]["__handle"], name)
 
-                        if "__timeout" in args["kwargs"] and self.check_handle(
+                        if "__timeout" in args["kwargs"] and self.timer_running(
                             name, args["kwargs"]["__timeout"]
                         ):  # meaning there is a timeout for this callback
                             await self.cancel_timer(name, args["kwargs"]["__timeout"])  # cancel it as no more needed
@@ -239,50 +241,49 @@ class Scheduler:
 
         self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
-    def sun(self, type, offset):
-        if offset < 0:
-            # For negative offset we need to look forward to the next event after the current one
-            return self.get_next_sun_event(type, 1) + datetime.timedelta(seconds=offset)
-        else:
-            # Positive or zero offset so no need to specify anything special
-            return self.get_next_sun_event(type, 0) + datetime.timedelta(seconds=offset)
+    def sun(self, type: str, secs_offset: int):
+        return self.get_next_sun_event(type, secs_offset) + datetime.timedelta(seconds=secs_offset)
 
-    def get_next_sun_event(self, type, offset):
+    def get_next_sun_event(self, type: str, day_offset: int):
         if type == "next_rising":
-            return self.next_sunrise(offset)
+            return self.next_sunrise(day_offset)
         else:
-            return self.next_sunset(offset)
+            return self.next_sunset(day_offset)
 
-    def next_sunrise(self, offset=0):
-        mod = offset
+    def next_sunrise(self, offset: int = 0):
+        day_offset = 0
         while True:
             try:
-                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
-                next_rising_dt = self.location.sunrise(date=dt, local=False, observer_elevation=self.AD.elevation)
-                if next_rising_dt > self.now:
+                candidate_date = (self.now + datetime.timedelta(days=day_offset)).astimezone(self.AD.tz).date()
+                next_rising_dt = self.location.sunrise(
+                    date=candidate_date, local=False, observer_elevation=self.AD.elevation
+                )
+                if next_rising_dt + datetime.timedelta(seconds=offset) > (self.now + datetime.timedelta(seconds=1)):
                     break
             except ValueError:
                 pass
-            mod += 1
+            day_offset += 1
 
         return next_rising_dt
 
-    def next_sunset(self, offset=0):
-        mod = offset
+    def next_sunset(self, offset: int = 0):
+        day_offset = 0
         while True:
             try:
-                dt = (self.now + datetime.timedelta(seconds=offset) + datetime.timedelta(days=mod)).date()
-                next_setting_dt = self.location.sunset(date=dt, local=False, observer_elevation=self.AD.elevation)
-                if next_setting_dt > self.now:
+                candidate_date = (self.now + datetime.timedelta(days=day_offset)).astimezone(self.AD.tz).date()
+                next_setting_dt = self.location.sunset(
+                    date=candidate_date, local=False, observer_elevation=self.AD.elevation
+                )
+                if next_setting_dt + datetime.timedelta(seconds=offset) > (self.now + datetime.timedelta(seconds=1)):
                     break
             except ValueError:
                 pass
-            mod += 1
+            day_offset += 1
 
         return next_setting_dt
 
     @staticmethod
-    def get_offset(kwargs):
+    def get_offset(kwargs: dict):
         if "offset" in kwargs["kwargs"]:
             if "random_start" in kwargs["kwargs"] or "random_end" in kwargs["kwargs"]:
                 raise ValueError(
@@ -538,7 +539,7 @@ class Scheduler:
                     # Nothing to do, lets wait for a while, we will get woken up if anything new comes along
                     delay = idle_time
 
-                # Initially we don't want to skip over any events that haven;t had a chance to be registered yet, but now
+                # Initially we don't want to skip over any events that haven't had a chance to be registered yet, but now
                 # we can loosen up a little
                 idle_time = 60
 
@@ -608,7 +609,7 @@ class Scheduler:
         return self.next_sunrise() < self.next_sunset()
 
     async def info_timer(self, handle, name):
-        if self.check_handle(name, handle):
+        if self.timer_running(name, handle):
             callback = self.schedule[name][handle]
             return (
                 self.make_naive(callback["timestamp"]),

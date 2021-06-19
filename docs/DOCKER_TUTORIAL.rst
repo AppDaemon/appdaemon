@@ -19,6 +19,13 @@ multiple ways of doing some of these steps which are removed for the
 sake of keeping it simple. As your needs change, just remember there's
 probably a way to do what you want!
 
+Available Images
+----------------
+
+Starting with AppDaemon 4.1.0, we suport multi-arch images on Docker Hub.
+
+Currently supported architectures: linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7
+
 Prereqs
 -------
 
@@ -27,7 +34,6 @@ This guide assumes:
 * You already have Docker installed. If you still need to do this, follow the `Docker Installation documentation <https://docs.docker.com/engine/installation/>`__
 * You have Home Assistant up and running
 * You are comfortable with some tinkering. This is a pre-req for AppDaemon too!
-* You're not running on a Raspberry Pi. See `the install page <https://appdaemon.readthedocs.io/en/latest/INSTALL.html#raspberry-pi-docker/>`__ for further information.
 
 Testing your System
 -------------------
