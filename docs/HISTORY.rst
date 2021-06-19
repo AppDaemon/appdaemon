@@ -11,6 +11,7 @@ Change Log
 - Added support for Python 3.9
 - Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra>`__
 - Added multi-arch builds to Docker hub - contributed by `sineverba <https://github.com/sineverba>`__
+- Added the AD Plugin, which allows to connect to multiple AD instances at once, while allowing for all to work as a single system
 - Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
 - Bumped deepdiff from 5.2.3 to 5.3.0
 - Bumped wheel from 0.34.2 to 0.36.2
@@ -63,7 +64,6 @@ None
 
 **Features**
 
-- Added the AD Plugin, which allows to connect to multiple AD instances at once, while allowing for all to work as a single system
 - Added the ability to have access to ``metadata`` from HASS events - contributed by `engrbm87 <https://github.com/engrbm87>`__
 - Added the ability to allow widget to make use of mouse events, which can then be sent to AD backend
 - Added the ability to add custom javascript code to dashboard - contributed by `Rene Tode <https://github.com/ReneTode>`__

@@ -275,7 +275,7 @@ class AdPlugin(PluginBase):
                 # Subscribe to event stream
                 #
 
-                self.subscription_event_stream()
+                self.subscribe_to_event_stream()
                 namespace = {"namespace": self.namespace, "namespaces": namespaces}
 
                 await self.AD.plugins.notify_plugin_started(self.name, namespace, self.metadata, states, first_time)
@@ -337,10 +337,11 @@ class AdPlugin(PluginBase):
         self.logger.info("Disconnecting from AppDaemon")
         self.reading_messages = False
 
-    def subscription_event_stream(self):
+    def subscribe_to_event_stream(self):
         if self.subscriptions is not None:
+            subscribed_states = []
+
             if "state" in self.subscriptions:
-                subscribed_states = []
                 for subscription in self.subscriptions["state"]:
                     asyncio.create_task(self.run_subscription("state", subscription))
                     namespace = subscription["namespace"]
@@ -348,16 +349,22 @@ class AdPlugin(PluginBase):
                     # need to subscribe for when entity added or removed
                     if namespace not in subscribed_states:
                         subscribed_states.append(namespace)
-                        asyncio.create_task(
-                            self.run_subscription("event", {"namespace": namespace, "event": "__AD_ENTITY_ADDED"})
-                        )
-                        asyncio.create_task(
-                            self.run_subscription("event", {"namespace": namespace, "event": "__AD_ENTITY_REMOVED"})
-                        )
 
             if "event" in self.subscriptions:
                 for subscription in self.subscriptions["event"]:
                     asyncio.create_task(self.run_subscription("event", subscription))
+                    namespace = subscription["namespace"]
+
+                    if namespace in subscribed_states and subscription["event"] == "*":
+                        subscribed_states.remove(namespace)
+
+            if subscribed_states != []:
+                # we need to subscribe to soome extra events for state
+                for ns in subscribed_states:
+                    asyncio.create_task(self.run_subscription("event", {"namespace": ns, "event": "__AD_ENTITY_ADDED"}))
+                    asyncio.create_task(
+                        self.run_subscription("event", {"namespace": ns, "event": "__AD_ENTITY_REMOVED"})
+                    )
 
         if self.forward_namespaces["enabled"] is True:
             # meaning it is to forward the stream
