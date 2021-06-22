@@ -18,7 +18,9 @@ class Services:
         self.app_registered_services = {}
         self.logger = ad.logging.get_child("_services")
 
-    def register_service(self, namespace: str, domain: str, service: str, callback: Any, **kwargs: Optional[dict]):
+    def register_service(
+        self, namespace: str, domain: str, service: str, callback: Any, **kwargs: Optional[dict]
+    ) -> None:
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
         )
@@ -36,6 +38,16 @@ class Services:
 
             if domain not in self.services[namespace]:
                 self.services[namespace][domain] = {}
+
+            if service in self.services[namespace][domain]:
+                # there was a service already registered before
+                # so if a different app, we ask to deregister first
+                service_app = self.services[namespace][domain][service].get("__name")
+                if service_app and service_app != name:
+                    self.logger.warning(
+                        f"This service '{domain}/{service}' already registered to a different app '{service_app}'. Do deregister from app first"
+                    )
+                    return
 
             self.services[namespace][domain][service] = {"callback": callback, **kwargs}
 
