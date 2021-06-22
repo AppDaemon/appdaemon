@@ -8,6 +8,7 @@ Change Log
 
 - Added "get_logs" command to stream
 - Added "deregister_service" api call
+- Added new AD event `service_deregistered`. This is fired when an app's service is deregistered
 - Added the use of the ``!include`` directive in AD. This can be used either in the main ``appdaemon`` or ``apps`` config
 - Added support for Python 3.9
 - Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra>`__
