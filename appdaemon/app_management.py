@@ -29,7 +29,6 @@ class AppManagement:
         self.modules = {}
         self.objects = {}
         self.check_app_updates_profile_stats = None
-        self.check_updates_lock = None
 
         # Initialize config file tracking
 
@@ -103,8 +102,6 @@ class AppManagement:
         await self.AD.state.remove_entity("admin", "app.{}".format(name))
 
     async def init_admin_stats(self):
-        # store lock
-        self.check_updates_lock = asyncio.Lock()
 
         # create sensors
         await self.add_entity(self.active_apps_sensor, 0, {"friendly_name": "Active Apps"})
@@ -844,203 +841,202 @@ class AppManagement:
     # @_timeit
     async def check_app_updates(self, plugin: str = None, mode: str = "normal"):  # noqa: C901
 
-        async with self.check_updates_lock:
-            if self.AD.apps is False:
-                return
+        if self.AD.apps is False:
+            return
 
-            # Lets add some profiling
-            pr = None
-            if self.AD.check_app_updates_profile is True:
-                pr = cProfile.Profile()
-                pr.enable()
+        # Lets add some profiling
+        pr = None
+        if self.AD.check_app_updates_profile is True:
+            pr = cProfile.Profile()
+            pr.enable()
 
-            # Process filters
+        # Process filters
 
-            await utils.run_in_executor(self, self.process_filters)
+        await utils.run_in_executor(self, self.process_filters)
 
-            # Get list of apps we need to terminate and/or initialize
+        # Get list of apps we need to terminate and/or initialize
 
-            apps = await self.check_config()
+        apps = await self.check_config()
 
-            found_files = []
-            modules = []
-            for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir, topdown=True):
-                # print(root, subdirs, files)
-                #
-                # Prune dir list
-                #
-                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
+        found_files = []
+        modules = []
+        for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir, topdown=True):
+            # print(root, subdirs, files)
+            #
+            # Prune dir list
+            #
+            subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
 
-                if root[-11:] != "__pycache__" and root[0] != ".":
-                    if root not in self.module_dirs:
-                        self.logger.info("Adding %s to module import path", root)
-                        sys.path.insert(0, root)
-                        self.module_dirs.append(root)
+            if root[-11:] != "__pycache__" and root[0] != ".":
+                if root not in self.module_dirs:
+                    self.logger.info("Adding %s to module import path", root)
+                    sys.path.insert(0, root)
+                    self.module_dirs.append(root)
 
-                for file in files:
-                    if file[-3:] == ".py" and file[0] != ".":
-                        found_files.append(os.path.join(root, file))
+            for file in files:
+                if file[-3:] == ".py" and file[0] != ".":
+                    found_files.append(os.path.join(root, file))
 
-            for file in found_files:
-                if file == os.path.join(self.AD.app_dir, "__init__.py"):
-                    continue
-                try:
+        for file in found_files:
+            if file == os.path.join(self.AD.app_dir, "__init__.py"):
+                continue
+            try:
 
-                    # check we can actually open the file
-                    await utils.run_in_executor(self, self.check_file, file)
+                # check we can actually open the file
+                await utils.run_in_executor(self, self.check_file, file)
 
-                    modified = await utils.run_in_executor(self, os.path.getmtime, file)
-                    if file in self.monitored_files:
-                        if self.monitored_files[file] < modified:
-                            modules.append({"name": file, "reload": True})
-                            self.monitored_files[file] = modified
-                    else:
-                        self.logger.debug("Found module %s", file)
-                        modules.append({"name": file, "reload": False})
+                modified = await utils.run_in_executor(self, os.path.getmtime, file)
+                if file in self.monitored_files:
+                    if self.monitored_files[file] < modified:
+                        modules.append({"name": file, "reload": True})
                         self.monitored_files[file] = modified
-                except IOError as err:
-                    self.logger.warning("Unable to read app %s: %s - skipping", file, err)
+                else:
+                    self.logger.debug("Found module %s", file)
+                    modules.append({"name": file, "reload": False})
+                    self.monitored_files[file] = modified
+            except IOError as err:
+                self.logger.warning("Unable to read app %s: %s - skipping", file, err)
 
-            # Check for deleted modules and add them to the terminate list
-            deleted_modules = []
-            for file in self.monitored_files:
-                if file not in found_files or mode == "term":
-                    deleted_modules.append(file)
-                    self.logger.info("Removing module %s", file)
+        # Check for deleted modules and add them to the terminate list
+        deleted_modules = []
+        for file in self.monitored_files:
+            if file not in found_files or mode == "term":
+                deleted_modules.append(file)
+                self.logger.info("Removing module %s", file)
 
-            for file in deleted_modules:
-                del self.monitored_files[file]
-                for app in self.apps_per_module(self.get_module_from_path(file)):
+        for file in deleted_modules:
+            del self.monitored_files[file]
+            for app in self.apps_per_module(self.get_module_from_path(file)):
+                apps["term"][app] = 1
+
+        # Add any apps we need to reload because of file changes
+
+        for module in modules:
+            for app in self.apps_per_module(self.get_module_from_path(module["name"])):
+                if module["reload"]:
                     apps["term"][app] = 1
+                apps["init"][app] = 1
 
-            # Add any apps we need to reload because of file changes
+            if "global_modules" in self.app_config:
+                for gm in utils.single_or_list(self.app_config["global_modules"]):
+                    if gm == self.get_module_from_path(module["name"]):
+                        for app in self.apps_per_global_module(gm):
+                            if module["reload"]:
+                                apps["term"][app] = 1
+                            apps["init"][app] = 1
 
-            for module in modules:
-                for app in self.apps_per_module(self.get_module_from_path(module["name"])):
-                    if module["reload"]:
-                        apps["term"][app] = 1
+        if plugin is not None:
+            self.logger.info("Processing restart for %s", plugin)
+            # This is a restart of one of the plugins so check which apps need to be restarted
+            for app in self.app_config:
+                reload = False
+                if app in self.non_apps:
+                    continue
+                if "plugin" in self.app_config[app]:
+                    for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
+                        if this_plugin == plugin:
+                            # We got a match so do the reload
+                            reload = True
+                            break
+                        elif plugin == "__ALL__":
+                            reload = True
+                            break
+                else:
+                    # No plugin dependency specified, reload to error on the side of caution
+                    reload = True
+
+                if reload is True:
+                    apps["term"][app] = 1
                     apps["init"][app] = 1
 
-                if "global_modules" in self.app_config:
-                    for gm in utils.single_or_list(self.app_config["global_modules"]):
-                        if gm == self.get_module_from_path(module["name"]):
-                            for app in self.apps_per_global_module(gm):
-                                if module["reload"]:
-                                    apps["term"][app] = 1
-                                apps["init"][app] = 1
+        # Terminate apps
 
-            if plugin is not None:
-                self.logger.info("Processing restart for %s", plugin)
-                # This is a restart of one of the plugins so check which apps need to be restarted
+        apps_terminated = {}  # store apps properly terminated is any
+        if apps is not None and apps["term"]:
+            prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
+
+            for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
+                executed = await self.stop_app(app)
+                apps_terminated[app] = executed
+
+        # Load/reload modules
+
+        for mod in modules:
+            try:
+                await utils.run_in_executor(self, self.read_app, mod["name"], mod["reload"])
+            except Exception:
+                self.error.warning("-" * 60)
+                self.error.warning("Unexpected error loading module: %s:", mod["name"])
+                self.error.warning("-" * 60)
+                self.error.warning(traceback.format_exc())
+                self.error.warning("-" * 60)
+                if self.AD.logging.separate_error_log() is True:
+                    self.logger.warning("Unexpected error loading module: %s:", mod["name"])
+
+                self.logger.warning("Removing associated apps:")
+                module = self.get_module_from_path(mod["name"])
                 for app in self.app_config:
-                    reload = False
-                    if app in self.non_apps:
-                        continue
-                    if "plugin" in self.app_config[app]:
-                        for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
-                            if this_plugin == plugin:
-                                # We got a match so do the reload
-                                reload = True
-                                break
-                            elif plugin == "__ALL__":
-                                reload = True
-                                break
-                    else:
-                        # No plugin dependency specified, reload to error on the side of caution
-                        reload = True
+                    if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
+                        if apps["init"] and app in apps["init"]:
+                            del apps["init"][app]
+                            self.logger.warning("%s", app)
+                            await self.set_state(app, state="compile_error")
 
-                    if reload is True:
-                        apps["term"][app] = 1
-                        apps["init"][app] = 1
+        if apps is not None and apps["init"]:
 
-            # Terminate apps
+            prio_apps = self.get_app_deps_and_prios(apps["init"], mode)
 
-            apps_terminated = {}  # store apps properly terminated is any
-            if apps is not None and apps["term"]:
-                prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
+            # Load Apps
 
-                for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
-                    executed = await self.stop_app(app)
-                    apps_terminated[app] = executed
-
-            # Load/reload modules
-
-            for mod in modules:
+            for app in sorted(prio_apps, key=prio_apps.get):
                 try:
-                    await utils.run_in_executor(self, self.read_app, mod["name"], mod["reload"])
-                except Exception:
-                    self.error.warning("-" * 60)
-                    self.error.warning("Unexpected error loading module: %s:", mod["name"])
-                    self.error.warning("-" * 60)
-                    self.error.warning(traceback.format_exc())
-                    self.error.warning("-" * 60)
-                    if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Unexpected error loading module: %s:", mod["name"])
-
-                    self.logger.warning("Removing associated apps:")
-                    module = self.get_module_from_path(mod["name"])
-                    for app in self.app_config:
-                        if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
-                            if apps["init"] and app in apps["init"]:
-                                del apps["init"][app]
-                                self.logger.warning("%s", app)
-                                await self.set_state(app, state="compile_error")
-
-            if apps is not None and apps["init"]:
-
-                prio_apps = self.get_app_deps_and_prios(apps["init"], mode)
-
-                # Load Apps
-
-                for app in sorted(prio_apps, key=prio_apps.get):
-                    try:
-                        if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
-                            self.logger.info("%s is disabled", app)
-                            await self.set_state(app, state="disabled")
-                            await self.increase_inactive_apps(app)
-                        else:
-                            if apps_terminated.get(app, True) is True:  # the app terminated properly
-                                await self.init_object(app)
-
-                            else:
-                                self.logger.warning("Cannot initialize app %s, as it didn't terminate properly", app)
-
-                    except Exception:
-                        error_logger = logging.getLogger("Error.{}".format(app))
-                        error_logger.warning("-" * 60)
-                        error_logger.warning("Unexpected error initializing app: %s:", app)
-                        error_logger.warning("-" * 60)
-                        error_logger.warning(traceback.format_exc())
-                        error_logger.warning("-" * 60)
-                        if self.AD.logging.separate_error_log() is True:
-                            self.logger.warning(
-                                "Logged an error to %s", self.AD.logging.get_filename("error_log"),
-                            )
-
-                await self.AD.threading.calculate_pin_threads()
-
-                # Call initialize() for apps
-
-                for app in sorted(prio_apps, key=prio_apps.get):
                     if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
-                        pass
+                        self.logger.info("%s is disabled", app)
+                        await self.set_state(app, state="disabled")
+                        await self.increase_inactive_apps(app)
                     else:
                         if apps_terminated.get(app, True) is True:  # the app terminated properly
-                            await self.initialize_app(app)
+                            await self.init_object(app)
 
                         else:
-                            self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
+                            self.logger.warning("Cannot initialize app %s, as it didn't terminate properly", app)
 
-            if self.AD.check_app_updates_profile is True:
-                pr.disable()
+                except Exception:
+                    error_logger = logging.getLogger("Error.{}".format(app))
+                    error_logger.warning("-" * 60)
+                    error_logger.warning("Unexpected error initializing app: %s:", app)
+                    error_logger.warning("-" * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning("-" * 60)
+                    if self.AD.logging.separate_error_log() is True:
+                        self.logger.warning(
+                            "Logged an error to %s", self.AD.logging.get_filename("error_log"),
+                        )
 
-            s = io.StringIO()
-            sortby = "cumulative"
-            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            ps.print_stats()
-            self.check_app_updates_profile_stats = s.getvalue()
+            await self.AD.threading.calculate_pin_threads()
 
-            self.apps_initialized = True
+            # Call initialize() for apps
+
+            for app in sorted(prio_apps, key=prio_apps.get):
+                if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
+                    pass
+                else:
+                    if apps_terminated.get(app, True) is True:  # the app terminated properly
+                        await self.initialize_app(app)
+
+                    else:
+                        self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
+
+        if self.AD.check_app_updates_profile is True:
+            pr.disable()
+
+        s = io.StringIO()
+        sortby = "cumulative"
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        self.check_app_updates_profile_stats = s.getvalue()
+
+        self.apps_initialized = True
 
     def get_app_deps_and_prios(self, applist, mode):
 
