@@ -1550,6 +1550,10 @@ class ADAPI:
             cb: A reference to the function to be called when the service is requested. This function may be a regular
                 function, or it may be async. Note that if it is an async function, it will run on AppDaemon's main loop
                 meaning that any issues with the service could result in a delay of AppDaemon's core functions.
+        Keyword Args:
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
 
         Returns:
             None
@@ -1570,6 +1574,41 @@ class ADAPI:
         kwargs["__name"] = self.name
 
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
+
+    def deregister_service(self, service, **kwargs):
+        """Deregisters a service that had been previously registered
+
+        Using this function, an App can deregister a service call, it has initially registered in the service registry.
+        This will automatically make it unavailable to other apps using the `call_service()` API call, as well as published
+        as a service in the REST API and make it unavailable to the `call_service` command in the event stream.
+        This function can only be used, within the app that registered it in the first place
+
+        Args:
+            service: Name of the service, in the format `domain/service`.
+        Keyword Args:
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
+
+        Returns:
+            Bool
+
+        Examples:
+            >>> self.deregister_service("myservices/service1")
+
+        """
+        self._check_service(service)
+        d, s = service.split("/")
+        self.logger.debug("deregister_service: %s/%s, %s", d, s, kwargs)
+
+        namespace = self._get_namespace(**kwargs)
+
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        kwargs["__name"] = self.name
+
+        return self.AD.services.deregister_service(namespace, d, s, **kwargs)
 
     def list_services(self, **kwargs):
         """List all services available within AD

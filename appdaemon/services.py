@@ -1,6 +1,8 @@
 import threading
 import traceback
 import asyncio
+from copy import deepcopy
+from typing import Any, Optional
 
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.exceptions import NamespaceException
@@ -13,9 +15,10 @@ class Services:
         self.AD = ad
         self.services = {}
         self.services_lock = threading.RLock()
+        self.app_registered_services = {}
         self.logger = ad.logging.get_child("_services")
 
-    def register_service(self, namespace, domain, service, callback, **kwargs):
+    def register_service(self, namespace: str, domain: str, service: str, callback: Any, **kwargs: Optional[dict]):
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
         )
@@ -23,8 +26,9 @@ class Services:
         __silent = kwargs.pop("__silent", False)
 
         with self.services_lock:
+            name = kwargs.get("__name")
             # first we confirm if the namespace exists
-            if "__name" in kwargs and namespace not in self.AD.state.state:
+            if name and namespace not in self.AD.state.state:
                 raise NamespaceException(f"Namespace '{namespace}', doesn't exist")
 
             if namespace not in self.services:
@@ -42,7 +46,74 @@ class Services:
                 }
                 self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
-    def list_services(self, ns="global"):
+            if name:
+                if name not in self.app_registered_services:
+                    self.app_registered_services[name] = set()
+
+                self.app_registered_services[name].add(f"{namespace}:{domain}:{service}")
+
+    def deregister_service(self, namespace: str, domain: str, service: str, **kwargs: dict) -> bool:
+        """Used to unregister a service"""
+
+        self.logger.debug(
+            "deregister_service called: %s:%s:%s %s", namespace, domain, service, kwargs,
+        )
+
+        name = kwargs.get("__name")
+        if not name:
+            raise ValueError("App must be given to deregister service call")
+
+        if name not in self.app_registered_services:
+            raise ValueError(f"The given App {name} has no services registered")
+
+        app_service = f"{namespace}:{domain}:{service}"
+
+        if app_service not in self.app_registered_services[name]:
+            raise ValueError(f"The given App {name} doesn't have the given service registered it")
+
+        # if it gets here, then time to deregister
+        with self.services_lock:
+            # it belongs to the app
+            del self.services[namespace][domain][service]
+
+            data = {
+                "event_type": "service_deregistered",
+                "data": {"namespace": namespace, "domain": domain, "service": service, "app": name},
+            }
+            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
+
+            # now check if that domain is empty
+            # if it is, remove it also
+            if self.services[namespace][domain] == {}:
+                # its empty
+                del self.services[namespace][domain]
+
+            # now check if that namespace is empty
+            # if it is, remove it also
+            if self.services[namespace] == {}:
+                # its empty
+                del self.services[namespace]
+
+            self.app_registered_services[name].remove(app_service)
+
+            if not self.app_registered_services[name]:
+                del self.app_registered_services[name]
+
+            return True
+
+    def clear_services(self, name: str) -> None:
+        """Used to clear services"""
+
+        if name not in self.app_registered_services:
+            return
+
+        app_services = deepcopy(self.app_registered_services[name])
+
+        for app_service in app_services:
+            namespace, domain, service = app_service.split(":")
+            self.deregister_service(namespace, domain, service, __name=name)
+
+    def list_services(self, ns: str = "global"):
         result = []
         with self.services_lock:
             for namespace in self.services:
