@@ -37,6 +37,8 @@ D
 * `datetime()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.datetime>`__
 * `days   [Constraints] <APPGUIDE.html#days>`__
 * `device_tracker   [Widget] <DASHBOARD_CREATION.html#device-tracker>`__
+* `deregister_endpoint()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.deregister_endpoint>`__
+* `deregister_route()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.deregister_route>`__
 
 E
 -
@@ -224,9 +226,6 @@ T
 
 U
 -
-
-* `unregister_endpoint()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.unregister_endpoint>`__
-* `unregister_route()   [AppDaemon API] <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.unregister_route>`__
 
 V
 -

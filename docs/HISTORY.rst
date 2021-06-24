@@ -27,6 +27,8 @@ Change Log
 **Breaking Changes**
 
 - Dropped support for Python 3.6
+- Changed `unregister_endpoint` to `deregister_endpoint`
+- Changed `unregister_route` to `deregister_route`
 
 4.0.8 (2021-03-30)
 ------------------

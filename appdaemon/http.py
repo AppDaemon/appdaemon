@@ -897,7 +897,7 @@ class HTTP:
 
         return handle
 
-    async def unregister_endpoint(self, handle, name):
+    async def deregister_endpoint(self, handle, name):
         if name in self.endpoints and handle in self.endpoints[name]:
             del self.endpoints[name][handle]
 
@@ -938,7 +938,7 @@ class HTTP:
 
         return handle
 
-    async def unregister_route(self, handle, name):
+    async def deregister_route(self, handle, name):
         if name in self.app_routes and handle in self.app_routes[name]:
             del self.app_routes[name][handle]
 
