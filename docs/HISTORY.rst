@@ -1,6 +1,33 @@
 Change Log
 ==========
 
+4.1.0
+------------------
+
+**Features**
+
+- Added "get_logs" command to stream
+- Added the use of the ``!include`` directive in AD. This can be used either in the main ``appdaemon`` or ``apps`` config
+- Added support for Python 3.9
+- Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra>`__
+- Added multi-arch builds to Docker hub - contributed by `sineverba <https://github.com/sineverba>`__
+- Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
+- Bumped deepdiff from 5.2.3 to 5.3.0
+- Bumped wheel from 0.34.2 to 0.36.2
+- Bumped azure-storage-blob from 12.8.0 to 12.8.1
+- Bumped azure-mgmt-resource from 16.0.0 to 16.1.0
+
+**Fixes**
+
+- Fixed issue with when a plugin that is persistent re-initializes, and it creates an error
+- Fixed issue with when an entity has no state, and if wanting to listen to it, breaks internally
+- Fixed a couple of scheduler issues that affected tmezones west of EDT
+- Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
+
+**Breaking Changes**
+
+- Dropped support for Python 3.6
+
 4.0.8 (2021-03-30)
 ------------------
 
