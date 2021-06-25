@@ -1159,7 +1159,7 @@ class ADAPI:
             return None
 
     @utils.sync_wrapper
-    async def deregister_endpoint(self, handle):
+    async def deregister_endpoint(self, handle: str) -> None:
         """Removes a previously registered endpoint.
 
         Args:
@@ -1218,7 +1218,7 @@ class ADAPI:
             return None
 
     @utils.sync_wrapper
-    async def deregister_route(self, handle):
+    async def deregister_route(self, handle: str) -> None:
         """Removes a previously registered app route.
 
         Args:
