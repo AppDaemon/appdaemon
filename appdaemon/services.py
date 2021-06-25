@@ -125,7 +125,7 @@ class Services:
             namespace, domain, service = app_service.split(":")
             self.deregister_service(namespace, domain, service, __name=name)
 
-    def list_services(self, ns: str = "global"):
+    def list_services(self, ns: str = "global") -> list:
         result = []
         with self.services_lock:
             for namespace in self.services:

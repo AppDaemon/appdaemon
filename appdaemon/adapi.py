@@ -5,6 +5,7 @@ import iso8601
 import re
 from datetime import timedelta
 from copy import deepcopy
+from typing import Any, Optional
 
 # needed for fake coro cb that looks like scheduler
 import uuid
@@ -1534,11 +1535,11 @@ class ADAPI:
     #
 
     @staticmethod
-    def _check_service(service):
+    def _check_service(service: str) -> None:
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
 
-    def register_service(self, service, cb, **kwargs):
+    def register_service(self, service: str, cb: Any, **kwargs: Optional[dict]) -> None:
         """Registers a service that can be called from other apps, the REST API and the Event Stream
 
         Using this function, an App can register a function to be available in the service registry.
@@ -1575,7 +1576,7 @@ class ADAPI:
 
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
-    def deregister_service(self, service, **kwargs):
+    def deregister_service(self, service: str, **kwargs: Optional[dict]) -> bool:
         """Deregisters a service that had been previously registered
 
         Using this function, an App can deregister a service call, it has initially registered in the service registry.
@@ -1610,7 +1611,7 @@ class ADAPI:
 
         return self.AD.services.deregister_service(namespace, d, s, **kwargs)
 
-    def list_services(self, **kwargs):
+    def list_services(self, **kwargs: Optional[dict]) -> list:
         """List all services available within AD
 
         Using this function, an App can request all available services within AD
@@ -1643,7 +1644,7 @@ class ADAPI:
         return self.AD.services.list_services(namespace)  # retrieve services
 
     @utils.sync_wrapper
-    async def call_service(self, service, **kwargs):
+    async def call_service(self, service: str, **kwargs: Optional[dict]) -> Any:
         """Calls a Service within AppDaemon.
 
         This function can call any service and provide any required parameters.
