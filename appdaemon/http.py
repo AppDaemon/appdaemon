@@ -5,6 +5,7 @@ import re
 import time
 import traceback
 import concurrent.futures
+from typing import Callable, Optional
 from urllib.parse import urlparse
 import feedparser
 from aiohttp import web
@@ -138,7 +139,7 @@ class HTTP:
 
         self.stopping = False
 
-        self.endpoints = {}
+        self.app_endpoints = {}
         self.app_routes = {}
 
         self.dashboard_obj = None
@@ -230,7 +231,7 @@ class HTTP:
                     webfonts_dir=self.webfonts_dir,
                     images_dir=self.images_dir,
                     transport=self.transport,
-                    **admin
+                    **admin,
                 )
 
             if admin is None and aui is None:
@@ -733,7 +734,7 @@ class HTTP:
         self.app.router.add_get("/api/appdaemon/state/", self.get_namespaces)
         self.app.router.add_get("/api/appdaemon/state", self.get_state)
         self.app.router.add_get("/api/appdaemon/logs", self.get_logs)
-        self.app.router.add_post("/api/appdaemon/{app}", self.call_api)
+        self.app.router.add_post("/api/appdaemon/{endpoint}", self.call_app_endpoint)
         self.app.router.add_get("/api/appdaemon", self.get_ad)
 
     def setup_http_routes(self):
@@ -828,8 +829,8 @@ class HTTP:
     # API
 
     async def terminate_app(self, name):
-        if name in self.endpoints:
-            del self.endpoints[name]
+        if name in self.app_endpoints:
+            del self.app_endpoints[name]
 
         if name in self.app_routes:
             del self.app_routes[name]
@@ -857,68 +858,85 @@ class HTTP:
         return web.Response(text=res, content_type="text/html")
 
     @securedata
-    async def call_api(self, request):
+    async def call_app_endpoint(self, request):
 
         code = 200
         ret = ""
-        app = request.match_info.get("app")
+        endpoint = request.match_info.get("endpoint")
 
         try:
-            args = await request.json()
-        except json.decoder.JSONDecodeError:
-            return self.get_response(request, 400, "JSON Decode Error")
-
-        try:
-            ret, code = await self.dispatch_app_by_name(app, args)
+            ret, code = await self.dispatch_app_endpoint(endpoint, request)
         except Exception:
             self.logger.error("-" * 60)
             self.logger.error("Unexpected error during API call")
             self.logger.error("-" * 60)
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
+            code = 500
 
         if code == 404:
-            return self.get_response(request, 404, "App Not Found")
+            return self.get_response(request, code, "App Not Found")
+
+        elif code == 500:
+            return self.get_response(request, code, "An Error occured while processing request")
 
         response = "OK"
-        self.access.info("API Call to %s: status: %s %s", app, code, response)
+        self.access.info("API Call to %s: status: %s %s", endpoint, code, response)
 
         return web.json_response(ret, status=code, dumps=utils.convert_json)
 
     # Routes, Status and Templates
 
-    async def register_endpoint(self, cb, name):
+    async def register_endpoint(self, cb: Callable, endpoint: str, name: str, **kwargs: Optional[dict]) -> str:
 
         handle = uuid.uuid4().hex
 
-        if name not in self.endpoints:
-            self.endpoints[name] = {}
-        self.endpoints[name][handle] = {"callback": cb, "name": name}
+        # first we check to ensure that endpoint not been used before
+        for name in self.app_endpoints:
+            for _, handle_data in self.app_endpoints[name].items():
+                if handle_data["endpoint"] == endpoint:
+                    # it exists already so don't let it pass
+                    raise AttributeError(f"The given endpoint '{endpoint}' already exists and used by {name}")
+
+        if name not in self.app_endpoints:
+            self.app_endpoints[name] = {}
+
+        self.app_endpoints[name][handle] = {"callback": cb, "endpoint": endpoint, "kwargs": kwargs}
 
         return handle
 
-    async def deregister_endpoint(self, handle, name):
-        if name in self.endpoints and handle in self.endpoints[name]:
-            del self.endpoints[name][handle]
+    async def deregister_endpoint(self, handle: str, name: str) -> None:
+        if name in self.app_endpoints and handle in self.app_endpoints[name]:
+            del self.app_endpoints[name][handle]
 
-    async def dispatch_app_by_name(self, name, args):
+    async def dispatch_app_endpoint(self, endpoint, request):
         callback = None
-        for app in self.endpoints:
-            for handle in self.endpoints[app]:
-                if self.endpoints[app][handle]["name"] == name:
-                    callback = self.endpoints[app][handle]["callback"]
+        rargs = {}
+
+        for name in self.app_endpoints:
+            if callback is not None:  # a callback has been collected
+                break
+
+            for handle in self.app_endpoints[name]:
+                app_endpoint = self.app_endpoints[name][handle]["endpoint"]
+
+                if app_endpoint == endpoint:
+                    callback = self.app_endpoints[name][handle]["callback"]
+                    rargs.update(self.app_endpoints[name][handle]["kwargs"])
+                    break
+
         if callback is not None:
             if asyncio.iscoroutinefunction(callback):
-                return await callback(args)
+                return await callback(request, rargs)
             else:
-                return await utils.run_in_executor(self, callback, args)
+                return await utils.run_in_executor(self, callback, request, rargs)
         else:
             return "", 404
 
     #
     # App based Web Server
     #
-    async def register_route(self, cb, route, name, **kwargs):
+    async def register_route(self, cb: Callable, route: str, name: str, **kwargs: Optional[dict]) -> str:
 
         if not asyncio.iscoroutinefunction(cb):  # must be async function
             self.logger.warning(
@@ -930,11 +948,17 @@ class HTTP:
 
         handle = uuid.uuid4().hex
 
+        # first we check to ensure that route not been used before
+        for name in self.app_routes:
+            for _, handle_data in self.app_routes[name].items():
+                if handle_data["route"] == route:
+                    # it exists already so don't let it pass
+                    raise AttributeError(f"The given route '{route}' already exists and used by {name}")
+
         if name not in self.app_routes:
             self.app_routes[name] = {}
 
-        token = kwargs.get("token")
-        self.app_routes[name][handle] = {"callback": cb, "route": route, "token": token}
+        self.app_routes[name][handle] = {"callback": cb, "route": route, "kwargs": kwargs}
 
         return handle
 
@@ -947,36 +971,34 @@ class HTTP:
 
         name = None
         route = request.match_info.get("route")
-        token = request.query.get("token")
 
         code = 404
         error = "Requested Server does not exist"
 
         callback = None
+        rargs = {}
+
         for name in self.app_routes:
             if callback is not None:  # a callback has been collected
                 break
 
             for handle in self.app_routes[name]:
                 app_route = self.app_routes[name][handle]["route"]
-                app_token = self.app_routes[name][handle]["token"]
 
                 if app_route == route:
-                    if app_token is not None and app_token != token:
-                        return self.get_web_response(request, "401", "Unauthorized")
-
                     callback = self.app_routes[name][handle]["callback"]
+                    rargs.update(self.app_routes[name][handle]["kwargs"])
                     break
 
         if callback is not None:
             self.access.debug("Web Call to %s for %s", route, name)
 
             try:
-                f = asyncio.ensure_future(callback(request))
+                f = asyncio.create_task(callback(request, rargs))
                 self.AD.futures.add_future(name, f)
                 return await f
             except asyncio.CancelledError:
-                code = 503
+                code = 504
                 error = "Request was Cancelled"
 
             except Exception:
@@ -985,7 +1007,7 @@ class HTTP:
                 self.logger.error("-" * 60)
                 self.logger.error(traceback.format_exc())
                 self.logger.error("-" * 60)
-                code = 503
+                code = 500
                 error = "Request had an Error"
 
         return self.get_web_response(request, str(code), error)
