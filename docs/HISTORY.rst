@@ -17,14 +17,16 @@ Change Log
 - Bumped azure-storage-blob from 12.8.0 to 12.8.1
 - Bumped azure-mgmt-resource from 16.0.0 to 16.1.0
 - When apps register endpoints, `kwargs` can be added which is made available at the callback
-- The request object is now made available in the app endpoint callback, allowing for better flexibility
+- The request object is now made available in the app endpoint callback if using `async`, allowing for better flexibility
 
 **Fixes**
 
 - Fixed issue with when a plugin that is persistent re-initializes, and it creates an error
 - Fixed issue with when an entity has no state, and if wanting to listen to it, breaks internally
 - Fixed a couple of scheduler issues that affected tmezones west of EDT
-- Fixed issue of app endpoints not being cleared when app is terminated
+- Fixed issue of app endpoints not being cleaned when app is terminated
+- Fixed issue where it was possible for different apps to register against the same endpoint
+- Fixed issue whereby the wrong response code was sent, when there was a server error
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
 
 **Breaking Changes**

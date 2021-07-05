@@ -929,7 +929,12 @@ class HTTP:
             if asyncio.iscoroutinefunction(callback):
                 return await callback(request, rargs)
             else:
-                return await utils.run_in_executor(self, callback, request, rargs)
+                try:
+                    args = await request.json()
+                except json.decoder.JSONDecodeError:
+                    return self.get_response(request, 400, "JSON Decode Error")
+
+                return await utils.run_in_executor(self, callback, args, rargs)
         else:
             return "", 404
 

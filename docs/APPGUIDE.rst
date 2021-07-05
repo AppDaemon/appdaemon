@@ -1995,6 +1995,11 @@ Here is an example of an App using the API:
 
             return response, 200
 
+If the supplied callback is not `async` as in the example above, AD will pass only the
+JSON data from the request to the callback; essentially running `data = await request.json()`.
+Since the request object needs to be parsed within an `async` callback.
+Thereby making only available a dictionary, instead of the request object.
+
 The response must be a python structure that can be mapped to JSON, or
 can be blank, in which case specify ``""`` for the response. You should
 also return an HTML status code, that will be reported back to the
@@ -2003,6 +2008,7 @@ caller, ``200`` should be used for an OK response.
 As well as any user specified code, the API can return the following
 codes:
 
+-  400 - JSON Decode Error
 -  401 - Unauthorized
 -  404 - App not found
 -  500 - Internal Server Error
