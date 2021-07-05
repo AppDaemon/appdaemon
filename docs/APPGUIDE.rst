@@ -1946,12 +1946,11 @@ RESTFul API Support
 -------------------
 
 AppDaemon supports a simple RESTFul API to enable arbitrary HTTP
-connections to pass data to Apps and trigger actions. API Calls must use
-a content type of ``application/json``, and the response will be JSON
+connections to pass data to Apps and trigger actions via a `POST` request.
+API Calls can be anything, and the response will be JSON
 encoded. The RESTFul API is disabled by default, but is enabled by
-adding an ``api_port`` directive to the AppDaemon section of the
-configuration file. The API can run http or https if desired, separately
-from the dashboard.
+setting up the `http` component in the configuration file.
+The API can run http or https if desired, separately from the dashboard.
 
 To call into a specific App, construct a URL, use the regular
 HADashboard URL, and append ``/api/appdaemon``, then add the name of the
@@ -1986,7 +1985,9 @@ Here is an example of an App using the API:
         def initialize(self):
             self.register_endpoint(my_callback, "test_endpoint")
 
-        def my_callback(self, data):
+        async def my_callback(self, request, kwargs):
+
+            data = await request.json()
 
             self.log(data)
 
@@ -2002,9 +2003,9 @@ caller, ``200`` should be used for an OK response.
 As well as any user specified code, the API can return the following
 codes:
 
--  400 - JSON Decode Error
 -  401 - Unauthorized
 -  404 - App not found
+-  500 - Internal Server Error
 
 Below is an example of using curl to call into the App shown above:
 

@@ -16,12 +16,15 @@ Change Log
 - Bumped wheel from 0.34.2 to 0.36.2
 - Bumped azure-storage-blob from 12.8.0 to 12.8.1
 - Bumped azure-mgmt-resource from 16.0.0 to 16.1.0
+- When apps register endpoints, `kwargs` can be added which is made available at the callback
+- The request object is now made available in the app endpoint callback, allowing for better flexibility
 
 **Fixes**
 
 - Fixed issue with when a plugin that is persistent re-initializes, and it creates an error
 - Fixed issue with when an entity has no state, and if wanting to listen to it, breaks internally
 - Fixed a couple of scheduler issues that affected tmezones west of EDT
+- Fixed issue of app endpoints not being cleared when app is terminated
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
 
 **Breaking Changes**
@@ -29,6 +32,9 @@ Change Log
 - Dropped support for Python 3.6
 - Changed `unregister_endpoint` to `deregister_endpoint`
 - Changed `unregister_route` to `deregister_route`
+- Changed the callback signature for `register_endpoint`. Please see example `here <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#restful-api-support>`__
+- Changed the callback signature for `register_route`
+- Changed the arg `name` for `register_endpoint` to `endpoint`
 
 4.0.8 (2021-03-30)
 ------------------
