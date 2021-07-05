@@ -1149,8 +1149,14 @@ class ADAPI:
             and an HTTP OK status response (e.g., `200`. If this is not added as a returned response,
             the function will generate an error each time it is processed.
 
-            >>> self.register_endpoint(my_callback)
-            >>> self.register_endpoint(alexa_cb, "alexa")
+            >>> self.register_endpoint(self.my_callback)
+            >>> self.register_endpoint(self.alexa_cb, "alexa")
+
+            >>> async def alexa_cb(self, request, kwargs):
+            >>>     data = await request.json()
+            >>>     self.log(data)
+            >>>     response = {"message": "Hello World"}
+            >>>     return response, 200
 
         """
         if endpoint is None:
