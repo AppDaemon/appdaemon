@@ -5,7 +5,7 @@ import iso8601
 import re
 from datetime import timedelta
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 # needed for fake coro cb that looks like scheduler
 import uuid
@@ -1539,7 +1539,9 @@ class ADAPI:
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
 
-    def register_service(self, service: str, cb: Any, **kwargs: Optional[dict]) -> None:
+    def register_service(
+        self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[dict]
+    ) -> None:
         """Registers a service that can be called from other apps, the REST API and the Event Stream
 
         Using this function, an App can register a function to be available in the service registry.

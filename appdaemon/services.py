@@ -2,7 +2,7 @@ import threading
 import traceback
 import asyncio
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.exceptions import NamespaceException
@@ -19,7 +19,7 @@ class Services:
         self.logger = ad.logging.get_child("_services")
 
     def register_service(
-        self, namespace: str, domain: str, service: str, callback: Any, **kwargs: Optional[dict]
+        self, namespace: str, domain: str, service: str, callback: Callable, **kwargs: Optional[dict]
     ) -> None:
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
@@ -138,7 +138,7 @@ class Services:
 
         return result
 
-    async def call_service(self, namespace, domain, service, data):
+    async def call_service(self, namespace: str, domain: str, service: str, data: dict) -> Any:
         self.logger.debug(
             "call_service: namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data,
         )
