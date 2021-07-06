@@ -23,6 +23,7 @@ Change Log
 - Fixed issue with when an entity has no state, and if wanting to listen to it, breaks internally
 - Fixed a couple of scheduler issues that affected tmezones west of EDT
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
+- Fixed an issue where AD crashes when multiple plugins restart at the same time
 
 **Breaking Changes**
 
