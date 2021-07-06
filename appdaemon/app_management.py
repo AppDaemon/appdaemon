@@ -235,6 +235,8 @@ class AppManagement:
 
         self.AD.futures.cancel_futures(name)
 
+        self.AD.services.clear_services(name)
+
         await self.AD.sched.terminate_app(name)
 
         await self.set_state(name, state="terminated")
