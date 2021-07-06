@@ -19,6 +19,8 @@ Change Log
 - Bumped wheel from 0.34.2 to 0.36.2
 - Bumped azure-storage-blob from 12.8.0 to 12.8.1
 - Bumped azure-mgmt-resource from 16.0.0 to 16.1.0
+- Bumped websocket-client from 0.58.0 to 1.1.0
+- Bumped jinja2 from 2.11.3 to 3.0.1
 - When apps register endpoints, `kwargs` can be added which is made available at the callback
 - The request object is now made available in the app endpoint callback if using `async`, allowing for better flexibility
 
@@ -32,6 +34,8 @@ Change Log
 - Fixed issue whereby the wrong response code was sent, when there was a server error
 - Ensured that when apps with registered services are terminated, their services are also deregistered
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
+- Documentation fixes - contributed by `Andrew Aneisch <https://github.com/aneisch>`__
+- Documentation fixes - contributed by `clyra <https://github.com/clyra>`__
 - Fixed an issue where AD crashes when multiple plugins restart at the same time
 
 **Breaking Changes**
