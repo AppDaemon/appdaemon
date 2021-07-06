@@ -85,6 +85,7 @@ Service
 ~~~~~~~
 
 .. autofunction:: appdaemon.adapi.ADAPI.register_service
+.. autofunction:: appdaemon.adapi.ADAPI.deregister_service
 .. autofunction:: appdaemon.adapi.ADAPI.list_services
 .. autofunction:: appdaemon.adapi.ADAPI.call_service
 

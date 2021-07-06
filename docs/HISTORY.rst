@@ -7,8 +7,11 @@ Change Log
 **Features**
 
 - Added "get_logs" command to stream
+- Added "deregister_service" api call
+- Added new AD event `service_deregistered`. This is fired when an app's service is deregistered
 - Added the use of the ``!include`` directive in AD. This can be used either in the main ``appdaemon`` or ``apps`` config
 - Added support for Python 3.9
+- Allowed for service calls over REST API to return data
 - Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra>`__
 - Added multi-arch builds to Docker hub - contributed by `sineverba <https://github.com/sineverba>`__
 - Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
@@ -27,7 +30,9 @@ Change Log
 - Fixed issue of app endpoints not being cleaned when app is terminated
 - Fixed issue where it was possible for different apps to register against the same endpoint
 - Fixed issue whereby the wrong response code was sent, when there was a server error
+- Ensured that when apps with registered services are terminated, their services are also deregistered
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
+- Fixed an issue where AD crashes when multiple plugins restart at the same time
 
 **Breaking Changes**
 
