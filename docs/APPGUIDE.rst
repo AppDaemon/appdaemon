@@ -1602,8 +1602,8 @@ data, they will act as filters, meaning that if they don't match the
 values, the callback will not fire.
 
 As an example of this, a Minimote controller when activated will
-generate an event called ``zwave.scene_activated``, along with 2 pieces
-of data that are specific to the event - ``entity_id`` and ``scene``. If
+generate an event called ``zwave_js_value_notification``, along with 2 pieces
+of data that are specific to the event - ``node_id`` and ``value``. If
 you include keyword values for either of those, the values supplied to
 the ``listen_event()`` 1 call must match the values in the event or it
 will not fire. If the keywords do not match any of the data in the event,
@@ -1621,9 +1621,9 @@ Examples
 
     self.listen_event(self.mode_event, "MODE_CHANGE")
     # Listen for a minimote event activating scene 3:
-    self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
     # Listen for a minimote event activating scene 3 from a specific minimote:
-    self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
 
 Use of Events for Signalling between Home Assistant and AppDaemon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
