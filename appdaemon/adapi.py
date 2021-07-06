@@ -1160,7 +1160,7 @@ class ADAPI:
             return None
 
     @utils.sync_wrapper
-    async def unregister_endpoint(self, handle):
+    async def deregister_endpoint(self, handle: str) -> None:
         """Removes a previously registered endpoint.
 
         Args:
@@ -1170,10 +1170,10 @@ class ADAPI:
             None.
 
         Examples:
-            >>> self.unregister_endpoint(handle)
+            >>> self.deregister_endpoint(handle)
 
         """
-        await self.AD.http.unregister_endpoint(handle, self.name)
+        await self.AD.http.deregister_endpoint(handle, self.name)
 
     #
     # Web Route
@@ -1219,7 +1219,7 @@ class ADAPI:
             return None
 
     @utils.sync_wrapper
-    async def unregister_route(self, handle):
+    async def deregister_route(self, handle: str) -> None:
         """Removes a previously registered app route.
 
         Args:
@@ -1229,10 +1229,10 @@ class ADAPI:
             None.
 
         Examples:
-            >>> self.unregister_route(handle)
+            >>> self.deregister_route(handle)
 
         """
-        await self.AD.http.unregister_route(handle, self.name)
+        await self.AD.http.deregister_route(handle, self.name)
 
     #
     # State

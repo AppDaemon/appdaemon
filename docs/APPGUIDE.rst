@@ -1973,7 +1973,7 @@ as specified in the configuration file.
 Apps can have as many endpoints as required, however, the names must be unique across
 all of the Apps in an AppDaemon instance.
 
-It is also possible to remove endpoints with the ``unregister_endpoint()`` call, making the
+It is also possible to remove endpoints with the ``deregister_endpoint()`` call, making the
 endpoints truly dynamic and under the control of the App.
 
 Here is an example of an App using the API:
