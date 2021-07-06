@@ -665,7 +665,7 @@ class HTTP:
             self.logger.debug("call_service() args = %s", args)
 
             res = await self.AD.services.call_service(namespace, domain, service, args)
-            return web.json_response({"response": res}, dumps=utils.convert_json)
+            return web.json_response({"response": res}, status=200, dumps=utils.convert_json)
 
         except Exception:
             self.logger.warning("-" * 60)
