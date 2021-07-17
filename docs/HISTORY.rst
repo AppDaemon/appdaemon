@@ -7,8 +7,11 @@ Change Log
 **Features**
 
 - Added "get_logs" command to stream
+- Added "deregister_service" api call
+- Added new AD event `service_deregistered`. This is fired when an app's service is deregistered
 - Added the use of the ``!include`` directive in AD. This can be used either in the main ``appdaemon`` or ``apps`` config
 - Added support for Python 3.9
+- Allowed for service calls over REST API to return data
 - Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra>`__
 - Added multi-arch builds to Docker hub - contributed by `sineverba <https://github.com/sineverba>`__
 - Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
@@ -16,17 +19,33 @@ Change Log
 - Bumped wheel from 0.34.2 to 0.36.2
 - Bumped azure-storage-blob from 12.8.0 to 12.8.1
 - Bumped azure-mgmt-resource from 16.0.0 to 16.1.0
+- Bumped websocket-client from 0.58.0 to 1.1.0
+- Bumped jinja2 from 2.11.3 to 3.0.1
+- When apps register endpoints, `kwargs` can be added which is made available at the callback
+- The request object is now made available in the app endpoint callback if using `async`, allowing for better flexibility
 
 **Fixes**
 
 - Fixed issue with when a plugin that is persistent re-initializes, and it creates an error
 - Fixed issue with when an entity has no state, and if wanting to listen to it, breaks internally
 - Fixed a couple of scheduler issues that affected tmezones west of EDT
+- Fixed issue of app endpoints not being cleaned when app is terminated
+- Fixed issue where it was possible for different apps to register against the same endpoint
+- Fixed issue whereby the wrong response code was sent, when there was a server error
+- Ensured that when apps with registered services are terminated, their services are also deregistered
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
+- Documentation fixes - contributed by `Andrew Aneisch <https://github.com/aneisch>`__
+- Documentation fixes - contributed by `clyra <https://github.com/clyra>`__
+- Fixed an issue where AD crashes when multiple plugins restart at the same time
 
 **Breaking Changes**
 
 - Dropped support for Python 3.6
+- Changed `unregister_endpoint` to `deregister_endpoint`
+- Changed `unregister_route` to `deregister_route`
+- Changed the callback signature for `register_endpoint`. Please see example `here <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#restful-api-support>`__
+- Changed the callback signature for `register_route`
+- Changed the arg `name` for `register_endpoint` to `endpoint`
 
 4.0.8 (2021-03-30)
 ------------------
