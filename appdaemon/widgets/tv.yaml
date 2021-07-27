@@ -1,0 +1,42 @@
+widget_type: basetv
+entity: "{{entity}}"
+post_service_power:
+    service: media_player/toggle
+    entity_id: "{{entity}}"
+post_service_level:
+    service: media_player/volume_set
+    entity_id: "{{entity}}"
+post_service_mute:
+    service: media_player/volume_mute
+    entity_id: "{{entity}}"
+fields:
+  title: "{{title}}"
+  power_icon_style: ""
+  state_text: ""
+  level: ""
+  power_icon: ""
+  volume_icon: ""
+  # secondary-icon: ""
+  volume_style: "visibility:hidden;"
+icons:
+  power_on_icon: mdi-television-classic
+  power_off_icon: mdi-television-classic-off
+  volume_off_icon: mdi-volume-off
+  volume_on_icon: mdi-volume-high
+static_icons:
+  icon_up: $media_player_icon_up
+  icon_down: $media_player_icon_down
+static_css:
+  title_style: $media_player_title_style
+  state_text_style: $media_player_state_text_style
+  level_style: $media_player_level_style
+  level_up_style: $media_player_level_up_style
+  level_down_style: $media_player_level_down_style
+  widget_style: $media_player_widget_style
+  units_style: $media_player_units_style
+css:
+  icon_style_active: $media_player_icon_style_active
+  icon_style_inactive: $media_player_icon_style_active
+  volume_style_hidden: "visibility:hidden;"
+  volume_style_visible: "visibility:visible;"
+
