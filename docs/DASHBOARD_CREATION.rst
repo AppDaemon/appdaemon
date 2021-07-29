@@ -2107,7 +2107,7 @@ Optional Arguments:
 -  ``precision`` - the number of decimal places
 -  ``shorten`` - if set to one, the widget will abbreviate the readout
    for high numbers, e.g. ``1.1K`` instead of ``1100``
--  ``use_comma`` - if set to one\`, a comma will be used as the decimal
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
 -  ``state_map``
 -  ``sub_entity`` - second entity to be displayed in the state text area
