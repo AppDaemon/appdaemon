@@ -1,0 +1,48 @@
+widget_type: basefan
+entity: "{{entity}}"
+post_service_speed:
+    service: fan/set_speed
+    entity_id: "{{entity}}"
+post_service_active:
+    service: fan/turn_on
+    entity_id: "{{entity}}"
+post_service_inactive:
+    service: fan/turn_off
+    entity_id: "{{entity}}"
+fields:
+  title: "{{title}}"
+  icon: ""
+  icon_style: ""
+  speed1_style: ""
+  speed2_style: ""
+  speed3_style: ""
+  icon1: ""
+  icon2: ""
+  icon3: ""
+  low_speed: "low"
+  medium_speed: "medium"
+  high_speed: "high"
+icons:
+  icon_active: $fan_icon_on
+  icon_inactive: $fan_icon_off
+  icon1_active: $fan_speed1_icon_on
+  icon1_inactive: $fan_speed1_icon_off
+  icon2_active: $fan_speed2_icon_on
+  icon2_inactive: $fan_speed2_icon_off
+  icon3_active: $fan_speed3_icon_on
+  icon3_inactive: $fan_speed3_icon_off
+static_icons: []
+static_css:
+  title_style: $fan_title_style
+  widget_style: $fan_widget_style
+  container_style: $fan_container_style
+
+css:
+  icon_style_active: $fan_icon_style_active
+  icon_style_inactive: $fan_icon_style_inactive
+  speed1_style_active: $fan_speed1_icon_style_active
+  speed1_style_inactive: $fan_speed1_icon_style_inactive
+  speed2_style_active: $fan_speed2_icon_style_active
+  speed2_style_inactive: $fan_speed2_icon_style_inactive
+  speed3_style_active: $fan_speed3_icon_style_active
+  speed3_style_inactive: $fan_speed3_icon_style_inactive
