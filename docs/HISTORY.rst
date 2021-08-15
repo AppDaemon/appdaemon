@@ -21,6 +21,7 @@ Change Log
 - Bumped azure-mgmt-resource from 16.0.0 to 16.1.0
 - Bumped websocket-client from 0.58.0 to 1.1.0
 - Bumped jinja2 from 2.11.3 to 3.0.1
+- Bumped docker image to alpine 3.14 using python 3.9.6
 - When apps register endpoints, `kwargs` can be added which is made available at the callback
 - The request object is now made available in the app endpoint callback if using `async`, allowing for better flexibility
 
