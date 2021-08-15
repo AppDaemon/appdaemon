@@ -38,6 +38,7 @@ Change Log
 - Fixed issue whereby the wrong response code was sent, when there was a server error
 - Fixed issue with climate widget, so `units` can be properly set in YAML - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
 - Fixed issue with media_player widget in parsing state - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
+- fixed issue whereby is `timout` is used in listen api, and event gives "timeout" as part of the args, the `timeout` is used to filter the event
 - Ensured that when apps with registered services are terminated, their services are also deregistered
 - Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
 - Documentation fixes - contributed by `Andrew Aneisch <https://github.com/aneisch>`__
