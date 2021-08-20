@@ -69,7 +69,8 @@ class Events:
                 }
 
             if "timeout" in kwargs:
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+                timeout = kwargs.pop("timeout")
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     name, exec_time, None, False, None, __event_handle=handle,
