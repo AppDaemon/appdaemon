@@ -149,8 +149,11 @@ Used to create a new app. For this service to be used, the module must be existi
     data["class"] = "WebApp"
     data["namespace"] = "admin"
     data["app"] = "web_app3"
+    data["endpoint"] = "endpoint3"
+    data["app_dir"] = "web_apps"
+    data["app_file"] = "web_apps.yaml"
 
-    self.adbase.call_service("app/create", **data)
+    self.call_service("app/create", **data)
 
 **app/edit**
 
@@ -198,15 +201,15 @@ Enables a disabled app, so it can be loaded by AD.
 
 Disables an enabled app, so it cannot be loaded by AD. This service call is persistent, so even if AD restarts, the app will not be restarted
 
-    >>> self.call_service("app/enable", app="living_room_app", namespace="admin")
+    >>> self.call_service("app/disable", app="living_room_app", namespace="admin")
 
 **production_mode/set**
 
 Sets the production mode AD is running on. The value of the `mode` arg has to be `True` or `False`.
 
->>> self.call_service("production_mode/set", mode=True, namespace="appdaemon")
+    >>> self.call_service("production_mode/set", mode=True, namespace="admin")
 
-All namespaces except ``appdaemon``, ``global``, and ``admin``:
+All namespaces except ``global``, and ``admin``:
 
 **state/add_entity**
 
@@ -224,9 +227,9 @@ Sets the state of an entity. This service allows any key-worded args to define w
 
 Removes an existing entity from the required namespace.
 
-    >>> self.call_service("state/remove_entity", entity_id="sensor.test"}, namespace="default")
+    >>> self.call_service("state/remove_entity", entity_id="sensor.test", namespace="default")
 
-All namespaces except ``appdaemon``:
+All namespaces except ``admin``:
 
 **event/fire**
 

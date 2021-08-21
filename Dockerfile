@@ -1,4 +1,4 @@
-ARG IMAGE=python:3.8-alpine
+ARG IMAGE=python:3.9-alpine
 FROM ${IMAGE}
 
 # Environment vars we can configure against
