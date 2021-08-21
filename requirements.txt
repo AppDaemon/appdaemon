@@ -12,7 +12,7 @@ aiohttp_jinja2==1.5
 pyyaml==5.4.1
 voluptuous==0.12.1
 feedparser==6.0.2
-iso8601==0.1.14
+iso8601==0.1.16
 bcrypt==3.2.0
 paho-mqtt==1.5.1
 deepdiff==5.5.0
