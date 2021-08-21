@@ -192,7 +192,8 @@ class State:
             # If we have a timeout parameter, add a scheduler entry to delete the callback later
             #
             if "timeout" in kwargs:
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+                timeout = kwargs.pop("timeout")
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     name, exec_time, None, False, None, __state_handle=handle,

@@ -1,0 +1,34 @@
+.widget-basefan-{{id}} {
+	position: relative;
+}
+
+.widget-basefan-{{id}} .title {
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.widget-basefan-{{id}} .icon {
+    position: absolute;
+    top: 26px;
+    width: 100%;
+	height: 47px;
+}
+.widget-basefan-{{id}} .speed1_style {
+    position: absolute;
+    bottom: 0px;
+    width: 33%;
+    left: 0px;
+}
+.widget-basefan-{{id}} .speed2_style {
+    position: absolute;
+    bottom: 0px;
+    width: 33%;
+    left: 33%;
+}
+.widget-basefan-{{id}} .speed3_style {
+    position: absolute;
+    bottom: 0px;
+    width: 33%;
+    left: 66%;
+}
