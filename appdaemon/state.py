@@ -93,10 +93,14 @@ class State:
         """Used to add a database file for a created namespace"""
 
         try:
+            if namespace in self.state and isinstance(self.state[namespace], utils.PersistentDict):
+                self.logger.info("Persistent Namespace '%s' already initialized", namespace)
+                return
+
             nspath = os.path.join(self.AD.config_dir, "namespaces")
             safe = bool(writeback == "safe")
-
             nspath_file = os.path.join(nspath, f"{namespace}.db")
+
             self.state[namespace] = utils.PersistentDict(nspath_file, safe)
 
             self.logger.info("Persistent Namespace '%s' initialized", namespace)
@@ -188,7 +192,8 @@ class State:
             # If we have a timeout parameter, add a scheduler entry to delete the callback later
             #
             if "timeout" in kwargs:
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+                timeout = kwargs.pop("timeout")
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     name, exec_time, None, False, None, __state_handle=handle,
@@ -197,7 +202,7 @@ class State:
             # In the case of a quick_start parameter,
             # start the clock immediately if the device is already in the new state
             #
-            if "immediate" in kwargs and kwargs["immediate"] is True:
+            if kwargs.get("immediate") is True:
                 __duration = 0  # run it immediately
                 __new_state = None
                 __attribute = None
@@ -209,12 +214,11 @@ class State:
                     if "attribute" in kwargs:
                         __attribute = kwargs["attribute"]
                     if "new" in kwargs:
-                        if __attribute is None and self.state[namespace][entity]["state"] == kwargs["new"]:
+                        if __attribute is None and self.state[namespace][entity].get("state") == kwargs["new"]:
                             __new_state = kwargs["new"]
                         elif (
                             __attribute is not None
-                            and __attribute in self.state[namespace][entity]["attributes"]
-                            and self.state[namespace][entity]["attributes"][__attribute] == kwargs["new"]
+                            and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
                         ):
                             __new_state = kwargs["new"]
                         else:
@@ -229,14 +233,14 @@ class State:
                                 __new_state = self.state[namespace][entity]
 
                     if "duration" in kwargs:
-                        __duration = kwargs["duration"]
+                        __duration = int(kwargs["duration"])
                 if run:
-                    exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(__duration))
+                    exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=__duration)
 
                     if kwargs.get("oneshot", False):
                         kwargs["__handle"] = handle
 
-                    kwargs["__duration"] = await self.AD.sched.insert_schedule(
+                    __scheduler_handle = await self.AD.sched.insert_schedule(
                         name,
                         exec_time,
                         cb,
@@ -248,6 +252,9 @@ class State:
                         __new_state=__new_state,
                         **kwargs,
                     )
+
+                    if __duration >= 1:  # it only stores it when needed
+                        kwargs["__duration"] = __scheduler_handle
 
             await self.AD.state.add_entity(
                 "admin",
@@ -270,15 +277,23 @@ class State:
             return None
 
     async def cancel_state_callback(self, handle, name):
+        executed = False
         async with self.AD.callbacks.callbacks_lock:
-            if name not in self.AD.callbacks.callbacks or handle not in self.AD.callbacks.callbacks[name]:
-                self.logger.warning("Invalid callback in cancel_state_callback() from app {}".format(name))
 
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
                 await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
+                executed = True
+
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
+
+        if not executed:
+            self.logger.warning(
+                "Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name)
+            )
+
+        return executed
 
     async def info_state_callback(self, handle, name):
         async with self.AD.callbacks.callbacks_lock:

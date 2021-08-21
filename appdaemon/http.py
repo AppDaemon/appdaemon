@@ -5,6 +5,7 @@ import re
 import time
 import traceback
 import concurrent.futures
+from typing import Callable, Optional
 from urllib.parse import urlparse
 import feedparser
 from aiohttp import web
@@ -103,7 +104,7 @@ def route_secure(myfunc):
 
 
 class HTTP:
-    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, api, http):
+    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, aui, api, http):
 
         self.AD = ad
         self.logging = logging
@@ -114,6 +115,7 @@ class HTTP:
         self.dashboard = dashboard
         self.dashboard_dir = None
         self.admin = admin
+        self.aui = aui
         self.http = http
         self.api = api
         self.runner = None
@@ -121,36 +123,23 @@ class HTTP:
         self.template_dir = os.path.join(os.path.dirname(__file__), "assets", "templates")
 
         self.password = None
-        self._process_arg("password", http)
-
         self.valid_tokens = []
-        self._process_arg("tokens", http)
-
         self.url = None
-        self._process_arg("url", http)
-
         self.work_factor = 12
-        self._process_arg("work_factor", http)
-
         self.ssl_certificate = None
-        self._process_arg("ssl_certificate", http)
-
         self.ssl_key = None
-        self._process_arg("ssl_key", http)
-
         self.transport = "ws"
-        self._process_arg("transport", http)
-        self.logger.info("Using '%s' for event stream", self.transport)
 
         self.config_dir = None
         self._process_arg("config_dir", dashboard)
 
         self.static_dirs = {}
-        self._process_arg("static_dirs", http)
+
+        self._process_http(http)
 
         self.stopping = False
 
-        self.endpoints = {}
+        self.app_endpoints = {}
         self.app_routes = {}
 
         self.dashboard_obj = None
@@ -164,6 +153,11 @@ class HTTP:
         self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
         self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
         self.images_dir = os.path.join(self.install_dir, "assets", "images")
+
+        # AUI
+        self.aui_dir = os.path.join(self.install_dir, "assets", "aui")
+        self.aui_css_dir = os.path.join(self.install_dir, "assets", "aui/css")
+        self.aui_js_dir = os.path.join(self.install_dir, "assets", "aui/js")
 
         try:
             url = urlparse(self.url)
@@ -212,11 +206,19 @@ class HTTP:
             # Admin
             #
 
-            if admin is not None:
+            if aui is not None:
                 self.logger.info("Starting Admin Interface")
 
                 self.stats_update = "realtime"
+                self._process_arg("stats_update", aui)
+
+            if admin is not None:
+                self.logger.info("Starting Old Admin Interface")
+
+                self.stats_update = "realtime"
                 self._process_arg("stats_update", admin)
+
+            if admin is not None or aui is not None:
 
                 self.admin_obj = adadmin.Admin(
                     self.config_dir,
@@ -229,88 +231,17 @@ class HTTP:
                     webfonts_dir=self.webfonts_dir,
                     images_dir=self.images_dir,
                     transport=self.transport,
-                    **admin
+                    **admin,
                 )
 
-            else:
+            if admin is None and aui is None:
                 self.logger.info("Admin Interface is disabled")
             #
             # Dashboards
             #
 
             if dashboard is not None:
-                self.logger.info("Starting Dashboards")
-
-                self._process_arg("dashboard_dir", dashboard)
-
-                self.compile_on_start = True
-                self._process_arg("compile_on_start", dashboard)
-
-                self.force_compile = False
-                self._process_arg("force_compile", dashboard)
-
-                self.profile_dashboard = False
-                self._process_arg("profile_dashboard", dashboard)
-
-                self.rss_feeds = None
-                self._process_arg("rss_feeds", dashboard)
-
-                self.fa4compatibility = False
-                self._process_arg("fa4compatibility", dashboard)
-
-                if "rss_feeds" in dashboard:
-                    self.rss_feeds = []
-                    for feed in dashboard["rss_feeds"]:
-                        if feed["target"].count(".") != 1:
-                            self.logger.warning("Invalid RSS feed target: %s", feed["target"])
-                        else:
-                            self.rss_feeds.append(feed)
-
-                self.rss_update = None
-                self._process_arg("rss_update", dashboard)
-
-                self.rss_last_update = None
-
-                # find dashboard dir
-
-                if self.dashboard_dir is None:
-                    if self.config_dir is None:
-                        self.dashboard_dir = utils.find_path("dashboards")
-                    else:
-                        self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
-
-                self.javascript_dir = os.path.join(self.install_dir, "assets", "javascript")
-                self.template_dir = os.path.join(self.install_dir, "assets", "templates")
-                self.css_dir = os.path.join(self.install_dir, "assets", "css")
-                self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
-                self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
-                self.images_dir = os.path.join(self.install_dir, "assets", "images")
-
-                #
-                # Setup compile directories
-                #
-                if self.config_dir is None:
-                    self.compile_dir = utils.find_path("compiled")
-                else:
-                    self.compile_dir = os.path.join(self.config_dir, "compiled")
-
-                self.dashboard_obj = addashboard.Dashboard(
-                    self.config_dir,
-                    self.logging,
-                    dash_compile_on_start=self.compile_on_start,
-                    dash_force_compile=self.force_compile,
-                    profile_dashboard=self.profile_dashboard,
-                    dashboard_dir=self.dashboard_dir,
-                    fa4compatibility=self.fa4compatibility,
-                    transport=self.transport,
-                    javascript_dir=self.javascript_dir,
-                    template_dir=self.template_dir,
-                    css_dir=self.css_dir,
-                    fonts_dir=self.fonts_dir,
-                    webfonts_dir=self.webfonts_dir,
-                    images_dir=self.images_dir,
-                )
-                self.setup_dashboard_routes()
+                self._process_dashboard(dashboard)
 
             else:
                 self.logger.info("Dashboards Disabled")
@@ -333,6 +264,99 @@ class HTTP:
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
+
+    def _process_dashboard(self, dashboard):
+        self.logger.info("Starting Dashboards")
+
+        self._process_arg("dashboard_dir", dashboard)
+
+        self.compile_on_start = True
+        self._process_arg("compile_on_start", dashboard)
+
+        self.force_compile = False
+        self._process_arg("force_compile", dashboard)
+
+        self.profile_dashboard = False
+        self._process_arg("profile_dashboard", dashboard)
+
+        self.rss_feeds = None
+        self._process_arg("rss_feeds", dashboard)
+
+        self.fa4compatibility = False
+        self._process_arg("fa4compatibility", dashboard)
+
+        if "rss_feeds" in dashboard:
+            self.rss_feeds = []
+            for feed in dashboard["rss_feeds"]:
+                if feed["target"].count(".") != 1:
+                    self.logger.warning("Invalid RSS feed target: %s", feed["target"])
+                else:
+                    self.rss_feeds.append(feed)
+
+        self.rss_update = None
+        self._process_arg("rss_update", dashboard)
+
+        self.rss_last_update = None
+
+        # find dashboard dir
+
+        if self.dashboard_dir is None:
+            if self.config_dir is None:
+                self.dashboard_dir = utils.find_path("dashboards")
+            else:
+                self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
+
+        self.javascript_dir = os.path.join(self.install_dir, "assets", "javascript")
+        self.template_dir = os.path.join(self.install_dir, "assets", "templates")
+        self.css_dir = os.path.join(self.install_dir, "assets", "css")
+        self.fonts_dir = os.path.join(self.install_dir, "assets", "fonts")
+        self.webfonts_dir = os.path.join(self.install_dir, "assets", "webfonts")
+        self.images_dir = os.path.join(self.install_dir, "assets", "images")
+
+        #
+        # Setup compile directories
+        #
+        if self.config_dir is None:
+            self.compile_dir = utils.find_path("compiled")
+        else:
+            self.compile_dir = os.path.join(self.config_dir, "compiled")
+
+        self.dashboard_obj = addashboard.Dashboard(
+            self.config_dir,
+            self.logging,
+            dash_compile_on_start=self.compile_on_start,
+            dash_force_compile=self.force_compile,
+            profile_dashboard=self.profile_dashboard,
+            dashboard_dir=self.dashboard_dir,
+            fa4compatibility=self.fa4compatibility,
+            transport=self.transport,
+            javascript_dir=self.javascript_dir,
+            template_dir=self.template_dir,
+            css_dir=self.css_dir,
+            fonts_dir=self.fonts_dir,
+            webfonts_dir=self.webfonts_dir,
+            images_dir=self.images_dir,
+        )
+        self.setup_dashboard_routes()
+
+    def _process_http(self, http):
+        self._process_arg("password", http)
+        self._process_arg("tokens", http)
+        self._process_arg("work_factor", http)
+        self._process_arg("ssl_certificate", http)
+        self._process_arg("ssl_key", http)
+
+        self._process_arg("url", http)
+        if not self.url:
+            self.logger.warning(
+                "'{arg}' is '{value}'. Please configure appdaemon.yaml".format(arg="url", value=self.url)
+            )
+            exit(0)
+
+        self._process_arg("transport", http)
+        self.logger.info("Using '%s' for event stream", self.transport)
+
+        self._process_arg("static_dirs", http)
 
     async def start_server(self):
 
@@ -641,8 +665,8 @@ class HTTP:
 
             self.logger.debug("call_service() args = %s", args)
 
-            await self.AD.services.call_service(namespace, domain, service, args)
-            return web.Response(status=200)
+            res = await self.AD.services.call_service(namespace, domain, service, args)
+            return web.json_response({"response": res}, status=200, dumps=utils.convert_json)
 
         except Exception:
             self.logger.warning("-" * 60)
@@ -710,7 +734,7 @@ class HTTP:
         self.app.router.add_get("/api/appdaemon/state/", self.get_namespaces)
         self.app.router.add_get("/api/appdaemon/state", self.get_state)
         self.app.router.add_get("/api/appdaemon/logs", self.get_logs)
-        self.app.router.add_post("/api/appdaemon/{app}", self.call_api)
+        self.app.router.add_post("/api/appdaemon/{endpoint}", self.call_app_endpoint)
         self.app.router.add_get("/api/appdaemon", self.get_ad)
 
     def setup_http_routes(self):
@@ -732,8 +756,14 @@ class HTTP:
 
         # Add static path for css
         self.app.router.add_static("/css", self.css_dir)
-
-        if self.admin is not None:
+        if self.aui is not None:
+            self.app.router.add_static("/aui", self.aui_dir)
+            self.app.router.add_static("/aui/css", self.aui_css_dir)
+            self.app.router.add_static("/aui/js", self.aui_js_dir)
+            self.app.router.add_get("/", self.aui_page)
+            if self.admin is not None:
+                self.app.router.add_get("/admin", self.admin_page)
+        elif self.admin is not None:
             self.app.router.add_get("/", self.admin_page)
         elif self.dashboard is not None:
             self.app.router.add_get("/", self.list_dash)
@@ -790,11 +820,17 @@ class HTTP:
         if os.path.isdir(custom_css):
             self.app.router.add_static("/custom_css", custom_css)
 
+        # Add path for custom_javascript if it exists
+
+        custom_javascript = os.path.join(self.dashboard_obj.config_dir, "custom_javascript")
+        if os.path.isdir(custom_javascript):
+            self.app.router.add_static("/custom_javascript", custom_javascript)
+
     # API
 
     async def terminate_app(self, name):
-        if name in self.endpoints:
-            del self.endpoints[name]
+        if name in self.app_endpoints:
+            del self.app_endpoints[name]
 
         if name in self.app_routes:
             del self.app_routes[name]
@@ -822,68 +858,90 @@ class HTTP:
         return web.Response(text=res, content_type="text/html")
 
     @securedata
-    async def call_api(self, request):
+    async def call_app_endpoint(self, request):
 
         code = 200
         ret = ""
-        app = request.match_info.get("app")
+        endpoint = request.match_info.get("endpoint")
 
         try:
-            args = await request.json()
-        except json.decoder.JSONDecodeError:
-            return self.get_response(request, 400, "JSON Decode Error")
-
-        try:
-            ret, code = await self.dispatch_app_by_name(app, args)
+            ret, code = await self.dispatch_app_endpoint(endpoint, request)
         except Exception:
             self.logger.error("-" * 60)
             self.logger.error("Unexpected error during API call")
             self.logger.error("-" * 60)
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
+            code = 500
 
         if code == 404:
-            return self.get_response(request, 404, "App Not Found")
+            return self.get_response(request, code, "App Not Found")
+
+        elif code == 500:
+            return self.get_response(request, code, "An Error occured while processing request")
 
         response = "OK"
-        self.access.info("API Call to %s: status: %s %s", app, code, response)
+        self.access.info("API Call to %s: status: %s %s", endpoint, code, response)
 
         return web.json_response(ret, status=code, dumps=utils.convert_json)
 
     # Routes, Status and Templates
 
-    async def register_endpoint(self, cb, name):
+    async def register_endpoint(self, cb: Callable, endpoint: str, name: str, **kwargs: Optional[dict]) -> str:
 
         handle = uuid.uuid4().hex
 
-        if name not in self.endpoints:
-            self.endpoints[name] = {}
-        self.endpoints[name][handle] = {"callback": cb, "name": name}
+        # first we check to ensure that endpoint not been used before
+        for name in self.app_endpoints:
+            for _, handle_data in self.app_endpoints[name].items():
+                if handle_data["endpoint"] == endpoint:
+                    # it exists already so don't let it pass
+                    raise AttributeError(f"The given endpoint '{endpoint}' already exists and used by {name}")
+
+        if name not in self.app_endpoints:
+            self.app_endpoints[name] = {}
+
+        self.app_endpoints[name][handle] = {"callback": cb, "endpoint": endpoint, "kwargs": kwargs}
 
         return handle
 
-    async def unregister_endpoint(self, handle, name):
-        if name in self.endpoints and handle in self.endpoints[name]:
-            del self.endpoints[name][handle]
+    async def deregister_endpoint(self, handle: str, name: str) -> None:
+        if name in self.app_endpoints and handle in self.app_endpoints[name]:
+            del self.app_endpoints[name][handle]
 
-    async def dispatch_app_by_name(self, name, args):
+    async def dispatch_app_endpoint(self, endpoint, request):
         callback = None
-        for app in self.endpoints:
-            for handle in self.endpoints[app]:
-                if self.endpoints[app][handle]["name"] == name:
-                    callback = self.endpoints[app][handle]["callback"]
+        rargs = {}
+
+        for name in self.app_endpoints:
+            if callback is not None:  # a callback has been collected
+                break
+
+            for handle in self.app_endpoints[name]:
+                app_endpoint = self.app_endpoints[name][handle]["endpoint"]
+
+                if app_endpoint == endpoint:
+                    callback = self.app_endpoints[name][handle]["callback"]
+                    rargs.update(self.app_endpoints[name][handle]["kwargs"])
+                    break
+
         if callback is not None:
             if asyncio.iscoroutinefunction(callback):
-                return await callback(args)
+                return await callback(request, rargs)
             else:
-                return await utils.run_in_executor(self, callback, args)
+                try:
+                    args = await request.json()
+                except json.decoder.JSONDecodeError:
+                    return self.get_response(request, 400, "JSON Decode Error")
+
+                return await utils.run_in_executor(self, callback, args, rargs)
         else:
             return "", 404
 
     #
     # App based Web Server
     #
-    async def register_route(self, cb, route, name, **kwargs):
+    async def register_route(self, cb: Callable, route: str, name: str, **kwargs: Optional[dict]) -> str:
 
         if not asyncio.iscoroutinefunction(cb):  # must be async function
             self.logger.warning(
@@ -895,15 +953,21 @@ class HTTP:
 
         handle = uuid.uuid4().hex
 
+        # first we check to ensure that route not been used before
+        for name in self.app_routes:
+            for _, handle_data in self.app_routes[name].items():
+                if handle_data["route"] == route:
+                    # it exists already so don't let it pass
+                    raise AttributeError(f"The given route '{route}' already exists and used by {name}")
+
         if name not in self.app_routes:
             self.app_routes[name] = {}
 
-        token = kwargs.get("token")
-        self.app_routes[name][handle] = {"callback": cb, "route": route, "token": token}
+        self.app_routes[name][handle] = {"callback": cb, "route": route, "kwargs": kwargs}
 
         return handle
 
-    async def unregister_route(self, handle, name):
+    async def deregister_route(self, handle, name):
         if name in self.app_routes and handle in self.app_routes[name]:
             del self.app_routes[name][handle]
 
@@ -912,36 +976,34 @@ class HTTP:
 
         name = None
         route = request.match_info.get("route")
-        token = request.query.get("token")
 
         code = 404
         error = "Requested Server does not exist"
 
         callback = None
+        rargs = {}
+
         for name in self.app_routes:
             if callback is not None:  # a callback has been collected
                 break
 
             for handle in self.app_routes[name]:
                 app_route = self.app_routes[name][handle]["route"]
-                app_token = self.app_routes[name][handle]["token"]
 
                 if app_route == route:
-                    if app_token is not None and app_token != token:
-                        return self.get_web_response(request, "401", "Unauthorized")
-
                     callback = self.app_routes[name][handle]["callback"]
+                    rargs.update(self.app_routes[name][handle]["kwargs"])
                     break
 
         if callback is not None:
             self.access.debug("Web Call to %s for %s", route, name)
 
             try:
-                f = asyncio.ensure_future(callback(request))
+                f = asyncio.create_task(callback(request, rargs))
                 self.AD.futures.add_future(name, f)
                 return await f
             except asyncio.CancelledError:
-                code = 503
+                code = 504
                 error = "Request was Cancelled"
 
             except Exception:
@@ -950,7 +1012,7 @@ class HTTP:
                 self.logger.error("-" * 60)
                 self.logger.error(traceback.format_exc())
                 self.logger.error("-" * 60)
-                code = 503
+                code = 500
                 error = "Request had an Error"
 
         return self.get_web_response(request, str(code), error)
@@ -958,6 +1020,9 @@ class HTTP:
     #
     # Admin
     #
+
+    async def aui_page(self, request):
+        raise web.HTTPFound("/aui/index.html")
 
     @secure
     async def admin_page(self, request):

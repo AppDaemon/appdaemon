@@ -8,6 +8,7 @@ import pytz
 from deepdiff import DeepDiff
 import datetime
 from urllib.parse import quote
+from urllib.parse import urlencode
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -245,16 +246,9 @@ class HassPlugin(PluginBase):
     #
     # async def state(self, entity, attribute, old, new, kwargs):
     #    self.logger.info("State: %s %s %s %s {}".format(kwargs), entity, attribute, old, new)
-
-    async def event(self, event, data, kwargs):
-        self.logger.debug("Event: %s %s %s", kwargs, event, data)
-
-        if event == "service_registered":  # hass just registered a service
-            domain = data["domain"]
-            service = data["service"]
-            self.AD.services.register_service(
-                self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
-            )
+    #
+    # async def event(self, event, data, kwargs):
+    #    self.logger.debug("Event: %s %s %s", kwargs, event, data)
 
     # async def schedule(self, kwargs):
     #    self.logger.info("Schedule: {}".format(kwargs))
@@ -274,7 +268,7 @@ class HassPlugin(PluginBase):
         # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
 
         # listen for service_registered event
-        await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "service_registered")
+        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "service_registered")
         # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
         # await self.AD.sched.insert_schedule(
         #    self.name,
@@ -379,7 +373,23 @@ class HassPlugin(PluginBase):
                         else:
                             await self.evaluate_started(False, self.hass_booting)
                     else:
+                        metadata = {}
+                        metadata["origin"] = result["event"].pop("origin", None)
+                        metadata["time_fired"] = result["event"].pop("time_fired", None)
+                        metadata["context"] = result["event"].pop("context", None)
+                        result["event"]["data"]["metadata"] = metadata
+
                         await self.AD.events.process_event(self.namespace, result["event"])
+
+                        if result["event"].get("event_type") == "service_registered":
+                            data = result["event"]["data"]
+                            domain = data.get("domain")
+                            service = data.get("service")
+
+                            if domain and service:
+                                self.AD.services.register_service(
+                                    self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                                )
 
                 self.reading_messages = False
 
@@ -573,66 +583,62 @@ class HassPlugin(PluginBase):
         return None
 
     async def get_history_api(self, **kwargs):
+        query = {}
+        entity_id = None
+        days = None
+        start_time = None
+        end_time = None
 
-        if "entity_id" in kwargs and kwargs["entity_id"] != "":
-            filter_entity_id = "?filter_entity_id={}".format(kwargs["entity_id"])
-        else:
-            filter_entity_id = ""
-        start_time = ""
-        end_time = ""
-        if "days" in kwargs:
-            days = kwargs["days"]
-            if days - 1 < 0:
-                days = 1
-        else:
-            days = 1
-        if "start_time" in kwargs:
-            if isinstance(kwargs["start_time"], str):
-                start_time = utils.str_to_dt(kwargs["start_time"]).replace(microsecond=0)
-            elif isinstance(kwargs["start_time"], datetime.datetime):
-                start_time = self.AD.tz.localize(kwargs["start_time"]).replace(microsecond=0)
-            else:
-                raise ValueError("Invalid type for start time")
+        kwargkeys = set(kwargs.keys())
 
-        if "end_time" in kwargs:
-            if isinstance(kwargs["end_time"], str):
-                end_time = utils.str_to_dt(kwargs["end_time"]).replace(microsecond=0)
-            elif isinstance(kwargs["end_time"], datetime.datetime):
-                end_time = self.AD.tz.localize(kwargs["end_time"]).replace(microsecond=0)
-            else:
-                raise ValueError("Invalid type for end time")
+        if {"days", "start_time"} <= kwargkeys:
+            raise ValueError(
+                f'Can not have both days and start time. days: {kwargs["days"]} -- start_time: {kwargs["start_time"]}'
+            )
 
-        # if both are declared, it can't process entity_id
-        if start_time != "" and end_time != "":
-            filter_entity_id = ""
+        if "end_time" in kwargkeys and {"start_time", "days"}.isdisjoint(kwargkeys):
+            raise ValueError(f"Can not have end_time without start_time or days")
 
-        # if starttime is not declared and entity_id is declared, and days specified
-        elif (filter_entity_id != "" and start_time == "") and "days" in kwargs:
-            start_time = (await self.AD.sched.get_now()).replace(microsecond=0) - datetime.timedelta(days=days)
+        entity_id = kwargs.get("entity_id", "").strip()
+        days = max(0, kwargs.get("days", 0))
 
-        # if starttime is declared and entity_id is not declared, and days specified
-        elif filter_entity_id == "" and start_time != "" and end_time == "" and "days" in kwargs:
-            end_time = start_time + datetime.timedelta(days=days)
+        def as_datetime(args, key):
+            if key in args:
+                if isinstance(args[key], str):
+                    return utils.str_to_dt(args(key)).replace(microsecond=0)
+                elif isinstance(args[key], datetime.datetime):
+                    return self.AD.tz.localize(args[key]).replace(microsecond=0)
+                else:
+                    raise ValueError(f"Invalid type for {key}")
 
-        # if endtime is declared and entity_id is not declared, and days specified
-        elif filter_entity_id == "" and end_time != "" and start_time == "" and "days" in kwargs:
-            start_time = end_time - datetime.timedelta(days=days)
+        start_time = as_datetime(kwargs, "start_time")
+        end_time = as_datetime(kwargs, "end_time")
 
-        if start_time != "":
-            timestamp = "/{}".format(utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz))
+        # end_time default - now
+        now = (await self.AD.sched.get_now()).replace(microsecond=0)
+        end_time = end_time if end_time else now
 
-            if filter_entity_id != "":  # if entity_id is specified, end_time cannot be used
-                end_time = ""
+        # Days: Calculate start_time (now-days) and end_time (now)
+        if days:
+            now = (await self.AD.sched.get_now()).replace(microsecond=0)
+            start_time = now - datetime.timedelta(days=days)
+            end_time = now
 
-            if end_time != "":
-                end_time = "?end_time={}".format(quote(utils.dt_to_str(end_time.replace(microsecond=0), self.AD.tz)))
+        # Build the url
+        # /api/history/period/<start_time>?filter_entity_id=<entity_id>&end_time=<end_time>
+        apiurl = f'{self.config["ha_url"]}/api/history/period'
 
-        # if no start_time is specified, other parameters are invalid
-        else:
-            timestamp = ""
-            end_time = ""
+        if start_time:
+            apiurl += "/" + utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz)
 
-        return "{}/api/history/period{}{}{}".format(self.config["ha_url"], timestamp, filter_entity_id, end_time)
+        if entity_id or end_time:
+            if entity_id:
+                query["filter_entity_id"] = entity_id
+            if end_time:
+                query["end_time"] = end_time
+            apiurl += f"?{urlencode(query)}"
+
+        return apiurl
 
     async def get_hass_state(self, entity_id=None):
 

@@ -1,7 +1,7 @@
 Installation
 ============
 
-Installation is either by pip3 or Docker. There is also an official
+AppDaemon runs on Pythnn versions 3.7, 3.8 and 3.9. Installation is either by pip3 or Docker. There is also an official
 hass.io build.
 
 Note: Windows and Raspbian users should check the environment-specific section at the end of this doc for additional information.
@@ -170,6 +170,25 @@ following command to update your copy:
 
 If you are using docker, refer to the steps in the tutorial.
 
+AppDaemon Versioning Strategy
+-----------------------------
+
+AppDaemon uses a simple 3 point versioning strategy of the form x.y.z
+
+- x = Major Version Number
+- y = Minor Version Number
+- z = Point Version Number
+
+Major versions will be released when very significant changes have been made to the platform, or
+sizeable new functionality has been added.
+
+Minor versions will be released when incremental new features have been added, or breaking changes have occured
+
+Point releases will typically contain bugfixes, and package upgrades
+
+Users should be able to expect point release upgrades to be seamless, but should check release notes for breaking changes and
+new functionality for minor or major releases.
+
 Windows Support
 ---------------
 
@@ -208,7 +227,7 @@ prior to installing AppDaemon with the pip3 method:
 Raspberry Pi Docker
 -------------------
 
-Since the official Docker image isn't compatible with raspberry Pi, you will need to build your own docker image
+Since the official Docker image isn't compatible with Raspberry Pi, you will need to build your own docker image
 from the downloaded repository.
 
 .. code:: bash
@@ -220,7 +239,7 @@ You can then build and run the docker image locally as follows:
 
 .. code:: bash
 
-    $ docker build -t appdaemon --network=host .
+    $ docker build -t appdaemon --build-arg IMAGE=python:3.8-alpine3.12 --network=host .
     $ docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<Your HA_URL value>" \

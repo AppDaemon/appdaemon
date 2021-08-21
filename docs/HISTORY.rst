@@ -1,25 +1,154 @@
 Change Log
 ==========
 
-4.0.6
------
+4.1.0
+------------------
 
 **Features**
 
+- Added "get_logs" command to stream
+- Added "deregister_service" api call
+- Added new AD event `service_deregistered`. This is fired when an app's service is deregistered
+- Added the use of the ``!include`` directive in AD. This can be used either in the main ``appdaemon`` or ``apps`` config
+- Added support for Python 3.9
+- Allowed for service calls over REST API to return data
+- Added the ability to auto set return for the navigate widget - contributed by `Christian Lyra <https://github.com/clyra>`__
+- Added multi-arch builds to Docker hub - contributed by `sineverba <https://github.com/sineverba>`__
+- Added new fan widget - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
+- Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
+- Bump azure-mgmt-resource from 16.0.0 to 19.0.0
+- Bumped deepdiff from 5.2.3 to 5.3.0
+- Bumped wheel from 0.34.2 to 0.36.2
+- Bumped azure-storage-blob from 12.8.0 to 12.8.1
+- Bumped websocket-client from 0.58.0 to 1.1.0
+- Bumped jinja2 from 2.11.3 to 3.0.1
+- Bumped uvloop from 0.14.0 to 0.15.3
+- Bumped aiodns from 2.0.0 to 3.0.0
+- Bumped docker image to alpine 3.14 using python 3.9.6
+- When apps register endpoints, `kwargs` can be added which is made available at the callback
+- The request object is now made available in the app endpoint callback if using `async`, allowing for better flexibility
+
+**Fixes**
+
+- Fixed issue with when a plugin that is persistent re-initializes, and it creates an error
+- Fixed issue with when an entity has no state, and if wanting to listen to it, breaks internally
+- Fixed a couple of scheduler issues that affected tmezones west of EDT
+- Fixed issue of app endpoints not being cleaned when app is terminated
+- Fixed issue where it was possible for different apps to register against the same endpoint
+- Fixed issue whereby the wrong response code was sent, when there was a server error
+- Fixed issue with climate widget, so `units` can be properly set in YAML - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
+- Fixed issue with media_player widget in parsing state - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
+- fixed issue whereby if `timeout` is used in listen api, and event gives "timeout" as part of the args, the `timeout` is used to filter the event
+- Ensured that when apps with registered services are terminated, their services are also deregistered
+- Documentation fixes - contributed by `sithmein <https://github.com/sithmein>`__
+- Documentation fixes - contributed by `Andrew Aneisch <https://github.com/aneisch>`__
+- Documentation fixes - contributed by `clyra <https://github.com/clyra>`__
+- Documentation fixes - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
+- Fixed an issue where AD crashes when multiple plugins restart at the same time
+
+**Breaking Changes**
+
+- Dropped support for Python 3.6
+- Changed `unregister_endpoint` to `deregister_endpoint`
+- Changed `unregister_route` to `deregister_route`
+- Changed the callback signature for `register_endpoint`. Please see example `here <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#restful-api-support>`__
+- Changed the callback signature for `register_route`
+- Changed the arg `name` for `register_endpoint` to `endpoint`
+
+4.0.8 (2021-03-30)
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed issue with Dashboard ``icon`` widgets breaking - contributed by `Rene Tode <https://github.com/ReneTode>`__
+
+**Breaking Changes**
+
+None
+
+4.0.7 (2021-03-28)
+------------------
+
+**Features**
+
+- Added new api `timer_running`, to be used to confirm if a previously scheduled timer is still running
+
+**Fixes**
+
+- Fixed `get_history` api for HASS plugin
+- Fixed issue with Dashboard not loading on old Tablets - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Fixed issue with `deviceid` on old Tablets - contributed by `Rene Tode <https://github.com/ReneTode>`__
+
+**Breaking Changes**
+
+4.0.6 (2021-03-21)
+------------------
+
+**Features**
+
+- Added the ability to have access to ``metadata`` from HASS events - contributed by `engrbm87 <https://github.com/engrbm87>`__
+- Added the ability to allow widget to make use of mouse events, which can then be sent to AD backend
+- Added the ability to add custom javascript code to dashboard - contributed by `Rene Tode <https://github.com/ReneTode>`__
+- Added the ability to set `deviceId` on dashboard, via the dashboard URL - contributed by `clyra <https://github.com/clyra>`__
+- Added the ability to navigate to different dashboards on different devices based on the set `deviceId` - contributed by `clyra <https://github.com/clyra>`__
+- Added Icon widget service calls and state update delay - contributed by `Jakub Macoun <https://github.com/JakubMacoun>`__
+- Improved the how the Alarm Panel Cancel button looks - contributed by `Chris Johns <https://github.com/ChrisJohns-me>`__
+- Cancelling either an event, state, log or timer now returns a boolean value to indicate if executed or not
 - Added ability to have custom system packages installed in docker when it starts, by specifying the packagegs in a `system_packages.txt` file. - contributed by `Sanjit Dutta <https://github.com/sdlynx>`__
 - Added ability for apps to create namespaces, and remove the created namespace. This namespaces are persistent by default
-- Added ability to persist plugin entities. This can be usefule for example if wanting to persist entities within MQTT namespace
-- Moved the `appdaemon` reladed services to the `admin` namespace. So no more `appdaemon` namespace
+- Added ability to persist plugin entities. This can be useful for example if wanting to persist entities within MQTT namespace
+- Moved the ``appdaemon`` reladed services to the ``admin`` namespace. So no more ``appdaemon`` namespace
 - Added services for creating, editting, removing, enabling, disabling apps
 - Added ability to receive binary payload from MQTT broker
 - Added `cchardet <https://pypi.org/project/cchardet>`__ and `aiodns <https://pypi.org/project/aiodns>`__ to improve aiohttp speed
 - Added the ability to submit tasks to executor threads
 - Added the ability to make use of uvloop to improve speed, compared to the default asyncio loop
+- Added the `module_path` and app config `yaml_path` to the app's entity_id
+- Pinned requests to 2.25.1
 
 **Fixes**
 
+- Updated material design icons to v5.4.55 - contributed by `Thomas Delaet <https://github.com/thomasdelaet>`__
+- Fixed `get_now` api, whereby it returned UTC time instead of local time
+- FIxed issue whereby when a non properly terminated app has an error,  AD starts the app automatically
+- Fixed issue whereby it is possible to use the app api to "start" an already running app
+- Fixed issue whereby when app api is used, AD could hook itself since it gets into a loop depending on how the app is written
+- Fixed `get_history_api` for HASS - contributed by `Ross Rosen <https://github.com/rr326>`__
+- Fixed issue with `listen_state` when `immediate` or `duration` is used with it
+- Fixed issue whereby when an invalid handler is used to cancel `event/state/log/timer`, it gives no warning its invalid
+- Fixed an issue with stream api using `get_state` api call
+- Fixed Azure packages by droping deprecated packages - contributed by `freezeboy <https://github.com/freezeboy>`__
+- Prevent the ability for apps to register services in non-existent namespaces
+- Fixed issue with newly registered HASS services
+- Fix Cryptography Rust compile issue
 - Required example files are now being created by startup script - contributed by `Alexandros Dorodoulis <https://github.com/alexdor>`__
+- Fixed issues with Bumping astral - contributed by `Werner Pieterson <https://github.com/wernerhp>`__
+- Bumped websocket-client from 0.57.0 to 0.58.0
+- Bumped pid from 2.2.5 to 3.0.4
+- Bumped pygments from 2.6.1 to 2.8.1
+- Bumped iso8601 from 0.1.12 to 0.1.14
+- Bumped pytz from 2019.3 to 2021.1
+- Bumped bcrypt from 3.1.7 to 3.2.0
+- Bumped feedparser from 5.2.1 to 6.0.2
+- Bumped yarl from 1.4.2 to 1.6.3
+- Bumped voluptuous from 0.11.7 to 0.12.1
+- Bumped pyyaml from 5.3 to 5.4.1
+- Bumped aiohttp-jinja2 from 1.2.0 to 1.4.2
+- Bumped jinja2 from 2.11.1 to 2.11.3
+- Bumped astral from 1.10.1 to 2.2
 - Bumped paho-mqtt from 1.5.0 to 1.5.1
+- Bumped aiohttp from 3.7.3 to 3.7.4
+- Bumped python-socketio from 4.4.2 to 4.6.1
+- Bumped deepdiff from 4.3.1 to 5.2.3
+- Bumped azure-mgmt-storage from 16.0.0 to 17.0.0
+- Bumped azure-storage-blob from 12.7.1 to 12.8.0
+- Bumped azure-mgmt-resource from 15.0.0 to 16.0.0
+- Bumped azure-mgmt-compute from 5.0.0 to 19.0.0
+- Fixed issue with socketIO, where the client is incompatible with server
 - Fix for multiarch docker builds, so Appdaemon is built for different platforms - contributed by `Aleksey Sviridkin <https://github.com/lexfrei>`__ and `Ben <https://github.com/benleb>`__
 - Fix for UVLOOP Windows compatibility - contributed by `Steffen Fredriksen <https://github.com/Hellowlol>`__
 - Fix for Hass Api async api - contributed by `Oxan van Leeuwen <https://github.com/oxan>`__
@@ -27,12 +156,14 @@ Change Log
 - Prevented the loading of hidden python files into AD; those starting with a `.`
 - Prevented the loading of hidden folders into AD; those starting with a `.`
 - Fixed issue where when an app is stopped using api, when started it doesn't respect the previous pin given to it by AD
+- Documentation fixes - contributed by `Rock coaxial <https://github.com/coaxial>`__
 - Documentation fixes - contributed by `Bob Gray <https://github.com/bg1000>`__
 - Documentation fixes - contributed by `Ross Rosen <https://github.com/rr326>`__
 - Documentation fixes - contributed by `Dougal Matthews <https://github.com/d0ugal>`__
 - Documentation fixes - contributed by `Jason Lachowsky <https://github.com/dajo>`__
 - Documentation fixes - contributed by `Jonas Pedersen <https://github.com/JonasPed>`__
 - Documentation fixes - contributed by `chbndrhnns <https://github.com/chbndrhnns>`__
+- Documentation fixes - contributed by `Addison Lynch <https://github.com/addisonlynch>`__
 - Allowed for both multi and single level MQTT wildcard subscription
 - Ensured AD doesn't break, when a "." is used in app name, while it is ignored. Contributed by `Xavi Moreno <https://github.com/xaviml>`__
 - Fix for MQTT Listen Event using Async - contributed by `Ross Rosen <https://github.com/rr326>`__
@@ -40,6 +171,7 @@ Change Log
 
 **Breaking Changes**
 
+- Those using non-existent namespaces to register app services, will need to create a UDN and use that to register the service as described `here <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#user-defined-namespaces>`__
 - If using user defined namespace, there is need to delete the present ones in the ``namespaces`` directory.
 - Due to the removal of the `appdaemon` namespace, if anyone was manaully making a service call using it, will need to be updated
 - ``binary`` is now a reserved keyword argument used when listening to MQTT events

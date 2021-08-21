@@ -6,7 +6,7 @@ post_service:
 fields:
   title: "{{title}}"
   title2: "{{title2}}"
-  units: "{{units}}"
+  units: ""
   level: ""
   level2: ""
 icons: []

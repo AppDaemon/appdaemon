@@ -208,7 +208,10 @@ module, it will automatically reload and recompile the module. It will
 also figure out which Apps were using that Module and restart them,
 causing their ``terminate()`` functions to be called if they exist, all
 of their existing callbacks to be cleared, and their ``initialize()``
-function to be called.
+function to be called. It should be noted that if a terminate function exists,
+and while executing it AD encounters an error, the app will not be auto reloaded.
+The app will only be reloaded, when next the app's file has been changed, presumably
+to fix the issue.
 
 The same is true if changes are made to an App's configuration -
 changing the class, or arguments (see later) will cause that App to be
@@ -352,6 +355,30 @@ The variables can also be referred to in the ``apps.yaml`` file as follows:
       application_api_key: !env_var application_api_key
 
 In the App, the api_key can be accessed like every other argument the App can access.
+
+Include YAML Files
+~~~~~~~~~~~~~~~~~~~~~
+
+If wanting to access data stored in an external yaml file, it is possible to use the ``!include`` tag in either AD or the apps config file.
+It should be noted that the full file path is required.
+
+An example storing data in a yaml file can be seen below:
+
+.. code:: yaml
+
+    appdaemon:
+        plugins: !include /home/ubuntu/dev/conf/plugins.yaml
+
+The tag can also be referred to in the ``apps.yaml`` file as follows:
+
+.. code:: yaml
+
+    appname:
+      class: AppClass
+      module: appmodule
+      app_users: !include /home/ubuntu/dev/conf/app_users.yaml
+
+In the App, the app_users can be accessed like every other argument the App can access.
 
 App Dependencies
 ----------------
@@ -826,6 +853,7 @@ However, if we add the decorator to the callback function like so:
 .. code:: python
 
     import hassapi as hass
+    import adbase as ad
     import datetime
 
     class Locking(hass.Hass):
@@ -1489,6 +1517,7 @@ Assistant bus:
 -  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection to Home Assistant. It is fired within the plugin's namespace
 -  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection from an external system like an MQTT broker. It is fired within the plugin's namespace
 -  ``service_registered`` - fired when a service is registered in AD. It is fired within the namespace it was registered
+-  ``service_deregistered`` - fired when a service is deregistered in AD. It is fired within the namespace it was deregistered
 - ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
 - ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
 
@@ -1573,8 +1602,8 @@ data, they will act as filters, meaning that if they don't match the
 values, the callback will not fire.
 
 As an example of this, a Minimote controller when activated will
-generate an event called ``zwave.scene_activated``, along with 2 pieces
-of data that are specific to the event - ``entity_id`` and ``scene``. If
+generate an event called ``zwave_js_value_notification``, along with 2 pieces
+of data that are specific to the event - ``node_id`` and ``value``. If
 you include keyword values for either of those, the values supplied to
 the ``listen_event()`` 1 call must match the values in the event or it
 will not fire. If the keywords do not match any of the data in the event,
@@ -1592,9 +1621,9 @@ Examples
 
     self.listen_event(self.mode_event, "MODE_CHANGE")
     # Listen for a minimote event activating scene 3:
-    self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
     # Listen for a minimote event activating scene 3 from a specific minimote:
-    self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
 
 Use of Events for Signalling between Home Assistant and AppDaemon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1918,12 +1947,11 @@ RESTFul API Support
 -------------------
 
 AppDaemon supports a simple RESTFul API to enable arbitrary HTTP
-connections to pass data to Apps and trigger actions. API Calls must use
-a content type of ``application/json``, and the response will be JSON
+connections to pass data to Apps and trigger actions via a `POST` request.
+API Calls can be anything, and the response will be JSON
 encoded. The RESTFul API is disabled by default, but is enabled by
-adding an ``api_port`` directive to the AppDaemon section of the
-configuration file. The API can run http or https if desired, separately
-from the dashboard.
+setting up the `http` component in the configuration file.
+The API can run http or https if desired, separately from the dashboard.
 
 To call into a specific App, construct a URL, use the regular
 HADashboard URL, and append ``/api/appdaemon``, then add the name of the
@@ -1944,7 +1972,7 @@ as specified in the configuration file.
 Apps can have as many endpoints as required, however, the names must be unique across
 all of the Apps in an AppDaemon instance.
 
-It is also possible to remove endpoints with the ``unregister_endpoint()`` call, making the
+It is also possible to remove endpoints with the ``deregister_endpoint()`` call, making the
 endpoints truly dynamic and under the control of the App.
 
 Here is an example of an App using the API:
@@ -1958,13 +1986,20 @@ Here is an example of an App using the API:
         def initialize(self):
             self.register_endpoint(my_callback, "test_endpoint")
 
-        def my_callback(self, data):
+        async def my_callback(self, request, kwargs):
+
+            data = await request.json()
 
             self.log(data)
 
             response = {"message": "Hello World"}
 
             return response, 200
+
+If the supplied callback is not `async` as in the example above, AD will pass only the
+JSON data from the request to the callback; essentially running `data = await request.json()`.
+Since the request object needs to be parsed within an `async` callback.
+Thereby making only available a dictionary, instead of the request object.
 
 The response must be a python structure that can be mapped to JSON, or
 can be blank, in which case specify ``""`` for the response. You should
@@ -1977,6 +2012,7 @@ codes:
 -  400 - JSON Decode Error
 -  401 - Unauthorized
 -  404 - App not found
+-  500 - Internal Server Error
 
 Below is an example of using curl to call into the App shown above:
 
@@ -2613,6 +2649,9 @@ If you prefer, you can use YAML's inline capabilities for a more compact represe
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
+Looping a Sequence
+~~~~~~~~~~~~~~~~~~~
+
 Sequences can be created that will loop forever by adding the value ``loop: True`` to the sequence:
 
 .. code:: yaml
@@ -2627,6 +2666,9 @@ Sequences can be created that will loop forever by adding the value ``loop: True
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
 This sequence once started will loop until either the sequence is canceled, the app is restarted or terminated, or AppDaemon is shutdown.
+
+Defining a Sequence Call Namespace
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
 basis if required.

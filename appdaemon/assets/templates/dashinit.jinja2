@@ -1,3 +1,4 @@
+var myDeviceID;
 $(function(){ //DOM Ready
 
     function navigate(url)
@@ -46,9 +47,9 @@ $(function(){ //DOM Ready
     var myTimeoutUrl;
     var myTimeoutDelay;
     var myTimeoutSticky = 0;
-
     if (location.search != "")
     {
+        console.log("begin")
         var query = location.search.substr(1);
         var result = {};
         query.split("&").forEach(function(part) {
@@ -56,6 +57,30 @@ $(function(){ //DOM Ready
         result[item[0]] = decodeURIComponent(item[1]);
         });
 
+        if ("deviceid" in result)
+        {
+            myDeviceID = result.deviceid;
+            try
+            {
+                setCookie('ADdevID', myDeviceID);
+            }
+            catch (e)
+            {
+                console.log(e);
+            }
+        }
+        else
+        {
+            try
+            {
+                myDeviceID = getCookie('ADdevID');
+            }
+            catch (e)
+            {
+                console.log(e);
+                myDeviceID = null;
+            }
+        }
         if ("timeout" in result && "return" in result)
         {
             url = result.return
@@ -70,7 +95,7 @@ $(function(){ //DOM Ready
                     }
                     else
                     {
-                        url += "?";
+                        url += "&";
                     }
                     argcount ++;
                     url += arg + "=" + result[arg]
@@ -83,6 +108,18 @@ $(function(){ //DOM Ready
             myTimeoutUrl = url;
             myTimeoutDelay = result.timeout * 1000;
             myTimeout = setTimeout(function() { navigate(url); }, result.timeout * 1000);
+        }
+    }
+    else
+    {
+        try
+        {
+            myDeviceID = getCookie('ADdevID');
+        }
+        catch (e)
+        {
+            console.log(e);
+            myDeviceID = null;
         }
     }
 

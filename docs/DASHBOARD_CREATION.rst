@@ -585,7 +585,7 @@ through a variety of means:
 
 The mechanism used for this is HASS custom events. AppDaemon has its own
 API calls to handle these events, for further details see the
-`AppDaemon API Pages <API.html>`__. The custom event name is ``hadashboard`` and the
+`AppDaemon API Pages <API.html>`__. The custom event name is ``ad_dashboard`` and the
 dashboard will respond to various commands with associated data.
 
 To create a suitable custom event within a HASS automation, script or
@@ -596,12 +596,39 @@ Alexa Intent, simply define the event and associated data as follows
 
     alias: Navigate
     sequence:
-    - event: hadashboard
+    - event: ad_dashboard
       event_data:
         command: navigate
         timeout: 10
         target: SensorPanel
         sticky: 0
+
+These following arguments are optional and can be used to determine
+if a given device or dashboard should execute the command or not:
+
+``deviceid``: If set, only the device(s) which has the same deviceid will
+execute the command. See below how to set a deviceid.
+``dashid``: If set, all devices currently on a dashboard which the title
+contains the substring defined by dashid will execute the command. ex: if
+dashid is set to "kichen", it will match devices which are on "kitchen lights",
+"kitchen sensors", "ipad - kitchen", etc.
+
+
+Setting a deviceid
+~~~~~~~~~~~~~~~~~~~
+
+A "device" is a combination of machine+browser, so a computer+firefox could
+be one device, while the same computer+safari can be another. To set the
+``deviceid`` of a device add the ```deviceid=your_deviceid``` parameter to
+the dashboard url, for instance:
+
+``http://192.168.1.20:5050/mypanel?deviceid=kitchentablet``
+
+HADashboard will try to store the deviceid on the device so you don't need
+to use this parameter everytime. You may use it again if you want to set
+a new deviceid or if you cleaned device's cookies or the device doesnt
+support it.
+
 
 The current list of commands supported and associated arguments are as
 follows:
@@ -609,23 +636,24 @@ follows:
 navigate
 ~~~~~~~~
 
-Force any connected dashboards to navigate to a new page
+Force one or more connected dashboards to navigate to a new page
 
 Arguments:
 ^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
-``SensorPanel`` - this is not a URL. ``timeout`` - length of time to
-stay on the new dashboard before returning to the original. This
-argument is optional, and if not specified, the navigation will be
-permanent.
+``SensorPanel`` - this is not a URL.
+``timeout`` - length of time to stay on the new dashboard before returning to
+the original. This argument is optional, and if not specified, the navigation
+will be permanent.
 
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``timeout`` - length of time to stay on the new dashboard
 ``return`` - dashboard to return to after the timeout has elapsed.
-``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1``, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+``deviceid``: If set, only the device(s) which has the same deviceid will navigate.
+``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate.
 
 Namespaces
 ----------
@@ -984,6 +1012,59 @@ Style Arguments:
 -  ``title_style``
 -  ``image_style``
 
+fan
+~~~~~~
+.. figure:: images/fan.png
+   :alt: fan
+
+A widget to monitor and control a fan. it uses by default low, medium and
+high for the 3 possible settings, that can be changed if needed.
+(for example for a fan that has 5 speeds)
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity_id of the fan
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile.
+-  ``low_speed`` - the speed the entity uses for low.
+-  ``medium_speed`` - the speed the entity uses for medium.
+-  ``high_speed`` - the speed the entity uses for high.
+
+Example:
+
+.. code:: yaml
+   fan1:
+         widget_type: fan
+         entity: fan.fan1
+         title: "FAN1"
+
+Style Arguments:
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``container_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``speed1_icon_style_active``
+-  ``speed1_icon_style_inactive``
+-  ``speed2_icon_style_active``
+-  ``speed2_icon_style_inactive``
+-  ``speed3_icon_style_active``
+-  ``speed3_icon_style_inactive``
+-  ``icon_on``
+-  ``icon_off``
+-  ``speed1_icon_on``
+-  ``speed1_icon_off``
+-  ``speed2_icon_on``
+-  ``speed2_icon_off``
+-  ``speed3_icon_on``
+-  ``speed3_icon_off``
+
 gauge
 ~~~~~
 .. figure:: images/guage.png
@@ -1083,9 +1164,15 @@ A widget to monitor the state of an entity and display a different icon and styl
        "active":
          icon: fas-glass
          style: "color: green"
+         post_service_active:
+           service: homeassistant/turn_on
+           entity_id: script.deactivate
        "inactive":
          icon: fas-repeat
          style: "color: blue"
+         post_service_active:
+           service: homeassistant/turn_on
+           entity_id: script.activate
        "idle":
          icon: fas-frown
          style: "color: red"
@@ -1093,7 +1180,9 @@ A widget to monitor the state of an entity and display a different icon and styl
          icon: fas-rocket
          style: "color: cyan"
 
-The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``
+The icons list is mandatory, and each entry must contain both an icon and a style entry. It is recommended that quotes are used around the state names, as without these, YAML will translate states like ``on``  and ``off`` to ``true`` and ``false``.
+
+Each icon can have a service call assigned by post_service_active entry - on icon click, specified service like HA script or AD sequence is called for currently active state.
 
 The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
@@ -1101,7 +1190,7 @@ Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
--  ``icons`` - a list of icons and styles to be applied for various states.
+-  ``icons`` - a list of icons, styles and service calls to be applied for various states
 
 Optional Arguments:
 ^^^^^^^^^^^^^^^^^^^
@@ -1110,6 +1199,7 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``state_text``
 -  ``state_map``
+-  ``update_delay`` - seconds to wait before processing state update
 
 Style Arguments:
 ^^^^^^^^^^^^^^^^^^
@@ -1694,6 +1784,13 @@ Optional Arguments:
 -  ``title`` - the title displayed on the tile
 -  ``args`` - a list of arguments.
 -  ``skin`` - Skin to use with the new screen (for HADash URLs only)
+-  ``forward_parameters`` - a list of URL parameters that should be forwarded
+   from the current dashboard URL to the next dashboard. For example, if the
+   current dashboard was called with "&deviceid=1234&otherparameter=foo",
+   adding "deviceid" to ``forward_parameters`` will preserve "deviceid" and
+   discard "otherparameter=foo". You may add "all" to the ``forward_parameters``
+   to forward all parameters, except "timeout", "return", "sticky" as this can cause
+   problems. If ``forward_parameters`` is not used, then only skin is preserved.
 
 For an arbitrary URL, Args can be anything. When specifying a dashboard
 parameter, args have the following meaning:
@@ -1702,7 +1799,7 @@ parameter, args have the following meaning:
 -  ``return`` - dashboard to return to after the timeout has elapsed.
 -  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1```, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
 
-Both ``timeout`` and ``return`` must be specified.
+If ``timeout`` is specified but ``return`` not, the widget will use the current dashboard as the return target.
 
 If adding arguments, use the args variable. Do not append them to the URL
 or you may break skinning. Add arguments like this:
@@ -1994,7 +2091,7 @@ Style Arguments:
 -  ``title_style``
 -  ``title2_style``
 
-scene
+sequence
 ~~~~~
 .. figure:: images/sequence.png
    :alt: sequence
@@ -2063,7 +2160,7 @@ Optional Arguments:
 -  ``precision`` - the number of decimal places
 -  ``shorten`` - if set to one, the widget will abbreviate the readout
    for high numbers, e.g. ``1.1K`` instead of ``1100``
--  ``use_comma`` - if set to one\`, a comma will be used as the decimal
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
 -  ``state_map``
 -  ``sub_entity`` - second entity to be displayed in the state text area
@@ -2416,6 +2513,24 @@ To learn more about complete styles, take a look at the supplied styles
 to see how they are put together. Start off with the ``dashboard.css``
 and ``variables.yaml`` from an existing file and edit to suit your
 needs.
+
+Javascript
+----------
+
+There are a lot of ways to use javascript in Dashboard.
+You can create custom widgets that will need javascript, use the javascript
+widget to trigger a javascript function or you can add javascript directly
+to the head includes or body includes.
+
+Custom widgets require their own special .js files, but to trigger a function
+from the javascript widget or from the body includes you can create a
+``custom_javascript`` directory in the configuration directory.
+All files that are placed in that directory will automaticly included in
+Dashboard.
+All functions you place in a .js file inside that directory will be
+available everywhere in dashboard.
+Remember that you do this on your own responsibility. javscript code in
+those files can break Dashboards, and create vulnerabilities.
 
 Example Dashboards
 ------------------

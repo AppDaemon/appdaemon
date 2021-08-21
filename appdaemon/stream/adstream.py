@@ -9,6 +9,7 @@ import appdaemon.utils as utils
 from appdaemon.stream.socketio_handler import SocketIOHandler
 from appdaemon.stream.ws_handler import WSHandler
 from appdaemon.stream.sockjs_handler import SockJSHandler
+from appdaemon.exceptions import RequestHandlerException
 
 
 class ADStream:
@@ -266,6 +267,27 @@ class RequestHandler:
 
         return self.AD.services.list_services()
 
+    async def list_dashes(self, data, request_id):
+        if not self.authed:
+            raise RequestHandlerException("unauthorized")
+
+        if self.AD.http is not None and self.AD.http.dashboard_obj is not None:
+            dashes = await utils.run_in_executor(self, self.AD.http.dashboard_obj.list_dashes)
+        else:
+            dashes = None
+
+        return dashes
+
+    async def get_logs(self, data, request_id):
+        if not self.authed:
+            raise RequestHandlerException("unauthorized")
+        if "maxlines" in data:
+            ml = data["maxlines"]
+        else:
+            ml = 100
+
+        return await self.AD.logging.get_admin_logs(ml)
+
     async def fire_event(self, data, request_id):
         if not self.authed:
             raise RequestHandlerException("unauthorized")
@@ -397,7 +419,3 @@ class RequestHandler:
         del self.subscriptions["event"][data["handle"]]
 
         return True
-
-
-class RequestHandlerException(Exception):
-    pass
