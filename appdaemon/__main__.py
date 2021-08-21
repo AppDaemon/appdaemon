@@ -134,9 +134,13 @@ class ADMain:
 
             # Initialize Dashboard/API/admin
 
-            if http is not None and (hadashboard is not None or admin is not None or aui is not None or api is not False):
+            if http is not None and (
+                hadashboard is not None or admin is not None or aui is not None or api is not False
+            ):
                 self.logger.info("Initializing HTTP")
-                self.http_object = adhttp.HTTP(self.AD, loop, self.logging, appdaemon, hadashboard, admin, aui, api, http,)
+                self.http_object = adhttp.HTTP(
+                    self.AD, loop, self.logging, appdaemon, hadashboard, admin, aui, api, http,
+                )
                 self.AD.register_http(self.http_object)
             else:
                 if http is not None:
@@ -146,7 +150,7 @@ class ADMain:
 
             self.logger.debug("Start Main Loop")
 
-            pending = asyncio.Task.all_tasks()
+            pending = asyncio.all_tasks(loop)
             loop.run_until_complete(asyncio.gather(*pending))
 
             #
@@ -233,6 +237,12 @@ class ADMain:
         # First locate secrets file
         #
         try:
+
+            #
+            # Read config file using include directory
+            #
+
+            yaml.add_constructor("!include", utils._include_yaml, Loader=yaml.SafeLoader)
 
             #
             # Read config file using environment variables

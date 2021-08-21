@@ -5,6 +5,7 @@ import iso8601
 import re
 from datetime import timedelta
 from copy import deepcopy
+from typing import Any, Optional, Callable
 
 # needed for fake coro cb that looks like scheduler
 import uuid
@@ -1127,12 +1128,18 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def register_endpoint(self, callback, name=None):
+    async def register_endpoint(
+        self, callback: Callable[[Any, dict], Any], endpoint: str = None, **kwargs: Optional[dict]
+    ) -> str:
         """Registers an endpoint for API calls into the current App.
 
         Args:
             callback: The function to be called when a request is made to the named endpoint.
-            name (str, optional): The name of the endpoint to be used for the call  (Default: ``None``).
+            endpoint (str, optional): The name of the endpoint to be used for the call  (Default: ``None``).
+            This must be unique across all endpoints, and when not given, the name of the app is used as the endpoint.
+            It is possible to register multiple endpoints to a single app instance.
+        Keyword Args:
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             A handle that can be used to remove the registration.
@@ -1142,24 +1149,28 @@ class ADAPI:
             and an HTTP OK status response (e.g., `200`. If this is not added as a returned response,
             the function will generate an error each time it is processed.
 
-            >>> self.register_endpoint(my_callback)
-            >>> self.register_callback(alexa_cb, "alexa")
+            >>> self.register_endpoint(self.my_callback)
+            >>> self.register_endpoint(self.alexa_cb, "alexa")
+
+            >>> async def alexa_cb(self, request, kwargs):
+            >>>     data = await request.json()
+            >>>     self.log(data)
+            >>>     response = {"message": "Hello World"}
+            >>>     return response, 200
 
         """
-        if name is None:
-            ep = self.name
-        else:
-            ep = name
+        if endpoint is None:
+            endpoint = self.name
+
         if self.AD.http is not None:
-            return await self.AD.http.register_endpoint(callback, ep)
+            return await self.AD.http.register_endpoint(callback, endpoint, self.name, **kwargs)
         else:
             self.logger.warning(
-                "register_endpoint for %s filed - HTTP component is not configured", name,
+                "register_endpoint for %s failed - HTTP component is not configured", endpoint,
             )
-            return None
 
     @utils.sync_wrapper
-    async def unregister_endpoint(self, handle):
+    async def deregister_endpoint(self, handle: str) -> None:
         """Removes a previously registered endpoint.
 
         Args:
@@ -1169,17 +1180,19 @@ class ADAPI:
             None.
 
         Examples:
-            >>> self.unregister_endpoint(handle)
+            >>> self.deregister_endpoint(handle)
 
         """
-        await self.AD.http.unregister_endpoint(handle, self.name)
+        await self.AD.http.deregister_endpoint(handle, self.name)
 
     #
     # Web Route
     #
 
     @utils.sync_wrapper
-    async def register_route(self, callback, route=None, **kwargs):
+    async def register_route(
+        self, callback: Callable[[Any, dict], Any], route: str = None, **kwargs: Optional[dict]
+    ) -> str:
         """Registers a route for Web requests into the current App.
            By registering an app web route, this allows to make use of AD's internal web server to serve
            web clients. All routes registered using this api call, can be accessed using
@@ -1190,10 +1203,7 @@ class ADAPI:
             route (str, optional): The name of the route to be used for the request (Default: the app's name).
 
         Keyword Args:
-            token (str, optional): A previously registered token can be passed with the api call, which
-            can be used to secure the app route. This allows for different security credentials to be used across different
-            app routes. It should be noted that if a device has already registered using AD's Admin UI's password
-            and a cookie has been stored by the browser, that device will bypass the token and still access the web server.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             A handle that can be used to remove the registration.
@@ -1215,10 +1225,9 @@ class ADAPI:
 
         else:
             self.logger.warning("register_route for %s filed - HTTP component is not configured", route)
-            return None
 
     @utils.sync_wrapper
-    async def unregister_route(self, handle):
+    async def deregister_route(self, handle: str) -> None:
         """Removes a previously registered app route.
 
         Args:
@@ -1228,10 +1237,10 @@ class ADAPI:
             None.
 
         Examples:
-            >>> self.unregister_route(handle)
+            >>> self.deregister_route(handle)
 
         """
-        await self.AD.http.unregister_route(handle, self.name)
+        await self.AD.http.deregister_route(handle, self.name)
 
     #
     # State
@@ -1534,11 +1543,13 @@ class ADAPI:
     #
 
     @staticmethod
-    def _check_service(service):
+    def _check_service(service: str) -> None:
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: {}".format(service))
 
-    def register_service(self, service, cb, **kwargs):
+    def register_service(
+        self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[dict]
+    ) -> None:
         """Registers a service that can be called from other apps, the REST API and the Event Stream
 
         Using this function, an App can register a function to be available in the service registry.
@@ -1550,6 +1561,10 @@ class ADAPI:
             cb: A reference to the function to be called when the service is requested. This function may be a regular
                 function, or it may be async. Note that if it is an async function, it will run on AppDaemon's main loop
                 meaning that any issues with the service could result in a delay of AppDaemon's core functions.
+        Keyword Args:
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
 
         Returns:
             None
@@ -1571,7 +1586,42 @@ class ADAPI:
 
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
-    def list_services(self, **kwargs):
+    def deregister_service(self, service: str, **kwargs: Optional[dict]) -> bool:
+        """Deregisters a service that had been previously registered
+
+        Using this function, an App can deregister a service call, it has initially registered in the service registry.
+        This will automatically make it unavailable to other apps using the `call_service()` API call, as well as published
+        as a service in the REST API and make it unavailable to the `call_service` command in the event stream.
+        This function can only be used, within the app that registered it in the first place
+
+        Args:
+            service: Name of the service, in the format `domain/service`.
+        Keyword Args:
+            namespace(str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases, it is safe to ignore this parameter.
+
+        Returns:
+            Bool
+
+        Examples:
+            >>> self.deregister_service("myservices/service1")
+
+        """
+        self._check_service(service)
+        d, s = service.split("/")
+        self.logger.debug("deregister_service: %s/%s, %s", d, s, kwargs)
+
+        namespace = self._get_namespace(**kwargs)
+
+        if "namespace" in kwargs:
+            del kwargs["namespace"]
+
+        kwargs["__name"] = self.name
+
+        return self.AD.services.deregister_service(namespace, d, s, **kwargs)
+
+    def list_services(self, **kwargs: Optional[dict]) -> list:
         """List all services available within AD
 
         Using this function, an App can request all available services within AD
@@ -1604,7 +1654,7 @@ class ADAPI:
         return self.AD.services.list_services(namespace)  # retrieve services
 
     @utils.sync_wrapper
-    async def call_service(self, service, **kwargs):
+    async def call_service(self, service: str, **kwargs: Optional[dict]) -> Any:
         """Calls a Service within AppDaemon.
 
         This function can call any service and provide any required parameters.
