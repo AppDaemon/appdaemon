@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+4.2.0
+------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 4.1.0 (2021-08-21)
 ------------------
 
