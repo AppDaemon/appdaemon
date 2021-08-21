@@ -8,7 +8,7 @@ cchardet==2.1.7
 python-socketio==4.6.0
 yarl==1.6.3
 Jinja2==3.0.1
-aiohttp_jinja2==1.4.2
+aiohttp_jinja2==1.5
 pyyaml==5.4.1
 voluptuous==0.12.1
 feedparser==6.0.2
