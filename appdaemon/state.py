@@ -192,7 +192,8 @@ class State:
             # If we have a timeout parameter, add a scheduler entry to delete the callback later
             #
             if "timeout" in kwargs:
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+                timeout = kwargs.pop("timeout")
+                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     name, exec_time, None, False, None, __state_handle=handle,
@@ -213,12 +214,11 @@ class State:
                     if "attribute" in kwargs:
                         __attribute = kwargs["attribute"]
                     if "new" in kwargs:
-                        if __attribute is None and self.state[namespace][entity]["state"] == kwargs["new"]:
+                        if __attribute is None and self.state[namespace][entity].get("state") == kwargs["new"]:
                             __new_state = kwargs["new"]
                         elif (
                             __attribute is not None
-                            and __attribute in self.state[namespace][entity]["attributes"]
-                            and self.state[namespace][entity]["attributes"][__attribute] == kwargs["new"]
+                            and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
                         ):
                             __new_state = kwargs["new"]
                         else:

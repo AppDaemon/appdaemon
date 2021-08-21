@@ -268,6 +268,15 @@ def _env_var_yaml(loader, node):
     return os.environ[env_var]
 
 
+def _include_yaml(loader, node):
+    filename = node.value
+    if not os.path.isfile(filename) or filename.split(".")[-1] != "yaml":
+        raise ValueError("{} is not a valid yaml file".format(filename))
+
+    with open(filename, "r") as f:
+        return yaml.load(f, Loader=yaml.SafeLoader)
+
+
 def write_to_file(yaml_file, **kwargs):
     """Used to write the app to Yaml file"""
 

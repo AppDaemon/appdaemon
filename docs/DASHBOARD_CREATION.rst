@@ -1012,6 +1012,59 @@ Style Arguments:
 -  ``title_style``
 -  ``image_style``
 
+fan
+~~~~~~
+.. figure:: images/fan.png
+   :alt: fan
+
+A widget to monitor and control a fan. it uses by default low, medium and
+high for the 3 possible settings, that can be changed if needed.
+(for example for a fan that has 5 speeds)
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``entity`` - the entity_id of the fan
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``title`` - the title displayed on the tile.
+-  ``low_speed`` - the speed the entity uses for low.
+-  ``medium_speed`` - the speed the entity uses for medium.
+-  ``high_speed`` - the speed the entity uses for high.
+
+Example:
+
+.. code:: yaml
+   fan1:
+         widget_type: fan
+         entity: fan.fan1
+         title: "FAN1"
+
+Style Arguments:
+^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``title_style``
+-  ``container_style``
+-  ``icon_style_active``
+-  ``icon_style_inactive``
+-  ``speed1_icon_style_active``
+-  ``speed1_icon_style_inactive``
+-  ``speed2_icon_style_active``
+-  ``speed2_icon_style_inactive``
+-  ``speed3_icon_style_active``
+-  ``speed3_icon_style_inactive``
+-  ``icon_on``
+-  ``icon_off``
+-  ``speed1_icon_on``
+-  ``speed1_icon_off``
+-  ``speed2_icon_on``
+-  ``speed2_icon_off``
+-  ``speed3_icon_on``
+-  ``speed3_icon_off``
+
 gauge
 ~~~~~
 .. figure:: images/guage.png
@@ -2038,7 +2091,7 @@ Style Arguments:
 -  ``title_style``
 -  ``title2_style``
 
-scene
+sequence
 ~~~~~
 .. figure:: images/sequence.png
    :alt: sequence
@@ -2107,7 +2160,7 @@ Optional Arguments:
 -  ``precision`` - the number of decimal places
 -  ``shorten`` - if set to one, the widget will abbreviate the readout
    for high numbers, e.g. ``1.1K`` instead of ``1100``
--  ``use_comma`` - if set to one\`, a comma will be used as the decimal
+-  ``use_comma`` - if set to one, a comma will be used as the decimal
    separator
 -  ``state_map``
 -  ``sub_entity`` - second entity to be displayed in the state text area
