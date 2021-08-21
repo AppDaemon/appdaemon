@@ -23,7 +23,7 @@ pid==3.0.4
 azure-mgmt-compute==22.1.0
 azure-mgmt-storage==17.1.0
 azure-mgmt-resource==19.0.0
-azure-keyvault-secrets==4.2.0
+azure-keyvault-secrets==4.3.0
 azure-storage-blob==12.8.1
 sockjs==0.11.0
 pygments==2.9.0
