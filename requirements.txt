@@ -24,7 +24,7 @@ azure-mgmt-storage==17.0.0
 azure-mgmt-resource==19.0.0
 azure-keyvault-secrets==4.2.0
 azure-storage-blob==12.8.1
-pygments==2.8.1
+pygments==2.9.0
 sockjs==0.10.0
 uvloop==0.15.3; sys_platform != 'win32'
 wheel==0.36.2
