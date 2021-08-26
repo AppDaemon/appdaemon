@@ -14,7 +14,8 @@ None
 
 **Breaking Changes**
 
-None
+- Service calls no longer return results by default
+- `callback` and `return_result` are now reserved words for the service call api
 
 4.1.0 (2021-08-21)
 ------------------
