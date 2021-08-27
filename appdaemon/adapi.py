@@ -1545,7 +1545,7 @@ class ADAPI:
     @staticmethod
     def _check_service(service: str) -> None:
         if service.find("/") == -1:
-            raise ValueError("Invalid Service Name: {}".format(service))
+            raise ValueError("Invalid Service Name: %s", service)
 
     def register_service(
         self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[dict]

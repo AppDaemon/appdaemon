@@ -9,8 +9,7 @@ Change Log
 None
 
 **Fixes**
-
-None
+- If an invalid domain or service is given in a service call, exceptions will now be raised for better error management
 
 **Breaking Changes**
 
