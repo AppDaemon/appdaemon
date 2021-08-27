@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any, Optional, Callable, Awaitable
 
 from appdaemon.appdaemon import AppDaemon
-from appdaemon.exceptions import NamespaceException
+from appdaemon.exceptions import NamespaceException, DomainException, ServiceException
 import appdaemon.utils as utils
 
 
@@ -31,10 +31,10 @@ class Services:
             name = kwargs.get("__name")
             # first we confirm if the namespace exists
             if name and namespace not in self.AD.state.state:
-                raise NamespaceException(f"Namespace '{namespace}', doesn't exist")
+                raise NamespaceException("Namespace %s, doesn't exist", namespace)
 
             elif not callable(callback):
-                raise ValueError(f"The given callback {callback} is not a callable function")
+                raise ValueError("The given callback %s is not a callable function", callback)
 
             if namespace not in self.services:
                 self.services[namespace] = {}
@@ -149,18 +149,15 @@ class Services:
             name = data.pop("__name", None)
 
             if namespace not in self.services:
-                self.logger.warning("Unknown namespace (%s) in call_service from %s", namespace, name)
-                return None
+                raise NamespaceException("Unknown namespace (%s) in call_service from %s", namespace, name)
+
             if domain not in self.services[namespace]:
-                self.logger.warning(
-                    "Unknown domain (%s/%s) in call_service from %s", namespace, domain, name,
-                )
-                return None
+                raise DomainException("Unknown domain (%s/%s) in call_service from %s", namespace, domain, name)
+
             if service not in self.services[namespace][domain]:
-                self.logger.warning(
+                raise ServiceException(
                     "Unknown service (%s/%s/%s) in call_service from %s", namespace, domain, service, name,
                 )
-                return None
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but

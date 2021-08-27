@@ -16,6 +16,7 @@ None
 
 - Service calls no longer return results by default
 - `callback` and `return_result` are now reserved words for the service call api
+- If an invalid domain or service is given in a service call, exceptions will now be raised for better error management
 
 4.1.0 (2021-08-21)
 ------------------
