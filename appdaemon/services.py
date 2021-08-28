@@ -2,10 +2,10 @@ import threading
 import traceback
 import asyncio
 from copy import deepcopy
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, Awaitable
 
 from appdaemon.appdaemon import AppDaemon
-from appdaemon.exceptions import NamespaceException
+from appdaemon.exceptions import NamespaceException, DomainException, ServiceException
 import appdaemon.utils as utils
 
 
@@ -31,7 +31,10 @@ class Services:
             name = kwargs.get("__name")
             # first we confirm if the namespace exists
             if name and namespace not in self.AD.state.state:
-                raise NamespaceException(f"Namespace '{namespace}', doesn't exist")
+                raise NamespaceException("Namespace %s, doesn't exist", namespace)
+
+            elif not callable(callback):
+                raise ValueError("The given callback %s is not a callable function", callback)
 
             if namespace not in self.services:
                 self.services[namespace] = {}
@@ -76,12 +79,12 @@ class Services:
             raise ValueError("App must be given to deregister service call")
 
         if name not in self.app_registered_services:
-            raise ValueError(f"The given App {name} has no services registered")
+            raise ValueError("The given App %s has no services registered", name)
 
         app_service = f"{namespace}:{domain}:{service}"
 
         if app_service not in self.app_registered_services[name]:
-            raise ValueError(f"The given App {name} doesn't have the given service registered it")
+            raise ValueError("The given App %s doesn't have the given service registered it", name)
 
         # if it gets here, then time to deregister
         with self.services_lock:
@@ -143,29 +146,22 @@ class Services:
             "call_service: namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data,
         )
         with self.services_lock:
+            name = data.pop("__name", None)
+
             if namespace not in self.services:
-                name = data.get("__name", None)
-                self.logger.warning("Unknown namespace (%s) in call_service from %s", namespace, name)
-                return None
+                raise NamespaceException("Unknown namespace (%s) in call_service from %s", namespace, name)
+
             if domain not in self.services[namespace]:
-                name = data.get("__name", None)
-                self.logger.warning(
-                    "Unknown domain (%s/%s) in call_service from %s", namespace, domain, name,
-                )
-                return None
+                raise DomainException("Unknown domain (%s/%s) in call_service from %s", namespace, domain, name)
+
             if service not in self.services[namespace][domain]:
-                name = data.get("__name", None)
-                self.logger.warning(
+                raise ServiceException(
                     "Unknown service (%s/%s/%s) in call_service from %s", namespace, domain, service, name,
                 )
-                return None
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
             # needs to operate on a different namespace, e.g. "default"
-
-            if "__name" in data:
-                del data["__name"]
 
             if "namespace" in data:
                 ns = data["namespace"]
@@ -173,35 +169,56 @@ class Services:
             else:
                 ns = namespace
 
-            try:
-                funcref = self.services[namespace][domain][service]["callback"]
+            funcref = self.services[namespace][domain][service]["callback"]
 
-                # Decide whether or not to call this as async
+            # Decide whether or not to call this as async
 
-                # Default to true
-                isasync = True
+            # Default to true
+            isasync = True
 
-                if "__async" in self.services[namespace][domain][service]:
-                    # We have a kwarg to tell us what to do
-                    if self.services[namespace][domain][service]["__async"] == "auto":
-                        # We decide based on introspection
-                        if not asyncio.iscoroutinefunction(funcref):
-                            isasync = False
-                    else:
-                        # We do what the kwarg tells us
-                        isasync = self.services[namespace][domain][service]["__async"]
+            # if to wait for results, default to False
+            return_result = data.pop("return_result", False)
 
-                if isasync is True:
-                    # it's a coroutine just await it.
-                    return await funcref(ns, domain, service, data)
+            # if to return results via callback
+            callback = data.pop("callback", None)
+
+            if "__async" in self.services[namespace][domain][service]:
+                # We have a kwarg to tell us what to do
+                if self.services[namespace][domain][service]["__async"] == "auto":
+                    # We decide based on introspection
+                    if not asyncio.iscoroutinefunction(funcref):
+                        isasync = False
                 else:
-                    # It's not a coroutine, , run it in an executor
-                    return await utils.run_in_executor(self, funcref, ns, domain, service, data)
+                    # We do what the kwarg tells us
+                    isasync = self.services[namespace][domain][service]["__async"]
 
-            except Exception:
-                self.logger.error("-" * 60)
-                self.logger.error("Unexpected error in call_service()")
-                self.logger.error("-" * 60)
-                self.logger.error(traceback.format_exc())
-                self.logger.error("-" * 60)
-                return None
+            if isasync is True:
+                # it's a coroutine just await it.
+                coro = funcref(ns, domain, service, data)
+            else:
+                # It's not a coroutine, , run it in an executor
+                coro = utils.run_in_executor(self, funcref, ns, domain, service, data)
+
+            if return_result is True:
+                return await self.run_service(coro)
+
+            elif callback is not None and name is not None:
+                # results expected and it must belong to an app
+                app_object = await self.AD.app_management.get_app(name)
+                app_object.create_task(self.run_service(coro), callback=callback)
+
+            else:
+                asyncio.create_task(self.run_service(coro))
+
+    async def run_service(self, coro: Awaitable) -> Any:
+        """Used to process a service call"""
+        try:
+            return await coro
+
+        except Exception:
+            self.logger.error("-" * 60)
+            self.logger.error("Unexpected error in call_service()")
+            self.logger.error("-" * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error("-" * 60)
+            return None
