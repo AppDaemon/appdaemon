@@ -14,7 +14,8 @@ None
 
 **Breaking Changes**
 
-- Service calls no longer return results by default
+- App Service calls no longer return results by default
+- stream Service calls no longer return results
 - `callback` and `return_result` are now reserved words for the service call api
 - If an invalid domain or service is given in a service call, exceptions will now be raised for better error management
 
