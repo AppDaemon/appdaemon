@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-None
+- Updated js socket.io library to fix mismatch with python
 
 **Breaking Changes**
 
