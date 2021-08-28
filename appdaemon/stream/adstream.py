@@ -332,8 +332,7 @@ class RequestHandler:
 
             service_data = data["data"]
 
-        coro = self.AD.services.call_service(data["namespace"], domain, service, service_data)
-        asyncio.create_task(coro)
+        return await self.AD.services.call_service(data["namespace"], domain, service, service_data)
 
     async def get_state(self, data, request_id):
         if not self.authed:
