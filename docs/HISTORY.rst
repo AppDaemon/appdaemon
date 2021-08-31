@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-- Updated js socket.io library to fix mismatch with python
+- Pinned socketio modules to fix a version mismatch
 
 **Breaking Changes**
 
