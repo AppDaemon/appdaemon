@@ -1459,19 +1459,21 @@ parameter.
 Calling Services
 ----------------
 
-About Home Assistant Services
+About Services
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Services within Home Assistant are how changes are made to the system
-and its devices. Services can be used to turn lights on and off, set
-thermostats and a whole number of other things. Home Assistant supplies
-a single interface to all these disparate services that take arbitrary
-parameters. AppDaemon provides the ``call_service()`` function to call
+Services within AD are used by apps to send commands, either to other apps within AD,
+or to external systems which it has been plugged using plugins. Via this services,
+apps can instruct AD to make changes to an external system's connected devices. For example
+services can be used to turn lights on and off, set thermostats and a whole number of other things.
+In some systems likes Home Assistant, it supplies a single interface to all these disparate
+services that take arbitrary parameters. AppDaemon provides the ``call_service()`` function to call
 into Home Assistant and run a service. In addition, it also provides
 convenience functions for some of the more common services making
 calling them a little easier.
 
-Other plugins may or may not support the notion of services
+Other plugins may or may not support the notion of services. It should also be noted that in AD, services
+do not by default return results when used.
 
 Events
 ------

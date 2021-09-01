@@ -426,3 +426,25 @@ input_datetime_date_style: "color: $white; font-size: 100%"
 input_datetime_time_style: "color: $white; font-size: 100%"
 input_datetime_widget_style: $background_style
 input_datetime_container_style: ""
+
+fan_title_style: $style_title
+fan_widget_style: $background_style
+
+fan_icon_on: mdi-fan
+fan_icon_off: mdi-fan-off
+fan_speed1_icon_on: mdi-numeric-1-box-outline
+fan_speed1_icon_off: mdi-numeric-1-box
+fan_speed2_icon_on: mdi-numeric-2-box-outline
+fan_speed2_icon_off: mdi-numeric-2-box
+fan_speed3_icon_on: mdi-numeric-3-box-outline
+fan_speed3_icon_off: mdi-numeric-3-box
+
+fan_container_style: ""
+fan_icon_style_active: ""
+fan_icon_style_inactive: ""
+fan_speed1_icon_style_active: ""
+fan_speed1_icon_style_inactive: ""
+fan_speed2_icon_style_active: ""
+fan_speed2_icon_style_inactive: ""
+fan_speed3_icon_style_active: ""
+fan_speed3_icon_style_inactive: ""

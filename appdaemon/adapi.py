@@ -1545,7 +1545,7 @@ class ADAPI:
     @staticmethod
     def _check_service(service: str) -> None:
         if service.find("/") == -1:
-            raise ValueError("Invalid Service Name: {}".format(service))
+            raise ValueError("Invalid Service Name: %s", service)
 
     def register_service(
         self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[dict]
@@ -1555,6 +1555,8 @@ class ADAPI:
         Using this function, an App can register a function to be available in the service registry.
         This will automatically make it available to other apps using the `call_service()` API call, as well as publish
         it as a service in the REST API and make it available to the `call_service` command in the event stream.
+        It should be noted that registering services within a plugin's namespace is a bad idea. It could work, but not always reliable
+        It is recommended to make use of this api, within a user definded namespace, or one not tied to a plugin.
 
         Args:
             service: Name of the service, in the format `domain/service`. If the domain does not exist it will be created
@@ -1570,7 +1572,10 @@ class ADAPI:
             None
 
         Examples:
-            >>> self.register_service("myservices/service1", mycallback)
+            >>> self.register_service("myservices/service1", self.mycallback)
+
+            >>> async def mycallback(self, namespace, domain, service, kwargs):
+            >>>     self.log("Service called")
 
         """
         self._check_service(service)
@@ -1666,6 +1671,10 @@ class ADAPI:
         and the part after is the ``service name`. For instance, `light/turn_on`
         has a domain of `light` and a service name of `turn_on`.
 
+        The default behaviour of the call service api is not to wait for any result, typically
+        known as "fire and forget". If it is required to get the results of the call, keywords
+        "return_result" or "callback" can be added.
+
         Args:
             service (str): The service name.
             **kwargs (optional): Zero or more keyword arguments.
@@ -1681,6 +1690,9 @@ class ADAPI:
                 if no namespace is given, AppDaemon will use the last specified namespace
                 or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
                 for a detailed description. In most cases, it is safe to ignore this parameter.
+            return_result(str, option): If `return_result` is provided and set to `True` AD will attempt
+                to wait for the result, and return it after execution
+            callback: The non-async callback to be executed when complete.
 
         Returns:
             Result of the `call_service` function if any
@@ -3003,7 +3015,7 @@ class ADAPI:
             except asyncio.CancelledError:
                 pass
 
-        f = asyncio.ensure_future(coro)
+        f = asyncio.create_task(coro)
         if callback is not None:
             self.logger.debug("Adding add_done_callback for future %s for %s", f, self.name)
             f.add_done_callback(callback_inner)
