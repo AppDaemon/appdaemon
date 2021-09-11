@@ -892,11 +892,11 @@ class HTTP:
         handle = uuid.uuid4().hex
 
         # first we check to ensure that endpoint not been used before
-        for name in self.app_endpoints:
-            for _, handle_data in self.app_endpoints[name].items():
+        for app_name in self.app_endpoints:
+            for _, handle_data in self.app_endpoints[app_name].items():
                 if handle_data["endpoint"] == endpoint:
                     # it exists already so don't let it pass
-                    raise AttributeError(f"The given endpoint '{endpoint}' already exists and used by {name}")
+                    raise AttributeError(f"The given endpoint '{endpoint}' already exists and used by {app_name}")
 
         if name not in self.app_endpoints:
             self.app_endpoints[name] = {}
@@ -954,11 +954,11 @@ class HTTP:
         handle = uuid.uuid4().hex
 
         # first we check to ensure that route not been used before
-        for name in self.app_routes:
-            for _, handle_data in self.app_routes[name].items():
+        for app_name in self.app_routes:
+            for _, handle_data in self.app_routes[app_name].items():
                 if handle_data["route"] == route:
                     # it exists already so don't let it pass
-                    raise AttributeError(f"The given route '{route}' already exists and used by {name}")
+                    raise AttributeError(f"The given route '{route}' already exists and used by {app_name}")
 
         if name not in self.app_routes:
             self.app_routes[name] = {}
