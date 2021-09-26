@@ -125,7 +125,9 @@ When using the ``exclude_dirs`` directive, you should supply a list of directory
 
 .. code:: yaml
 
-    exclude_dirs:
+    appdaemon:
+      # ...
+      exclude_dirs:
         - dir1
         - dir2
         - dir3
@@ -152,7 +154,9 @@ The following items provide a high level of control over AppDaemon's internal fu
 
 .. code:: yaml
 
-    namespaces:
+    appdaemon:
+      # ...
+      namespaces:
         andrew:
           # writeback is safe, performance or hybrid
           writeback: safe
@@ -199,10 +203,12 @@ A simple filter would look like this:
 
     .. code:: yaml
 
-        filters:
-          - command_line: /bin/cat $1 > $2
-            input_ext: cat
-            output_ext: py
+        appdaemon:
+          # ...
+          filters:
+            - command_line: /bin/cat $1 > $2
+              input_ext: cat
+              output_ext: py
 
 This would result in AppDaemon looking for any files with the extension ``.cat`` and running the ``/bin/cat`` command and creating a file with an extension of ``.py``. In the ``command_line``, ``$1`` and ``$2`` are replaced by the correctly named input and output files. In this example, the output is just a copy of the input, but this technique could be used with commands such as sed and awk, or even m4 for more complex manipulations.
 
@@ -210,10 +216,13 @@ A chained set of filters might look like this:
 
     .. code:: yaml
 
-        filters:
-          - command_line: /bin/cat $1 > $2
-            input_ext: mat
-            output_ext: cat
+
+        appdaemon:
+          # ...
+          filters:
+            - command_line: /bin/cat $1 > $2
+              input_ext: mat
+              output_ext: cat
           - command_line: /bin/cat $1 > $2
             input_ext: cat
             output_ext: py
@@ -224,13 +233,16 @@ Finally, it is possible to have multiple unconnected filters like so:
 
     .. code:: yaml
 
-        filters:
-          - command_line: /bin/cat $1 > $2
-            input_ext: mat
-            output_ext: .py
-          - command_line: /bin/cat $1 > $2
-            input_ext: cat
-            output_ext: py
+
+        appdaemon:
+          # ...
+          filters:
+            - command_line: /bin/cat $1 > $2
+              input_ext: mat
+              output_ext: .py
+            - command_line: /bin/cat $1 > $2
+              input_ext: cat
+              output_ext: py
 
 Here we have defined ``.mat`` and ``.cat`` files as both creating new apps. In a real-world example the ``command_line`` would be different.
 
@@ -288,7 +300,10 @@ For example:
 
 .. code:: yaml
 
-    app_dir: /etc/appdaemon/apps
+
+    appdaemon:
+      # ...
+      app_dir: /etc/appdaemon/apps
 
 An example of the HASS plugin could look like the following:
 
