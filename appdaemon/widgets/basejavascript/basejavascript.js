@@ -150,7 +150,7 @@ function basejavascript(widget_id, url, skin, parameters)
                     {
                         url = url + "&return=" + current_dash;
                         i++
-                     }
+                    }
                 }
             } 
         }
