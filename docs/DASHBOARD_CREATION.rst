@@ -641,19 +641,19 @@ Force one or more connected dashboards to navigate to a new page
 Arguments:
 ^^^^^^^^^
 
-``target`` - Name of the new Dashboard to navigate to, e.g.
+-  ``target`` - Name of the new Dashboard to navigate to, e.g.
 ``SensorPanel`` - this is not a URL.
-``timeout`` - length of time to stay on the new dashboard before returning to
+-  ``timeout`` - length of time to stay on the new dashboard before returning to
 the original. This argument is optional, and if not specified, the navigation
 will be permanent.
 
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.
 
-``return`` - dashboard to return to after the timeout has elapsed.
-``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1``, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
-``deviceid``: If set, only the device(s) which has the same deviceid will navigate.
-``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate.
+-  ``return`` - dashboard to return to after the timeout has elapsed.
+-  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With ``sticky=1``, clicking the dashboard will extend the amount of time, but it will return to the original dashboard after a period of inactivity equal to ``timeout``.
+-  ``deviceid``: If set, only the device(s) which has the same deviceid will navigate.
+-  ``dashid``: If set, all devices currently on a dashboard which the title contains the substring defined by dashid will navigate.
 
 Namespaces
 ----------
