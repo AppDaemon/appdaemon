@@ -139,8 +139,8 @@ function basejavascript(widget_id, url, skin, parameters)
             if ("timeout" in parameters)
             {
                 current_dash = location.pathname.split('/')[1];
-		if (current_dash.length > 0) 
-		{
+                if (current_dash.length > 0) 
+                {
                     if (i == 0)
                     {
                         url = url + "?return=" + current_dash;
