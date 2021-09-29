@@ -51,7 +51,7 @@ These are all fairly self-explanatory:
    widgets in pixels. Note that the absolute size is not too important
    as on tablets at least the browser will scale the page to fit. What
    is more important is the aspect ratio of the widgets as this will
-   affect whether or not the dashboard completely fills the tablet's 
+   affect whether or not the dashboard completely fills the tablet's
    screen. The default is [120, 120] (width, height). This works well
    for a regular iPad.
 -  ``widget_size`` - the number of grid blocks each widget will be by
@@ -60,7 +60,7 @@ These are all fairly self-explanatory:
 -  ``rows`` - the total number of rows in the dashboard. This will help
    with spacing, but is optional for dashboards with fewer than 15 rows
 -  ``columns`` - the number of columns the dashboard will have.
--  ``scalable`` - if set to ``False`` this parameter will disable resizing 
+-  ``scalable`` - if set to ``False`` this parameter will disable resizing
    and double-tap zooming on iOS devices, default is not to disable zooming.
 -  ``global_parameters`` - a list of parameters that will be applied to
    every widget. If the widget does not accept that parameter, it will be
@@ -70,11 +70,11 @@ These are all fairly self-explanatory:
    defined with just their entity ids so they will not require a formal
    widget definition just to change the decimal separator. The namespace
    parameter will be explained further in the namespace section of this document.
-   Within the ``global`` parameters it is also possible to set parameters at 
-   the device level by including a ``device`` entry (see above for an example). 
-   Under device you can add an entry for any widget type, then under that, 
-   list global parameters that will be applied to just that widget type. 
-   For instance, in the example above, the default step size for all media 
+   Within the ``global`` parameters it is also possible to set parameters at
+   the device level by including a ``device`` entry (see above for an example).
+   Under device you can add an entry for any widget type, then under that,
+   list global parameters that will be applied to just that widget type.
+   For instance, in the example above, the default step size for all media
    players is set to 5% rather than the default 10%.
 
 The very simplest dashboard needs a layout so it can understand where to
@@ -95,7 +95,7 @@ type and grab its friendly name and add it to the dashboard. For the
 just your ``clock.clock`` or ``weather.weather``.
 
 The layout command is intended to be visual in how you layout the
-widgets. Each layout entry represents a row on the dashboard; each 
+widgets. Each layout entry represents a row on the dashboard; each
 comma-separated widget represents a cell on that row.
 
 Widgets can also have a size associated with them - that is the
@@ -150,7 +150,7 @@ Detailed Widget Definition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The approach above is ok for simple widgets like lights, but HADashboard
-has a huge range of customization options. To access these, you need to define 
+has a huge range of customization options. To access these, you need to define
 the widget along with its associated parameters formally.
 
 To define a widget, simply add lines elsewhere in the file. Give it a
@@ -615,9 +615,9 @@ Alexa Intent, simply define the event and associated data as follows
 These following arguments are optional and can be used to determine
 if a given device or dashboard should execute the command or not:
 
--  ``deviceid`` - If set, only the device(s) which has the same deviceid will execute the command. See below how to 
+-  ``deviceid`` - If set, only the device(s) which has the same deviceid will execute the command. See below how to
    set a deviceid.
--  ``dashid`` -  If set, all devices currently on a dashboard which the title contains the substring defined by dashid 
+-  ``dashid`` -  If set, all devices currently on a dashboard which the title contains the substring defined by dashid
    will execute the command. ex: if dashid is set to "kichen", it will match devices which are on "kitchen lights",
    "kitchen sensors", "ipad - kitchen", etc.
 
@@ -650,32 +650,32 @@ Arguments:
 ^^^^^^^^^
 
 -  ``target`` - Name of the new Dashboard to navigate to, e.g. ``SensorPanel``  (this is not a URL)
--  ``timeout`` - length of time to stay on the new dashboard before returning to the original. This argument is 
+-  ``timeout`` - length of time to stay on the new dashboard before returning to the original. This argument is
    optional, and if not specified, the navigation will be permanent.
    Note that if there is a click or touch on the new panel before the timeout expires, the timeout will be cancelled.
 
--  ``return`` - dashboard to return to after the timeout has elapsed. 
--  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior 
-   (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With 
-   ``sticky=1``, clicking the dashboard will extend the amount of time, but it will return to the original dashboard 
+-  ``return`` - dashboard to return to after the timeout has elapsed.
+-  ``sticky`` - whether or not to return to the original dashboard after it has been clicked on. The default behavior
+   (``sticky=0``) is to remain on the new dashboard if clicked and return to the original otherwise. With
+   ``sticky=1``, clicking the dashboard will extend the amount of time, but it will return to the original dashboard
    after a period of inactivity equal to ``timeout``.
 -  ``deviceid`` - If set, only the device(s) which has the same deviceid will navigate.
--  ``dashid`` - If set, all devices currently on a dashboard which the title contains the substring defined by dashid 
+-  ``dashid`` - If set, all devices currently on a dashboard which the title contains the substring defined by dashid
    will navigate.
 
 Namespaces
 ----------
 
-For a full explanation of namespaces see the ``Writing AppDaemon Apps`` 
-Section of the guide. Namespaces may be ignored in HADashboard if only one 
+For a full explanation of namespaces see the ``Writing AppDaemon Apps``
+Section of the guide. Namespaces may be ignored in HADashboard if only one
 plugin is in use.
 
-If multiple namespaces are in use, HADashboard is able to specify either at 
-the dashboard level or the widget level which namespace to use. This is 
-achieved by use of the ``namespace`` parameter. This parameter may be 
-specified for each individual widget if desired. If it is specified as one 
-of the global parameters, it will apply to all widgets but may be overridden 
-for individual widgets. If not specified as a global parameter, the default 
+If multiple namespaces are in use, HADashboard is able to specify either at
+the dashboard level or the widget level which namespace to use. This is
+achieved by use of the ``namespace`` parameter. This parameter may be
+specified for each individual widget if desired. If it is specified as one
+of the global parameters, it will apply to all widgets but may be overridden
+for individual widgets. If not specified as a global parameter, the default
 namespace will be used for any widgets that do not override it. For example:
 
 .. code:: yaml
