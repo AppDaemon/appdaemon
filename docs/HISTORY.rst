@@ -11,6 +11,7 @@ None
 **Fixes**
 
 - Pinned socketio modules to fix a version mismatch
+- Removed try/catch clause that broke dashboard for iOS 10 users - contributed by `Christian Lyra <https://github.com/clyra>`__
 
 **Breaking Changes**
 
