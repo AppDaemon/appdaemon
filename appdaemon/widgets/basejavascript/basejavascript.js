@@ -139,7 +139,7 @@ function basejavascript(widget_id, url, skin, parameters)
             if ("timeout" in parameters)
             {
                 current_dash = location.pathname.split('/')[1];
-		if (current_dash.lenght > 0) 
+		if (current_dash.lenght > 0)
 		{
                     if (i == 0)
                     {
@@ -152,7 +152,7 @@ function basejavascript(widget_id, url, skin, parameters)
                         i++
                      }
                 }
-            } 
+            }
         }
         if ("timeout" in parameters)
         {
