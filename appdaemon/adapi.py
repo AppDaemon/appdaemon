@@ -1274,10 +1274,13 @@ class ADAPI:
                 attribute value.
             new (optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the new state match the value
-                of ``new``.
+                of ``new``. Be careful when assuming specific data types in this argument. The primary
+                attribute of a Home Assistant entity will always be a string, while MQTT and other APIs
+                may be more strongly typed. If ``attribute`` is provided, Home Assistant may provide more
+                strongly typed values depending on the individual integration.
             old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
-                of ``old``.
+                of ``old``. The same caveats on types for the ``new`` parameter apply to the old parameter.
 
             duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
                 fire unless the state listened for is maintained for that number of seconds. This
