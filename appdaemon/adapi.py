@@ -1280,7 +1280,7 @@ class ADAPI:
                 strongly typed values depending on the individual integration.
             old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
-                of ``old``. The same caveats on types for the ``new`` parameter apply to the old parameter.
+                of ``old``. The same caveats on types for the ``new`` parameter apply to this parameter.
 
             duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
                 fire unless the state listened for is maintained for that number of seconds. This
