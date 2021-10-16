@@ -1272,10 +1272,10 @@ class ADAPI:
                 state change within the specified entity, and supply the callback functions with
                 the entire state dictionary for the specified entity rather than an individual
                 attribute value.
-            new (str, optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
+            new (optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the new state match the value
                 of ``new``.
-            old (str, optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
+            old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
                 of ``old``.
 
