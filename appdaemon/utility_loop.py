@@ -134,12 +134,12 @@ class Utility:
             )
             warning_step = 0
             warning_iterations = 0
-            s1 = 0
-            e1 = 0
 
             # Start the loop proper
 
             while not self.stopping:
+                s1 = 0
+                e1 = 0
 
                 start_time = datetime.datetime.now().timestamp()
 

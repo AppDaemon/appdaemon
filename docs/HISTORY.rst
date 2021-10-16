@@ -12,6 +12,7 @@ None
 
 - Pinned socketio modules to fix a version mismatch
 - Removed try/catch clause that broke dashboard for iOS 10 users - contributed by `Christian Lyra <https://github.com/clyra>`__
+- Fixed the possibility of having `check_app_updates` being a negative value
 
 **Breaking Changes**
 
