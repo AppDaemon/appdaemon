@@ -61,3 +61,4 @@ target/
 
 # Mac stuff
 .DS_Store
+.vscode/settings.json
