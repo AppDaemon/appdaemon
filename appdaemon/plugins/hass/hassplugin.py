@@ -10,6 +10,7 @@ from copy import deepcopy
 import datetime
 from urllib.parse import quote
 from urllib.parse import urlencode
+from typing import Union
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -775,7 +776,7 @@ class HassPlugin(PluginBase):
 
                 await self.check_register_service(domain, services)
 
-    async def check_register_service(self, domain: str, services: dict) -> bool:
+    async def check_register_service(self, domain: str, services: Union[dict, str]) -> bool:
         """Used to check and register a service if need be"""
 
         domain_exists = False
@@ -793,14 +794,24 @@ class HassPlugin(PluginBase):
 
         domain_services = deepcopy(self.services[service_index])
 
-        for service, service_data in services.items():
-            if service not in domain_services["services"]:
-                self.logger.info("Registering new service %s/%s", domain, service)
+        if isinstance(services, str):  # its a string
+            if services not in domain_services["services"]:
+                self.logger.info("Registering new service %s/%s", domain, services)
 
-                self.services[service_index]["services"][service] = service_data
+                self.services[service_index]["services"][services] = {}
                 self.AD.services.register_service(
-                    self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                    self.get_namespace(), domain, services, self.call_plugin_service, __silent=True
                 )
+
+        else:
+            for service, service_data in services.items():
+                if service not in domain_services["services"]:
+                    self.logger.info("Registering new service %s/%s", domain, service)
+
+                    self.services[service_index]["services"][service] = service_data
+                    self.AD.services.register_service(
+                        self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                    )
 
         return domain_exists
 
