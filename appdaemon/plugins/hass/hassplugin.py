@@ -6,6 +6,7 @@ import traceback
 import aiohttp
 import pytz
 from deepdiff import DeepDiff
+from copy import deepcopy
 import datetime
 from urllib.parse import quote
 from urllib.parse import urlencode
@@ -338,10 +339,11 @@ class HassPlugin(PluginBase):
                 # Register Services
                 #
                 self.services = await self.get_hass_services()
-                for domain in self.services:
-                    for service in domain["services"]:
+                for hass_service in self.services:
+                    domain = hass_service["domain"]
+                    for service in hass_service["services"]:
                         self.AD.services.register_service(
-                            self.get_namespace(), domain["domain"], service, self.call_plugin_service, __silent=True
+                            self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
                         )
 
                 # Decide if we can start yet
@@ -355,6 +357,11 @@ class HassPlugin(PluginBase):
                 # self.first_time)
                 # self.first_time = False
                 # self.already_notified = False
+
+                #
+                # We schedule a task to check for new services over the next 10 minutes
+                #
+                asyncio.create_task(self.run_hass_service_check())
 
                 #
                 # Loop forever consuming events
@@ -386,10 +393,10 @@ class HassPlugin(PluginBase):
                             domain = data.get("domain")
                             service = data.get("service")
 
-                            if domain and service:
-                                self.AD.services.register_service(
-                                    self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
-                                )
+                            if domain is None or service is None:
+                                continue
+
+                            await self.check_register_service(domain, service)
 
                 self.reading_messages = False
 
@@ -739,13 +746,71 @@ class HassPlugin(PluginBase):
             r.raise_for_status()
             services = await r.json()
             # manually added HASS history service
-            services.append({"domain": "database", "services": ["history"]})
-            services.append({"domain": "template", "services": ["render"]})
+            services.append({"domain": "database", "services": {"history": {}}})
+            services.append({"domain": "template", "services": {"render": {}}})
 
             return services
         except Exception:
             self.logger.warning("Error getting services - retrying")
             raise
+
+    async def run_hass_service_check(self) -> None:
+        """Used to re-run get hass service, at startup"""
+
+        count = 0
+        while count <= 10:  # it runs only a maximum of 10 times
+            count += 1
+            await asyncio.sleep(60)
+
+            # get hass services
+            hass_services = await self.get_hass_services()
+            if not isinstance(hass_services, list):
+                continue
+
+            # now check if any of the services exists
+
+            for hass_service in hass_services:
+                domain = hass_service["domain"]
+                services = hass_service["services"]
+
+                await self.check_register_service(domain, services)
+
+    async def check_register_service(self, domain: str, services: dict) -> bool:
+        """Used to check and register a service if need be"""
+
+        domain_exists = False
+
+        # now to check if it exists already
+        for i, registered_services in enumerate(deepcopy(self.services)):
+            if domain == registered_services["domain"]:
+                domain_exists = True
+
+                for service, service_data in services.items():
+                    if service not in registered_services["services"]:
+                        print(f"Registering new service {domain}/{service}")
+                        self.logger.info("Registering new service %s/%s", domain, service)
+
+                        self.services[i]["services"][service] = service_data
+                        self.AD.services.register_service(
+                            self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                        )
+
+                break
+
+        if domain_exists is False:  # domain doesn't exist
+            self.services.append({"domain": domain, "services": {}})
+
+            for service, service_data in services.items():
+                if service not in registered_services["services"]:
+                    print(f"Registering new service {domain}/{service}")
+                    self.logger.info("Registering new service %s/%s", domain, service)
+
+                    self.services[-1]["services"][service] = service_data
+                    self.AD.services.register_service(
+                        self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                    )
+
+        return True
 
     @hass_check
     async def fire_plugin_event(self, event, namespace, **kwargs):
