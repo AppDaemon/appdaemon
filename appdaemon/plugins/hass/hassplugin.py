@@ -779,38 +779,30 @@ class HassPlugin(PluginBase):
         """Used to check and register a service if need be"""
 
         domain_exists = False
+        service_index = -1
 
         # now to check if it exists already
-        for i, registered_services in enumerate(deepcopy(self.services)):
+        for i, registered_services in enumerate(self.services):
             if domain == registered_services["domain"]:
                 domain_exists = True
-
-                for service, service_data in services.items():
-                    if service not in registered_services["services"]:
-                        print(f"Registering new service {domain}/{service}")
-                        self.logger.info("Registering new service %s/%s", domain, service)
-
-                        self.services[i]["services"][service] = service_data
-                        self.AD.services.register_service(
-                            self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
-                        )
-
+                service_index = i
                 break
 
         if domain_exists is False:  # domain doesn't exist
             self.services.append({"domain": domain, "services": {}})
 
-            for service, service_data in services.items():
-                if service not in registered_services["services"]:
-                    print(f"Registering new service {domain}/{service}")
-                    self.logger.info("Registering new service %s/%s", domain, service)
+        domain_services = deepcopy(self.services[service_index])
 
-                    self.services[-1]["services"][service] = service_data
-                    self.AD.services.register_service(
-                        self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
-                    )
+        for service, service_data in services.items():
+            if service not in domain_services["services"]:
+                self.logger.info("Registering new service %s/%s", domain, service)
 
-        return True
+                self.services[service_index]["services"][service] = service_data
+                self.AD.services.register_service(
+                    self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                )
+
+        return domain_exists
 
     @hass_check
     async def fire_plugin_event(self, event, namespace, **kwargs):
