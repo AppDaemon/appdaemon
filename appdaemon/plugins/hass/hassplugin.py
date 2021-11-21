@@ -749,24 +749,23 @@ class HassPlugin(PluginBase):
 
             # manually added HASS services
             new_services = {}
-            new_services["database"] = [{"history": {}}]
-            new_services["template"] = [{"render": {}}]
+            new_services["database"] = {"history": {}}
+            new_services["template"] = {"render": {}}
 
             # now add the services
             for i, service in enumerate(deepcopy(services)):
                 domain = service["domain"]
                 if domain in new_services:
                     # the domain already exists
-                    for new_service in new_services[domain]:
-                        services[i]["services"] = new_service
+                    services[i]["services"].update(new_services[domain])
 
                     # remove from the list
                     del new_services[domain]
 
             if len(new_services) > 0:  # some have not been processed
                 for domain, service in new_services.items():
-                    for serv in service:
-                        services.append({"domain": domain, "services": serv})
+                    services.append({"domain": domain, "services": {}})
+                    services[-1]["services"].update(service)
 
             return services
 
