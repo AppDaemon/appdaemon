@@ -505,7 +505,7 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        if domain == "template":
+        if domain == "template" and service == "render":
             api_url = "{}/api/template".format(config["ha_url"])
 
         elif domain == "database":
@@ -731,7 +731,7 @@ class HassPlugin(PluginBase):
             self.logger.warning("Error getting metadata - retrying")
             raise
 
-    async def get_hass_services(self):
+    async def get_hass_services(self) -> dict:
         try:
             self.logger.debug("get_hass_services()")
             if self.token is not None:
@@ -746,11 +746,30 @@ class HassPlugin(PluginBase):
             r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            # manually added HASS history service
-            services.append({"domain": "database", "services": {"history": {}}})
-            services.append({"domain": "template", "services": {"render": {}}})
+
+            # manually added HASS services
+            new_services = {}
+            new_services["database"] = [{"history": {}}]
+            new_services["template"] = [{"render": {}}]
+
+            # now add the services
+            for i, service in enumerate(deepcopy(services)):
+                domain = service["domain"]
+                if domain in new_services:
+                    # the domain already exists
+                    for new_service in new_services[domain]:
+                        services[i]["services"] = new_service
+
+                    # remove from the list
+                    del new_services[domain]
+
+            if len(new_services) > 0:  # some have not been processed
+                for domain, service in new_services.items():
+                    for serv in service:
+                        services.append({"domain": domain, "services": serv})
 
             return services
+
         except Exception:
             self.logger.warning("Error getting services - retrying")
             raise
