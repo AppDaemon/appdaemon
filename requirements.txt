@@ -7,7 +7,7 @@ aiodns==3.0.0
 cchardet==2.1.7
 python-engineio==3.13.2
 python-socketio==4.6.1
-yarl==1.6.3
+yarl==1.7.2
 Jinja2==3.0.1
 aiohttp_jinja2==1.5
 pyyaml==5.4.1
