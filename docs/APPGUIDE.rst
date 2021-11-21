@@ -334,7 +334,7 @@ In the App, the api_key can be accessed like every other argument the App can ac
 Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~
 
-If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The varibales can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
+If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The variables can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
 
 An example using the os's time zone for AD:
 
