@@ -7,7 +7,7 @@ aiodns==3.0.0
 cchardet==2.1.7
 python-engineio==3.13.2
 python-socketio==4.6.1
-yarl==1.6.3
+yarl==1.7.2
 Jinja2==3.0.1
 aiohttp_jinja2==1.5
 pyyaml==5.4.1
@@ -15,7 +15,7 @@ voluptuous==0.12.2
 feedparser==6.0.2
 iso8601==1.0.0
 bcrypt==3.2.0
-paho-mqtt==1.5.1
+paho-mqtt==1.6.1
 deepdiff==5.5.0
 python-dateutil==2.8.2
 pid==3.0.4
