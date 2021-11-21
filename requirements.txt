@@ -5,7 +5,7 @@ websocket-client==1.2.1
 aiohttp==3.8.1
 aiodns==3.0.0
 cchardet==2.1.7
-python-engineio==3.13.2
+python-engineio==4.3.0
 python-socketio==4.6.1
 yarl==1.7.2
 Jinja2==3.0.3
