@@ -14,6 +14,7 @@ None
 - Removed try/catch clause that broke dashboard for iOS 10 users - contributed by `Christian Lyra <https://github.com/clyra>`__
 - Fixed the possibility of having `check_app_updates` being a negative value
 - Fix for Hass services not being captured after startup again
+- Fixed issue whereby `.git` paths where being imported into AD and leading to lots of unnecessary messages.
 - Documentation fixes - contributed by `markwmuller <https://github.com/markwmuller>`__
 - Documentation fixes - contributed by `JonasPed <https://github.com/JonasPed>`__
 - Documentation fixes - contributed by `elandt <https://github.com/elandt>`__
