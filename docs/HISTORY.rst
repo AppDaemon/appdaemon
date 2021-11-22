@@ -14,6 +14,29 @@ None
 - Removed try/catch clause that broke dashboard for iOS 10 users - contributed by `Christian Lyra <https://github.com/clyra>`__
 - Fixed the possibility of having `check_app_updates` being a negative value
 - Fix for Hass services not being captured after startup again
+- Fixed issue whereby `.git` paths where being imported into AD and leading to lots of unnecessary messages.
+- Documentation fixes - contributed by `markwmuller <https://github.com/markwmuller>`__
+- Documentation fixes - contributed by `JonasPed <https://github.com/JonasPed>`__
+- Documentation fixes - contributed by `elandt <https://github.com/elandt>`__
+- Documentation fixes - contributed by `marcelblijleven <https://github.com/marcelblijleven>`__
+- Documentation fixes - contributed by `scstraus <https://github.com/scstraus>`__
+- Bumped voluptuous from 0.12.1 to 0.12.2
+- Bumped azure-storage-blob from 12.8.1 to 12.9.0
+- Bumped azure-mgmt-storage from 17.1.0 to 19.0.0
+- Bumped azure-mgmt-resource from 19.0.0 to 20.0.0
+- Bumped azure-mgmt-compute from 22.1.0 to 23.1.0
+- Bumped iso8601 from 0.1.16 to 1.0.0
+- Bumped yarl from 1.6.3 to 1.7.2
+- Bumped paho-mqtt from 1.5.1 to 1.6.1
+- Bumped jinja2 from 3.0.1 to 3.0.3
+- Bumped aiohttp from 3.7.4.post0 to 3.8.1
+- Bumped pygments from 2.9.0 to 2.10.0
+- Bumped deepdiff from 5.5.0 to 5.6.0
+- Bumped pyyaml from 5.4.1 to 6.0
+- Bumped pytz from 2021.1 to 2021.3
+- Bumped python-engineio from 3.13.2 to 4.3.0
+- Bumped feedparser from 6.0.2 to 6.0.8
+- Bumped python-socketio from 4.6.1 to 5.5.0
 
 **Breaking Changes**
 
