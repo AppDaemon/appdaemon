@@ -114,7 +114,7 @@ The ``appdaemon:`` section has a number of directives:
 -  ``elevation`` (required) - elevation for AppDaemon to use in meters above sea level.
 -  ``time_zone`` (required) - timezone for AppDaemon to use (e.g. America/New_York).
 -  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
--  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
+-  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps. It should be noted AD will by default ignore all directories with a "." in its path (hidden folder).
 - ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
 - ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
 - ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``. This can also be changed from within apps, using the ``set_production_mode`` API call.
