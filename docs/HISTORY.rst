@@ -34,9 +34,7 @@ None
 - Bumped deepdiff from 5.5.0 to 5.6.0
 - Bumped pyyaml from 5.4.1 to 6.0
 - Bumped pytz from 2021.1 to 2021.3
-- Bumped python-engineio from 3.13.2 to 4.3.0
 - Bumped feedparser from 6.0.2 to 6.0.8
-- Bumped python-socketio from 4.6.1 to 5.5.0
 
 **Breaking Changes**
 
