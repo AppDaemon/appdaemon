@@ -373,9 +373,9 @@ class AppManagement:
             )
             new_config = utils.run_in_executor(self.read_config_file, self.app_config_file)
         else:
-            for root, subdirs, files in os.walk(self.AD.app_dir):
-                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
-                if root[-11:] != "__pycache__" and "." not in root:
+            for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir):
+                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
+                if root[-11:] != "__pycache__" and root[0] != ".":
                     for file in files:
                         if file[-5:] == ".yaml" and file[0] != ".":
                             path = os.path.join(root, file)
@@ -507,8 +507,8 @@ class AppManagement:
             later_files["latest"] = last_latest
             later_files["deleted"] = []
             for root, subdirs, files in os.walk(self.AD.app_dir):
-                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
-                if root[-11:] != "__pycache__" and "." not in root:
+                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
+                if root[-11:] != "__pycache__" and root[0] != ".":
                     for file in files:
                         if file[-5:] == ".yaml" and file[0] != ".":
                             path = os.path.join(root, file)
@@ -794,7 +794,7 @@ class AppManagement:
                     #
                     # Prune dir list
                     #
-                    subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
+                    subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
 
                     ext = filter["input_ext"]
                     extlen = len(ext) * -1
@@ -869,9 +869,9 @@ class AppManagement:
                 #
                 # Prune dir list
                 #
-                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs]
+                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
 
-                if root[-11:] != "__pycache__" and "." not in root:
+                if root[-11:] != "__pycache__" and root[0] != ".":
                     if root not in self.module_dirs:
                         self.logger.info("Adding %s to module import path", root)
                         sys.path.insert(0, root)
