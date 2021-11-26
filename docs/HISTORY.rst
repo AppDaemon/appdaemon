@@ -25,7 +25,7 @@ None
 - Bumped azure-mgmt-storage from 17.1.0 to 19.0.0
 - Bumped azure-mgmt-resource from 19.0.0 to 20.0.0
 - Bumped azure-mgmt-compute from 22.1.0 to 23.1.0
-- Bumped iso8601 from 0.1.16 to 1.0.0
+- Bumped iso8601 from 0.1.16 to 1.0.2
 - Bumped yarl from 1.6.3 to 1.7.2
 - Bumped paho-mqtt from 1.5.1 to 1.6.1
 - Bumped jinja2 from 3.0.1 to 3.0.3
