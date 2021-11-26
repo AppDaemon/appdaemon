@@ -15,6 +15,7 @@ None
 - Fixed the possibility of having `check_app_updates` being a negative value
 - Fix for Hass services not being captured after startup again
 - Fixed issue whereby `.git` paths where being imported into AD and leading to lots of unnecessary messages.
+- Fixed issue with AD being unable to refresh Plugin's entities
 - Documentation fixes - contributed by `markwmuller <https://github.com/markwmuller>`__
 - Documentation fixes - contributed by `JonasPed <https://github.com/JonasPed>`__
 - Documentation fixes - contributed by `elandt <https://github.com/elandt>`__

@@ -292,7 +292,7 @@ class Plugins:
                     try:
                         self.logger.debug("Refreshing %s state", name)
 
-                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"], loop=self.AD.loop):
+                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"]):
                             state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
