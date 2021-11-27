@@ -23,8 +23,9 @@ code when those events occur, allowing the App to respond to the event
 with some kind of action.
 
 The first step is to create a unique file within the apps directory (as
-defined `here <INSTALL.html>`__). This file, is in fact, a Python
-module, and is expected to contain one or more classes derived from a
+defined `here <INSTALL.html>`__). It should be noted that AD will ignore all files
+saved within a hidden directory; essentially those with a "." in its path.
+This file, is in fact, a Pythonmodule, and is expected to contain one or more classes derived from a
 supplied *AppDaemon class* or a *custom plugin*. For instance, hass support can be used
 by importing from the supplied ``hassapi`` module. The start of an App might look like this:
 
@@ -334,7 +335,7 @@ In the App, the api_key can be accessed like every other argument the App can ac
 Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~
 
-If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The varibales can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
+If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The variables can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
 
 An example using the os's time zone for AD:
 

@@ -1274,10 +1274,11 @@ class ADAPI:
                 attribute value.
             new (optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the new state match the value
-                of ``new``.
+                of ``new``. The parameter type is defined by the namespace or plugin that is responsible
+                for the entity. If it looks like a float, list, or dictionary, it may actually be a string.
             old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
-                of ``old``.
+                of ``old``. The same caveats on types for the ``new`` parameter apply to this parameter.
 
             duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
                 fire unless the state listened for is maintained for that number of seconds. This
@@ -2107,7 +2108,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def now_is_between(self, start_time, end_time, name=None):
-        """Determines is the current `time` is within the specified start and end times.
+        """Determines if the current `time` is within the specified start and end times.
 
         This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
         offset and returns ``true`` if the current time is between those 2 times. Its

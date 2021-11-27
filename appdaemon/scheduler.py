@@ -584,7 +584,7 @@ class Scheduler:
                 await self.sleep(1)
 
     async def sleep(self, delay):
-        coro = asyncio.sleep(delay, loop=self.AD.loop)
+        coro = asyncio.sleep(delay)
         self.sleep_task = asyncio.ensure_future(coro)
         try:
             await self.sleep_task

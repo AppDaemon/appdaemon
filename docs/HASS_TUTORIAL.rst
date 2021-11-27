@@ -140,7 +140,7 @@ different scenes in a different version of the App.
         self.run_at_sunset(self.before_sunset_cb, offset=-900)
 
       def sunrise_cb(self, kwargs):
-        self.turn_on(self.args["off_scene"])
+        self.turn_off(self.args["off_scene"])
 
       def before_sunset_cb(self, kwargs):
         self.turn_on(self.args["on_scene"])
