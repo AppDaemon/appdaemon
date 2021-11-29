@@ -5,7 +5,7 @@ import iso8601
 import re
 from datetime import timedelta
 from copy import deepcopy
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, Union
 
 # needed for fake coro cb that looks like scheduler
 import uuid
@@ -1247,7 +1247,9 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def listen_state(self, callback, entity=None, **kwargs):
+    async def listen_state(
+        self, callback: Callable, entity: Union[str, list] = None, **kwargs: Optional[dict]
+    ) -> Union[str, list]:
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
@@ -1255,10 +1257,11 @@ class ADAPI:
         Args:
             callback: Function to be invoked when the requested state change occurs. It must conform
                 to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
-            entity (str, optional): name of an entity or device type. If just a device type is provided,
+            entity (str|list, optional): name of an entity or device type. If just a device type is provided,
                 e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
                 devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
-                listen for state changes for just that entity.
+                listen for state changes for just that entity. If a list of entities, it will subscribe for those
+                entities, and return their handles
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1373,6 +1376,10 @@ class ADAPI:
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, immediate = True)
 
+            Listen for a state change involving `light.office1` and `light.office2` changing to state on.
+
+            >>> self.handle = self.listen_state(self.my_callback, ["light.office_1", "light.office2"], new = "on")
+
         """
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
@@ -1382,7 +1389,17 @@ class ADAPI:
             await self._check_entity(namespace, entity)
 
         self.logger.debug("Calling listen_state for %s", self.name)
-        return await self.AD.state.add_state_callback(name, namespace, entity, callback, kwargs)
+
+        if isinstance(entity, list):
+            handles = []
+            for e in entity:
+                handle = await self.AD.state.add_state_callback(name, namespace, e, callback, kwargs)
+                handles.append(handle)
+
+            return handles
+
+        else:
+            return await self.AD.state.add_state_callback(name, namespace, entity, callback, kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_state(self, handle):
@@ -1796,15 +1813,17 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def listen_event(self, callback, event=None, **kwargs):
+    async def listen_event(
+        self, callback: Callable, event: Union[str, list] = None, **kwargs: Optional[dict]
+    ) -> Union[str, list]:
         """Registers a callback for a specific event, or any event.
 
         Args:
             callback: Function to be invoked when the event is fired.
                 It must conform to the standard Event Callback format documented `here <APPGUIDE.html#about-event-callbacks>`__
-            event (optional): Name of the event to subscribe to. Can be a standard
-                Home Assistant event such as `service_registered` or an arbitrary
-                custom event such as `"MODE_CHANGE"`. If no event is specified,
+            event (str|list, optional): Name of the event to subscribe to. Can be a standard
+                Home Assistant event such as `service_registered`, an arbitrary
+                custom event such as `"MODE_CHANGE"` or a list of events `["pressed", "released"]`. If no event is specified,
                 `listen_event()` will subscribe to all events.
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -1857,6 +1876,10 @@ class ADAPI:
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
 
+            Listen for some custom events of a button being pressed.
+
+            >>> self.listen_event(self.button_event, ["pressed", "released"])
+
         """
         namespace = self._get_namespace(**kwargs)
 
@@ -1865,7 +1888,17 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
-        return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
+
+        if isinstance(event, list):
+            handles = []
+            for e in event:
+                handle = await self.AD.events.add_event_callback(_name, namespace, callback, e, **kwargs)
+                handles.append(handle)
+
+            return handles
+
+        else:
+            return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_event(self, handle):
