@@ -6,7 +6,8 @@ Change Log
 
 **Features**
 
-None
+- Added support for passing a list of events to `listen_event` api
+- Added support for passing a list of entities to `listen_state` api
 
 **Fixes**
 
