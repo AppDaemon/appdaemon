@@ -43,7 +43,6 @@ class Entity:
             namespace = self._namespace
 
         return namespace
-    
 
     @utils.sync_wrapper
     async def set_state(self, **kwargs) -> dict:
@@ -99,7 +98,9 @@ class Entity:
         return await self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
 
     @utils.sync_wrapper
-    async def get_state(self, attribute: str=None, default: Any=None, copy: bool=True, **kwargs: Optional[dict]) -> dict:
+    async def get_state(
+        self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[dict]
+    ) -> dict:
         """Gets the state of any entity within AD.
 
         State updates are continuously tracked, so this call runs locally and does not require
@@ -160,9 +161,7 @@ class Entity:
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
-    async def listen_state(
-        self, callback: Callable, **kwargs: Optional[dict]
-    ) -> Union[str, list]:
+    async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> Union[str, list]:
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
