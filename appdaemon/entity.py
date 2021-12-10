@@ -161,6 +161,12 @@ class Entity:
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
+    async def copy(self, copy: bool = True) -> dict:
+        """Gets the complete state of the entity within AD."""
+
+        return await self.get_state(attribute="all", copy=copy, default={})
+
+    @utils.sync_wrapper
     async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> Union[str, list]:
         """Registers a callback to react to state changes.
 
