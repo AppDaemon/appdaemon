@@ -70,7 +70,7 @@ class Entity:
             A dictionary that represents the new state of the updated entity.
 
         Examples:
-            >>> self.my_enitity = self.adapi.get_entity("light.living_room")
+            >>> self.my_enitity = self.get_entity("light.living_room")
 
             Update the state of an entity.
 
@@ -134,7 +134,7 @@ class Entity:
             for each entity. Under that key will be the standard entity state information.
 
         Examples:
-            >>> self.my_enitity = self.adapi.get_entity("light.office_1")
+            >>> self.my_enitity = self.get_entity("light.office_1")
 
             Get the state attribute of `light.office_1`.
 
@@ -244,7 +244,7 @@ class Entity:
             recommended that handles are stored in the object namespace, e.g., `self.handle`.
 
         Examples:
-            >>> self.my_enitity = self.adapi.get_entity("light.office_1")
+            >>> self.my_enitity = self.get_entity("light.office_1")
 
             Listen for a state change involving `light.office1` and return the state attribute.
 
@@ -333,7 +333,7 @@ class Entity:
         Examples:
             HASS
 
-            >>> self.my_enitity = self.adapi.get_entity("light.office_1")
+            >>> self.my_enitity = self.get_entity("light.office_1")
             >>> self.my_enitity.call_service("light/turn_on", color_name = "red")
 
         """
