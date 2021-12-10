@@ -12,6 +12,7 @@ import uuid
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.entity import Entity
 
 
 class ADAPI:
@@ -3091,6 +3092,12 @@ class ADAPI:
     #
     # Other
     #
+
+    def get_entity(self, entity: str, **kwargs: Optional[dict]) -> Entity:
+        self._check_entity(self._get_namespace(**kwargs), entity)
+        entity_id = Entity(self.logger, self.AD, self.name, self._namespace, entity)
+
+        return entity_id
 
     def run_in_thread(self, callback, thread, **kwargs):
         """Schedules a callback to be run in a different thread from the current one.
