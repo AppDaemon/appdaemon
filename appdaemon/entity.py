@@ -15,11 +15,6 @@ class Entity:
         self.name = name
         self.logger = logger
 
-    @staticmethod
-    def _check_service(service: str) -> None:
-        if service.find("/") == -1:
-            raise ValueError("Invalid Service Name: %s", service)
-
     def set_namespace(self, namespace: str) -> None:
         """Sets a new namespace for the App to use from that point forward.
 
@@ -159,12 +154,6 @@ class Entity:
             del kwargs["namespace"]
 
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
-
-    @utils.sync_wrapper
-    async def copy(self, copy: bool = True) -> dict:
-        """Gets the complete state of the entity within AD."""
-
-        return await self.get_state(attribute="all", copy=copy, default={})
 
     @utils.sync_wrapper
     async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> Union[str, list]:
@@ -347,8 +336,14 @@ class Entity:
         entity_id = self._entity_id
         kwargs["entity_id"] = entity_id
 
-        self._check_service(service)
-        d, s = service.split("/")
+        if service.count("/") == 1:  # domain given
+            d, s = service.split("/")
+
+        else:  # domain not given
+            domain, _ = entity_id.split(".")
+            d = domain
+            s = service
+
         self.logger.debug("call_service: %s/%s, %s", d, s, kwargs)
 
         namespace = self._get_namespace(**kwargs)
@@ -358,3 +353,33 @@ class Entity:
         kwargs["__name"] = self.name
 
         return await self.AD.services.call_service(namespace, d, s, kwargs)
+
+    #
+    # Helpers
+    #
+
+    @utils.sync_wrapper
+    async def copy(self, copy: bool = True) -> dict:
+        """Gets the complete state of the entity within AD."""
+
+        return await self.get_state(attribute="all", copy=copy, default={})
+
+    @utils.sync_wrapper
+    async def is_state(self, state: Any) -> bool:
+        """Checks the state of the entity against the given state"""
+
+        entity_state = await self.get_state(copy=False)
+
+        return entity_state == state
+
+    @utils.sync_wrapper
+    async def turn_on(self, **kwargs: Optional[dict]) -> Any:
+        """Used to turn the entity ON if supported"""
+
+        return await self.call_service("turn_on", **kwargs)
+
+    @utils.sync_wrapper
+    async def turn_off(self, **kwargs: Optional[dict]) -> Any:
+        """Used to turn the entity OFF if supported"""
+
+        return await self.call_service("turn_off", **kwargs)
