@@ -1,8 +1,11 @@
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.exceptions import TimeOutException
 import appdaemon.utils as utils
 
 from typing import Any, Optional, Callable, Union
 from logging import Logger
+import asyncio
+import uuid
 
 
 class EntityAttrs:
@@ -26,6 +29,7 @@ class Entity:
         self._namespace = namespace
         self.name = name
         self.logger = logger
+        self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
         """Sets a new namespace for the App to use from that point forward.
@@ -348,8 +352,38 @@ class Entity:
 
         return await self.AD.services.call_service(namespace, domain, service, kwargs)
 
+    async def wait_state(
+        self, state: Any = None, attribute: Union[str, int] = None, timeout: Union[int, float] = None
+    ) -> Any:
+        """Used to wait for the state of an entity's attribute"""
+
+        _id = uuid.uuid4().hex
+        _async_event = asyncio.Event()
+        _async_event.clear()
+        self._async_events[_id] = _async_event
+
+        try:
+            handle = await self.listen_state(
+                self.entity_state_changed, new=state, attribute=attribute, immediate=True, oneshot=True, _id=_id
+            )
+            await asyncio.wait_for(_async_event.wait(), timeout=timeout)
+
+        except asyncio.TimeoutError:
+            await self.AD.state.cancel_state_callback(handle, self.name)
+            self.logger.warning(f"State Wait for {self._entity_id} Timed Out")
+            raise TimeOutException("The entity timed out")
+
+    async def entity_state_changed(self, *args: list, **kwargs: dict) -> None:
+        """The entity state changed"""
+
+        _id = args[4]["_id"]
+        _async_event = self._async_events.pop(_id)
+
+        # now release the wait
+        _async_event.set()
+
     #
-    # Helpers
+    # Properties
     #
 
     @utils.sync_wrapper
