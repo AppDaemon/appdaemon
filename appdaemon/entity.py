@@ -16,7 +16,7 @@ class EntityAttrs:
 
 class Entity:
 
-    state = EntityAttrs()
+    states = EntityAttrs()
 
     def __init__(self, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity_id: str):
         # Store args
@@ -395,3 +395,11 @@ class Entity:
         """Used to turn the entity OFF if supported"""
 
         return await self.call_service("turn_off", **kwargs)
+
+    @property
+    def state(self):
+        return self.states.state
+
+    @property
+    def attributes(self):
+        return self.states.attributes
