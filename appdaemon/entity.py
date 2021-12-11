@@ -303,20 +303,9 @@ class Entity:
         """Calls a Service within AppDaemon.
 
         This function can call any service and provide any required parameters.
-        By default, there are standard services that can be called within AD. Other
-        services that can be called, are dependent on the plugin used, or those registered
-        by individual apps using the `register_service` api.
-        In a future release, all available services can be found using AD's Admin UI.
-        For `listed services`, the part before the first period is the ``domain``,
-        and the part after is the ``service name`. For instance, `light/turn_on`
-        has a domain of `light` and a service name of `turn_on`.
-
-        The default behaviour of the call service api is not to wait for any result, typically
-        known as "fire and forget". If it is required to get the results of the call, keywords
-        "return_result" or "callback" can be added.
 
         Args:
-            service (str): The service name.
+            service (str): The service name, without the domain
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -341,22 +330,15 @@ class Entity:
             HASS
 
             >>> self.my_enitity = self.get_entity("light.office_1")
-            >>> self.my_enitity.call_service("light/turn_on", color_name = "red")
+            >>> self.my_enitity.call_service("turn_on", color_name = "red")
 
         """
 
         entity_id = self._entity_id
         kwargs["entity_id"] = entity_id
 
-        if service.count("/") == 1:  # domain given
-            d, s = service.split("/")
-
-        else:  # domain not given
-            domain, _ = entity_id.split(".")
-            d = domain
-            s = service
-
-        self.logger.debug("call_service: %s/%s, %s", d, s, kwargs)
+        domain, _ = entity_id.split(".")
+        self.logger.debug("call_service: %s/%s, %s", domain, service, kwargs)
 
         namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
@@ -364,7 +346,7 @@ class Entity:
 
         kwargs["__name"] = self.name
 
-        return await self.AD.services.call_service(namespace, d, s, kwargs)
+        return await self.AD.services.call_service(namespace, domain, service, kwargs)
 
     #
     # Helpers
