@@ -8,6 +8,7 @@ Change Log
 
 - Added support for passing a list of events to `listen_event` api
 - Added support for passing a list of entities to `listen_state` api
+- Added support for entity class
 
 **Fixes**
 
