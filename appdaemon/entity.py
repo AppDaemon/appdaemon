@@ -5,7 +5,19 @@ from typing import Any, Optional, Callable, Union
 from logging import Logger
 
 
+class EntityAttrs:
+    def __init__(self):
+        pass
+
+    def __get__(self, instance, owner):
+        stateattrs = utils.EntityStateAttrs(instance.get_state(attribute="all", copy=False, default={}))
+        return stateattrs
+
+
 class Entity:
+
+    state = EntityAttrs()
+
     def __init__(self, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity_id: str):
         # Store args
 
