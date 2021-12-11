@@ -397,9 +397,19 @@ class Entity:
         return await self.call_service("turn_off", **kwargs)
 
     @property
-    def state(self):
+    def state(self) -> Any:
+        """Get the entity's state"""
+
         return self.states.state
 
     @property
-    def attributes(self):
+    def attributes(self) -> dict:
+        """Get the entity's attributes"""
+
         return self.states.attributes
+
+    @property
+    def last_changed(self) -> str:
+        """Get the entity's last changed time in iso format"""
+
+        return self.states.last_changed
