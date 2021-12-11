@@ -3094,8 +3094,9 @@ class ADAPI:
     #
 
     def get_entity(self, entity: str, **kwargs: Optional[dict]) -> Entity:
-        self._check_entity(self._get_namespace(**kwargs), entity)
-        entity_id = Entity(self.logger, self.AD, self.name, self._namespace, entity)
+        namespace = self._get_namespace(**kwargs)
+        self._check_entity(namespace, entity)
+        entity_id = Entity(self.logger, self.AD, self.name, namespace, entity)
 
         return entity_id
 
