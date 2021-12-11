@@ -397,6 +397,12 @@ class Entity:
         return await self.call_service("turn_off", **kwargs)
 
     @property
+    def entity_id(self) -> Any:
+        """Get the entity's entity_id"""
+
+        return self.states.entity_id
+
+    @property
     def state(self) -> Any:
         """Get the entity's state"""
 
