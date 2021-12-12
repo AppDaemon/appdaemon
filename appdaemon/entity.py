@@ -354,7 +354,7 @@ class Entity:
 
     async def wait_state(
         self,
-        state: Any = None,
+        state: Any,
         attribute: Union[str, int] = None,
         duration: Union[int, float] = 0,
         timeout: Union[int, float] = None,
