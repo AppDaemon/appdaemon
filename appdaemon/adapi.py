@@ -1709,7 +1709,7 @@ class ADAPI:
                 if no namespace is given, AppDaemon will use the last specified namespace
                 or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
                 for a detailed description. In most cases, it is safe to ignore this parameter.
-            return_result(str, option): If `return_result` is provided and set to `True` AD will attempt
+            return_result(bool, option): If `return_result` is provided and set to `True` AD will attempt
                 to wait for the result, and return it after execution
             callback: The non-async callback to be executed when complete.
 

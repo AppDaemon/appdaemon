@@ -46,15 +46,6 @@ class Entity:
         """
         self._namespace = namespace
 
-    def _get_namespace(self, **kwargs: Optional[dict]) -> str:
-        if "namespace" in kwargs:
-            namespace = kwargs["namespace"]
-            del kwargs["namespace"]
-        else:
-            namespace = self._namespace
-
-        return namespace
-
     @utils.sync_wrapper
     async def set_state(self, **kwargs: Optional[dict]) -> dict:
         """Updates the state of the specified entity.
@@ -65,11 +56,6 @@ class Entity:
         Keyword Args:
             state: New state value to be set.
             attributes (optional): Entity's attributes to be updated.
-            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
-                the state of the given entity in the given namespace. On the other hand,
-                if no namespace is given, AppDaemon will use the last specified namespace
-                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
-                for a detailed description. In most cases, it is safe to ignore this parameter.
             replace(bool, optional): If a `replace` flag is given and set to ``True`` and ``attributes``
                 is provided, AD will attempt to replace its internal entity register with the newly
                 supplied attributes completely. This can be used to replace attributes in an entity
@@ -91,17 +77,12 @@ class Entity:
 
             >>> self.my_enitity.set_state(state = "on", attributes = {"color_name": "red"})
 
-            Update the state of an entity within the specified namespace.
-
-            >>> self.my_enitity.set_state(state="off", namespace ="hass")
-
         """
 
         entity_id = self._entity_id
+        namespace = self._namespace
 
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
-
-        namespace = self._get_namespace(**kwargs)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -113,10 +94,6 @@ class Entity:
         self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[dict]
     ) -> dict:
         """Gets the state of any entity within AD.
-
-        State updates are continuously tracked, so this call runs locally and does not require
-        AppDaemon to call back to Home Assistant. In other words, states are updated using a
-        push-based approach instead of a pull-based one.
 
         Args:
             attribute (str, optional): Name of an attribute within the entity state object.
@@ -135,12 +112,9 @@ class Entity:
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
 
         Returns:
-            The entire state of Home Assistant at that given time, if  if ``get_state()``
+            The entire state of the entity at that given time, if  if ``get_state()``
             is called with no parameters. This will consist of a dictionary with a key
             for each entity. Under that key will be the standard entity state information.
 
@@ -162,10 +136,10 @@ class Entity:
         """
 
         entity_id = self._entity_id
+        namespace = self._namespace
 
         self.logger.debug("get state: %s, %s", entity_id, kwargs)
 
-        namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
@@ -235,10 +209,6 @@ class Entity:
                 state will be set to ``None``.
             oneshot (bool, optional): If ``True``, the callback will be automatically cancelled
                 after the first state change that results in a callback.
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description. In most cases,
-                it is safe to ignore this parameter. The value ``global`` for namespace has special
-                significance and means that the callback will listen to state updates from any plugin.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Sets which thread from the worker pool the callback will be
                 run by (0 - number of threads -1).
@@ -290,12 +260,13 @@ class Entity:
         """
 
         entity_id = self._entity_id
+        namespace = self._namespace
 
         self.logger.debug("set state: %s, %s", entity_id, kwargs)
 
-        namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
+
         name = self.name
 
         self.logger.debug("Calling listen_state for %s", self.name)
@@ -304,12 +275,12 @@ class Entity:
 
     @utils.sync_wrapper
     async def call_service(self, service: str, **kwargs: Optional[dict]) -> Any:
-        """Calls a Service within AppDaemon.
+        """Calls an entity supported Service within AppDaemon.
 
-        This function can call any service and provide any required parameters.
+        This function can call only services that are tied to the entity, and provide any required parameters.
 
         Args:
-            service (str): The service name, without the domain
+            service (str): The service name, without the domain (e.g "toggle")
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -318,12 +289,7 @@ class Entity:
                 `state = on`. These parameters will be different for
                 every service and can be discovered using the developer tools.
 
-            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
-                the state of the given entity in the given namespace. On the other hand,
-                if no namespace is given, AppDaemon will use the last specified namespace
-                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
-                for a detailed description. In most cases, it is safe to ignore this parameter.
-            return_result(str, option): If `return_result` is provided and set to `True` AD will attempt
+            return_result(bool, option): If `return_result` is provided and set to `True` AD will attempt
                 to wait for the result, and return it after execution
             callback: The non-async callback to be executed when complete.
 
@@ -339,12 +305,13 @@ class Entity:
         """
 
         entity_id = self._entity_id
+        namespace = self._namespace
+
         kwargs["entity_id"] = entity_id
 
         domain, _ = entity_id.split(".")
         self.logger.debug("call_service: %s/%s, %s", domain, service, kwargs)
 
-        namespace = self._get_namespace(**kwargs)
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
@@ -421,6 +388,12 @@ class Entity:
         """Used to turn the entity OFF if supported"""
 
         return await self.call_service("turn_off", **kwargs)
+
+    @utils.sync_wrapper
+    async def toggle(self, **kwargs: Optional[dict]) -> Any:
+        """Used to toggle the entity ON/OFF if supported"""
+
+        return await self.call_service("toggle", **kwargs)
 
     @property
     def entity_id(self) -> str:
