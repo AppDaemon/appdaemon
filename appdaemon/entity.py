@@ -353,20 +353,30 @@ class Entity:
         return await self.AD.services.call_service(namespace, domain, service, kwargs)
 
     async def wait_state(
-        self, state: Any = None, attribute: Union[str, int] = None, timeout: Union[int, float] = None
-    ) -> Any:
+        self,
+        state: Any = None,
+        attribute: Union[str, int] = None,
+        duration: Union[int, float] = 0,
+        timeout: Union[int, float] = None,
+    ) -> None:
         """Used to wait for the state of an entity's attribute"""
 
-        _id = uuid.uuid4().hex
-        _async_event = asyncio.Event()
-        _async_event.clear()
-        self._async_events[_id] = _async_event
+        wait_id = uuid.uuid4().hex
+        async_event = asyncio.Event()
+        async_event.clear()
+        self._async_events[wait_id] = async_event
 
         try:
             handle = await self.listen_state(
-                self.entity_state_changed, new=state, attribute=attribute, immediate=True, oneshot=True, _id=_id
+                self.entity_state_changed,
+                new=state,
+                attribute=attribute,
+                duration=duration,
+                immediate=True,
+                oneshot=True,
+                wait_id=wait_id,
             )
-            await asyncio.wait_for(_async_event.wait(), timeout=timeout)
+            await asyncio.wait_for(async_event.wait(), timeout=timeout)
 
         except asyncio.TimeoutError:
             await self.AD.state.cancel_state_callback(handle, self.name)
@@ -376,11 +386,11 @@ class Entity:
     async def entity_state_changed(self, *args: list, **kwargs: dict) -> None:
         """The entity state changed"""
 
-        _id = args[4]["_id"]
-        _async_event = self._async_events.pop(_id)
+        wait_id = args[4]["wait_id"]
+        async_event = self._async_events.pop(wait_id)
 
         # now release the wait
-        _async_event.set()
+        async_event.set()
 
     #
     # Properties
@@ -413,7 +423,7 @@ class Entity:
         return await self.call_service("turn_off", **kwargs)
 
     @property
-    def entity_id(self) -> Any:
+    def entity_id(self) -> str:
         """Get the entity's entity_id"""
 
         return self.states.entity_id
