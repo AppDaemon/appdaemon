@@ -56,7 +56,7 @@ class Entity:
         return namespace
 
     @utils.sync_wrapper
-    async def set_state(self, **kwargs) -> dict:
+    async def set_state(self, **kwargs: Optional[dict]) -> dict:
         """Updates the state of the specified entity.
 
         Args:
@@ -172,7 +172,7 @@ class Entity:
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
-    async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> Union[str, list]:
+    async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> str:
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
