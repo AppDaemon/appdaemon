@@ -408,6 +408,12 @@ class Entity:
         return self.states.state
 
     @property
+    def friendly_name(self) -> dict:
+        """Get the entity's friendly name"""
+
+        return self.states.attributes.friendly_name
+
+    @property
     def attributes(self) -> dict:
         """Get the entity's attributes"""
 
