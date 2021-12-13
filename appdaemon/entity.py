@@ -408,7 +408,7 @@ class Entity:
         return self.states.state
 
     @property
-    def friendly_name(self) -> dict:
+    def friendly_name(self) -> str:
         """Get the entity's friendly name"""
 
         return self.states.attributes.friendly_name
