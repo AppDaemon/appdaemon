@@ -8,6 +8,7 @@ Change Log
 
 - Added support for passing a list of events to `listen_event` api
 - Added support for passing a list of entities to `listen_state` api
+- Clicking on a sequence name in AUI will now run the sequence
 
 **Fixes**
 
