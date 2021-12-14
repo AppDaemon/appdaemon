@@ -6,6 +6,8 @@ from typing import Any, Optional, Callable, Union
 from logging import Logger
 import asyncio
 import uuid
+import iso8601
+from datetime import datetime
 
 
 class EntityAttrs:
@@ -82,7 +84,7 @@ class Entity:
         entity_id = self._entity_id
         namespace = self._namespace
 
-        self.logger.debug("set state: %s, %s", entity_id, kwargs)
+        self.logger.debug("set state: %s, %s from %s", entity_id, kwargs, self.name)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
@@ -138,12 +140,12 @@ class Entity:
         entity_id = self._entity_id
         namespace = self._namespace
 
-        self.logger.debug("get state: %s, %s", entity_id, kwargs)
+        self.logger.debug("get state: %s, %s from %s", entity_id, kwargs, self.name)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
+        return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy)
 
     @utils.sync_wrapper
     async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> str:
@@ -262,14 +264,12 @@ class Entity:
         entity_id = self._entity_id
         namespace = self._namespace
 
-        self.logger.debug("set state: %s, %s", entity_id, kwargs)
-
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
         name = self.name
 
-        self.logger.debug("Calling listen_state for %s", self.name)
+        self.logger.debug("Calling listen_state for %s, %s from %s", entity_id, kwargs, self.name)
 
         return await self.AD.state.add_state_callback(name, namespace, entity_id, callback, kwargs)
 
@@ -360,7 +360,15 @@ class Entity:
         async_event.set()
 
     #
-    # Properties
+    # Entry point for entity api calls
+    #
+
+    @classmethod
+    def entity_api(cls, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity: str):
+        return cls(logger, ad, name, namespace, entity)
+
+    #
+    # helper functions
     #
 
     @utils.sync_wrapper
@@ -395,6 +403,10 @@ class Entity:
 
         return await self.call_service("toggle", **kwargs)
 
+    #
+    # Properties
+    #
+
     @property
     def entity_id(self) -> str:
         """Get the entity's entity_id"""
@@ -424,3 +436,11 @@ class Entity:
         """Get the entity's last changed time in iso format"""
 
         return self.states.last_changed
+
+    @property
+    def last_changed_seconds(self) -> float:
+        """Get the entity's last changed time in seconds"""
+
+        utc = iso8601.parse_date(self.states.last_changed)
+        now = self.AD.sched.convert_naive(datetime.now())
+        return (now - utc).total_seconds()

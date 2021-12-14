@@ -1249,7 +1249,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def listen_state(
-        self, callback: Callable, entity: Union[str, list] = None, **kwargs: Optional[dict]
+        self, callback: Callable, entity_id: Union[str, list] = None, **kwargs: Optional[dict]
     ) -> Union[str, list]:
         """Registers a callback to react to state changes.
 
@@ -1258,7 +1258,7 @@ class ADAPI:
         Args:
             callback: Function to be invoked when the requested state change occurs. It must conform
                 to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
-            entity (str|list, optional): name of an entity or device type. If just a device type is provided,
+            entity_id (str|list, optional): name of an entity or device type. If just a device type is provided,
                 e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
                 devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
                 listen for state changes for just that entity. If a list of entities, it will subscribe for those
@@ -1383,24 +1383,23 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        name = self.name
-        if entity is not None and "." in entity:
-            await self._check_entity(namespace, entity)
 
-        self.logger.debug("Calling listen_state for %s", self.name)
-
-        if isinstance(entity, list):
+        if isinstance(entity_id, list):
             handles = []
-            for e in entity:
-                handle = await self.AD.state.add_state_callback(name, namespace, e, callback, kwargs)
+            for e in entity_id:
+                if e is not None and "." in e:
+                    await self._check_entity(namespace, e)
+
+                handle = await self.get_entity_api(namespace, e).listen_state(callback, **kwargs)
                 handles.append(handle)
 
             return handles
 
         else:
-            return await self.AD.state.add_state_callback(name, namespace, entity, callback, kwargs)
+            if entity_id is not None and "." in entity_id:
+                await self._check_entity(namespace, entity_id)
+
+            return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
 
     @utils.sync_wrapper
     async def cancel_listen_state(self, handle):
@@ -1504,17 +1503,15 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
 
-        return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
+        return await self.get_entity_api(namespace, entity_id).get_state(attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
-    async def set_state(self, entity, **kwargs):
+    async def set_state(self, entity_id, **kwargs):
         """Updates the state of the specified entity.
 
         Args:
-            entity (str): The fully qualified entity id (including the device type).
+            entity_id (str): The fully qualified entity id (including the device type).
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1549,13 +1546,11 @@ class ADAPI:
             >>> self.set_state("light.office_1", state="off", namespace ="hass")
 
         """
-        self.logger.debug("set state: %s, %s", entity, kwargs)
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
 
-        return await self.AD.state.set_state(self.name, namespace, entity, **kwargs)
+        namespace = self._get_namespace(**kwargs)
+        await self._check_entity(namespace, entity_id)
+
+        return await self.get_entity_api(namespace, entity_id).set_state(**kwargs)
 
     #
     # Service
@@ -1709,7 +1704,7 @@ class ADAPI:
                 if no namespace is given, AppDaemon will use the last specified namespace
                 or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
                 for a detailed description. In most cases, it is safe to ignore this parameter.
-            return_result(bool, option): If `return_result` is provided and set to `True` AD will attempt
+            return_result(str, option): If `return_result` is provided and set to `True` AD will attempt
                 to wait for the result, and return it after execution
             callback: The non-async callback to be executed when complete.
 
