@@ -177,6 +177,12 @@ class StateAttrs(dict):
         self.__dict__ = device_dict
 
 
+class EntityStateAttrs(dict):
+    def __init__(self, dict):
+
+        self.__dict__ = AttrDict.from_nested_dict(dict)
+
+
 def sync_wrapper(coro):
     @wraps(coro)
     def inner_sync_wrapper(self, *args, **kwargs):

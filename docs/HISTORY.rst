@@ -9,6 +9,7 @@ Change Log
 - Added support for passing a list of events to `listen_event` api
 - Added support for passing a list of entities to `listen_state` api
 - Clicking on a sequence name in AUI will now run the sequence
+- Added support for entity class
 
 **Fixes**
 
@@ -46,6 +47,7 @@ Change Log
 - Service calls no longer return results by default
 - `callback` and `return_result` are now reserved words for the service call api
 - If an invalid domain or service is given in a service call, exceptions will now be raised for better error management
+- Changed `set_state` and `listen_state` to support `entity_id` and not `entity`, to standardise use across api calls
 
 4.1.0 (2021-08-21)
 ------------------
