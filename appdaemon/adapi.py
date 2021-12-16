@@ -586,7 +586,7 @@ class ADAPI:
     @utils.sync_wrapper
     async def _check_entity(self, namespace, entity):
         if "." not in entity:
-            raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
+            raise ValueError(f"{self.name}: Invalid entity ID: {entity}")
         if not await self.AD.state.entity_exists(namespace, entity):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
@@ -3094,6 +3094,11 @@ class ADAPI:
         entity_id = Entity(self.logger, self.AD, self.name, namespace, entity)
 
         return entity_id
+
+    def get_entity_api(self, namespace: str, entity_id: str) -> Entity:
+        api = Entity.entity_api(self.logger, self.AD, self.name, namespace, entity_id)
+
+        return api
 
     def run_in_thread(self, callback, thread, **kwargs):
         """Schedules a callback to be run in a different thread from the current one.
