@@ -24,6 +24,7 @@ Change Log
 - Documentation fixes - contributed by `elandt <https://github.com/elandt>`__
 - Documentation fixes - contributed by `marcelblijleven <https://github.com/marcelblijleven>`__
 - Documentation fixes - contributed by `scstraus <https://github.com/scstraus>`__
+- Fixed a long standing bug in set_state ofr HASS plugin where attributes would get overwritten when setting the main state
 - Bumped voluptuous from 0.12.1 to 0.12.2
 - Bumped azure-storage-blob from 12.8.1 to 12.9.0
 - Bumped azure-mgmt-storage from 17.1.0 to 19.0.0

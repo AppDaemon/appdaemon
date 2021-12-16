@@ -619,7 +619,10 @@ class State:
         if hasattr(plugin, "set_plugin_state"):
             # We assume that the state change will come back to us via the plugin
             self.logger.debug("sending event to plugin")
-            result = await plugin.set_plugin_state(namespace, entity, **kwargs)
+
+            result = await plugin.set_plugin_state(
+                namespace, entity, state=new_state["state"], attributes=new_state["attributes"]
+            )
             if result is not None:
                 if "entity_id" in result:
                     result.pop("entity_id")
