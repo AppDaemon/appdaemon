@@ -411,7 +411,19 @@ class Entity:
     def entity_id(self) -> str:
         """Get the entity's entity_id"""
 
-        return self.states.entity_id
+        return self._entity_id
+
+    @property
+    def domain(self) -> str:
+        """Get the entity's domain name"""
+
+        return self._entity_id.split(".")[0]
+
+    @property
+    def device(self) -> str:
+        """Get the entity's device name"""
+
+        return self._entity_id.split(".")[1]
 
     @property
     def state(self) -> Any:
