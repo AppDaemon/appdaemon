@@ -4,7 +4,6 @@ from copy import deepcopy
 
 import appdaemon.utils as utils
 import appdaemon.adapi as adapi
-from appdaemon.entity import Entity
 from appdaemon.appdaemon import AppDaemon
 
 
@@ -99,11 +98,6 @@ class ADBase:
 
     def get_ad_api(self):
         api = adapi.ADAPI(self.AD, self.name, self._logging, self.args, self.config, self.app_config, self.global_vars,)
-
-        return api
-
-    def get_entity_api(self, namespace: str, entity_id: str) -> Entity:
-        api = Entity.entity_api(self.logger, self.AD, self.name, namespace, entity_id)
 
         return api
 
