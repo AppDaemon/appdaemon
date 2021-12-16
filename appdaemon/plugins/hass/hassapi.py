@@ -374,18 +374,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
         await self._check_entity(namespace, entity_id)
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id}
-        else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
 
-        rargs["namespace"] = namespace
-        await self.call_service("homeassistant/turn_on", **rargs)
+        await self.get_entity_api(namespace, entity_id).turn_on(**kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -420,21 +411,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
+        domain, _ = await self.split_entity(entity_id)
 
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id}
+        if domain == "scene":
+            await self.get_entity_api(namespace, entity_id).turn_on(**kwargs)
         else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
-
-        rargs["namespace"] = namespace
-        device, entity = await self.split_entity(entity_id)
-        if device == "scene":
-            await self.call_service("homeassistant/turn_on", **rargs)
-        else:
-            await self.call_service("homeassistant/turn_off", **rargs)
+            await self.get_entity_api(namespace, entity_id).turn_off(**kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -464,18 +446,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
         await self._check_entity(namespace, entity_id)
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id}
-        else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
 
-        rargs["namespace"] = namespace
-        await self.call_service("homeassistant/toggle", **rargs)
+        await self.get_entity_api(namespace, entity_id).toggle(**kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -504,18 +477,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
         await self._check_entity(namespace, entity_id)
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id, "value": value}
-        else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
-            rargs["value"] = value
-        rargs["namespace"] = namespace
-        await self.call_service("input_number/set_value", **rargs)
+
+        kwargs.update({"value": value})
+        await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -544,19 +509,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
         await self._check_entity(namespace, entity_id)
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id, "value": value}
-        else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
-            rargs["value"] = value
 
-        rargs["namespace"] = namespace
-        await self.call_service("input_text/set_value", **rargs)
+        kwargs.update({"value": value})
+        await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -588,19 +544,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
         await self._check_entity(namespace, entity_id)
-        if kwargs == {}:
-            rargs = {"entity_id": entity_id, "option": option}
-        else:
-            rargs = kwargs
-            rargs["entity_id"] = entity_id
-            rargs["option"] = option
 
-        rargs["namespace"] = namespace
-        await self.call_service("input_select/select_option", **rargs)
+        kwargs.update({"option": option})
+        await self.get_entity_api(namespace, entity_id).call_service("select_option", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
