@@ -363,6 +363,7 @@ class Entity:
                 duration=duration,
                 immediate=True,
                 oneshot=True,
+                __silent=True,
                 wait_id=wait_id,
             )
             await asyncio.wait_for(async_event.wait(), timeout=timeout)
