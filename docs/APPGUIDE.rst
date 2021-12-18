@@ -2664,13 +2664,34 @@ Sequences can be created that will loop forever by adding the value ``loop: True
     sequence:
       outside_motion_light:
         name: Outside Motion
-        loop; True
+        loop: True
         steps:
         - homeassistant/turn_on: {"entity_id": "light.outside", "brightness": 254}
         - sleep: 30
         - homeassistant/turn_off: {"entity_id": "light.outside"}
 
 This sequence once started will loop until either the sequence is canceled, the app is restarted or terminated, or AppDaemon is shutdown.
+
+Not only can the whole sequence be looped, but steps can be looped to if wanting to run a certain step multiple times.
+Below is an example of increasing the volume of a device 5 times with 0.5 interval
+
+.. code:: yaml
+
+    sequence:
+      setup_tv:
+        name: Setup TV
+        namespace: hass
+        steps:
+        - homeassistant/turn_on:
+            entity_id: switch.living_room_tv
+
+        - sleep: 30
+
+        - remote/send_command:
+            entity_id: roku.living_room
+            loop_step:
+                times: 5
+                interval: 0.5
 
 Defining a Sequence Call Namespace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,5 +1,7 @@
 import uuid
 import asyncio
+import traceback
+import copy
 
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
@@ -19,15 +21,11 @@ class Sequences:
 
         entity_id = kwargs["entity_id"]
 
-        # await self.run_sequence("_services", namespace, kwargs["entity_id"])
         if service == "run":
-            asyncio.create_task(self.run_sequence("_services", namespace, entity_id))
+            return await self.run_sequence("_services", namespace, entity_id)
 
         elif service == "cancel" and isinstance(entity_id, str):
-            _, entity_name = entity_id.split(".")
-            name = f"sequence_{entity_name}"
-            self.AD.futures.cancel_futures(name)
-            await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
+            return await self.cancel_sequence(entity_id)
 
     async def add_sequences(self, sequences):
         for sequence in sequences:
@@ -51,7 +49,7 @@ class Sequences:
                 )
             else:
                 # means existing before so in case already running already
-                self.AD.futures.cancel_futures(name)
+                await self.cancel_sequence(sequence)
 
                 await self.AD.state.set_state(
                     "_sequences", "rules", entity, state="idle", attributes=attributes, replace=True
@@ -66,28 +64,54 @@ class Sequences:
 
         for sequence in sequences:
             # remove sequence
-            sequence_name = f"sequence_{sequence}"
-            await self.AD.app_management.terminate_sequence(sequence_name)
+            await self.cancel_sequence(sequence)
             await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
 
     async def run_sequence(self, _name, namespace, sequence):
+
+        if isinstance(sequence, str):
+            if "." in sequence:
+                # the entity given
+                _, sequence_name = sequence.split(".")
+
+            else:  # just name given
+                sequence_name = sequence
+                sequence = f"sequence.{sequence}"
+
+            name = f"sequence_{sequence_name}"
+
+        else:
+            name = _name
+
         coro = self.prep_sequence(_name, namespace, sequence)
 
         #
         # OK, lets run it
         #
 
-        if isinstance(sequence, str):
-            _, entity_name = sequence.split(".")
-            name = f"sequence_{entity_name}"
-
-        else:
-            name = _name
-
         future = asyncio.create_task(coro)
         self.AD.futures.add_future(name, future)
 
         return future
+
+    async def cancel_sequence(self, sequence):
+        if isinstance(sequence, str):
+            if "." in sequence:
+                # the entity given
+                _, sequence_name = sequence.split(".")
+                entity_id = sequence
+
+            else:  # just name given
+                sequence_name = sequence
+                entity_id = f"sequence.{sequence}"
+
+        else:  # future given
+            sequence.cancel()
+            return
+
+        name = f"sequence_{sequence_name}"
+        self.AD.futures.cancel_futures(name)
+        await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
     async def prep_sequence(self, _name, namespace, sequence):
         ephemeral_entity = False
@@ -120,21 +144,17 @@ class Sequences:
         coro = await self.do_steps(ns, entity_id, seq, ephemeral_entity, loop)
         return coro
 
-    @staticmethod
-    async def cancel_sequence(_name, future):
-        future.cancel()
-
     async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):
 
         await self.AD.state.set_state("_sequences", "rules", entity_id, state="active")
 
         try:
             while True:
-                for step in seq:
+                steps = copy.deepcopy(seq)
+                for step in steps:
                     for command, parameters in step.items():
                         if isinstance(parameters, dict) and "namespace" in parameters:
-                            ns = parameters["namespace"]
-                            del parameters["namespace"]
+                            ns = parameters.pop("namespace")
                         else:
                             ns = namespace
 
@@ -181,7 +201,13 @@ class Sequences:
                         else:
                             domain, service = str.split(command, "/")
                             parameters["__name"] = entity_id
-                            await self.AD.services.call_service(ns, domain, service, parameters)
+                            params = copy.deepcopy(parameters)
+                            loop_step = parameters.pop("loop_step", None)
+                            await self.AD.services.call_service(ns, domain, service, params)
+
+                            if isinstance(loop_step, dict):  # we need to loop this command multiple times
+                                await self.loop_step(ns, command, parameters, loop_step)
+
                 if loop is not True:
                     break
         finally:
@@ -189,6 +215,29 @@ class Sequences:
 
             if ephemeral_entity is True:
                 await self.AD.state.remove_entity("rules", entity_id)
+
+    async def loop_step(self, namespace: str, command: str, parameters: dict, loop_step: dict) -> None:
+        """Used to loop a step command"""
+
+        try:
+            times = int(loop_step.get("times", 0))
+            interval = float(loop_step.get("interval", 1))
+            ran_times = 0
+
+            domain, service = str.split(command, "/")
+
+            while ran_times < times:
+                params = copy.deepcopy(parameters)
+                await asyncio.sleep(interval)
+                await self.AD.services.call_service(namespace, domain, service, params)
+                ran_times += 1
+
+        except Exception:
+            self.logger.error("-" * 60)
+            self.logger.error("Unexpected error when attempting to loop step")
+            self.logger.error("-" * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error("-" * 60)
 
     #
     # Placeholder for constraints
