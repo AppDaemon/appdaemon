@@ -32,6 +32,7 @@ class Sequences:
     async def add_sequences(self, sequences):
         for sequence in sequences:
             entity = "sequence.{}".format(sequence)
+            name = f"sequence_{sequence}"
             attributes = {
                 "friendly_name": sequences[sequence].get("name", sequence),
                 "loop": sequences[sequence].get("loop", False),
@@ -49,13 +50,15 @@ class Sequences:
                     "rules", entity, "idle", attributes=attributes,
                 )
             else:
+                # means existing before so in case already running already
+                self.AD.futures.cancel_futures(name)
+
                 await self.AD.state.set_state(
                     "_sequences", "rules", entity, state="idle", attributes=attributes, replace=True
                 )
 
             # create sequence objects
-            sequence_name = f"sequence_{sequence}"
-            self.AD.app_management.init_sequence_object(sequence_name, self)
+            self.AD.app_management.init_sequence_object(name, self)
 
     async def remove_sequences(self, sequences):
         if not isinstance(sequences, list):
@@ -163,8 +166,10 @@ class Sequences:
 
                             # now we create the wait entity object
                             entity_object = Entity(self.logger, self.AD, name, ns, wait_entity)
-                            if not entity_object.exists():
-                                self.logger.warning(f"Waiting for an entity {wait_entity}, that doesn't exist")
+                            if not await entity_object.exists():
+                                self.logger.warning(
+                                    f"Waiting for an entity {wait_entity}, in sequence {entity_name}, that doesn't exist"
+                                )
 
                             try:
                                 await entity_object.wait_state(state, attribute, duration, timeout)
