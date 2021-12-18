@@ -97,6 +97,7 @@ class Utility:
             # Register run_sequence service
             #
             self.AD.services.register_service("rules", "sequence", "run", self.AD.sequences.run_sequence_service)
+            self.AD.services.register_service("rules", "sequence", "cancel", self.AD.sequences.run_sequence_service)
 
             #
             # Register production_mode service
