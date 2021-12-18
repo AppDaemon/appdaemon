@@ -605,7 +605,9 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def add_entity(self, entity_id, state=None, attributes=None, **kwargs):
+    async def add_entity(
+        self, entity_id: str, state: Any = None, attributes: dict = None, **kwargs: Optional[dict]
+    ) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
          If an entity doesn't exists and needs to be created, this function can be used to create it locally.
@@ -637,20 +639,15 @@ class ADAPI:
         """
         namespace = self._get_namespace(**kwargs)
 
-        if await self.AD.state.entity_exists(namespace, entity_id):
-            self.logger.warning("%s already exists, will not be adding it", entity_id)
-            return None
-
-        await self.AD.state.add_entity(namespace, entity_id, state, attributes)
-        return None
+        await self.get_entity_api(namespace, entity_id).add(state, attributes)
 
     @utils.sync_wrapper
-    async def entity_exists(self, entity_id, **kwargs):
-        """Checks the existence of an entity in Home Assistant.
+    async def entity_exists(self, entity_id: str, **kwargs: Optional[dict]) -> bool:
+        """Checks the existence of an entity in AD.
 
-        When working with multiple Home Assistant instances, it is possible to specify the
-        namespace, so that it checks within the right instance in in the event the app is
-        working in a different instance. Also when using this function, it is also possible
+        When working with multiple AD namespaces, it is possible to specify the
+        namespace, so that it checks within the right namespace in in the event the app is
+        working in a different namespace. Also when using this function, it is also possible
         to check if an AppDaemon entity exists.
 
         Args:
@@ -679,7 +676,7 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        return await self.AD.state.entity_exists(namespace, entity_id)
+        return await self.get_entity_api(namespace, entity_id).exists()
 
     @utils.sync_wrapper
     async def split_entity(self, entity_id, **kwargs):

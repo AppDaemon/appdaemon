@@ -9,6 +9,7 @@ Change Log
 - Added support for passing a list of events to `listen_event` api
 - Added support for passing a list of entities to `listen_state` api
 - Clicking on a sequence name in AUI will now run the sequence
+- Added support for entity class alongeside `get_entity` and `get_entity_api` functions
 - Added support for entity class
 - Added the `wait_state` command for sequences, so a sequence can be paused until an entity or its attribute has a certain state
 - Added the `sequence/cancel` service call. So sequences can be cancelled
@@ -27,6 +28,7 @@ Change Log
 - Documentation fixes - contributed by `elandt <https://github.com/elandt>`__
 - Documentation fixes - contributed by `marcelblijleven <https://github.com/marcelblijleven>`__
 - Documentation fixes - contributed by `scstraus <https://github.com/scstraus>`__
+- Fixed a long standing bug in set_state ofr HASS plugin where attributes would get overwritten when setting the main state
 - Bumped voluptuous from 0.12.1 to 0.12.2
 - Bumped azure-storage-blob from 12.8.1 to 12.9.0
 - Bumped azure-mgmt-storage from 17.1.0 to 19.0.0
@@ -44,6 +46,7 @@ Change Log
 - Bumped python-engineio from 3.13.2 to 4.3.0
 - Bumped feedparser from 6.0.2 to 6.0.8
 - Bumped python-socketio from 4.6.1 to 5.5.0
+- Bumped websocket-client from 1.2.1 to 1.2.3
 
 **Breaking Changes**
 
@@ -67,7 +70,7 @@ Change Log
 - Added multi-arch builds to Docker hub - contributed by `sineverba <https://github.com/sineverba>`__
 - Added new fan widget - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
 - Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
-- Bump azure-mgmt-resource from 16.0.0 to 19.0.0
+- Bumped azure-mgmt-resource from 16.0.0 to 19.0.0
 - Bumped deepdiff from 5.2.3 to 5.3.0
 - Bumped wheel from 0.34.2 to 0.36.2
 - Bumped azure-storage-blob from 12.8.0 to 12.8.1
