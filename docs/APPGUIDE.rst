@@ -2579,10 +2579,11 @@ Sequences
 
 AppDaemon supports `sequences` as a simple way of re-using predefined steps of commands. The initial usecase for sequences
 is to allow users to create scenes within AppDaemon, however they are useful for many other things. Sequences
-are fairly simple and allow the user to define 2 types of activity:
+are fairly simple and allow the user to define 3 types of activities:
 
 - A call_service command with arbitrary parameters
 - A configurable delay between steps.
+- Pause execution, until an entity has a certain state
 
 In the case of a scene, of course you would not want to use the delay, and would just list all the devices to be switched
 on or off, however, if you wanted a light to come on for 30 seconds, you could use a script to turn the light on,
@@ -2605,6 +2606,7 @@ An example of a simple sequence entry to create a couple of scenes might be:
     sequence:
       office_on:
         name: Office On
+        namespace: hass
         steps:
         - homeassistant/turn_on:
             entity_id: light.office_1
@@ -2674,13 +2676,14 @@ Defining a Sequence Call Namespace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
-basis if required.
+basis if required. Also it can be specifed at the top tier level, allowing for all service calls in the sequence to use the same namespace
 
 .. code:: yaml
 
     sequence:
       office_on:
         name: Office On
+        namespace: hass
         steps:
         - homeassistant/turn_on:
             entity_id: light.office_1
@@ -2703,6 +2706,33 @@ In addition to a straightforward service name plus data, sequences can take a fe
 - sequence - run a sub sequence. This must be a predefined sequence, and cannot be an inline sequence. Provide the entity
 name of the sub-sequence to be run, e.g. `sequence: sequcene.my_sub_sequence`. Sub sequences can be nested arbitrarily
 to any desired level.
+
+Sequence Wait State
+~~~~~~~~~~~~~~~~~~~
+
+In addition to a straightforward service name plus data, sequences can paused, to continue after an entity's state is a condition.
+This allows formore powerful use of sequence calls, for example you want to turn activate the conditioner, only after the window has been shut.
+Entities can be created in user defined namespaces, which will hold the state of conditions of interest and the sequence made to make use of the entity.
+
+.. code:: yaml
+
+    sequence:
+      air_condition_on:
+        name: Air Con On
+        namespace: mqtt
+        steps:
+        - mqtt/publish:
+            topic: "hermes/tts"
+            payload: "Turning on the AirCon, ensure windows are shut"
+
+        - wait_state:
+            entity_id: condition.living_room_window
+            state: "closed"
+            namespace: rules
+
+        - mqtt/publish:
+            topic: "air_condition/state"
+            payload: "on"
 
 Running a Sequence
 ~~~~~~~~~~~~~~~~~~
