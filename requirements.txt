@@ -1,7 +1,7 @@
 astral==2.2
 pytz==2021.3
 requests==2.26.0
-websocket-client==1.2.1
+websocket-client==1.2.3
 aiohttp==3.8.1
 aiodns==3.0.0
 cchardet==2.1.7
