@@ -10,7 +10,6 @@ Change Log
 - Added support for passing a list of entities to `listen_state` api
 - Clicking on a sequence name in AUI will now run the sequence
 - Added support for entity class alongeside `get_entity` and `get_entity_api` functions
-- Added support for entity class
 - Added the `wait_state` command for sequences, so a sequence can be paused until an entity or its attribute has a certain state
 - Added the `sequence/cancel` service call. So sequences can be cancelled
 - Added the ability to specify a high level namespace in sequence, so no need specifying per command
