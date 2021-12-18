@@ -21,7 +21,7 @@ class Sequences:
 
         # await self.run_sequence("_services", namespace, kwargs["entity_id"])
         if service == "run":
-            self.AD.thread_async.call_async_no_wait(self.run_sequence, "_services", namespace, entity_id)
+            asyncio.create_task(self.run_sequence("_services", namespace, entity_id))
 
         elif service == "cancel" and isinstance(entity_id, str):
             _, entity_name = entity_id.split(".")
