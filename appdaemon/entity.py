@@ -274,6 +274,28 @@ class Entity:
         return await self.AD.state.add_state_callback(name, namespace, entity_id, callback, kwargs)
 
     @utils.sync_wrapper
+    async def add(self, state: str = None, attributes: dict = None) -> None:
+        """Adds a non-existent entity, by creating it within a namespaces."""
+
+        namespace = self._namespace
+        entity_id = self._entity_id
+
+        if await self.exists():
+            self.logger.warning("%s already exists, will not be adding it", entity_id)
+            return None
+
+        await self.AD.state.add_entity(namespace, entity_id, state, attributes)
+
+    @utils.sync_wrapper
+    async def exists(self) -> bool:
+        """Checks the existence of the entity in AD."""
+
+        namespace = self._namespace
+        entity_id = self._entity_id
+
+        return await self.AD.state.entity_exists(namespace, entity_id)
+
+    @utils.sync_wrapper
     async def call_service(self, service: str, **kwargs: Optional[dict]) -> Any:
         """Calls an entity supported Service within AppDaemon.
 
@@ -341,6 +363,7 @@ class Entity:
                 duration=duration,
                 immediate=True,
                 oneshot=True,
+                __silent=True,
                 wait_id=wait_id,
             )
             await asyncio.wait_for(async_event.wait(), timeout=timeout)
@@ -411,7 +434,19 @@ class Entity:
     def entity_id(self) -> str:
         """Get the entity's entity_id"""
 
-        return self.states.entity_id
+        return self._entity_id
+
+    @property
+    def domain(self) -> str:
+        """Get the entity's domain name"""
+
+        return self._entity_id.split(".")[0]
+
+    @property
+    def device(self) -> str:
+        """Get the entity's device name"""
+
+        return self._entity_id.split(".")[1]
 
     @property
     def state(self) -> Any:
