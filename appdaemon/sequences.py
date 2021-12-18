@@ -201,8 +201,8 @@ class Sequences:
                         else:
                             domain, service = str.split(command, "/")
                             parameters["__name"] = entity_id
-                            params = copy.deepcopy(parameters)
                             loop_step = parameters.pop("loop_step", None)
+                            params = copy.deepcopy(parameters)
                             await self.AD.services.call_service(ns, domain, service, params)
 
                             if isinstance(loop_step, dict):  # we need to loop this command multiple times
