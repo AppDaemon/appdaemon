@@ -2728,6 +2728,7 @@ Entities can be created in user defined namespaces, which will hold the state of
         - wait_state:
             entity_id: condition.living_room_window
             state: "closed"
+            timeout: 60 # defaults to 15 minutes
             namespace: rules
 
         - mqtt/publish:

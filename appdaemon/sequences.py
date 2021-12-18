@@ -162,7 +162,7 @@ class Sequences:
                             state = parameters.get("state")
                             attribute = parameters.get("attribute")
                             duration = parameters.get("duration", 0)
-                            timeout = parameters.get("timeout")
+                            timeout = parameters.get("timeout", 15 * 60)
 
                             # now we create the wait entity object
                             entity_object = Entity(self.logger, self.AD, name, ns, wait_entity)
