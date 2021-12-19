@@ -479,3 +479,6 @@ class Entity:
         utc = iso8601.parse_date(self.states.last_changed)
         now = self.AD.sched.convert_naive(datetime.now())
         return (now - utc).total_seconds()
+
+    def __repr__(self) -> str:
+        return self._entity_id
