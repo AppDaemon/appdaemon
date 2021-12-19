@@ -14,6 +14,7 @@ Change Log
 - Added the `sequence/cancel` service call. So sequences can be cancelled
 - Added the ability to specify a high level namespace in sequence, so no need specifying per command
 - Allowed for running or cancelling sequences using either entity_id or the sequences name
+- Added `constrain_state` functionality with support for lambda functions
 
 **Fixes**
 
