@@ -245,6 +245,12 @@ Runs a predefined sequence. The `entity_id` arg with the sequence full-qualified
 
     >>> self.call_service("sequence/run", entity_id ="sequence.christmas_lights", namespace="rules")
 
+**sequence/cancel**
+
+Cancels a predefined sequence. The `entity_id` arg with the sequence full-qualified entity name is required.
+
+    >>> self.call_service("sequence/cancel", entity_id ="sequence.christmas_lights", namespace="rules")
+
 
 Threading
 ~~~~~~~~~

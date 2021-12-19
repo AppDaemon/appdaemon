@@ -10,6 +10,10 @@ Change Log
 - Added support for passing a list of entities to `listen_state` api
 - Clicking on a sequence name in AUI will now run the sequence
 - Added support for entity class alongeside `get_entity` and `get_entity_api` functions
+- Added the `wait_state` command for sequences, so a sequence can be paused until an entity or its attribute has a certain state
+- Added the `sequence/cancel` service call. So sequences can be cancelled
+- Added the ability to specify a high level namespace in sequence, so no need specifying per command
+- Allowed for running or cancelling sequences using either entity_id or the sequences name
 
 **Fixes**
 
@@ -19,6 +23,7 @@ Change Log
 - Fix for Hass services not being captured after startup again
 - Fixed issue whereby `.git` paths where being imported into AD and leading to lots of unnecessary messages.
 - Fixed issue with AD being unable to refresh Plugin's entities
+- Fixed issue with using the `loop` in sequences for certain services
 - Documentation fixes - contributed by `markwmuller <https://github.com/markwmuller>`__
 - Documentation fixes - contributed by `JonasPed <https://github.com/JonasPed>`__
 - Documentation fixes - contributed by `elandt <https://github.com/elandt>`__
