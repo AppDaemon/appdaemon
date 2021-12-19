@@ -606,6 +606,16 @@ Now, although the ``initialize()`` function will be called for
 SomeClass, and it will have a chance to register as many callbacks as it
 desires, none of the callbacks will execute, in this case, unless it is between sunrise and sunset.
 
+Another callback constraint is the ``state``. This is an only callback constraint, that cannot be used at app level.
+It is useful, is wanting to evaluate a state, to check if its within a certain range or in a list.
+An example can be seen below:
+
+...code:: python
+
+    >>>  self.listen_state(self.state_cb, "light.0x0017880103ea737f_light", attribute="brightness", constrain_state="lambda  x: x>150")
+
+This will only execute the callback, if the brightness level of the entity is greater than `150`
+
 An App can have as many or as few constraints as are required. When more than one
 constraint is present, they must all evaluate to true to allow the
 callbacks to be called. Constraints becoming true are not an event in
