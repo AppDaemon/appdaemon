@@ -27,10 +27,10 @@ class Entity:
         # Store args
 
         self.AD = ad
+        self.name = name
+        self.logger = logger
         self._entity_id = entity_id
         self._namespace = namespace
-        self._name = name
-        self.logger = logger
         self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
@@ -84,12 +84,12 @@ class Entity:
         entity_id = self._entity_id
         namespace = self._namespace
 
-        self.logger.debug("set state: %s, %s from %s", entity_id, kwargs, self._name)
+        self.logger.debug("set state: %s, %s from %s", entity_id, kwargs, self.name)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return await self.AD.state.set_state(self._name, namespace, entity_id, **kwargs)
+        return await self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
 
     @utils.sync_wrapper
     async def get_state(
@@ -140,12 +140,12 @@ class Entity:
         entity_id = self._entity_id
         namespace = self._namespace
 
-        self.logger.debug("get state: %s, %s from %s", entity_id, kwargs, self._name)
+        self.logger.debug("get state: %s, %s from %s", entity_id, kwargs, self.name)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        return await self.AD.state.get_state(self._name, namespace, entity_id, attribute, default, copy)
+        return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy)
 
     @utils.sync_wrapper
     async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> str:
@@ -267,9 +267,9 @@ class Entity:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        name = self._name
+        name = self.name
 
-        self.logger.debug("Calling listen_state for %s, %s from %s", entity_id, kwargs, self._name)
+        self.logger.debug("Calling listen_state for %s, %s from %s", entity_id, kwargs, self.name)
 
         return await self.AD.state.add_state_callback(name, namespace, entity_id, callback, kwargs)
 
@@ -337,7 +337,7 @@ class Entity:
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        kwargs["__name"] = self._name
+        kwargs["__name"] = self.name
 
         return await self.AD.services.call_service(namespace, domain, service, kwargs)
 
@@ -369,7 +369,7 @@ class Entity:
             await asyncio.wait_for(async_event.wait(), timeout=timeout)
 
         except asyncio.TimeoutError:
-            await self.AD.state.cancel_state_callback(handle, self._name)
+            await self.AD.state.cancel_state_callback(handle, self.name)
             self.logger.warning(f"State Wait for {self._entity_id} Timed Out")
             raise TimeOutException("The entity timed out")
 
