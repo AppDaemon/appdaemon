@@ -10,6 +10,7 @@ import inspect
 from datetime import timedelta
 import logging
 import iso8601
+from collections.abc import Iterable
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -570,7 +571,7 @@ class Threading:
 
         return unconstrained
 
-    async def check_days_constraint(self, args, name):
+    async def check_days_constraint(self, args):
         unconstrained = True
         if "constrain_days" in args:
             days = args["constrain_days"]
@@ -580,6 +581,29 @@ class Threading:
                 daylist.append(await utils.run_in_executor(self, utils.day_of_week, day))
 
             if now.weekday() not in daylist:
+                unconstrained = False
+
+        return unconstrained
+
+    async def check_state_constraint(self, args, new_state):
+        unconstrained = True
+        if "constrain_state" in args:
+            constrain_state = args["constrain_state"]
+            if isinstance(constrain_state, str) is True:
+                if "lambda" in constrain_state:  # lambda function given
+                    try:
+                        unconstrained = eval(constrain_state)(new_state)
+                    except Exception as e:
+                        self.logger.warning("Invalid Lambda function given, as %s", e)
+                        unconstrained = False
+
+                else:
+                    unconstrained = constrain_state == new_state
+
+            elif isinstance(constrain_state, Iterable) is True:
+                unconstrained = new_state in constrain_state
+
+            else:
                 unconstrained = False
 
         return unconstrained
@@ -735,7 +759,7 @@ class Threading:
                     unconstrained = False
             if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
                 unconstrained = False
-            elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
+            elif not await self.check_days_constraint(self.AD.app_management.app_config[name]):
                 unconstrained = False
 
         #
@@ -751,8 +775,15 @@ class Threading:
                     unconstrained = False
             if not await self.check_time_constraint(myargs["kwargs"], name):
                 unconstrained = False
-            elif not await self.check_days_constraint(myargs["kwargs"], name):
+            elif not await self.check_days_constraint(myargs["kwargs"]):
                 unconstrained = False
+
+            #
+            # Lets determine the state constraint
+            #
+            if myargs["type"] == "state":
+                state_unconstrained = await self.check_state_constraint(myargs["kwargs"], myargs["new_state"])
+                unconstrained = all((unconstrained, state_unconstrained))
 
         if unconstrained:
             #
