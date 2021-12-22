@@ -612,7 +612,7 @@ An example can be seen below:
 
 ...code:: python
 
-    >>>  self.listen_state(self.state_cb, "light.0x0017880103ea737f_light", attribute="brightness", constrain_state="lambda  x: x>150")
+    >>>  self.listen_state(self.state_cb, "light.0x0017880103ea737f_light", attribute="brightness", constrain_state=lambda  x: x>150)
 
 This will only execute the callback, if the brightness level of the entity is greater than `150`
 
