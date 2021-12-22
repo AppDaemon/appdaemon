@@ -1743,12 +1743,12 @@ class ADAPI:
         return await self.AD.services.call_service(namespace, d, s, kwargs)
 
     @utils.sync_wrapper
-    async def run_sequence(self, sequence, **kwargs):
+    async def run_sequence(self, sequence: Union[str, list], **kwargs: Optional[dict]):
         """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
         service calls.
 
         Args:
-            sequence: The sequence name, referring to the correct entry in apps.yaml, or a dict containing
+            sequence: The sequence name, referring to the correct entry in apps.yaml, or a list containing
                 actual commands to run
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -1779,27 +1779,27 @@ class ADAPI:
             del kwargs["namespace"]
 
         _name = self.name
-        self.logger.debug("Calling run_sequence() for %s", self.name)
+        self.logger.debug("Calling run_sequence() for %s from %s", sequence, self.name)
         return await self.AD.sequences.run_sequence(_name, namespace, sequence, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_sequence(self, handle):
-        """Cancel an AppDaemon Sequence.
+    async def cancel_sequence(self, sequence: Any) -> None:
+        """Cancel an already running AppDaemon Sequence.
 
         Args:
-            handle: The handle returned by the `run_sequence()` call
+            sequence: The sequence as configured to be cancelled, or the sequence entity_id or future object
 
         Returns:
             None.
 
         Examples:
 
-            >>> self.run_sequence(handle)
+            >>> self.cancel_sequence("sequence.living_room_lights")
 
         """
-        _name = self.name
-        self.logger.debug("Calling run_sequence() for %s", self.name)
-        await self.AD.sequences.cancel_sequence(_name, handle)
+
+        self.logger.debug("Calling cancel_sequence() for %s, from %s", sequence, self.name)
+        await self.AD.sequences.cancel_sequence(sequence)
 
     #
     # Events

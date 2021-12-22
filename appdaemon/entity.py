@@ -27,10 +27,10 @@ class Entity:
         # Store args
 
         self.AD = ad
-        self._entity_id = entity_id
-        self._namespace = namespace
         self.name = name
         self.logger = logger
+        self._entity_id = entity_id
+        self._namespace = namespace
         self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
@@ -437,34 +437,34 @@ class Entity:
         return self._entity_id
 
     @property
-    def domain(self) -> str:
-        """Get the entity's domain name"""
-
-        return self._entity_id.split(".")[0]
-
-    @property
-    def device(self) -> str:
-        """Get the entity's device name"""
-
-        return self._entity_id.split(".")[1]
-
-    @property
     def state(self) -> Any:
         """Get the entity's state"""
 
         return self.states.state
 
     @property
-    def friendly_name(self) -> str:
-        """Get the entity's friendly name"""
+    def domain(self) -> str:
+        """Get the entity's domain name"""
 
-        return self.states.attributes.friendly_name
+        return self._entity_id.split(".")[0]
+
+    @property
+    def entity_name(self) -> str:
+        """Get the entity's name"""
+
+        return self._entity_id.split(".")[1]
 
     @property
     def attributes(self) -> dict:
         """Get the entity's attributes"""
 
         return self.states.attributes
+
+    @property
+    def friendly_name(self) -> str:
+        """Get the entity's friendly name"""
+
+        return self.states.attributes.friendly_name
 
     @property
     def last_changed(self) -> str:
@@ -479,3 +479,6 @@ class Entity:
         utc = iso8601.parse_date(self.states.last_changed)
         now = self.AD.sched.convert_naive(datetime.now())
         return (now - utc).total_seconds()
+
+    def __repr__(self) -> str:
+        return self._entity_id

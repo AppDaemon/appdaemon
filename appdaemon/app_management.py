@@ -363,6 +363,29 @@ class AppManagement:
             "running": False,
         }
 
+    def init_sequence_object(self, name, object):
+        """Initialize the sequence"""
+
+        self.objects[name] = {
+            "type": "sequence",
+            "object": object,
+            "id": uuid.uuid4().hex,
+            "pin_app": False,
+            "pin_thread": -1,
+            "running": False,
+        }
+
+    async def terminate_sequence(self, name: str) -> bool:
+        """Terminate the sequence"""
+
+        if name in self.objects:
+            del self.objects[name]
+
+        await self.AD.callbacks.clear_callbacks(name)
+        self.AD.futures.cancel_futures(name)
+
+        return True
+
     async def read_config(self):  # noqa: C901
 
         new_config = None
