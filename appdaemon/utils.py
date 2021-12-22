@@ -17,6 +17,7 @@ import json
 import inspect
 from functools import wraps
 from appdaemon.version import __version__  # noqa: F401
+from collections.abc import Iterable
 
 if platform.system() != "Windows":
     import pwd
@@ -181,6 +182,27 @@ class EntityStateAttrs(dict):
     def __init__(self, dict):
 
         self.__dict__ = AttrDict.from_nested_dict(dict)
+
+
+def check_state(logger, new_state, callback_state) -> bool:
+
+    passed = False
+
+    try:
+        if isinstance(callback_state, (str, int, float)):
+            passed = new_state == callback_state
+
+        elif isinstance(callback_state, Iterable):
+            passed = new_state in callback_state
+
+        elif callback_state.__name__ == "<lambda>":  # lambda function
+            passed = callback_state(new_state)
+
+    except Exception as e:
+        logger.warning("Could not evaluate state check due to %s", e)
+        passed = False
+
+    return passed
 
 
 def sync_wrapper(coro):
