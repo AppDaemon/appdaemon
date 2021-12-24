@@ -10,7 +10,6 @@ import inspect
 from datetime import timedelta
 import logging
 import iso8601
-from collections.abc import Iterable
 
 from appdaemon import utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -588,23 +587,7 @@ class Threading:
     async def check_state_constraint(self, args, new_state):
         unconstrained = True
         if "constrain_state" in args:
-            constrain_state = args["constrain_state"]
-            if isinstance(constrain_state, str) is True:
-                if "lambda" in constrain_state:  # lambda function given
-                    try:
-                        unconstrained = eval(constrain_state)(new_state)
-                    except Exception as e:
-                        self.logger.warning("Invalid Lambda function given, as %s", e)
-                        unconstrained = False
-
-                else:
-                    unconstrained = constrain_state == new_state
-
-            elif isinstance(constrain_state, Iterable) is True:
-                unconstrained = new_state in constrain_state
-
-            else:
-                unconstrained = False
+            unconstrained = utils.check_state(self.logger, new_state, args["constrain_state"])
 
         return unconstrained
 
