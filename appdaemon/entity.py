@@ -449,6 +449,12 @@ class Entity:
         return self._entity_id.split(".")[0]
 
     @property
+    def namespace(self) -> str:
+        """Get the entity's namespace name"""
+
+        return self._namespace
+
+    @property
     def entity_name(self) -> str:
         """Get the entity's name"""
 
