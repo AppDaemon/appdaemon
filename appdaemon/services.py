@@ -19,7 +19,7 @@ class Services:
         self.logger = ad.logging.get_child("_services")
 
     def register_service(
-        self, namespace: str, domain: str, service: str, callback: Callable, **kwargs: Optional[dict]
+        self, namespace: str, domain: str, service: str, callback: Callable, **kwargs: Optional[Any]
     ) -> None:
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
