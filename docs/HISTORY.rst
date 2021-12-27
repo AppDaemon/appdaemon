@@ -42,13 +42,14 @@ Change Log
 - Bumped jinja2 from 3.0.1 to 3.0.3
 - Bumped aiohttp from 3.7.4.post0 to 3.8.1
 - Bumped pygments from 2.9.0 to 2.10.0
-- Bumped deepdiff from 5.5.0 to 5.6.0
+- Bumped deepdiff from 5.5.0 to 5.7.0
 - Bumped pyyaml from 5.4.1 to 6.0
 - Bumped pytz from 2021.1 to 2021.3
 - Bumped python-engineio from 3.13.2 to 4.3.0
 - Bumped feedparser from 6.0.2 to 6.0.8
 - Bumped python-socketio from 4.6.1 to 5.5.0
 - Bumped websocket-client from 1.2.1 to 1.2.3
+- Bumped wheel from 0.37.0 to 0.37.1
 
 **Breaking Changes**
 

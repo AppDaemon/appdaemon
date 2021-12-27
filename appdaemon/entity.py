@@ -49,7 +49,7 @@ class Entity:
         self._namespace = namespace
 
     @utils.sync_wrapper
-    async def set_state(self, **kwargs: Optional[dict]) -> dict:
+    async def set_state(self, **kwargs: Optional[Any]) -> dict:
         """Updates the state of the specified entity.
 
         Args:
@@ -93,7 +93,7 @@ class Entity:
 
     @utils.sync_wrapper
     async def get_state(
-        self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[dict]
+        self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[Any]
     ) -> dict:
         """Gets the state of any entity within AD.
 
@@ -148,7 +148,7 @@ class Entity:
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy)
 
     @utils.sync_wrapper
-    async def listen_state(self, callback: Callable, **kwargs: Optional[dict]) -> str:
+    async def listen_state(self, callback: Callable, **kwargs: Optional[Any]) -> str:
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
@@ -296,7 +296,7 @@ class Entity:
         return await self.AD.state.entity_exists(namespace, entity_id)
 
     @utils.sync_wrapper
-    async def call_service(self, service: str, **kwargs: Optional[dict]) -> Any:
+    async def call_service(self, service: str, **kwargs: Optional[Any]) -> Any:
         """Calls an entity supported Service within AppDaemon.
 
         This function can call only services that are tied to the entity, and provide any required parameters.
@@ -409,19 +409,19 @@ class Entity:
         return entity_state == state
 
     @utils.sync_wrapper
-    async def turn_on(self, **kwargs: Optional[dict]) -> Any:
+    async def turn_on(self, **kwargs: Optional[Any]) -> Any:
         """Used to turn the entity ON if supported"""
 
         return await self.call_service("turn_on", **kwargs)
 
     @utils.sync_wrapper
-    async def turn_off(self, **kwargs: Optional[dict]) -> Any:
+    async def turn_off(self, **kwargs: Optional[Any]) -> Any:
         """Used to turn the entity OFF if supported"""
 
         return await self.call_service("turn_off", **kwargs)
 
     @utils.sync_wrapper
-    async def toggle(self, **kwargs: Optional[dict]) -> Any:
+    async def toggle(self, **kwargs: Optional[Any]) -> Any:
         """Used to toggle the entity ON/OFF if supported"""
 
         return await self.call_service("toggle", **kwargs)
