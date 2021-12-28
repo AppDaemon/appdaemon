@@ -606,7 +606,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def add_entity(
-        self, entity_id: str, state: Any = None, attributes: dict = None, **kwargs: Optional[dict]
+        self, entity_id: str, state: Any = None, attributes: dict = None, **kwargs: Optional[Any]
     ) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
@@ -642,7 +642,7 @@ class ADAPI:
         await self.get_entity_api(namespace, entity_id).add(state, attributes)
 
     @utils.sync_wrapper
-    async def entity_exists(self, entity_id: str, **kwargs: Optional[dict]) -> bool:
+    async def entity_exists(self, entity_id: str, **kwargs: Optional[Any]) -> bool:
         """Checks the existence of an entity in AD.
 
         When working with multiple AD namespaces, it is possible to specify the
@@ -1127,7 +1127,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def register_endpoint(
-        self, callback: Callable[[Any, dict], Any], endpoint: str = None, **kwargs: Optional[dict]
+        self, callback: Callable[[Any, dict], Any], endpoint: str = None, **kwargs: Optional[Any]
     ) -> str:
         """Registers an endpoint for API calls into the current App.
 
@@ -1189,7 +1189,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def register_route(
-        self, callback: Callable[[Any, dict], Any], route: str = None, **kwargs: Optional[dict]
+        self, callback: Callable[[Any, dict], Any], route: str = None, **kwargs: Optional[Any]
     ) -> str:
         """Registers a route for Web requests into the current App.
            By registering an app web route, this allows to make use of AD's internal web server to serve
@@ -1246,7 +1246,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def listen_state(
-        self, callback: Callable, entity_id: Union[str, list] = None, **kwargs: Optional[dict]
+        self, callback: Callable, entity_id: Union[str, list] = None, **kwargs: Optional[Any]
     ) -> Union[str, list]:
         """Registers a callback to react to state changes.
 
@@ -1558,9 +1558,7 @@ class ADAPI:
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: %s", service)
 
-    def register_service(
-        self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[dict]
-    ) -> None:
+    def register_service(self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[Any]) -> None:
         """Registers a service that can be called from other apps, the REST API and the Event Stream
 
         Using this function, an App can register a function to be available in the service registry.
@@ -1602,7 +1600,7 @@ class ADAPI:
 
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
-    def deregister_service(self, service: str, **kwargs: Optional[dict]) -> bool:
+    def deregister_service(self, service: str, **kwargs: Optional[Any]) -> bool:
         """Deregisters a service that had been previously registered
 
         Using this function, an App can deregister a service call, it has initially registered in the service registry.
@@ -1637,7 +1635,7 @@ class ADAPI:
 
         return self.AD.services.deregister_service(namespace, d, s, **kwargs)
 
-    def list_services(self, **kwargs: Optional[dict]) -> list:
+    def list_services(self, **kwargs: Optional[Any]) -> list:
         """List all services available within AD
 
         Using this function, an App can request all available services within AD
@@ -1670,7 +1668,7 @@ class ADAPI:
         return self.AD.services.list_services(namespace)  # retrieve services
 
     @utils.sync_wrapper
-    async def call_service(self, service: str, **kwargs: Optional[dict]) -> Any:
+    async def call_service(self, service: str, **kwargs: Optional[Any]) -> Any:
         """Calls a Service within AppDaemon.
 
         This function can call any service and provide any required parameters.
@@ -1743,7 +1741,7 @@ class ADAPI:
         return await self.AD.services.call_service(namespace, d, s, kwargs)
 
     @utils.sync_wrapper
-    async def run_sequence(self, sequence: Union[str, list], **kwargs: Optional[dict]):
+    async def run_sequence(self, sequence: Union[str, list], **kwargs: Optional[Any]):
         """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
         service calls.
 
@@ -1807,7 +1805,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def listen_event(
-        self, callback: Callable, event: Union[str, list] = None, **kwargs: Optional[dict]
+        self, callback: Callable, event: Union[str, list] = None, **kwargs: Optional[Any]
     ) -> Union[str, list]:
         """Registers a callback for a specific event, or any event.
 
@@ -3085,7 +3083,7 @@ class ADAPI:
     # Other
     #
 
-    def get_entity(self, entity: str, **kwargs: Optional[dict]) -> Entity:
+    def get_entity(self, entity: str, **kwargs: Optional[Any]) -> Entity:
         namespace = self._get_namespace(**kwargs)
         self._check_entity(namespace, entity)
         entity_id = Entity(self.logger, self.AD, self.name, namespace, entity)
