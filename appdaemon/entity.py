@@ -413,6 +413,8 @@ class Entity:
         elif isinstance(state, Iterable):
             return entity_state in state
 
+        return entity_state == state
+
     @utils.sync_wrapper
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
         """Used to turn the entity ON if supported"""
