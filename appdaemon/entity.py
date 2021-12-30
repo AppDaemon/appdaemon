@@ -8,6 +8,7 @@ import asyncio
 import uuid
 import iso8601
 from datetime import datetime
+from collections.abc import Iterable
 
 
 class EntityAttrs:
@@ -406,7 +407,11 @@ class Entity:
 
         entity_state = await self.get_state(copy=False)
 
-        return entity_state == state
+        if isinstance(state, (str, int, float)):
+            return entity_state == state
+
+        elif isinstance(state, Iterable):
+            return entity_state in state
 
     @utils.sync_wrapper
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
