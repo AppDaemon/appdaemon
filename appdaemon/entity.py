@@ -8,6 +8,7 @@ import asyncio
 import uuid
 import iso8601
 from datetime import datetime
+from collections.abc import Iterable
 
 
 class EntityAttrs:
@@ -405,6 +406,12 @@ class Entity:
         """Checks the state of the entity against the given state"""
 
         entity_state = await self.get_state(copy=False)
+
+        if isinstance(state, (str, int, float)):
+            return entity_state == state
+
+        elif isinstance(state, Iterable):
+            return entity_state in state
 
         return entity_state == state
 
