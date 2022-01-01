@@ -234,10 +234,6 @@ class Entity:
 
             >>> self.handle = self.my_enitity.listen_state(self.my_callback)
 
-            Listen for a state change involving `light.office1` and return the entire state as a dict.
-
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, attribute = "all")
-
             Listen for a change involving the brightness attribute of `light.office1` and return the
             brightness attribute.
 
@@ -275,8 +271,27 @@ class Entity:
         return await self.AD.state.add_state_callback(name, namespace, entity_id, callback, kwargs)
 
     @utils.sync_wrapper
-    async def add(self, state: str = None, attributes: dict = None) -> None:
-        """Adds a non-existent entity, by creating it within a namespaces."""
+    async def add(self, state: Union[str, int, float] = None, attributes: dict = None) -> None:
+        """Adds a non-existent entity, by creating it within a namespaces.
+
+        It should be noted that this api call, is mainly for creating AD internal entities.
+        If wanting to create an entity within an external system, do check the system's documentation
+
+        Args:
+            state (optional): The state the new entity is to have
+            attributes (optional): The attributes the new entity is to have
+
+        Returns:
+            None
+
+        Examples:
+            >>> self.my_enitity = self.get_entity("zigbee.living_room_light")
+
+            create the entity entity.
+
+            >>> self.my_enitity.add(state="off", attributes={"friendly_name": "Living Room Light"})
+
+        """
 
         namespace = self._namespace
         entity_id = self._entity_id
@@ -349,7 +364,33 @@ class Entity:
         duration: Union[int, float] = 0,
         timeout: Union[int, float] = None,
     ) -> None:
-        """Used to wait for the state of an entity's attribute"""
+        """Used to wait for the state of an entity's attribute
+
+        This API call is only functional within an async function. It should be noted that when instanciated,
+        the api checks immediately if its already on the required state, and if it is, it will continue.
+
+        Args:
+            state (Any): The state to wait for, for the entity to be in before continuing
+            attribute (str): The entity's attribute to use, if not using the entity's state
+            duration (int|float): How long the state is to hold, before continuing
+            timeout (int|float): How long to wait for the state to be achieved, before timing out.
+            When it times out, a appdaemon.exceptions.TimeOutException is raised
+
+        Returns:
+            None
+
+        Examples:
+            >>> from appdaemon.exceptions import TimeOutException
+            >>>
+            >>> async def run_my_sequence(self):
+            >>>     sequence_object = self.get_entity("sequence.run_the_thing")
+            >>>     await sequence_object.call_service("run")
+            >>>     try:
+            >>>         await sequence_object.wait_state("idle", timeout=30) # wait for it to completely run
+            >>>     except TimeOutException:
+            >>>         pass # didn't complete on time
+
+        """
 
         wait_id = uuid.uuid4().hex
         async_event = asyncio.Event()
@@ -397,13 +438,30 @@ class Entity:
 
     @utils.sync_wrapper
     async def copy(self, copy: bool = True) -> dict:
-        """Gets the complete state of the entity within AD."""
+        """Gets the complete state of the entity within AD.
+
+        This is essentially a helper function, to get all data about an entity
+
+        Args:
+            copy (bool): If set to False, it will not make a deep copy of the entity. This can help with speed of accessing the data
+        """
 
         return await self.get_state(attribute="all", copy=copy, default={})
 
     @utils.sync_wrapper
     async def is_state(self, state: Any) -> bool:
-        """Checks the state of the entity against the given state"""
+        """Checks the state of the entity against the given state
+
+        This helper function supports using both iterable and non-iterable data
+
+        Args:
+            state (any): The state or iterable set of state data, to check against
+
+        Example:
+            >>> light_entity_object.is_state("on")
+            >>> media_object.is_state(["playing", "paused"])
+
+        """
 
         entity_state = await self.get_state(copy=False)
 
@@ -417,19 +475,43 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
-        """Used to turn the entity ON if supported"""
+        """Generic function, used to turn the entity ON if supported
+
+        Keyword Args:
+            **kwargs: Turn_on services depending on the namespace functioning within
+                has different parameter requirements. This argument
+                allows you to specify a comma-separated list of keyword value pairs, e.g.,
+                `transition = 3`. These parameters will be different for
+                every service being used.
+        """
 
         return await self.call_service("turn_on", **kwargs)
 
     @utils.sync_wrapper
     async def turn_off(self, **kwargs: Optional[Any]) -> Any:
-        """Used to turn the entity OFF if supported"""
+        """Generic function, used to turn the entity OFF if supported
+
+        Keyword Args:
+            **kwargs: Turn_off services depending on the namespace functioning within
+                has different parameter requirements. This argument
+                allows you to specify a comma-separated list of keyword value pairs, e.g.,
+                `transition = 3`. These parameters will be different for
+                every service being used.
+        """
 
         return await self.call_service("turn_off", **kwargs)
 
     @utils.sync_wrapper
     async def toggle(self, **kwargs: Optional[Any]) -> Any:
-        """Used to toggle the entity ON/OFF if supported"""
+        """Generic function, used to toggle the entity ON/OFF if supported
+
+        Keyword Args:
+            **kwargs: Toggle services depending on the namespace functioning within
+                has different parameter requirements. This argument
+                allows you to specify a comma-separated list of keyword value pairs, e.g.,
+                `transition = 3`. These parameters will be different for
+                every service being used.
+        """
 
         return await self.call_service("toggle", **kwargs)
 
