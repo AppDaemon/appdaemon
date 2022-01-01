@@ -349,7 +349,33 @@ class Entity:
         duration: Union[int, float] = 0,
         timeout: Union[int, float] = None,
     ) -> None:
-        """Used to wait for the state of an entity's attribute"""
+        """Used to wait for the state of an entity's attribute
+
+        This API call is only functional within an async function. It should be noted that when instanciated,
+        the api checks immediately if its already on the required state, and if it is, it will continue.
+
+        Args:
+            state (Any): The state to wait for, for the entity to be in before continuing
+            attribute (str): The entity's attribute to use, if not using the entity's state
+            duration (int|float): How long the state is to hold, before continuing
+            timeout (int|float): How long to wait for the state to be achieved, before timing out.
+            When it times out, a appdaemon.exceptions.TimeOutException is raised
+
+        Returns:
+            None
+
+        Examples:
+            >>> from appdaemon.exceptions import TimeOutException
+            >>>
+            >>> async def run_my_sequence(self):
+            >>>     sequence_object = self.get_entity("sequence.run_the_thing")
+            >>>     await sequence_object.call_service("run")
+            >>>     try:
+            >>>         await sequence_object.wait_state("idle", timeout=30) # wait for it to completely run
+            >>>     except TimeOutException:
+            >>>         pass # didn't complete on time
+
+        """
 
         wait_id = uuid.uuid4().hex
         async_event = asyncio.Event()
@@ -397,7 +423,14 @@ class Entity:
 
     @utils.sync_wrapper
     async def copy(self, copy: bool = True) -> dict:
-        """Gets the complete state of the entity within AD."""
+        """Gets the complete state of the entity within AD.
+
+        This is essentially a helper function, to get all data about an entity
+
+        Args:
+            copy(bool): If set to False, it will not make a deep copy of the entity.
+            This can help with speed of accessing the data
+        """
 
         return await self.get_state(attribute="all", copy=copy, default={})
 
@@ -417,19 +450,19 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
-        """Used to turn the entity ON if supported"""
+        """Generic function, used to turn the entity ON if supported"""
 
         return await self.call_service("turn_on", **kwargs)
 
     @utils.sync_wrapper
     async def turn_off(self, **kwargs: Optional[Any]) -> Any:
-        """Used to turn the entity OFF if supported"""
+        """Generic function, used to turn the entity OFF if supported"""
 
         return await self.call_service("turn_off", **kwargs)
 
     @utils.sync_wrapper
     async def toggle(self, **kwargs: Optional[Any]) -> Any:
-        """Used to toggle the entity ON/OFF if supported"""
+        """Generic function, used to toggle the entity ON/OFF if supported"""
 
         return await self.call_service("toggle", **kwargs)
 
