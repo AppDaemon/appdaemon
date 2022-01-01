@@ -39,7 +39,7 @@ AppDaemon supports the ability to access entities as class in their own right, v
 When this is done, the returned object allows to maximise the OOP nature of python while working with entities.
 for example:
 
-..code:: python
+.. code:: python
 
     import adbase as ad
 
