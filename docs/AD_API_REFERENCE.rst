@@ -40,6 +40,7 @@ When this is done, the returned object allows to maximise the OOP nature of pyth
 for example:
 
 ..code:: python
+
     import adbase as ad
 
     class TestApp(ad.ADBase):
