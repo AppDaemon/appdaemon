@@ -8,14 +8,13 @@ by the ``get_ad_api()`` call:
 .. code:: python
 
     import adbase as ad
-    import adapi as adapi
 
     class Test(ad.ADBase):
 
-      def initialize(self):
+        def initialize(self):
 
-        adbase = self.get_ad_api()
-        handle = self.adbase.run_in(callback, 20)
+            self.adapi = self.get_ad_api()
+            handle = self.adapi.run_in(callback, 20)
 
 These calls are documented below.
 
@@ -32,8 +31,61 @@ To create apps based on just the AppDaemon base API, use some code like the foll
 
       def initialize(self):
 
+Entity Class
+------------
+
+As manipulating entities is a core center point of writing automation apps, easy access and manipulation of entities is very important.
+AppDaemon supports the ability to access entities as class in their own right, via the api call ``get_entity(entity)``.
+When this is done, the returned object allows to maximise the OOP nature of python while working with entities.
+for example:
+
+..code:: python
+    import adbase as ad
+
+    class TestApp(ad.ADBase):
+
+        def initialize(self):
+
+            self.adapi = self.get_ad_api()
+            self.adapi.run_in(self.callback, 20)
+
+            # get light entity class
+            self.kitchen_light = self.adapi.get_entity("light.kitchen_ceiling_light", namespace="hass")
+
+        def callback(self, kwargs):
+            if self.kitchen_ceiling_light.is_state("off"):
+                self.kitchen_ceiling_light.turn_on(brightness=200)
+
 Reference
 ---------
+
+Entity API
+~~~~~~~~~~
+.. autofunction:: appdaemon.entity.Entity.add
+.. autofunction:: appdaemon.entity.Entity.call_service
+.. autofunction:: appdaemon.entity.Entity.copy
+.. autofunction:: appdaemon.entity.Entity.exists
+.. autofunction:: appdaemon.entity.Entity.get_state
+.. autofunction:: appdaemon.entity.Entity.listen_state
+.. autofunction:: appdaemon.entity.Entity.is_state
+.. autofunction:: appdaemon.entity.Entity.set_namespace
+.. autofunction:: appdaemon.entity.Entity.set_state
+.. autofunction:: appdaemon.entity.Entity.toggle
+.. autofunction:: appdaemon.entity.Entity.turn_off
+.. autofunction:: appdaemon.entity.Entity.turn_on
+.. autofunction:: appdaemon.entity.Entity.wait_state
+
+In addition to the above, there are a couple of propery attributes the Entity class supports
+- entity_id
+- namespace
+- domain
+- entity_name
+- state
+- attributes
+- friendly_name
+- last_changed
+- last_changed_seconds
+
 
 State
 ~~~~~
