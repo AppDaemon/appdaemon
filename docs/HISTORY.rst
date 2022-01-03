@@ -25,6 +25,7 @@ Change Log
 - Fixed issue whereby `.git` paths where being imported into AD and leading to lots of unnecessary messages.
 - Fixed issue with AD being unable to refresh Plugin's entities
 - Fixed issue with using the `loop` in sequences for certain services
+- Fixed issue whereby the wrong the wrong timeout error was being captured, when running a coroutine
 - Documentation fixes - contributed by `markwmuller <https://github.com/markwmuller>`__
 - Documentation fixes - contributed by `JonasPed <https://github.com/JonasPed>`__
 - Documentation fixes - contributed by `elandt <https://github.com/elandt>`__
