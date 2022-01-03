@@ -551,7 +551,7 @@ Or you can use the secret function and place the actual password in your
 
       password: !secret ad_password
 
-To enable https support for the HTTP Component and by extention the HADashboard and Admin UI, add the following directives
+To enable https support for the HTTP Component and by extension the HADashboard and Admin UI, add the following directives
 pointing to your certificate and keyfile:
 
 .. code:: yaml
@@ -618,7 +618,7 @@ It takes no arguments.
 Configuring the Admin Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Admin Interface, new in 4.0 is a new front end to AppDaemon that allows you to monitor it's inner workings such as
+The updated admin Interface, new in 4.2.0 is a front end to AppDaemon that allows you to monitor it's inner workings such as
 thread activity, registered callbacks and entities. Over time it is expected to evolve into a full management tool
 for AppDaemon allowing the user to configure, troubleshoot and monitor all of AppDaemon's functions.
 
@@ -630,13 +630,11 @@ The Admin Interface is configured by first adding the HTTP Component and then al
 
 The Interface can be accessed using a web browser and pointing it to the HTTP component URL.
 
-the `admin` directive takes a number of configuration items:
+Note: the old admin interface can still be used by specifying the ``old_admin`` directive:
 
-- ``title:`` The title to be used for the browser window
-- ``stats_update:`` Frequency with which stats are updated in the interface. Allowed values are ``none``, ``batch``,
-``realtime`` (default). ``none`` will turn off updates, ``batch`` will update the stats every time the utility loop
-executes, usually every second. ``realtime`` is recommended for most applications, although if you have a very busy
-system, operating with sub-second callbacks you may prefer to use ``batch`` for performance reasons.
+.. code:: yaml
+
+    old_admin:
 
 Accessing Directories via Apps
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

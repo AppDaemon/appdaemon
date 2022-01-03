@@ -104,7 +104,7 @@ def route_secure(myfunc):
 
 
 class HTTP:
-    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, aui, api, http):
+    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, old_admin, admin, api, http):
 
         self.AD = ad
         self.logging = logging
@@ -114,8 +114,8 @@ class HTTP:
         self.appdaemon = appdaemon
         self.dashboard = dashboard
         self.dashboard_dir = None
+        self.old_admin = old_admin
         self.admin = admin
-        self.aui = aui
         self.http = http
         self.api = api
         self.runner = None
@@ -206,19 +206,22 @@ class HTTP:
             # Admin
             #
 
-            if aui is not None:
+            admin_args = None
+            if admin is not None:
                 self.logger.info("Starting Admin Interface")
 
                 self.stats_update = "realtime"
-                self._process_arg("stats_update", aui)
+                self._process_arg("stats_update", admin)
+                admin_args = admin
 
-            if admin is not None:
+            if old_admin is not None:
                 self.logger.info("Starting Old Admin Interface")
 
                 self.stats_update = "realtime"
-                self._process_arg("stats_update", admin)
+                self._process_arg("stats_update", old_admin)
+                admin_args = old_admin
 
-            if admin is not None or aui is not None:
+            if old_admin is not None or admin is not None:
 
                 self.admin_obj = adadmin.Admin(
                     self.config_dir,
@@ -231,10 +234,10 @@ class HTTP:
                     webfonts_dir=self.webfonts_dir,
                     images_dir=self.images_dir,
                     transport=self.transport,
-                    **admin,
+                    **admin_args,
                 )
 
-            if admin is None and aui is None:
+            if old_admin is None and admin is None:
                 self.logger.info("Admin Interface is disabled")
             #
             # Dashboards
@@ -402,7 +405,7 @@ class HTTP:
             if password == self.password:
                 self.access.info("Successful logon from %s", request.host)
                 hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
-                if self.admin is not None:
+                if self.old_admin is not None:
                     response = await self._admin_page(request)
                 else:
                     response = await self._list_dash(request)
@@ -756,14 +759,12 @@ class HTTP:
 
         # Add static path for css
         self.app.router.add_static("/css", self.css_dir)
-        if self.aui is not None:
+        if self.admin is not None:
             self.app.router.add_static("/aui", self.aui_dir)
             self.app.router.add_static("/aui/css", self.aui_css_dir)
             self.app.router.add_static("/aui/js", self.aui_js_dir)
             self.app.router.add_get("/", self.aui_page)
-            if self.admin is not None:
-                self.app.router.add_get("/admin", self.admin_page)
-        elif self.admin is not None:
+        elif self.old_admin is not None:
             self.app.router.add_get("/", self.admin_page)
         elif self.dashboard is not None:
             self.app.router.add_get("/", self.list_dash)
