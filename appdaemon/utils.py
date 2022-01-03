@@ -18,6 +18,7 @@ import inspect
 from functools import wraps
 from appdaemon.version import __version__  # noqa: F401
 from collections.abc import Iterable
+import concurrent.futures
 
 if platform.system() != "Windows":
     import pwd
@@ -343,7 +344,7 @@ def run_coroutine_threadsafe(self, coro):
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
         try:
             result = future.result(self.AD.internal_function_timeout)
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, concurrent.futures.TimeoutError):
             if hasattr(self, "logger"):
                 self.logger.warning(
                     "Coroutine (%s) took too long (%s seconds), cancelling the task...",
