@@ -2959,9 +2959,22 @@ class ADAPI:
         Returns:
             A Future, which can be cancelled by calling f.cancel().
         Examples:
-            >>> f = self.submit_to_executor(self.run_request, callback=self.callback)
             >>>
-            >>> def callback(self, kwargs):
+            >>> def state_cb(self, *args, **kwargs): # callback from an entity
+            >>>     # need to run a 30 seconds task, so need to free up the thread
+            >>>     # need to get results, so will pass a callback for it
+            >>>     # callback can be ignored, if the result is not needed
+            >>>     f = self.submit_to_executor(self.run_request, url, callback=self.result_callback)
+            >>>
+            >>> def run_request(self, url): # long running function
+            >>>     import requests
+            >>>     res = requests.get(url)
+            >>>     return res.json()
+            >>>
+            >>> def result_callback(self, kwargs):
+            >>>     result = kwargs["result"]
+            >>>     self.set_state("sensor.something", state="ready", attributes=result, replace=True) # picked up by another app
+            >>>     # <other processing that is needed>
         """
 
         callback = kwargs.pop("callback", None)

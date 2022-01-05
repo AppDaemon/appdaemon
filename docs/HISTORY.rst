@@ -1,11 +1,21 @@
 Change Log
 ==========
 
-4.2.0
+4.2.1
 ------------------
 
 **Features**
 
+**Fixes**
+
+**Breaking Changes**
+
+4.2.0 (2022-01-03)
+------------------
+
+**Features**
+
+- Released new AppDaemon Admin User Interface
 - Added support for passing a list of events to `listen_event` api
 - Added support for passing a list of entities to `listen_state` api
 - Clicking on a sequence name in AUI will now run the sequence
@@ -25,6 +35,7 @@ Change Log
 - Fixed issue whereby `.git` paths where being imported into AD and leading to lots of unnecessary messages.
 - Fixed issue with AD being unable to refresh Plugin's entities
 - Fixed issue with using the `loop` in sequences for certain services
+- Fixed issue whereby the wrong the wrong timeout error was being captured, when running a coroutine
 - Documentation fixes - contributed by `markwmuller <https://github.com/markwmuller>`__
 - Documentation fixes - contributed by `JonasPed <https://github.com/JonasPed>`__
 - Documentation fixes - contributed by `elandt <https://github.com/elandt>`__

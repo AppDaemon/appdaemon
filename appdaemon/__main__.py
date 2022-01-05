@@ -349,18 +349,18 @@ class ADMain:
             if "dashboard" not in hadashboard:
                 hadashboard["dashboard"] = True
 
+        old_admin = None
+        if "old_admin" in config:
+            if config["old_admin"] is None:
+                old_admin = {}
+            else:
+                old_admin = config["old_admin"]
         admin = None
         if "admin" in config:
             if config["admin"] is None:
                 admin = {}
             else:
                 admin = config["admin"]
-        aui = None
-        if "aui" in config:
-            if config["aui"] is None:
-                aui = {}
-            else:
-                aui = config["aui"]
         api = None
         if "api" in config:
             if config["api"] is None:
@@ -430,11 +430,11 @@ class ADMain:
             name = os.path.basename(pidfile)
             try:
                 with pid.PidFile(name, dir):
-                    self.run(appdaemon, hadashboard, admin, aui, api, http)
+                    self.run(appdaemon, hadashboard, old_admin, admin, api, http)
             except pid.PidFileError:
                 self.logger.error("Unable to acquire pidfile - terminating")
         else:
-            self.run(appdaemon, hadashboard, admin, aui, api, http)
+            self.run(appdaemon, hadashboard, old_admin, admin, api, http)
 
 
 def main():
