@@ -62,6 +62,21 @@ if [ -n "$ELEVATION" ]; then
   sed -i "s/^  elevation:.*/  elevation: $ELEVATION/" $CONF/appdaemon.yaml
 fi
 
+# if ENV MQTT_CLIENT_HOST is set, change the value in appdaemon.yaml
+if [ -n "$MQTT_CLIENT_HOST" ]; then
+  sed -i "s/^      client_host:.*/      client_host: $(echo $MQTT_CLIENT_HOST | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+fi
+
+# if ENV MQTT_CLIENT_USER is set, change the value in appdaemon.yaml
+if [ -n "$MQTT_CLIENT_USER" ]; then
+  sed -i "s/^      client_user:.*/      client_user: $(echo $MQTT_CLIENT_USER | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+fi
+
+# if ENV MQTT_CLIENT_PASSWORD is set, change the value in appdaemon.yaml
+if [ -n "$MQTT_CLIENT_PASSWORD" ]; then
+  sed -i "s/^      client_password:.*/      client_password: $(echo $MQTT_CLIENT_PASSWORD | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+fi
+
 #install user-specific packages
 apk add --no-cache $(find $CONF -name system_packages.txt | xargs cat | tr '\n' ' ')
 #check recursively under CONF for additional python dependencies defined in requirements.txt
