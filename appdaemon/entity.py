@@ -95,7 +95,7 @@ class Entity:
     @utils.sync_wrapper
     async def get_state(
         self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[Any]
-    ) -> dict:
+    ) -> Any:
         """Gets the state of any entity within AD.
 
         Args:

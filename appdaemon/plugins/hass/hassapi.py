@@ -1,3 +1,4 @@
+from typing import Any, Optional
 import requests
 from ast import literal_eval
 from functools import wraps
@@ -375,8 +376,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         """
         namespace = self._get_namespace(**kwargs)
         await self._check_entity(namespace, entity_id)
+        kwargs["entity_id"] = entity_id
 
-        await self.get_entity_api(namespace, entity_id).turn_on(**kwargs)
+        await self.call_service("homeassistant/turn_on", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -410,13 +412,13 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.turn_off("scene.bedroom_on")
 
         """
-        namespace = self._get_namespace(**kwargs)
         domain, _ = await self.split_entity(entity_id)
+        kwargs["entity_id"] = entity_id
 
         if domain == "scene":
-            await self.get_entity_api(namespace, entity_id).turn_on(**kwargs)
+            await self.call_service("homeassistant/turn_on", **kwargs)
         else:
-            await self.get_entity_api(namespace, entity_id).turn_off(**kwargs)
+            await self.call_service("homeassistant/turn_off", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -447,8 +449,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         """
         namespace = self._get_namespace(**kwargs)
         await self._check_entity(namespace, entity_id)
+        kwargs["entity_id"] = entity_id
 
-        await self.get_entity_api(namespace, entity_id).toggle(**kwargs)
+        await self.call_service("homeassistant/toggle", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -696,7 +699,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def render_template(self, template, **kwargs):
+    async def render_template(self, template: str, **kwargs: Optional[Any]):
         """Renders a Home Assistant Template
 
         Args:
@@ -727,6 +730,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs = kwargs
         rargs["namespace"] = namespace
         rargs["template"] = template
+        rargs["return_result"] = True
 
         result = await self.call_service("template/render", **rargs)
         try:
