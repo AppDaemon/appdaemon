@@ -7,6 +7,7 @@ Change Log
 **Features**
 
 **Fixes**
+- Fixed issue whereby `turn_on`, `turn_off` and `toggle` for some HASS entities didn't work
 
 **Breaking Changes**
 
