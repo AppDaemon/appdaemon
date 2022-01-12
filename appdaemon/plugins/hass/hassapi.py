@@ -1,3 +1,4 @@
+from typing import Any, Optional
 import requests
 from ast import literal_eval
 from functools import wraps
@@ -698,7 +699,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def render_template(self, template, **kwargs):
+    async def render_template(self, template: str, **kwargs: Optional[Any]):
         """Renders a Home Assistant Template
 
         Args:
@@ -729,6 +730,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         rargs = kwargs
         rargs["namespace"] = namespace
         rargs["template"] = template
+        rargs["return_result"] = True
 
         result = await self.call_service("template/render", **rargs)
         try:
