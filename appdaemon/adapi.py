@@ -1345,7 +1345,7 @@ class ADAPI:
 
             Listen for a state change involving `light.office1` and return the state attribute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1")
+            >>> self.handle = self.listen_state(self.my_callback, entity_id="light.office_1")
 
             Listen for a state change involving `light.office1` and return the entire state as a dict.
 
@@ -1363,20 +1363,20 @@ class ADAPI:
             Listen for a change involving `light.office1` changing from brightness 100 to 200 and return the
             brightness attribute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "brightness", old = "100", new = "200")
+            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute="brightness", old="100", new="200")
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60)
+            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new="on", duration=60)
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute
             trigger the delay immediately if the light is already on.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, immediate = True)
+            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new="on", duration=60, immediate=True)
 
             Listen for a state change involving `light.office1` and `light.office2` changing to state on.
 
-            >>> self.handle = self.listen_state(self.my_callback, ["light.office_1", "light.office2"], new = "on")
+            >>> self.handle = self.listen_state(self.my_callback, ["light.office_1", "light.office2"], new="on")
 
         """
         namespace = self._get_namespace(**kwargs)
@@ -1399,7 +1399,7 @@ class ADAPI:
             return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_state(self, handle):
+    async def cancel_listen_state(self, handle: str) -> bool:
         """Cancels a ``listen_state()`` callback.
 
         This will mean that the App will no longer be notified for the specific
@@ -1420,7 +1420,7 @@ class ADAPI:
         return await self.AD.state.cancel_state_callback(handle, self.name)
 
     @utils.sync_wrapper
-    async def info_listen_state(self, handle):
+    async def info_listen_state(self, handle: str) -> dict:
         """Gets information on state a callback from its handle.
 
         Args:
@@ -1438,7 +1438,14 @@ class ADAPI:
         return await self.AD.state.info_state_callback(handle, self.name)
 
     @utils.sync_wrapper
-    async def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
+    async def get_state(
+        self,
+        entity_id: str = None,
+        attribute: str = None,
+        default: Any = None,
+        copy: bool = True,
+        **kwargs: Optional[Any],
+    ) -> Any:
         """Gets the state of any component within Home Assistant.
 
         State updates are continuously tracked, so this call runs locally and does not require
@@ -1504,7 +1511,7 @@ class ADAPI:
         return await self.get_entity_api(namespace, entity_id).get_state(attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
-    async def set_state(self, entity_id, **kwargs):
+    async def set_state(self, entity_id: str, **kwargs: Optional[Any]) -> dict:
         """Updates the state of the specified entity.
 
         Args:
@@ -1536,7 +1543,7 @@ class ADAPI:
 
             Update the state and attribute of an entity.
 
-            >>> self.set_state("light.office_1", state = "on", attributes = {"color_name": "red"})
+            >>> self.set_state(entity_id="light.office_1", state = "on", attributes = {"color_name": "red"})
 
             Update the state of an entity within the specified namespace.
 
@@ -1892,7 +1899,7 @@ class ADAPI:
             return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_event(self, handle):
+    async def cancel_listen_event(self, handle: str) -> bool:
         """Cancels a callback for a specific event.
 
         Args:
@@ -1909,7 +1916,7 @@ class ADAPI:
         return await self.AD.events.cancel_event_callback(self.name, handle)
 
     @utils.sync_wrapper
-    async def info_listen_event(self, handle):
+    async def info_listen_event(self, handle: str) -> bool:
         """Gets information on an event callback from its handle.
 
         Args:
@@ -1926,7 +1933,7 @@ class ADAPI:
         return await self.AD.events.info_event_callback(self.name, handle)
 
     @utils.sync_wrapper
-    async def fire_event(self, event, **kwargs):
+    async def fire_event(self, event: str, **kwargs: Optional[Any]) -> None:
         """Fires an event on the AppDaemon bus, for apps and plugins.
 
         Args:
@@ -1959,7 +1966,7 @@ class ADAPI:
     # Time
     #
 
-    def parse_utc_string(self, utc_string):
+    def parse_utc_string(self, utc_string: str) -> datetime:
         """Converts a UTC to its string representation.
 
         Args:
@@ -1971,12 +1978,12 @@ class ADAPI:
         """
         return datetime.datetime(*map(int, re.split(r"[^\d]", utc_string)[:-1])).timestamp() + self.get_tz_offset() * 60
 
-    def get_tz_offset(self):
+    def get_tz_offset(self) -> float:
         """Returns the timezone difference between UTC and Local Time in minutes."""
         return self.AD.tz.utcoffset(self.datetime()).total_seconds() / 60
 
     @staticmethod
-    def convert_utc(utc):
+    def convert_utc(utc) -> datetime:
         """Gets a `datetime` object for the specified UTC.
 
         Home Assistant provides timestamps of several different sorts that may be
@@ -1996,7 +2003,7 @@ class ADAPI:
         return iso8601.parse_date(utc)
 
     @utils.sync_wrapper
-    async def sun_up(self):
+    async def sun_up(self) -> bool:
         """Determines if the sun is currently up.
 
         Returns:
@@ -2010,7 +2017,7 @@ class ADAPI:
         return await self.AD.sched.sun_up()
 
     @utils.sync_wrapper
-    async def sun_down(self):
+    async def sun_down(self) -> bool:
         """Determines if the sun is currently down.
 
         Returns:
@@ -2024,7 +2031,7 @@ class ADAPI:
         return await self.AD.sched.sun_down()
 
     @utils.sync_wrapper
-    async def parse_time(self, time_str, name=None, aware=False):
+    async def parse_time(self, time_str: str, name: str = None, aware: bool = False):
         """Creates a `time` object from its string representation.
 
         This functions takes a string representation of a time, or sunrise,
