@@ -76,16 +76,16 @@ Entity API
 .. autofunction:: appdaemon.entity.Entity.turn_on
 .. autofunction:: appdaemon.entity.Entity.wait_state
 
-In addition to the above, there are a couple of propery attributes the Entity class supports
-- entity_id
-- namespace
-- domain
-- entity_name
-- state
-- attributes
-- friendly_name
-- last_changed
-- last_changed_seconds
+In addition to the above, there are a couple of propery attributes the Entity class supports:
+-  entity_id
+-  namespace
+-  domain
+-  entity_name
+-  state
+-  attributes
+-  friendly_name
+-  last_changed
+-  last_changed_seconds
 
 
 State
