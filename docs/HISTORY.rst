@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+4.2.2
+--------------------
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
 4.2.1 - (2022-01-17)
 --------------------
 
