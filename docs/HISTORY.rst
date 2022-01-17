@@ -1,16 +1,21 @@
 Change Log
 ==========
 
-4.2.1
-------------------
+4.2.1 - (2022-01-17)
+--------------------
 
 **Features**
 
+None
+
 **Fixes**
+
 - Fixed issue whereby `turn_on`, `turn_off` and `toggle` for some HASS entities didn't work
 - Fixed issue whereby `render_template` didn't work
 
 **Breaking Changes**
+
+None
 
 4.2.0 (2022-01-03)
 ------------------
