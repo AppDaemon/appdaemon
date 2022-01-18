@@ -380,7 +380,8 @@ class Entity:
             state (Any): The state to wait for, for the entity to be in before continuing
             attribute (str): The entity's attribute to use, if not using the entity's state
             duration (int|float): How long the state is to hold, before continuing
-            timeout (int|float): How long to wait for the state to be achieved, before timing out. When it times out, a appdaemon.exceptions.TimeOutException is raised
+            timeout (int|float): How long to wait for the state to be achieved, before timing out.
+                                When it times out, a appdaemon.exceptions.TimeOutException is raised
 
         Returns:
             None

@@ -35,8 +35,10 @@ Entity Class
 ------------
 
 As manipulating entities is a core center point of writing automation apps, easy access and manipulation of entities is very important.
-AppDaemon supports the ability to access entities as class in their own right, via the api call ``get_entity(entity)``.
-When this is done, the returned object allows to maximise the OOP nature of python while working with entities.
+AppDaemon supports the ability to access entities as class objects in their own right, via the api call ``get_entity(entity)``.
+This AD does by creating an object which links to the given entity within a specified namespace per app, using an `Entity` class which can be used within the app.
+When this is done, the returned object allows to maximise the OOP nature of python while working with entities. AD will do this,
+even if the entity doesn't actually exist in AD at that point in time. If this is the case, the returned object can be used to add the entity.
 for example:
 
 .. code:: python
