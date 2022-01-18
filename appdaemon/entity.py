@@ -474,7 +474,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to turn the entity ON if supported
+        """Generic helper function, used to turn the entity ON if supported.
+        This function will attempt to call the `turn_on` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `turn_on` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Turn_on services depending on the namespace functioning within
@@ -488,7 +492,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_off(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to turn the entity OFF if supported
+        """Generic function, used to turn the entity OFF if supported.
+        This function will attempt to call the `turn_off` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `turn_off` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Turn_off services depending on the namespace functioning within
@@ -502,7 +510,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def toggle(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to toggle the entity ON/OFF if supported
+        """Generic function, used to toggle the entity ON/OFF if supported.
+        This function will attempt to call the `toggle` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `toggle` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Toggle services depending on the namespace functioning within
