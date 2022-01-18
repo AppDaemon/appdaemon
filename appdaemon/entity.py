@@ -35,7 +35,7 @@ class Entity:
         self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
-        """Sets a new namespace for the App to use from that point forward.
+        """Sets a new namespace for the Entity to use from that point forward.
 
         Args:
             namespace (str): Name of the new namespace
@@ -44,7 +44,7 @@ class Entity:
             None.
 
         Examples:
-            >>> self.set_namespace("hass1")
+            >>> self.set_namespace("my_namespace")
 
         """
         self._namespace = namespace
