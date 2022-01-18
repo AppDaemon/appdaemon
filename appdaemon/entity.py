@@ -36,6 +36,8 @@ class Entity:
 
     def set_namespace(self, namespace: str) -> None:
         """Sets a new namespace for the Entity to use from that point forward.
+        It should be noted that when this function is used, a different entity will be referenced.
+        Since each entity is tied to a certain namespace, at every point in time.
 
         Args:
             namespace (str): Name of the new namespace
@@ -44,7 +46,12 @@ class Entity:
             None.
 
         Examples:
-            >>> self.set_namespace("my_namespace")
+            >>> # access entity in Hass namespace
+            >>> self.my_enitity = self.get_entity("light.living_room")
+            >>> # want to copy the same entity into another namespace
+            >>> entity_data = self.my_enitity.copy()
+            >>> self.my_enitity.set_namespace("my_namespace")
+            >>> self.my_enitity.set_state(**entity_data)
 
         """
         self._namespace = namespace
