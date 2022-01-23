@@ -10,7 +10,7 @@ None
 
 **Fixes**
 
-None
+- Fixed issue when when using `timeout` in listen event api, after the event is ran one gets an error in log
 
 **Breaking Changes**
 
