@@ -448,9 +448,14 @@ class State:
             # We assume that the event will come back to us via the plugin
             await plugin.remove_entity(namespace, entity)
 
-        if entity in self.state[namespace]:
-            self.state[namespace].pop(entity)
-            data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity}}
+        await self.remove_entity_simple(namespace, entity)
+
+    async def remove_entity_simple(self, namespace: str, entity_id: str) -> None:
+        """Used to remove an internal AD entity"""
+
+        if entity_id in self.state[namespace]:
+            self.state[namespace].pop(entity_id)
+            data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity_id}}
             self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     async def add_entity(self, namespace, entity, state, attributes=None):
