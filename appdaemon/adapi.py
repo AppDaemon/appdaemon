@@ -2453,7 +2453,7 @@ class ADAPI:
             callback: Function to be invoked at the specified time of day.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
+            start: Should be either a Python ``datetime`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur.
             **kwargs (optional): Zero or more keyword arguments.
 
