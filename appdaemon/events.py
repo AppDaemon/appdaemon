@@ -200,6 +200,8 @@ class Events:
                 if "entity_id" in data["data"] and "new_state" in data["data"]:
                     if data["data"]["new_state"] is None:
                         # most likely it is a deleted entity
+                        entity_id = data["data"]["entity_id"]
+                        await self.AD.state.remove_entity_simple(namespace, entity_id)
                         return
 
                     entity_id = data["data"]["entity_id"]
@@ -349,6 +351,12 @@ class Events:
                                         remove = callback["kwargs"].get("oneshot", False)
                                         if remove is True:
                                             removes.append({"name": name, "uuid": uuid_})
+
+                                        # remove timer if appropriate
+                                        timeout = callback["kwargs"].get("__timeout")
+                                        if timeout is not None and self.AD.sched.timer_running(name, timeout):
+                                            # means its still running so got to cancel it
+                                            await self.AD.sched.cancel_timer(name, timeout)
 
         for remove in removes:
             await self.cancel_event_callback(remove["name"], remove["uuid"])

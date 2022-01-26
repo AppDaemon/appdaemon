@@ -35,7 +35,9 @@ class Entity:
         self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
-        """Sets a new namespace for the App to use from that point forward.
+        """Sets a new namespace for the Entity to use from that point forward.
+        It should be noted that when this function is used, a different entity will be referenced.
+        Since each entity is tied to a certain namespace, at every point in time.
 
         Args:
             namespace (str): Name of the new namespace
@@ -44,7 +46,12 @@ class Entity:
             None.
 
         Examples:
-            >>> self.set_namespace("hass1")
+            >>> # access entity in Hass namespace
+            >>> self.my_enitity = self.get_entity("light.living_room")
+            >>> # want to copy the same entity into another namespace
+            >>> entity_data = self.my_enitity.copy()
+            >>> self.my_enitity.set_namespace("my_namespace")
+            >>> self.my_enitity.set_state(**entity_data)
 
         """
         self._namespace = namespace
@@ -374,7 +381,7 @@ class Entity:
             attribute (str): The entity's attribute to use, if not using the entity's state
             duration (int|float): How long the state is to hold, before continuing
             timeout (int|float): How long to wait for the state to be achieved, before timing out.
-            When it times out, a appdaemon.exceptions.TimeOutException is raised
+                                When it times out, a appdaemon.exceptions.TimeOutException is raised
 
         Returns:
             None
@@ -475,7 +482,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to turn the entity ON if supported
+        """Generic helper function, used to turn the entity ON if supported.
+        This function will attempt to call the `turn_on` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `turn_on` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Turn_on services depending on the namespace functioning within
@@ -489,7 +500,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_off(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to turn the entity OFF if supported
+        """Generic function, used to turn the entity OFF if supported.
+        This function will attempt to call the `turn_off` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `turn_off` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Turn_off services depending on the namespace functioning within
@@ -503,7 +518,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def toggle(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to toggle the entity ON/OFF if supported
+        """Generic function, used to toggle the entity ON/OFF if supported.
+        This function will attempt to call the `toggle` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `toggle` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Toggle services depending on the namespace functioning within
