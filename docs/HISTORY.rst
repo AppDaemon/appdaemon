@@ -12,6 +12,7 @@ None
 
 - Fixed issue when when using `timeout` in listen event api, after the event is ran one gets an error in log
 - Fixed issue when an entity is deleted from HA, and it remains in AD
+- Fixed isue whereby when an app's global module dependency reloads, the app's module doesn't reload also
 
 **Breaking Changes**
 
