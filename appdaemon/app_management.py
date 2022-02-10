@@ -755,9 +755,10 @@ class AppManagement:
 
     # noinspection PyBroadException
     # Run in executor
-    def read_app(self, file, reload=False):
+    def read_app(self, file: str, reload: bool = False) -> None:
         name = os.path.basename(file)
         module_name = os.path.splitext(name)[0]
+
         # Import the App
         if reload:
             self.logger.info("Reloading Module: %s", file)
@@ -938,18 +939,29 @@ class AppManagement:
 
             # Add any apps we need to reload because of file changes
 
+            apps_module_reload = {}  # store apps modules that needs to be reloaded
             for module in modules:
-                for app in self.apps_per_module(self.get_module_from_path(module["name"])):
+                module_path = module["name"]
+                for app in self.apps_per_module(self.get_module_from_path(module_path)):
                     if module["reload"]:
                         apps["term"][app] = 1
+
                     apps["init"][app] = 1
 
                 if "global_modules" in self.app_config:
                     for gm in utils.single_or_list(self.app_config["global_modules"]):
-                        if gm == self.get_module_from_path(module["name"]):
+                        if gm == self.get_module_from_path(module_path):
                             for app in self.apps_per_global_module(gm):
                                 if module["reload"]:
                                     apps["term"][app] = 1
+
+                                    if module_path not in apps_module_reload:
+                                        apps_module_reload[module_path] = []
+
+                                    app_module_path = await self.get_app_module_path(app)
+                                    if app_module_path not in apps_module_reload[module_path]:
+                                        apps_module_reload[module_path].append(app_module_path)
+
                                 apps["init"][app] = 1
 
             if plugin is not None:
@@ -978,7 +990,7 @@ class AppManagement:
 
             # Terminate apps
 
-            apps_terminated = {}  # store apps properly terminated is any
+            apps_terminated = {}  # store apps properly terminated if any
             if apps is not None and apps["term"]:
                 prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
 
@@ -989,19 +1001,30 @@ class AppManagement:
             # Load/reload modules
 
             for mod in modules:
+                module_path = mod["name"]
+                app_module_path = None
+
                 try:
-                    await utils.run_in_executor(self, self.read_app, mod["name"], mod["reload"])
+                    await utils.run_in_executor(self, self.read_app, module_path, mod["reload"])
+                    if module_path not in apps_module_reload:
+                        continue
+
+                    # we have apps modules that needs reload due to reload of global modules
+                    for app_module_path in apps_module_reload[module_path]:
+                        await utils.run_in_executor(self, self.read_app, app_module_path, True)
+
                 except Exception:
+                    error_module_path = module_path if app_module_path is None else app_module_path
                     self.error.warning("-" * 60)
-                    self.error.warning("Unexpected error loading module: %s:", mod["name"])
+                    self.error.warning("Unexpected error loading module: %s:", error_module_path)
                     self.error.warning("-" * 60)
                     self.error.warning(traceback.format_exc())
                     self.error.warning("-" * 60)
                     if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Unexpected error loading module: %s:", mod["name"])
+                        self.logger.warning("Unexpected error loading module: %s:", error_module_path)
 
                     self.logger.warning("Removing associated apps:")
-                    module = self.get_module_from_path(mod["name"])
+                    module = self.get_module_from_path(error_module_path)
                     for app in self.app_config:
                         if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
                             if apps["init"] and app in apps["init"]:
@@ -1287,7 +1310,7 @@ class AppManagement:
         app_config.update(kwargs)
 
         # now get the app's file
-        app_file = self.get_app_file(app)
+        app_file = utils.run_coroutine_threadsafe(self, self.get_app_file_path, app)
         if app_file is None:
             self.logger.warning("Unable to find app %s's file. Cannot edit the app", app)
             return False
@@ -1323,7 +1346,7 @@ class AppManagement:
 
         result = None
         # now get the app's file
-        app_file = self.get_app_file(app)
+        app_file = utils.run_coroutine_threadsafe(self, self.get_app_file_path, app)
         if app_file is None:
             self.logger.warning("Unable to find app %s's file. Cannot remove the app", app)
             return False
@@ -1358,11 +1381,17 @@ class AppManagement:
 
         return result
 
-    def get_app_file(self, app):
-        """Used to get the file an app is located"""
+    async def get_app_file_path(self, app: str) -> str:
+        """Used to get the file path of where an app is located"""
 
-        app_file = utils.run_coroutine_threadsafe(self, self.get_state(app, attribute="yaml_path"))
+        app_file = await self.get_state(app, attribute="yaml_path")
         return app_file
+
+    async def get_app_module_path(self, app: str) -> str:
+        """Used to get the file path of app's module path"""
+
+        app_module_path = await self.get_state(app, attribute="module_path")
+        return app_module_path
 
     async def register_module_dependency(self, name, *modules):
         for module in modules:
