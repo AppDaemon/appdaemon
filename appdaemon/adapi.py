@@ -1215,7 +1215,7 @@ class ADAPI:
             >>>   self.register_route(my_callback)
             >>>   self.register_route(stream_cb, "camera")
             >>>
-            >>> def camera(self, request, kwargs):
+            >>> async def camera(self, request, kwargs):
             >>>   return web.Response(text="test", content_type="text/html")
             
 
