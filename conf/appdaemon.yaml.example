@@ -8,6 +8,7 @@ appdaemon:
       type: hass
       ha_url:
       token:
+      cert_verify: True
 http:
   url:
 admin:

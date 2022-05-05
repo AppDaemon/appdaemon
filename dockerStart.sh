@@ -33,6 +33,11 @@ if [ -n "$TOKEN" ]; then
   sed -i "s/^      token:.*/      token: $(echo $TOKEN | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
+# if ENV CERT_VERIFY is set, change the value in appdaemon.yaml
+if [ -n "$CERT_VERIFY" ]; then
+  sed -i "s/^      cert_verify:.*/      cert_verify: $(echo $CERT_VERIFY | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+fi
+
 # if ENV DASH_URL is set, change the value in appdaemon.yaml
 if [ -n "$DASH_URL" ]; then
   if grep -q "^  url" $CONF/appdaemon.yaml; then
