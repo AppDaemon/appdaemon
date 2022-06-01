@@ -45,7 +45,10 @@ class Sequences:
             if not await self.AD.state.entity_exists("rules", entity):
                 # it doesn't exist so add it
                 await self.AD.state.add_entity(
-                    "rules", entity, "idle", attributes=attributes,
+                    "rules",
+                    entity,
+                    "idle",
+                    attributes=attributes,
                 )
             else:
                 # means existing before so in case already running already

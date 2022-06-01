@@ -39,7 +39,10 @@ class Sequence(hass.Hass):
         if "sequence" in self.args:
             for entry in self.args["sequence"]:
                 self.run_in(
-                    self.action, entry["delay"], device=entry["entity"], service=entry["service"],
+                    self.action,
+                    entry["delay"],
+                    device=entry["entity"],
+                    service=entry["service"],
                 )
 
     def action(self, kwargs):
