@@ -47,7 +47,14 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     """
 
     def __init__(
-        self, ad: AppDaemon, name, logging, args, config, app_config, global_vars,
+        self,
+        ad: AppDaemon,
+        name,
+        logging,
+        args,
+        config,
+        app_config,
+        global_vars,
     ):
         """Constructor for the app.
 

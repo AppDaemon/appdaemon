@@ -35,7 +35,10 @@ def securedata(myfunc):
             return await myfunc(*args)
         elif "adcreds" in request.cookies:
             match = await utils.run_in_executor(
-                self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]),
+                self,
+                bcrypt.checkpw,
+                str.encode(self.password),
+                str.encode(request.cookies["adcreds"]),
             )
             if match:
                 return await myfunc(*args)
@@ -63,7 +66,10 @@ def secure(myfunc):
         else:
             if "adcreds" in request.cookies:
                 match = await utils.run_in_executor(
-                    self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]),
+                    self,
+                    bcrypt.checkpw,
+                    str.encode(self.password),
+                    str.encode(request.cookies["adcreds"]),
                 )
                 if match:
                     return await myfunc(*args)
@@ -461,7 +467,9 @@ class HTTP:
                             feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
                             if "bozo_exception" in feed:
                                 self.logger.warning(
-                                    "Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"],
+                                    "Error in RSS feed %s: %s",
+                                    feed_data["feed"],
+                                    feed["bozo_exception"],
                                 )
                             else:
                                 new_state = {"feed": feed}
@@ -848,8 +856,10 @@ class HTTP:
         return web.Response(body=res, status=code)
 
     def get_web_response(self, request, code, error):
-        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(
-            code, error, code, error
+        res = (
+            "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(
+                code, error, code, error
+            )
         )
         app = request.match_info.get("app", "system")
         if code == 200:
@@ -1048,7 +1058,8 @@ class HTTP:
             params = {}
 
             env = Environment(
-                loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("logon.jinja2")
@@ -1068,7 +1079,8 @@ class HTTP:
             params = {}
 
             env = Environment(
-                loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("error.jinja2")

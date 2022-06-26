@@ -624,7 +624,10 @@ class Scheduler:
         schedule = {}
         for name in self.schedule.keys():
             schedule[name] = {}
-            for entry in sorted(self.schedule[name].keys(), key=lambda uuid_: self.schedule[name][uuid_]["timestamp"],):
+            for entry in sorted(
+                self.schedule[name].keys(),
+                key=lambda uuid_: self.schedule[name][uuid_]["timestamp"],
+            ):
                 schedule[name][str(entry)] = {}
                 schedule[name][str(entry)]["timestamp"] = str(
                     self.AD.sched.make_naive(self.schedule[name][entry]["timestamp"])
@@ -753,7 +756,12 @@ class Scheduler:
             if parts:
                 today = (await self.get_now()).astimezone(self.AD.tz)
                 time = datetime.time(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), 0)
-                parsed_time = today.replace(hour=time.hour, minute=time.minute, second=time.second, microsecond=0,)
+                parsed_time = today.replace(
+                    hour=time.hour,
+                    minute=time.minute,
+                    second=time.second,
+                    microsecond=0,
+                )
 
             else:
                 if time_str == "sunrise":
@@ -770,13 +778,17 @@ class Scheduler:
                         sun = "sunrise"
                         if parts.group(1) == "+":
                             td = datetime.timedelta(
-                                hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)),
+                                hours=int(parts.group(2)),
+                                minutes=int(parts.group(3)),
+                                seconds=int(parts.group(4)),
                             )
                             offset = td.total_seconds()
                             parsed_time = await self.sunrise(True) + td
                         else:
                             td = datetime.timedelta(
-                                hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)),
+                                hours=int(parts.group(2)),
+                                minutes=int(parts.group(3)),
+                                seconds=int(parts.group(4)),
                             )
                             offset = td.total_seconds() * -1
                             parsed_time = await self.sunrise(True) - td
@@ -786,13 +798,17 @@ class Scheduler:
                             sun = "sunset"
                             if parts.group(1) == "+":
                                 td = datetime.timedelta(
-                                    hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)),
+                                    hours=int(parts.group(2)),
+                                    minutes=int(parts.group(3)),
+                                    seconds=int(parts.group(4)),
                                 )
                                 offset = td.total_seconds()
                                 parsed_time = await self.sunset(True) + td
                             else:
                                 td = datetime.timedelta(
-                                    hours=int(parts.group(2)), minutes=int(parts.group(3)), seconds=int(parts.group(4)),
+                                    hours=int(parts.group(2)),
+                                    minutes=int(parts.group(3)),
+                                    seconds=int(parts.group(4)),
                                 )
                                 offset = td.total_seconds() * -1
                                 parsed_time = await self.sunset(True) - td
@@ -825,7 +841,8 @@ class Scheduler:
             for name in self.schedule.keys():
                 self.diag.info("%s:", name)
                 for entry in sorted(
-                    self.schedule[name].keys(), key=lambda uuid_: self.schedule[name][uuid_]["timestamp"],
+                    self.schedule[name].keys(),
+                    key=lambda uuid_: self.schedule[name][uuid_]["timestamp"],
                 ):
                     self.diag.info(
                         " Next Event Time: %s - data: %s",
@@ -878,5 +895,11 @@ class Scheduler:
     def make_naive(self, dt):
         local = dt.astimezone(self.AD.tz)
         return datetime.datetime(
-            local.year, local.month, local.day, local.hour, local.minute, local.second, local.microsecond,
+            local.year,
+            local.month,
+            local.day,
+            local.hour,
+            local.minute,
+            local.second,
+            local.microsecond,
         )

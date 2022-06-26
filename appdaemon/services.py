@@ -22,7 +22,11 @@ class Services:
         self, namespace: str, domain: str, service: str, callback: Callable, **kwargs: Optional[Any]
     ) -> None:
         self.logger.debug(
-            "register_service called: %s.%s.%s -> %s", namespace, domain, service, callback,
+            "register_service called: %s.%s.%s -> %s",
+            namespace,
+            domain,
+            service,
+            callback,
         )
 
         __silent = kwargs.pop("__silent", False)
@@ -71,7 +75,11 @@ class Services:
         """Used to unregister a service"""
 
         self.logger.debug(
-            "deregister_service called: %s:%s:%s %s", namespace, domain, service, kwargs,
+            "deregister_service called: %s:%s:%s %s",
+            namespace,
+            domain,
+            service,
+            kwargs,
         )
 
         name = kwargs.get("__name")
@@ -143,7 +151,11 @@ class Services:
 
     async def call_service(self, namespace: str, domain: str, service: str, data: dict) -> Any:
         self.logger.debug(
-            "call_service: namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data,
+            "call_service: namespace=%s domain=%s service=%s data=%s",
+            namespace,
+            domain,
+            service,
+            data,
         )
         with self.services_lock:
             name = data.pop("__name", None)
@@ -156,7 +168,11 @@ class Services:
 
             if service not in self.services[namespace][domain]:
                 raise ServiceException(
-                    "Unknown service (%s/%s/%s) in call_service from %s", namespace, domain, service, name,
+                    "Unknown service (%s/%s/%s) in call_service from %s",
+                    namespace,
+                    domain,
+                    service,
+                    name,
                 )
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct

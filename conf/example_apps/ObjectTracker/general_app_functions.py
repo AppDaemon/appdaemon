@@ -25,7 +25,13 @@ class general_fnc(hass.Hass):
         return
 
     def update_object_time(
-        self, object_name, object_friendly_name, dir_name, time_gone_by, time_format, object_type,
+        self,
+        object_name,
+        object_friendly_name,
+        dir_name,
+        time_gone_by,
+        time_format,
+        object_type,
     ):
         update_time = datetime.datetime.now()
         new_time_format = self.reformat_time(time_format)
@@ -75,7 +81,8 @@ class general_fnc(hass.Hass):
             set_object.close()
         except Exception:
             self.log(
-                "couldn't save the time from: " + object_name + " in " + complete_file_name, level="INFO",
+                "couldn't save the time from: " + object_name + " in " + complete_file_name,
+                level="INFO",
             )
 
     @staticmethod

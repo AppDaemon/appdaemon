@@ -214,7 +214,8 @@ class AppManagement:
                 error_logger.warning("-" * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning(
-                        "Logged an error to %s", self.AD.logging.get_filename("error_log"),
+                        "Logged an error to %s",
+                        self.AD.logging.get_filename("error_log"),
                     )
 
                 executed = False
@@ -296,7 +297,10 @@ class AppManagement:
 
         app_args = self.app_config[name]
         self.logger.info(
-            "Initializing app %s using class %s from module %s", name, app_args["class"], app_args["module"],
+            "Initializing app %s using class %s from module %s",
+            name,
+            app_args["class"],
+            app_args["module"],
         )
 
         if self.get_file_from_module(app_args["module"]) is not None:
@@ -334,7 +338,13 @@ class AppManagement:
                 self.objects[name] = {
                     "type": "app",
                     "object": app_class(
-                        self.AD, name, self.AD.logging, app_args, self.AD.config, self.app_config, self.AD.global_vars,
+                        self.AD,
+                        name,
+                        self.AD.logging,
+                        app_args,
+                        self.AD.config,
+                        self.app_config,
+                        self.AD.global_vars,
                     ),
                     "id": uuid.uuid4().hex,
                     "pin_app": self.AD.threading.app_should_be_pinned(name),
@@ -348,7 +358,9 @@ class AppManagement:
 
         else:
             self.logger.warning(
-                "Unable to find module module %s - '%s' is not initialized", app_args["module"], name,
+                "Unable to find module module %s - '%s' is not initialized",
+                app_args["module"],
+                name,
             )
             await self.increase_inactive_apps(name)
 
@@ -446,7 +458,8 @@ class AppManagement:
                                             app_valid = False
                                             if self.AD.invalid_yaml_warnings:
                                                 self.logger.warning(
-                                                    "App '%s' missing 'class' or 'module' entry - ignoring", app,
+                                                    "App '%s' missing 'class' or 'module' entry - ignoring",
+                                                    app,
                                                 )
 
                                         if app_valid is True:
@@ -458,7 +471,8 @@ class AppManagement:
                             else:
                                 if self.AD.invalid_yaml_warnings:
                                     self.logger.warning(
-                                        "File '%s' invalid structure - ignoring", os.path.join(root, file),
+                                        "File '%s' invalid structure - ignoring",
+                                        os.path.join(root, file),
                                     )
 
                             if new_config is None:
@@ -478,7 +492,9 @@ class AppManagement:
 
                                 if app in new_config:
                                     self.logger.warning(
-                                        "File '%s' duplicate app: %s - ignoring", os.path.join(root, file), app,
+                                        "File '%s' duplicate app: %s - ignoring",
+                                        os.path.join(root, file),
+                                        app,
                                     )
                                 else:
                                     new_config[app] = valid_apps[app]
@@ -689,7 +705,8 @@ class AppManagement:
                             if self.AD.invalid_yaml_warnings:
                                 if silent is False:
                                     self.logger.warning(
-                                        "App '%s' missing 'class' or 'module' entry - ignoring", name,
+                                        "App '%s' missing 'class' or 'module' entry - ignoring",
+                                        name,
                                     )
 
                 self.app_config = new_config
@@ -1037,7 +1054,8 @@ class AppManagement:
                         error_logger.warning("-" * 60)
                         if self.AD.logging.separate_error_log() is True:
                             self.logger.warning(
-                                "Logged an error to %s", self.AD.logging.get_filename("error_log"),
+                                "Logged an error to %s",
+                                self.AD.logging.get_filename("error_log"),
                             )
 
                 await self.AD.threading.calculate_pin_threads()
@@ -1385,7 +1403,9 @@ class AppManagement:
                     self.global_module_dependencies[name].append(module_name)
             else:
                 self.logger.warning(
-                    "Module %s not in global_modules in register_module_dependency() for %s", module_name, name,
+                    "Module %s not in global_modules in register_module_dependency() for %s",
+                    module_name,
+                    name,
                 )
 
     async def manage_services(self, namespace, domain, service, kwargs):

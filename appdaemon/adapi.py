@@ -18,7 +18,7 @@ from appdaemon.entity import Entity
 class ADAPI:
     """AppDaemon API class.
 
-       This class includes all native API calls to AppDaemon
+    This class includes all native API calls to AppDaemon
 
     """
 
@@ -1164,7 +1164,8 @@ class ADAPI:
             return await self.AD.http.register_endpoint(callback, endpoint, self.name, **kwargs)
         else:
             self.logger.warning(
-                "register_endpoint for %s failed - HTTP component is not configured", endpoint,
+                "register_endpoint for %s failed - HTTP component is not configured",
+                endpoint,
             )
 
     @utils.sync_wrapper
@@ -2762,7 +2763,10 @@ class ADAPI:
             aware_start = now + datetime.timedelta(seconds=interval)
 
         self.logger.debug(
-            "Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name,
+            "Registering run_every starting %s in %ss intervals for %s",
+            aware_start,
+            interval,
+            name,
         )
 
         handle = await self.AD.sched.insert_schedule(
