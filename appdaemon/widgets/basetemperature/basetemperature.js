@@ -78,7 +78,12 @@ function basetemperature(widget_id, url, skin, parameters)
             minorTicks: 2,
             strokeTicks: true
         });
-        self.gauge.value = state.state
+        // self.gauge.value = state.state
+        // update so the red bar is current after a dashboard compile
+
+        if ( null == self.parameters.settings.value ){
+            self.parameters.settings.value = state.state
+        }
         self.gauge.update(self.parameters.settings)
     }
 }
