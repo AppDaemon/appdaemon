@@ -279,13 +279,13 @@ class MqttPlugin(PluginBase):
 
         except UnicodeDecodeError:
             self.logger.info("Unable to decode MQTT message")
-            self.logger.debug(
+            self.logger.error(
                 "Unable to decode MQTT message, with Traceback: %s",
                 traceback.format_exc(),
             )
         except Exception as e:
             self.logger.critical("There was an error while processing an MQTT message: {} {}".format(type(e), e))
-            self.logger.debug(
+            self.logger.error(
                 "There was an error while processing an MQTT message, with Traceback: %s",
                 traceback.format_exc(),
             )
