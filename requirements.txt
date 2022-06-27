@@ -14,7 +14,7 @@ pyyaml==6.0
 voluptuous==0.12.2
 feedparser==6.0.10
 iso8601==1.0.2
-bcrypt==3.2.0
+bcrypt==3.2.2
 paho-mqtt==1.6.1
 deepdiff==5.8.1
 python-dateutil==2.8.2
