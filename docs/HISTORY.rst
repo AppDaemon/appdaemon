@@ -28,6 +28,7 @@ None
 
 - Fixed issue whereby `turn_on`, `turn_off` and `toggle` for some HASS entities didn't work
 - Fixed issue whereby `render_template` didn't work
+- FIxed issues with setup file saying support "python3 3.0"
 
 **Breaking Changes**
 
