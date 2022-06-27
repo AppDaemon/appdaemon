@@ -12,22 +12,6 @@ None
 
 - Fixed issue when when using `timeout` in listen event api, after the event is ran one gets an error in log
 - Fixed issue when an entity is deleted from HA, and it remains in AD
-
-**Breaking Changes**
-
-None
-
-4.2.1 - (2022-01-17)
---------------------
-
-**Features**
-
-- Docker: Added MQTT vars to dockerStart.sh - contributed by `Xavi Moreno <https://github.com/xaviml>`__
-
-**Fixes**
-
-- Fixed issue whereby `turn_on`, `turn_off` and `toggle` for some HASS entities didn't work
-- Fixed issue whereby `render_template` didn't work
 - FIxed issues with setup file saying support "python3 3.0"
 - Documentation fixes - contributed by `Rootie <https://github.com/Rootie>`__
 - Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
@@ -45,6 +29,22 @@ None
 - Bumped bcrypt from 3.2.0 to 3.2.2
 - Bumped requests from 2.26.0 to 2.28.0
 - Bumped jinja2 from 3.0.3 to 3.1.2
+
+**Breaking Changes**
+
+None
+
+4.2.1 - (2022-01-17)
+--------------------
+
+**Features**
+
+- Docker: Added MQTT vars to dockerStart.sh - contributed by `Xavi Moreno <https://github.com/xaviml>`__
+
+**Fixes**
+
+- Fixed issue whereby `turn_on`, `turn_off` and `toggle` for some HASS entities didn't work
+- Fixed issue whereby `render_template` didn't work
 
 **Breaking Changes**
 
