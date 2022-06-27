@@ -11,7 +11,7 @@ yarl==1.7.2
 Jinja2==3.0.3
 aiohttp_jinja2==1.5
 pyyaml==6.0
-voluptuous==0.12.2
+voluptuous==0.13.1
 feedparser==6.0.10
 iso8601==1.0.2
 bcrypt==3.2.2
