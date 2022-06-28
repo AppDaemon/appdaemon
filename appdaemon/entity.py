@@ -47,11 +47,11 @@ class Entity:
 
         Examples:
             >>> # access entity in Hass namespace
-            >>> self.my_enitity = self.get_entity("light.living_room")
+            >>> self.my_entity = self.get_entity("light.living_room")
             >>> # want to copy the same entity into another namespace
-            >>> entity_data = self.my_enitity.copy()
-            >>> self.my_enitity.set_namespace("my_namespace")
-            >>> self.my_enitity.set_state(**entity_data)
+            >>> entity_data = self.my_entity.copy()
+            >>> self.my_entity.set_namespace("my_namespace")
+            >>> self.my_entity.set_state(**entity_data)
 
         """
         self._namespace = namespace
@@ -77,15 +77,15 @@ class Entity:
             A dictionary that represents the new state of the updated entity.
 
         Examples:
-            >>> self.my_enitity = self.get_entity("light.living_room")
+            >>> self.my_entity = self.get_entity("light.living_room")
 
             Update the state of an entity.
 
-            >>> self.my_enitity.set_state(state="off")
+            >>> self.my_entity.set_state(state="off")
 
             Update the state and attribute of an entity.
 
-            >>> self.my_enitity.set_state(state = "on", attributes = {"color_name": "red"})
+            >>> self.my_entity.set_state(state = "on", attributes = {"color_name": "red"})
 
         """
 
@@ -129,19 +129,19 @@ class Entity:
             for each entity. Under that key will be the standard entity state information.
 
         Examples:
-            >>> self.my_enitity = self.get_entity("light.office_1")
+            >>> self.my_entity = self.get_entity("light.office_1")
 
             Get the state attribute of `light.office_1`.
 
-            >>> state = self.my_enitity.get_state("light.office_1")
+            >>> state = self.my_entity.get_state("light.office_1")
 
             Get the brightness attribute of `light.office_1`.
 
-            >>> state = self.my_enitity.get_state(attribute="brightness")
+            >>> state = self.my_entity.get_state(attribute="brightness")
 
             Get the entire state of `light.office_1`.
 
-            >>> state = self.my_enitity.get_state(attribute="all")
+            >>> state = self.my_entity.get_state(attribute="all")
 
         """
 
@@ -235,34 +235,34 @@ class Entity:
             recommended that handles are stored in the object namespace, e.g., `self.handle`.
 
         Examples:
-            >>> self.my_enitity = self.get_entity("light.office_1")
+            >>> self.my_entity = self.get_entity("light.office_1")
 
             Listen for a state change involving `light.office1` and return the state attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback)
+            >>> self.handle = self.my_entity.listen_state(self.my_callback)
 
             Listen for a change involving the brightness attribute of `light.office1` and return the
             brightness attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, attribute = "brightness")
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, attribute = "brightness")
 
             Listen for a state change involving `light.office1` turning on and return the state attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, new = "on")
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on")
 
             Listen for a change involving `light.office1` changing from brightness 100 to 200 and return the
             brightness attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, attribute = "brightness", old = "100", new = "200")
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, attribute = "brightness", old = "100", new = "200")
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, new = "on", duration = 60)
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on", duration = 60)
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute
             trigger the delay immediately if the light is already on.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, new = "on", duration = 60, immediate = True)
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on", duration = 60, immediate = True)
         """
 
         entity_id = self._entity_id
@@ -292,11 +292,11 @@ class Entity:
             None
 
         Examples:
-            >>> self.my_enitity = self.get_entity("zigbee.living_room_light")
+            >>> self.my_entity = self.get_entity("zigbee.living_room_light")
 
             create the entity entity.
 
-            >>> self.my_enitity.add(state="off", attributes={"friendly_name": "Living Room Light"})
+            >>> self.my_entity.add(state="off", attributes={"friendly_name": "Living Room Light"})
 
         """
 
@@ -344,8 +344,8 @@ class Entity:
         Examples:
             HASS
 
-            >>> self.my_enitity = self.get_entity("light.office_1")
-            >>> self.my_enitity.call_service("turn_on", color_name = "red")
+            >>> self.my_entity = self.get_entity("light.office_1")
+            >>> self.my_entity.call_service("turn_on", color_name = "red")
 
         """
 
