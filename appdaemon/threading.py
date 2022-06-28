@@ -584,6 +584,8 @@ class Threading:
     #
 
     async def check_constraint(self, key, value, app):
+        """Used to check Constraint"""
+
         unconstrained = True
         if key in app.list_constraints():
             method = getattr(app, key)
@@ -592,6 +594,8 @@ class Threading:
         return unconstrained
 
     async def check_time_constraint(self, args, name):
+        """Used to check time Constraint"""
+
         unconstrained = True
         if "constrain_start_time" in args or "constrain_end_time" in args:
             if "constrain_start_time" not in args:
@@ -607,7 +611,9 @@ class Threading:
 
         return unconstrained
 
-    async def check_days_constraint(self, args):
+    async def check_days_constraint(self, args, name):
+        """Used to check days Constraint"""
+
         unconstrained = True
         if "constrain_days" in args:
             days = args["constrain_days"]
@@ -621,10 +627,12 @@ class Threading:
 
         return unconstrained
 
-    async def check_state_constraint(self, args, new_state):
+    async def check_state_constraint(self, args, new_state, name):
+        """Used to check state Constraint"""
+
         unconstrained = True
         if "constrain_state" in args:
-            unconstrained = utils.check_state(self.logger, new_state, args["constrain_state"])
+            unconstrained = utils.check_state(self.logger, new_state, args["constrain_state"], name)
 
         return unconstrained
 
@@ -793,7 +801,7 @@ class Threading:
                     unconstrained = False
             if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
                 unconstrained = False
-            elif not await self.check_days_constraint(self.AD.app_management.app_config[name]):
+            elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
                 unconstrained = False
 
         #
@@ -811,14 +819,14 @@ class Threading:
                     unconstrained = False
             if not await self.check_time_constraint(myargs["kwargs"], name):
                 unconstrained = False
-            elif not await self.check_days_constraint(myargs["kwargs"]):
+            elif not await self.check_days_constraint(myargs["kwargs"], name):
                 unconstrained = False
 
             #
             # Lets determine the state constraint
             #
             if myargs["type"] == "state":
-                state_unconstrained = await self.check_state_constraint(myargs["kwargs"], myargs["new_state"])
+                state_unconstrained = await self.check_state_constraint(myargs["kwargs"], myargs["new_state"], name)
                 unconstrained = all((unconstrained, state_unconstrained))
 
         if unconstrained:

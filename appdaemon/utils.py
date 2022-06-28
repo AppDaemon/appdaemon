@@ -185,7 +185,7 @@ class EntityStateAttrs(dict):
         self.__dict__ = AttrDict.from_nested_dict(dict)
 
 
-def check_state(logger, new_state, callback_state) -> bool:
+def check_state(logger, new_state, callback_state, name) -> bool:
 
     passed = False
 
@@ -200,7 +200,7 @@ def check_state(logger, new_state, callback_state) -> bool:
             passed = callback_state(new_state)
 
     except Exception as e:
-        logger.warning("Could not evaluate state check due to %s", e)
+        logger.warning("Could not evaluate state check due to %s, from %s", e, name)
         passed = False
 
     return passed
