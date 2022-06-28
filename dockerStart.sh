@@ -28,9 +28,21 @@ if [ -n "$HA_URL" ]; then
   sed -i "s/^      ha_url:.*/      ha_url: $(echo $HA_URL | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
-# if ENV HA_KEY is set, change the value in appdaemon.yaml
+# if ENV TOKEN is set, change the value in appdaemon.yaml
 if [ -n "$TOKEN" ]; then
   sed -i "s/^      token:.*/      token: $(echo $TOKEN | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+fi
+
+# MQTT plugin
+if [[ -n "$MQTT_NAMESPACE" && -n "$MQTT_CLIENT_HOST" && -n "$MQTT_CLIENT_USER" && -n "$MQTT_CLIENT_PASSWORD" ]]; then
+  # Plugin skeleton
+  sed -i "s/^http:.*/    MQTT:\n      type: mqtt\n      namespace:\n      client_host:\n      client_user:\n      client_password:\nhttp:/" $CONF/appdaemon.yaml
+
+  # Plugin variables
+  sed -i "s/^      namespace:.*/      namespace: $(echo $MQTT_NAMESPACE | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+  sed -i "s/^      client_host:.*/      client_host: $(echo $MQTT_CLIENT_HOST | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+  sed -i "s/^      client_user:.*/      client_user: $(echo $MQTT_CLIENT_USER | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+  sed -i "s/^      client_password:.*/      client_password: $(echo $MQTT_CLIENT_PASSWORD | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
 # if ENV HA_CERT_VERIFY is set, change the value in appdaemon.yaml

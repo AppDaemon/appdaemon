@@ -73,7 +73,12 @@ class Events:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name, exec_time, None, False, None, __event_handle=handle,
+                    name,
+                    exec_time,
+                    None,
+                    False,
+                    None,
+                    __event_handle=handle,
                 )
 
             await self.AD.state.add_entity(

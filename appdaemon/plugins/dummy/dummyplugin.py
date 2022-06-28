@@ -86,7 +86,11 @@ class DummyPlugin(PluginBase):
 
     async def get_updates(self):
         await self.AD.plugins.notify_plugin_started(
-            self.name, self.namespace, self.get_metadata(), self.get_complete_state(), True,
+            self.name,
+            self.namespace,
+            self.get_metadata(),
+            self.get_complete_state(),
+            True,
         )
         while not self.stopping:
 

@@ -693,7 +693,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         else:
             self.logger.warning(
-                "Wrong Namespace selected, as %s has no database plugin attached to it", namespace,
+                "Wrong Namespace selected, as %s has no database plugin attached to it",
+                namespace,
             )
             return None
 

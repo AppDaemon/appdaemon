@@ -197,7 +197,9 @@ class HassPlugin(PluginBase):
                 ):
                     if self.state_matched is False:
                         self.logger.info(
-                            "Startup condition met: %s=%s", entry["entity"], entry["value"],
+                            "Startup condition met: %s=%s",
+                            entry["entity"],
+                            entry["value"],
                         )
                         self.state_matched = True
                 else:
@@ -215,7 +217,8 @@ class HassPlugin(PluginBase):
                 if "data" not in entry:
                     if entry["event_type"] == event["event_type"]:
                         self.logger.info(
-                            "Startup condition met: event type %s fired", event["event_type"],
+                            "Startup condition met: event type %s fired",
+                            event["event_type"],
                         )
                     else:
                         start_ok = False
@@ -466,7 +469,10 @@ class HassPlugin(PluginBase):
                 self.logger.debug("return = %s", state)
             else:
                 self.logger.warning(
-                    "Error setting Home Assistant state %s.%s, %s", namespace, entity_id, kwargs,
+                    "Error setting Home Assistant state %s.%s, %s",
+                    namespace,
+                    entity_id,
+                    kwargs,
                 )
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
@@ -488,7 +494,11 @@ class HassPlugin(PluginBase):
     @hass_check  # noqa: C901
     async def call_plugin_service(self, namespace, domain, service, data):
         self.logger.debug(
-            "call_plugin_service() namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data,
+            "call_plugin_service() namespace=%s domain=%s service=%s data=%s",
+            namespace,
+            domain,
+            service,
+            data,
         )
 
         #
@@ -525,7 +535,10 @@ class HassPlugin(PluginBase):
                     result = await r.json()
             else:
                 self.logger.warning(
-                    "Error calling Home Assistant service %s/%s/%s", namespace, domain, service,
+                    "Error calling Home Assistant service %s/%s/%s",
+                    namespace,
+                    domain,
+                    service,
                 )
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
@@ -534,7 +547,11 @@ class HassPlugin(PluginBase):
             return result
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning(
-                "Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data,
+                "Timeout in call_service(%s/%s/%s, %s)",
+                namespace,
+                domain,
+                service,
+                data,
             )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during call_service()")
@@ -680,7 +697,10 @@ class HassPlugin(PluginBase):
             float(meta[key])
         except Exception:
             self.logger.warning(
-                "Invalid value for '%s' ('%s') in metadata for plugin %s", key, meta[key], self.name,
+                "Invalid value for '%s' ('%s') in metadata for plugin %s",
+                key,
+                meta[key],
+                self.name,
             )
             raise
 
@@ -692,7 +712,9 @@ class HassPlugin(PluginBase):
             pytz.timezone(meta["time_zone"])
         except pytz.exceptions.UnknownTimeZoneError:
             self.logger.warning(
-                "Invalid value for 'time_zone' ('%s') in metadata for plugin %s", meta["time_zone"], self.name,
+                "Invalid value for 'time_zone' ('%s') in metadata for plugin %s",
+                meta["time_zone"],
+                self.name,
             )
             raise
 

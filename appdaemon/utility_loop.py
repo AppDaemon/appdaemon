@@ -160,9 +160,10 @@ class Utility:
 
                     # Check for thread starvation
 
-                    (warning_step, warning_iterations,) = await self.AD.threading.check_q_size(
-                        warning_step, warning_iterations
-                    )
+                    (
+                        warning_step,
+                        warning_iterations,
+                    ) = await self.AD.threading.check_q_size(warning_step, warning_iterations)
 
                     # Check for any overdue threads
 
@@ -181,7 +182,10 @@ class Utility:
                     uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
 
                     await self.AD.state.set_state(
-                        "_utility", "admin", "sensor.appdaemon_uptime", state=str(uptime),
+                        "_utility",
+                        "admin",
+                        "sensor.appdaemon_uptime",
+                        state=str(uptime),
                     )
 
                 except Exception:

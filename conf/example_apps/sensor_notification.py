@@ -33,7 +33,8 @@ class SensorNotification(hass.Hass):
 
             self.log("{} changed to {}".format(self.friendly_name(entity), new))
             self.notify(
-                "{} changed to {}".format(self.friendly_name(entity), new), name=globals.notify,
+                "{} changed to {}".format(self.friendly_name(entity), new),
+                name=globals.notify,
             )
             if "idle_state" in self.args:
                 if new != self.args["idle_state"] and "turn_on" in self.args and is_state in valid_modes:

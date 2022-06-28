@@ -64,7 +64,8 @@ class Admin:
             params["namespaces"] = await self.AD.state.list_namespaces()
 
             env = Environment(
-                loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("admin.jinja2")
