@@ -12,8 +12,10 @@ None
 
 - Fixed issue when when using `timeout` in listen event api, after the event is ran one gets an error in log
 - Fixed issue when an entity is deleted from HA, and it remains in AD
-- FIxed issues with setup file saying support "python3 3.0"
+- Fixed issue with setup file saying support "python3 3.0"
+- FIxed issue with the inability to know which app's callback failed `constrain_state` check
 - Documentation fixes - contributed by `Rootie <https://github.com/Rootie>`__
+- Documentation fixes - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
 - Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
 - Bumped websocket-client from 1.2.3 to 1.3.3
 - Bumped azure-mgmt-storage from 19.0.0 to 20.0.0
