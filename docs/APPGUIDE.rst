@@ -610,7 +610,7 @@ Another callback constraint is the ``state``. This is an only callback constrain
 It is useful, is wanting to evaluate a state, to check if its within a certain range or in a list.
 An example can be seen below:
 
-...code:: python
+.. code:: python
 
     >>>  self.listen_state(self.state_cb, "light.0x0017880103ea737f_light", attribute="brightness", constrain_state=lambda  x: x>150)
 
@@ -625,7 +625,7 @@ will now be called. Similarly, if one of the constraints becomes false,
 the next callback that would otherwise have been called will be blocked.
 
 AppDaemon Constraints
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 AppDaemon itself supplies the time constraint:
 
@@ -767,6 +767,42 @@ trackers. It takes 3 possible values:
 
 Callback constraints can also be applied to individual callbacks within
 Apps, see later for more details.
+
+Decorator Type Constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some contraints are also available as python decorators, which can make using constraints easier, and
+comes with added benefits as being more performant as these run within the app's thread. The list of supported
+decorator constraints are:
+
+   - state_constrained
+   - time_constrained
+   - days_constrained
+
+and an example of usage can be seen below
+
+.. code:: python
+    >>> from from appdaemon.constraints import state_constrained
+
+    >>>  @state_constrained(lambda x: x>150)
+    >>>  def state_constraint_cb(self, entity, attribute, old, new, kwargs):
+    >>>     self.log(f"__line__: The entity {entity}, has a new state of {new}")
+
+An extra benefit that comes with using the decorator constraints, is the ease in
+combining constraints as needed as shown in the example below
+
+.. code:: python
+    >>> from from appdaemon.constraints import state_constrained, time_constrained
+    >>>
+    >>> self.kitchen_light = self.adapi.get_entity("light.kitchen_light")
+    >>> self.kitchen_light.listen_state(self.cb, attribute="brightness", immediate=True)
+
+    >>>  @time_constrained("08:30:00", "09:30:00")
+    >>>  @state_constrained(lambda x: x>150)
+    >>>  def cb(self, entity, attribute, old, new, kwargs):
+    >>>     self.log(f"__line__: The entity {entity}, has a new brightness state of {new}")
+
+The above will only run when the brightness is higher than 150, within 8:30am and 9:30am
 
 AppDaemon and Threading
 -----------------------
