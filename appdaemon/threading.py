@@ -619,7 +619,7 @@ class Threading:
             days = args["constrain_days"]
             now = await self.AD.sched.get_now()
             unconstrained = utils.check_days(now, days, name)
-            
+
         return unconstrained
 
     async def check_state_constraint(self, args, new_state, name):
