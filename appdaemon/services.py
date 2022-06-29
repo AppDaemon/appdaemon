@@ -35,10 +35,10 @@ class Services:
             name = kwargs.get("__name")
             # first we confirm if the namespace exists
             if name and namespace not in self.AD.state.state:
-                raise NamespaceException("Namespace %s, doesn't exist", namespace)
+                raise NamespaceException(f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
-                raise ValueError("The given callback %s is not a callable function", callback)
+                raise ValueError(f"The given callback {callback} is not a callable function")
 
             if namespace not in self.services:
                 self.services[namespace] = {}
@@ -87,12 +87,12 @@ class Services:
             raise ValueError("App must be given to deregister service call")
 
         if name not in self.app_registered_services:
-            raise ValueError("The given App %s has no services registered", name)
+            raise ValueError(f"The given App {name} has no services registered")
 
         app_service = f"{namespace}:{domain}:{service}"
 
         if app_service not in self.app_registered_services[name]:
-            raise ValueError("The given App %s doesn't have the given service registered it", name)
+            raise ValueError(f"The given App {name} doesn't have the given service registered it")
 
         # if it gets here, then time to deregister
         with self.services_lock:
@@ -161,19 +161,13 @@ class Services:
             name = data.pop("__name", None)
 
             if namespace not in self.services:
-                raise NamespaceException("Unknown namespace (%s) in call_service from %s", namespace, name)
+                raise NamespaceException(f"Unknown namespace {namespace} in call_service from {name}")
 
             if domain not in self.services[namespace]:
-                raise DomainException("Unknown domain (%s/%s) in call_service from %s", namespace, domain, name)
+                raise DomainException(f"Unknown domain ({namespace}/{domain}) in call_service from {name}")
 
             if service not in self.services[namespace][domain]:
-                raise ServiceException(
-                    "Unknown service (%s/%s/%s) in call_service from %s",
-                    namespace,
-                    domain,
-                    service,
-                    name,
-                )
+                raise ServiceException(f"Unknown service ({namespace}/{domain}/{service}) in call_service from {name}")
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
