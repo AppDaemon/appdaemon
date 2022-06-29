@@ -16,6 +16,7 @@ Change Log
 - Fixed issue when an entity is deleted from HA, and it remains in AD
 - Fixed issue with setup file saying support "python3 3.0"
 - Fixed issue with the inability to know which app's callback failed `constrain_state` check
+- Fixed issue with AD giving messed up error messages
 - Documentation fixes - contributed by `Rootie <https://github.com/Rootie>`__
 - Documentation fixes - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
 - Documentation fixes - contributed by `illuzn <https://github.com/illuzn>`__
