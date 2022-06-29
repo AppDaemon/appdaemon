@@ -618,13 +618,8 @@ class Threading:
         if "constrain_days" in args:
             days = args["constrain_days"]
             now = await self.AD.sched.get_now()
-            daylist = []
-            for day in days.split(","):
-                daylist.append(await utils.run_in_executor(self, utils.day_of_week, day))
-
-            if now.weekday() not in daylist:
-                unconstrained = False
-
+            unconstrained = utils.check_days(now, days, name)
+            
         return unconstrained
 
     async def check_state_constraint(self, args, new_state, name):

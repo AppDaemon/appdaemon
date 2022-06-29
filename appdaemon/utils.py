@@ -186,6 +186,7 @@ class EntityStateAttrs(dict):
 
 
 def check_state(logger, new_state, callback_state, name) -> bool:
+    """Check state"""
 
     passed = False
 
@@ -201,6 +202,21 @@ def check_state(logger, new_state, callback_state, name) -> bool:
 
     except Exception as e:
         logger.warning("Could not evaluate state check due to %s, from %s", e, name)
+        passed = False
+
+    return passed
+
+
+def check_days(now, days, name) -> bool:
+    """Check days"""
+
+    passed = True
+
+    daylist = []
+    for day in days.split(","):
+        daylist.append(day_of_week(day))
+
+    if now.weekday() not in daylist:
         passed = False
 
     return passed

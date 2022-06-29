@@ -6,9 +6,9 @@ Change Log
 
 **Features**
 
+- Added the ability to define constraints as decorators which runs within the app's thread
 - Added the ability to set HA certificate verify from docker arguments - contributed by `Antonino Piazza <https://github.com/a-p-z>`__
 - Added MQTT VARS to docker arguments - contributed by `Xavi Moreno <https://github.com/xaviml>`__
-
 
 **Fixes**
 
