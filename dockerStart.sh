@@ -45,6 +45,11 @@ if [[ -n "$MQTT_NAMESPACE" && -n "$MQTT_CLIENT_HOST" && -n "$MQTT_CLIENT_USER" &
   sed -i "s/^      client_password:.*/      client_password: $(echo $MQTT_CLIENT_PASSWORD | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
 fi
 
+# if ENV HA_CERT_VERIFY is set, change the value in appdaemon.yaml
+if [ -n "$HA_CERT_VERIFY" ]; then
+  sed -i "s/^      cert_verify:.*/      cert_verify: $(echo $HA_CERT_VERIFY | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')/" $CONF/appdaemon.yaml
+fi
+
 # if ENV DASH_URL is set, change the value in appdaemon.yaml
 if [ -n "$DASH_URL" ]; then
   if grep -q "^  url" $CONF/appdaemon.yaml; then
