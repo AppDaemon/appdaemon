@@ -19,7 +19,7 @@ paho-mqtt==1.6.1
 deepdiff==5.8.1
 python-dateutil==2.8.2
 pid==3.0.4
-azure-mgmt-compute==27.1.0
+azure-mgmt-compute==27.2.0
 azure-mgmt-storage==20.0.0
 azure-mgmt-resource==21.1.0
 azure-keyvault-secrets==4.4.0
