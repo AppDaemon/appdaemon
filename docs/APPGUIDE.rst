@@ -804,6 +804,11 @@ combining constraints as needed as shown in the example below
 
 The above will only run when the brightness is higher than 150, within 8:30am and 9:30am
 
+**Note:**
+It should be noted that when using the decorator constraints, it messes with the callbacks counter
+as AD still executes the callback and unlike in other constraints this is evaluated within the app's thread.
+So this constraint should be used, when there is no desire to mak use of the callbacks counter for critial uses.
+
 AppDaemon and Threading
 -----------------------
 
