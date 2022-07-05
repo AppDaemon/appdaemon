@@ -91,7 +91,11 @@ class MqttPlugin(PluginBase):
             mqtt_client_id = "appdaemon_{}_client".format(self.name.lower())
             self.logger.info("Using %s as Client ID", mqtt_client_id)
 
-        self.mqtt_client = mqtt.Client(client_id=mqtt_client_id, clean_session=mqtt_session, transport=mqtt_transport,)
+        self.mqtt_client = mqtt.Client(
+            client_id=mqtt_client_id,
+            clean_session=mqtt_session,
+            transport=mqtt_transport,
+        )
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_disconnect = self.mqtt_on_disconnect
         self.mqtt_client.on_message = self.mqtt_on_message
@@ -136,13 +140,18 @@ class MqttPlugin(PluginBase):
         self.stopping = True
         if self.mqtt_connected:
             self.logger.info(
-                "Stopping MQTT Plugin and Unsubscribing from URL %s:%s", self.mqtt_client_host, self.mqtt_client_port,
+                "Stopping MQTT Plugin and Unsubscribing from URL %s:%s",
+                self.mqtt_client_host,
+                self.mqtt_client_port,
             )
             for topic in self.mqtt_client_topics:
                 self.mqtt_unsubscribe(topic)
 
             self.mqtt_client.publish(
-                self.mqtt_will_topic, self.mqtt_shutdown_payload, self.mqtt_qos, retain=self.mqtt_will_retain,
+                self.mqtt_will_topic,
+                self.mqtt_shutdown_payload,
+                self.mqtt_qos,
+                retain=self.mqtt_will_retain,
             )
             self.mqtt_client.disconnect()  # disconnect cleanly
 
@@ -167,7 +176,9 @@ class MqttPlugin(PluginBase):
                 )
 
                 self.logger.info(
-                    "Connected to Broker at URL %s:%s", self.mqtt_client_host, self.mqtt_client_port,
+                    "Connected to Broker at URL %s:%s",
+                    self.mqtt_client_host,
+                    self.mqtt_client_port,
                 )
                 #
                 # Register MQTT Services
@@ -211,7 +222,8 @@ class MqttPlugin(PluginBase):
         except Exception:
             self.logger.critical("There was an error while trying to setup the Mqtt Service")
             self.logger.debug(
-                "There was an error while trying to setup the MQTT Service, with Traceback: %s", traceback.format_exc(),
+                "There was an error while trying to setup the MQTT Service, with Traceback: %s",
+                traceback.format_exc(),
             )
 
     def mqtt_on_disconnect(self, client, userdata, rc):
@@ -267,13 +279,15 @@ class MqttPlugin(PluginBase):
 
         except UnicodeDecodeError:
             self.logger.info("Unable to decode MQTT message")
-            self.logger.debug(
-                "Unable to decode MQTT message, with Traceback: %s", traceback.format_exc(),
+            self.logger.error(
+                "Unable to decode MQTT message, with Traceback: %s",
+                traceback.format_exc(),
             )
         except Exception as e:
             self.logger.critical("There was an error while processing an MQTT message: {} {}".format(type(e), e))
-            self.logger.debug(
-                "There was an error while processing an MQTT message, with Traceback: %s", traceback.format_exc(),
+            self.logger.error(
+                "There was an error while processing an MQTT message, with Traceback: %s",
+                traceback.format_exc(),
             )
 
     def mqtt_subscribe(self, topic, qos):
@@ -297,7 +311,8 @@ class MqttPlugin(PluginBase):
                     self.mqtt_client_topics.remove(topic)
 
                 self.logger.debug(
-                    "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected", topic,
+                    "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected",
+                    topic,
                 )
 
         except Exception as e:
@@ -350,11 +365,15 @@ class MqttPlugin(PluginBase):
 
                     if result[0] == 0:
                         self.logger.debug(
-                            "Publishing Payload %s to Topic %s Successful", payload, topic,
+                            "Publishing Payload %s to Topic %s Successful",
+                            payload,
+                            topic,
                         )
                     else:
                         self.logger.warning(
-                            "Publishing Payload %s to Topic %s was not Successful", payload, topic,
+                            "Publishing Payload %s to Topic %s was not Successful",
+                            payload,
+                            topic,
                         )
 
                 elif service == "subscribe":
@@ -379,7 +398,8 @@ class MqttPlugin(PluginBase):
                 config = self.config
                 if config["type"] == "mqtt":
                     self.logger.debug(
-                        "Got the following Error %s, when trying to retrieve Mqtt Plugin", e,
+                        "Got the following Error %s, when trying to retrieve Mqtt Plugin",
+                        e,
                     )
                     return str(e)
                 else:
@@ -559,14 +579,18 @@ class MqttPlugin(PluginBase):
                         self.mqtt_client.tls_insecure_set(not self.mqtt_verify_cert)
 
                 self.mqtt_client.will_set(
-                    self.mqtt_will_topic, self.mqtt_will_payload, self.mqtt_qos, retain=self.mqtt_will_retain,
+                    self.mqtt_will_topic,
+                    self.mqtt_will_payload,
+                    self.mqtt_qos,
+                    retain=self.mqtt_will_retain,
                 )
 
             self.mqtt_client.connect_async(self.mqtt_client_host, self.mqtt_client_port, self.mqtt_client_timeout)
             self.mqtt_client.loop_start()
         except Exception as e:
             self.logger.critical(
-                "There was an error while trying to setup the Mqtt Service. Error was: %s", e,
+                "There was an error while trying to setup the Mqtt Service. Error was: %s",
+                e,
             )
             self.logger.debug(
                 "There was an error while trying to setup the MQTT Service. Error: %s, with Traceback: %s",
@@ -574,7 +598,8 @@ class MqttPlugin(PluginBase):
                 traceback.format_exc(),
             )
             self.logger.debug(
-                "There was an error while trying to setup the MQTT Service, with Traceback: %s", traceback.format_exc(),
+                "There was an error while trying to setup the MQTT Service, with Traceback: %s",
+                traceback.format_exc(),
             )
 
         return

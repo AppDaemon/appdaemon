@@ -37,7 +37,7 @@ class ThreadAsync:
                     function = args["function"]
                     myargs = args["args"]
                     mykwargs = args["kwargs"]
-                    asyncio.ensure_future(function(*myargs, **mykwargs))
+                    asyncio.create_task(function(*myargs, **mykwargs))
                     # self.logger.debug("calling task_done()")
                     # self.appq.task_done()
             except Exception:

@@ -114,9 +114,9 @@ The ``appdaemon:`` section has a number of directives:
 -  ``elevation`` (required) - elevation for AppDaemon to use in meters above sea level.
 -  ``time_zone`` (required) - timezone for AppDaemon to use (e.g. America/New_York).
 -  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
--  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps
-- ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``1`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
-- ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``1`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
+-  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps. It should be noted AD will by default ignore all directories with a "." in its path (hidden folder).
+- ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``0`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
+- ``invalid_yaml_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml file that doesn't include "class" and "module" for an app. If this parameter is set to ``0`` the warning will be suppressed. This is intended to ease the distribution of additional yaml files along with apps.
 - ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``. This can also be changed from within apps, using the ``set_production_mode`` API call.
 - ``thread_duration_warning_threshold`` (optional) - AppDaemon monitors the time that each tread spends in an App. If a thread is taking too long to finish a callback, it may impact other apps. AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is 10 seconds, setting this value to ``00`` will disable the check.
 - ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events, and state changes - this can be useful for troubleshooting thread starvation issues
@@ -516,7 +516,7 @@ Then, we can create a file called apps.yaml in the apps directory and add an ent
       module: hello
       class: HelloWorld
 
-App configuration is fully described in the `API doc <API.md>`__.
+App configuration is fully described in the `API doc <AD_API_REFERENCE.html>`__.
 
 With this app in place we will be able to test the App part of AppDaemon
 when we first run it.
@@ -551,7 +551,7 @@ Or you can use the secret function and place the actual password in your
 
       password: !secret ad_password
 
-To enable https support for the HTTP Component and by extention the HADashboard and Admin UI, add the following directives
+To enable https support for the HTTP Component and by extension the HADashboard and Admin UI, add the following directives
 pointing to your certificate and keyfile:
 
 .. code:: yaml
@@ -618,7 +618,7 @@ It takes no arguments.
 Configuring the Admin Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Admin Interface, new in 4.0 is a new front end to AppDaemon that allows you to monitor it's inner workings such as
+The updated admin Interface, new in 4.2.0 is a front end to AppDaemon that allows you to monitor it's inner workings such as
 thread activity, registered callbacks and entities. Over time it is expected to evolve into a full management tool
 for AppDaemon allowing the user to configure, troubleshoot and monitor all of AppDaemon's functions.
 
@@ -630,13 +630,11 @@ The Admin Interface is configured by first adding the HTTP Component and then al
 
 The Interface can be accessed using a web browser and pointing it to the HTTP component URL.
 
-the `admin` directive takes a number of configuration items:
+Note: the old admin interface can still be used by specifying the ``old_admin`` directive:
 
-- ``title:`` The title to be used for the browser window
-- ``stats_update:`` Frequency with which stats are updated in the interface. Allowed values are ``none``, ``batch``,
-``realtime`` (default). ``none`` will turn off updates, ``batch`` will update the stats every time the utility loop
-executes, usually every second. ``realtime`` is recommended for most applications, although if you have a very busy
-system, operating with sub-second callbacks you may prefer to use ``batch`` for performance reasons.
+.. code:: yaml
+
+    old_admin:
 
 Accessing Directories via Apps
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

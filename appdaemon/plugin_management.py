@@ -86,7 +86,10 @@ class Plugins:
                         if os.path.basename(plugin) == type:
                             full_module_name = "{}".format(module_name)
                             self.logger.info(
-                                "Loading Custom Plugin %s using class %s from module %s", name, class_name, module_name,
+                                "Loading Custom Plugin %s using class %s from module %s",
+                                name,
+                                class_name,
+                                module_name,
                             )
                             break
 
@@ -96,7 +99,10 @@ class Plugins:
                         #
                         full_module_name = "{}".format(module_name)
                         self.logger.info(
-                            "Loading Plugin %s using class %s from module %s", name, class_name, module_name,
+                            "Loading Plugin %s using class %s from module %s",
+                            name,
+                            class_name,
+                            module_name,
                         )
                     try:
 
@@ -292,7 +298,7 @@ class Plugins:
                     try:
                         self.logger.debug("Refreshing %s state", name)
 
-                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"], loop=self.AD.loop):
+                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"]):
                             state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
@@ -309,11 +315,13 @@ class Plugins:
 
                     except asyncio.TimeoutError:
                         self.logger.warning(
-                            "Timeout refreshing %s state - retrying in 10 minutes", plugin,
+                            "Timeout refreshing %s state - retrying in 10 minutes",
+                            plugin,
                         )
                     except Exception:
                         self.logger.warning(
-                            "Unexpected error refreshing %s state - retrying in 10 minutes", plugin,
+                            "Unexpected error refreshing %s state - retrying in 10 minutes",
+                            plugin,
                         )
                     finally:
                         self.last_plugin_state[plugin] = datetime.datetime.now()

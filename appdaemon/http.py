@@ -35,7 +35,10 @@ def securedata(myfunc):
             return await myfunc(*args)
         elif "adcreds" in request.cookies:
             match = await utils.run_in_executor(
-                self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]),
+                self,
+                bcrypt.checkpw,
+                str.encode(self.password),
+                str.encode(request.cookies["adcreds"]),
             )
             if match:
                 return await myfunc(*args)
@@ -63,7 +66,10 @@ def secure(myfunc):
         else:
             if "adcreds" in request.cookies:
                 match = await utils.run_in_executor(
-                    self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]),
+                    self,
+                    bcrypt.checkpw,
+                    str.encode(self.password),
+                    str.encode(request.cookies["adcreds"]),
                 )
                 if match:
                     return await myfunc(*args)
@@ -104,7 +110,7 @@ def route_secure(myfunc):
 
 
 class HTTP:
-    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, admin, aui, api, http):
+    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, old_admin, admin, api, http):
 
         self.AD = ad
         self.logging = logging
@@ -114,8 +120,8 @@ class HTTP:
         self.appdaemon = appdaemon
         self.dashboard = dashboard
         self.dashboard_dir = None
+        self.old_admin = old_admin
         self.admin = admin
-        self.aui = aui
         self.http = http
         self.api = api
         self.runner = None
@@ -206,19 +212,22 @@ class HTTP:
             # Admin
             #
 
-            if aui is not None:
+            admin_args = None
+            if admin is not None:
                 self.logger.info("Starting Admin Interface")
 
                 self.stats_update = "realtime"
-                self._process_arg("stats_update", aui)
+                self._process_arg("stats_update", admin)
+                admin_args = admin
 
-            if admin is not None:
+            if old_admin is not None:
                 self.logger.info("Starting Old Admin Interface")
 
                 self.stats_update = "realtime"
-                self._process_arg("stats_update", admin)
+                self._process_arg("stats_update", old_admin)
+                admin_args = old_admin
 
-            if admin is not None or aui is not None:
+            if old_admin is not None or admin is not None:
 
                 self.admin_obj = adadmin.Admin(
                     self.config_dir,
@@ -231,10 +240,10 @@ class HTTP:
                     webfonts_dir=self.webfonts_dir,
                     images_dir=self.images_dir,
                     transport=self.transport,
-                    **admin,
+                    **admin_args,
                 )
 
-            if admin is None and aui is None:
+            if old_admin is None and admin is None:
                 self.logger.info("Admin Interface is disabled")
             #
             # Dashboards
@@ -402,7 +411,7 @@ class HTTP:
             if password == self.password:
                 self.access.info("Successful logon from %s", request.host)
                 hashed = bcrypt.hashpw(str.encode(self.password), bcrypt.gensalt(self.work_factor))
-                if self.admin is not None:
+                if self.old_admin is not None:
                     response = await self._admin_page(request)
                 else:
                     response = await self._list_dash(request)
@@ -458,7 +467,9 @@ class HTTP:
                             feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
                             if "bozo_exception" in feed:
                                 self.logger.warning(
-                                    "Error in RSS feed %s: %s", feed_data["feed"], feed["bozo_exception"],
+                                    "Error in RSS feed %s: %s",
+                                    feed_data["feed"],
+                                    feed["bozo_exception"],
                                 )
                             else:
                                 new_state = {"feed": feed}
@@ -756,14 +767,12 @@ class HTTP:
 
         # Add static path for css
         self.app.router.add_static("/css", self.css_dir)
-        if self.aui is not None:
+        if self.admin is not None:
             self.app.router.add_static("/aui", self.aui_dir)
             self.app.router.add_static("/aui/css", self.aui_css_dir)
             self.app.router.add_static("/aui/js", self.aui_js_dir)
             self.app.router.add_get("/", self.aui_page)
-            if self.admin is not None:
-                self.app.router.add_get("/admin", self.admin_page)
-        elif self.admin is not None:
+        elif self.old_admin is not None:
             self.app.router.add_get("/", self.admin_page)
         elif self.dashboard is not None:
             self.app.router.add_get("/", self.list_dash)
@@ -847,8 +856,10 @@ class HTTP:
         return web.Response(body=res, status=code)
 
     def get_web_response(self, request, code, error):
-        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(
-            code, error, code, error
+        res = (
+            "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(
+                code, error, code, error
+            )
         )
         app = request.match_info.get("app", "system")
         if code == 200:
@@ -1047,7 +1058,8 @@ class HTTP:
             params = {}
 
             env = Environment(
-                loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("logon.jinja2")
@@ -1067,7 +1079,8 @@ class HTTP:
             params = {}
 
             env = Environment(
-                loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"]),
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=select_autoescape(["html", "xml"]),
             )
 
             template = env.get_template("error.jinja2")

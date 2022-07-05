@@ -1,24 +1,120 @@
 Change Log
 ==========
 
-4.1.1
+4.2.2
+--------------------
+
+**Features**
+
+- Added the ability to set HA certificate verify from docker arguments - contributed by `Antonino Piazza <https://github.com/a-p-z>`__
+- Added MQTT VARS to docker arguments - contributed by `Xavi Moreno <https://github.com/xaviml>`__
+
+
+**Fixes**
+
+- Fixed issue when when using `timeout` in listen event api, after the event is ran one gets an error in log
+- Fixed issue when an entity is deleted from HA, and it remains in AD
+- Fixed issue with setup file saying support "python3 3.0"
+- Fixed issue with the inability to know which app's callback failed `constrain_state` check
+- Fixed issue with AD giving messed up error messages
+- Documentation fixes - contributed by `Rootie <https://github.com/Rootie>`__
+- Documentation fixes - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
+- Documentation fixes - contributed by `illuzn <https://github.com/illuzn>`__
+- Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
+- Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
+- Bumped websocket-client from 1.2.3 to 1.3.3
+- Bumped azure-mgmt-storage from 19.0.0 to 20.0.0
+- Bumped azure-storage-blob from 12.9.0 to 12.12.0
+- Bumped azure-mgmt-compute from 23.1.0 to 27.1.0
+- Bumped azure-mgmt-resource from 20.0.0 to 21.1.0
+- Bumped azure-keyvault-secrets from 4.3.0 to 4.4.0
+- Bumped pytz from 2021.3 to 2022.1
+- Bumped pygments from 2.10.0 to 2.12.0
+- Bumped feedparser from 6.0.8 to 6.0.10
+- Bumped deepdiff from 5.7.0 to 5.8.1
+- Bumped voluptuous from 0.12.2 to 0.13
+- Bumped bcrypt from 3.2.0 to 3.2.2
+- Bumped requests from 2.26.0 to 2.28.0
+- Bumped jinja2 from 3.0.3 to 3.1.2
+
+**Breaking Changes**
+
+None
+
+4.2.1 - (2022-01-17)
+--------------------
+
+**Features**
+
+- Docker: Added MQTT vars to dockerStart.sh - contributed by `Xavi Moreno <https://github.com/xaviml>`__
+
+**Fixes**
+
+- Fixed issue whereby `turn_on`, `turn_off` and `toggle` for some HASS entities didn't work
+- Fixed issue whereby `render_template` didn't work
+
+**Breaking Changes**
+
+None
+
+4.2.0 (2022-01-03)
 ------------------
 
 **Features**
 
-None
+- Released new AppDaemon Admin User Interface
+- Added support for passing a list of events to `listen_event` api
+- Added support for passing a list of entities to `listen_state` api
+- Clicking on a sequence name in AUI will now run the sequence
+- Added support for entity class alongeside `get_entity` and `get_entity_api` functions
+- Added the `wait_state` command for sequences, so a sequence can be paused until an entity or its attribute has a certain state
+- Added the `sequence/cancel` service call. So sequences can be cancelled
+- Added the ability to specify a high level namespace in sequence, so no need specifying per command
+- Allowed for running or cancelling sequences using either entity_id or the sequences name
+- Added `constrain_state` functionality with support for lambda functions
 
 **Fixes**
 
 - Pinned socketio modules to fix a version mismatch
 - Removed try/catch clause that broke dashboard for iOS 10 users - contributed by `Christian Lyra <https://github.com/clyra>`__
 - Fixed the possibility of having `check_app_updates` being a negative value
+- Fix for Hass services not being captured after startup again
+- Fixed issue whereby `.git` paths where being imported into AD and leading to lots of unnecessary messages.
+- Fixed issue with AD being unable to refresh Plugin's entities
+- Fixed issue with using the `loop` in sequences for certain services
+- Fixed issue whereby the wrong the wrong timeout error was being captured, when running a coroutine
+- Documentation fixes - contributed by `markwmuller <https://github.com/markwmuller>`__
+- Documentation fixes - contributed by `JonasPed <https://github.com/JonasPed>`__
+- Documentation fixes - contributed by `elandt <https://github.com/elandt>`__
+- Documentation fixes - contributed by `marcelblijleven <https://github.com/marcelblijleven>`__
+- Documentation fixes - contributed by `scstraus <https://github.com/scstraus>`__
+- Fixed a long standing bug in set_state ofr HASS plugin where attributes would get overwritten when setting the main state
+- Bumped voluptuous from 0.12.1 to 0.12.2
+- Bumped azure-storage-blob from 12.8.1 to 12.9.0
+- Bumped azure-mgmt-storage from 17.1.0 to 19.0.0
+- Bumped azure-mgmt-resource from 19.0.0 to 20.0.0
+- Bumped azure-mgmt-compute from 22.1.0 to 23.1.0
+- Bumped iso8601 from 0.1.16 to 1.0.2
+- Bumped yarl from 1.6.3 to 1.7.2
+- Bumped paho-mqtt from 1.5.1 to 1.6.1
+- Bumped jinja2 from 3.0.1 to 3.0.3
+- Bumped aiohttp from 3.7.4.post0 to 3.8.1
+- Bumped pygments from 2.9.0 to 2.10.0
+- Bumped deepdiff from 5.5.0 to 5.7.0
+- Bumped pyyaml from 5.4.1 to 6.0
+- Bumped pytz from 2021.1 to 2021.3
+- Bumped python-engineio from 3.13.2 to 4.3.0
+- Bumped feedparser from 6.0.2 to 6.0.8
+- Bumped python-socketio from 4.6.1 to 5.5.0
+- Bumped websocket-client from 1.2.1 to 1.2.3
+- Bumped wheel from 0.37.0 to 0.37.1
 
 **Breaking Changes**
 
 - Service calls no longer return results by default
 - `callback` and `return_result` are now reserved words for the service call api
 - If an invalid domain or service is given in a service call, exceptions will now be raised for better error management
+- Changed `set_state` and `listen_state` to support `entity_id` and not `entity`, to standardise use across api calls
 
 4.1.0 (2021-08-21)
 ------------------
@@ -35,7 +131,7 @@ None
 - Added multi-arch builds to Docker hub - contributed by `sineverba <https://github.com/sineverba>`__
 - Added new fan widget - contributed by `Ben Edmunds <https://github.com/Tigger2014>`__
 - Bumped azure-mgmt-compute from 19.0.0 to 20.0.0
-- Bump azure-mgmt-resource from 16.0.0 to 19.0.0
+- Bumped azure-mgmt-resource from 16.0.0 to 19.0.0
 - Bumped deepdiff from 5.2.3 to 5.3.0
 - Bumped wheel from 0.34.2 to 0.36.2
 - Bumped azure-storage-blob from 12.8.0 to 12.8.1

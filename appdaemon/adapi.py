@@ -5,19 +5,20 @@ import iso8601
 import re
 from datetime import timedelta
 from copy import deepcopy
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, Union
 
 # needed for fake coro cb that looks like scheduler
 import uuid
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.entity import Entity
 
 
 class ADAPI:
     """AppDaemon API class.
 
-       This class includes all native API calls to AppDaemon
+    This class includes all native API calls to AppDaemon
 
     """
 
@@ -585,7 +586,7 @@ class ADAPI:
     @utils.sync_wrapper
     async def _check_entity(self, namespace, entity):
         if "." not in entity:
-            raise ValueError("{}: Invalid entity ID: {}".format(self.name, entity))
+            raise ValueError(f"{self.name}: Invalid entity ID: {entity}")
         if not await self.AD.state.entity_exists(namespace, entity):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
@@ -604,7 +605,9 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def add_entity(self, entity_id, state=None, attributes=None, **kwargs):
+    async def add_entity(
+        self, entity_id: str, state: Any = None, attributes: dict = None, **kwargs: Optional[Any]
+    ) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
          If an entity doesn't exists and needs to be created, this function can be used to create it locally.
@@ -636,20 +639,15 @@ class ADAPI:
         """
         namespace = self._get_namespace(**kwargs)
 
-        if await self.AD.state.entity_exists(namespace, entity_id):
-            self.logger.warning("%s already exists, will not be adding it", entity_id)
-            return None
-
-        await self.AD.state.add_entity(namespace, entity_id, state, attributes)
-        return None
+        await self.get_entity_api(namespace, entity_id).add(state, attributes)
 
     @utils.sync_wrapper
-    async def entity_exists(self, entity_id, **kwargs):
-        """Checks the existence of an entity in Home Assistant.
+    async def entity_exists(self, entity_id: str, **kwargs: Optional[Any]) -> bool:
+        """Checks the existence of an entity in AD.
 
-        When working with multiple Home Assistant instances, it is possible to specify the
-        namespace, so that it checks within the right instance in in the event the app is
-        working in a different instance. Also when using this function, it is also possible
+        When working with multiple AD namespaces, it is possible to specify the
+        namespace, so that it checks within the right namespace in in the event the app is
+        working in a different namespace. Also when using this function, it is also possible
         to check if an AppDaemon entity exists.
 
         Args:
@@ -678,7 +676,7 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        return await self.AD.state.entity_exists(namespace, entity_id)
+        return await self.get_entity_api(namespace, entity_id).exists()
 
     @utils.sync_wrapper
     async def split_entity(self, entity_id, **kwargs):
@@ -1129,7 +1127,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def register_endpoint(
-        self, callback: Callable[[Any, dict], Any], endpoint: str = None, **kwargs: Optional[dict]
+        self, callback: Callable[[Any, dict], Any], endpoint: str = None, **kwargs: Optional[Any]
     ) -> str:
         """Registers an endpoint for API calls into the current App.
 
@@ -1166,7 +1164,8 @@ class ADAPI:
             return await self.AD.http.register_endpoint(callback, endpoint, self.name, **kwargs)
         else:
             self.logger.warning(
-                "register_endpoint for %s failed - HTTP component is not configured", endpoint,
+                "register_endpoint for %s failed - HTTP component is not configured",
+                endpoint,
             )
 
     @utils.sync_wrapper
@@ -1191,7 +1190,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def register_route(
-        self, callback: Callable[[Any, dict], Any], route: str = None, **kwargs: Optional[dict]
+        self, callback: Callable[[Any, dict], Any], route: str = None, **kwargs: Optional[Any]
     ) -> str:
         """Registers a route for Web requests into the current App.
            By registering an app web route, this allows to make use of AD's internal web server to serve
@@ -1247,7 +1246,9 @@ class ADAPI:
     #
 
     @utils.sync_wrapper
-    async def listen_state(self, callback, entity=None, **kwargs):
+    async def listen_state(
+        self, callback: Callable, entity_id: Union[str, list] = None, **kwargs: Optional[Any]
+    ) -> Union[str, list]:
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
@@ -1255,10 +1256,11 @@ class ADAPI:
         Args:
             callback: Function to be invoked when the requested state change occurs. It must conform
                 to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
-            entity (str, optional): name of an entity or device type. If just a device type is provided,
+            entity_id (str|list, optional): name of an entity or device type. If just a device type is provided,
                 e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
                 devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
-                listen for state changes for just that entity.
+                listen for state changes for just that entity. If a list of entities, it will subscribe for those
+                entities, and return their handles
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1274,10 +1276,11 @@ class ADAPI:
                 attribute value.
             new (optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the new state match the value
-                of ``new``.
+                of ``new``. The parameter type is defined by the namespace or plugin that is responsible
+                for the entity. If it looks like a float, list, or dictionary, it may actually be a string.
             old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
-                of ``old``.
+                of ``old``. The same caveats on types for the ``new`` parameter apply to this parameter.
 
             duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
                 fire unless the state listened for is maintained for that number of seconds. This
@@ -1343,7 +1346,7 @@ class ADAPI:
 
             Listen for a state change involving `light.office1` and return the state attribute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1")
+            >>> self.handle = self.listen_state(self.my_callback, entity_id="light.office_1")
 
             Listen for a state change involving `light.office1` and return the entire state as a dict.
 
@@ -1361,30 +1364,43 @@ class ADAPI:
             Listen for a change involving `light.office1` changing from brightness 100 to 200 and return the
             brightness attribute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "brightness", old = "100", new = "200")
+            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute="brightness", old="100", new="200")
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60)
+            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new="on", duration=60)
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute
             trigger the delay immediately if the light is already on.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", duration = 60, immediate = True)
+            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new="on", duration=60, immediate=True)
+
+            Listen for a state change involving `light.office1` and `light.office2` changing to state on.
+
+            >>> self.handle = self.listen_state(self.my_callback, ["light.office_1", "light.office2"], new="on")
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-        name = self.name
-        if entity is not None and "." in entity:
-            await self._check_entity(namespace, entity)
 
-        self.logger.debug("Calling listen_state for %s", self.name)
-        return await self.AD.state.add_state_callback(name, namespace, entity, callback, kwargs)
+        if isinstance(entity_id, list):
+            handles = []
+            for e in entity_id:
+                if e is not None and "." in e:
+                    await self._check_entity(namespace, e)
+
+                handle = await self.get_entity_api(namespace, e).listen_state(callback, **kwargs)
+                handles.append(handle)
+
+            return handles
+
+        else:
+            if entity_id is not None and "." in entity_id:
+                await self._check_entity(namespace, entity_id)
+
+            return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_state(self, handle):
+    async def cancel_listen_state(self, handle: str) -> bool:
         """Cancels a ``listen_state()`` callback.
 
         This will mean that the App will no longer be notified for the specific
@@ -1405,7 +1421,7 @@ class ADAPI:
         return await self.AD.state.cancel_state_callback(handle, self.name)
 
     @utils.sync_wrapper
-    async def info_listen_state(self, handle):
+    async def info_listen_state(self, handle: str) -> dict:
         """Gets information on state a callback from its handle.
 
         Args:
@@ -1423,7 +1439,14 @@ class ADAPI:
         return await self.AD.state.info_state_callback(handle, self.name)
 
     @utils.sync_wrapper
-    async def get_state(self, entity_id=None, attribute=None, default=None, copy=True, **kwargs):
+    async def get_state(
+        self,
+        entity_id: str = None,
+        attribute: str = None,
+        default: Any = None,
+        copy: bool = True,
+        **kwargs: Optional[Any],
+    ) -> Any:
         """Gets the state of any component within Home Assistant.
 
         State updates are continuously tracked, so this call runs locally and does not require
@@ -1485,17 +1508,15 @@ class ADAPI:
 
         """
         namespace = self._get_namespace(**kwargs)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
 
-        return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy, **kwargs)
+        return await self.get_entity_api(namespace, entity_id).get_state(attribute, default, copy, **kwargs)
 
     @utils.sync_wrapper
-    async def set_state(self, entity, **kwargs):
+    async def set_state(self, entity_id: str, **kwargs: Optional[Any]) -> dict:
         """Updates the state of the specified entity.
 
         Args:
-            entity (str): The fully qualified entity id (including the device type).
+            entity_id (str): The fully qualified entity id (including the device type).
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -1523,20 +1544,18 @@ class ADAPI:
 
             Update the state and attribute of an entity.
 
-            >>> self.set_state("light.office_1", state = "on", attributes = {"color_name": "red"})
+            >>> self.set_state(entity_id="light.office_1", state = "on", attributes = {"color_name": "red"})
 
             Update the state of an entity within the specified namespace.
 
             >>> self.set_state("light.office_1", state="off", namespace ="hass")
 
         """
-        self.logger.debug("set state: %s, %s", entity, kwargs)
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity)
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
 
-        return await self.AD.state.set_state(self.name, namespace, entity, **kwargs)
+        namespace = self._get_namespace(**kwargs)
+        await self._check_entity(namespace, entity_id)
+
+        return await self.get_entity_api(namespace, entity_id).set_state(**kwargs)
 
     #
     # Service
@@ -1547,9 +1566,7 @@ class ADAPI:
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: %s", service)
 
-    def register_service(
-        self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[dict]
-    ) -> None:
+    def register_service(self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[Any]) -> None:
         """Registers a service that can be called from other apps, the REST API and the Event Stream
 
         Using this function, an App can register a function to be available in the service registry.
@@ -1591,7 +1608,7 @@ class ADAPI:
 
         self.AD.services.register_service(namespace, d, s, cb, __async="auto", **kwargs)
 
-    def deregister_service(self, service: str, **kwargs: Optional[dict]) -> bool:
+    def deregister_service(self, service: str, **kwargs: Optional[Any]) -> bool:
         """Deregisters a service that had been previously registered
 
         Using this function, an App can deregister a service call, it has initially registered in the service registry.
@@ -1626,7 +1643,7 @@ class ADAPI:
 
         return self.AD.services.deregister_service(namespace, d, s, **kwargs)
 
-    def list_services(self, **kwargs: Optional[dict]) -> list:
+    def list_services(self, **kwargs: Optional[Any]) -> list:
         """List all services available within AD
 
         Using this function, an App can request all available services within AD
@@ -1659,7 +1676,7 @@ class ADAPI:
         return self.AD.services.list_services(namespace)  # retrieve services
 
     @utils.sync_wrapper
-    async def call_service(self, service: str, **kwargs: Optional[dict]) -> Any:
+    async def call_service(self, service: str, **kwargs: Optional[Any]) -> Any:
         """Calls a Service within AppDaemon.
 
         This function can call any service and provide any required parameters.
@@ -1732,12 +1749,12 @@ class ADAPI:
         return await self.AD.services.call_service(namespace, d, s, kwargs)
 
     @utils.sync_wrapper
-    async def run_sequence(self, sequence, **kwargs):
+    async def run_sequence(self, sequence: Union[str, list], **kwargs: Optional[Any]):
         """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
         service calls.
 
         Args:
-            sequence: The sequence name, referring to the correct entry in apps.yaml, or a dict containing
+            sequence: The sequence name, referring to the correct entry in apps.yaml, or a list containing
                 actual commands to run
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -1768,42 +1785,44 @@ class ADAPI:
             del kwargs["namespace"]
 
         _name = self.name
-        self.logger.debug("Calling run_sequence() for %s", self.name)
+        self.logger.debug("Calling run_sequence() for %s from %s", sequence, self.name)
         return await self.AD.sequences.run_sequence(_name, namespace, sequence, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_sequence(self, handle):
-        """Cancel an AppDaemon Sequence.
+    async def cancel_sequence(self, sequence: Any) -> None:
+        """Cancel an already running AppDaemon Sequence.
 
         Args:
-            handle: The handle returned by the `run_sequence()` call
+            sequence: The sequence as configured to be cancelled, or the sequence entity_id or future object
 
         Returns:
             None.
 
         Examples:
 
-            >>> self.run_sequence(handle)
+            >>> self.cancel_sequence("sequence.living_room_lights")
 
         """
-        _name = self.name
-        self.logger.debug("Calling run_sequence() for %s", self.name)
-        await self.AD.sequences.cancel_sequence(_name, handle)
+
+        self.logger.debug("Calling cancel_sequence() for %s, from %s", sequence, self.name)
+        await self.AD.sequences.cancel_sequence(sequence)
 
     #
     # Events
     #
 
     @utils.sync_wrapper
-    async def listen_event(self, callback, event=None, **kwargs):
+    async def listen_event(
+        self, callback: Callable, event: Union[str, list] = None, **kwargs: Optional[Any]
+    ) -> Union[str, list]:
         """Registers a callback for a specific event, or any event.
 
         Args:
             callback: Function to be invoked when the event is fired.
                 It must conform to the standard Event Callback format documented `here <APPGUIDE.html#about-event-callbacks>`__
-            event (optional): Name of the event to subscribe to. Can be a standard
-                Home Assistant event such as `service_registered` or an arbitrary
-                custom event such as `"MODE_CHANGE"`. If no event is specified,
+            event (str|list, optional): Name of the event to subscribe to. Can be a standard
+                Home Assistant event such as `service_registered`, an arbitrary
+                custom event such as `"MODE_CHANGE"` or a list of events `["pressed", "released"]`. If no event is specified,
                 `listen_event()` will subscribe to all events.
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -1856,6 +1875,10 @@ class ADAPI:
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
 
+            Listen for some custom events of a button being pressed.
+
+            >>> self.listen_event(self.button_event, ["pressed", "released"])
+
         """
         namespace = self._get_namespace(**kwargs)
 
@@ -1864,10 +1887,20 @@ class ADAPI:
 
         _name = self.name
         self.logger.debug("Calling listen_event for %s", self.name)
-        return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
+
+        if isinstance(event, list):
+            handles = []
+            for e in event:
+                handle = await self.AD.events.add_event_callback(_name, namespace, callback, e, **kwargs)
+                handles.append(handle)
+
+            return handles
+
+        else:
+            return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_event(self, handle):
+    async def cancel_listen_event(self, handle: str) -> bool:
         """Cancels a callback for a specific event.
 
         Args:
@@ -1884,7 +1917,7 @@ class ADAPI:
         return await self.AD.events.cancel_event_callback(self.name, handle)
 
     @utils.sync_wrapper
-    async def info_listen_event(self, handle):
+    async def info_listen_event(self, handle: str) -> bool:
         """Gets information on an event callback from its handle.
 
         Args:
@@ -1901,7 +1934,7 @@ class ADAPI:
         return await self.AD.events.info_event_callback(self.name, handle)
 
     @utils.sync_wrapper
-    async def fire_event(self, event, **kwargs):
+    async def fire_event(self, event: str, **kwargs: Optional[Any]) -> None:
         """Fires an event on the AppDaemon bus, for apps and plugins.
 
         Args:
@@ -1934,7 +1967,7 @@ class ADAPI:
     # Time
     #
 
-    def parse_utc_string(self, utc_string):
+    def parse_utc_string(self, utc_string: str) -> datetime:
         """Converts a UTC to its string representation.
 
         Args:
@@ -1946,12 +1979,12 @@ class ADAPI:
         """
         return datetime.datetime(*map(int, re.split(r"[^\d]", utc_string)[:-1])).timestamp() + self.get_tz_offset() * 60
 
-    def get_tz_offset(self):
+    def get_tz_offset(self) -> float:
         """Returns the timezone difference between UTC and Local Time in minutes."""
         return self.AD.tz.utcoffset(self.datetime()).total_seconds() / 60
 
     @staticmethod
-    def convert_utc(utc):
+    def convert_utc(utc) -> datetime:
         """Gets a `datetime` object for the specified UTC.
 
         Home Assistant provides timestamps of several different sorts that may be
@@ -1971,7 +2004,7 @@ class ADAPI:
         return iso8601.parse_date(utc)
 
     @utils.sync_wrapper
-    async def sun_up(self):
+    async def sun_up(self) -> bool:
         """Determines if the sun is currently up.
 
         Returns:
@@ -1985,7 +2018,7 @@ class ADAPI:
         return await self.AD.sched.sun_up()
 
     @utils.sync_wrapper
-    async def sun_down(self):
+    async def sun_down(self) -> bool:
         """Determines if the sun is currently down.
 
         Returns:
@@ -1999,7 +2032,7 @@ class ADAPI:
         return await self.AD.sched.sun_down()
 
     @utils.sync_wrapper
-    async def parse_time(self, time_str, name=None, aware=False):
+    async def parse_time(self, time_str: str, name: str = None, aware: bool = False):
         """Creates a `time` object from its string representation.
 
         This functions takes a string representation of a time, or sunrise,
@@ -2107,7 +2140,7 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def now_is_between(self, start_time, end_time, name=None):
-        """Determines is the current `time` is within the specified start and end times.
+        """Determines if the current `time` is within the specified start and end times.
 
         This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
         offset and returns ``true`` if the current time is between those 2 times. Its
@@ -2421,7 +2454,7 @@ class ADAPI:
             callback: Function to be invoked at the specified time of day.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
+            start: Should be either a Python ``datetime`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur.
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -2730,7 +2763,10 @@ class ADAPI:
             aware_start = now + datetime.timedelta(seconds=interval)
 
         self.logger.debug(
-            "Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name,
+            "Registering run_every starting %s in %ss intervals for %s",
+            aware_start,
+            interval,
+            name,
         )
 
         handle = await self.AD.sched.insert_schedule(
@@ -2934,9 +2970,22 @@ class ADAPI:
         Returns:
             A Future, which can be cancelled by calling f.cancel().
         Examples:
-            >>> f = self.submit_to_executor(self.run_request, callback=self.callback)
             >>>
-            >>> def callback(self, kwargs):
+            >>> def state_cb(self, *args, **kwargs): # callback from an entity
+            >>>     # need to run a 30 seconds task, so need to free up the thread
+            >>>     # need to get results, so will pass a callback for it
+            >>>     # callback can be ignored, if the result is not needed
+            >>>     f = self.submit_to_executor(self.run_request, url, callback=self.result_callback)
+            >>>
+            >>> def run_request(self, url): # long running function
+            >>>     import requests
+            >>>     res = requests.get(url)
+            >>>     return res.json()
+            >>>
+            >>> def result_callback(self, kwargs):
+            >>>     result = kwargs["result"]
+            >>>     self.set_state("sensor.something", state="ready", attributes=result, replace=True) # picked up by another app
+            >>>     # <other processing that is needed>
         """
 
         callback = kwargs.pop("callback", None)
@@ -3057,6 +3106,18 @@ class ADAPI:
     #
     # Other
     #
+
+    def get_entity(self, entity: str, **kwargs: Optional[Any]) -> Entity:
+        namespace = self._get_namespace(**kwargs)
+        self._check_entity(namespace, entity)
+        entity_id = Entity(self.logger, self.AD, self.name, namespace, entity)
+
+        return entity_id
+
+    def get_entity_api(self, namespace: str, entity_id: str) -> Entity:
+        api = Entity.entity_api(self.logger, self.AD, self.name, namespace, entity_id)
+
+        return api
 
     def run_in_thread(self, callback, thread, **kwargs):
         """Schedules a callback to be run in a different thread from the current one.
