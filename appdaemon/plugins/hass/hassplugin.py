@@ -6,9 +6,11 @@ import traceback
 import aiohttp
 import pytz
 from deepdiff import DeepDiff
+from copy import deepcopy
 import datetime
 from urllib.parse import quote
 from urllib.parse import urlencode
+from typing import Union
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -195,7 +197,9 @@ class HassPlugin(PluginBase):
                 ):
                     if self.state_matched is False:
                         self.logger.info(
-                            "Startup condition met: %s=%s", entry["entity"], entry["value"],
+                            "Startup condition met: %s=%s",
+                            entry["entity"],
+                            entry["value"],
                         )
                         self.state_matched = True
                 else:
@@ -213,7 +217,8 @@ class HassPlugin(PluginBase):
                 if "data" not in entry:
                     if entry["event_type"] == event["event_type"]:
                         self.logger.info(
-                            "Startup condition met: event type %s fired", event["event_type"],
+                            "Startup condition met: event type %s fired",
+                            event["event_type"],
                         )
                     else:
                         start_ok = False
@@ -338,10 +343,11 @@ class HassPlugin(PluginBase):
                 # Register Services
                 #
                 self.services = await self.get_hass_services()
-                for domain in self.services:
-                    for service in domain["services"]:
+                for hass_service in self.services:
+                    domain = hass_service["domain"]
+                    for service in hass_service["services"]:
                         self.AD.services.register_service(
-                            self.get_namespace(), domain["domain"], service, self.call_plugin_service, __silent=True
+                            self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
                         )
 
                 # Decide if we can start yet
@@ -355,6 +361,11 @@ class HassPlugin(PluginBase):
                 # self.first_time)
                 # self.first_time = False
                 # self.already_notified = False
+
+                #
+                # We schedule a task to check for new services over the next 10 minutes
+                #
+                asyncio.create_task(self.run_hass_service_check())
 
                 #
                 # Loop forever consuming events
@@ -386,10 +397,10 @@ class HassPlugin(PluginBase):
                             domain = data.get("domain")
                             service = data.get("service")
 
-                            if domain and service:
-                                self.AD.services.register_service(
-                                    self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
-                                )
+                            if domain is None or service is None:
+                                continue
+
+                            await self.check_register_service(domain, service)
 
                 self.reading_messages = False
 
@@ -458,7 +469,10 @@ class HassPlugin(PluginBase):
                 self.logger.debug("return = %s", state)
             else:
                 self.logger.warning(
-                    "Error setting Home Assistant state %s.%s, %s", namespace, entity_id, kwargs,
+                    "Error setting Home Assistant state %s.%s, %s",
+                    namespace,
+                    entity_id,
+                    kwargs,
                 )
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
@@ -480,7 +494,11 @@ class HassPlugin(PluginBase):
     @hass_check  # noqa: C901
     async def call_plugin_service(self, namespace, domain, service, data):
         self.logger.debug(
-            "call_plugin_service() namespace=%s domain=%s service=%s data=%s", namespace, domain, service, data,
+            "call_plugin_service() namespace=%s domain=%s service=%s data=%s",
+            namespace,
+            domain,
+            service,
+            data,
         )
 
         #
@@ -497,7 +515,7 @@ class HassPlugin(PluginBase):
         else:
             headers = {}
 
-        if domain == "template":
+        if domain == "template" and service == "render":
             api_url = "{}/api/template".format(config["ha_url"])
 
         elif domain == "database":
@@ -517,7 +535,10 @@ class HassPlugin(PluginBase):
                     result = await r.json()
             else:
                 self.logger.warning(
-                    "Error calling Home Assistant service %s/%s/%s", namespace, domain, service,
+                    "Error calling Home Assistant service %s/%s/%s",
+                    namespace,
+                    domain,
+                    service,
                 )
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
@@ -526,7 +547,11 @@ class HassPlugin(PluginBase):
             return result
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning(
-                "Timeout in call_service(%s/%s/%s, %s)", namespace, domain, service, data,
+                "Timeout in call_service(%s/%s/%s, %s)",
+                namespace,
+                domain,
+                service,
+                data,
             )
         except aiohttp.client_exceptions.ServerDisconnectedError:
             self.logger.warning("HASS Disconnected unexpectedly during call_service()")
@@ -672,7 +697,10 @@ class HassPlugin(PluginBase):
             float(meta[key])
         except Exception:
             self.logger.warning(
-                "Invalid value for '%s' ('%s') in metadata for plugin %s", key, meta[key], self.name,
+                "Invalid value for '%s' ('%s') in metadata for plugin %s",
+                key,
+                meta[key],
+                self.name,
             )
             raise
 
@@ -684,7 +712,9 @@ class HassPlugin(PluginBase):
             pytz.timezone(meta["time_zone"])
         except pytz.exceptions.UnknownTimeZoneError:
             self.logger.warning(
-                "Invalid value for 'time_zone' ('%s') in metadata for plugin %s", meta["time_zone"], self.name,
+                "Invalid value for 'time_zone' ('%s') in metadata for plugin %s",
+                meta["time_zone"],
+                self.name,
             )
             raise
 
@@ -723,7 +753,7 @@ class HassPlugin(PluginBase):
             self.logger.warning("Error getting metadata - retrying")
             raise
 
-    async def get_hass_services(self):
+    async def get_hass_services(self) -> dict:
         try:
             self.logger.debug("get_hass_services()")
             if self.token is not None:
@@ -738,14 +768,92 @@ class HassPlugin(PluginBase):
             r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
             r.raise_for_status()
             services = await r.json()
-            # manually added HASS history service
-            services.append({"domain": "database", "services": ["history"]})
-            services.append({"domain": "template", "services": ["render"]})
+
+            # manually added HASS services
+            new_services = {}
+            new_services["database"] = {"history": {}}
+            new_services["template"] = {"render": {}}
+
+            # now add the services
+            for i, service in enumerate(deepcopy(services)):
+                domain = service["domain"]
+                if domain in new_services:
+                    # the domain already exists
+                    services[i]["services"].update(new_services[domain])
+
+                    # remove from the list
+                    del new_services[domain]
+
+            if len(new_services) > 0:  # some have not been processed
+                for domain, service in new_services.items():
+                    services.append({"domain": domain, "services": {}})
+                    services[-1]["services"].update(service)
 
             return services
+
         except Exception:
             self.logger.warning("Error getting services - retrying")
             raise
+
+    async def run_hass_service_check(self) -> None:
+        """Used to re-run get hass service, at startup"""
+
+        count = 0
+        while count <= 10:  # it runs only a maximum of 10 times
+            count += 1
+            await asyncio.sleep(60)
+
+            # get hass services
+            hass_services = await self.get_hass_services()
+            if not isinstance(hass_services, list):
+                continue
+
+            # now check if any of the services exists
+
+            for hass_service in hass_services:
+                domain = hass_service["domain"]
+                services = hass_service["services"]
+
+                await self.check_register_service(domain, services)
+
+    async def check_register_service(self, domain: str, services: Union[dict, str]) -> bool:
+        """Used to check and register a service if need be"""
+
+        domain_exists = False
+        service_index = -1
+
+        # now to check if it exists already
+        for i, registered_services in enumerate(self.services):
+            if domain == registered_services["domain"]:
+                domain_exists = True
+                service_index = i
+                break
+
+        if domain_exists is False:  # domain doesn't exist
+            self.services.append({"domain": domain, "services": {}})
+
+        domain_services = deepcopy(self.services[service_index])
+
+        if isinstance(services, str):  # its a string
+            if services not in domain_services["services"]:
+                self.logger.info("Registering new service %s/%s", domain, services)
+
+                self.services[service_index]["services"][services] = {}
+                self.AD.services.register_service(
+                    self.get_namespace(), domain, services, self.call_plugin_service, __silent=True
+                )
+
+        else:
+            for service, service_data in services.items():
+                if service not in domain_services["services"]:
+                    self.logger.info("Registering new service %s/%s", domain, service)
+
+                    self.services[service_index]["services"][service] = service_data
+                    self.AD.services.register_service(
+                        self.get_namespace(), domain, service, self.call_plugin_service, __silent=True
+                    )
+
+        return domain_exists
 
     @hass_check
     async def fire_plugin_event(self, event, namespace, **kwargs):

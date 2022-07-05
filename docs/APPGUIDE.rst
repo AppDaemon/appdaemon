@@ -23,8 +23,9 @@ code when those events occur, allowing the App to respond to the event
 with some kind of action.
 
 The first step is to create a unique file within the apps directory (as
-defined `here <INSTALL.html>`__). This file, is in fact, a Python
-module, and is expected to contain one or more classes derived from a
+defined `here <INSTALL.html>`__). It should be noted that AD will ignore all files
+saved within a hidden directory; essentially those with a "." in its path.
+This file, is in fact, a Pythonmodule, and is expected to contain one or more classes derived from a
 supplied *AppDaemon class* or a *custom plugin*. For instance, hass support can be used
 by importing from the supplied ``hassapi`` module. The start of an App might look like this:
 
@@ -334,7 +335,7 @@ In the App, the api_key can be accessed like every other argument the App can ac
 Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~
 
-If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The varibales can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
+If not wanting to use the secrets as above, AppDaemon also supports the ability to pass sensitive arguments to apps, via the use of environment variables in the main or app config file. This will allow separate storage of sensitive information such as passwords, within the os's environment variables. The variables can be referred to using a ``!env_var`` tag in the ``apps.yaml`` file.
 
 An example using the os's time zone for AD:
 
@@ -604,6 +605,16 @@ adding a parameter to its configuration like this:
 Now, although the ``initialize()`` function will be called for
 SomeClass, and it will have a chance to register as many callbacks as it
 desires, none of the callbacks will execute, in this case, unless it is between sunrise and sunset.
+
+Another callback constraint is the ``state``. This is an only callback constraint, that cannot be used at app level.
+It is useful, is wanting to evaluate a state, to check if its within a certain range or in a list.
+An example can be seen below:
+
+...code:: python
+
+    >>>  self.listen_state(self.state_cb, "light.0x0017880103ea737f_light", attribute="brightness", constrain_state=lambda  x: x>150)
+
+This will only execute the callback, if the brightness level of the entity is greater than `150`
 
 An App can have as many or as few constraints as are required. When more than one
 constraint is present, they must all evaluate to true to allow the
@@ -2578,10 +2589,11 @@ Sequences
 
 AppDaemon supports `sequences` as a simple way of re-using predefined steps of commands. The initial usecase for sequences
 is to allow users to create scenes within AppDaemon, however they are useful for many other things. Sequences
-are fairly simple and allow the user to define 2 types of activity:
+are fairly simple and allow the user to define 3 types of activities:
 
 - A call_service command with arbitrary parameters
 - A configurable delay between steps.
+- Pause execution, until an entity has a certain state
 
 In the case of a scene, of course you would not want to use the delay, and would just list all the devices to be switched
 on or off, however, if you wanted a light to come on for 30 seconds, you could use a script to turn the light on,
@@ -2604,6 +2616,7 @@ An example of a simple sequence entry to create a couple of scenes might be:
     sequence:
       office_on:
         name: Office On
+        namespace: hass
         steps:
         - homeassistant/turn_on:
             entity_id: light.office_1
@@ -2661,7 +2674,7 @@ Sequences can be created that will loop forever by adding the value ``loop: True
     sequence:
       outside_motion_light:
         name: Outside Motion
-        loop; True
+        loop: True
         steps:
         - homeassistant/turn_on: {"entity_id": "light.outside", "brightness": 254}
         - sleep: 30
@@ -2669,17 +2682,39 @@ Sequences can be created that will loop forever by adding the value ``loop: True
 
 This sequence once started will loop until either the sequence is canceled, the app is restarted or terminated, or AppDaemon is shutdown.
 
+Not only can the whole sequence be looped, but steps can be looped to if wanting to run a certain step multiple times.
+Below is an example of increasing the volume of a device 5 times with 0.5 interval
+
+.. code:: yaml
+
+    sequence:
+      setup_tv:
+        name: Setup TV
+        namespace: hass
+        steps:
+        - homeassistant/turn_on:
+            entity_id: switch.living_room_tv
+
+        - sleep: 30
+
+        - remote/send_command:
+            entity_id: roku.living_room
+            loop_step:
+                times: 5
+                interval: 0.5
+
 Defining a Sequence Call Namespace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
-basis if required.
+basis if required. Also it can be specifed at the top tier level, allowing for all service calls in the sequence to use the same namespace
 
 .. code:: yaml
 
     sequence:
       office_on:
         name: Office On
+        namespace: hass
         steps:
         - homeassistant/turn_on:
             entity_id: light.office_1
@@ -2702,6 +2737,34 @@ In addition to a straightforward service name plus data, sequences can take a fe
 - sequence - run a sub sequence. This must be a predefined sequence, and cannot be an inline sequence. Provide the entity
 name of the sub-sequence to be run, e.g. `sequence: sequcene.my_sub_sequence`. Sub sequences can be nested arbitrarily
 to any desired level.
+
+Sequence Wait State
+~~~~~~~~~~~~~~~~~~~
+
+In addition to a straightforward service name plus data, sequences can paused, to continue after an entity's state is a condition.
+This allows formore powerful use of sequence calls, for example you want to turn activate the conditioner, only after the window has been shut.
+Entities can be created in user defined namespaces, which will hold the state of conditions of interest and the sequence made to make use of the entity.
+
+.. code:: yaml
+
+    sequence:
+      air_condition_on:
+        name: Air Con On
+        namespace: mqtt
+        steps:
+        - mqtt/publish:
+            topic: "hermes/tts"
+            payload: "Turning on the AirCon, ensure windows are shut"
+
+        - wait_state:
+            entity_id: condition.living_room_window
+            state: "closed"
+            timeout: 60 # defaults to 15 minutes
+            namespace: rules
+
+        - mqtt/publish:
+            topic: "air_condition/state"
+            payload: "on"
 
 Running a Sequence
 ~~~~~~~~~~~~~~~~~~

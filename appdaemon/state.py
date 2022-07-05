@@ -196,7 +196,12 @@ class State:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name, exec_time, None, False, None, __state_handle=handle,
+                    name,
+                    exec_time,
+                    None,
+                    False,
+                    None,
+                    __state_handle=handle,
                 )
             #
             # In the case of a quick_start parameter,
@@ -448,9 +453,14 @@ class State:
             # We assume that the event will come back to us via the plugin
             await plugin.remove_entity(namespace, entity)
 
-        if entity in self.state[namespace]:
-            self.state[namespace].pop(entity)
-            data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity}}
+        await self.remove_entity_simple(namespace, entity)
+
+    async def remove_entity_simple(self, namespace: str, entity_id: str) -> None:
+        """Used to remove an internal AD entity"""
+
+        if entity_id in self.state[namespace]:
+            self.state[namespace].pop(entity_id)
+            data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity_id}}
             self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     async def add_entity(self, namespace, entity, state, attributes=None):
@@ -619,7 +629,10 @@ class State:
         if hasattr(plugin, "set_plugin_state"):
             # We assume that the state change will come back to us via the plugin
             self.logger.debug("sending event to plugin")
-            result = await plugin.set_plugin_state(namespace, entity, **kwargs)
+
+            result = await plugin.set_plugin_state(
+                namespace, entity, state=new_state["state"], attributes=new_state["attributes"]
+            )
             if result is not None:
                 if "entity_id" in result:
                     result.pop("entity_id")

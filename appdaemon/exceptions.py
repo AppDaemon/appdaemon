@@ -26,3 +26,7 @@ class AppException(Exception):
 
 class HandlerException(Exception):
     pass
+
+
+class TimeOutException(Exception):
+    pass

@@ -107,13 +107,17 @@ class OccuSim(hass.Hass):
                             start_offset_p = self.args[step + "start_offset"]
                             start_offset = self.parse_time(start_offset_p)
                             start = events[steprelative]["event"] + datetime.timedelta(
-                                hours=start_offset.hour, minutes=start_offset.minute, seconds=start_offset.second,
+                                hours=start_offset.hour,
+                                minutes=start_offset.minute,
+                                seconds=start_offset.second,
                             )
                             end_offset_p = self.args.get(step + "end_offset")
                             if end_offset_p is not None:
                                 end_offset = self.parse_time(end_offset_p)
                                 end = events[steprelative]["event"] + datetime.timedelta(
-                                    hours=end_offset.hour, minutes=end_offset.minute, seconds=end_offset.second,
+                                    hours=end_offset.hour,
+                                    minutes=end_offset.minute,
+                                    seconds=end_offset.second,
                                 )
                                 span = int(end.timestamp() - start.timestamp())
                             if span > 0:
@@ -137,7 +141,8 @@ class OccuSim(hass.Hass):
 
         if list != "":
             self.log(
-                "unable to schedule the following steps due to missing prereq step: {}".format(list), "WARNING",
+                "unable to schedule the following steps due to missing prereq step: {}".format(list),
+                "WARNING",
             )
 
         # Schedule random events

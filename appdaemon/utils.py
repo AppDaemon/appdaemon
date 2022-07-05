@@ -17,6 +17,8 @@ import json
 import inspect
 from functools import wraps
 from appdaemon.version import __version__  # noqa: F401
+from collections.abc import Iterable
+import concurrent.futures
 
 if platform.system() != "Windows":
     import pwd
@@ -140,8 +142,8 @@ class PersistentDict(shelve.DbfilenameShelf):
 
 
 class AttrDict(dict):
-    """ Dictionary subclass whose entries can be accessed by attributes
-        (as well as normally).
+    """Dictionary subclass whose entries can be accessed by attributes
+    (as well as normally).
     """
 
     def __init__(self, *args, **kwargs):
@@ -150,7 +152,7 @@ class AttrDict(dict):
 
     @staticmethod
     def from_nested_dict(data):
-        """ Construct nested AttrDicts from nested dictionaries. """
+        """Construct nested AttrDicts from nested dictionaries."""
         if not isinstance(data, dict):
             return data
         else:
@@ -175,6 +177,33 @@ class StateAttrs(dict):
             device_dict[device] = AttrDict.from_nested_dict(entity_dict)
 
         self.__dict__ = device_dict
+
+
+class EntityStateAttrs(dict):
+    def __init__(self, dict):
+
+        self.__dict__ = AttrDict.from_nested_dict(dict)
+
+
+def check_state(logger, new_state, callback_state, name) -> bool:
+
+    passed = False
+
+    try:
+        if isinstance(callback_state, (str, int, float)):
+            passed = new_state == callback_state
+
+        elif isinstance(callback_state, Iterable):
+            passed = new_state in callback_state
+
+        elif callback_state.__name__ == "<lambda>":  # lambda function
+            passed = callback_state(new_state)
+
+    except Exception as e:
+        logger.warning("Could not evaluate state check due to %s, from %s", e, name)
+        passed = False
+
+    return passed
 
 
 def sync_wrapper(coro):
@@ -315,7 +344,7 @@ def run_coroutine_threadsafe(self, coro):
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
         try:
             result = future.result(self.AD.internal_function_timeout)
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, concurrent.futures.TimeoutError):
             if hasattr(self, "logger"):
                 self.logger.warning(
                     "Coroutine (%s) took too long (%s seconds), cancelling the task...",
@@ -407,7 +436,9 @@ def process_arg(self, arg, args, **kwargs):
                     setattr(self, arg, value)
                 except ValueError:
                     self.logger.warning(
-                        "Invalid value for %s: %s, using default(%s)", value, getattr(self, arg),
+                        "Invalid value for %s: %s, using default(%s)",
+                        value,
+                        getattr(self, arg),
                     )
             if "float" in kwargs and kwargs["float"] is True:
                 try:
@@ -415,7 +446,10 @@ def process_arg(self, arg, args, **kwargs):
                     setattr(self, arg, value)
                 except ValueError:
                     self.logger.warning(
-                        "Invalid value for %s: %s, using default(%s)", arg, value, getattr(self, arg),
+                        "Invalid value for %s: %s, using default(%s)",
+                        arg,
+                        value,
+                        getattr(self, arg),
                     )
             else:
                 setattr(self, arg, value)
@@ -464,24 +498,35 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):  #
             elif not os.path.isdir(directory):
                 if os.path.isfile(directory):
                     logger.warning(
-                        "%s: %s exists, but is a file instead of a directory", type, directory,
+                        "%s: %s exists, but is a file instead of a directory",
+                        type,
+                        directory,
                     )
                     fullpath = False
             else:
                 owner = find_owner(directory)
                 if "r" in perms and not os.access(directory, os.R_OK):
                     logger.warning(
-                        "%s: %s exists, but is not readable, owner: %s", type, directory, owner,
+                        "%s: %s exists, but is not readable, owner: %s",
+                        type,
+                        directory,
+                        owner,
                     )
                     fullpath = False
                 if "w" in perms and not os.access(directory, os.W_OK) and directory not in skip_owner_checks:
                     logger.warning(
-                        "%s: %s exists, but is not writeable, owner: %s", type, directory, owner,
+                        "%s: %s exists, but is not writeable, owner: %s",
+                        type,
+                        directory,
+                        owner,
                     )
                     fullpath = False
                 if "x" in perms and not os.access(directory, os.X_OK):
                     logger.warning(
-                        "%s: %s exists, but is not executable, owner: %s", type, directory, owner,
+                        "%s: %s exists, but is not executable, owner: %s",
+                        type,
+                        directory,
+                        owner,
                     )
                     fullpath = False
         if fullpath is True:
@@ -489,7 +534,11 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):  #
             user = pwd.getpwuid(os.getuid()).pw_name
             if owner != user:
                 logger.warning(
-                    "%s: %s is owned by %s but appdaemon is running as %s", type, path, owner, user,
+                    "%s: %s is owned by %s but appdaemon is running as %s",
+                    type,
+                    path,
+                    owner,
+                    user,
                 )
 
         if file is not None:
