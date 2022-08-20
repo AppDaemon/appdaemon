@@ -396,7 +396,8 @@ class Threading:
                 and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold
             ):
                 self.logger.warning(
-                    "callback %s has now completed",
+                    "Thread %s: callback %s has now completed",
+                    "thread.{}".format(thread_id),
                     await self.get_state("_threading", "admin", "thread.{}".format(thread_id)),
                 )
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
