@@ -106,7 +106,7 @@ class ADAPI:
             level (str, optional): The log level of the message - takes a string representing the
                 standard logger levels (Default: ``"WARNING"``).
             ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to true if you want to log UTF-8 characters (Default: ``True``).
+                ascii. Set this to false if you want to log UTF-8 characters (Default: ``True``).
             log (str, optional): Send the message to a specific log, either system or user_defined.
                 System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``.
                 Any other value in use here must have a corresponding user-defined entity in
@@ -165,7 +165,7 @@ class ADAPI:
             level (str, optional): The log level of the message - takes a string representing the
                 standard logger levels.
             ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to true if you want to log UTF-8 characters (Default: ``True``).
+                ascii. Set this to false if you want to log UTF-8 characters (Default: ``True``).
             log (str, optional): Send the message to a specific log, either system or user_defined.
                 System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``.
                 Any other value in use here must have a corresponding user-defined entity in
