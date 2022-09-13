@@ -52,7 +52,7 @@ class Services:
                 service_app = self.services[namespace][domain][service].get("__name")
                 if service_app and service_app != name:
                     self.logger.warning(
-                        f"This service '{domain}/{service}' already registered to a different app '{service_app}'. Do deregister from app first"
+                        f"This service '{domain}/{service}' already registered to a different app '{service_app}', and so cannot be registered to {name}. Do deregister from app first"
                     )
                     return
 
