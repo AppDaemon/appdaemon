@@ -2302,6 +2302,25 @@ class ADAPI:
         return await self.AD.sched.cancel_timer(name, handle)
 
     @utils.sync_wrapper
+    async def reset_timer(self, handle):
+        """Resets a previously created timer.
+
+        Args:
+            handle: A valid handle value returned from the original call to create the timer.
+                The timer must be actively running, and not a Sun related one like sunrise/sunset for it to be resetted.
+
+        Returns:
+            Boolean.
+
+        Examples:
+            >>> self.reset_timer(handle)
+
+        """
+        name = self.name
+        self.logger.debug("Resetting timer with handle %s for %s", handle, self.name)
+        return await self.AD.sched.reset_timer(name, handle)
+
+    @utils.sync_wrapper
     async def info_timer(self, handle):
         """Gets information on a scheduler event from its handle.
 
