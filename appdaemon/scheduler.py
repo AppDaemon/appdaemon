@@ -24,6 +24,7 @@ class Scheduler:
         self.last_fired = None
         self.sleep_task = None
         self.active = False
+        self.timer_resetted = False
         self.location = None
         self.schedule = {}
 
@@ -91,19 +92,166 @@ class Scheduler:
         self.logger.debug("stop() called for scheduler")
         self.stopping = True
 
+    async def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
+
+        # aware_dt will include a timezone of some sort - convert to utc timezone
+        utc = aware_dt.astimezone(pytz.utc)
+
+        # we get the time now
+        now = await self.get_now()
+
+        # Round to nearest second
+        utc = self.my_dt_round(utc, base=1)
+
+        if "pin" in kwargs:
+            pin_app = kwargs["pin"]
+        else:
+            pin_app = self.AD.app_management.objects[name]["pin_app"]
+
+        if "pin_thread" in kwargs:
+            pin_thread = kwargs["pin_thread"]
+            pin_app = True
+        else:
+            pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+
+        if name not in self.schedule:
+            self.schedule[name] = {}
+
+        handle = uuid.uuid4().hex
+        c_offset = self.get_offset({"kwargs": kwargs})
+        ts = utc + timedelta(seconds=c_offset)
+        interval = kwargs.get("interval", 0)
+        basetime_interval = (ts - now).seconds
+
+        self.schedule[name][handle] = {
+            "name": name,
+            "id": self.AD.app_management.objects[name]["id"],
+            "callback": callback,
+            "timestamp": ts,
+            "interval": interval,
+            "basetime": utc,
+            "basetime_interval": basetime_interval,
+            "repeat": repeat,
+            "offset": c_offset,
+            "type": type_,
+            "pin_app": pin_app,
+            "pin_thread": pin_thread,
+            "kwargs": kwargs,
+        }
+
+        if callback is None:
+            function_name = "cancel_callback"
+        else:
+            function_name = callback.__name__
+
+        await self.AD.state.add_entity(
+            "admin",
+            "scheduler_callback.{}".format(handle),
+            "active",
+            {
+                "app": name,
+                "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
+                "repeat": str(datetime.timedelta(seconds=interval)),
+                "function": function_name,
+                "pinned": pin_app,
+                "pinned_thread": pin_thread,
+                "fired": 0,
+                "executed": 0,
+                "kwargs": kwargs,
+            },
+        )
+        # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
+
+        if self.active is True:
+            await self.kick()
+
+        return handle
+
     async def cancel_timer(self, name, handle):
         executed = False
         self.logger.debug("Canceling timer for %s", name)
         if self.timer_running(name, handle):
             del self.schedule[name][handle]
-            await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(handle))
+            await self.AD.state.remove_entity("admin", f"scheduler_callback.{handle}")
             executed = True
 
         if name in self.schedule and self.schedule[name] == {}:
             del self.schedule[name]
 
         if not executed:
-            self.logger.warning("Invalid callback handle '{}' in cancel_timer() from app {}".format(handle, name))
+            self.logger.warning(f"Invalid callback handle '{handle}' in cancel_timer() from app {name}")
+
+        return executed
+
+    async def restart_timer(self, uuid_: str, args: dict, restart_offset: int = 0) -> dict:
+        """Used to restart a timer"""
+
+        if args["type"] == "next_rising" or args["type"] == "next_setting":
+            c_offset = self.get_offset(args)
+            args["timestamp"] = self.sun(args["type"], c_offset)
+            args["offset"] = c_offset
+
+        else:
+            # Not sunrise or sunset so just increment
+            # the timestamp with the repeat interval
+            if restart_offset > 0:
+                # we to restart with an offset
+                new_timestamp = args["timestamp"] + timedelta(seconds=restart_offset)
+                args["timestamp"] = new_timestamp
+
+            else:
+                args["basetime"] += timedelta(seconds=args["interval"])
+                args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
+
+        # Update entity
+
+        await self.AD.state.set_state(
+            "_scheduler",
+            "admin",
+            f"scheduler_callback.{uuid_}",
+            execution_time=utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz),
+        )
+
+        return args
+
+    async def reset_timer(self, name: str, handle: str) -> bool:
+        """Used to reset a timer"""
+
+        executed = False
+
+        if self.timer_running(name, handle):
+            self.logger.debug("Resetting timer %s for %s", handle, name)
+
+            args = await utils.run_in_executor(self, utils.deepcopy, self.schedule[name][handle])
+
+            if args["type"] == "next_rising" or args["type"] == "next_setting":
+                self.logger.warning(
+                    f"The given handle '{handle}' in reset_timer() from app {name} is a Sun timer, cannot reset that"
+                )
+                return executed
+
+            # we get the time now
+            now = await self.get_now()
+
+            # we get the time from now to be added
+            basetime_interval = args["basetime_interval"]
+            restart_offset = basetime_interval - (args["timestamp"] - now).seconds
+
+            args = await self.restart_timer(handle, args, restart_offset)
+            self.schedule[name][handle] = args
+
+            if self.active is True:
+                await self.kick()
+
+            executed = True
+
+            # we need to indicate a reset took place
+            self.timer_resetted = True
+
+        if not executed:
+            self.logger.warning(
+                f"The given handle '{handle}' in reset_timer() from app {name}, doesn't have a running timer"
+            )
 
         return executed
 
@@ -191,23 +339,9 @@ class Scheduler:
                 )
             # If it is a repeating entry, rewrite with new timestamp
             if args["repeat"]:
-                if args["type"] == "next_rising" or args["type"] == "next_setting":
-                    c_offset = self.get_offset(args)
-                    args["timestamp"] = self.sun(args["type"], c_offset)
-                    args["offset"] = c_offset
-                else:
-                    # Not sunrise or sunset so just increment
-                    # the timestamp with the repeat interval
-                    args["basetime"] += timedelta(seconds=args["interval"])
-                    args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
-                # Update entity
+                # restart the timer
+                args = await self.restart_timer(uuid_, args)
 
-                await self.AD.state.set_state(
-                    "_scheduler",
-                    "admin",
-                    "scheduler_callback.{}".format(uuid_),
-                    execution_time=utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz),
-                )
             else:
                 # Otherwise just delete
                 await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(uuid_))
@@ -298,75 +432,6 @@ class Scheduler:
             offset = random.randint(rbefore, rafter)
             # self.logger.debug("get_offset(): offset = %s", offset)
         return offset
-
-    async def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
-
-        # aware_dt will include a timezone of some sort - convert to utc timezone
-        utc = aware_dt.astimezone(pytz.utc)
-
-        # Round to nearest second
-
-        utc = self.my_dt_round(utc, base=1)
-
-        if "pin" in kwargs:
-            pin_app = kwargs["pin"]
-        else:
-            pin_app = self.AD.app_management.objects[name]["pin_app"]
-
-        if "pin_thread" in kwargs:
-            pin_thread = kwargs["pin_thread"]
-            pin_app = True
-        else:
-            pin_thread = self.AD.app_management.objects[name]["pin_thread"]
-
-        if name not in self.schedule:
-            self.schedule[name] = {}
-        handle = uuid.uuid4().hex
-        c_offset = self.get_offset({"kwargs": kwargs})
-        ts = utc + timedelta(seconds=c_offset)
-        interval = kwargs.get("interval", 0)
-
-        self.schedule[name][handle] = {
-            "name": name,
-            "id": self.AD.app_management.objects[name]["id"],
-            "callback": callback,
-            "timestamp": ts,
-            "interval": interval,
-            "basetime": utc,
-            "repeat": repeat,
-            "offset": c_offset,
-            "type": type_,
-            "pin_app": pin_app,
-            "pin_thread": pin_thread,
-            "kwargs": kwargs,
-        }
-
-        if callback is None:
-            function_name = "cancel_callback"
-        else:
-            function_name = callback.__name__
-
-        await self.AD.state.add_entity(
-            "admin",
-            "scheduler_callback.{}".format(handle),
-            "active",
-            {
-                "app": name,
-                "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
-                "repeat": str(datetime.timedelta(seconds=interval)),
-                "function": function_name,
-                "pinned": pin_app,
-                "pinned_thread": pin_thread,
-                "fired": 0,
-                "executed": 0,
-                "kwargs": kwargs,
-            },
-        )
-        # verbose_log(conf.logger, "INFO", conf.schedule[name][handle])
-
-        if self.active is True:
-            await self.kick()
-        return handle
 
     async def terminate_app(self, name):
         if name in self.schedule:
@@ -473,10 +538,12 @@ class Scheduler:
                 now = pytz.utc.localize(datetime.datetime.utcnow())
                 if self.realtime is True:
                     self.now = now
+
                 else:
                     if result is True:
                         # We got kicked so lets figure out the elapsed pseudo time
                         delta = (now - self.last_fired).total_seconds() * self.AD.timewarp
+
                     else:
                         if len(next_entries) > 0:
                             # Time is progressing infinitely fast and it's already time for our next callback
@@ -509,6 +576,11 @@ class Scheduler:
                     # Re calculate next entries
                     #
                     next_entries = self.get_next_entries()
+
+                elif self.timer_resetted is True:
+                    # a timer was resetted, so need to recalculate next entries
+                    next_entries = self.get_next_entries()
+                    self.timer_resetted = False
 
                 old_dst_offset = dst_offset
                 #
@@ -585,7 +657,7 @@ class Scheduler:
 
     async def sleep(self, delay):
         coro = asyncio.sleep(delay)
-        self.sleep_task = asyncio.ensure_future(coro)
+        self.sleep_task = asyncio.create_task(coro)
         try:
             await self.sleep_task
             self.sleep_task = None

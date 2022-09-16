@@ -8,6 +8,7 @@ Change Log
 
 - Added the ability to set HA certificate verify from docker arguments - contributed by `Antonino Piazza <https://github.com/a-p-z>`__
 - Added MQTT VARS to docker arguments - contributed by `Xavi Moreno <https://github.com/xaviml>`__
+- Added the ability to reset a running timer via api
 
 
 **Fixes**
