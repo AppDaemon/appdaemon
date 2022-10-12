@@ -42,76 +42,41 @@ class HassPlugin(PluginBase):
         self.config = args
         self.name = name
 
-        self.stopping = False
-        self.ws = None
-        self.reading_messages = False
-        self.metadata = None
-        self.hass_booting = False
-
         self.logger.info("HASS Plugin Initializing")
 
-        self.name = name
-
-        if "namespace" in args:
-            self.namespace = args["namespace"]
-        else:
-            self.namespace = "default"
-
+        # validate basic config
         if "ha_key" in args:
-            self.ha_key = args["ha_key"]
             self.logger.warning("ha_key is deprecated please use HASS Long Lived Tokens instead")
-        else:
-            self.ha_key = None
-
-        if "token" in args:
-            self.token = args["token"]
-        else:
-            self.token = None
-
-        if "ha_url" in args:
-            self.ha_url = args["ha_url"]
-        else:
+        if "ha_url" not in args:
             self.logger.warning("ha_url not found in HASS configuration - module not initialized")
 
-        if "cert_path" in args:
-            self.cert_path = args["cert_path"]
-        else:
-            self.cert_path = None
+        # Locally store common args and their defaults
+        self.appdaemon_startup_conditions = args.get("appdaemon_startup_conditions", {})
+        self.cert_path = args.get("cert_path")
+        self.cert_verify = args.get("cert_verify")
+        self.commtype = args.get("commtype", "WS")
+        self.ha_key = args.get("ha_key")
+        self.ha_url = args.get("ha_url", "")
+        self.namespace = args.get("namespace", "default")
+        self.plugin_startup_conditions = args.get("plugin_startup_conditions", {})
+        self.retry_secs = int(args.get("retry_secs", 5))
+        self.timeout = args.get("timeout")
+        self.token = args.get("token")
 
-        if "timeout" in args:
-            self.timeout = args["timeout"]
-        else:
-            self.timeout = None
+        # Connections to HA
+        self._session = None  # http connection pool for general use
+        self.ws = None  # websocket dedicated for event loop
 
-        if "retry_secs" in args:
-            self.retry_secs = int(args["retry_secs"])
-        else:
-            self.retry_secs = 5
-
-        if "cert_verify" in args:
-            self.cert_verify = args["cert_verify"]
-        else:
-            self.cert_verify = True
-
-        if "commtype" in args:
-            self.commtype = args["commtype"]
-        else:
-            self.commtype = "WS"
-
-        if "appdaemon_startup_conditions" in args:
-            self.appdaemon_startup_conditions = args["appdaemon_startup_conditions"]
-        else:
-            self.appdaemon_startup_conditions = {}
-
-        if "plugin_startup_conditions" in args:
-            self.plugin_startup_conditions = args["plugin_startup_conditions"]
-        else:
-            self.plugin_startup_conditions = {}
-
-        self.session = None
-        self.first_time = False
-        self.already_notified = False
+        # Cached state from HA
+        self.metadata = None
         self.services = None
+
+        # Internal state flags
+        self.already_notified = False
+        self.first_time = False
+        self.hass_booting = False
+        self.reading_messages = False
+        self.stopping = False
 
         self.logger.info("HASS Plugin initialization complete")
 
@@ -131,9 +96,36 @@ class HassPlugin(PluginBase):
         return []
 
     #
+    # Persistent Session to HASS instance  
+    #
+    @property
+    def session(self):
+        if not self._session:
+            # ssl None means to use default behavior which check certs for https
+            ssl_context = (self.cert_verify and None)
+            if self.cert_verify and self.cert_path:
+                ssl_context = ssl.create_default_context(capath=self.cert_path)
+            conn = aiohttp.TCPConnector(ssl=ssl_context)
+
+            # configure auth
+            headers = {}
+            if self.token is not None:
+                headers["Authorization"] = "Bearer {}".format(self.token)
+            elif self.ha_key is not None:
+                headers["x-ha-access"] = self.ha_key
+
+            self._session = aiohttp.ClientSession(
+                base_url=self.ha_url,
+                connector=conn,
+                headers=headers,
+                json_serialize=utils.convert_json
+            )
+        return self._session
+
+
+    #
     # Get initial state
     #
-
     async def get_complete_state(self):
 
         hass_state = await self.get_hass_state()
@@ -147,14 +139,12 @@ class HassPlugin(PluginBase):
     #
     # Get HASS Metadata
     #
-
     async def get_metadata(self):
         return self.metadata
 
     #
     # Handle state updates
     #
-
     async def evaluate_started(self, first_time, plugin_booting, event=None):  # noqa: C901
 
         if first_time is True:
@@ -448,22 +438,11 @@ class HassPlugin(PluginBase):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
 
-        # TODO cert_path is not used
-        if "cert_path" in config:
-            cert_path = config["cert_path"]
-        else:
-            cert_path = False  # noqa: F841
 
-        if "token" in config:
-            headers = {"Authorization": "Bearer {}".format(config["token"])}
-        elif "ha_key" in config:
-            headers = {"x-ha-access": config["ha_key"]}
-        else:
-            headers = {}
-        api_url = "{}/api/states/{}".format(config["ha_url"], entity_id)
+        api_url = "/api/states/{}".format(entity_id)
 
         try:
-            r = await self.session.post(api_url, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
+            r = await self.session.post(api_url, json=kwargs)
             if r.status == 200 or r.status == 201:
                 state = await r.json()
                 self.logger.debug("return = %s", state)
@@ -508,25 +487,19 @@ class HassPlugin(PluginBase):
             data = {"entity_id": data}
 
         config = (await self.AD.plugins.get_plugin_object(namespace)).config
-        if "token" in config:
-            headers = {"Authorization": "Bearer {}".format(config["token"])}
-        elif "ha_key" in config:
-            headers = {"x-ha-access": config["ha_key"]}
-        else:
-            headers = {}
 
         if domain == "template" and service == "render":
-            api_url = "{}/api/template".format(config["ha_url"])
+            api_url = "/api/template"
 
         elif domain == "database":
             return await self.get_history(**data)
 
         else:
-            api_url = "{}/api/services/{}/{}".format(config["ha_url"], domain, service)
+            api_url = "/api/services/{}/{}".format(domain, service)
 
         try:
 
-            r = await self.session.post(api_url, headers=headers, json=data, verify_ssl=self.cert_verify)
+            r = await self.session.post(api_url, json=data)
 
             if r.status == 200 or r.status == 201:
                 if domain == "template":
@@ -567,23 +540,10 @@ class HassPlugin(PluginBase):
     async def get_history(self, **kwargs):
         """Used to get HA's History"""
 
-        # TODO cert_path is not used
-        if "cert_path" in self.config:
-            cert_path = self.config["cert_path"]
-        else:
-            cert_path = False  # noqa: F841
-
-        if "token" in self.config:
-            headers = {"Authorization": "Bearer {}".format(self.config["token"])}
-        elif "ha_key" in self.config:
-            headers = {"x-ha-access": self.config["ha_key"]}
-        else:
-            headers = {}
-
         try:
             api_url = await self.get_history_api(**kwargs)
 
-            r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+            r = await self.session.get(api_url)
 
             if r.status == 200 or r.status == 201:
                 result = await r.json()
@@ -651,7 +611,7 @@ class HassPlugin(PluginBase):
 
         # Build the url
         # /api/history/period/<start_time>?filter_entity_id=<entity_id>&end_time=<end_time>
-        apiurl = f'{self.config["ha_url"]}/api/history/period'
+        apiurl = "/api/history/period"
 
         if start_time:
             apiurl += "/" + utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz)
@@ -667,19 +627,12 @@ class HassPlugin(PluginBase):
 
     async def get_hass_state(self, entity_id=None):
 
-        if self.token is not None:
-            headers = {"Authorization": "Bearer {}".format(self.token)}
-        elif self.ha_key is not None:
-            headers = {"x-ha-access": self.ha_key}
-        else:
-            headers = {}
-
         if entity_id is None:
-            api_url = "{}/api/states".format(self.ha_url)
+            api_url = "/api/states"
         else:
-            api_url = "{}/api/states/{}".format(self.ha_url, entity_id)
+            api_url = "/api/states/{}".format(entity_id)
         self.logger.debug("get_ha_state: url is %s", api_url)
-        r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+        r = await self.session.get(api_url)
         if r.status == 200 or r.status == 201:
             state = await r.json()
         else:
@@ -720,24 +673,10 @@ class HassPlugin(PluginBase):
 
     async def get_hass_config(self):
         try:
-            if self.session is None:
-                #
-                # Set up HTTP Client
-                #
-                conn = aiohttp.TCPConnector()
-                self.session = aiohttp.ClientSession(connector=conn, json_serialize=utils.convert_json)
-
             self.logger.debug("get_ha_config()")
-            if self.token is not None:
-                headers = {"Authorization": "Bearer {}".format(self.token)}
-            elif self.ha_key is not None:
-                headers = {"x-ha-access": self.ha_key}
-            else:
-                headers = {}
-
-            api_url = "{}/api/config".format(self.ha_url)
+            api_url = "/api/config"
             self.logger.debug("get_ha_config: url is %s", api_url)
-            r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+            r = await self.session.get(api_url)
             r.raise_for_status()
             meta = await r.json()
             #
@@ -749,23 +688,17 @@ class HassPlugin(PluginBase):
             self.validate_tz(meta)
 
             return meta
-        except Exception:
-            self.logger.warning("Error getting metadata - retrying")
+        except Exception as ex:
+            self.logger.warning("Error getting metadata - retrying: %s", str(ex))
             raise
 
     async def get_hass_services(self) -> dict:
         try:
             self.logger.debug("get_hass_services()")
-            if self.token is not None:
-                headers = {"Authorization": "Bearer {}".format(self.token)}
-            elif self.ha_key is not None:
-                headers = {"x-ha-access": self.ha_key}
-            else:
-                headers = {}
 
-            api_url = "{}/api/services".format(self.ha_url)
+            api_url = "/api/services"
             self.logger.debug("get_hass_services: url is %s", api_url)
-            r = await self.session.get(api_url, headers=headers, verify_ssl=self.cert_verify)
+            r = await self.session.get(api_url)
             r.raise_for_status()
             services = await r.json()
 
@@ -859,19 +792,13 @@ class HassPlugin(PluginBase):
     async def fire_plugin_event(self, event, namespace, **kwargs):
         self.logger.debug("fire_event: %s, %s %s", event, namespace, kwargs)
 
-        config = (await self.AD.plugins.get_plugin_object(namespace)).config
-
-        if "token" in config:
-            headers = {"Authorization": "Bearer {}".format(config["token"])}
-        elif "ha_key" in config:
-            headers = {"x-ha-access": config["ha_key"]}
-        else:
-            headers = {}
+        # if we get a request for not our namespace something has gone very wrong
+        assert namespace == self.namespace
 
         event_clean = quote(event, safe="")
-        api_url = "{}/api/events/{}".format(config["ha_url"], event_clean)
+        api_url = "/api/events/{}".format(event_clean)
         try:
-            r = await self.session.post(api_url, headers=headers, json=kwargs, verify_ssl=self.cert_verify)
+            r = await self.session.post(api_url, json=kwargs)
             r.raise_for_status()
             state = await r.json()
             return state
@@ -890,25 +817,14 @@ class HassPlugin(PluginBase):
     @hass_check
     async def remove_entity(self, namespace, entity_id):
         self.logger.debug("remove_entity() %s", entity_id)
-        config = (await self.AD.plugins.get_plugin_object(namespace)).config
 
-        # TODO cert_path is not used
-        if "cert_path" in config:
-            cert_path = config["cert_path"]
-        else:
-            cert_path = False  # noqa: F841
+        # if we get a request for not our namespace something has gone very wrong
+        assert namespace == self.namespace
 
-        if "token" in config:
-            headers = {"Authorization": "Bearer {}".format(config["token"])}
-        elif "ha_key" in config:
-            headers = {"x-ha-access": config["ha_key"]}
-        else:
-            headers = {}
-
-        api_url = "{}/api/states/{}".format(config["ha_url"], entity_id)
+        api_url = "/api/states/{}".format(entity_id)
 
         try:
-            r = await self.session.delete(api_url, headers=headers, verify_ssl=self.cert_verify)
+            r = await self.session.delete(api_url)
             if r.status == 200 or r.status == 201:
                 state = await r.json()
                 self.logger.debug("return = %s", state)
