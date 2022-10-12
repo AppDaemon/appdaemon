@@ -436,8 +436,9 @@ class HassPlugin(PluginBase):
     @hass_check
     async def set_plugin_state(self, namespace, entity_id, **kwargs):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
-        config = (await self.AD.plugins.get_plugin_object(namespace)).config
 
+        # if we get a request for not our namespace something has gone very wrong
+        assert namespace == self.namespace
 
         api_url = "/api/states/{}".format(entity_id)
 
@@ -480,13 +481,14 @@ class HassPlugin(PluginBase):
             data,
         )
 
+        # if we get a request for not our namespace something has gone very wrong
+        assert namespace == self.namespace
+
         #
         # If data is a string just assume it's an entity_id
         #
         if isinstance(data, str):
             data = {"entity_id": data}
-
-        config = (await self.AD.plugins.get_plugin_object(namespace)).config
 
         if domain == "template" and service == "render":
             api_url = "/api/template"
