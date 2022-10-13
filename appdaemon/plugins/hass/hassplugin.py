@@ -96,7 +96,7 @@ class HassPlugin(PluginBase):
         return []
 
     #
-    # Persistent Session to HASS instance
+    # Persistent HTTP Session to HASS instance
     #
     @property
     def session(self):
@@ -121,6 +121,47 @@ class HassPlugin(PluginBase):
                 json_serialize=utils.convert_json,
             )
         return self._session
+
+    #
+    # Connect and return a new WebSocket to HASS instance
+    #
+    async def create_websocket(self):
+        # change to websocket protocol
+        url = self.ha_url
+        if url.startswith("https://"):
+            url = url.replace("https", "wss", 1)
+        elif url.startswith("http://"):
+            url = url.replace("http", "ws", 1)
+
+        # ssl options
+        sslopt = {}
+        if self.cert_verify is False:
+            sslopt = {"cert_reqs": ssl.CERT_NONE}
+        if self.cert_path:
+            sslopt["ca_certs"] = self.cert_path
+        ws = websocket.create_connection("{}/api/websocket".format(url), sslopt=sslopt)
+
+        # wait for successful connection
+        res = await utils.run_in_executor(self, ws.recv)
+        result = json.loads(res)
+        self.logger.info("Connected to Home Assistant %s", result["ha_version"])
+
+        # Check if auth required, if so send password
+        if result["type"] == "auth_required":
+            if self.token is not None:
+                auth = json.dumps({"type": "auth", "access_token": self.token})
+            elif self.ha_key is not None:
+                auth = json.dumps({"type": "auth", "api_password": self.ha_key})
+            else:
+                raise ValueError("HASS requires authentication and none provided in plugin config")
+
+            await utils.run_in_executor(self, ws.send, auth)
+            result = json.loads(ws.recv())
+            if result["type"] != "auth_ok":
+                self.logger.warning("Error in authentication")
+                raise ValueError("Error in authentication")
+
+        return ws
 
     #
     # Get initial state
@@ -282,37 +323,8 @@ class HassPlugin(PluginBase):
                 #
                 # Connect to websocket interface
                 #
-                url = self.ha_url
-                if url.startswith("https://"):
-                    url = url.replace("https", "wss", 1)
-                elif url.startswith("http://"):
-                    url = url.replace("http", "ws", 1)
+                self.ws = await self.create_websocket()
 
-                sslopt = {}
-                if self.cert_verify is False:
-                    sslopt = {"cert_reqs": ssl.CERT_NONE}
-                if self.cert_path:
-                    sslopt["ca_certs"] = self.cert_path
-                self.ws = websocket.create_connection("{}/api/websocket".format(url), sslopt=sslopt)
-                res = await utils.run_in_executor(self, self.ws.recv)
-                result = json.loads(res)
-                self.logger.info("Connected to Home Assistant %s", result["ha_version"])
-                #
-                # Check if auth required, if so send password
-                #
-                if result["type"] == "auth_required":
-                    if self.token is not None:
-                        auth = json.dumps({"type": "auth", "access_token": self.token})
-                    elif self.ha_key is not None:
-                        auth = json.dumps({"type": "auth", "api_password": self.ha_key})
-                    else:
-                        raise ValueError("HASS requires authentication and none provided in plugin config")
-
-                    await utils.run_in_executor(self, self.ws.send, auth)
-                    result = json.loads(self.ws.recv())
-                    if result["type"] != "auth_ok":
-                        self.logger.warning("Error in authentication")
-                        raise ValueError("Error in authentication")
                 #
                 # Subscribe to event stream
                 #
