@@ -1,6 +1,8 @@
 import asyncio
+from cgitb import reset
 import json
 import ssl
+from webbrowser import register
 import websocket
 import traceback
 import aiohttp
@@ -661,6 +663,35 @@ class HassPlugin(PluginBase):
             self.logger.warning("Code: %s, error: %s", r.status, txt)
             state = None
         return state
+
+    #
+    # HASS registry helpers
+    #
+    async def get_hass_registry(self, registry):
+        args = json.dumps({
+            "id": 1,
+            "type": f"config/{registry}_registry/list",
+        })
+        ws = await self.create_websocket()
+        await utils.run_in_executor(self, ws.send, args)
+        response = json.loads(await utils.run_in_executor(self, ws.recv))
+        # XXX error handling
+        result = response["result"]
+ 
+        key = "id" if registry == "device" else f"{registry}_id"
+        return {entry[key]: entry for entry in result}
+
+    async def get_hass_area(self, area_id=None):
+        areas = await self.get_hass_registry("area")
+        return areas[area_id] if area_id else areas
+
+    async def get_hass_device(self, device_id=None):
+        devices = await self.get_hass_registry("device")
+        return devices[device_id] if device_id else devices
+
+    async def get_hass_entity(self, entity_id=None):
+        entities = await self.get_hass_registry("entity")
+        return entities[entity_id] if entity_id else entities
 
     def validate_meta(self, meta, key):
         if key not in meta:
