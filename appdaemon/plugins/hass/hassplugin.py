@@ -1,8 +1,6 @@
 import asyncio
-from cgitb import reset
 import json
 import ssl
-from webbrowser import register
 import websocket
 import traceback
 import aiohttp
@@ -37,7 +35,6 @@ def hass_check(func):
 
 
 class HassPlugin(PluginBase):
-
     def __init__(self, ad: AppDaemon, name, args):
         super().__init__(ad, name, args)
 
@@ -173,11 +170,13 @@ class HassPlugin(PluginBase):
     #
     async def ws_request(self, api, **kwargs):
         id = random.getrandbits(63)
-        args = json.dumps({
-            "id": id,
-            "type": api,
-            **kwargs,
-        })
+        args = json.dumps(
+            {
+                "id": id,
+                "type": api,
+                **kwargs,
+            }
+        )
         # at some point we should make this just re-use a shared websocket
         ws = await self.create_websocket()
         await utils.run_in_executor(self, ws.send, args)
@@ -188,7 +187,7 @@ class HassPlugin(PluginBase):
             self.logger.warning(f"request: `{args}`")
             self.logger.warning(f"response: `{response}`")
             raise ValueError("Error in WebSocket call")
-        
+
         return response["result"]
 
     #
@@ -707,7 +706,7 @@ class HassPlugin(PluginBase):
     REGISTRIES = ("area", "device", "entity")
 
     async def get_hass_registry(self, registry):
-        result = await self.ws_request(f"config/{registry}_registry/list") 
+        result = await self.ws_request(f"config/{registry}_registry/list")
         key = "id" if registry == "device" else f"{registry}_id"
         return {entry[key]: entry for entry in result}
 
