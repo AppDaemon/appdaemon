@@ -712,20 +712,7 @@ class HassPlugin(PluginBase):
 
     async def search_hass_registry(self, registry, id):
         result = await self.ws_request("search/related", item_type=registry, item_id=id)
-        self.logger.warning(f"search result: `{result}`")
         return result
-
-    def get_hass_area(self, area_id=None):
-        areas = self.registry["area"]
-        return deepcopy(areas[area_id] if area_id else areas)
-
-    def get_hass_device(self, device_id=None):
-        devices = self.registry["device"]
-        return deepcopy(devices[device_id] if device_id else devices)
-
-    def get_hass_entity(self, entity_id=None):
-        entities = self.registry["entity"]
-        return deepcopy(entities[entity_id] if entity_id else entities)
 
     def validate_meta(self, meta, key):
         if key not in meta:

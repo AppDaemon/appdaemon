@@ -2,6 +2,7 @@ from typing import Any, Optional
 import requests
 from ast import literal_eval
 from functools import wraps
+from copy import deepcopy
 
 import appdaemon.adbase as adbase
 import appdaemon.adapi as adapi
@@ -738,3 +739,30 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             return literal_eval(result)
         except (SyntaxError, ValueError):
             return result
+
+    #
+    # Helper functions for HASS-specific functionality
+    #
+
+    @utils.sync_wrapper
+    async def hass_get_registry(self, registry, id=None, copy=True, **kwargs):
+        ns = self._get_namespace(**kwargs)
+        plugin = await self.AD.plugins.get_plugin_object(ns)
+        entries = plugin.registry[registry]
+        result = entries[id] if id else entries
+        return deepcopy(result) if copy else result
+
+    def hass_get_area(self, namespace, area_id=None, **kwargs):
+        return self.hass_get_registry("area", id=area_id, **kwargs)
+
+    def hass_get_device(self, device_id=None, **kwargs):
+        return self.hass_get_registry("device", id=device_id, **kwargs)
+
+    def hass_get_entity(self, entity_id=None, **kwargs):
+        return self.hass_get_registry("entity", id=entity_id, **kwargs)
+
+    @utils.sync_wrapper
+    async def hass_search_related(self, registry, id, **kwargs):
+        ns = self._get_namespace(**kwargs)
+        plugin = await self.AD.plugins.get_plugin_object(ns)
+        return await plugin.search_hass_registry(registry, id)    
