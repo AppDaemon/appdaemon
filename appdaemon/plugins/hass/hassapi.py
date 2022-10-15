@@ -767,4 +767,4 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     async def hass_search_related(self, registry, id, **kwargs):
         ns = self._get_namespace(**kwargs)
         plugin = await self.AD.plugins.get_plugin_object(ns)
-        return await plugin.search_hass_registry(registry, id)    
+        return await plugin.search_hass_registry(registry, id)
