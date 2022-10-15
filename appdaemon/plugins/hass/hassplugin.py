@@ -13,6 +13,7 @@ import datetime
 from urllib.parse import quote
 from urllib.parse import urlencode
 from typing import Union
+import random
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -36,6 +37,7 @@ def hass_check(func):
 
 
 class HassPlugin(PluginBase):
+
     def __init__(self, ad: AppDaemon, name, args):
         super().__init__(ad, name, args)
 
@@ -72,6 +74,7 @@ class HassPlugin(PluginBase):
         # Cached state from HA
         self.metadata = None
         self.services = None
+        self.registry = {}
 
         # Internal state flags
         self.already_notified = False
@@ -164,6 +167,29 @@ class HassPlugin(PluginBase):
                 raise ValueError("Error in authentication")
 
         return ws
+
+    #
+    # one-shot WebSocket request
+    #
+    async def ws_request(self, api, **kwargs):
+        id = random.getrandbits(63)
+        args = json.dumps({
+            "id": id,
+            "type": api,
+            **kwargs,
+        })
+        # at some point we should make this just re-use a shared websocket
+        ws = await self.create_websocket()
+        await utils.run_in_executor(self, ws.send, args)
+
+        response = json.loads(await utils.run_in_executor(self, ws.recv))
+        if not (response["id"] == id and response["type"] == "result" and response["success"] is True):
+            self.logger.warning(f"Unable to call websocket `{api}`, id = {id}")
+            self.logger.warning(f"request: `{args}`")
+            self.logger.warning(f"response: `{response}`")
+            raise ValueError("Error in WebSocket call")
+        
+        return response["result"]
 
     #
     # Get initial state
@@ -275,6 +301,9 @@ class HassPlugin(PluginBase):
             await self.AD.plugins.notify_plugin_started(
                 self.name, self.namespace, self.metadata, state, self.first_time
             )
+            for registry in self.REGISTRIES:
+                self.registry[registry] = await self.get_hass_registry(registry)
+                self.logger.info(f"Retrieved {registry} registry")
             self.first_time = False
             self.already_notified = False
 
@@ -397,6 +426,8 @@ class HassPlugin(PluginBase):
                         metadata["context"] = result["event"].pop("context", None)
                         result["event"]["data"]["metadata"] = metadata
 
+                        await self.process_event(result["event"])
+
                         await self.AD.events.process_event(self.namespace, result["event"])
 
                         if result["event"].get("event_type") == "service_registered":
@@ -436,6 +467,12 @@ class HassPlugin(PluginBase):
 
     def get_namespace(self):
         return self.namespace
+
+    async def process_event(self, event):
+        for registry in self.REGISTRIES:
+            if event["event_type"].startswith(f"{registry}_registry_"):
+                self.registry[registry] = await self.get_hass_registry(registry)
+                self.logger.info(f"updated {registry} registry")
 
     #
     # Utility functions
@@ -667,31 +704,29 @@ class HassPlugin(PluginBase):
     #
     # HASS registry helpers
     #
+    REGISTRIES = ("area", "device", "entity")
+
     async def get_hass_registry(self, registry):
-        args = json.dumps({
-            "id": 1,
-            "type": f"config/{registry}_registry/list",
-        })
-        ws = await self.create_websocket()
-        await utils.run_in_executor(self, ws.send, args)
-        response = json.loads(await utils.run_in_executor(self, ws.recv))
-        # XXX error handling
-        result = response["result"]
- 
+        result = await self.ws_request(f"config/{registry}_registry/list") 
         key = "id" if registry == "device" else f"{registry}_id"
         return {entry[key]: entry for entry in result}
 
-    async def get_hass_area(self, area_id=None):
-        areas = await self.get_hass_registry("area")
-        return areas[area_id] if area_id else areas
+    async def search_hass_registry(self, registry, id):
+        result = await self.ws_request("search/related", item_type=registry, item_id=id)
+        self.logger.warning(f"search result: `{result}`")
+        return result
 
-    async def get_hass_device(self, device_id=None):
-        devices = await self.get_hass_registry("device")
-        return devices[device_id] if device_id else devices
+    def get_hass_area(self, area_id=None):
+        areas = self.registry["area"]
+        return deepcopy(areas[area_id] if area_id else areas)
 
-    async def get_hass_entity(self, entity_id=None):
-        entities = await self.get_hass_registry("entity")
-        return entities[entity_id] if entity_id else entities
+    def get_hass_device(self, device_id=None):
+        devices = self.registry["device"]
+        return deepcopy(devices[device_id] if device_id else devices)
+
+    def get_hass_entity(self, entity_id=None):
+        entities = self.registry["entity"]
+        return deepcopy(entities[entity_id] if entity_id else entities)
 
     def validate_meta(self, meta, key):
         if key not in meta:
