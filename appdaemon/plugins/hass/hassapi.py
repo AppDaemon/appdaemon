@@ -745,6 +745,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     #
 
     @utils.sync_wrapper
+    @hass_check
     async def hass_get_registry(self, registry, id=None, copy=True, **kwargs):
         ns = self._get_namespace(**kwargs)
         plugin = await self.AD.plugins.get_plugin_object(ns)
@@ -762,6 +763,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         return self.hass_get_registry("entity", id=entity_id, **kwargs)
 
     @utils.sync_wrapper
+    @hass_check
     async def hass_search_related(self, registry, id, **kwargs):
         ns = self._get_namespace(**kwargs)
         plugin = await self.AD.plugins.get_plugin_object(ns)
