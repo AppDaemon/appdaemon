@@ -169,7 +169,7 @@ class HassPlugin(PluginBase):
     # one-shot WebSocket request
     #
     async def ws_request(self, api, **kwargs):
-        id = random.getrandbits(63)
+        id = random.getrandbits(32)  # see RFC6455
         args = json.dumps(
             {
                 "id": id,
@@ -323,7 +323,7 @@ class HassPlugin(PluginBase):
 
     async def get_updates(self):  # noqa: C901
 
-        _id = 0
+        _id = random.getrandbits(32)
         self.already_notified = False
         self.first_time = True
 
@@ -348,7 +348,7 @@ class HassPlugin(PluginBase):
         #
 
         while not self.stopping:
-            _id += 1
+            _id = random.getrandbits(32)
             try:
                 #
                 # Connect to websocket interface
