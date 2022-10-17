@@ -753,7 +753,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         result = entries[id] if id else entries
         return deepcopy(result) if copy else result
 
-    def hass_get_area(self, namespace, area_id=None, **kwargs):
+    def hass_get_area(self, area_id=None, **kwargs):
         return self.hass_get_registry("area", id=area_id, **kwargs)
 
     def hass_get_device(self, device_id=None, **kwargs):
