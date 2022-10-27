@@ -23,7 +23,7 @@ azure-mgmt-compute==27.2.0
 azure-mgmt-storage==20.0.0
 azure-mgmt-resource==21.1.0
 azure-keyvault-secrets==4.4.0
-azure-storage-blob==12.12.0
+azure-storage-blob==12.14.1
 sockjs==0.11.0
 pygments==2.12.0
 wheel==0.37.1
