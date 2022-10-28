@@ -66,7 +66,6 @@ class AppManagement:
         self.AD.services.register_service("admin", "app", "create", self.manage_services)
         self.AD.services.register_service("admin", "app", "edit", self.manage_services)
         self.AD.services.register_service("admin", "app", "remove", self.manage_services)
-        self.AD.services.register_service("admin", "app", "reload", self.manage_services)
 
         self.active_apps = []
         self.inactive_apps = []
