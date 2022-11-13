@@ -98,8 +98,13 @@ fi
 
 #install user-specific packages
 apk add --no-cache $(find $CONF -name system_packages.txt | xargs cat | tr '\n' ' ')
-#check recursively under CONF for additional python dependencies defined in requirements.txt
+#check recursively under CONF and APPDIR for additional python dependencies defined in requirements.txt
 find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
+find $APPDIR -name requirements.txt -exec pip3 install --upgrade -r {} \;
+
+echo "Starting appdaemon with following config:"
+cat $CONF/appdaemon.yaml
+echo "################################"
 
 # Lets run it!
 exec appdaemon -c $CONF "$@"
