@@ -11,12 +11,13 @@ fi
 # if apps folder doesn't exist, copy the default
 if [ ! -d $CONF/apps ]; then
   cp -r $CONF_SRC/apps $CONF/apps
+
+  # if apps file doesn't exist, copy the default
+  if [ ! -f $CONF/apps/apps.yaml ]; then
+    cp $CONF_SRC/apps/apps.yaml.example $CONF/apps/apps.yaml
+  fi
 fi
 
-# if apps file doesn't exist, copy the default
-if [ ! -f $CONF/apps/apps.yaml ]; then
-  cp $CONF_SRC/apps/apps.yaml.example $CONF/apps/apps.yaml
-fi
 
 # if dashboards folder doesn't exist, copy the default
 if [ ! -d $CONF/dashboards ]; then
