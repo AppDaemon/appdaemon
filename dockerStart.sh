@@ -11,17 +11,17 @@ fi
 # get app_dir from config, else use default
 APPDIR=$(cat $CONF/appdaemon.yaml | sed -n 's/\s*app_dir:\s*\(.*\)$/\1/p')
 case "${APPDIR}" in
-  !env_var*) # add_dir pointing to env 
+  !env_var*) # add_dir pointing to env
     APPDIR_ENV=$(echo "$APPDIR" | sed -n 's/!env_var\s*\(.*\)/\1/p')
     echo "read app_dir from env ${APPDIR_ENV}"
     APPDIR=$(printenv "${APPDIR_ENV}")
     echo "app_dir set via env to: ${APPDIR}"
     ;;
-  "") # set default if not configured. 
+  "") # set default if not configured.
     APPDIR="${CONF}/apps"
     echo "use default app_dir: ${APPDIR}"
     ;;
-  *) 
+  *)
     echo "app_dir configured as ${APPDIR}"
 esac
 
