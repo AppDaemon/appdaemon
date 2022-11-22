@@ -16,7 +16,9 @@ class EntityAttrs:
         pass
 
     def __get__(self, instance, owner):
-        stateattrs = utils.EntityStateAttrs(instance.get_state(attribute="all", copy=False, default={}))
+        # Get the state directly (not via get_state) to be able to use entity.states in both sync/async contexts
+
+        stateattrs = utils.EntityStateAttrs(instance.AD.state.state[instance.namespace][instance.entity_id])
         return stateattrs
 
 
