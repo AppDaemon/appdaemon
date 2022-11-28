@@ -96,11 +96,17 @@ if [ -n "$ELEVATION" ]; then
   sed -i "s/^  elevation:.*/  elevation: $ELEVATION/" $CONF/appdaemon.yaml
 fi
 
-#install user-specific packages
-apk add --no-cache $(find $CONF -name system_packages.txt | xargs cat | tr '\n' ' ')
+if [ $(id -u) = 0 ]; then
+  #install user-specific packages if running as root
+  apk add --no-cache $(find $CONF -name system_packages.txt | xargs cat | tr '\n' ' ')
+  pip_param=""
+else
+  # install dependencies into user context instead of container wide
+  pip_param="--user"
+fi
 #check recursively under CONF and APPDIR for additional python dependencies defined in requirements.txt
-find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
-find $APPDIR -name requirements.txt -exec pip3 install --upgrade -r {} \;
+find $CONF -name requirements.txt -exec pip3 install $pip_param --upgrade -r {} \;
+find $APPDIR -name requirements.txt -exec pip3 install $pip_param --upgrade -r {} \;
 
 echo "Starting appdaemon with following config:"
 cat $CONF/appdaemon.yaml
