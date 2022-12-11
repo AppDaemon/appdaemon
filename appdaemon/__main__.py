@@ -104,7 +104,7 @@ class ADMain:
 
     # noinspection PyBroadException,PyBroadException
     def run(self, appdaemon, hadashboard, admin, aui, api, http):
-        """ Start AppDaemon up after initial argument parsing.
+        """Start AppDaemon up after initial argument parsing.
 
         Args:
             appdaemon: Config for AppDaemon Object.
@@ -139,7 +139,15 @@ class ADMain:
             ):
                 self.logger.info("Initializing HTTP")
                 self.http_object = adhttp.HTTP(
-                    self.AD, loop, self.logging, appdaemon, hadashboard, admin, aui, api, http,
+                    self.AD,
+                    loop,
+                    self.logging,
+                    appdaemon,
+                    hadashboard,
+                    admin,
+                    aui,
+                    api,
+                    http,
                 )
                 self.AD.register_http(self.http_object)
             else:
@@ -186,14 +194,25 @@ class ADMain:
         parser = argparse.ArgumentParser()
 
         parser.add_argument(
-            "-c", "--config", help="full path to config directory", type=str, default=None,
+            "-c",
+            "--config",
+            help="full path to config directory",
+            type=str,
+            default=None,
         )
         parser.add_argument("-p", "--pidfile", help="full path to PID File", default=None)
         parser.add_argument(
-            "-t", "--timewarp", help="speed that the scheduler will work at for time travel", default=1, type=float,
+            "-t",
+            "--timewarp",
+            help="speed that the scheduler will work at for time travel",
+            default=1,
+            type=float,
         )
         parser.add_argument(
-            "-s", "--starttime", help="start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>", type=str,
+            "-s",
+            "--starttime",
+            help="start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>",
+            type=str,
         )
         parser.add_argument(
             "-e",
@@ -276,7 +295,8 @@ class ADMain:
             else:
                 if "secrets" in config:
                     print(
-                        "ERROR", "Error loading secrets file: {}".format(config["secrets"]),
+                        "ERROR",
+                        "Error loading secrets file: {}".format(config["secrets"]),
                     )
                     sys.exit()
 
@@ -376,7 +396,8 @@ class ADMain:
 
         if "log" in config:
             print(
-                "ERROR", "'log' directive deprecated, please convert to new 'logs' syntax",
+                "ERROR",
+                "'log' directive deprecated, please convert to new 'logs' syntax",
             )
             sys.exit(1)
         if "logs" in config:
@@ -394,7 +415,10 @@ class ADMain:
 
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
         self.logger.info(
-            "Python version is %s.%s.%s", sys.version_info[0], sys.version_info[1], sys.version_info[2],
+            "Python version is %s.%s.%s",
+            sys.version_info[0],
+            sys.version_info[1],
+            sys.version_info[2],
         )
         self.logger.info("Configuration read from: %s", config_file_yaml)
         self.logging.dump_log_config()

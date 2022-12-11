@@ -35,7 +35,9 @@ class Entity:
         self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
-        """Sets a new namespace for the App to use from that point forward.
+        """Sets a new namespace for the Entity to use from that point forward.
+        It should be noted that when this function is used, a different entity will be referenced.
+        Since each entity is tied to a certain namespace, at every point in time.
 
         Args:
             namespace (str): Name of the new namespace
@@ -44,7 +46,12 @@ class Entity:
             None.
 
         Examples:
-            >>> self.set_namespace("hass1")
+            >>> # access entity in Hass namespace
+            >>> self.my_entity = self.get_entity("light.living_room")
+            >>> # want to copy the same entity into another namespace
+            >>> entity_data = self.my_entity.copy()
+            >>> self.my_entity.set_namespace("my_namespace")
+            >>> self.my_entity.set_state(**entity_data)
 
         """
         self._namespace = namespace
@@ -70,15 +77,15 @@ class Entity:
             A dictionary that represents the new state of the updated entity.
 
         Examples:
-            >>> self.my_enitity = self.get_entity("light.living_room")
+            >>> self.my_entity = self.get_entity("light.living_room")
 
             Update the state of an entity.
 
-            >>> self.my_enitity.set_state(state="off")
+            >>> self.my_entity.set_state(state="off")
 
             Update the state and attribute of an entity.
 
-            >>> self.my_enitity.set_state(state = "on", attributes = {"color_name": "red"})
+            >>> self.my_entity.set_state(state = "on", attributes = {"color_name": "red"})
 
         """
 
@@ -122,19 +129,19 @@ class Entity:
             for each entity. Under that key will be the standard entity state information.
 
         Examples:
-            >>> self.my_enitity = self.get_entity("light.office_1")
+            >>> self.my_entity = self.get_entity("light.office_1")
 
             Get the state attribute of `light.office_1`.
 
-            >>> state = self.my_enitity.get_state("light.office_1")
+            >>> state = self.my_entity.get_state("light.office_1")
 
             Get the brightness attribute of `light.office_1`.
 
-            >>> state = self.my_enitity.get_state(attribute="brightness")
+            >>> state = self.my_entity.get_state(attribute="brightness")
 
             Get the entire state of `light.office_1`.
 
-            >>> state = self.my_enitity.get_state(attribute="all")
+            >>> state = self.my_entity.get_state(attribute="all")
 
         """
 
@@ -228,34 +235,34 @@ class Entity:
             recommended that handles are stored in the object namespace, e.g., `self.handle`.
 
         Examples:
-            >>> self.my_enitity = self.get_entity("light.office_1")
+            >>> self.my_entity = self.get_entity("light.office_1")
 
             Listen for a state change involving `light.office1` and return the state attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback)
+            >>> self.handle = self.my_entity.listen_state(self.my_callback)
 
             Listen for a change involving the brightness attribute of `light.office1` and return the
             brightness attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, attribute = "brightness")
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, attribute = "brightness")
 
             Listen for a state change involving `light.office1` turning on and return the state attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, new = "on")
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on")
 
             Listen for a change involving `light.office1` changing from brightness 100 to 200 and return the
             brightness attribute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, attribute = "brightness", old = "100", new = "200")
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, attribute = "brightness", old = "100", new = "200")
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, new = "on", duration = 60)
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on", duration = 60)
 
             Listen for a state change involving `light.office1` changing to state on and remaining on for a minute
             trigger the delay immediately if the light is already on.
 
-            >>> self.handle = self.my_enitity.listen_state(self.my_callback, new = "on", duration = 60, immediate = True)
+            >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on", duration = 60, immediate = True)
         """
 
         entity_id = self._entity_id
@@ -285,11 +292,11 @@ class Entity:
             None
 
         Examples:
-            >>> self.my_enitity = self.get_entity("zigbee.living_room_light")
+            >>> self.my_entity = self.get_entity("zigbee.living_room_light")
 
             create the entity entity.
 
-            >>> self.my_enitity.add(state="off", attributes={"friendly_name": "Living Room Light"})
+            >>> self.my_entity.add(state="off", attributes={"friendly_name": "Living Room Light"})
 
         """
 
@@ -337,8 +344,8 @@ class Entity:
         Examples:
             HASS
 
-            >>> self.my_enitity = self.get_entity("light.office_1")
-            >>> self.my_enitity.call_service("turn_on", color_name = "red")
+            >>> self.my_entity = self.get_entity("light.office_1")
+            >>> self.my_entity.call_service("turn_on", color_name = "red")
 
         """
 
@@ -374,7 +381,7 @@ class Entity:
             attribute (str): The entity's attribute to use, if not using the entity's state
             duration (int|float): How long the state is to hold, before continuing
             timeout (int|float): How long to wait for the state to be achieved, before timing out.
-            When it times out, a appdaemon.exceptions.TimeOutException is raised
+                                When it times out, a appdaemon.exceptions.TimeOutException is raised
 
         Returns:
             None
@@ -475,7 +482,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to turn the entity ON if supported
+        """Generic helper function, used to turn the entity ON if supported.
+        This function will attempt to call the `turn_on` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `turn_on` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Turn_on services depending on the namespace functioning within
@@ -489,7 +500,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def turn_off(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to turn the entity OFF if supported
+        """Generic function, used to turn the entity OFF if supported.
+        This function will attempt to call the `turn_off` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `turn_off` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Turn_off services depending on the namespace functioning within
@@ -503,7 +518,11 @@ class Entity:
 
     @utils.sync_wrapper
     async def toggle(self, **kwargs: Optional[Any]) -> Any:
-        """Generic function, used to toggle the entity ON/OFF if supported
+        """Generic function, used to toggle the entity ON/OFF if supported.
+        This function will attempt to call the `toggle` service if registered,
+        either by an app or plugin within the entity's namespace. So therefore its
+        only functional, if the service `toggle` exists within the namespace the
+        entity is operating in.
 
         Keyword Args:
             **kwargs: Toggle services depending on the namespace functioning within

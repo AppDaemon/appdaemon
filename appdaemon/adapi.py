@@ -18,7 +18,7 @@ from appdaemon.entity import Entity
 class ADAPI:
     """AppDaemon API class.
 
-       This class includes all native API calls to AppDaemon
+    This class includes all native API calls to AppDaemon
 
     """
 
@@ -106,7 +106,7 @@ class ADAPI:
             level (str, optional): The log level of the message - takes a string representing the
                 standard logger levels (Default: ``"WARNING"``).
             ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to true if you want to log UTF-8 characters (Default: ``True``).
+                ascii. Set this to false if you want to log UTF-8 characters (Default: ``True``).
             log (str, optional): Send the message to a specific log, either system or user_defined.
                 System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``.
                 Any other value in use here must have a corresponding user-defined entity in
@@ -165,7 +165,7 @@ class ADAPI:
             level (str, optional): The log level of the message - takes a string representing the
                 standard logger levels.
             ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to true if you want to log UTF-8 characters (Default: ``True``).
+                ascii. Set this to false if you want to log UTF-8 characters (Default: ``True``).
             log (str, optional): Send the message to a specific log, either system or user_defined.
                 System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``.
                 Any other value in use here must have a corresponding user-defined entity in
@@ -1164,7 +1164,8 @@ class ADAPI:
             return await self.AD.http.register_endpoint(callback, endpoint, self.name, **kwargs)
         else:
             self.logger.warning(
-                "register_endpoint for %s failed - HTTP component is not configured", endpoint,
+                "register_endpoint for %s failed - HTTP component is not configured",
+                endpoint,
             )
 
     @utils.sync_wrapper
@@ -2301,6 +2302,25 @@ class ADAPI:
         return await self.AD.sched.cancel_timer(name, handle)
 
     @utils.sync_wrapper
+    async def reset_timer(self, handle):
+        """Resets a previously created timer.
+
+        Args:
+            handle: A valid handle value returned from the original call to create the timer.
+                The timer must be actively running, and not a Sun related one like sunrise/sunset for it to be resetted.
+
+        Returns:
+            Boolean.
+
+        Examples:
+            >>> self.reset_timer(handle)
+
+        """
+        name = self.name
+        self.logger.debug("Resetting timer with handle %s for %s", handle, self.name)
+        return await self.AD.sched.reset_timer(name, handle)
+
+    @utils.sync_wrapper
     async def info_timer(self, handle):
         """Gets information on a scheduler event from its handle.
 
@@ -2453,7 +2473,7 @@ class ADAPI:
             callback: Function to be invoked at the specified time of day.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
+            start: Should be either a Python ``datetime`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur.
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -2762,7 +2782,10 @@ class ADAPI:
             aware_start = now + datetime.timedelta(seconds=interval)
 
         self.logger.debug(
-            "Registering run_every starting %s in %ss intervals for %s", aware_start, interval, name,
+            "Registering run_every starting %s in %ss intervals for %s",
+            aware_start,
+            interval,
+            name,
         )
 
         handle = await self.AD.sched.insert_schedule(

@@ -37,7 +37,8 @@ class DuplicateFilter(logging.Filter):
             self.last_log = current_log
             if self.filtering is True:
                 self.logger.info(
-                    "Previous message repeated %s times", self.current_count - self.threshold + 1,
+                    "Previous message repeated %s times",
+                    self.current_count - self.threshold + 1,
                 )
             self.current_count = 0
             self.filtering = False
@@ -274,7 +275,10 @@ class Logging:
                 logger = logging.getLogger(args["name"])
                 logger.addFilter(
                     DuplicateFilter(
-                        logger, args["filter_threshold"], args["filter_repeat_delay"], args["filter_timeout"],
+                        logger,
+                        args["filter_threshold"],
+                        args["filter_repeat_delay"],
+                        args["filter_timeout"],
                     )
                 )
                 args["logger"] = logger
@@ -286,13 +290,18 @@ class Logging:
                     handler = logging.StreamHandler(stream=sys.stdout)
                 else:
                     handler = RotatingFileHandler(
-                        args["filename"], maxBytes=args["log_size"], backupCount=args["log_generations"],
+                        args["filename"],
+                        maxBytes=args["log_size"],
+                        backupCount=args["log_generations"],
                     )
                 self.config[log]["handler"] = handler
                 handler.setFormatter(formatter)
                 logger.addFilter(
                     DuplicateFilter(
-                        logger, args["filter_threshold"], args["filter_repeat_delay"], args["filter_timeout"],
+                        logger,
+                        args["filter_threshold"],
+                        args["filter_repeat_delay"],
+                        args["filter_timeout"],
                     )
                 )
                 logger.addHandler(handler)
@@ -516,7 +525,12 @@ class Logging:
                             )
 
                             cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                                name, exec_time, None, False, None, __log_handle=handle,
+                                name,
+                                exec_time,
+                                None,
+                                False,
+                                None,
+                                __log_handle=handle,
                             )
 
                         await self.AD.state.add_entity(

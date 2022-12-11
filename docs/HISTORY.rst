@@ -1,12 +1,53 @@
 Change Log
 ==========
 
+4.2.2
+--------------------
+
+**Features**
+
+- Added the ability to set HA certificate verify from docker arguments - contributed by `Antonino Piazza <https://github.com/a-p-z>`__
+- Added MQTT VARS to docker arguments - contributed by `Xavi Moreno <https://github.com/xaviml>`__
+- Added the ability to reset a running timer via api
+
+
+**Fixes**
+
+- Fixed issue when when using `timeout` in listen event api, after the event is ran one gets an error in log
+- Fixed issue when an entity is deleted from HA, and it remains in AD
+- Fixed issue with setup file saying support "python3 3.0"
+- Fixed issue with the inability to know which app's callback failed `constrain_state` check
+- Fixed issue with AD giving messed up error messages
+- Documentation fixes - contributed by `Rootie <https://github.com/Rootie>`__
+- Documentation fixes - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
+- Documentation fixes - contributed by `illuzn <https://github.com/illuzn>`__
+- Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
+- Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
+- Bumped websocket-client from 1.2.3 to 1.3.3
+- Bumped azure-mgmt-storage from 19.0.0 to 20.0.0
+- Bumped azure-storage-blob from 12.9.0 to 12.12.0
+- Bumped azure-mgmt-compute from 23.1.0 to 27.1.0
+- Bumped azure-mgmt-resource from 20.0.0 to 21.1.0
+- Bumped azure-keyvault-secrets from 4.3.0 to 4.4.0
+- Bumped pytz from 2021.3 to 2022.1
+- Bumped pygments from 2.10.0 to 2.12.0
+- Bumped feedparser from 6.0.8 to 6.0.10
+- Bumped deepdiff from 5.7.0 to 5.8.1
+- Bumped voluptuous from 0.12.2 to 0.13
+- Bumped bcrypt from 3.2.0 to 3.2.2
+- Bumped requests from 2.26.0 to 2.28.0
+- Bumped jinja2 from 3.0.3 to 3.1.2
+
+**Breaking Changes**
+
+None
+
 4.2.1 - (2022-01-17)
 --------------------
 
 **Features**
 
-None
+- Docker: Added MQTT vars to dockerStart.sh - contributed by `Xavi Moreno <https://github.com/xaviml>`__
 
 **Fixes**
 
