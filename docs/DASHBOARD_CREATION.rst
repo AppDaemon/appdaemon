@@ -455,7 +455,7 @@ Widget Customization
 
 Widgets allow customization using arbitrary CSS styles for the individual
 elements that make up the widget. Every widget has a
-\`\ ``widget_style`` argument to apply styles to the whole widget, as
+``widget_style`` argument to apply styles to the whole widget, as
 well as one or more additional style arguments that differ for each
 widget. To customize a widget background, for instance:
 
