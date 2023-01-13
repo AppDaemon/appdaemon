@@ -310,15 +310,17 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         unconstrained = True
         state = self.get_state()
 
-        values = value.split(",")
-        if len(values) == 2:
-            entity = values[0]
-            desired_state = values[1]
-        else:
-            entity = value
-            desired_state = "on"
-        if entity in state and state[entity]["state"] != desired_state:
-            unconstrained = False
+        constraints = [value] if isinstance(value, str) else value
+        for constraint in constraints:
+            values = constraint.split(",")
+            if len(values) == 2:
+                entity = values[0]
+                desired_state = values[1]
+            else:
+                entity = constraint
+                desired_state = "on"
+            if entity in state and state[entity]["state"] != desired_state:
+                unconstrained = False
 
         return unconstrained
 
@@ -326,10 +328,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         unconstrained = True
         state = self.get_state()
 
-        values = value.split(",")
-        entity = values.pop(0)
-        if entity in state and state[entity]["state"] not in values:
-            unconstrained = False
+        constraints = [value] if isinstance(value, str) else value
+        for constraint in constraints:
+            values = constraint.split(",")
+            entity = values.pop(0)
+            if entity in state and state[entity]["state"] not in values:
+                unconstrained = False
 
         return unconstrained
 
