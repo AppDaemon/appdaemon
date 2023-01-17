@@ -726,7 +726,9 @@ class Threading:
                 #
                 # Check if we care about the change
                 #
-                if (cold is None or cold == old) and (cnew is None or cnew == new):
+                if (cold is None or cold == old or (callable(cold) and cold(old) is True)) and (
+                    cnew is None or cnew == new or (callable(cnew) and cnew(new) is True)
+                ):
                     #
                     # We do!
                     #

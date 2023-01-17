@@ -323,8 +323,15 @@ class Events:
 
                             _run = True
                             for key in callback["kwargs"]:
-                                if key in data["data"] and callback["kwargs"][key] != data["data"][key]:
-                                    _run = False
+                                if key in data["data"]:
+                                    event_val = data["data"][key]
+                                    match_val = callback["kwargs"][key]
+
+                                    if callable(match_val):
+                                        if match_val(event_val) is not True:
+                                            _run = False
+                                    elif match_val != event_val:
+                                        _run = False
 
                             if data["event_type"] == "__AD_LOG_EVENT":
                                 if (

@@ -1612,7 +1612,8 @@ subscribe to all events.
 One or more keyword value pairs representing App specific parameters to
 supply to the callback. If the keywords match values within the event
 data, they will act as filters, meaning that if they don't match the
-values, the callback will not fire.
+values, the callback will not fire. If the values are callable, they will
+be invoked and if they return ``True`` they'll be considered a match.
 
 As an example of this, a Minimote controller when activated will
 generate an event called ``zwave_js_value_notification``, along with 2 pieces
@@ -1637,6 +1638,8 @@ Examples
     self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
     # Listen for a minimote event activating scene 3 from a specific minimote:
     self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
+    # Listen for a minimote event activating scene 3 from one of several minimotes:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
 
 Use of Events for Signalling between Home Assistant and AppDaemon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
