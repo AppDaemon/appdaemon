@@ -1384,7 +1384,7 @@ exactly like any other HA state, e.g., to the rest of AppDaemon, and the
 dashboard it looks like an entity. This means that you can listen for
 state changes in other apps and also publish arbitrary state to the
 dashboard via the use of specific entity IDs. To publish state, you will use
-``set_app_state()``. State can be retrieved and listened for with the
+``set_state()``. State can be retrieved and listened for with the
 usual AppDaemon calls.
 
 The Scheduler
