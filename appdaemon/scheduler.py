@@ -774,8 +774,10 @@ class Scheduler:
         start_time = (await self._parse_time(start_time_str, name))["datetime"]
         end_time = (await self._parse_time(end_time_str, name))["datetime"]
         now = (await self.get_now()).astimezone(self.AD.tz)
-        start_date = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
-        end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+        start_date = now.replace(
+            hour=start_time.hour, minute=start_time.minute, second=start_time.second, microsecond=0
+        )
+        end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second, microsecond=0)
         if end_date < start_date:
             # Spans midnight
             if now < start_date and now < end_date:
