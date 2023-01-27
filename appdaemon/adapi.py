@@ -2355,7 +2355,7 @@ class ADAPI:
             callback: Function to be invoked when the requested state change occurs.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            delay (int): Delay, in seconds before the callback is invoked.
+            delay (float): Delay, in seconds before the callback is invoked.
             **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
@@ -2387,9 +2387,9 @@ class ADAPI:
         """
         name = self.name
         self.logger.debug("Registering run_in in %s seconds for %s", delay, name)
-        # convert seconds to an int if possible since a common pattern is to
-        # pass this through from the config file which is a string
-        exec_time = await self.get_now() + timedelta(seconds=int(delay))
+        # Support fractional delays
+        i, d = divmod(delay, 1)
+        exec_time = await self.get_now() + timedelta(seconds=int(i), microseconds=d * 1000000)
         handle = await self.AD.sched.insert_schedule(name, exec_time, callback, False, None, **kwargs)
 
         return handle

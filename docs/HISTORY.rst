@@ -10,6 +10,7 @@ Change Log
 - Added MQTT VARS to docker arguments - contributed by `Xavi Moreno <https://github.com/xaviml>`__
 - Added the ability to reset a running timer via api
 - Removed a warning from info_timer() for stale handles
+- run_in() now supports fracitonal delays
 
 **Fixes**
 
@@ -41,7 +42,7 @@ Change Log
 
 **Breaking Changes**
 
-None
+run_in() now supports fracitonal delays - this requires a float as the delay argument instead of an int
 
 4.2.1 - (2022-01-17)
 --------------------
