@@ -101,7 +101,10 @@ class Scheduler:
         now = await self.get_now()
 
         # Round to nearest second
-        utc = self.my_dt_round(utc, base=1)
+        #
+        # Take this out to allow fractional run_in() times
+        #
+        # utc = self.my_dt_round(utc, base=1)
 
         if "pin" in kwargs:
             pin_app = kwargs["pin"]
