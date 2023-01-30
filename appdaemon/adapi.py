@@ -2388,7 +2388,7 @@ class ADAPI:
         name = self.name
         self.logger.debug("Registering run_in in %s seconds for %s", delay, name)
         # Support fractional delays
-        i, d = divmod(delay, 1)
+        i, d = divmod(float(delay), 1)
         exec_time = await self.get_now() + timedelta(seconds=int(i), microseconds=d * 1000000)
         handle = await self.AD.sched.insert_schedule(name, exec_time, callback, False, None, **kwargs)
 

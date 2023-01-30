@@ -42,7 +42,7 @@ Change Log
 
 **Breaking Changes**
 
-run_in() now supports fracitonal delays - this requires a float as the delay argument instead of an int
+None
 
 4.2.1 - (2022-01-17)
 --------------------
