@@ -23,6 +23,7 @@ Change Log
 - Documentation fixes - contributed by `Rootie <https://github.com/Rootie>`__
 - Documentation fixes - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
 - Documentation fixes - contributed by `illuzn <https://github.com/illuzn>`__
+- Fix for flake8 repository move - contributed by `dgrnbrg <https://github.com/dgrnbrg>`__
 - Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
 - Bump black to 22.3.0 and run it on all files - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
 - Bumped websocket-client from 1.2.3 to 1.3.3
