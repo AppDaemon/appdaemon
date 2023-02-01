@@ -1208,12 +1208,17 @@ class ADAPI:
             A handle that can be used to remove the registration.
 
         Examples:
-            It should be noted that the register function, should return a string (can be empty),
-            and an HTTP OK status response (e.g., `200`. If this is not added as a returned response,
-            the function will generate an error each time it is processed.
+            It should be noted that the register function, should return a aiohttp Response.
 
-            >>> self.register_route(my_callback)
-            >>> self.register_route(stream_cb, "camera")
+            >>> from aiohttp import web
+            
+            >>> def initialize(self):
+            >>>   self.register_route(my_callback)
+            >>>   self.register_route(stream_cb, "camera")
+            >>>
+            >>> async def camera(self, request, kwargs):
+            >>>   return web.Response(text="test", content_type="text/html")
+            
 
         """
         if route is None:
