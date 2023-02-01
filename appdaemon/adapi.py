@@ -1211,14 +1211,14 @@ class ADAPI:
             It should be noted that the register function, should return a aiohttp Response.
 
             >>> from aiohttp import web
-            
+
             >>> def initialize(self):
             >>>   self.register_route(my_callback)
             >>>   self.register_route(stream_cb, "camera")
             >>>
             >>> async def camera(self, request, kwargs):
             >>>   return web.Response(text="test", content_type="text/html")
-            
+
 
         """
         if route is None:
@@ -2037,22 +2037,31 @@ class ADAPI:
         return await self.AD.sched.sun_down()
 
     @utils.sync_wrapper
-    async def parse_time(self, time_str: str, name: str = None, aware: bool = False):
+    async def parse_time(self, time_str: str, name: str = None, aware: bool = False, today=False, days_offset=0):
         """Creates a `time` object from its string representation.
 
         This functions takes a string representation of a time, or sunrise,
         or sunset offset and converts it to a datetime.time object.
 
         Args:
-            time_str (str): A representation of the time in a string format with one
-                of the following formats:
+            time_str (str): A string representation of the datetime with one of the
+                following formats:
 
-                    a. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+                    a. ``HH:MM:SS[.ss]`` - the time in Hours Minutes, Seconds and Microseconds, 24 hour format.
 
-                    b. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
-                    with an optional positive or negative offset in Hours Minutes and seconds.
+                    b. ``sunrise|sunset [+|- HH:MM:SS[.ss]]`` - time of the next sunrise or sunset
+                    with an optional positive or negative offset in Hours Minutes, Seconds and Microseconds.
+
+                If the ``HH:MM:SS.ss`` format is used, the resulting datetime object will have
+                today's date.
             name (str, optional): Name of the calling app or module. It is used only for logging purposes.
-            aware (bool, optional): If ``True`` the created time object will be aware of timezone.
+            aware (bool, optional): If ``True`` the created datetime object will be aware
+                of timezone.
+            today (bool, optional): Instead of the default behavior which is to return the next sunrise/sunset that will occur, setting this flag to true
+                will return today's sunrise/sunset even if it is in the past
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset/sunrise. This can only be used in combination with
+                the today flag
+
 
         Returns:
             A `time` object, representing the time given in the `time_str` argument.
@@ -2071,10 +2080,10 @@ class ADAPI:
             05:33:17
 
         """
-        return await self.AD.sched.parse_time(time_str, name, aware)
+        return await self.AD.sched.parse_time(time_str, name, aware, today=False, days_offset=0)
 
     @utils.sync_wrapper
-    async def parse_datetime(self, time_str, name=None, aware=False):
+    async def parse_datetime(self, time_str, name=None, aware=False, today=False, days_offset=0):
         """Creates a `datetime` object from its string representation.
 
         This function takes a string representation of a date and time, or sunrise,
@@ -2084,19 +2093,23 @@ class ADAPI:
             time_str (str): A string representation of the datetime with one of the
                 following formats:
 
-                    a. ``YY-MM-DD-HH:MM:SS`` - the date and time in Year, Month, Day, Hours,
-                    Minutes, and Seconds, 24 hour format.
+                    a. ``YY-MM-DD-HH:MM:SS[.ss]`` - the date and time in Year, Month, Day, Hours,
+                    Minutes, Seconds and Microseconds, 24 hour format.
 
-                    b. ``HH:MM:SS`` - the time in Hours Minutes and Seconds, 24 hour format.
+                    b. ``HH:MM:SS[.ss]`` - the time in Hours Minutes, Seconds and Microseconds, 24 hour format.
 
-                    c. ``sunrise|sunset [+|- HH:MM:SS]`` - time of the next sunrise or sunset
-                    with an optional positive or negative offset in Hours Minutes and seconds.
+                    c. ``sunrise|sunset [+|- HH:MM:SS[.ss]]`` - time of the next sunrise or sunset
+                    with an optional positive or negative offset in Hours Minutes, Seconds and Microseconds.
 
-                If the ``HH:MM:SS`` format is used, the resulting datetime object will have
+                If the ``HH:MM:SS.ss`` format is used, the resulting datetime object will have
                 today's date.
             name (str, optional): Name of the calling app or module. It is used only for logging purposes.
             aware (bool, optional): If ``True`` the created datetime object will be aware
                 of timezone.
+            today (bool, optional): Instead of the default behavior which is to return the next sunrise/sunset that will occur, setting this flag to true
+                will return today's sunrise/sunset even if it is in the past
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset/sunrise. This can only be used in combination with
+                the today flag
 
         Returns:
             A `datetime` object, representing the time and date given in the
@@ -2106,8 +2119,8 @@ class ADAPI:
             >>> self.parse_datetime("2018-08-09 17:30:00")
             2018-08-09 17:30:00
 
-            >>> self.parse_datetime("17:30:00")
-            2019-08-15 17:30:00
+            >>> self.parse_datetime("17:30:00.01")
+            2019-08-15 17:30:00.010000
 
             >>> self.parse_datetime("sunrise")
             2019-08-16 05:33:17
@@ -2118,7 +2131,7 @@ class ADAPI:
             >>> self.parse_datetime("sunrise + 01:00:00")
             2019-08-16 06:33:17
         """
-        return await self.AD.sched.parse_datetime(time_str, name, aware)
+        return await self.AD.sched.parse_datetime(time_str, name, aware, today=today, days_offset=days_offset)
 
     @utils.sync_wrapper
     async def get_now(self):
@@ -2144,7 +2157,7 @@ class ADAPI:
         return await self.AD.sched.get_now_ts()
 
     @utils.sync_wrapper
-    async def now_is_between(self, start_time, end_time, name=None):
+    async def now_is_between(self, start_time, end_time, name=None, now=None):
         """Determines if the current `time` is within the specified start and end times.
 
         This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
@@ -2155,6 +2168,7 @@ class ADAPI:
             start_time (str): A string representation of the start time.
             end_time (str): A string representation of the end time.
             name (str, optional): Name of the calling app or module. It is used only for logging purposes.
+            now (str, optional): If specified, `now` is used as the time for comparison instead of the current time. Useful for testing.
 
         Returns:
             bool: ``True`` if the current time is within the specified start and end times,
@@ -2178,37 +2192,49 @@ class ADAPI:
             >>>     #do something
 
         """
-        return await self.AD.sched.now_is_between(start_time, end_time, name)
+        return await self.AD.sched.now_is_between(start_time, end_time, name, now=now)
 
     @utils.sync_wrapper
-    async def sunrise(self, aware=False):
+    async def sunrise(self, aware=False, today=False, days_offset=0):
         """Returns a `datetime` object that represents the next time Sunrise will occur.
 
         Args:
             aware (bool, optional): Specifies if the created datetime object will be
                 `aware` of timezone or `not`.
+            today (bool, optional): Instead of the default behavior which is to return the next sunrise that will occur, setting this flag to true will return
+                 today's sunrise even if it is in the past
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset. This can only be used in combination with the today
+                 flag
 
         Examples:
             >>> self.sunrise()
-            2019-08-16 05:33:17
+            2023-02-02 07:11:50.150554
+            >>> self.sunrise(today=True)
+            2023-02-01 07:12:20.272403
 
         """
-        return await self.AD.sched.sunrise(aware)
+        return await self.AD.sched.sunrise(aware, today=today, days_offset=days_offset)
 
     @utils.sync_wrapper
-    async def sunset(self, aware=False):
+    async def sunset(self, aware=False, today=False, days_offset=0):
         """Returns a `datetime` object that represents the next time Sunset will occur.
 
         Args:
            aware (bool, optional): Specifies if the created datetime object will be
                 `aware` of timezone or `not`.
+            today (bool, optional): Instead of the default behavior which is to return the next sunset that will occur, setting this flag to true will return
+                 today's sunset even if it is in the past
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset. This can only be used in combination with the today
+                 flag
 
         Examples:
             >>> self.sunset()
-            2019-08-16 19:48:48
+            2023-02-01 18:09:00.730704
+            >>> self.sunset(today=True, days_offset=1)
+            2023-02-02 18:09:46.252314
 
         """
-        return await self.AD.sched.sunset(aware)
+        return await self.AD.sched.sunset(aware, today=today, days_offset=days_offset)
 
     @utils.sync_wrapper
     async def time(self):

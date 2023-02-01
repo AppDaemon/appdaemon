@@ -387,6 +387,12 @@ class Scheduler:
         else:
             return self.next_sunset(day_offset)
 
+    def todays_sunrise(self, days_offset):
+        candidate_date = (self.now + datetime.timedelta(days=days_offset)).astimezone(self.AD.tz).date()
+        next_rising_dt = self.location.sunrise(date=candidate_date, local=False, observer_elevation=self.AD.elevation)
+
+        return next_rising_dt
+
     def next_sunrise(self, offset: int = 0):
         day_offset = 0
         while True:
@@ -416,6 +422,12 @@ class Scheduler:
             except ValueError:
                 pass
             day_offset += 1
+
+        return next_setting_dt
+
+    def todays_sunset(self, days_offset):
+        candidate_date = (self.now + datetime.timedelta(days=days_offset)).astimezone(self.AD.tz).date()
+        next_setting_dt = self.location.sunset(date=candidate_date, local=False, observer_elevation=self.AD.elevation)
 
         return next_setting_dt
 
@@ -773,51 +785,91 @@ class Scheduler:
     async def get_now_naive(self):
         return self.make_naive(await self.get_now())
 
-    async def now_is_between(self, start_time_str, end_time_str, name=None):
-        start_time = (await self._parse_time(start_time_str, name))["datetime"]
-        end_time = (await self._parse_time(end_time_str, name))["datetime"]
-        now = (await self.get_now()).astimezone(self.AD.tz)
-        start_date = now.replace(
-            hour=start_time.hour, minute=start_time.minute, second=start_time.second, microsecond=0
-        )
-        end_date = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second, microsecond=0)
-        if end_date < start_date:
+    async def now_is_between(self, start_time_str, end_time_str, name=None, now=None):
+        start_time = (await self._parse_time(start_time_str, name, today=True, days_offset=0))["datetime"]
+        end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=0))["datetime"]
+        if now is not None:
+            now = (await self._parse_time(now, name))["datetime"]
+        else:
+            now = (await self.get_now()).astimezone(self.AD.tz)
+
+        # Comparisons
+        if end_time < start_time:
+            # self.logger.info("Midnight transition")
+            # Start and end time backwards.
             # Spans midnight
-            if now < start_date and now < end_date:
-                now = now + datetime.timedelta(days=1)
-            end_date = end_date + datetime.timedelta(days=1)
-        return start_date <= now <= end_date
+            # Lets start by assuming end_time is wrong and should be tomorrow
+            # This will be true if we are currently after start_time
+            end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=1))["datetime"]
+            if now < start_time and now < end_time:
+                # self.logger.info("Reverse")
+                # Well, it's complicated -
+                # We crossed into a new day and things changed.
+                # Now all times have shifted relative to the new day, so we need to look at it differently
+                # If both times are now in the future, we now actually want to set start time back a day and keep end_time as today
+                start_time = (await self._parse_time(start_time_str, name, today=True, days_offset=-1))["datetime"]
+                end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=0))["datetime"]
 
-    async def sunset(self, aware):
+        # self.logger.info(f"\nstart = {start_time}\nnow   = {now}\nend   = {end_time}")
+        return start_time <= now <= end_time
+
+    async def sunset(self, aware, today=False, days_offset=0):
         if aware is True:
-            return self.next_sunset().astimezone(self.AD.tz)
+            if today is True:
+                return self.todays_sunset(days_offset).astimezone(self.AD.tz)
+            else:
+                return self.next_sunset().astimezone(self.AD.tz)
         else:
-            return self.make_naive(self.next_sunset().astimezone(self.AD.tz))
+            if today is True:
+                return self.make_naive(self.todays_sunset(days_offset).astimezone(self.AD.tz))
+            else:
+                return self.make_naive(self.next_sunset().astimezone(self.AD.tz))
 
-    async def sunrise(self, aware):
+    async def sunrise(self, aware, today=False, days_offset=0):
         if aware is True:
-            return self.next_sunrise().astimezone(self.AD.tz)
+            if today is True:
+                return self.todays_sunrise(days_offset).astimezone(self.AD.tz)
+            else:
+                return self.next_sunrise().astimezone(self.AD.tz)
         else:
-            return self.make_naive(self.next_sunrise().astimezone(self.AD.tz))
+            if today is True:
+                return self.make_naive(self.todays_sunrise(days_offset).astimezone(self.AD.tz))
+            else:
+                return self.make_naive(self.next_sunrise().astimezone(self.AD.tz))
 
-    async def parse_time(self, time_str, name=None, aware=False):
+    async def parse_time(self, time_str, name=False, aware=False, today=False, days_offset=0):
         if aware is True:
-            return (await self._parse_time(time_str, name))["datetime"].astimezone(self.AD.tz).time()
+            return (
+                (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
+                .astimezone(self.AD.tz)
+                .time()
+            )
         else:
-            return self.make_naive((await self._parse_time(time_str, name))["datetime"]).time()
+            return self.make_naive(
+                (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
+            ).time()
 
-    async def parse_datetime(self, time_str, name=None, aware=False):
+    async def parse_datetime(self, time_str, name=None, aware=False, today=False, days_offset=0):
         if aware is True:
-            return (await self._parse_time(time_str, name))["datetime"].astimezone(self.AD.tz)
+            return (await self._parse_time(time_str, name, today=today, days_offset=days_offset))[
+                "datetime"
+            ].astimezone(self.AD.tz)
         else:
-            return self.make_naive((await self._parse_time(time_str, name))["datetime"])
+            return self.make_naive(
+                (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
+            )
 
-    async def _parse_time(self, time_str, name=None):
+    async def _parse_time(self, time_str, name=None, today=False, days_offset=0):
         parsed_time = None
         sun = None
         offset = 0
-        parts = re.search(r"^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)$", time_str)
+        parts = re.search(r"^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
         if parts:
+            if parts.group(7) is None:
+                us = 0
+            else:
+                us = int(float("0." + parts.group(7)) * 1000000)
+
             this_time = datetime.datetime(
                 int(parts.group(1)),
                 int(parts.group(2)),
@@ -825,70 +877,78 @@ class Scheduler:
                 int(parts.group(4)),
                 int(parts.group(5)),
                 int(parts.group(6)),
-                0,
+                us,
             )
-            parsed_time = self.AD.tz.localize(this_time)
+            parsed_time = self.AD.tz.localize(this_time + datetime.timedelta(days=days_offset))
         else:
-            parts = re.search(r"^(\d+):(\d+):(\d+)$", time_str)
+            parts = re.search(r"^(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
             if parts:
+                if parts.group(4) is None:
+                    us = 0
+                else:
+                    us = int(float("0." + parts.group(4)) * 1000000)
+
                 today = (await self.get_now()).astimezone(self.AD.tz)
-                time = datetime.time(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), 0)
+                time = datetime.time(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), us)
                 parsed_time = today.replace(
                     hour=time.hour,
                     minute=time.minute,
                     second=time.second,
-                    microsecond=0,
-                )
-
+                    microsecond=us,
+                ) + datetime.timedelta(days=days_offset)
             else:
                 if time_str == "sunrise":
-                    parsed_time = await self.sunrise(True)
+                    parsed_time = await self.sunrise(True, today, days_offset)
                     sun = "sunrise"
                     offset = 0
                 elif time_str == "sunset":
-                    parsed_time = await self.sunset(True)
+                    parsed_time = await self.sunset(True, today, days_offset)
                     sun = "sunset"
                     offset = 0
                 else:
-                    parts = re.search(r"^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)$", time_str)
+                    parts = re.search(r"^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
                     if parts:
-                        sun = "sunrise"
-                        if parts.group(1) == "+":
-                            td = datetime.timedelta(
-                                hours=int(parts.group(2)),
-                                minutes=int(parts.group(3)),
-                                seconds=int(parts.group(4)),
-                            )
-                            offset = td.total_seconds()
-                            parsed_time = await self.sunrise(True) + td
+                        if parts.group(5) is None:
+                            us = 0
                         else:
+                            us = int(float("0." + parts.group(5)) * 1000000)
+
+                        sun = "sunrise"
+                        td = datetime.timedelta(
+                            hours=int(parts.group(2)),
+                            minutes=int(parts.group(3)),
+                            seconds=int(parts.group(4)),
+                            microseconds=us,
+                        )
+
+                        if parts.group(1) == "+":
+                            offset = td.total_seconds()
+                            parsed_time = await self.sunrise(True, today, days_offset) + td
+                        else:
+                            offset = td.total_seconds() * -1
+                            parsed_time = await self.sunrise(True, today, days_offset) - td
+                    else:
+                        parts = re.search(r"^sunset\s*([+-])\s*(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
+                        if parts:
+                            if parts.group(5) is None:
+                                us = 0
+                            else:
+                                us = int(float("0." + parts.group(5)) * 1000000)
+
+                            sun = "sunset"
                             td = datetime.timedelta(
                                 hours=int(parts.group(2)),
                                 minutes=int(parts.group(3)),
                                 seconds=int(parts.group(4)),
+                                microseconds=us,
                             )
-                            offset = td.total_seconds() * -1
-                            parsed_time = await self.sunrise(True) - td
-                    else:
-                        parts = re.search(r"^sunset\s*([+-])\s*(\d+):(\d+):(\d+)$", time_str)
-                        if parts:
-                            sun = "sunset"
                             if parts.group(1) == "+":
-                                td = datetime.timedelta(
-                                    hours=int(parts.group(2)),
-                                    minutes=int(parts.group(3)),
-                                    seconds=int(parts.group(4)),
-                                )
                                 offset = td.total_seconds()
-                                parsed_time = await self.sunset(True) + td
+                                parsed_time = await self.sunset(True, today, days_offset) + td
                             else:
-                                td = datetime.timedelta(
-                                    hours=int(parts.group(2)),
-                                    minutes=int(parts.group(3)),
-                                    seconds=int(parts.group(4)),
-                                )
                                 offset = td.total_seconds() * -1
-                                parsed_time = await self.sunset(True) - td
+                                parsed_time = await self.sunset(True, today, days_offset) - td
+
         if parsed_time is None:
             if name is not None:
                 raise ValueError("%s: invalid time string: %s", name, time_str)
@@ -905,7 +965,9 @@ class Scheduler:
         self.diag.info("Sun")
         self.diag.info("--------------------------------------------------")
         self.diag.info("Next Sunrise: %s", self.next_sunrise())
+        self.diag.info("Today's Sunrise: %s", self.todays_sunrise(days_offset=0))
         self.diag.info("Next Sunset: %s", self.next_sunset())
+        self.diag.info("Today's Sunset: %s", self.todays_sunset(days_offset=0))
         self.diag.info("--------------------------------------------------")
 
     async def dump_schedule(self):
