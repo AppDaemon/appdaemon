@@ -793,16 +793,17 @@ class Scheduler:
         else:
             now = (await self.get_now()).astimezone(self.AD.tz)
 
+        # self.diag.info(f"locals: {locals()}")
         # Comparisons
         if end_time < start_time:
-            # self.logger.info("Midnight transition")
+            # self.diag.info("Midnight transition")
             # Start and end time backwards.
             # Spans midnight
             # Lets start by assuming end_time is wrong and should be tomorrow
             # This will be true if we are currently after start_time
             end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=1))["datetime"]
             if now < start_time and now < end_time:
-                # self.logger.info("Reverse")
+                # self.diag.info("Reverse")
                 # Well, it's complicated -
                 # We crossed into a new day and things changed.
                 # Now all times have shifted relative to the new day, so we need to look at it differently
@@ -810,7 +811,7 @@ class Scheduler:
                 start_time = (await self._parse_time(start_time_str, name, today=True, days_offset=-1))["datetime"]
                 end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=0))["datetime"]
 
-        # self.logger.info(f"\nstart = {start_time}\nnow   = {now}\nend   = {end_time}")
+        # self.diag.info(f"\nstart = {start_time}\nnow   = {now}\nend   = {end_time}")
         return start_time <= now <= end_time
 
     async def sunset(self, aware, today=False, days_offset=0):
