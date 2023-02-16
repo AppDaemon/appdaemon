@@ -269,7 +269,10 @@ class AppManagement:
     async def stop_app(self, app, delete=True):
         executed = False
         try:
-            self.logger.info("Terminating %s", app)
+            if "global" in self.app_config[app] and self.app_config[app]["global"] is True:
+                pass
+            else:
+                self.logger.info("Terminating %s", app)
             executed = await self.terminate_app(app, delete)
         except Exception:
             error_logger = logging.getLogger("Error.{}".format(app))
@@ -422,6 +425,9 @@ class AppManagement:
                                     if config[app] is not None:
                                         app_valid = True
                                         if app == "global_modules":
+                                            self.logger.warning(
+                                                f"global_modules directive has been deprecated and will be removed in a future release"
+                                            )
                                             #
                                             # Check the parameter format for string or list
                                             #
@@ -451,6 +457,14 @@ class AppManagement:
                                             isinstance(config[app], dict)
                                             and "class" in config[app]
                                             and "module" in config[app]
+                                        ):
+                                            valid_apps[app] = config[app]
+                                            valid_apps[app]["yaml_path"] = path
+                                        elif (
+                                            isinstance(config[app], dict)
+                                            and "module" in config[app]
+                                            and "global" in config[app]
+                                            and config[app]["global"] is True
                                         ):
                                             valid_apps[app] = config[app]
                                             valid_apps[app]["yaml_path"] = path
@@ -796,16 +810,22 @@ class AppManagement:
         else:
             app = self.get_app_from_file(file)
             if app is not None:
-                self.logger.info("Loading App Module: %s", file)
-                if module_name not in self.modules:
+                if "global" in self.app_config[app] and self.app_config[app]["global"] is True:
+                    # It's a new style global module
+                    self.logger.info("Loading Global Module: %s", file)
                     self.modules[module_name] = importlib.import_module(module_name)
                 else:
-                    # We previously imported it so we need to reload to pick up any potential changes
-                    importlib.reload(self.modules[module_name])
-
+                    # A regular app
+                    self.logger.info("Loading App Module: %s", file)
+                    if module_name not in self.modules:
+                        self.modules[module_name] = importlib.import_module(module_name)
+                    else:
+                        # We previously imported it so we need to reload to pick up any potential changes
+                        importlib.reload(self.modules[module_name])
             elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
                 self.logger.info("Loading Global Module: %s", file)
                 self.modules[module_name] = importlib.import_module(module_name)
+            # elif "global" in
             else:
                 if self.AD.missing_app_warnings:
                     self.logger.warning("No app description found for: %s - ignoring", file)
@@ -962,15 +982,14 @@ class AppManagement:
                         apps["term"][app] = 1
                     apps["init"][app] = 1
 
-                if "global_modules" in self.app_config:
-                    for gm in utils.single_or_list(self.app_config["global_modules"]):
-                        if gm == self.get_module_from_path(module["name"]):
-                            for app in self.apps_per_global_module(gm):
-                                if module["reload"]:
-                                    apps["term"][app] = 1
-                                    # We need to force a reload of this app to release andy references to the module
-                                    forced_reloads.append(self.get_path_from_app(app))
-                                apps["init"][app] = 1
+                for gm in self.get_global_modules():
+                    if gm == self.get_module_from_path(module["name"]):
+                        for app in self.apps_per_global_module(gm):
+                            if module["reload"]:
+                                apps["term"][app] = 1
+                                # We need to force a reload of this app to release any references to the module
+                                forced_reloads.append(self.get_path_from_app(app))
+                            apps["init"][app] = 1
 
             # Make sure the apps with references to globals are reloaded
             for forced_reload in forced_reloads:
@@ -1012,6 +1031,18 @@ class AppManagement:
             if apps is not None and apps["term"]:
                 prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
 
+                # Mark dependant global modules for reload
+                for app in sorted(prio_apps, key=prio_apps.get):
+                    found = False
+                    for module in modules:
+                        if module["name"] == self.get_path_from_app(app):
+                            found = True
+                            module["reload"] = True
+                    if found is False:
+                        if self.get_path_from_app(app) is not None:
+                            modules.append({"name": self.get_path_from_app(app), "reload": True})
+
+                # Terminate Apps
                 for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
                     executed = await self.stop_app(app)
                     apps_terminated[app] = executed
@@ -1051,6 +1082,9 @@ class AppManagement:
                             self.logger.info("%s is disabled", app)
                             await self.set_state(app, state="disabled")
                             await self.increase_inactive_apps(app)
+                        elif "global" in self.app_config[app] and self.app_config[app]["global"] is True:
+                            await self.set_state(app, state="global")
+                            await self.increase_inactive_apps(app)
                         else:
                             if apps_terminated.get(app, True) is True:  # the app terminated properly
                                 await self.init_object(app)
@@ -1077,6 +1111,8 @@ class AppManagement:
 
                 for app in sorted(prio_apps, key=prio_apps.get):
                     if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
+                        pass
+                    elif "global" in self.app_config[app] and self.app_config[app]["global"] is True:
                         pass
                     else:
                         if apps_terminated.get(app, True) is True:  # the app terminated properly
@@ -1214,10 +1250,10 @@ class AppManagement:
                     if gm == module:
                         apps.append(app)
 
-        for app, gms in self.global_module_dependencies.items():
-            for gm in gms:
-                if gm == module:
-                    apps.append(app)
+            if "dependencies" in self.app_config[app]:
+                for gm in utils.single_or_list(self.app_config[app]["dependencies"]):
+                    if gm == module:
+                        apps.append(app)
 
         return apps
 
@@ -1407,23 +1443,39 @@ class AppManagement:
             elif isinstance(module, object) and module.__class__.__name__ == "module":
                 module_name = module.__name__
 
-            if (
-                module_name is not None
-                and "global_modules" in self.app_config
-                and module_name in self.app_config["global_modules"]
-            ):
+            if module_name is not None:
+                if (
+                    "global_modules" in self.app_config
+                    and module_name in self.app_config["global_modules"]
+                    or self.is_global_module(module_name)
+                ):
 
-                if name not in self.global_module_dependencies:
-                    self.global_module_dependencies[name] = []
+                    if name not in self.global_module_dependencies:
+                        self.global_module_dependencies[name] = []
 
-                if module_name not in self.global_module_dependencies[name]:
-                    self.global_module_dependencies[name].append(module_name)
-            else:
-                self.logger.warning(
-                    "Module %s not in global_modules in register_module_dependency() for %s",
-                    module_name,
-                    name,
-                )
+                    if module_name not in self.global_module_dependencies[name]:
+                        self.global_module_dependencies[name].append(module_name)
+                else:
+                    self.logger.warning(
+                        "Module %s not a global_modules in register_module_dependency() for %s",
+                        module_name,
+                        name,
+                    )
+
+    def get_global_modules(self):
+        gms = []
+        if "global_modules" in self.app_config:
+            for gm in utils.single_or_list(self.app_config["global_modules"]):
+                gms.append(gm)
+
+        for app in self.app_config:
+            if "global" in self.app_config[app] and self.app_config[app]["global"] is True:
+                gms.append(self.app_config[app]["module"])
+
+        return gms
+
+    def is_global_module(self, module):
+        return module in self.get_global_modules()
 
     async def manage_services(self, namespace, domain, service, kwargs):
         app = kwargs.pop("app", None)

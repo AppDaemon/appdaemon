@@ -483,29 +483,40 @@ By declaring the above, each time the function ``self.log()`` is used within the
 Global Module Dependencies
 --------------------------
 
-The previously described dependencies and load order have all been at the App level. It is however, sometimes convenient to have global modules that have no apps in them that nonetheless require dependency tracking. For instance, a global module might have a number of useful variables in it. When they change, a number of apps may need to be restarted. To configure this dependency tracking, it is first necessary to define which modules are going to be tracked. This is done in any apps.yaml file, although it should only be in one place. We use the ``global_modules`` directive:
+The previously described dependencies and load order have all been at the App level.
+It is however, sometimes convenient to have global modules that have no apps in them that nonetheless
+require dependency tracking. For instance, a global module might have a number of useful
+variables in it. When they change, a number of apps may need to be restarted.
+To configure this dependency tracking, it is first necessary to define which
+modules are going to be tracked. This is done in any apps.yaml file.
+
+To do this, we create an entry for the global module as if it were an app, but instead of specifying a class, instead we add ``global: true`` to the description:
 
 .. code:: yaml
 
-    global_modules: global
+    my_global_module:
+        module: globals.py
+        global: true
 
-This means that the file ``globals.py`` anywhere with in the apps directory hierarchy is marked as a global module. Any App may simply import ``globals`` and use its variables and functions. Marking multiple modules as global can be achieved using standard YAML list format:
+This means that the file ``globals.py`` anywhere within the apps directory hierarchy is marked as a global module. Any App may simply import ``globals`` and use its variables and functions. Marking multiple modules as global can be achieved creating an entry for each module:
 
 .. code:: yaml
 
-    global_modules:
-      - global1
-      - global2
-      - global3
+    my_global_module:
+        module: globals.py
+        global: true
+    my_other_global_module:
+        module: other_globals.py
+        global: true
 
-Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding a ``global_dependencies`` field to the App description, e.g.:
+Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding them to the standard  ``dependencies`` field to the App description, e.g.:
 
 .. code:: yaml
 
     app1:
       class: App
       module: app
-      global_dependencies: global
+      dependencies: my_global_module
 
 Or for multiple dependencies:
 
@@ -514,11 +525,13 @@ Or for multiple dependencies:
     app1:
       class: App
       module: app
-      global_dependencies:
-        - global1
-        - global2
+      dependencies:
+        - my_global_module
+        - my_other_global_module
 
 With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded. This also works well with the App level dependencies. If a change to a global module forces an App to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
+
+Note: the old ``global_modules`` directive used to be used for this function but has been deprecated. In addition, note that the old ``global_dependendencies`` keyword in the app description has now changed to use ``dependencies``
 
 Plugin Reloads
 --------------
