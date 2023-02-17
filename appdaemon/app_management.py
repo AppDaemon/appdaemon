@@ -742,7 +742,7 @@ class AppManagement:
                 inactive_apps = total_apps - active_apps
                 if inactive_apps > 0:
                     self.logger.info("Found %s active apps", active_apps)
-                    self.logger.info("Found %s inactive apps", inactive_apps)
+                    self.logger.info("Found %s inactive apps/global libraries", inactive_apps)
 
             # Now we know if we have any new apps we can create new threads if pinning
 
@@ -770,6 +770,8 @@ class AppManagement:
         c = 0
         for name in self.app_config:
             if "disable" in self.app_config[name] and self.app_config[name]["disable"] is True:
+                pass
+            elif "global" in self.app_config[name] and self.app_config[name]["global"] is True:
                 pass
             elif name in self.non_apps:
                 pass
