@@ -730,23 +730,20 @@ class AppManagement:
                     if name in self.app_config:
                         total_apps -= 1  # remove one
 
-                # if silent is False:
-                self.logger.info("Found %s total apps", total_apps)
+                active_apps, inactive, glbl = self.get_active_app_count()
 
+                # if silent is False:
                 await self.set_state(
-                    self.total_apps_sensor, state=total_apps, attributes={"friendly_name": "Total Apps"}
+                    self.total_apps_sensor, state=active_apps + inactive, attributes={"friendly_name": "Total Apps"}
                 )
 
-                active_apps = self.get_active_app_count()
-
-                inactive_apps = total_apps - active_apps
-                if inactive_apps > 0:
-                    self.logger.info("Found %s active apps", active_apps)
-                    self.logger.info("Found %s inactive apps/global libraries", inactive_apps)
+                self.logger.info("Found %s active apps", active_apps)
+                self.logger.info("Found %s inactive apps", inactive)
+                self.logger.info("Found %s global libraries", glbl)
 
             # Now we know if we have any new apps we can create new threads if pinning
 
-            active_apps = self.get_active_app_count()
+            active_apps, inactive, glbl = self.get_active_app_count()
 
             if add_threads is True and self.AD.threading.auto_pin is True:
                 if active_apps > self.AD.threading.thread_count:
@@ -767,17 +764,19 @@ class AppManagement:
             self.logger.warning("-" * 60)
 
     def get_active_app_count(self):
-        c = 0
+        active = 0
+        inactive = 0
+        glbl = 0
         for name in self.app_config:
             if "disable" in self.app_config[name] and self.app_config[name]["disable"] is True:
-                pass
+                inactive += 1
             elif "global" in self.app_config[name] and self.app_config[name]["global"] is True:
-                pass
+                glbl += 1
             elif name in self.non_apps:
                 pass
             else:
-                c += 1
-        return c
+                active += 1
+        return active, inactive, glbl
 
     def get_app_from_file(self, file):
         module = self.get_module_from_path(file)
