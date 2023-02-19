@@ -1283,9 +1283,13 @@ class ADAPI:
                 state of the selected attribute (usually state) in the new state match the value
                 of ``new``. The parameter type is defined by the namespace or plugin that is responsible
                 for the entity. If it looks like a float, list, or dictionary, it may actually be a string.
+                If ``new`` is a callable (lambda, function, etc), then it will be invoked with the new state,
+                and if it returns ``True``, it will be considered to match.
             old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
                 of ``old``. The same caveats on types for the ``new`` parameter apply to this parameter.
+                If ``old`` is a callable (lambda, function, etc), then it will be invoked with the old state,
+                and if it returns a ``True``, it will be considered to match.
 
             duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
                 fire unless the state listened for is maintained for that number of seconds. This
@@ -1365,6 +1369,10 @@ class ADAPI:
             Listen for a state change involving `light.office1` turning on and return the state attribute.
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on")
+
+            Listen for a state change involving `light.office1` turning on when the previous state was not unknown or unavailable, and return the state attribute.
+
+            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", old=lambda x: x not in ["unknown", "unavailable"])
 
             Listen for a change involving `light.office1` changing from brightness 100 to 200 and return the
             brightness attribute.
@@ -1850,7 +1858,9 @@ class ADAPI:
             **kwargs (optional): One or more keyword value pairs representing App specific
                 parameters to supply to the callback. If the keywords match values within the
                 event data, they will act as filters, meaning that if they don't match the
-                values, the callback will not fire.
+                values, the callback will not fire. If the values provided are callable (lambda,
+                function, etc), then they'll be invoked with the events content, and if they return
+                ``True``, they'll be considered to match.
 
                 As an example of this, a `Minimote` controller when activated will generate
                 an event called zwave.scene_activated, along with 2 pieces of data that are
@@ -1879,6 +1889,10 @@ class ADAPI:
             Listen for a `minimote` event activating scene 3 from a specific `minimote`.
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
+
+            Listen for a `minimote` event activating scene 3 from certain `minimote`s (starting with 3), matched with code.
+
+            >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = lambda x: x.starts_with("minimote_3"), scene_id = 3)
 
             Listen for some custom events of a button being pressed.
 

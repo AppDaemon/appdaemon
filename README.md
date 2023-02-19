@@ -21,3 +21,4 @@ We use [pre-commit](https://pre-commit.com) for linting of the code, so `pip ins
 pre-commit install
 ```
 in the repository.
+
