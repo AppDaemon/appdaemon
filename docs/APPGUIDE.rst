@@ -530,9 +530,9 @@ Or for multiple dependencies:
         - my_other_global_module
 
 With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded. This also works well with the App level dependencies. If a change to a global module forces an App to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
-Usinf this mechanism, it is also possible to mark global modules as being depenedant on other global modules.
+Using this mechanism, it is also possible to mark global modules as being dependent on other global modules.
 
-Note: the old ``global_modules`` directive used to be used for this function but has been deprecated. In addition, note that the old ``global_dependendencies`` keyword in the app description has now changed to use ``dependencies``
+Note: the old ``global_modules`` directive used to be used for this function but has been deprecated. In addition, note that the old ``global_dependendencies`` keyword in the app description has now been retired and the existing ``dependencies`` keyword is now used for both apps and global modules.
 
 Plugin Reloads
 --------------
