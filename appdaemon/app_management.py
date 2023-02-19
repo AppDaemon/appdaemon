@@ -977,7 +977,6 @@ class AppManagement:
 
             # Add any apps we need to reload because of file changes
 
-            forced_reloads = []
             for module in modules:
                 for app in self.apps_per_module(self.get_module_from_path(module["name"])):
                     if module["reload"]:
@@ -989,19 +988,7 @@ class AppManagement:
                         for app in self.apps_per_global_module(gm):
                             if module["reload"]:
                                 apps["term"][app] = 1
-                                # We need to force a reload of this app to release any references to the module
-                                forced_reloads.append(self.get_path_from_app(app))
                             apps["init"][app] = 1
-
-            # Make sure the apps with references to globals are reloaded
-            for forced_reload in forced_reloads:
-                found = False
-                for module in modules:
-                    if module["name"] == forced_reload:
-                        found = True
-                        module["reload"] = True
-                if found is False:
-                    modules.append({"name": forced_reload, "reload": True})
 
             if plugin is not None:
                 self.logger.info("Processing restart for %s", plugin)
