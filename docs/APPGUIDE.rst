@@ -725,6 +725,18 @@ the input\_boolean is off, use the optional state parameter by appending,
       class: SomeClass
       constrain_input_boolean: input_boolean.enable_motion_detection,off
 
+If you want to constrain on multiple input_boolean entities, you can provide
+the constraints as a yaml list
+
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_input_boolean:
+        - input_boolean.enable_motion_detection
+        - binary_sensor.weekend,off
+
 input\_select
 ^^^^^^^^^^^^^
 
@@ -739,6 +751,19 @@ according to some flag, e.g., a house mode flag.
     constrain_input_select: input_select.house_mode,Day
     # or multiple values
     constrain_input_select: input_select.house_mode,Day,Evening,Night
+
+
+If you want to constrain on multiple input_select entities, you can provide
+the constraints as a yaml list
+
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_input_select:
+        - input_select.house_mode,Day
+        - sensor.day_of_week,Monday,Wednesday,Friday
 
 presence
 ^^^^^^^^
