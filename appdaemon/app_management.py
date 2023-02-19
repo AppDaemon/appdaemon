@@ -224,11 +224,12 @@ class AppManagement:
             if name in self.objects:
                 del self.objects[name]
 
-            if name in self.global_module_dependencies:
-                del self.global_module_dependencies[name]
+            # if name in self.global_module_dependencies:
+            #    del self.global_module_dependencies[name]
 
         else:
-            self.objects[name]["running"] = False
+            if name in self.objects:
+                self.objects[name]["running"] = False
 
         await self.increase_inactive_apps(name)
 
@@ -266,7 +267,7 @@ class AppManagement:
         else:
             await self.initialize_app(app)
 
-    async def stop_app(self, app, delete=True):
+    async def stop_app(self, app, delete=False):
         executed = False
         try:
             if "global" in self.app_config[app] and self.app_config[app]["global"] is True:
@@ -682,7 +683,7 @@ class AppManagement:
                         # Since the entry has been deleted we can't sensibly determine dependencies
                         # So just immediately terminate it
                         #
-                        await self.terminate_app(name)
+                        await self.terminate_app(name, delete=True)
                         await self.remove_entity(name)
 
                 for name in new_config:
@@ -1154,20 +1155,23 @@ class AppManagement:
 
         for app in full_list:
             dependees = []
-            if "dependencies" in self.app_config[app]:
-                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
-                    if dep in self.app_config:
-                        dependees.append(dep)
-                    else:
-                        self.logger.warning("Unable to find app %s in dependencies for %s", dep, app)
-                        self.logger.warning("Ignoring app %s", app)
+            for dep in self.get_app_dependencies(app):
+                if dep in self.app_config:
+                    dependees.append(dep)
+                else:
+                    self.logger.warning("Unable to find app %s in dependencies for %s", dep, app)
+                    self.logger.warning("Ignoring app %s", app)
             deps.append((app, dependees))
 
         prio_apps = {}
         prio = float(50.1)
         try:
             for app in self.topological_sort(deps):
-                if "dependencies" in self.app_config[app] or self.app_has_dependents(app):
+                if (
+                    "dependencies" in self.app_config[app]
+                    or app in self.global_module_dependencies
+                    or self.app_has_dependents(app)
+                ):
                     prio_apps[app] = prio
                     prio += float(0.0001)
                 else:
@@ -1189,22 +1193,20 @@ class AppManagement:
 
     def app_has_dependents(self, name):
         for app in self.app_config:
-            if "dependencies" in self.app_config[app]:
-                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
-                    if dep == name:
-                        return True
+            for dep in self.get_app_dependencies(app):
+                if dep == name:
+                    return True
         return False
 
     def get_dependent_apps(self, dependee, deps):
         for app in self.app_config:
-            if "dependencies" in self.app_config[app]:
-                for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
-                    # print("app= {} dep = {}, dependee = {} deps = {}".format(app, dep, dependee, deps))
-                    if dep == dependee and app not in deps:
-                        deps.append(app)
-                        new_deps = self.get_dependent_apps(app, deps)
-                        if new_deps is not None:
-                            deps.append(new_deps)
+            for dep in self.get_app_dependencies(app):
+                # print("app= {} dep = {}, dependee = {} deps = {}".format(app, dep, dependee, deps))
+                if dep == dependee and app not in deps:
+                    deps.append(app)
+                    new_deps = self.get_dependent_apps(app, deps)
+                    if new_deps is not None:
+                        deps.append(new_deps)
 
     def topological_sort(self, source):
 
@@ -1257,6 +1259,18 @@ class AppManagement:
                         apps.append(app)
 
         return apps
+
+    def get_app_dependencies(self, app):
+        deps = []
+        if "dependencies" in self.app_config[app]:
+            for dep in utils.single_or_list(self.app_config[app]["dependencies"]):
+                deps.append(dep)
+
+        if app in self.global_module_dependencies:
+            for dep in self.global_module_dependencies[app]:
+                deps.append(dep)
+
+        return deps
 
     def create_app(self, app=None, **kwargs):
         """Used to create an app, which is written to a Yaml file"""
@@ -1446,10 +1460,8 @@ class AppManagement:
 
             if module_name is not None:
                 if (
-                    "global_modules" in self.app_config
-                    and module_name in self.app_config["global_modules"]
-                    or self.is_global_module(module_name)
-                ):
+                    "global_modules" in self.app_config and module_name in self.app_config["global_modules"]
+                ) or self.is_global_module(module_name):
 
                     if name not in self.global_module_dependencies:
                         self.global_module_dependencies[name] = []

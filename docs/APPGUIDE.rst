@@ -486,11 +486,11 @@ Global Module Dependencies
 The previously described dependencies and load order have all been at the App level.
 It is however, sometimes convenient to have global modules that have no apps in them that nonetheless
 require dependency tracking. For instance, a global module might have a number of useful
-variables in it. When they change, a number of apps may need to be restarted.
+variables or functions in it. When they change, a number of apps may need to be restarted.
 To configure this dependency tracking, it is first necessary to define which
 modules are going to be tracked. This is done in any apps.yaml file.
 
-To do this, we create an entry for the global module as if it were an app, but instead of specifying a class, instead we add ``global: true`` to the description:
+To do this, we create an entry for the global module as if it were an app, but instead of specifying a class, we add ``global: true`` to the description:
 
 .. code:: yaml
 
@@ -530,6 +530,7 @@ Or for multiple dependencies:
         - my_other_global_module
 
 With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded. This also works well with the App level dependencies. If a change to a global module forces an App to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
+Usinf this mechanism, it is also possible to mark global modules as being depenedant on other global modules.
 
 Note: the old ``global_modules`` directive used to be used for this function but has been deprecated. In addition, note that the old ``global_dependendencies`` keyword in the app description has now changed to use ``dependencies``
 
