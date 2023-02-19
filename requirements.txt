@@ -20,7 +20,7 @@ deepdiff==6.2.3
 python-dateutil==2.8.2
 pid==3.0.4
 azure-mgmt-compute==29.1.0
-azure-mgmt-storage==20.1.0
+azure-mgmt-storage==21.0.0
 azure-mgmt-resource==22.0.0
 azure-keyvault-secrets==4.6.0
 azure-storage-blob==12.14.1
