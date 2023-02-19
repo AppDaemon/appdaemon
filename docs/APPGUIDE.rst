@@ -725,6 +725,18 @@ the input\_boolean is off, use the optional state parameter by appending,
       class: SomeClass
       constrain_input_boolean: input_boolean.enable_motion_detection,off
 
+If you want to constrain on multiple input_boolean entities, you can provide
+the constraints as a yaml list
+
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_input_boolean:
+        - input_boolean.enable_motion_detection
+        - binary_sensor.weekend,off
+
 input\_select
 ^^^^^^^^^^^^^
 
@@ -739,6 +751,19 @@ according to some flag, e.g., a house mode flag.
     constrain_input_select: input_select.house_mode,Day
     # or multiple values
     constrain_input_select: input_select.house_mode,Day,Evening,Night
+
+
+If you want to constrain on multiple input_select entities, you can provide
+the constraints as a yaml list
+
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_input_select:
+        - input_select.house_mode,Day
+        - sensor.day_of_week,Monday,Wednesday,Friday
 
 presence
 ^^^^^^^^
@@ -1626,7 +1651,8 @@ subscribe to all events.
 One or more keyword value pairs representing App specific parameters to
 supply to the callback. If the keywords match values within the event
 data, they will act as filters, meaning that if they don't match the
-values, the callback will not fire.
+values, the callback will not fire. If the values are callable, they will
+be invoked and if they return ``True`` they'll be considered a match.
 
 As an example of this, a Minimote controller when activated will
 generate an event called ``zwave_js_value_notification``, along with 2 pieces
@@ -1651,6 +1677,8 @@ Examples
     self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
     # Listen for a minimote event activating scene 3 from a specific minimote:
     self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
+    # Listen for a minimote event activating scene 3 from one of several minimotes:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
 
 Use of Events for Signalling between Home Assistant and AppDaemon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
