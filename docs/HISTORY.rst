@@ -14,6 +14,8 @@ Change Log
 - sunrise(), sunset(), parse_time() and parse_datetime() now allow you to select today's sunrise/sunset, rather than the next occuring,
   and specify a number of offset days
 - now_is_between() now supports specification of a timethat can be used for testing rather than using the current time
+- Added the ability to use lambdas for filtering state callbacks - contributed by `David Greenberg <https://github.com/dgrnbrg>`__
+- Added the ability to support multiple input constraints - contributed by `Matt O <https://github.com/SirIndubitable>`__
 
 **Fixes**
 
