@@ -222,6 +222,13 @@ class ADMain:
             default=None,
         )
         parser.add_argument(
+            "-C",
+            "--configfile",
+            help="name for config file",
+            type=str,
+            default=None,
+        )
+        parser.add_argument(
             "-D",
             "--debug",
             help="global debug level",
@@ -237,10 +244,15 @@ class ADMain:
         config_dir = args.config
         pidfile = args.pidfile
 
-        if config_dir is None:
-            config_file_yaml = utils.find_path("appdaemon.yaml")
+        if args.configfile is None:
+            config_file = "appdaemon.yaml"
         else:
-            config_file_yaml = os.path.join(config_dir, "appdaemon.yaml")
+            config_file = args.configfile
+
+        if config_dir is None:
+            config_file_yaml = utils.find_path(config_file)
+        else:
+            config_file_yaml = os.path.join(config_dir, config_file)
 
         if config_file_yaml is None:
             print("FATAL: no configuration directory defined and defaults not present\n")

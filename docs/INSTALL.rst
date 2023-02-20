@@ -75,25 +75,31 @@ AppDaemon arguments
 
 ::
 
-    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
-                     [-e ENDTIME]
-                     [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v] [-d]
+usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
+                   [-e ENDTIME] [-C CONFIGFILE]
+                   [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                   [-m MODULEDEBUG MODULEDEBUG] [-v]
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      -c CONFIG, --config CONFIG
-                            full path to config directory
-      -p PIDFILE, --pidfile PIDFILE
-                            full path to PID File
-      -t TIMEWARP, --timewarp multiplication factor for the scheduler time (see Time TraveL)
-      -s STARTTIME, --starttime STARTTIME
-                            start time for scheduler <YYYY-MM-DD HH:MM:SS>
-      -e ENDTIME, --endtime ENDTIME
-                            end time for scheduler <YYYY-MM-DD HH:MM:SS>
-      -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                            debug level
-      -v, --version         show program's version number and exit
-      -d, --daemon          run as a background process
+options:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        full path to config directory
+  -p PIDFILE, --pidfile PIDFILE
+                        full path to PID File
+  -t TIMEWARP, --timewarp TIMEWARP
+                        speed that the scheduler will work at for time travel
+  -s STARTTIME, --starttime STARTTIME
+                        start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
+                        DD#HH:MM:SS>
+  -e ENDTIME, --endtime ENDTIME
+                        end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
+                        DD#HH:MM:SS>
+  -C CONFIGFILE, --configfile CONFIGFILE
+                        name for config file
+  -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        global debug level
+  -m MODULEDEBUG MODULEDEBUG, --moduledebug MODULEDEBUG MODULEDEBUG
+  -v, --version         show program's version number and exit
 
 -c is the path to the configuration directory. If not specified,
 AppDaemon will look for a file named ``appdaemon.yaml`` first in
@@ -101,6 +107,9 @@ AppDaemon will look for a file named ``appdaemon.yaml`` first in
 specified and it is not found in either location, AppDaemon will raise
 an exception. In addition, AppDaemon expects to find a dir named
 ``apps`` immediately subordinate to the config directory.
+
+-C allows the user to override the name of the appdaemon config file and set it to soemthing other than
+``appdaemon.yaml``
 
 -d and -p are used by the init file to start the process as a daemon and
 are not required if running from the command line.
