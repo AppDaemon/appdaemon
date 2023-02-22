@@ -78,7 +78,7 @@ Entity API
 .. autofunction:: appdaemon.entity.Entity.turn_on
 .. autofunction:: appdaemon.entity.Entity.wait_state
 
-In addition to the above, there are a couple of propery attributes the Entity class supports:
+In addition to the above, there are a couple of property attributes the Entity class supports:
 -  entity_id
 -  namespace
 -  domain
