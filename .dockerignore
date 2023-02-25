@@ -1,5 +1,6 @@
 .git
 .gitignore
+.github
 
 Dockerfile
 .dockerignore
@@ -16,3 +17,4 @@ setup.py
 
 docs
 conf
+.readthedocs.yml
