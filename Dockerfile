@@ -29,7 +29,9 @@ VOLUME /certs
 WORKDIR /usr/src/app
 
 # Install runtime required packages
-RUN apk add --no-cache curl python3 py3-pip tzdata
+# First line is required, 2nd line is for backwards compatibility
+RUN apk add --no-cache curl python3 py3-pip tzdata \
+        git py3-wheel build-base gcc libffi-dev openssl-dev musl-dev cargo
 
 # Copy compiled deps from builder image
 COPY --from=builder /usr/lib/python3.9/site-packages/ /usr/lib/python3.9/site-packages/
