@@ -487,6 +487,15 @@ class State:
 
         self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
+    def get_state_simple(self, namespace, entity_id):
+        # Simple sync version of get_state() primarily for use in entity objects, returns whole state for the entity
+        if namespace not in self.state:
+            raise ValueError(f"Namespace {namespace} not found for entity.state")
+        if entity_id not in self.state[namespace]:
+            raise ValueError(f"Entity {entity_id} not found in namespace {namespace} for entity.state")
+
+        return self.state[namespace][entity_id]
+
     async def get_state(self, name, namespace, entity_id=None, attribute=None, default=None, copy=True):
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
 
