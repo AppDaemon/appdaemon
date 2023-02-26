@@ -1,4 +1,4 @@
-ARG IMAGE=alpine:3.17
+ARG IMAGE=alpine:3.15
 FROM ${IMAGE} as builder
 
 WORKDIR /build
@@ -34,7 +34,7 @@ RUN apk add --no-cache curl python3 py3-pip tzdata \
         git py3-wheel build-base gcc libffi-dev openssl-dev musl-dev cargo
 
 # Copy compiled deps from builder image
-COPY --from=builder /usr/lib/python3.10/site-packages/ /usr/lib/python3.10/site-packages/
+COPY --from=builder /usr/lib/python3.9/site-packages/ /usr/lib/python3.9/site-packages/
 
 # Copy appdaemon into image
 COPY . .
