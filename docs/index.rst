@@ -27,8 +27,7 @@ Assistance
 ==========
 
 - AppDaemon has a dedicated sub-forum over at `Home Assistant <https://community.home-assistant.io/c/third-party/appdaemon/21>`__
-- We also have an active discord server `here <https://discord.gg/qN7c7JcFjk>`__ - please join us for tips and tricks,
-AppDaemon discussions and general home automation!
+- We also have an active discord server `here <https://discord.gg/qN7c7JcFjk>`__ - please join us for tips and tricks, AppDaemon discussions and general home automation!
 
 Developers
 ==========
