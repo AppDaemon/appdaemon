@@ -17,6 +17,7 @@ Change Log
 - Added the ability to use lambdas for filtering state callbacks - contributed by `David Greenberg <https://github.com/dgrnbrg>`__
 - Added the ability to support multiple input constraints - contributed by `Matt O <https://github.com/SirIndubitable>`__
 - Added the --configfile parameter
+- Docker container optimizations - contributed by `Nigel Rook <https://github.com/NigelRook>`__
 
 **Fixes**
 
