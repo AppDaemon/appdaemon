@@ -21,7 +21,7 @@ A Note on Release Velocity
 
 AppDaemon has reached a very stable point, works reliably and is fairly feature rich at this point
 in its development. For that reason, releases have been slow in recent months. This does not mean that AppDaemon has been abandoned - it is used every day by
-the core developers, and has an active community onm Discord (see below).
+the core developers, and has an active community on Discord (see below).
 
 Assistance
 ==========
