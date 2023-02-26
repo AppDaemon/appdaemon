@@ -16,6 +16,17 @@ Out of the box, AppDaemon has support for the following automation products:
 
 AppDaemon also provides a configurable dashboard (HADashboard) suitable for wall mounted tablets.
 
+A Note on Release Velocity
+==========================
+
+AppDaemon has reached a very stable point, works reliably and is fairly feature rich at this point
+in its development. For that reason, releases have been slow in recent months. This does not mean that AppDaemon has been abandoned -
+ it is used every day by the core developers and has an active discord server [here](https://discord.gg/qN7c7JcFjk) - please join us for tips
+and tricks, AppDaemon discussions and general home automation.
+
+Developers
+==========
+
 AppDaemon is developed and maintained by a small team of hard working folks:
 
 - `Andrew Cockburn <https://github.com/acockburn>`__ - AppDaemon founder, Chief Architect and Benevolent Dictator For Life.
@@ -27,6 +38,8 @@ With thanks to previous members of the team:
 
 - Rene Tode
 - Robert Pitera
+- Humberto Rodríguez Avila
+- Daniel Lashua
 
 Contents:
 
