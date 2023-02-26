@@ -22,7 +22,7 @@ class EntityAttrs:
 
 class Entity:
 
-    states = EntityAttrs()
+    states_attrs = EntityAttrs()
 
     def __init__(self, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity_id: str):
         # Store args
@@ -548,7 +548,7 @@ class Entity:
     def state(self) -> Any:
         """Get the entity's state"""
 
-        return self.states.state
+        return self.states_attrs.state
 
     @property
     def domain(self) -> str:
@@ -572,25 +572,25 @@ class Entity:
     def attributes(self) -> dict:
         """Get the entity's attributes"""
 
-        return self.states.attributes
+        return self.states_attrs.attributes
 
     @property
     def friendly_name(self) -> str:
         """Get the entity's friendly name"""
 
-        return self.states.attributes.friendly_name
+        return self.states_attrs.attributes.friendly_name
 
     @property
     def last_changed(self) -> str:
         """Get the entity's last changed time in iso format"""
 
-        return self.states.last_changed
+        return self.states_attrs.last_changed
 
     @property
     def last_changed_seconds(self) -> float:
         """Get the entity's last changed time in seconds"""
 
-        utc = iso8601.parse_date(self.states.last_changed)
+        utc = iso8601.parse_date(self.states_attrs.last_changed)
         now = self.AD.sched.convert_naive(datetime.now())
         return (now - utc).total_seconds()
 

@@ -10,6 +10,7 @@ Change Log
 - Added MQTT VARS to docker arguments - contributed by `Xavi Moreno <https://github.com/xaviml>`__
 - Added the ability to reset a running timer via api
 - Removed a warning from info_timer() for stale handles
+- Added the ability to supress invalid timer handle warnings in cancel_timer()
 - All scheduler calls and helper functions now support fractional timestamps. including parse_time() and now_is_between()
 - sunrise(), sunset(), parse_time() and parse_datetime() now allow you to select today's sunrise/sunset, rather than the next occuring,
   and specify a number of offset days
@@ -29,6 +30,7 @@ Change Log
 - Fixed an issue with scheduler.now_is_between() where it wasn't zeroing out microseconds leading to race conditions
 - Fixed another issue with now_is_between() relating to sunrise & sunset periods spanning midnight
 - Fixed an issue in reloads of global modules - apps are now correctly forced to reload rather than just re-init ensuring they dump any old references
+- Fixed the "state attribute of the entity class to work in async callbacks - Inspired by `Kostas Chatzikokolakis <https://github.com/chatziko>`__
 - Documentation fixes - contributed by `Rootie <https://github.com/Rootie>`__
 - Documentation fixes - contributed by `Jakob Ruhe <https://github.com/jakeru>`__
 - Documentation fixes - contributed by `illuzn <https://github.com/illuzn>`__

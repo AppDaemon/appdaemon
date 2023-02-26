@@ -368,7 +368,7 @@ class Events:
                                         timeout = callback["kwargs"].get("__timeout")
                                         if timeout is not None and self.AD.sched.timer_running(name, timeout):
                                             # means its still running so got to cancel it
-                                            await self.AD.sched.cancel_timer(name, timeout)
+                                            await self.AD.sched.cancel_timer(name, timeout, False)
 
         for remove in removes:
             await self.cancel_event_callback(remove["name"], remove["uuid"])

@@ -2329,22 +2329,25 @@ class ADAPI:
         return self.AD.sched.timer_running(name, handle)
 
     @utils.sync_wrapper
-    async def cancel_timer(self, handle):
+    async def cancel_timer(self, handle, silent=False):
         """Cancels a previously created timer.
 
         Args:
             handle: A handle value returned from the original call to create the timer.
+            silent: (boolean, optional) don't issue a warning if the handle is invalid - this can sometimes occur due to race conditions and is usually harmless.
+            Defaults to False
 
         Returns:
             Boolean.
 
         Examples:
             >>> self.cancel_timer(handle)
+            >>> self.cancel_timer(handle, True)
 
         """
         name = self.name
         self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
-        return await self.AD.sched.cancel_timer(name, handle)
+        return await self.AD.sched.cancel_timer(name, handle, silent)
 
     @utils.sync_wrapper
     async def reset_timer(self, handle):

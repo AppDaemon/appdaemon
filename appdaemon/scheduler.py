@@ -170,7 +170,7 @@ class Scheduler:
 
         return handle
 
-    async def cancel_timer(self, name, handle):
+    async def cancel_timer(self, name, handle, silent):
         executed = False
         self.logger.debug("Canceling timer for %s", name)
         if self.timer_running(name, handle):
@@ -181,7 +181,7 @@ class Scheduler:
         if name in self.schedule and self.schedule[name] == {}:
             del self.schedule[name]
 
-        if not executed:
+        if not executed and silent is False:
             self.logger.warning(f"Invalid callback handle '{handle}' in cancel_timer() from app {name}")
 
         return executed
@@ -306,7 +306,9 @@ class Scheduler:
                         if "__timeout" in args["kwargs"] and self.timer_running(
                             name, args["kwargs"]["__timeout"]
                         ):  # meaning there is a timeout for this callback
-                            await self.cancel_timer(name, args["kwargs"]["__timeout"])  # cancel it as no more needed
+                            await self.cancel_timer(
+                                name, args["kwargs"]["__timeout"], False
+                            )  # cancel it as no more needed
 
             elif "__state_handle" in args["kwargs"]:
                 #
