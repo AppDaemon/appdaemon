@@ -1,12 +1,14 @@
 Change Log
 ==========
 
-4.2.3
+4.2.3 (2023-02-26)
 ------------------
 
 **Features**
 
 **Fixes**
+
+- Revert docker changes and add rust to image to fix docker build pipeline
 
 **Breaking Changes**
 
