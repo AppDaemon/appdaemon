@@ -1,4 +1,15 @@
-ARG IMAGE=python:3.9-alpine
+ARG IMAGE=alpine:3.17
+FROM ${IMAGE} as builder
+
+WORKDIR /build
+
+# Install dependencies
+RUN apk add --no-cache git python3 python3-dev py3-pip py3-wheel build-base gcc libffi-dev openssl-dev musl-dev cargo
+
+# Fetch requirements
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
 FROM ${IMAGE}
 
 # Environment vars we can configure against
@@ -15,19 +26,18 @@ EXPOSE 5050
 VOLUME /conf
 VOLUME /certs
 
-# Copy appdaemon into image
 WORKDIR /usr/src/app
+
+# Install runtime required packages
+# First line is required, 2nd line is for backwards compatibility
+RUN apk add --no-cache curl python3 py3-pip tzdata \
+        git py3-wheel build-base gcc libffi-dev openssl-dev musl-dev cargo
+
+# Copy compiled deps from builder image
+COPY --from=builder /usr/lib/python3.10/site-packages/ /usr/lib/python3.10/site-packages/
+
+# Copy appdaemon into image
 COPY . .
-
-# Install timezone data
-RUN apk add tzdata
-
-# Install dependencies
-RUN apk add --no-cache build-base gcc libffi-dev openssl-dev musl-dev cargo \
-    && pip install --no-cache-dir .
-
-# Install additional packages
-RUN apk add --no-cache curl
 
 # Start script
 RUN chmod +x /usr/src/app/dockerStart.sh

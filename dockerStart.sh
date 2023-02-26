@@ -85,4 +85,4 @@ apk add --no-cache $(find $CONF -name system_packages.txt | xargs cat | tr '\n' 
 find $CONF -name requirements.txt -exec pip3 install --upgrade -r {} \;
 
 # Lets run it!
-exec appdaemon -c $CONF "$@"
+exec python3 -m appdaemon -c $CONF "$@"
