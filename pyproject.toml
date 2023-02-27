@@ -1,0 +1,8 @@
+[project]
+name = "appdaemon"
+
+# Taken from: https://docs.pytest.org/en/7.1.x/explanation/goodpractices.html
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
