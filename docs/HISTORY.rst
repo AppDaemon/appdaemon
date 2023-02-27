@@ -8,7 +8,7 @@ Change Log
 
 **Fixes**
 
-- Revert docker changes and add rust to image to fix docker build pipeline
+- Revert docker changes and remove arm images from CI due to memory exhaustion issues
 
 **Breaking Changes**
 
