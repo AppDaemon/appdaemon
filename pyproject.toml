@@ -6,3 +6,7 @@ name = "appdaemon"
 addopts = [
     "--import-mode=importlib",
 ]
+
+# black configuration
+[tool.black]
+line-length = 120
