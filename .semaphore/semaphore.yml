@@ -54,6 +54,6 @@ blocks:
             - docker buildx create --name multiarch --driver docker-container --use
             - docker buildx inspect --bootstrap --builder multiarch
             #- 'docker buildx build --platform linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7 --tag $DOCKER_USERNAME/$DOCKER_IMAGE:dev --push .'
-            - 'docker buildx build --platform linux/arm64/v8,linux/amd64 --tag $DOCKER_USERNAME/$DOCKER_IMAGE:dev --push .'
+            - 'docker buildx build --platform linux/arm/v6 --tag $DOCKER_USERNAME/$DOCKER_IMAGE:dev --push .'
       secrets:
         - name: Docker Token
