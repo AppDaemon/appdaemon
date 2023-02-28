@@ -219,7 +219,7 @@ Used to edit an existing app. This way, an app' args can be edited in realtime w
 
 **app/remove**
 
-Used to remove an existing app. This way, an existing app will be deleted. If the app is the last app in the ``yaml`` file, the file will be delected
+Used to remove an existing app. This way, an existing app will be deleted. If the app is the last app in the ``yaml`` file, the file will be deleted
 
     >>> self.call_service("app/remove", app="light_app", namespace="admin")
 
