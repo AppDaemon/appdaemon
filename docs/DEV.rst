@@ -1,104 +1,147 @@
 Development
 ===========
-
 If you want to help with the development of AppDaemon all assistance is gratefully received! Here are a few things you can do to help.
 
-Running a Dev Version
----------------------
+Installing a beta version
+-------------------------
+For the adventurous among you, it is possible to run a pre-release version to get a preview of changes before they are released as part of a stable build.
+**Please be aware**: use it at your own risk.  Although we try to keep things consistent and functional, we can't guarantee that things won't break.
+However, feedback from brave souls running this pre-release version is always gratefully received!
 
-For the adventurous among you, it is possible to run the very latest dev code to get a preview of changes before they are released as part of a stable build. Be aware you use the ``dev`` branch at your own risk.  Although we try to keep things consistent and functional, we can't guarantee that things won't break. However, feedback from brave souls running the dev branch is always gratefully received!
+Also, note, that to run a development version you should be using the *Pip install method*. Docker builds are created for dev too, but there is no hass.io support.
 
-Also, note, that to run a dev version you should be using the *PIP install method*. Docker builds are created for dev too, but there is no hass.io support.
+There are 2 different ways of installing via Pip. If we are running a beta, we will have a number of specific milestone builds.
+The beta version will not install by default using the standard ``pip`` command but can be installed if its exact version is specified to `pip``:
 
-There are 2 different ways of installing via PIP. If we are running a beta, we will have a number of specific milestone builds. These will not install by default using the standard pip command line but can be installed if their exact version is given to the pip command:
+.. code:: console
 
-.. code:: bash
+    $ pip install appdaemon==<beta version>
 
-    $ pip3 install appdaemon==<specific beta version>
+Setting up a development environment
+------------------------------------
+If you want to run the latest code available in the ``dev`` branch, or if you want to run a local version of the application separate from your existing installation, take the following steps:
 
-For non-beta builds, when the goal is just to run the latest dev code, or if you want a local version of the dev code without installing it over the top of the stable code, take the following steps:
+Clone the repository
+^^^^^^^^^^^^^^^^^^^^
+Download a copy of the ``dev`` branch. Run the following command to clone the ``dev`` branch of the official `AppDaemon repository <https://github.com/AppDaemon/appdaemon.git>`_:
 
-Clone the Repository
-~~~~~~~~~~~~~~~~~~~~
-
-First, we need to get a clean copy of the dev branch. To do this, create a new directory, and change into it. Run the following command to clone the dev branch of the AppDaemon repository:
-
-.. code:: bash
+.. code:: console
 
     $ git clone -b dev https://github.com/AppDaemon/appdaemon.git
 
-This will create a directory called ``appdaemon`` - this is your repository directory, and all commands will need to be run from inside it.
+This will create a directory called ``appdaemon``: this is your local Git repository, and all subsequent commands will need to be run from inside it.
 
-Run AppDaemon from the command line
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Requirements
+^^^^^^^^^^^^
+Firstly, it is recommended to create a Python virtual environment (VE) and enable it. The best practice here is to use a VE specifically for the development version.
+In some cases, it is possible that the ``dev`` branch may have updated dependencies that will be incompatible with the latest stable release, and may break it.
 
-Now that you have a local copy of the code, the next step is to run AppDaemon using that code.
+Make sure you are in the ``appdaemon`` project directory, then run the following commands:
 
-As a first step, if you are using a Virtual Environment (VE) enable it. The best practice here is to use a VE specifically for the dev version. In some cases, it is possible that the dev branch may have updated dependencies that will be incompatible with the latest stable release, and may break it. In this process, you can find dependency issues, review ``setup.py`` for a list of required dependencies.
+1. Install the project dependencies, along with the development dependencies
 
-To run the cloned version of AppDaemon, make sure you are in the ``appdaemon`` subdirectory and run the following command:
+.. code:: console
 
-.. code:: bash
+    $ pip install -e .[dev]
 
-    $ python3 -m appdaemon -c <PATH To CONFIG DIRECTORY>
+1. Setup `pre-commit hooks <https://pre-commit.com>`_. This will make sure that modified files are linted and formatted before every commit.
 
-In most cases, it is possible to share config directories with other AppDaemon instances. However,  you must be aware of apps that use new features as they will likely cause errors for the stable version. If you prefer, you can create an entirely new conf directory for your dev environment.
+.. code:: console
 
-Install AppDamon via PIP (Optional)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    $ pre-commit install
 
-Although the recommended way of running a dev build is to use the command line above, it is possible to install an AppDaemon dev build as a pip package. If you do so, it will replace your stable version, so only do this if you are confident with packages and VEs. However,  if you use a specific VE for the dev build, this should not be an issue. Also, remember that if you do this, you will need to reinstall the package as an extra step every time you refresh the dev repository (see below).
+Running the application
+^^^^^^^^^^^^^^^^^^^^^^^
+Now that you have a local copy of the source code, the next step is to run AppDaemon.
 
-To install the dev build as a package, change to the ``appdaemon`` directory and run the following command:
+Copy the default configuration file (edit it if you need to tweak some settings):
 
-.. code:: bash
+.. code:: console
 
-    $ pip3 install .
+    $ cp conf/appdaemon.yaml.example conf/appdaemon.yaml
 
-Updating AppDaemon to the latest dev version
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Start the application:
 
-When the dev version has been updated, and you want to pull over the latest changes, run the following command from the ``appdaemon`` directory:
+.. code:: console
 
-.. code:: bash
+    $ python -m appdaemon -c conf/
+
+In most cases, it is possible to share configuration directories with other AppDaemon instances.
+However, you must be aware of AppDaemon apps that use new features as they will likely cause errors for the other pre-existing version.
+It is recommended to use an entirely separate configuration directory for your development environment.
+
+Getting the latest changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+When there are updates on the ``dev`` branch and you want to pull over the latest changes, run the following command from the ``appdaemon`` directory:
+
+.. code:: console
 
     $ git pull
 
-You can then immediately run the latest version with the command line above. If you are using pip, remember to rerun the ``install`` command using the ``--upgrade flag``:
+You can then immediately run the latest version with the commands previously detailed.
 
-.. code:: bash
+Building a distribution package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To build a Python distribution package (*wheel*), run the following command:
 
-    $ pip3 install --upgrade .
+.. code:: console
+
+    $ python -m build
+
+It will output the result of the build inside a ``dist/`` folder.
+
+The package can be installed directly via pip:
+
+.. code:: console
+
+    $ pip install dist/appdaemon*.whl
+
+Project structure
+-----------------
+
+The Python project follows the conventional PEP 621, using a ``pyproject.toml`` to define its metadata.
+The repository is divided into various folder:
+
+appdaemon
+    source code of the Python package
+docs
+    source code from which this documentation is built
+tests
+    unit tests written with ``pytest``
+conf
+    configuration directory, containing some sample files
+
 
 Pull Requests
 -------------
 
-If you see a way to improve on AppDaemon, We are pleased to receive Pull Requests. The official AppDaemon repository is here:
+If you would like to improve AppDaemon, we are pleased to receive Pull Requests in `the official AppDaemon repository <https://github.com/AppDaemon/appdaemon>`_.
 
-https://github.com/AppDaemon/appdaemon
+Please note, if some documentation is required to make sense of the PR, the PR will not be accepted without it.
 
-Please note, if documentation is required to make sense of the PR, the PR will not be accepted without it.
+Working on the documentation
+----------------------------
 
-Documentation
--------------
+Assistance with the docs is always welcome, whether its fixing typos and incorrect information or reorganizing and adding to the docs to make them more helpful.
+To work on the docs, submit a pull request with the changes, and I
+will review and merge them in the usual way.
+I use `Read the Docs <https://readthedocs.org/>`_ to build and host the documentation pages.
+You can easily preview your edits locally, by running the following command:
 
-Assistance with the docs is always welcome, whether its fixing typos and incorrect information or reorganizing and
-adding to the docs to make them more helpful. To work on the docs, submit a pull request with the changes, and I
-will review and merge them in the usual way. I use `readthedocs` to build and host the docs, and you can easily
-set up a preview of your edits as follows:
+If not already done, install the development dependencies locally.
+The following command downloads and install the optional dependencies, as defined in the `pyproject.toml` file:
 
-First, install sphinx and support libraries.
+.. code:: console
 
-.. code:: bash
-
-    $ pip3 install sphinx sphinx-rtd-theme sphinx-autobuild
+    $ pip install .[dev]
 
 Then `cd` to the `docs` subdirectory, where all the `rst` files are found, and run the following command:
 
-.. code:: bash
+.. code:: console
 
-    $ sphinx-autobuild  --host=0.0.0.0  . _build_html
+    $ sphinx-autobuild --host=0.0.0.0 docs/ docs/_build/html
 
-Sphinx will take a minute or so to build the current version of the docs, and it will then be available on port 8000
-(e.g., http://localhost:8080) of the machine hosting sphinx. As you make changes. Sphinx will automatically detect them
-and update the browser page in real-time. When you finish your editing, stop sphinx by typing ctrl-c.
+Sphinx will take a minute or so to build the current version of the docs, and it will then be available on local port 8000
+(e.g., http://localhost:8000).
+As you make changes, sphinx will automatically detects them and updates the browser page in real-time.
+When you finish your edit, you can stop the server via ``Ctrl-C``.
