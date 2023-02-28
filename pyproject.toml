@@ -26,6 +26,7 @@ dependencies = [
     'pyyaml ~= 6.0',
     'requests ~= 2.28.2',
     'sockjs ~= 0.11.0',
+    'uvloop==0.17.0; sys_platform != "win32"',
     'websocket-client ~= 1.5.1'
 ]
 
@@ -45,6 +46,17 @@ classifiers= [
 documentation = "https://appdaemon.readthedocs.io"
 repository = "https://github.com/home-assistant/appdaemon.git"
 changelog = "https://github.com/AppDaemon/appdaemon/blob/master/docs/HISTORY.rst"
+
+
+# Declare development dependencies as optional
+[project.optional-dependencies]
+dev = [
+    "flake8==3.7.8",
+    "black==22.3.0",
+    "pre-commit==3.1.1",
+    "pytest==7.2.1",
+]
+
 
 # Define the main CLI script
 [project.scripts]
