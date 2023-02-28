@@ -1,18 +1,16 @@
 Development
 ===========
-
 If you want to help with the development of AppDaemon all assistance is gratefully received! Here are a few things you can do to help.
 
 Installing a beta version
 -------------------------
-
-For the adventurous among you, it is possible to run a pre-release version to get a preview of changes before they are released as part of a stable build. 
+For the adventurous among you, it is possible to run a pre-release version to get a preview of changes before they are released as part of a stable build.
 **Please be aware**: use it at your own risk.  Although we try to keep things consistent and functional, we can't guarantee that things won't break.
 However, feedback from brave souls running this pre-release version is always gratefully received!
 
 Also, note, that to run a development version you should be using the *Pip install method*. Docker builds are created for dev too, but there is no hass.io support.
 
-There are 2 different ways of installing via Pip. If we are running a beta, we will have a number of specific milestone builds. 
+There are 2 different ways of installing via Pip. If we are running a beta, we will have a number of specific milestone builds.
 The beta version will not install by default using the standard ``pip`` command but can be installed if its exact version is specified to `pip``:
 
 .. code:: console
@@ -21,13 +19,11 @@ The beta version will not install by default using the standard ``pip`` command 
 
 Setting up a development environment
 ------------------------------------
-
 If you want to run the latest code available in the ``dev`` branch, or if you want to run a local version of the application separate from your existing installation, take the following steps:
 
 Clone the repository
 ^^^^^^^^^^^^^^^^^^^^
-
-First, we need to get a clean copy of the ``dev`` branch. Run the following command to clone the ``dev`` branch of the official `AppDaemon repository <https://github.com/AppDaemon/appdaemon.git>`_:
+Download a copy of the ``dev`` branch. Run the following command to clone the ``dev`` branch of the official `AppDaemon repository <https://github.com/AppDaemon/appdaemon.git>`_:
 
 .. code:: console
 
@@ -37,9 +33,6 @@ This will create a directory called ``appdaemon``: this is your local Git reposi
 
 Requirements
 ^^^^^^^^^^^^
-
-Now that you have a local copy of the code, the next step is to run AppDaemon using this code.
-
 Firstly, it is recommended to create a Python virtual environment (VE) and enable it. The best practice here is to use a VE specifically for the development version.
 In some cases, it is possible that the ``dev`` branch may have updated dependencies that will be incompatible with the latest stable release, and may break it.
 
@@ -51,7 +44,7 @@ Make sure you are in the ``appdaemon`` project directory, then run the following
 
     $ pip install -e .[dev]
 
-2. Setup `pre-commit hooks <https://pre-commit.com>`_
+1. Setup `pre-commit hooks <https://pre-commit.com>`_. This will make sure that modified files are linted and formatted before every commit.
 
 .. code:: console
 
@@ -59,18 +52,26 @@ Make sure you are in the ``appdaemon`` project directory, then run the following
 
 Running the application
 ^^^^^^^^^^^^^^^^^^^^^^^
-To start the application:
+Now that you have a local copy of the source code, the next step is to run AppDaemon.
+
+Copy the default configuration file (edit it if you need to tweak some settings):
 
 .. code:: console
 
-    $ python -m appdaemon -c <PATH TO CONFIG DIRECTORY>
+    $ cp conf/appdaemon.yaml.example conf/appdaemon.yaml
 
-In most cases, it is possible to share configuration directories with other AppDaemon instances. However, you must be aware of apps that use new features as they will likely cause errors for the stable version.
-If you prefer, you can create an entirely new configuration directory for your dev environment.
+Start the application:
+
+.. code:: console
+
+    $ python -m appdaemon -c conf/
+
+In most cases, it is possible to share configuration directories with other AppDaemon instances.
+However, you must be aware of AppDaemon apps that use new features as they will likely cause errors for the other pre-existing version.
+It is recommended to use an entirely separate configuration directory for your development environment.
 
 Getting the latest changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 When there are updates on the ``dev`` branch and you want to pull over the latest changes, run the following command from the ``appdaemon`` directory:
 
 .. code:: console
@@ -98,12 +99,12 @@ The package can be installed directly via pip:
 Project structure
 -----------------
 
-The Python project follows the conventional PEP 621, using a ``pyproject.toml`` to define its metadata. 
+The Python project follows the conventional PEP 621, using a ``pyproject.toml`` to define its metadata.
 The repository is divided into various folder:
 
 appdaemon
     source code of the Python package
-docs 
+docs
     source code from which this documentation is built
 tests
     unit tests written with ``pytest``
@@ -142,5 +143,5 @@ Then `cd` to the `docs` subdirectory, where all the `rst` files are found, and r
 
 Sphinx will take a minute or so to build the current version of the docs, and it will then be available on local port 8000
 (e.g., http://localhost:8000).
-As you make changes, sphinx will automatically detects them and updates the browser page in real-time. 
+As you make changes, sphinx will automatically detects them and updates the browser page in real-time.
 When you finish your edit, you can stop the server via ``Ctrl-C``.

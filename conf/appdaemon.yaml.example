@@ -10,7 +10,7 @@ appdaemon:
       token:
       cert_verify: True
 http:
-  url:
+  url: http://0.0.0.0:5050
 admin:
 api:
 hadashboard:
