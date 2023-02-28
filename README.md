@@ -17,10 +17,6 @@ and tricks, AppDaemon discussions and general home automation.
 
 For full instructions on installation and use check out the [AppDaemon Project Documentation](http://appdaemon.readthedocs.io).
 
-## Build image for multiple architectures
-
-`$ make multiple`
-
 ## Development of the AppDaemon library
 
 We use [pre-commit](https://pre-commit.com) for linting of the code, so `pip install pre_commit` and run
