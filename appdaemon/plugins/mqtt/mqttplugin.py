@@ -283,7 +283,7 @@ class MqttPlugin(PluginBase):
 
     def mqtt_on_message(self, client, userdata, msg):
         try:
-            self.update_perf(updates_recv=1, bytes_recv=len(json.dumps(msg)))
+            self.update_perf(updates_recv=1, bytes_recv=utils.get_object_size(msg))
             self.logger.debug("Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
             topic = msg.topic
             payload = msg.payload
