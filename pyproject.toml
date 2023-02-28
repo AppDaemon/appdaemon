@@ -54,7 +54,7 @@ dev = [
     "build==0.10.0",
     "flake8==3.7.8",
     "black==22.3.0",
-    "pre-commit==3.1.1",
+    'pre-commit==3.1.1; python_version>"3.7"',  # pre-commit does not support Python < 3.8
     "pytest==7.2.1",
     "sphinx-autobuild==2021.3.14",
     "sphinx-rtd-theme==1.2.0",
