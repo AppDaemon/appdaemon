@@ -3,6 +3,7 @@ import paho.mqtt.client as mqtt
 import asyncio
 import traceback
 import ssl
+import json
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -21,6 +22,14 @@ class MqttPlugin(PluginBase):
         self.initialized = False
         self.mqtt_connected = False
         self.state = {}
+
+        # Performance Data
+
+        self.bytes_sent = 0
+        self.bytes_recv = 0
+        self.requests_sent = 0
+        self.updates_recv = 0
+        self.last_check_ts = 0
 
         self.logger.info("MQTT Plugin Initializing")
 
@@ -134,6 +143,29 @@ class MqttPlugin(PluginBase):
         }
 
         self.mqtt_connect_event = None
+
+    async def perf_data(self):
+        data = {
+            "bytes_sent": self.bytes_sent,
+            "bytes_recv": self.bytes_recv,
+            "requests_sent": self.requests_sent,
+            "updates_recv": self.updates_recv,
+            "duration": await self.AD.sched.get_now_ts() - self.last_check_ts,
+        }
+
+        self.bytes_sent = 0
+        self.bytes_recv = 0
+        self.requests_sent = 0
+        self.updates_recv = 0
+        self.last_check_ts = await self.AD.sched.get_now_ts()
+
+        return data
+
+    def update_perf(self, **kwargs):
+        self.bytes_sent += kwargs.get("bytes_sent", 0)
+        self.bytes_recv += kwargs.get("bytes_recv", 0)
+        self.requests_sent += kwargs.get("requests_sent", 0)
+        self.updates_recv += kwargs.get("updates_recv", 0)
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
@@ -251,6 +283,7 @@ class MqttPlugin(PluginBase):
 
     def mqtt_on_message(self, client, userdata, msg):
         try:
+            self.update_perf(updates_recv=1, bytes_recv=utils.get_object_size(msg))
             self.logger.debug("Message Received: Topic = %s, Payload = %s", msg.topic, msg.payload)
             topic = msg.topic
             payload = msg.payload
@@ -296,6 +329,8 @@ class MqttPlugin(PluginBase):
         result = None
         try:
 
+            self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
+
             result = self.mqtt_client.subscribe(topic, qos)
             if result[0] == 0:
                 self.logger.debug("Subscription to Topic %s Successful", topic)
@@ -305,10 +340,11 @@ class MqttPlugin(PluginBase):
                 if "#" in topic or "+" in topic:
                     # its a wildcard
                     self.add_mqtt_wildcard(topic)
-
+                    self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
             else:
                 if topic in self.mqtt_client_topics:
                     self.mqtt_client_topics.remove(topic)
+                    self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
 
                 self.logger.debug(
                     "Subscription to Topic %s Unsuccessful, as Client possibly not currently connected",
@@ -327,14 +363,18 @@ class MqttPlugin(PluginBase):
         result = None
         try:
 
+            self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
             result = self.mqtt_client.unsubscribe(topic)
             if result[0] == 0:
                 self.logger.debug("Unsubscription from Topic %s Successful", topic)
                 if topic in self.mqtt_client_topics:
                     self.mqtt_client_topics.remove(topic)
+                    self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
 
                 self.remove_mqtt_binary(topic)
+                self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
                 self.remove_mqtt_wildcard(topic)
+                self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
 
             else:
                 self.logger.warning("Unsubscription from Topic %s was not Successful", topic)
