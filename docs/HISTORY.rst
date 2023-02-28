@@ -6,6 +6,9 @@ Change Log
 
 **Features**
 
+- AUI Now shows performance stats for plugin network access
+- New CI pipeline designed and configured by `Carlo Mion <https://github.com/mion00>`__
+
 **Fixes**
 
 **Breaking Changes**
