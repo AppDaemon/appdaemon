@@ -177,6 +177,10 @@ class Utility:
 
                     self.AD.plugins.run_plugin_utility()
 
+                    # Update perf data
+
+                    await self.AD.plugins.get_plugin_perf_data()
+
                     # Update uptime sensor
 
                     uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)

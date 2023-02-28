@@ -38,6 +38,8 @@ class Plugins:
         self.plugin_objs = {}
         self.last_plugin_state = {}
 
+        self.perf_count = 0
+
         self.logger = ad.logging.get_child("_plugin_management")
         self.error = self.AD.logging.get_error()
 
@@ -145,8 +147,30 @@ class Plugins:
 
     def run_plugin_utility(self):
         for plugin in self.plugin_objs:
-            if hasattr(self.plugin_objs[plugin]["object"].utility(), "utility"):
+            if hasattr(self.plugin_objs[plugin]["object"], "utility"):
                 self.plugin_objs[plugin]["object"].utility()
+
+    async def get_plugin_perf_data(self):
+        # Grab stats every 10th time we are called (this will be roughly a 10 second average)
+        self.perf_count += 1
+
+        if self.perf_count < 10:
+            return
+
+        self.perf_count = 0
+
+        for plugin in self.plugin_objs:
+            if hasattr(self.plugin_objs[plugin]["object"], "perf_data"):
+                p_data = await self.plugin_objs[plugin]["object"].perf_data()
+                await self.AD.state.set_state(
+                    "plugin",
+                    "admin",
+                    f"plugin.{self.get_plugin_from_namespace(plugin)}",
+                    bytes_sent_ps=round(p_data["bytes_sent"] / p_data["duration"], 1),
+                    bytes_recv_ps=round(p_data["bytes_recv"] / p_data["duration"], 1),
+                    requests_sent_ps=round(p_data["requests_sent"] / p_data["duration"], 1),
+                    updates_recv_ps=round(p_data["updates_recv"] / p_data["duration"], 1),
+                )
 
     def process_meta(self, meta, namespace):
 
@@ -246,7 +270,10 @@ class Plugins:
                     # Create plugin entity
                     #
                     await self.AD.state.add_entity(
-                        "admin", "plugin.{}".format(name), "active", {"totalcallbacks": 0, "instancecallbacks": 0}
+                        "admin",
+                        "plugin.{}".format(name),
+                        "active",
+                        {"bytes_sent_ps": 0, "bytes_recv_ps": 0, "requests_sent_ps": 0, "requests_recv_ps": 0},
                     )
 
                     self.logger.info("Got initial state from namespace %s", namespace)
