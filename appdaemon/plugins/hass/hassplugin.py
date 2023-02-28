@@ -78,7 +78,38 @@ class HassPlugin(PluginBase):
         self.reading_messages = False
         self.stopping = False
 
+        # Performance Data
+
+        self.bytes_sent = 0
+        self.bytes_recv = 0
+        self.requests_sent = 0
+        self.updates_recv = 0
+        self.last_check_ts = 0
+
         self.logger.info("HASS Plugin initialization complete")
+
+    async def perf_data(self):
+        data = {
+            "bytes_sent": self.bytes_sent,
+            "bytes_recv": self.bytes_recv,
+            "requests_sent": self.requests_sent,
+            "updates_recv": self.updates_recv,
+            "duration": await self.AD.sched.get_now_ts() - self.last_check_ts,
+        }
+
+        self.bytes_sent = 0
+        self.bytes_recv = 0
+        self.requests_sent = 0
+        self.updates_recv = 0
+        self.last_check_ts = await self.AD.sched.get_now_ts()
+
+        return data
+
+    def update_perf(self, **kwargs):
+        self.bytes_sent += kwargs.get("bytes_sent", 0)
+        self.bytes_recv += kwargs.get("bytes_recv", 0)
+        self.requests_sent += kwargs.get("requests_sent", 0)
+        self.updates_recv += kwargs.get("updates_recv", 0)
 
     async def am_reading_messages(self):
         return self.reading_messages
@@ -379,6 +410,8 @@ class HassPlugin(PluginBase):
                     ret = await utils.run_in_executor(self, self.ws.recv)
                     result = json.loads(ret)
 
+                    self.update_perf(bytes_recv=len(ret), updates_recv=1)
+
                     if not (result["id"] == _id and result["type"] == "event"):
                         self.logger.warning("Unexpected result from Home Assistant, id = %s", _id)
                         self.logger.warning(result)
@@ -475,6 +508,7 @@ class HassPlugin(PluginBase):
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 state = None
+                self.update_perf(bytes_sent=len(json.dumps(kwargs)), bytes_recv=len(await r.text()), requests_sent=1)
             return state
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in set_state(%s, %s, %s)", namespace, entity_id, kwargs)
@@ -537,6 +571,7 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
 
+            self.update_perf(bytes_sent=len(json.dumps(data)), bytes_recv=len(await r.text()), requests_sent=1)
             return result
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning(
@@ -566,6 +601,9 @@ class HassPlugin(PluginBase):
             r = await self.session.get(api_url)
 
             if r.status == 200 or r.status == 201:
+                self.bytes_recv += len(await r.text())
+                self.updates_recv += 1
+
                 result = await r.json()
             else:
                 self.logger.warning("Error calling Home Assistant to get_history")
@@ -573,6 +611,7 @@ class HassPlugin(PluginBase):
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 result = None
 
+            self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
             return result
 
         except aiohttp.client_exceptions.ServerDisconnectedError:
@@ -660,6 +699,7 @@ class HassPlugin(PluginBase):
             txt = await r.text()
             self.logger.warning("Code: %s, error: %s", r.status, txt)
             state = None
+        self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
         return state
 
     def validate_meta(self, meta, key):
@@ -707,6 +747,7 @@ class HassPlugin(PluginBase):
             self.validate_meta(meta, "elevation")
             self.validate_tz(meta)
 
+            self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
             return meta
         except Exception as ex:
             self.logger.warning("Error getting metadata - retrying: %s", str(ex))
@@ -719,8 +760,11 @@ class HassPlugin(PluginBase):
             api_url = "/api/services"
             self.logger.debug("get_hass_services: url is %s", api_url)
             r = await self.session.get(api_url)
+
             r.raise_for_status()
             services = await r.json()
+
+            self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
 
             # manually added HASS services
             new_services = {}
@@ -828,7 +872,11 @@ class HassPlugin(PluginBase):
         try:
             r = await self.session.post(api_url, json=kwargs)
             r.raise_for_status()
+
             state = await r.json()
+
+            self.update_perf(bytes_sent=len(json.dumps(kwargs)), bytes_recv=len(await r.text()), requests_sent=1)
+
             return state
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in fire_event(%s, %s, %s)", event, namespace, kwargs)
@@ -854,6 +902,8 @@ class HassPlugin(PluginBase):
         try:
             r = await self.session.delete(api_url)
             if r.status == 200 or r.status == 201:
+                self.bytes_recv += len(await r.text())
+                self.updates_recv += 1
                 state = await r.json()
                 self.logger.debug("return = %s", state)
             else:
@@ -861,6 +911,8 @@ class HassPlugin(PluginBase):
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
                 state = None
+
+            self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
             return state
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.logger.warning("Timeout in remove_entity(%s, %s)", namespace, entity_id)

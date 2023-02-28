@@ -80,3 +80,13 @@ exclude = ["contrib", "docs", "tests*"]
 # https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 [tool.setuptools.dynamic]
 version = {attr = "appdaemon.version.__version__"}
+
+# Taken from: https://docs.pytest.org/en/7.1.x/explanation/goodpractices.html
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+# black configuration
+[tool.black]
+line-length = 120

@@ -9,6 +9,7 @@ It also provides a configurable dashboard (HADashboard)
 suitable for wall mounted tablets.
 
 ## Getting started
+
 For full instructions on installation and usage check out the [AppDaemon Project Documentation](http://appdaemon.readthedocs.io).
 
 ## Release Cycle Frequency
@@ -18,13 +19,7 @@ in its development. For that reason, releases have been slow in recent months. T
  it is used every day by the core developers and has an active discord server [here](https://discord.gg/qN7c7JcFjk) - please join us for tips
 and tricks, AppDaemon discussions and general home automation.
 
-
-## Build image for multiple architectures
-
-`$ make multiple`
-
 ## Contributing
 
 This is an active open-source project. We are always open to people who want to use the code or contribute to it. Thank you for being involved!
-
-Have a look at the [official documentation](https://appdaemon.readthedocs.io/en/latest/DEV.html) for more information. 
+Have a look at the [official documentation](https://appdaemon.readthedocs.io/en/latest/DEV.html) for more information.
