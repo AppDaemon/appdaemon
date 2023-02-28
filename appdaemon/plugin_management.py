@@ -273,7 +273,7 @@ class Plugins:
                         "admin",
                         "plugin.{}".format(name),
                         "active",
-                        {"bytes_sent_ps": 0, "bytes_recv_ps": 0, "requests_sent_ps": 0, "requests_recv_ps": 0},
+                        {"bytes_sent_ps": 0, "bytes_recv_ps": 0, "requests_sent_ps": 0, "updates_recv_ps": 0},
                     )
 
                     self.logger.info("Got initial state from namespace %s", namespace)
