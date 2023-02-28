@@ -1,0 +1,66 @@
+[project]
+name = "appdaemon"
+description="Apps for the Home Assistant home automation package."
+readme = "README.md"
+authors = [
+    {name = "Andrew I Cockburn", email = "appdaemon@acockburn.com"},
+]
+dynamic = ["version"] # The verison is computed dynamically. See `tool.setuptools.dynamic` section below.
+license= { file = "LICENSE.md" }
+requires-python = ">=3.7"
+keywords=[ "appdaemon", "home", "automation" ]
+dependencies = [
+    'importlib-metadata; python_version<"3.8"',
+    'aiohttp ~= 3.8.4',
+    'aiohttp_jinja2 ~= 1.5.1',
+    'astral ~= 3.2',
+    'bcrypt ~= 4.0.1',
+    'deepdiff ~= 6.2.3',
+    'feedparser ~= 6.0.10',
+    'iso8601 ~= 1.1.0',
+    'paho-mqtt ~= 1.6.1',
+    'pid ~= 3.0.4',
+    'python-dateutil ~= 2.8.2',
+    'python-socketio ~= 5.5.0',
+    'pytz ~= 2022.7.1',
+    'pyyaml ~= 6.0',
+    'requests ~= 2.28.2',
+    'sockjs ~= 0.11.0',
+    'websocket-client ~= 1.5.1'
+]
+
+classifiers= [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Home Automation",
+]
+
+[project.urls]
+documentation = "https://appdaemon.readthedocs.io"
+repository = "https://github.com/home-assistant/appdaemon.git"
+changelog = "https://github.com/AppDaemon/appdaemon/blob/master/docs/HISTORY.rst"
+
+# Define the main CLI script
+[project.scripts]
+appdaemon = "appdaemon.__main__:main"
+
+# Use setuptools as the build system
+[build-system]
+requires = ["setuptools >= 61.0.0"]
+build-backend = "setuptools.build_meta"
+
+# Tell setuptools how to find the package source files
+# https://setuptools.pypa.io/en/latest/userguide/package_discovery.html
+[tool.setuptools.packages.find]
+exclude = ["contrib", "docs", "tests*"]
+
+# Dynamically read version from version.py module
+# https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
+[tool.setuptools.dynamic]
+version = {attr = "appdaemon.version.__version__"}
