@@ -1,7 +1,7 @@
 Installation
 ============
 
-AppDaemon runs on Python versions 3.7, 3.8 and 3.9. Installation is either by pip3 or Docker. There is also an official
+AppDaemon runs on Python versions 3.8, 3.9, 3.10 and 3.11. Installation is either by pip3 or Docker. There is also an official
 hass.io build.
 
 Note: Windows and Raspbian users should check the environment-specific section at the end of this doc for additional information.
@@ -215,7 +215,7 @@ other version using pip3.
 Windows Under the Linux Subsystem
 ---------------------------------
 
-Windows 10 now supports a full Linux bash environment that is capable of
+Windows 10+ now supports a full Linux bash environment that is capable of
 running Python. This is essentially an Ubuntu distribution and works
 extremely well. It is possible to run AppDaemon in the same way
 as for Linux distributions, and none of the above Windows Caveats apply
