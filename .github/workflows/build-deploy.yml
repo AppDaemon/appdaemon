@@ -103,6 +103,6 @@ jobs:
           push: ${{github.event_name == 'push' && (startsWith(github.ref, 'refs/tags') || github.ref_name == 'dev')}}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/arm64/v8, linux/amd64
+          platforms: linux/arm64/v8, linux/amd64, linux/arm/v7, linux/arm/v6
           cache-from: type=gha
           cache-to: type=gha,mode=max
