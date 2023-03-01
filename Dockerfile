@@ -1,4 +1,15 @@
-ARG IMAGE=python:3.9-alpine
+ARG IMAGE=alpine:3.17
+FROM ${IMAGE} as builder
+
+WORKDIR /build
+
+# Install dependencies
+RUN apk add --no-cache git python3 python3-dev py3-pip py3-wheel build-base gcc libffi-dev openssl-dev musl-dev cargo
+
+# Fetch requirements
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
 FROM ${IMAGE}
 
 # Build argument populated automatically by docker during build with the target architecture we are building for (eg: 'amd64')
@@ -37,6 +48,7 @@ RUN --mount=type=cache,id=pip-${TARGETARCH},sharing=locked,target=/root/.cache/p
 # Copy sample configuration directory and entrypoint script
 COPY ./conf ./conf
 COPY ./dockerStart.sh .
+
 
 # Define entrypoint script
 ENTRYPOINT ["./dockerStart.sh"]
