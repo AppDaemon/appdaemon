@@ -75,31 +75,31 @@ AppDaemon arguments
 
 ::
 
-usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
-                   [-e ENDTIME] [-C CONFIGFILE]
-                   [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                   [-m MODULEDEBUG MODULEDEBUG] [-v]
+    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
+                       [-e ENDTIME] [-C CONFIGFILE]
+                       [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                       [-m MODULEDEBUG MODULEDEBUG] [-v]
 
-options:
-  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        full path to config directory
-  -p PIDFILE, --pidfile PIDFILE
-                        full path to PID File
-  -t TIMEWARP, --timewarp TIMEWARP
-                        speed that the scheduler will work at for time travel
-  -s STARTTIME, --starttime STARTTIME
-                        start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
-                        DD#HH:MM:SS>
-  -e ENDTIME, --endtime ENDTIME
-                        end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
-                        DD#HH:MM:SS>
-  -C CONFIGFILE, --configfile CONFIGFILE
-                        name for config file
-  -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                        global debug level
-  -m MODULEDEBUG MODULEDEBUG, --moduledebug MODULEDEBUG MODULEDEBUG
-  -v, --version         show program's version number and exit
+    options:
+      -h, --help            show this help message and exit
+      -c CONFIG, --config CONFIG
+                            full path to config directory
+      -p PIDFILE, --pidfile PIDFILE
+                            full path to PID File
+      -t TIMEWARP, --timewarp TIMEWARP
+                            speed that the scheduler will work at for time travel
+      -s STARTTIME, --starttime STARTTIME
+                            start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
+                            DD#HH:MM:SS>
+      -e ENDTIME, --endtime ENDTIME
+                            end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
+                            DD#HH:MM:SS>
+      -C CONFIGFILE, --configfile CONFIGFILE
+                            name for config file
+      -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                            global debug level
+      -m MODULEDEBUG MODULEDEBUG, --moduledebug MODULEDEBUG MODULEDEBUG
+      -v, --version         show program's version number and exit
 
 -c is the path to the configuration directory. If not specified,
 AppDaemon will look for a file named ``appdaemon.yaml`` first in

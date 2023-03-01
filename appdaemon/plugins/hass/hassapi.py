@@ -124,7 +124,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Args:
             entity_id (str): Fully qualified entity id of the device tracker or person to query, e.g.,
                 ``device_tracker.andrew`` or ``person.andrew``.
-           **kwargs (optional): Zero or more keyword arguments.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -546,9 +546,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             >>> self.select_option("input_select.mode", "Day")
 
-        Todo:
-            * Is option always a str?
-
         """
         namespace = self._get_namespace(**kwargs)
         await self._check_entity(namespace, entity_id)
@@ -569,7 +566,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             message (str): Message to be sent to the notification service.
             **kwargs (optional): Zero or more keyword arguments.
 
-         Keyword Args:
+        Keyword Args:
              title (str, optional): Title of the notification.
              name (str, optional): Name of the notification service.
              namespace (str, optional): Namespace to use for the call. See the section on
@@ -583,7 +580,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.notify("Switching mode to Evening")
             >>> self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
                 # will send a message through notify.smtp instead of the default notify.notify
+
         """
+
         kwargs["message"] = message
         if "name" in kwargs:
             service = "notify/{}".format(kwargs["name"])

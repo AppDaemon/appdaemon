@@ -540,6 +540,7 @@ It has it's own top-level section in AppDaemon.yaml, and one mandatory argument,
 To password protect ``AppDaemon`` use the ``password`` directive:
 
 .. code:: yaml
+
     http:
         url: http://192.168.1.20:5050
         password: some_password
@@ -555,6 +556,7 @@ To enable https support for the HTTP Component and by extension the HADashboard 
 pointing to your certificate and keyfile:
 
 .. code:: yaml
+
     http:
         url: http://192.168.1.20:5050
         password: some_password

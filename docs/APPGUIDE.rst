@@ -1407,7 +1407,7 @@ The value of the state after the state change.
 callback.
 
 \*\*kwargs
-^^^^^^^^
+^^^^^^^^^^
 
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
@@ -1826,10 +1826,12 @@ Using this method, it is also possible to use this function to access configurat
 from within apps in a different namespace. This is done by simply passing in the ``namespace`` parameter. E.g.:
 
 .. code:: python
+
     ## from within a HASS App, and wanting to access the client Id of the MQTT Plugin
 
     config = self.get_config(namespace = 'mqtt')
     self.log("The Mqtt Client ID is ".format(config["client_id"]))
+
 
 And finally, it is also possible to use ``config`` as a global area
 for sharing parameters across Apps. Simply add the required parameters
@@ -2278,7 +2280,7 @@ want to configure.
             return random.choice(responses)
 
 Dialogflow API
--------------
+--------------
 
 Similarly, Dialogflow API for Google home is supported - here is the Google version of the same App. To set up Dialogflow with your google home refer to the `apiai` component in home-assistant. Once it is setup you can use the AppDaemon API as the webhook.
 
@@ -2776,9 +2778,7 @@ Sequence Commands
 In addition to a straightforward service name plus data, sequences can take a few additional commands:
 
 - sleep - pause execution of the sequence for a number of seconds. e.g. `sleep: 30` will pause the sequence for 30 seconds
-- sequence - run a sub sequence. This must be a predefined sequence, and cannot be an inline sequence. Provide the entity
-name of the sub-sequence to be run, e.g. `sequence: sequcene.my_sub_sequence`. Sub sequences can be nested arbitrarily
-to any desired level.
+- sequence - run a sub sequence. This must be a predefined sequence, and cannot be an inline sequence. Provide the entity name of the sub-sequence to be run, e.g. `sequence: sequcene.my_sub_sequence`. Sub sequences can be nested arbitrarily to any desired level.
 
 Sequence Wait State
 ~~~~~~~~~~~~~~~~~~~

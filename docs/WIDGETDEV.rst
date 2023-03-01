@@ -344,14 +344,14 @@ Widget CSS Files
 ~~~~~~~~~~~~~~~~
 
 CSS files in widgets are used primarily for positioning of elements since most of the styling occurs in the skins.
-Since each widget must have a unique id, the ``{id}}`` piece of each selector name will be substituted with a unique
+Since each widget must have a unique id, the ``{id}`` piece of each selector name will be substituted with a unique
 id ensuring that even if there are multiple instances of the same widget they will all behave correctly.
 
 Other than that, this is standard CSS used for laying out the various HTML elements appropriately.
 
 Here is an example that works with the HTML above.
 
-.. code:: css
+.. code::
 
     .widget-baselight-{{id}} {
         position: relative;

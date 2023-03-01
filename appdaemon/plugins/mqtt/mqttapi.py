@@ -88,8 +88,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
             callback: Function to be invoked when the requested event occurs. It must conform
                 to the standard Event Callback format documented `Here <APPGUIDE.html#about-event-callbacks>`__.
             event: Name of the event to subscribe to. Can be the declared ``event_name`` parameter
-                as specified in the plugin configuration. If no event is specified, ``listen_event()``
-                will subscribe to all MQTT events within the app's functional namespace.
+                as specified in the plugin configuration. If no event is specified, ``listen_event()`` will
+                subscribe to all MQTT events within the app's functional namespace.
             **kwargs (optional): One or more keyword value pairs representing App specific parameters to
                 supply to the callback. If the keywords match values within the event data, they will act
                 as filters, meaning that if they don't match the values, the callback will not fire.
@@ -99,7 +99,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                 generate an event as specified in the config; if we want to listen to a specific topic or
                 wildcard, ``topic`` or ``wildcard`` can be passed in, and used to filter the callback by
                 supplying them as keyword arguments. If you include keyword values, the values supplied
-                to the ``listen_event()``call must match the values in the event or it will not fire.
+                to the ``listen_event()`` call must match the values in the event or it will not fire.
                 If the keywords do not match any of the data in the event they are simply ignored.
 
                 Filtering will work with any event type, but it will be necessary to figure out

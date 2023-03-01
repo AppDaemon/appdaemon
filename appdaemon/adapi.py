@@ -3013,6 +3013,7 @@ class ADAPI:
     async def run_in_executor(self, func, *args, **kwargs):
         """Runs a Sync function from within an Async function using Executor threads.
             The function is actually awaited during execution
+
         Args:
             func: The function to be executed.
             *args (optional): Any additional arguments to be used by the function
@@ -3022,7 +3023,9 @@ class ADAPI:
             None
         Examples:
             >>> await self.run_in_executor(self.run_request)
+
         """
+
         return await utils.run_in_executor(self, func, *args, **kwargs)
 
     def submit_to_executor(self, func, *args, **kwargs):
@@ -3030,6 +3033,7 @@ class ADAPI:
             The function is not waited to be executed. As it submits and continues the rest of the code.
             This can be useful if wanting to execute a long running code, and don't want it to hold up the
             thread for other callbacks.
+
         Args:
             func: The function to be executed.
             *args (optional): Any additional arguments to be used by the function
@@ -3038,6 +3042,7 @@ class ADAPI:
 
         Returns:
             A Future, which can be cancelled by calling f.cancel().
+
         Examples:
             >>>
             >>> def state_cb(self, *args, **kwargs): # callback from an entity
@@ -3055,6 +3060,7 @@ class ADAPI:
             >>>     result = kwargs["result"]
             >>>     self.set_state("sensor.something", state="ready", attributes=result, replace=True) # picked up by another app
             >>>     # <other processing that is needed>
+
         """
 
         callback = kwargs.pop("callback", None)

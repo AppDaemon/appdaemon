@@ -343,7 +343,7 @@ Utility
 .. autofunction:: appdaemon.adapi.ADAPI.reload_apps
 
 Dialogflow
-~~~~~
+~~~~~~~~~~
 
 .. autofunction:: appdaemon.adapi.ADAPI.get_dialogflow_intent
 .. autofunction:: appdaemon.adapi.ADAPI.get_dialogflow_slot_value
