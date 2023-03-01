@@ -1,5 +1,6 @@
 version: 2
 updates:
+# Enable version updates for pip
 - package-ecosystem: pip
   directory: "/"
   schedule:
@@ -27,3 +28,17 @@ updates:
   - dependency-name: iso8601
     versions:
     - 0.1.13
+
+# Maintain dependencies for GitHub Actions
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+
+# Enable version updates for Docker
+- package-ecosystem: "docker"
+  # Look for a `Dockerfile` in the `root` directory
+  directory: "/"
+  # Check for updates once a week
+  schedule:
+    interval: "weekly"
