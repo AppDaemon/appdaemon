@@ -6,7 +6,6 @@ FROM ${IMAGE}
 #ENV HA_URL http://hass:8123
 #ENV HA_KEY secret_key
 #ENV DASH_URL http://hass:5050
-#ENV EXTRA_CMD -D DEBUG
 
 # API Port
 EXPOSE 5050
@@ -15,20 +14,22 @@ EXPOSE 5050
 VOLUME /conf
 VOLUME /certs
 
-# Copy appdaemon into image
+# Install system dependencies, saving the apk cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
+RUN --mount=type=cache,target=/var/cache/apk/ \
+    apk add tzdata build-base gcc libffi-dev openssl-dev musl-dev cargo rust curl
+
+# Copy AppDaemon Python package into the image
 WORKDIR /usr/src/app
-COPY . .
+COPY ./dist/*.whl .
 
-# Install timezone data
-RUN apk add tzdata
+# Install the Python package, saving the pip cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install *.whl &&\
+    rm *.whl
 
-# Install dependencies
-RUN apk add --no-cache build-base gcc libffi-dev openssl-dev musl-dev cargo rust curl \
-    && pip install --no-cache-dir .
+# Copy sample configuration directory and entrypoint script
+COPY ./conf ./conf
+COPY ./dockerStart.sh .
 
-# Install additional packages
-RUN apk add --no-cache curl
-
-# Start script
-RUN chmod +x /usr/src/app/dockerStart.sh
+# Define entrypoint script
 ENTRYPOINT ["./dockerStart.sh"]
