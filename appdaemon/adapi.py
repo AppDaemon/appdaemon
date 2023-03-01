@@ -1698,7 +1698,7 @@ class ADAPI:
         by individual apps using the `register_service` api.
         In a future release, all available services can be found using AD's Admin UI.
         For `listed services`, the part before the first period is the ``domain``,
-        and the part after is the ``service name`. For instance, `light/turn_on`
+        and the part after is the `service name`. For instance, `light/turn_on`
         has a domain of `light` and a service name of `turn_on`.
 
         The default behaviour of the call service api is not to wait for any result, typically
@@ -1886,11 +1886,11 @@ class ADAPI:
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
 
-            Listen for a `minimote` event activating scene 3 from a specific `minimote`.
+            Listen for a `minimote` event activating scene 3 from a specific `minimote` .
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
 
-            Listen for a `minimote` event activating scene 3 from certain `minimote`s (starting with 3), matched with code.
+            Listen for a `minimote` event activating scene 3 from certain `minimote` (starting with 3), matched with code.
 
             >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = lambda x: x.starts_with("minimote_3"), scene_id = 3)
 
@@ -3017,6 +3017,7 @@ class ADAPI:
             func: The function to be executed.
             *args (optional): Any additional arguments to be used by the function
             **kwargs (optional): Any additional keyword arguments to be used by the function
+
         Returns:
             None
         Examples:
@@ -3034,6 +3035,7 @@ class ADAPI:
             *args (optional): Any additional arguments to be used by the function
             **kwargs (optional): Any additional keyword arguments to be used by the function.
             Part of the keyword arguments will be the ``callback``, which will be ran when the function has completed execution
+
         Returns:
             A Future, which can be cancelled by calling f.cancel().
         Examples:
