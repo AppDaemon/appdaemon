@@ -1,23 +1,16 @@
 ARG IMAGE=alpine:3.17
-FROM ${IMAGE} as builder
-
-WORKDIR /build
-
-# Install dependencies
-RUN apk add --no-cache git python3 python3-dev py3-pip py3-wheel build-base gcc libffi-dev openssl-dev musl-dev cargo
-
-# Fetch requirements
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
 FROM ${IMAGE}
+
+# Build argument populated automatically by docker during build with the target architecture we are building for (eg: 'amd64')
+# Usefuil to differentiate the build process for each architecture
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+ARG TARGETARCH
 
 # Environment vars we can configure against
 # But these are optional, so we won't define them now
 #ENV HA_URL http://hass:8123
 #ENV HA_KEY secret_key
 #ENV DASH_URL http://hass:5050
-#ENV EXTRA_CMD -D DEBUG
 
 # API Port
 EXPOSE 5050
@@ -26,19 +19,25 @@ EXPOSE 5050
 VOLUME /conf
 VOLUME /certs
 
+# Install system dependencies, saving the apk cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
+# Specify the architecture in the cache id, otherwise the apk cache of different architectures will conflict
+RUN --mount=type=cache,id=apk-${TARGETARCH},sharing=locked,target=/var/cache/apk/ \
+    apk add tzdata build-base gcc libffi-dev openssl-dev musl-dev cargo rust curl
+
 WORKDIR /usr/src/app
 
-# Install runtime required packages
-# First line is required, 2nd line is for backwards compatibility
-RUN apk add --no-cache curl python3 py3-pip tzdata \
-        git py3-wheel build-base gcc libffi-dev openssl-dev musl-dev cargo
+# Install the Python package, saving the pip cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
+# Specify the architecture in the cache id, otherwise the pip cache of different architectures will conflict
+RUN --mount=type=cache,id=pip-${TARGETARCH},sharing=locked,target=/root/.cache/pip \
+    # Mount the project directory containing the built Python package in the image, so it is available for pip install
+    --mount=type=bind,source=./dist/,target=/usr/src/app/ \
+    # Install the package
+    pip install *.whl
 
-# Copy compiled deps from builder image
-COPY --from=builder /usr/lib/python3.10/site-packages/ /usr/lib/python3.10/site-packages/
+# Copy sample configuration directory and entrypoint script
+COPY ./conf ./conf
+COPY ./dockerStart.sh .
 
-# Copy appdaemon into image
-COPY . .
 
-# Start script
-RUN chmod +x /usr/src/app/dockerStart.sh
+# Define entrypoint script
 ENTRYPOINT ["./dockerStart.sh"]

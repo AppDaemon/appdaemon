@@ -5,7 +5,7 @@ name: Build and deploy
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["**"]
     tags: ["*"]
   pull_request:
     branches: ["dev"]
@@ -21,6 +21,7 @@ env:
   IMAGE_NAME: acockburn/appdaemon
 
 jobs:
+  # The Python package is required in the subsequent Docker image build
   build_package:
     name: Python package
     runs-on: ubuntu-latest
@@ -46,7 +47,11 @@ jobs:
           pip install -e .[dev]
       - name: Build Python package
         run: python -m build
-
+      - name: Upload Python package
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-package
+          path: dist/
       # Publish package only on Git tag
       - name: Publish package
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
@@ -54,9 +59,11 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
+  # After building the Python package, build the Docker image
   build_image:
     name: Docker image
     runs-on: ubuntu-latest
+    needs: ['build_package']
     permissions:
       contents: read
       packages: write
@@ -64,12 +71,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      - name: Download Python package
+        uses: actions/download-artifact@v3
+        with:
+          name: python-package
+          path: dist/
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2.4.1
-      # Login against a Docker registry (except on PR)
+      # Login against a Docker registry (only with a tag or push on `dev` branch)
       # https://github.com/docker/login-action
       - name: Log into Docker Hub
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags') || github.ref_name == 'dev')
         uses: docker/login-action@v2.1.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -81,14 +93,14 @@ jobs:
         uses: docker/metadata-action@v4.3.0
         with:
           images: ${{ env.IMAGE_NAME }}
-      # Build and push Docker image with Buildx (don't push on PR)
+      # Build and push Docker image with Buildx (push image only with a tag or push on `dev` branch)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v4.0.0
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{github.event_name == 'push' && (startsWith(github.ref, 'refs/tags') || github.ref_name == 'dev')}}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/arm64/v8, linux/amd64

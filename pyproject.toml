@@ -74,7 +74,7 @@ build-backend = "setuptools.build_meta"
 # Tell setuptools how to find the package source files
 # https://setuptools.pypa.io/en/latest/userguide/package_discovery.html
 [tool.setuptools.packages.find]
-exclude = ["contrib", "docs", "tests*"]
+exclude = ["contrib", "docs", "docs.*", "tests*"]
 
 # Dynamically read version from version.py module
 # https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
