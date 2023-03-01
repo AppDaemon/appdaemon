@@ -23,7 +23,7 @@ env:
 
 jobs:
   build_docs:
-    name: Build documentation
+    name: Documentation
     runs-on: ubuntu-latest
     permissions:
       packages: write
