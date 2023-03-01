@@ -45,7 +45,7 @@ logging
 .. automodule:: appdaemon.logging
    :members:
 
-.. automodule:: appdaemon.main
+.. automodule:: appdaemon.__main__
    :members:
 
 main

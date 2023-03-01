@@ -639,7 +639,7 @@ navigate
 Force one or more connected dashboards to navigate to a new page
 
 Arguments:
-^^^^^^^^^
+^^^^^^^^^^
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
 ``SensorPanel`` - this is not a URL.
@@ -747,7 +747,7 @@ binary_sensor
 A widget to monitor a binary\_sensor
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
 
@@ -779,7 +779,7 @@ camera
 A widget to display a refreshing camera image on the dashboard.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -   ``entity`` the entity\_id of the camera
 -   ``base_url`` the URL to your Home Assistant install. If you wish to access
@@ -807,7 +807,7 @@ climate
 A widget to monitor and control a climate entity
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the climate entity
 
@@ -877,14 +877,12 @@ Style Arguments:
 
 cover
 ~~~~~
-.. figure:: images/cover.png
-   :alt: cover
 
 A widget to monitor and activate a cover. At this time only the open and
 close actions are supported.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the cover
 
@@ -968,14 +966,12 @@ Style Arguments:
 -  ``state_text_style``
 
 entitypicture
-~~~~~~
-.. figure:: images/entity_picture.png
-   :alt: entity picture
+~~~~~~~~~~~~~
 
 A widget to display entity picture
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity to display entity_picture attribute
 
@@ -1022,7 +1018,7 @@ high for the 3 possible settings, that can be changed if needed.
 (for example for a fan that has 5 speeds)
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity_id of the fan
 
@@ -1037,6 +1033,7 @@ Optional Arguments:
 Example:
 
 .. code:: yaml
+
    fan1:
          widget_type: fan
          entity: fan.fan1
@@ -1111,7 +1108,7 @@ group
 A widget to monitor and control a group of lights
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the group
 
@@ -1187,7 +1184,7 @@ Each icon can have a service call assigned by post_service_active entry - on ico
 The default entry icon and style will be used if the state doesn't match any in the list - meaning that it is not necessary to define all states if only 1 or 2 actually matter.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the binary\_sensor
 -  ``icons`` - a list of icons, styles and service calls to be applied for various states
@@ -1217,7 +1214,7 @@ iframe
 A widget to display other content within the dashboard
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``url_list`` - a list of 1 or more URLs to cycle though. or
 -  ``img_list`` - a list of 1 or more Image URLs to cycle through.
@@ -1281,7 +1278,7 @@ input_boolean
 A widget to monitor and activate an input\_boolean
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_boolean
 
@@ -1312,7 +1309,7 @@ input_datetime
 A widget to monitor and control an input\_datetime
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_datetime
 
@@ -1340,7 +1337,7 @@ input_number
 A widget to monitor and control an input\_number
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_number
 
@@ -1400,7 +1397,7 @@ input_slider
 An alternate widget to monitor and control an input number, using plus and minus buttons instead of a slider.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_number
 
@@ -1433,7 +1430,7 @@ input_text
 A widget to monitor and control an input\_text
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the input\_text
 
@@ -1461,13 +1458,14 @@ javascript
 A widget to run an arbitrary JavaScript command.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 - ``command`` - the JavaScript command to be run.
 
 e.g.
 
 .. code:: yaml
+
    command: "alert('hello');"
 
 
@@ -1496,7 +1494,7 @@ label
 A widget to show a simple static text string
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 None
 
@@ -1523,7 +1521,7 @@ light
 A widget to monitor and control a dimmable light
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the light
 
@@ -1607,7 +1605,7 @@ easily change this behavior by setting active and inactive styles if you
 prefer.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the lock
 
@@ -1632,8 +1630,6 @@ Style Arguments:
 
 london_underground
 ~~~~~~~~~~~~~~~~~~
-.. figure:: images/london_underground.png
-   :alt: london underground
 
 A widget to report on the status of a London Underground line and
 provide the reason for delays if there are any. Requires the London
@@ -1695,7 +1691,7 @@ media_player
 A widget to monitor and control a media player
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the media player
 
@@ -1736,7 +1732,7 @@ when it is set to a specific value. Also allows scripts to be run when
 activated.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the ``input_select``
 -  ``mode`` - value of the input select to show as active
@@ -1771,7 +1767,7 @@ A widget to navigate to a new URL, intended to be used for switching
 between dashboards.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 None, but either ``url`` or ``dashboard`` must be specified.
 
@@ -1948,7 +1944,7 @@ reload
 A widget to reload the current dashboard.
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 None.
 
@@ -2035,7 +2031,7 @@ scene
 A widget to activate a scene
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the scene
 
@@ -2066,7 +2062,7 @@ script
 A widget to run a script
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the script
 
@@ -2092,14 +2088,14 @@ Style Arguments:
 -  ``title2_style``
 
 sequence
-~~~~~
+~~~~~~~~
 .. figure:: images/sequence.png
    :alt: sequence
 
 A widget to run a sequence
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the sequence e.g. ``sequence.office_on``
 
@@ -2190,7 +2186,7 @@ switch
 A widget to monitor and activate a switch
 
 Mandatory arguments:
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 -  ``entity`` - the entity\_id of the switch
 
