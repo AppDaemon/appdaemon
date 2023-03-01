@@ -1,4 +1,4 @@
-ARG IMAGE=python:3.9-alpine
+ARG IMAGE=python:3.10-alpine
 FROM ${IMAGE}
 
 # Build argument populated automatically by docker during build with the target architecture we are building for (eg: 'amd64')
