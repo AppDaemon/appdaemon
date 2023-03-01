@@ -7,7 +7,7 @@ authors = [
 ]
 dynamic = ["version"] # The verison is computed dynamically. See `tool.setuptools.dynamic` section below.
 license= { file = "LICENSE.md" }
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords=[ "appdaemon", "home", "automation" ]
 dependencies = [
     'importlib-metadata; python_version<"3.8"',
@@ -44,7 +44,7 @@ classifiers= [
 
 [project.urls]
 documentation = "https://appdaemon.readthedocs.io"
-repository = "https://github.com/home-assistant/appdaemon.git"
+repository = "https://github.com/AppDaemon"
 changelog = "https://github.com/AppDaemon/appdaemon/blob/master/docs/HISTORY.rst"
 
 
