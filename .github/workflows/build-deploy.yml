@@ -1,4 +1,5 @@
-# Build a docker image and Python package. If on `dev`` branch or git tag:
+# Build a Python package, Docker image and documentation (with Sphinx).
+# If on `dev` branch or git tag:
 #  - Deploy Docker image to Docker Hub
 #  - Deploy Python package to PyPi
 name: Build and deploy
@@ -21,6 +22,46 @@ env:
   IMAGE_NAME: acockburn/appdaemon
 
 jobs:
+  build_docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      # https://github.com/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: 'pip' # caching pip dependencies
+          # Manually set pyproject.toml as the file to use for dependencies
+          # Workaround while waiting for https://github.com/actions/setup-python/issues/529
+          cache-dependency-path: 'pyproject.toml'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      # Invoke sphinx to build the documentation
+      - name: Build documentation
+        # Options:
+        # -T Display the full traceback when an unhandled exception occurs
+        # -E Don't use a saved environment (the structure caching all cross-references), but rebuild it completely.
+        # -b Select the builder
+        # -d Select a different cache directory
+        # -D Override a configuration value set in the conf.py file
+        # -W Turn warnings into errors. This means that the build stops at the first warning and sphinx-build exits with exit status 1
+        # --keep-going With -W option, keep going processing when getting warnings to the end of build, and sphinx-build exits with exit status 1.
+        run: python -m sphinx -T -E -b html -d _build/doctrees -D language=en -W --keep-going . _build/html
+        working-directory: docs
+      # Save the generated documentation as an artifact in Github
+      - name: Upload documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-package
+          path: docs/_build/
+
   # The Python package is required in the subsequent Docker image build
   build_package:
     name: Python package
