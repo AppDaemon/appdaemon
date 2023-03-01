@@ -31,6 +31,7 @@ WORKDIR /usr/src/app
 RUN --mount=type=cache,id=pip-${TARGETARCH},sharing=locked,target=/root/.cache/pip \
     # Mount the project directory containing the built Python package in the image, so it is available for pip install
     --mount=type=bind,source=./dist/,target=/usr/src/app/ \
+    # Install the package
     pip install *.whl
 
 # Copy sample configuration directory and entrypoint script
