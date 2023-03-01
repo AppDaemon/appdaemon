@@ -1,20 +1,18 @@
 .git
 .gitignore
 .github
+.pytest_cache
 
 Dockerfile
 .dockerignore
 
-azure-pipelines.yml
 .pre-commit-config.yaml
-.semaphore
 
 *.md
 !README*.md
 MANIFEST.in
-setup.py
 *.rst
 
+# Documentation
 docs
-conf
 .readthedocs.yml
