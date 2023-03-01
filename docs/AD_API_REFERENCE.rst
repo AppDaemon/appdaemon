@@ -200,6 +200,7 @@ AppDaemon has a predefined list of namespaces that can be used only for particul
 Used to create a new app. For this service to be used, the module must be existing and provided with the module's class. If no `app` name is given, the module name will be used as the app's name by default. The service call also accepts ``app_file`` if wanting to create the app within a certain `yaml` file. Or ``app_dir``, if wanting the created app's `yaml` file within a certain directory. If no file or directory is given, by default the app `yaml` file will be generated in a directory ``ad_apps``, using the app's name. It should be noted that ``app_dir`` and ``app_file`` when specified, will be created within the AD's apps directory.
 
 .. code:: python
+
     data = {}
     data["module"] = "web_app"
     data["class"] = "WebApp"
