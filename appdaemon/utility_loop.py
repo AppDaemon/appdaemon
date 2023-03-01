@@ -67,13 +67,11 @@ class Utility:
         await self.AD.plugins.wait_for_plugins()
 
         if not self.stopping:
-
             # Create timer loop
 
             self.logger.debug("Starting timer loop")
 
             for ns in await self.AD.state.list_namespaces():
-
                 #
                 # Register state services
                 #
@@ -145,9 +143,7 @@ class Utility:
                 start_time = datetime.datetime.now().timestamp()
 
                 try:
-
                     if self.AD.apps is True:
-
                         if self.AD.production_mode is False:
                             # Check to see if config has changed
                             s1 = datetime.datetime.now().timestamp()

@@ -11,7 +11,6 @@ import appdaemon.utils as utils
 
 class Services:
     def __init__(self, ad: AppDaemon):
-
         self.AD = ad
         self.services = {}
         self.services_lock = threading.RLock()

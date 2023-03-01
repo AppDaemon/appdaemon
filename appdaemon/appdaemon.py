@@ -6,7 +6,6 @@ import threading
 
 class AppDaemon:
     def __init__(self, logging, loop, **kwargs):
-
         #
         # Import various AppDaemon bits and pieces now to avoid circular import
         #
@@ -281,7 +280,6 @@ class AppDaemon:
     #
 
     def register_http(self, http):
-
         import appdaemon.admin_loop as admin_loop
 
         self.http = http

@@ -182,12 +182,10 @@ class StateAttrs(dict):
 
 class EntityStateAttrs(dict):
     def __init__(self, dict):
-
         self.__dict__ = AttrDict.from_nested_dict(dict)
 
 
 def check_state(logger, new_state, callback_state, name) -> bool:
-
     passed = False
 
     try:
@@ -370,13 +368,11 @@ async def run_async_sync_func(self, method, *args, **kwargs):
 
 
 def deepcopy(data):
-
     result = None
 
     if isinstance(data, dict):
         result = {}
         for key, value in data.items():
-
             result[key] = deepcopy(value)
 
         assert id(result) != id(data)
@@ -470,7 +466,6 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):  #
         return
 
     try:
-
         path = os.path.abspath(inpath)
 
         perms = permissions

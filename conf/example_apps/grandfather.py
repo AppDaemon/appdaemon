@@ -20,7 +20,6 @@ import datetime
 
 class Grandfather(hass.Hass):
     def initialize(self):
-
         time = datetime.time(0, 0, 0)
         self.run_hourly(self.check_chime, time)
 

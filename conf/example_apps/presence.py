@@ -26,7 +26,6 @@ import globals
 
 class Presence(hass.Hass):
     def initialize(self):
-
         # Subscribe to presence changes
 
         self.listen_state(self.presence_change, "device_tracker")

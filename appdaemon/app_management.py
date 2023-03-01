@@ -19,7 +19,6 @@ from appdaemon.appdaemon import AppDaemon
 
 class AppManagement:
     def __init__(self, ad: AppDaemon, config):
-
         self.AD = ad
         self.logger = ad.logging.get_child("_app_management")
         self.error = ad.logging.get_error()
@@ -253,7 +252,6 @@ class AppManagement:
         return executed
 
     async def start_app(self, app):
-
         # first we check if running already
         if app in self.objects and self.objects[app]["running"] is True:
             self.logger.warning("Cannot start app %s, as it is already running", app)
@@ -297,7 +295,6 @@ class AppManagement:
             return "None"
 
     async def init_object(self, name):
-
         app_args = self.app_config[name]
         self.logger.info(
             "Initializing app %s using class %s from module %s",
@@ -307,7 +304,6 @@ class AppManagement:
         )
 
         if self.get_file_from_module(app_args["module"]) is not None:
-
             if "pin_thread" in app_args:
                 if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.total_threads:
                     self.logger.warning(
@@ -368,7 +364,6 @@ class AppManagement:
             await self.increase_inactive_apps(name)
 
     def init_plugin_object(self, name, object):
-
         self.objects[name] = {
             "type": "plugin",
             "object": object,
@@ -402,7 +397,6 @@ class AppManagement:
         return True
 
     async def read_config(self):  # noqa: C901
-
         new_config = None
 
         if await utils.run_in_executor(self, os.path.isfile, self.app_config_file):
@@ -426,7 +420,7 @@ class AppManagement:
                                         app_valid = True
                                         if app == "global_modules":
                                             self.logger.warning(
-                                                f"global_modules directive has been deprecated and will be removed in a future release"
+                                                "global_modules directive has been deprecated and will be removed in a future release"
                                             )
                                             #
                                             # Check the parameter format for string or list
@@ -591,7 +585,6 @@ class AppManagement:
 
     # Run in executor
     def read_config_file(self, file):
-
         new_config = None
         try:
             with open(file, "r") as yamlfd:
@@ -615,7 +608,6 @@ class AppManagement:
             return new_config
 
         except Exception:
-
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error loading config file: %s", file)
             self.logger.warning("-" * 60)
@@ -673,7 +665,6 @@ class AppManagement:
                             # now we update the entity
                             await self.set_state(name, yaml_path=yaml_path)
                     else:
-
                         # Section has been deleted, clear it out
 
                         if silent is False:
@@ -695,7 +686,6 @@ class AppManagement:
                         #
 
                         if "class" in new_config[name] and "module" in new_config[name]:
-
                             # first we need to remove thhe yaml path if it exists
                             yaml_path = await utils.run_in_executor(
                                 self, os.path.abspath, new_config[name].pop("yaml_path")
@@ -849,7 +839,6 @@ class AppManagement:
     def process_filters(self):
         if "filters" in self.AD.config:
             for filter in self.AD.config["filters"]:
-
                 for root, subdirs, files in os.walk(self.AD.app_dir, topdown=True):
                     # print(root, subdirs, files)
                     #
@@ -904,7 +893,6 @@ class AppManagement:
 
     # @_timeit
     async def check_app_updates(self, plugin: str = None, mode: str = "normal"):  # noqa: C901
-
         async with self.check_updates_lock:
             if self.AD.apps is False:
                 return
@@ -946,7 +934,6 @@ class AppManagement:
                 if file == os.path.join(self.AD.app_dir, "__init__.py"):
                     continue
                 try:
-
                     # check we can actually open the file
                     await utils.run_in_executor(self, self.check_file, file)
 
@@ -1059,7 +1046,6 @@ class AppManagement:
                                 await self.set_state(app, state="compile_error")
 
             if apps is not None and apps["init"]:
-
                 prio_apps = self.get_app_deps_and_prios(apps["init"], mode)
 
                 # Load Apps
@@ -1125,7 +1111,6 @@ class AppManagement:
         return self.get_file_from_module(module)
 
     def get_app_deps_and_prios(self, applist, mode):
-
         # Build a list of modules and their dependencies
 
         deplist = []
@@ -1195,7 +1180,6 @@ class AppManagement:
                         deps.append(new_deps)
 
     def topological_sort(self, source):
-
         pending = [(name, set(deps)) for name, deps in source]  # copy deps so we can modify set in-place
         emitted = []
         while pending:
@@ -1448,7 +1432,6 @@ class AppManagement:
                 if (
                     "global_modules" in self.app_config and module_name in self.app_config["global_modules"]
                 ) or self.is_global_module(module_name):
-
                     if name not in self.global_module_dependencies:
                         self.global_module_dependencies[name] = []
 
@@ -1518,7 +1501,6 @@ class AppManagement:
                 result = await utils.run_in_executor(self, self.edit_app, app, disable=True)
 
             else:
-
                 func = getattr(self, f"{service}_app")
                 result = await utils.run_in_executor(self, func, app, **kwargs)
 

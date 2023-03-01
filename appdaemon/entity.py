@@ -21,7 +21,6 @@ class EntityAttrs:
 
 
 class Entity:
-
     states_attrs = EntityAttrs()
 
     def __init__(self, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity_id: str):

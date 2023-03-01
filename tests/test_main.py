@@ -1,4 +1,3 @@
-
 from appdaemon.__main__ import ADMain
 
 

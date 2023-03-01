@@ -93,7 +93,6 @@ class Scheduler:
         self.stopping = True
 
     async def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
-
         # aware_dt will include a timezone of some sort - convert to utc timezone
         utc = aware_dt.astimezone(pytz.utc)
 
@@ -464,7 +463,6 @@ class Scheduler:
     #
 
     def get_next_entries(self):
-
         next_exec = datetime.datetime.now(pytz.utc).replace(year=datetime.MAXYEAR, month=12, day=31)
         for name in self.schedule.keys():
             for entry in self.schedule[name].keys():

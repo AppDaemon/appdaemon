@@ -48,7 +48,6 @@ import time
 
 class Sound(hass.Hass):
     def initialize(self):
-
         # Create Queue
         self.queue = Queue(maxsize=0)
 

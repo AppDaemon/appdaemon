@@ -211,7 +211,7 @@ class Dashboard:
         if isinstance(value, dict):
             result = {}
             templates = {}
-            for (key, value) in value.items():
+            for key, value in value.items():
                 processed, t = self._do_subs(value, _vars)
                 result[key] = processed
                 templates = {**templates, **t}
@@ -315,7 +315,7 @@ class Dashboard:
                     widget = yamlfd.read()
                 final_widget = self._load_yaml(widget)
             except yaml.YAMLError as exc:
-                self._log_error(dash, name, "Error in widget definition '%s':".format(widget_type))
+                self._log_error(dash, name, f"Error in widget definition '{widget_type}':")
                 self._log_yaml_dash_error(dash, name, exc)
                 return self.error_widget("Error loading widget definition")
 
@@ -761,7 +761,6 @@ class Dashboard:
         return params
 
     def _conditional_compile(self, name, skin, recompile):
-
         #
         # Check skin exists
         #
@@ -869,9 +868,7 @@ class Dashboard:
     @_profile_this
     @_timeit
     def get_dashboard(self, name, skin, recompile):
-
         try:
-
             dash = self._conditional_compile(name, skin, recompile)
 
             if dash is None:
@@ -955,7 +952,6 @@ class Dashboard:
         return rendered_template
 
     def get_dashboard_list(self, paramOverwrite=None):
-
         if paramOverwrite is None:
             dash = self.list_dashes()
         else:

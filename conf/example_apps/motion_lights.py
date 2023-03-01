@@ -23,7 +23,6 @@ import hassapi as hass
 
 class MotionLights(hass.Hass):
     def initialize(self):
-
         self.handle = None
 
         # Check some Params

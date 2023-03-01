@@ -198,7 +198,6 @@ class HassPlugin(PluginBase):
     # Get initial state
     #
     async def get_complete_state(self):
-
         hass_state = await self.get_hass_state()
         states = {}
         for state in hass_state:
@@ -217,7 +216,6 @@ class HassPlugin(PluginBase):
     # Handle state updates
     #
     async def evaluate_started(self, first_time, plugin_booting, event=None):  # noqa: C901
-
         if first_time is True:
             self.hass_ready = False
             self.state_matched = False
@@ -323,7 +321,6 @@ class HassPlugin(PluginBase):
     #
 
     async def get_updates(self):  # noqa: C901
-
         _id = 0
         self.already_notified = False
         self.first_time = True
@@ -552,7 +549,6 @@ class HassPlugin(PluginBase):
             api_url = "/api/services/{}/{}".format(domain, service)
 
         try:
-
             r = await self.session.post(api_url, json=data)
 
             if r.status == 200 or r.status == 201:
@@ -641,7 +637,7 @@ class HassPlugin(PluginBase):
             )
 
         if "end_time" in kwargkeys and {"start_time", "days"}.isdisjoint(kwargkeys):
-            raise ValueError(f"Can not have end_time without start_time or days")
+            raise ValueError("Can not have end_time without start_time or days")
 
         entity_id = kwargs.get("entity_id", "").strip()
         days = max(0, kwargs.get("days", 0))
@@ -685,7 +681,6 @@ class HassPlugin(PluginBase):
         return apiurl
 
     async def get_hass_state(self, entity_id=None):
-
         if entity_id is None:
             api_url = "/api/states"
         else:

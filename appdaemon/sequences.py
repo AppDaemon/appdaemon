@@ -10,7 +10,6 @@ from appdaemon.exceptions import TimeOutException
 
 class Sequences:
     def __init__(self, ad: AppDaemon):
-
         self.AD = ad
         self.logger = ad.logging.get_child("_sequences")
 
@@ -71,7 +70,6 @@ class Sequences:
             await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
 
     async def run_sequence(self, _name, namespace, sequence):
-
         if isinstance(sequence, str):
             if "." in sequence:
                 # the entity given
@@ -148,7 +146,6 @@ class Sequences:
         return coro
 
     async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):
-
         await self.AD.state.set_state("_sequences", "rules", entity_id, state="active")
 
         try:

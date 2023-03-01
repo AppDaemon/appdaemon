@@ -14,7 +14,6 @@ from appdaemon.exceptions import RequestHandlerException
 
 class ADStream:
     def __init__(self, ad: AppDaemon, app, transport):
-
         self.AD = ad
         self.logger = ad.logging.get_child("_stream")
         self.access = ad.logging.get_access()

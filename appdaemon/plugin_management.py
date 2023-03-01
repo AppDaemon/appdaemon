@@ -16,7 +16,6 @@ class PluginBase:
     """
 
     def __init__(self, ad: AppDaemon, name, args):
-
         self.AD = ad
         self.logger = self.AD.logging.get_child(name)
 
@@ -25,11 +24,9 @@ class PluginBase:
 
 
 class Plugins:
-
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
 
     def __init__(self, ad: AppDaemon, kwargs):
-
         self.AD = ad
         self.plugins = kwargs
         self.stopping = False
@@ -71,7 +68,6 @@ class Plugins:
                 if "disable" in self.plugins[name] and self.plugins[name]["disable"] is True:
                     self.logger.info("Plugin '%s' disabled", name)
                 else:
-
                     if "refresh_delay" not in self.plugins[name]:
                         self.plugins[name]["refresh_delay"] = 600
 
@@ -107,7 +103,6 @@ class Plugins:
                             module_name,
                         )
                     try:
-
                         mod = __import__(full_module_name, globals(), locals(), [module_name], 0)
 
                         app_class = getattr(mod, class_name)
@@ -173,7 +168,6 @@ class Plugins:
                 )
 
     def process_meta(self, meta, namespace):
-
         if meta is not None:
             for key in self.required_meta:
                 if getattr(self.AD, key) is None:
@@ -230,7 +224,6 @@ class Plugins:
 
                 if namespaces != []:  # there are multiple namesapces
                     for namesp in namespaces:
-
                         if state[namesp] is not None:
                             await utils.run_in_executor(
                                 self,

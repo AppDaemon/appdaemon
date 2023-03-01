@@ -7,7 +7,6 @@ from appdaemon import utils as utils
 
 class SockJSHandler:
     def __init__(self, ADStream, app, path, ad):
-
         self.AD = ad
         self.ADStream = ADStream
         self.app = app
@@ -51,7 +50,6 @@ class SockJSHandler:
 
 class SockJSStream:
     def __init__(self, ad, session, **kwargs):
-
         self.AD = ad
         self.session = session
         self.client_id = session.id

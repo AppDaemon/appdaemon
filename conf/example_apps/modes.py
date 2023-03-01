@@ -24,7 +24,6 @@ import globals
 
 class Modes(hass.Hass):
     def initialize(self):
-
         # get current mode
         self.mode = self.get_state("input_select.house_mode")
         # Create some callbacks

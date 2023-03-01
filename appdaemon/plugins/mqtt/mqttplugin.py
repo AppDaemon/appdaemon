@@ -328,7 +328,6 @@ class MqttPlugin(PluginBase):
 
         result = None
         try:
-
             self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
 
             result = self.mqtt_client.subscribe(topic, qos)
@@ -362,7 +361,6 @@ class MqttPlugin(PluginBase):
 
         result = None
         try:
-
             self.update_perf(requests_sent=1, bytes_sent=len(json.dumps(topic)))
             result = self.mqtt_client.unsubscribe(topic)
             if result[0] == 0:
@@ -386,7 +384,6 @@ class MqttPlugin(PluginBase):
         return result
 
     async def call_plugin_service(self, namespace, domain, service, kwargs):
-
         result = None
         if "topic" in kwargs:
             if not self.mqtt_connected:  # ensure mqtt plugin is connected

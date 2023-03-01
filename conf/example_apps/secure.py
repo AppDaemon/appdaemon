@@ -99,7 +99,6 @@ class Secure(hass.Hass):
         return entities
 
     def query_house(self, data):  # noqa: C901
-
         self.timeout = 0
         secure_items = []
         insecure_items = []
@@ -150,10 +149,8 @@ class Secure(hass.Hass):
 
             return False, message
         else:
-
             self.log("Checking items ...")
             for id in insecure_items:
-
                 entity = self.find_entity(id)
                 if "timeout" in entity and entity["timeout"] > self.timeout:
                     self.timeout = entity["timeout"]
@@ -213,9 +210,7 @@ class Secure(hass.Hass):
             return messages
 
     def report(self, all_secure=False):
-
         if all_secure:
-
             return self.get_secure_message()
 
         secured_items = self.secured_items

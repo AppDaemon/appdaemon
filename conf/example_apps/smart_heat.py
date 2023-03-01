@@ -27,7 +27,6 @@ import hassapi as hass
 
 class SmartHeat(hass.Hass):
     def initialize(self):
-
         # Schedule our morning check
 
         # Test

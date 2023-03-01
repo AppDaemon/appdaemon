@@ -11,7 +11,6 @@ import hassapi as hass
 
 class OutsideLights(hass.Hass):
     def initialize(self):
-
         # Run at Sunrise
         self.run_at_sunrise(self.sunrise_cb)
 

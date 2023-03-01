@@ -13,7 +13,6 @@ __version__ = "1.1.2"
 
 class OccuSim(hass.Hass):
     def initialize(self):
-
         if "test" in self.args and self.args["test"] == "1":
             self.test = True
         else:

@@ -6,7 +6,6 @@ from appdaemon.appdaemon import AppDaemon
 
 class Callbacks:
     def __init__(self, ad: AppDaemon):
-
         self.AD = ad
 
         self.callbacks = {}

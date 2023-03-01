@@ -61,7 +61,6 @@ class ADBase:
     entities = Entities()
 
     def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
-
         # Store args
 
         self.AD = ad

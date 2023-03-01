@@ -10,7 +10,6 @@ from appdaemon import utils as utils
 
 class WSHandler:
     def __init__(self, ADStream, app, path, ad):
-
         self.AD = ad
         self.ADStream = ADStream
         self.app = app
@@ -33,7 +32,6 @@ class WSHandler:
 
 class WSStream:
     def __init__(self, ad, request, **kwargs):
-
         self.request = request
         self.on_message = kwargs["on_message"]
         self.on_disconnect = kwargs["on_disconnect"]

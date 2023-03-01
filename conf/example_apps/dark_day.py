@@ -19,7 +19,6 @@ import hassapi as hass
 
 class DarkDay(hass.Hass):
     def initialize(self):
-
         self.active = False
         self.set_state("sensor.dark_day", state=0)
         self.listen_state(self.light_event, self.args["sensor"])

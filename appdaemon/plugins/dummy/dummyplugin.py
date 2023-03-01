@@ -93,7 +93,6 @@ class DummyPlugin(PluginBase):
             True,
         )
         while not self.stopping:
-
             if self.current_event >= len(self.config["sequence"]["events"]) and (
                 "loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]
             ):

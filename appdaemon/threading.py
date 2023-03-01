@@ -17,7 +17,6 @@ from appdaemon.appdaemon import AppDaemon
 
 class Threading:
     def __init__(self, ad: AppDaemon, kwargs):
-
         self.AD = ad
         self.kwargs = kwargs
 
@@ -92,7 +91,6 @@ class Threading:
         self.current_callbacks_fired = 0
 
     async def init_admin_stats(self):
-
         # Initialize admin stats
 
         await self.add_entity("admin", "sensor.callbacks_total_fired", 0)
@@ -332,7 +330,6 @@ class Threading:
             if (
                 warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations
             ) or warning_iterations == self.AD.qsize_warning_iterations:
-
                 for thread in self.threads:
                     qsize = self.threads[thread]["queue"].qsize()
                     if qsize > 0:
@@ -502,7 +499,6 @@ class Threading:
         self.threads[name]["thread"] = t
 
     async def calculate_pin_threads(self):
-
         if self.pin_threads == 0:
             return
 
@@ -761,7 +757,7 @@ class Threading:
                             __attribute=attribute,
                             __old_state=old,
                             __new_state=new,
-                            **kwargs
+                            **kwargs,
                         )
                     else:
                         #
@@ -1049,7 +1045,6 @@ class Threading:
             q.task_done()
 
     def report_callback_sig(self, name, type, funcref, args):
-
         error_logger = logging.getLogger("Error.{}".format(name))
 
         callback_args = {

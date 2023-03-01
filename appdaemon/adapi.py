@@ -2843,7 +2843,6 @@ class ADAPI:
 
     @utils.sync_wrapper
     async def _schedule_sun(self, name, type_, callback, **kwargs):
-
         if type_ == "next_rising":
             event = self.AD.sched.next_sunrise()
         else:

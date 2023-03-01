@@ -16,7 +16,6 @@ class Dummy(adbase.ADBase, adapi.ADAPI):
         app_config,
         global_vars,
     ):
-
         # Call Super Classes
         adbase.ADBase.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)
         adapi.ADAPI.__init__(self, ad, name, logger, error, args, config, app_config, global_vars)

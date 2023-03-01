@@ -4,7 +4,6 @@ from appdaemon.appdaemon import AppDaemon
 
 class AdminLoop:
     def __init__(self, ad: AppDaemon):
-
         self.AD = ad
         self.stopping = False
         self.logger = ad.logging.get_child("_admin_loop")

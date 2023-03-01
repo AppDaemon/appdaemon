@@ -46,7 +46,6 @@ class Admin:
     #
 
     async def admin_page(self, scheme, url):
-
         try:
             params = {"transport": self.transport, "title": self.title}
 

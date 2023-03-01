@@ -7,7 +7,6 @@ import appdaemon.utils as utils
 
 class SocketIOHandler:
     def __init__(self, ADStream, app, path, ad):
-
         self.AD = ad
         self.ADStream = ADStream
         self.app = app
@@ -29,7 +28,6 @@ class SocketIOHandler:
 
 class NameSpace(socketio.AsyncNamespace):
     def __init__(self, ADStream, path, AD):
-
         super().__init__(path)
 
         self.AD = AD
@@ -69,7 +67,6 @@ class NameSpace(socketio.AsyncNamespace):
 
 class SocketIOStream:
     def __init__(self, ad, namespace, request):
-
         self.ns = namespace
         self.client_id = request["sid"]
 

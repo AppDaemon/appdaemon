@@ -167,7 +167,6 @@ class LogSubscriptionHandler(StreamHandler):
 
 
 class Logging:
-
     log_levels = {
         "CRITICAL": 50,
         "ERROR": 40,
@@ -178,7 +177,6 @@ class Logging:
     }
 
     def __init__(self, config, log_level):
-
         self.AD = None
         self.tz = None
 
@@ -568,7 +566,6 @@ class Logging:
                     if callback["type"] == "log" and (
                         callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
                     ):
-
                         # Check any filters
                         _run = True
                         if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["log_type"]:

@@ -10,7 +10,6 @@ from appdaemon.appdaemon import AppDaemon
 
 class State:
     def __init__(self, ad: AppDaemon):
-
         self.AD = ad
 
         self.state = {"default": {}, "admin": {}, "rules": {}}
@@ -284,7 +283,6 @@ class State:
     async def cancel_state_callback(self, handle, name):
         executed = False
         async with self.AD.callbacks.callbacks_lock:
-
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
                 await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
@@ -576,7 +574,6 @@ class State:
     async def state_services(self, namespace, domain, service, kwargs):
         self.logger.debug("state_services: %s, %s, %s, %s", namespace, domain, service, kwargs)
         if service in ["add_entity", "remove_entity", "set"]:
-
             if "entity_id" not in kwargs:
                 self.logger.warning("Entity not specified in %s service call: %s", service, kwargs)
                 return
@@ -586,7 +583,6 @@ class State:
                 del kwargs["entity_id"]
 
         elif service in ["add_namespace", "remove_namespace"]:
-
             if "namespace" not in kwargs:
                 self.logger.warning("Namespace not specified in %s service call: %s", service, kwargs)
                 return

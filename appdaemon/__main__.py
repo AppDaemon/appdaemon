@@ -120,7 +120,6 @@ class ADMain:
         """
 
         try:
-
             # if to use uvloop
             if appdaemon.get("uvloop") is True and uvloop:
                 self.logger.info("Running AD using uvloop")
@@ -268,7 +267,6 @@ class ADMain:
         # First locate secrets file
         #
         try:
-
             #
             # Read config file using include directory
             #

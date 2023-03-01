@@ -59,7 +59,6 @@ class Alexa(hass.Hass):
         return response, response, "Where is {}?".format(user)
 
     def HouseStatus(self):
-
         status = "The downstairs temperature is {} degrees fahrenheit,".format(
             self.entities.sensor.downstairs_thermostat_temperature.state
         )

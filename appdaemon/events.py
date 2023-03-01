@@ -190,7 +190,6 @@ class Events:
         """
 
         try:
-
             # if data["event_type"] == "__AD_ENTITY_REMOVED":
             #    print("process event")
 
@@ -228,7 +227,6 @@ class Events:
                 await self.AD.logging.process_log_callbacks(namespace, data)
 
             if self.AD.apps is True:  # and namespace != "admin":
-
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
 
@@ -237,7 +235,6 @@ class Events:
             #
 
             if self.AD.http is not None:
-
                 if data["event_type"] == "state_changed":
                     if data["data"]["new_state"] == data["data"]["old_state"]:
                         # Nothing changed so don't send
@@ -318,7 +315,6 @@ class Events:
                             (callback["event"] is None and data["event_type"][:2] != "__")
                             or data["event_type"] == callback["event"]
                         ):
-
                             # Check any filters
 
                             _run = True

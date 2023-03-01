@@ -28,7 +28,6 @@ def securedata(myfunc):
     """
 
     async def wrapper(*args):
-
         self = args[0]
         request = args[1]
         if self.password is None:
@@ -58,7 +57,6 @@ def secure(myfunc):
     """
 
     async def wrapper(*args):
-
         self = args[0]
         request = args[1]
         if self.password is None:
@@ -87,7 +85,6 @@ def route_secure(myfunc):
     """
 
     async def wrapper(*args):
-
         self = args[0]
         request = args[1]
         if self.password is None or self.valid_tokens == []:
@@ -111,7 +108,6 @@ def route_secure(myfunc):
 
 class HTTP:
     def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, old_admin, admin, api, http):
-
         self.AD = ad
         self.logging = logging
         self.logger = ad.logging.get_child("_http")
@@ -228,7 +224,6 @@ class HTTP:
                 admin_args = old_admin
 
             if old_admin is not None or admin is not None:
-
                 self.admin_obj = adadmin.Admin(
                     self.config_dir,
                     logging,
@@ -368,7 +363,6 @@ class HTTP:
         self._process_arg("static_dirs", http)
 
     async def start_server(self):
-
         self.logger.info("Running on port %s", self.port)
 
         self.runner = web.AppRunner(self.app)
@@ -542,7 +536,6 @@ class HTTP:
 
     @securedata
     async def get_namespace_entities(self, request):
-
         namespace = None
         try:
             namespace = request.match_info.get("namespace")
@@ -567,7 +560,6 @@ class HTTP:
 
     @securedata
     async def get_namespaces(self, request):
-
         try:
             self.logger.debug("get_namespaces() called)")
             state = await self.AD.state.list_namespaces()
@@ -584,7 +576,6 @@ class HTTP:
 
     @securedata
     async def get_services(self, request):
-
         try:
             self.logger.debug("get_services() called)")
             state = self.AD.services.list_services()
@@ -870,7 +861,6 @@ class HTTP:
 
     @securedata
     async def call_app_endpoint(self, request):
-
         code = 200
         ret = ""
         endpoint = request.match_info.get("endpoint")
@@ -899,7 +889,6 @@ class HTTP:
     # Routes, Status and Templates
 
     async def register_endpoint(self, cb: Callable, endpoint: str, name: str, **kwargs: Optional[dict]) -> str:
-
         handle = uuid.uuid4().hex
 
         # first we check to ensure that endpoint not been used before
@@ -953,7 +942,6 @@ class HTTP:
     # App based Web Server
     #
     async def register_route(self, cb: Callable, route: str, name: str, **kwargs: Optional[dict]) -> str:
-
         if not asyncio.iscoroutinefunction(cb):  # must be async function
             self.logger.warning(
                 "Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be Async",
@@ -984,7 +972,6 @@ class HTTP:
 
     @route_secure
     async def app_webserver(self, request):
-
         name = None
         route = request.match_info.get("route")
 
