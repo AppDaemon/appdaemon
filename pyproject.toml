@@ -52,8 +52,6 @@ changelog = "https://github.com/AppDaemon/appdaemon/blob/master/docs/HISTORY.rst
 [project.optional-dependencies]
 dev = [
     "build==0.10.0",
-    "flake8==6.0.0",
-    "black==23.1.0",
     'pre-commit==3.1.1; python_version>"3.7"',  # pre-commit does not support Python < 3.8
     "pytest==7.2.1",
     "sphinx-autobuild==2021.3.14",
