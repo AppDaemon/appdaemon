@@ -7,7 +7,7 @@ Dashboard Creation
    UI
 
 Dashboard Creation
------------------------
+------------------
 
 Dashboard configuration is simple yet very powerful. Dashboards can be
 created in single files or made modular for reuse of blocks of widgets.
