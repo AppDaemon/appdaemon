@@ -20,7 +20,6 @@ import appdaemon.http as adhttp
 import appdaemon.logging as logging
 import appdaemon.utils as utils
 import pytz
-import yaml
 
 try:
     import pid
@@ -243,6 +242,11 @@ class ADMain:
         config_dir = args.config
         pidfile = args.pidfile
 
+        module_debug = {}
+        if args.moduledebug is not None:
+            for arg in args.moduledebug:
+                module_debug[arg[0]] = arg[1]
+
         if args.configfile is None:
             config_file = "appdaemon.yaml"
         else:
@@ -258,80 +262,9 @@ class ADMain:
             parser.print_help()
             sys.exit(1)
 
-        module_debug = {}
-        if args.moduledebug is not None:
-            for arg in args.moduledebug:
-                module_debug[arg[0]] = arg[1]
+        config = utils.read_config_file(config_file_yaml)
 
-        #
-        # First locate secrets file
-        #
-        try:
-            #
-            # Read config file using include directory
-            #
-
-            yaml.add_constructor("!include", utils._include_yaml, Loader=yaml.SafeLoader)
-
-            #
-            # Read config file using environment variables
-            #
-
-            yaml.add_constructor("!env_var", utils._env_var_yaml, Loader=yaml.SafeLoader)
-
-            #
-            # Initially load file to see if secret directive is present
-            #
-            yaml.add_constructor("!secret", utils._dummy_secret, Loader=yaml.SafeLoader)
-            with open(config_file_yaml, "r") as yamlfd:
-                config_file_contents = yamlfd.read()
-
-            config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
-
-            if "secrets" in config:
-                secrets_file = config["secrets"]
-            else:
-                secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
-
-            #
-            # Read Secrets
-            #
-            if os.path.isfile(secrets_file):
-                with open(secrets_file, "r") as yamlfd:
-                    secrets_file_contents = yamlfd.read()
-
-                utils.secrets = yaml.load(secrets_file_contents, Loader=yaml.SafeLoader)
-
-            else:
-                if "secrets" in config:
-                    print(
-                        "ERROR",
-                        "Error loading secrets file: {}".format(config["secrets"]),
-                    )
-                    sys.exit()
-
-            #
-            # Read config file again, this time with secrets
-            #
-
-            yaml.add_constructor("!secret", utils._secret_yaml, Loader=yaml.SafeLoader)
-
-            with open(config_file_yaml, "r") as yamlfd:
-                config_file_contents = yamlfd.read()
-
-            config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
-
-        except yaml.YAMLError as exc:
-            print("ERROR", "Error loading configuration")
-            if hasattr(exc, "problem_mark"):
-                if exc.context is not None:
-                    print("ERROR", "parser says")
-                    print("ERROR", str(exc.problem_mark))
-                    print("ERROR", str(exc.problem) + " " + str(exc.context))
-                else:
-                    print("ERROR", "parser says")
-                    print("ERROR", str(exc.problem_mark))
-                    print("ERROR", str(exc.problem))
+        if config is None:
             sys.exit()
 
         if "appdaemon" not in config:
