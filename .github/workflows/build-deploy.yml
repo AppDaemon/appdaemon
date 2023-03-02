@@ -38,7 +38,7 @@ jobs:
         with:
           python-version: "3.10"
           cache: 'pip' # caching pip dependencies
-          # Manually set 'dev-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
+          # Manually set 'doc-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
           cache-dependency-path: 'doc-requirements.txt'
       - name: Install dependencies
         run: |
