@@ -38,13 +38,12 @@ jobs:
         with:
           python-version: "3.10"
           cache: 'pip' # caching pip dependencies
-          # Manually set pyproject.toml as the file to use for dependencies
-          # Workaround while waiting for https://github.com/actions/setup-python/issues/529
-          cache-dependency-path: 'pyproject.toml'
+          # Manually set 'doc-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
+          cache-dependency-path: 'doc-requirements.txt'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]
+          pip install -r doc-requirements.txt
       # Invoke sphinx to build the documentation
       - name: Build documentation
         # Options:
@@ -81,13 +80,12 @@ jobs:
         with:
           python-version: "3.10"
           cache: 'pip' # caching pip dependencies
-          # Manually set pyproject.toml as the file to use for dependencies
-          # Workaround while waiting for https://github.com/actions/setup-python/issues/529
-          cache-dependency-path: 'pyproject.toml'
+          # Manually set 'dev-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
+          cache-dependency-path: 'dev-requirements.txt'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]
+          pip install -r dev-requirements.txt
       - name: Build Python package
         run: python -m build
       - name: Upload Python package
@@ -146,7 +144,6 @@ jobs:
           push: ${{github.event_name == 'push' && (startsWith(github.ref, 'refs/tags') || github.ref_name == 'dev')}}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          #platforms: linux/arm64/v8, linux/amd64, linux/arm/v7, linux/arm/v6
-          platforms: linux/arm64/v8, linux/amd64
+          platforms: linux/arm64/v8, linux/amd64, linux/arm/v7, linux/arm/v6
           cache-from: type=gha
           cache-to: type=gha,mode=max
