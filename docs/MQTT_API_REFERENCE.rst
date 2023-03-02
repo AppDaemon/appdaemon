@@ -3,6 +3,8 @@ MQTT API Reference
 
 A list of API calls and information specific to the MQTT plugin.
 
+.. _MQTT App Creation:
+
 App Creation
 ------------
 
@@ -35,6 +37,8 @@ in the plugin configuration which simplifies the call within the app significant
 brokers can be accessed within an App, as long as they are all declared when the plugins are
 configured, and using the ``namespace`` parameter. See the section on `namespaces <APPGUIDE.html#namespaces>`__
 for a detailed description.
+
+.. _MQTT Examples:
 
 Examples
 ^^^^^^^^

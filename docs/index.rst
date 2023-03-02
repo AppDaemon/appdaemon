@@ -6,6 +6,8 @@
 Welcome to AppDaemon's documentation!
 =====================================
 
+Generated |today|
+
 AppDaemon is a loosely coupled, multi-threaded, sandboxed python
 execution environment for writing automation apps for home automation projects, and any environment that requires a robust event driven architecture.
 

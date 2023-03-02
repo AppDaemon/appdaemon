@@ -1592,25 +1592,16 @@ need.
 The parameters have the following meanings:
 
 self
-^^^^
-
-A standard Python object reference.
+  A standard Python object reference.
 
 event\_name
-^^^^^^^^^^^
-
-Name of the event that was called, e.g., ``call_service``.
+  Name of the event that was called, e.g., ``call_service``.
 
 data
-^^^^
-
-Any data that the system supplied with the event as a dict.
+  Any data that the system supplied with the event as a dict.
 
 kwargs
-^^^^^^
-
-A dictionary containing Zero or more user keyword arguments to be
-supplied to the callback.
+  A dictionary containing Zero or more user keyword arguments to be supplied to the callback.
 
 listen\_event()
 ~~~~~~~~~~~~~~~
