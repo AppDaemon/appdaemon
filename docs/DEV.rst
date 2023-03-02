@@ -42,7 +42,7 @@ Make sure you are in the ``appdaemon`` project directory, then run the following
 
 .. code:: console
 
-    $ pip install -e .[dev]
+    $ pip install -r dev-requirements.txt
 
 1. Setup `pre-commit hooks <https://pre-commit.com>`_. This will make sure that modified files are linted and formatted before every commit.
 
@@ -116,20 +116,25 @@ Dependencies management
 
 This project is published as a Python package, and following the `PEP 631 <https://peps.python.org/pep-0631/>`_ convention
 the dependencies are declared as part of the ``pyproject.toml`` file.
-However since this project is run as an application, it is good practice to clearly specify the version of dependencies the application has been built and tested with,
+However since this project is run as an application, as a `recommended practice in  Python development <https://caremad.io/posts/2013/07/setup-vs-requirement/>`_, its should clearly specify the version of dependencies the application has been built and tested with,
 to ensure a consistent deployment environment across multiple systems.
 
-For this reason, a ``requirements.txt`` file is used to **pin** all the dependencies (both direct and indirect ones), specifying their exact version.
-This file is auto-generated using ``pip-compile``, provided by the `pip-tools <https://github.com/jazzband/pip-tools/>`_ package.
-It uses the ``pyproject.toml`` as the source for the dependencies, and should not be manually changed. It is generated using
+For this reason, the ``requirements.txt`` files are used to **pin** all the dependencies (both direct and indirect ones) that the application needs, specifying their exact version.
+There are multiple files, each specifying a subset of dependencies (as defined under the ``[project.optional-dependencies]`` key in ``pyproject.toml``)
 
-.. code:: console
+requirements.txt
+  The runtime dependencies needed at runtime for AppDaemon
+dev-requirements.txt
+  The dependencies needed for a local development environment
+doc-requirements.txt
+  The dependencies needed to build the documentation with Sphinx
 
-    $ pip-compile --resolver=backtracking pyproject.toml
+These files are auto-generated using ``pip-compile``, provided by the `pip-tools <https://github.com/jazzband/pip-tools/>`_ package.
+It uses the ``pyproject.toml`` as the source from which to read the project dependencies. The generated files should not be manually changed.
+Each file has the ``pip-compile`` command used to generated them as a reference.
 
-
-This ``requirements.txt`` file is fundamental for efficiently building the ``Docker`` images: thanks to the Docker build cache,
-the dependencies are only installed the first time in the built process, and are re-used from the Docker cache in subsequent builds.
+The runtime ``requirements.txt`` file is fundamental for efficiently building the ``Docker`` images: thanks to the Docker build cache,
+the dependencies are only installed the first time in the build process, and are re-used from the Docker cache in subsequent builds.
 This improves dramatically the build times, especially when there is the need to compile native dependencies.
 See :ref:`Docker build` for more information.
 
@@ -183,7 +188,7 @@ The following command downloads and install the optional dependencies, as define
 
 .. code:: console
 
-    $ pip install .[dev]
+    $ pip install -r doc-requirements.txt
 
 Then `cd` to the `docs` subdirectory, where all the `rst` files are found, and run the following command:
 
