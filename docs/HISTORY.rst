@@ -9,12 +9,16 @@ Change Log
 - AUI Now shows performance stats for plugin network access
 - New CI pipeline designed and configured by `Carlo Mion <https://github.com/mion00>`__
 - Add support for python 3.11
+- Add support for TOML configuration files
 
 **Fixes**
 
 **Breaking Changes**
 
 - Remove Python 3.7 test coverage prior to deprecation at EOL in 6/23
+- `invalid_yaml_warnings` directive in appdaemon config file has been renamed to `invalid_config_warnings`
+- Removed support for `apps.yaml` in the config directory - this was deprecated in 2018
+
 
 4.2.3 (2023-02-27)
 ------------------

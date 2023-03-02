@@ -130,8 +130,8 @@ class AppDaemon:
         self.production_mode = False
         utils.process_arg(self, "production_mode", kwargs)
 
-        self.invalid_yaml_warnings = True
-        utils.process_arg(self, "invalid_yaml_warnings", kwargs)
+        self.invalid_config_warnings = True
+        utils.process_arg(self, "invalid_config_warnings", kwargs)
 
         self.missing_app_warnings = True
         utils.process_arg(self, "missing_app_warnings", kwargs)
@@ -218,7 +218,7 @@ class AppDaemon:
 
             # Initialize Apps
 
-            self.app_management = apps.AppManagement(self, kwargs.get("app_config_file", None))
+            self.app_management = apps.AppManagement(self)
 
             # threading setup
 
