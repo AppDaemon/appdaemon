@@ -9,8 +9,25 @@ on:
     branches: ["dev"]
 
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    # https://github.com/actions/setup-python
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip' # caching pip dependencies
+        # Manually set pyproject.toml as the file to use for dependencies
+        # Workaround while waiting for https://github.com/actions/setup-python/issues/529
+        cache-dependency-path: 'pyproject.toml'
+    - name: Run pre-commit
+      uses: pre-commit/action@v3.0.0
+    - uses: pre-commit-ci/lite-action@v1.0.1
+      if: always()
 
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -32,12 +49,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .[dev]
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings.
-        flake8 . --count --exit-zero --statistics
     - name: Test with pytest
       run: |
         python -m pytest
