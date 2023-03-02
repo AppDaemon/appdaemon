@@ -3,7 +3,6 @@ import traceback
 import uuid
 import os
 import importlib
-import yaml
 import subprocess
 import cProfile
 import io
@@ -585,28 +584,8 @@ class AppManagement:
 
     # Run in executor
     def read_config_file(self, file):
-        new_config = None
         try:
-            with open(file, "r") as yamlfd:
-                config_file_contents = yamlfd.read()
-
-            try:
-                new_config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
-
-            except yaml.YAMLError as exc:
-                self.logger.warning("Error loading configuration")
-                if hasattr(exc, "problem_mark"):
-                    if exc.context is not None:
-                        self.logger.warning("parser says")
-                        self.logger.warning(str(exc.problem_mark))
-                        self.logger.warning(str(exc.problem) + " " + str(exc.context))
-                    else:
-                        self.logger.warning("parser says")
-                        self.logger.warning(str(exc.problem_mark))
-                        self.logger.warning(str(exc.problem))
-
-            return new_config
-
+            return utils.read_config_file(file)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error loading config file: %s", file)

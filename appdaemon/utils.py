@@ -565,13 +565,12 @@ def get_object_size(obj, seen=None):
 
 def read_config_file(path):
     extension = os.path.splitext(path)[1]
-    if extension == ".yam":
+    if extension == ".yaml":
         return read_yaml_config(path)
     elif extension == ".toml":
         return read_toml_config(path)
     else:
-        print(f"ERROR: unknown file extension: {extension}")
-        return None
+        raise ValueError(f"ERROR: unknown file extension: {extension}")
 
 
 def read_toml_config(path):
@@ -683,74 +682,75 @@ def read_yaml_config(config_file_yaml):
     #
     # First locate secrets file
     #
-    try:
-        #
-        # Read config file using include directory
-        #
+    #    try:
+    #
+    # Read config file using include directory
+    #
 
-        yaml.add_constructor("!include", _include_yaml, Loader=yaml.SafeLoader)
+    yaml.add_constructor("!include", _include_yaml, Loader=yaml.SafeLoader)
 
-        #
-        # Read config file using environment variables
-        #
+    #
+    # Read config file using environment variables
+    #
 
-        yaml.add_constructor("!env_var", _env_var_yaml, Loader=yaml.SafeLoader)
+    yaml.add_constructor("!env_var", _env_var_yaml, Loader=yaml.SafeLoader)
 
-        #
-        # Initially load file to see if secret directive is present
-        #
-        yaml.add_constructor("!secret", _dummy_secret, Loader=yaml.SafeLoader)
-        with open(config_file_yaml, "r") as yamlfd:
-            config_file_contents = yamlfd.read()
+    #
+    # Initially load file to see if secret directive is present
+    #
+    yaml.add_constructor("!secret", _dummy_secret, Loader=yaml.SafeLoader)
+    with open(config_file_yaml, "r") as yamlfd:
+        config_file_contents = yamlfd.read()
 
-        config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
+    config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
+    if "secrets" in config:
+        secrets_file = config["secrets"]
+    else:
+        secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
+
+    #
+    # Read Secrets
+    #
+    if os.path.isfile(secrets_file):
+        with open(secrets_file, "r") as yamlfd:
+            secrets_file_contents = yamlfd.read()
+
+        global secrets
+        secrets = yaml.load(secrets_file_contents, Loader=yaml.SafeLoader)
+
+    else:
         if "secrets" in config:
-            secrets_file = config["secrets"]
-        else:
-            secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
+            print(
+                "ERROR",
+                "Error loading secrets file: {}".format(config["secrets"]),
+            )
+            return None
 
-        #
-        # Read Secrets
-        #
-        if os.path.isfile(secrets_file):
-            with open(secrets_file, "r") as yamlfd:
-                secrets_file_contents = yamlfd.read()
+    #
+    # Read config file again, this time with secrets
+    #
 
-            global secrets
-            secrets = yaml.load(secrets_file_contents, Loader=yaml.SafeLoader)
+    yaml.add_constructor("!secret", _secret_yaml, Loader=yaml.SafeLoader)
 
-        else:
-            if "secrets" in config:
-                print(
-                    "ERROR",
-                    "Error loading secrets file: {}".format(config["secrets"]),
-                )
-                return None
+    with open(config_file_yaml, "r") as yamlfd:
+        config_file_contents = yamlfd.read()
 
-        #
-        # Read config file again, this time with secrets
-        #
+    config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
-        yaml.add_constructor("!secret", _secret_yaml, Loader=yaml.SafeLoader)
+    return config
 
-        with open(config_file_yaml, "r") as yamlfd:
-            config_file_contents = yamlfd.read()
 
-        config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
+#   except yaml.YAMLError as exc:
+#       print("ERROR", "Error loading configuration")
+##       if hasattr(exc, "problem_mark"):
+#           if exc.context is not None:
+#               print("ERROR", "parser says")
+#               print("ERROR", str(exc.problem_mark))
+#               print("ERROR", str(exc.problem) + " " + str(exc.context))
+#           else:
+#               print("ERROR", "parser says")
+#               print("ERROR", str(exc.problem_mark))
+#               print("ERROR", str(exc.problem))
 
-        return config
-
-    except yaml.YAMLError as exc:
-        print("ERROR", "Error loading configuration")
-        if hasattr(exc, "problem_mark"):
-            if exc.context is not None:
-                print("ERROR", "parser says")
-                print("ERROR", str(exc.problem_mark))
-                print("ERROR", str(exc.problem) + " " + str(exc.context))
-            else:
-                print("ERROR", "parser says")
-                print("ERROR", str(exc.problem_mark))
-                print("ERROR", str(exc.problem))
-
-        return None
+#      raise

@@ -262,9 +262,11 @@ class ADMain:
             parser.print_help()
             sys.exit(1)
 
-        config = utils.read_config_file(config_file_yaml)
-
-        if config is None:
+        try:
+            config = utils.read_config_file(config_file_yaml)
+        except Exception as e:
+            print(f"Unexpected error loading config file: {config_file_yaml}")
+            print(e)
             sys.exit()
 
         if "appdaemon" not in config:
