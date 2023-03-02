@@ -38,8 +38,7 @@ autodoc_mock_imports = ["iso8601", "dateutil"]
 # ones.
 # - sphinx.ext.autosectionlabel: link to sections of the document ny their name
 # https://sublime-and-sphinx-guide.readthedocs.io/en/latest/references.html#links-to-sections-in-the-same-document
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx.ext.autosectionlabel"]
-
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon"]
 
 autodoc_member_order = "bysource"
 
