@@ -36,7 +36,9 @@ autodoc_mock_imports = ["iso8601", "dateutil"]
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon"]
+# - sphinx.ext.autosectionlabel: link to sections of the document ny their name
+# https://sublime-and-sphinx-guide.readthedocs.io/en/latest/references.html#links-to-sections-in-the-same-document
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx.ext.autosectionlabel"]
 
 
 autodoc_member_order = "bysource"

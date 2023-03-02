@@ -111,6 +111,56 @@ tests
 conf
     configuration directory, containing some sample files
 
+Dependencies management
+^^^^^^^^^^^^^^^^^^^^^^^
+
+This project is published as a Python package, and following the `PEP 631 <https://peps.python.org/pep-0631/>`_ convention
+the dependencies are declared as part of the ``pyproject.toml`` file.
+However since this project is run as an application, it is good practice to clearly specify the version of dependencies the application has been built and tested with,
+to ensure a consistent deployment environment across multiple systems.
+
+For this reason, a ``requirements.txt`` file is used to **pin** all the dependencies (both direct and indirect ones), specifying their exact version.
+This file is auto-generated using ``pip-compile``, provided by the `pip-tools <https://github.com/jazzband/pip-tools/>`_ package.
+It uses the ``pyproject.toml`` as the source for the dependencies, and should not be manually changed. It is generated using
+
+.. code:: console
+
+    $ pip-compile --resolver=backtracking pyproject.toml
+
+
+This ``requirements.txt`` file is fundamental for efficiently building the ``Docker`` images: thanks to the Docker build cache,
+the dependencies are only installed the first time in the built process, and are re-used from the Docker cache in subsequent builds.
+This improves dramatically the build times, especially when there is the need to compile native dependencies.
+See :ref:`Docker build` for more information.
+
+Docker build
+^^^^^^^^^^^^
+
+To locally build the container, it is required to have installed at least *Docker Engine 23.0*, since it enables `Docker BuildKit <https://docs.docker.com/build/buildkit/>`_ by default,
+with all its useful features used in this build process.
+
+- First it is necessary to build the AppDaemon Python package in the project directory (it will then be used as part of the Docker build stage).
+
+.. code:: console
+
+    $ python -m build
+
+- Then invoke the usual the docker build command:
+
+.. code:: console
+
+    $ docker build -t appdaemon .
+
+
+The Docker build makes use of the `multi-stage build <https://docs.docker.com/build/building/multi-stage/>`_ capabilities of Docker.
+This is necessary since the *arm/v6* and *arm/v7* architectures do not provide Python *wheels* for this architectures of the **orjson** and **uvloop** packages, required by this project.
+
+For this reason the build is divided in multiple *stages*: a *builder* stage and a *runtime* stage:
+
+- The **builder** stage is used to install compile-time dependencies such as ``gcc`` and ``rust`` (to compile C extensions of Python dependencies), in addition to all the dependencies defined in the ``requirements.txt``.
+
+  By copying only the ``requirements.txt``, **only the dependencies** of AppDameon are installed, so if there is no change in them between two subsequent Docker builds, Docker caches this layer and skip this step.
+- The **runtime stage** copies the built Python packages from the previous stage and install the AppDaemon package in the container, along with its startup scripts and files.
 
 Pull Requests
 -------------
