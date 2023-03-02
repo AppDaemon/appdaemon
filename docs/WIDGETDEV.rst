@@ -154,6 +154,8 @@ This is useful for static fields such as titles and simplifies the widget code s
 Fields that are not required to be initialized must still be present and set to ``""``.
 Again, it is possible to map values directly from the Instantiated Widget straight through to the Base Widget.
 
+.. _HADashboard Widget Icons:
+
 Icons
 ~~~~~
 

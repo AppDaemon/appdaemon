@@ -18,6 +18,8 @@ by the ``get_ad_api()`` call:
 
 These calls are documented below.
 
+.. _AppDaemon App Creation:
+
 App Creation
 ------------
 
