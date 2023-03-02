@@ -17,8 +17,10 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class AppManagement:
-    def __init__(self, ad: AppDaemon):
+    def __init__(self, ad: AppDaemon, use_toml):
         self.AD = ad
+        self.use_toml = use_toml
+        self.ext = ".toml" if use_toml is True else ".yaml"
         self.logger = ad.logging.get_child("_app_management")
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
@@ -399,7 +401,7 @@ class AppManagement:
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
             if root[-11:] != "__pycache__" and root[0] != ".":
                 for file in files:
-                    if file[-5:] == ".yaml" and file[0] != ".":
+                    if file[-5:] == self.ext and file[0] != ".":
                         path = os.path.join(root, file)
                         self.logger.debug("Reading %s", path)
                         config = await utils.run_in_executor(self, self.read_config_file, path)
@@ -538,7 +540,7 @@ class AppManagement:
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
             if root[-11:] != "__pycache__" and root[0] != ".":
                 for file in files:
-                    if file[-5:] == ".yaml" and file[0] != ".":
+                    if file[-5:] == self.ext and file[0] != ".":
                         path = os.path.join(root, file)
                         app_config_files.append(path)
                         ts = os.path.getmtime(path)

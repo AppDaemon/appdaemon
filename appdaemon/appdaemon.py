@@ -133,6 +133,9 @@ class AppDaemon:
         self.invalid_config_warnings = True
         utils.process_arg(self, "invalid_config_warnings", kwargs)
 
+        self.use_toml = False
+        utils.process_arg(self, "use_toml", kwargs)
+
         self.missing_app_warnings = True
         utils.process_arg(self, "missing_app_warnings", kwargs)
 
@@ -218,7 +221,7 @@ class AppDaemon:
 
             # Initialize Apps
 
-            self.app_management = apps.AppManagement(self)
+            self.app_management = apps.AppManagement(self, self.use_toml)
 
             # threading setup
 

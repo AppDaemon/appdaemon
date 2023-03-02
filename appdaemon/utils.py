@@ -739,18 +739,3 @@ def read_yaml_config(config_file_yaml):
     config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
     return config
-
-
-#   except yaml.YAMLError as exc:
-#       print("ERROR", "Error loading configuration")
-##       if hasattr(exc, "problem_mark"):
-#           if exc.context is not None:
-#               print("ERROR", "parser says")
-#               print("ERROR", str(exc.problem_mark))
-#               print("ERROR", str(exc.problem) + " " + str(exc.context))
-#           else:
-#               print("ERROR", "parser says")
-#               print("ERROR", str(exc.problem_mark))
-#               print("ERROR", str(exc.problem))
-
-#      raise

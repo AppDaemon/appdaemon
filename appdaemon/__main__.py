@@ -236,6 +236,7 @@ class ADMain:
         parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
         parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
         parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
+        parser.add_argument("--toml", help="use TOML for configuration files", action="store_true")
 
         args = parser.parse_args()
 
@@ -248,7 +249,10 @@ class ADMain:
                 module_debug[arg[0]] = arg[1]
 
         if args.configfile is None:
-            config_file = "appdaemon.yaml"
+            if args.toml is True:
+                config_file = "appdaemon.toml"
+            else:
+                config_file = "appdaemon.yaml"
         else:
             config_file = args.configfile
 
@@ -277,6 +281,7 @@ class ADMain:
         if "disable_apps" not in appdaemon:
             appdaemon["disable_apps"] = False
 
+        appdaemon["use_toml"] = args.toml
         appdaemon["config_dir"] = config_dir
         appdaemon["config_file"] = config_file_yaml
         appdaemon["app_config_file"] = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
