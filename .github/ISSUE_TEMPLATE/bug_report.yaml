@@ -17,8 +17,8 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of AppDaemon are you running?
-      placeholder: 4.0.3
+      description: What version of AppDaemon are you running? (If you are running the homeassistant addon please give the version number AppDaemon reports in its logs, not the addon version)
+      placeholder: 4.2.3
     validations:
       required: true
   - type: dropdown
