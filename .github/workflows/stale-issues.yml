@@ -30,6 +30,7 @@ jobs:
           days-before-stale: 45
           days-before-close: 15
           any-of-labels: "question,wait-response"
+          stale-issue-label: "stale"
           debug-only: "${{ env.DRY_RUN }}"
 
   # Consider ONLY issues that DO NOT have any of the labels defined below
@@ -44,4 +45,5 @@ jobs:
           days-before-stale: 180
           days-before-close: 15
           exempt-issue-labels: "bug,enhancement,question,wait-response,Work In Progress"
+          stale-issue-label: "stale"
           debug-only: "${{ env.DRY_RUN }}"
