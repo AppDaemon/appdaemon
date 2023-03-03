@@ -14,18 +14,18 @@ repos:
   hooks:
     - id: flake8
 # If pyproject.toml is modified, run pip-compile to pin the version of dependencies inside requirements.txt files
-#- repo: https://github.com/jazzband/pip-tools
-#  rev: 6.12.3
-#  hooks:
-#    - id: pip-compile
-#      name: pip-compile pyproject.toml
-#      args: [--resolver=backtracking, pyproject.toml]
-#      files: ^requirements\.txt|pyproject\.toml$
-#    - id: pip-compile
-#      name: pip-compile pyproject.toml --extra=dev
-#      args: [--extra=dev, --output-file=dev-requirements.txt, --resolver=backtracking, pyproject.toml]
-#      files: ^dev-requirements\.txt|pyproject\.toml$
-#    - id: pip-compile
-#      name: pip-compile pyproject.toml --extra=doc
-#      args: [--extra=doc, --output-file=doc-requirements.txt, --resolver=backtracking, pyproject.toml]
-#      files: ^doc-requirements\.txt|pyproject\.toml$
+- repo: https://github.com/jazzband/pip-tools
+  rev: 6.12.3
+  hooks:
+    - id: pip-compile
+      name: pip-compile pyproject.toml
+      args: [--resolver=backtracking, pyproject.toml]
+      files: ^requirements\.txt|pyproject\.toml$
+    - id: pip-compile
+      name: pip-compile pyproject.toml --extra=dev
+      args: [--extra=dev, --output-file=dev-requirements.txt, --resolver=backtracking, pyproject.toml]
+      files: ^dev-requirements\.txt|pyproject\.toml$
+    - id: pip-compile
+      name: pip-compile pyproject.toml --extra=doc
+      args: [--extra=doc, --output-file=doc-requirements.txt, --resolver=backtracking, pyproject.toml]
+      files: ^doc-requirements\.txt|pyproject\.toml$
