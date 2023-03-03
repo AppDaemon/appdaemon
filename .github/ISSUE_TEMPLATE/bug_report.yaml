@@ -38,6 +38,12 @@ body:
       label: Relevant log output
       description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
       render: sh
+  - type: textarea
+    id: app
+    attributes:
+      label: Relevant code in the app that caused the issue (if appropriate)
+      description: Please copy and paste any relevant app code, if your error is related to a specific app or piece of code. If not related to an app, leave blank. This will be automatically formatted into code, so no need for backticks.
+      render: sh
 
   - type: textarea
     attributes:
