@@ -1,0 +1,16 @@
+name: Feature Request
+description: Suggest a new feature.
+labels: ["enhancement"]
+body:
+  - type: checkboxes
+    attributes:
+      label: Is there an existing feature request for this?
+      description: Please search to see if there is already a Github issue for the feature you are requesting.
+      options:
+      - label: I have searched the existing issues
+        required: true
+  - type: textarea
+    id: feature
+    attributes:
+      label: Your feature request
+      description: How do you think AppDaemon could be improved/what is currently missing?
